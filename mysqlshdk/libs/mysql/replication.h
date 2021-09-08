@@ -240,6 +240,25 @@ Replication_channel wait_replication_done_connecting(
     const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name);
 
 /**
+ * Get the replication user used for the given channel.
+ *
+ * This function returns the replication user used in the (last)
+ * CHANGE MASTER TO statement FOR CHANNEL channel_name.
+ *
+ * NOTE: The correct execution of this function requires the variable
+ *       master_info_repository=TABLE to be set.
+ *
+ * @param instance instance object of target member to obtain the
+ *                 replication user.
+ * @param channel_name name of the channel to query
+ * @return a string with the replication user set for the specified
+ *         instance. Note: If no replication user was specified an empty string
+ *         is returned.
+ */
+std::string get_replication_user(const mysqlshdk::mysql::IInstance &instance,
+                                 const std::string &channel_name);
+
+/**
  * Returns GTID_EXECUTED set from the server.
  */
 std::string get_executed_gtid_set(const mysqlshdk::mysql::IInstance &server);

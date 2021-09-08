@@ -141,11 +141,9 @@ void Base_cluster_impl::sync_transactions(
   current_console()->print_info();
 }
 
-std::string Base_cluster_impl::get_replication_user_name(
-    mysqlshdk::mysql::IInstance *target_instance,
-    const std::string &user_prefix) const {
-  return user_prefix +
-         std::to_string(*target_instance->get_sysvar_int("server_id"));
+std::string Base_cluster_impl::make_replication_user_name(
+    uint32_t server_id, const std::string &user_prefix) const {
+  return user_prefix + std::to_string(server_id);
 }
 
 void Base_cluster_impl::set_target_server(

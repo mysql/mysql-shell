@@ -24,14 +24,19 @@ function stop_replica(session) {
 }
 
 function reset_instance(session) {
+    rows = session.runSql("SELECT managed_type, managed_name FROM performance_schema.replication_asynchronous_connection_failover_managed").fetchAll();
+    for (row of rows) {
+      try {
+        session.runSql("select asynchronous_connection_failover_delete_managed(?,?)", [row[0], row[1]]);
+      } catch (e) {}
+    }
     try {
       session.runSql("STOP group_replication");
     } catch (e) {}
-    session.runSql("set global super_read_only=0");
+    session.runSql("SET GLOBAL super_read_only=0");
     try {
       session.runSql("SELECT group_replication_reset_member_actions()");
     } catch (e) {}
-
     session.runSql("STOP REPLICA");
     try {
       session.runSql("STOP REPLICA FOR CHANNEL 'clusterset_replication'");
@@ -397,7 +402,7 @@ function CHECK_PRIMARY_CLUSTER(uris, cluster, values) {
     if (connection_type != null) {
       if (have_ssl == "YES") {
         // SSL is supported so it must be enabled
-        // XXX EXPECT_EQ("SSL/TLS", connection_type[0], uri+".connection_type")
+        EXPECT_EQ("SSL/TLS", connection_type[0], uri+".connection_type")
       } else {
         // SSL is not supported so it must be disabled
         EXPECT_EQ("TCP/IP", connection_type[0], uri+".connection_type")
@@ -609,12 +614,6 @@ function CHECK_INVALIDATED_CLUSTER(uris, pcluster, cluster) {
   EXPECT_EQ(1, row["invalidated"], cluster.name+".md.invalidated");
 
   session.close();
-
-  // check that getting a handle of the invalidated cluster errors out
-  if (uris.length > 0) {
-    shell.connect(uris[0]);
-    // XXX EXPECT_THROWS(function(){dba.getCluster();}, "xx");
-  }
 }
 
 function CHECK_INVALIDATED_CLUSTER_NAMED(session, cluster_name) {

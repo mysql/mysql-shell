@@ -14,6 +14,9 @@ The following operations are available at 'clusterset':
       Lists the Router instances of the ClusterSet, or a single Router
       instance.
 
+   options
+      Lists the ClusterSet configuration options.
+
    rejoin-cluster
       Rejoin an invalidated Cluster back to the ClusterSet and update
       replication.
@@ -23,6 +26,9 @@ The following operations are available at 'clusterset':
 
    routing-options
       Lists the ClusterSet Routers configuration options.
+
+   set-option
+      Changes the value of an option for the whole ClusterSet.
 
    set-primary-cluster
       Performs a safe switchover of the PRIMARY Cluster of the ClusterSet.
@@ -64,6 +70,12 @@ OPTIONS
 
 --recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
+
+--replicationAllowedHost=<str>
+            String value to use as the host name part of internal replication
+            accounts (i.e. 'mysql_innodb_cluster_###'@'hostname'). Default is
+            %. It must be possible for any member of the Cluster to connect to
+            any other member using accounts with this hostname value.
 
 --memberSslMode=<str>
             SSL mode used to configure the security state of the communication

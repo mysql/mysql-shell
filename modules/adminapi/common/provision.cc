@@ -30,6 +30,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -814,9 +815,10 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
       !gr_opts.recovery_credentials->user.empty()) {
     log_debug("Setting Group Replication recovery user to '%s'.",
               gr_opts.recovery_credentials->user.c_str());
-    mysqlshdk::gr::change_recovery_credentials(
+    mysqlshdk::mysql::change_replication_credentials(
         instance, gr_opts.recovery_credentials->user,
-        gr_opts.recovery_credentials->password.get_safe());
+        gr_opts.recovery_credentials->password.get_safe(),
+        mysqlshdk::gr::k_gr_recovery_channel);
   }
 
   log_debug("Starting Group Replication to join group...");

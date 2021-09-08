@@ -1094,6 +1094,9 @@ ${CLUSTER_OPT_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 @li disableClone: boolean value used to disable the clone usage on the cluster.
+@li replicationAllowedHost string value to use as the host name part of
+internal replication accounts. Existing accounts will be re-created with the new
+value.
 
 @attention The failoverConsistency option will be removed in a future release.
 Please use the consistency option instead.
@@ -1583,6 +1586,10 @@ The options dictionary can contain the following values:
 ClusterSet are executed, but no changes are actually made. An
 exception will be thrown when finished.
 @li clusterSetReplicationSslMode: SSL mode for the ClusterSet replication channels.
+@li replicationAllowedHost: string value to use as the host name part of
+internal replication accounts (i.e. 'mysql_innodb_cs_###'@'hostname').
+Default is %. It must be possible for any member of the ClusterSet to connect to
+any other member using accounts with this hostname value.
 
 The clusterSetReplicationSslMode option supports the following values:
 
@@ -1610,6 +1617,10 @@ shcore::Value Cluster::create_cluster_set(
     const std::string &domain_name,
     const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
         &options) {
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
+  Scoped_instance_pool ipool(false, auth_opts);
+
   return m_impl->create_cluster_set(domain_name, *options);
 }
 

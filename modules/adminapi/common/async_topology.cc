@@ -585,10 +585,11 @@ void delete_managed_connection_failover(
 
 void create_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,
-    const mysqlshdk::mysql::Auth_options &donor_account, bool dry_run) {
-  log_info("Creating clone recovery user %s@%% at %s%s.",
-           donor_account.user.c_str(), target_instance->descr().c_str(),
-           dry_run ? " (dryRun)" : "");
+    const mysqlshdk::mysql::Auth_options &donor_account,
+    const std::string &account_host, bool dry_run) {
+  log_info("Creating clone recovery user %s@%s at %s%s.",
+           donor_account.user.c_str(), account_host.c_str(),
+           target_instance->descr().c_str(), dry_run ? " (dryRun)" : "");
 
   if (!dry_run) {
     try {
@@ -597,7 +598,7 @@ void create_clone_recovery_user_nobinlog(
       mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
       // Create recovery user for clone equal to the donor user
       mysqlshdk::mysql::create_user_with_password(
-          *target_instance, donor_account.user, {"%"},
+          *target_instance, donor_account.user, {account_host},
           {std::make_tuple("CLONE_ADMIN, EXECUTE", "*.*", false),
            std::make_tuple("SELECT", "performance_schema.*", false)},
           *donor_account.password);
@@ -609,18 +610,19 @@ void create_clone_recovery_user_nobinlog(
 
 void drop_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,
-    const mysqlshdk::mysql::Auth_options &account) {
-  log_info("Dropping account %s@%% at %s", account.user.c_str(),
-           target_instance->descr().c_str());
+    const mysqlshdk::mysql::Auth_options &account,
+    const std::string &account_host) {
+  log_info("Dropping account %s@%s at %s", account.user.c_str(),
+           account_host.c_str(), target_instance->descr().c_str());
 
   try {
     mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
-    target_instance->drop_user(account.user, "%", true);
+    target_instance->drop_user(account.user, account_host, true);
   } catch (const shcore::Error &e) {
     auto console = current_console();
     console->print_warning(shcore::str_format(
-        "%s: Error dropping account %s@%%.", target_instance->descr().c_str(),
-        account.user.c_str()));
+        "%s: Error dropping account %s@%s.", target_instance->descr().c_str(),
+        account.user.c_str(), account_host.c_str()));
     // ignore the error and move on
   }
 }
@@ -645,9 +647,10 @@ void refresh_target_connections(mysqlshdk::mysql::IInstance *target) {
 }
 
 void cleanup_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
-                            const mysqlshdk::mysql::Auth_options &clone_user) {
+                            const mysqlshdk::mysql::Auth_options &clone_user,
+                            const std::string &account_host) {
   // NOTE: disable binlog to avoid messing up with the GTID
-  drop_clone_recovery_user_nobinlog(recipient, clone_user);
+  drop_clone_recovery_user_nobinlog(recipient, clone_user, account_host);
 
   // Reset clone settings
   recipient->set_sysvar_default("clone_valid_donor_list");

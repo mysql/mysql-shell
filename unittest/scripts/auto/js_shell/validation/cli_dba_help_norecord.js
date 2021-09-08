@@ -291,6 +291,12 @@ OPTIONS
             Boolean value used to confirm that super_read_only must be
             disabled. Deprecated.
 
+--replicationAllowedHost=<str>
+            String value to use as the host name part of internal replication
+            accounts (i.e. 'mysql_innodb_cluster_###'@'hostname'). Default is
+            %. It must be possible for any member of the Cluster to connect to
+            any other member using accounts with this hostname value.
+
 --force=<bool>
             Boolean, confirms that the multiPrimary option must be applied
             and/or the operation must proceed even if unmanaged replication
@@ -333,6 +339,12 @@ OPTIONS
             Boolean value which indicates whether the GTID set of the seed
             instance corresponds to all transactions executed. Default is
             false.
+
+--replicationAllowedHost=<str>
+            String value to use as the host name part of internal replication
+            accounts (i.e. 'mysql_innodb_rs_###'@'hostname'). Default is %. It
+            must be possible for any member of the ReplicaSet to connect to any
+            other member using accounts with this hostname value.
 
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command

@@ -40,7 +40,7 @@ mysql_server_uuid: <<<uuid2>>>
           address: 127.0.0.1:<<<__mysql_sandbox_port2>>>
          endpoint: 127.0.0.1:<<<__mysql_sandbox_port2>>>
         xendpoint: 127.0.0.1:<<<__mysql_sandbox_port2>>>0
-       attributes: {"server_id": 22}
+       attributes: {"server_id": 22, "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_22"}
 2
 
 //@# this_instance
@@ -73,7 +73,7 @@ mysql_server_uuid: <<<uuid2>>>
 |ar	pm	<<<cluster_id1>>>	myrs	NULL|
 |gr	pm	<<<cluster_id2>>>	mycluster	NULL|
 |instance_id	cluster_id	label	mysql_server_uuid	address	endpoint	xendpoint	attributes|
-|1	<<<cluster_id1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	<<<uuid1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>0	{"server_id": 11}|
+|1	<<<cluster_id1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	<<<uuid1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>0	{"server_id": 11, "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_11"}|
 |2	<<<cluster_id2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>	<<<uuid2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>0	{"server_id": 22, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_22"}|
 
 //@# this_instance again

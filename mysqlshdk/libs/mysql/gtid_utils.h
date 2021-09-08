@@ -56,13 +56,13 @@ class Gtid_set {
 
   static Gtid_set from_gtid_executed(
       const mysqlshdk::mysql::IInstance &server) {
-    return Gtid_set(server.queryf_one_string(0, "", "select @@gtid_executed"),
-                    true);
+    return Gtid_set(
+        server.queryf_one_string(0, "", "select @@global.gtid_executed"), true);
   }
 
   static Gtid_set from_gtid_purged(const mysqlshdk::mysql::IInstance &server) {
-    return Gtid_set(server.queryf_one_string(0, "", "select @@gtid_purged"),
-                    true);
+    return Gtid_set(
+        server.queryf_one_string(0, "", "select @@global.gtid_purged"), true);
   }
 
   static Gtid_set from_received_transaction_set(

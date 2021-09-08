@@ -63,6 +63,8 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Undefined setRoutingOption(String router, String option, String value);
   Dictionary routingOptions(String router);
   Dictionary listRouters(String router);
+  Undefined setOption(String option, String value);
+  String options();
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTERSET_GETNAME_BRIEF)
   str get_name();
@@ -79,6 +81,8 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   None set_routing_option(str router, str option, str value);
   dict routing_options(str router);
   dict list_routers(str router);
+  set_option(str option, str value);
+  str options();
 #endif
 
   explicit ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset);
@@ -125,6 +129,10 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   shcore::Value describe();
 
   std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
+
+  shcore::Value options();
+
+  void set_option(const std::string &option, const shcore::Value &value);
 
   shcore::Value list_routers(const std::string &router);
 

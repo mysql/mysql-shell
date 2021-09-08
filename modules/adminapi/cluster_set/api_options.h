@@ -39,6 +39,7 @@ struct Create_cluster_set_options {
 
   bool dry_run = false;
   Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
+  std::string replication_allowed_host;
 };
 
 struct Create_replica_cluster_options : public Interactive_option,
@@ -51,6 +52,7 @@ struct Create_replica_cluster_options : public Interactive_option,
   Create_replica_cluster_clone_options clone_options;
   bool dry_run = false;
   int recovery_verbosity = isatty(STDOUT_FILENO) ? 2 : 1;
+  std::string replication_allowed_host;
 };
 
 struct Remove_cluster_options : public Timeout_option {

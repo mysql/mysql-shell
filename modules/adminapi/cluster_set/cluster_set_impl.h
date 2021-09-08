@@ -86,6 +86,7 @@ class Cluster_set_impl : public Base_cluster_impl,
       const clusterset::Force_primary_cluster_options &options);
   shcore::Value status(int extended);
   shcore::Value describe();
+  shcore::Value options();
 
   std::shared_ptr<Cluster_impl> get_primary_cluster() const;
 
@@ -117,16 +118,19 @@ class Cluster_set_impl : public Base_cluster_impl,
                                             bool allow_unavailable = false,
                                             bool allow_invalidated = false);
 
-  mysqlshdk::mysql::Auth_options create_cluster_replication_user(
-      Instance *cluster_primary, bool dry_run);
+  std::pair<mysqlshdk::mysql::Auth_options, std::string>
+  create_cluster_replication_user(Instance *cluster_primary,
+                                  const std::string &account_host,
+                                  bool dry_run);
 
   void record_cluster_replication_user(
-      Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user);
+      Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user,
+      const std::string &repl_user_host);
 
   void drop_cluster_replication_user(Cluster_impl *cluster);
 
   mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
-      const std::string &user, bool dry_run);
+      Cluster_impl *cluster, bool dry_run);
 
   Member_recovery_method validate_instance_recovery(
       Member_op_action op_action, mysqlshdk::mysql::IInstance *target_instance,
@@ -230,6 +234,8 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void primary_instance_did_change(
       const std::shared_ptr<Instance> &new_primary);
+
+  void update_replication_allowed_host(const std::string &host);
 
   Global_topology_type m_topology_type;
   std::shared_ptr<Cluster_impl> m_primary_cluster;

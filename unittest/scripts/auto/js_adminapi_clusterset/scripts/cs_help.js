@@ -79,6 +79,12 @@ cs.help("setRoutingOption");
 //@ setRoutingOption \? [USE:setRoutingOption]
 \? ClusterSet.setRoutingOption
 
+//@ setOption
+\? ClusterSet.setOption
+
+//@ options
+\? ClusterSet.options
+
 //@<> Clean-up.
 cs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

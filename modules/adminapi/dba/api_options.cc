@@ -196,6 +196,8 @@ const shcore::Option_pack_def<Create_cluster_options>
           .optional(kAdoptFromGR, &Create_cluster_options::adopt_from_gr)
           .optional(kClearReadOnly,
                     &Create_cluster_options::set_clear_read_only)
+          .optional(kReplicationAllowedHost,
+                    &Create_cluster_options::replication_allowed_host)
           .include<Force_interactive_options>();
 
   return opts;
@@ -232,6 +234,8 @@ const shcore::Option_pack_def<Create_replicaset_options>
                     &Create_replicaset_options::set_instance_label)
           .optional(kGtidSetIsComplete,
                     &Create_replicaset_options::gtid_set_is_complete)
+          .optional(kReplicationAllowedHost,
+                    &Create_replicaset_options::replication_allowed_host)
           .include<Interactive_option>();
 
   return opts;

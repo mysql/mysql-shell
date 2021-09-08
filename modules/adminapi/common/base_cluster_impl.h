@@ -48,6 +48,10 @@ namespace dba {
 constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
     "opt_gtidSetIsComplete";
 
+// host (as in user@host) to use when creating managed replication accounts
+constexpr const char k_cluster_attribute_replication_allowed_host[] =
+    "opt_replicationAllowedHost";
+
 class Base_cluster_impl {
  public:
   Base_cluster_impl(const std::string &cluster_name,
@@ -230,9 +234,8 @@ class Base_cluster_impl {
   validate_set_option_namespace(const std::string &option,
                                 const shcore::Value &value) const;
 
-  std::string get_replication_user_name(
-      mysqlshdk::mysql::IInstance *target_instance,
-      const std::string &user_prefix) const;
+  std::string make_replication_user_name(uint32_t server_id,
+                                         const std::string &user_prefix) const;
 };
 
 }  // namespace dba

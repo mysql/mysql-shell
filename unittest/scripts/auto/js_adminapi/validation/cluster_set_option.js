@@ -113,6 +113,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
             {
                 "option": "disableClone",
                 "value": false
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {
@@ -426,6 +430,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
             {
                 "option": "disableClone",
                 "value": true
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {

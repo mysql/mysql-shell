@@ -52,6 +52,7 @@
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -312,9 +313,9 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
         new Star_global_topology_manager(
             0, discover_unmanaged_topology(target_server.get())));
     console->print_info();
-    cluster->adopt(topology.get(), options.instance_label, options.dry_run);
+    cluster->adopt(topology.get(), options, options.dry_run);
   } else {
-    cluster->create(options.instance_label, options.dry_run);
+    cluster->create(options, options.dry_run);
   }
 
   if (!options.dry_run) {
@@ -327,7 +328,8 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
   return cluster;
 }
 
-void Replica_set_impl::create(const std::string &instance_label, bool dry_run) {
+void Replica_set_impl::create(const Create_replicaset_options &options,
+                              bool dry_run) {
   auto console = current_console();
 
   console->print_info("* Checking MySQL instance at " +
@@ -344,10 +346,6 @@ void Replica_set_impl::create(const std::string &instance_label, bool dry_run) {
   m_primary_master = m_cluster_server;
   m_primary_master->retain();
 
-  // create repl user to be used in the future
-  create_replication_user(m_cluster_server.get(), k_async_cluster_user_name,
-                          dry_run);
-
   console->print_info("* Updating metadata...");
 
   try {
@@ -356,11 +354,23 @@ void Replica_set_impl::create(const std::string &instance_label, bool dry_run) {
 
     // Update metadata
     log_info("Creating replicaset metadata...");
-    if (!dry_run) m_metadata_storage->create_async_cluster_record(this, false);
+    if (!dry_run) {
+      auto id = m_metadata_storage->create_async_cluster_record(this, false);
+
+      m_metadata_storage->update_cluster_attribute(
+          id, k_cluster_attribute_replication_allowed_host,
+          options.replication_allowed_host.empty()
+              ? shcore::Value("%")
+              : shcore::Value(options.replication_allowed_host));
+    }
+
+    // create repl user to be used in the future
+    auto user = create_replication_user(m_cluster_server.get(), dry_run);
 
     log_info("Recording metadata for %s", m_cluster_server->descr().c_str());
     if (!dry_run)
-      manage_instance(m_cluster_server.get(), instance_label, 0, true);
+      manage_instance(m_cluster_server.get(), {user.first.user, user.second},
+                      options.instance_label, 0, true);
     console->print_info();
   } catch (...) {
     console->print_error(
@@ -377,7 +387,7 @@ void Replica_set_impl::create(const std::string &instance_label, bool dry_run) {
 }
 
 void Replica_set_impl::adopt(Global_topology_manager *topology,
-                             const std::string & /*instance_label*/,
+                             const Create_replicaset_options &options,
                              bool dry_run) {
   auto console = current_console();
 
@@ -416,10 +426,6 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
   m_primary_master = m_cluster_server;
   m_primary_master->retain();
 
-  // Create rpl user to be used in the future (for primary).
-  create_replication_user(m_cluster_server.get(), k_async_cluster_user_name,
-                          dry_run);
-
   console->print_info("* Updating metadata...");
 
   try {
@@ -428,12 +434,22 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
 
     // Update metadata
     log_info("Creating replicaset metadata...");
-    if (!dry_run) m_metadata_storage->create_async_cluster_record(this, true);
+    if (!dry_run) {
+      auto id = m_metadata_storage->create_async_cluster_record(this, true);
+
+      if (!options.replication_allowed_host.empty())
+        m_metadata_storage->update_cluster_attribute(
+            id, k_cluster_attribute_replication_allowed_host,
+            shcore::Value(options.replication_allowed_host));
+    }
+
+    // Create rpl user to be used in the future (for primary).
+    auto user = create_replication_user(m_cluster_server.get(), dry_run);
 
     Instance_id primary_id = 0;
 
     if (!dry_run)
-      primary_id = manage_instance(primary_instance.get(), "", 0, true);
+      primary_id = manage_instance(primary_instance.get(), {}, "", 0, true);
     console->print_info();
 
     for (const auto *server : topology->topology()->nodes()) {
@@ -442,15 +458,15 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
             server->get_primary_member()->endpoint));
 
         // Create rpl user to be used in the future (for secondary).
-        create_replication_user(instance.get(), k_async_cluster_user_name,
-                                dry_run);
+        user = create_replication_user(instance.get(), dry_run);
 
         log_info("Fencing SECONDARY %s", server->label.c_str());
 
         if (!dry_run) fence_instance(instance.get());
 
         log_info("Recording metadata for %s", server->label.c_str());
-        if (!dry_run) manage_instance(instance.get(), "", primary_id, false);
+        if (!dry_run)
+          manage_instance(instance.get(), {}, "", primary_id, false);
       }
     }
   } catch (...) {
@@ -647,14 +663,14 @@ void Replica_set_impl::add_instance(
   console->print_info("* Updating topology");
 
   // Create the recovery account
-  ar_options.repl_credentials = create_replication_user(
-      target_instance.get(), k_async_cluster_user_name, dry_run);
+  auto user = create_replication_user(target_instance.get(), dry_run);
+  ar_options.repl_credentials = user.first;
 
   try {
     if (*clone_options.recovery_method == Member_recovery_method::CLONE) {
       // Do and monitor the clone
-      handle_clone(target_instance, clone_options, ar_options, progress_style,
-                   sync_timeout, dry_run);
+      handle_clone(target_instance, clone_options, ar_options, user.second,
+                   progress_style, sync_timeout, dry_run);
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -711,7 +727,8 @@ void Replica_set_impl::add_instance(
 
     log_info("Recording metadata for %s", target_instance->descr().c_str());
     if (!dry_run)
-      manage_instance(target_instance.get(), *label, master_id, false);
+      manage_instance(target_instance.get(), {user.first.user, user.second},
+                      *label, master_id, false);
   } catch (const cancel_sync &) {
     if (!dry_run) {
       revert_topology_changes(target_instance.get(), true, false);
@@ -863,14 +880,15 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   // NOTE: Replication user needs to be refreshed in case we are rejoining the
   // old PRIMARY from the replicaset.
   Async_replication_options ar_options;
-  ar_options.repl_credentials =
+  std::string repl_account_host;
+  std::tie(ar_options.repl_credentials, repl_account_host) =
       refresh_replication_user(target_instance.get(), dry_run);
 
   try {
     if (*clone_options.recovery_method == Member_recovery_method::CLONE) {
       // Do and monitor the clone
-      handle_clone(target_instance, clone_options, ar_options, progress_style,
-                   sync_timeout, dry_run);
+      handle_clone(target_instance, clone_options, ar_options,
+                   repl_account_host, progress_style, sync_timeout, dry_run);
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -1148,14 +1166,13 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
     }
   }
 
-  // update metadata first
+  // drop user first since we need to query MD for it - this will ignore DB
+  // errors
+  drop_replication_user(md.uuid, target_server.get());
+
+  // update metadata
   log_debug("Removing instance from the Metadata.");
   m_metadata_storage->record_async_member_removed(md.cluster_id, md.id);
-
-  // drop user - this will ignore DB errors
-  if (target_server.get()) {
-    drop_replication_user(target_server.get(), k_async_cluster_user_name);
-  }
 
   if (target_server.get()) {
     if (repl_working && timeout >= 0) {
@@ -1327,7 +1344,9 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   console->print_info("* Updating metadata");
   // Re-generate a new password for the master being demoted.
   Async_replication_options ar_options;
-  ar_options.repl_credentials = refresh_replication_user(master.get(), dry_run);
+  std::string repl_account_host;
+  std::tie(ar_options.repl_credentials, repl_account_host) =
+      refresh_replication_user(master.get(), dry_run);
 
   // Update the metadata with the state the replicaset is supposed to be in
   log_info("Updating metadata at %s",
@@ -2096,7 +2115,7 @@ void Replica_set_impl::revert_topology_changes(
   console->print_info("Reverting topology changes...");
   try {
     if (remove_user) {
-      drop_replication_user(target_server, k_async_cluster_user_name);
+      drop_replication_user(target_server->get_uuid(), target_server);
     }
 
     async_remove_replica(target_server, k_replicaset_channel_name, dry_run);
@@ -2111,6 +2130,7 @@ void Replica_set_impl::handle_clone(
     const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
     const Clone_options &clone_options,
     const Async_replication_options &ar_options,
+    const std::string &repl_account_host,
     const Recovery_progress_style &progress_style, int sync_timeout,
     bool dry_run) {
   auto console = current_console();
@@ -2190,13 +2210,15 @@ void Replica_set_impl::handle_clone(
   // For that reason, we create a user in the recipient with the same username
   // and password as the replication user created in the donor.
   create_clone_recovery_user_nobinlog(recipient.get(),
-                                      *ar_options.repl_credentials, dry_run);
+                                      *ar_options.repl_credentials,
+                                      repl_account_host, dry_run);
 
   if (!dry_run) {
     // Ensure the donor's recovery account has the clone usage required
     // privileges: BACKUP_ADMIN
     get_primary_master()->executef("GRANT BACKUP_ADMIN ON *.* TO ?@?",
-                                   ar_options.repl_credentials->user, "%");
+                                   ar_options.repl_credentials->user,
+                                   repl_account_host);
 
     // If the donor instance is processing transactions, it may have the
     // clone-user handling (create + grant) still in the backlog waiting to be
@@ -2292,8 +2314,9 @@ void Replica_set_impl::handle_clone(
       refresh_target_connections(m_metadata_storage->get_md_server().get());
 
       // Remove the BACKUP_ADMIN grant from the recovery account
-      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
-                                     ar_options.repl_credentials->user);
+      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
+                                     ar_options.repl_credentials->user,
+                                     repl_account_host);
     } catch (const stop_monitoring &) {
       console->print_info();
       console->print_note("Recovery process canceled. Reverting changes...");
@@ -2321,10 +2344,12 @@ void Replica_set_impl::handle_clone(
       refresh_target_connections(m_metadata_storage->get_md_server().get());
 
       // Remove the BACKUP_ADMIN grant from the recovery account
-      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
-                                     ar_options.repl_credentials->user);
-
-      cleanup_clone_recovery(recipient.get(), *ar_options.repl_credentials);
+      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
+                                     ar_options.repl_credentials->user,
+                                     repl_account_host);
+      // XXX do a full simple test with replAllowedHost option for all topos
+      cleanup_clone_recovery(recipient.get(), *ar_options.repl_credentials,
+                             repl_account_host);
 
       // Thrown the exception cancel_sync up
       throw cancel_sync();
@@ -2374,10 +2399,9 @@ Member_recovery_method Replica_set_impl::validate_instance_recovery(
   return recovery_method;
 }
 
-Instance_id Replica_set_impl::manage_instance(Instance *instance,
-                                              const std::string &instance_label,
-                                              Instance_id master_id,
-                                              bool is_primary) {
+Instance_id Replica_set_impl::manage_instance(
+    Instance *instance, const std::pair<std::string, std::string> &repl_user,
+    const std::string &instance_label, Instance_id master_id, bool is_primary) {
   Instance_metadata inst = query_instance_info(*instance);
 
   if (!instance_label.empty()) inst.label = instance_label;
@@ -2388,9 +2412,14 @@ Instance_id Replica_set_impl::manage_instance(Instance *instance,
 
   inst.primary_master = is_primary;
 
-  // XXX record the recoveryUser in the MD
+  auto instance_id = get_metadata_storage()->record_async_member_added(inst);
 
-  return get_metadata_storage()->record_async_member_added(inst);
+  if (!repl_user.first.empty())
+    get_metadata_storage()->update_instance_repl_account(
+        inst.uuid, Cluster_type::ASYNC_REPLICATION, repl_user.first,
+        repl_user.second);
+
+  return instance_id;
 }
 
 const topology::Server *Replica_set_impl::check_target_member(
@@ -2601,13 +2630,21 @@ void Replica_set_impl::setup_router_account(
   Base_cluster_impl::setup_router_account(username, host, options);
 }
 
-mysqlshdk::mysql::Auth_options Replica_set_impl::refresh_replication_user(
-    mysqlshdk::mysql::IInstance *slave, bool dry_run) {
+std::pair<mysqlshdk::mysql::Auth_options, std::string>
+Replica_set_impl::refresh_replication_user(mysqlshdk::mysql::IInstance *slave,
+                                           bool dry_run) {
   assert(m_primary_master);
 
   mysqlshdk::mysql::Auth_options creds;
 
-  creds.user = get_replication_user_name(slave, k_async_cluster_user_name);
+  auto account = get_metadata_storage()->get_instance_repl_account(
+      slave->get_uuid(), Cluster_type::ASYNC_REPLICATION);
+  if (account.first.empty()) {
+    account = {make_replication_user_name(slave->get_server_id(),
+                                          k_async_cluster_user_name),
+               "%"};
+  }
+  creds.user = account.first;
 
   try {
     // Create replication accounts for this instance at the master
@@ -2615,13 +2652,13 @@ mysqlshdk::mysql::Auth_options Replica_set_impl::refresh_replication_user(
 
     auto console = mysqlsh::current_console();
 
-    log_info("Resetting password for %s@%% at %s", creds.user.c_str(),
-             m_primary_master->descr().c_str());
+    log_info("Resetting password for %s@%s at %s", creds.user.c_str(),
+             account.second.c_str(), m_primary_master->descr().c_str());
     // re-create replication with a new generated password
     if (!dry_run) {
       std::string repl_password;
       mysqlshdk::mysql::set_random_password(*m_primary_master, creds.user,
-                                            {"%"}, &repl_password);
+                                            {account.second}, &repl_password);
       creds.password = repl_password;
     }
   } catch (const std::exception &e) {
@@ -2630,37 +2667,61 @@ mysqlshdk::mysql::Auth_options Replica_set_impl::refresh_replication_user(
         e.what()));
   }
 
-  return creds;
+  return {creds, account.second};
 }
 
-void Replica_set_impl::drop_replication_user(mysqlshdk::mysql::IInstance *slave,
-                                             const std::string &prefix) {
+void Replica_set_impl::drop_replication_user(
+    const std::string &server_uuid, mysqlshdk::mysql::IInstance *slave) {
   assert(m_primary_master);
 
-  std::string user = get_replication_user_name(slave, prefix);
+  auto account = get_metadata_storage()->get_instance_repl_account(
+      server_uuid, Cluster_type::ASYNC_REPLICATION);
+  if (account.first.empty()) {
+    assert(slave);
+    account = {make_replication_user_name(slave->get_server_id(),
+                                          k_async_cluster_user_name),
+               ""};
+  }
 
-  log_info("Dropping account %s@%% at %s", user.c_str(),
-           m_primary_master->descr().c_str());
+  log_info("Dropping account %s@%s at %s", account.first.c_str(),
+           account.second.c_str(), m_primary_master->descr().c_str());
   try {
-    m_primary_master->drop_user(user, "%", true);
+    if (account.second.empty())
+      mysqlshdk::mysql::drop_all_accounts_for_user(*m_primary_master,
+                                                   account.first);
+    else
+      m_primary_master->drop_user(account.first, account.second, true);
   } catch (const shcore::Error &e) {
     auto console = current_console();
     console->print_warning(shcore::str_format(
         "%s: Error dropping account %s@%s: %s",
-        m_primary_master->descr().c_str(), user.c_str(),
-        slave->get_canonical_hostname().c_str(), e.format().c_str()));
+        m_primary_master->descr().c_str(), account.first.c_str(),
+        account.second.c_str(), e.format().c_str()));
     // ignore the error and move on
   }
 }
 
-mysqlshdk::mysql::Auth_options Replica_set_impl::create_replication_user(
-    mysqlshdk::mysql::IInstance *slave, const std::string &prefix, bool dry_run,
-    mysqlshdk::mysql::IInstance *master) {
+std::pair<mysqlshdk::mysql::Auth_options, std::string>
+Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
+                                          bool dry_run,
+                                          mysqlshdk::mysql::IInstance *master) {
   if (!master) master = m_primary_master.get();
 
   mysqlshdk::mysql::Auth_options creds;
+  std::string host = "%";
 
-  creds.user = get_replication_user_name(slave, prefix);
+  shcore::Value allowed_host;
+  if (!dry_run &&
+      get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_replication_allowed_host,
+          &allowed_host) &&
+      allowed_host.type == shcore::String &&
+      !allowed_host.as_string().empty()) {
+    host = allowed_host.as_string();
+  }
+
+  creds.user = make_replication_user_name(slave->get_server_id(),
+                                          k_async_cluster_user_name);
 
   try {
     std::string repl_password;
@@ -2673,18 +2734,8 @@ mysqlshdk::mysql::Auth_options Replica_set_impl::create_replication_user(
     // Accounts are created at the master replicaset regardless of who will use
     // them, since they'll get replicated everywhere.
 
-    // drop the replication user, for all hosts
-    // we need to drop any user from any host in case a different instance was
-    // the slave earlier
-    if (dry_run) {
-      log_info("Drop %s at %s (dryRun)", creds.user.c_str(),
-               master->descr().c_str());
-    } else {
-      drop_replication_user(slave, prefix);
-    }
-
-    log_info("Creating replication user %s@%% with random password at %s%s",
-             creds.user.c_str(), master->descr().c_str(),
+    log_info("Creating replication user %s@%s with random password at %s%s",
+             creds.user.c_str(), host.c_str(), master->descr().c_str(),
              dry_run ? " (dryRun)" : "");
 
     std::vector<std::tuple<std::string, std::string, bool>> grants;
@@ -2692,8 +2743,12 @@ mysqlshdk::mysql::Auth_options Replica_set_impl::create_replication_user(
 
     // re-create replication with a new generated password
     if (!dry_run) {
+      // Check if the replication user already exists and delete it if it does,
+      // before creating it again.
+      mysqlshdk::mysql::drop_all_accounts_for_user(*master, creds.user);
+
       mysqlshdk::mysql::create_user_with_random_password(
-          *master, creds.user, {"%"}, grants, &repl_password);
+          *master, creds.user, {host}, grants, &repl_password);
     }
 
     creds.password = repl_password;
@@ -2702,7 +2757,7 @@ mysqlshdk::mysql::Auth_options Replica_set_impl::create_replication_user(
         "Error while setting up replication account: %s", e.what()));
   }
 
-  return creds;
+  return {creds, host};
 }
 
 shcore::Dictionary_t Replica_set_impl::get_topology_options() {
@@ -2772,6 +2827,22 @@ shcore::Value Replica_set_impl::options() {
   // get the tags
   (*inner_dict)[kTags] = Base_cluster_impl::get_cluster_tags();
 
+  {
+    shcore::Value allowed_host;
+    if (!get_metadata_storage()->query_cluster_attribute(
+            get_id(), k_cluster_attribute_replication_allowed_host,
+            &allowed_host))
+      allowed_host = shcore::Value::Null();
+
+    shcore::Array_t options = shcore::make_array();
+
+    options->emplace_back(shcore::Value(
+        shcore::make_dict("option", shcore::Value(kReplicationAllowedHost),
+                          "value", allowed_host)));
+
+    (*inner_dict)["globalOptions"] = shcore::Value(options);
+  }
+
   shcore::Dictionary_t res = shcore::make_dict();
   (*res)["replicaSet"] = shcore::Value(inner_dict);
   return shcore::Value(res);
@@ -2784,10 +2855,90 @@ void Replica_set_impl::_set_instance_option(
                                           "' not supported.");
 }
 
+void Replica_set_impl::update_replication_allowed_host(
+    const std::string &host) {
+  for (const Instance_metadata &instance : get_instances_from_metadata()) {
+    auto account = get_metadata_storage()->get_instance_repl_account(
+        instance.uuid, Cluster_type::ASYNC_REPLICATION);
+    bool maybe_adopted = false;
+
+    if (account.first.empty()) {
+      account = {make_replication_user_name(instance.server_id,
+                                            k_async_cluster_user_name),
+                 "%"};
+      maybe_adopted = true;
+    }
+
+    if (account.second != host) {
+      log_info("Re-creating account for %s: %s@%s -> %s@%s",
+               instance.endpoint.c_str(), account.first.c_str(),
+               account.second.c_str(), account.first.c_str(), host.c_str());
+      clone_user(*get_primary_master(), account.first, account.second,
+                 account.first, host);
+
+      get_primary_master()->drop_user(account.first, account.second, true);
+
+      get_metadata_storage()->update_instance_repl_account(
+          instance.uuid, Cluster_type::ASYNC_REPLICATION, account.first, host);
+    } else {
+      log_info("Skipping account recreation for %s: %s@%s == %s@%s",
+               instance.endpoint.c_str(), account.first.c_str(),
+               account.second.c_str(), account.first.c_str(), host.c_str());
+    }
+
+    if (maybe_adopted) {
+      auto ipool = current_ipool();
+
+      Scoped_instance target(
+          ipool->connect_unchecked_endpoint(instance.endpoint));
+
+      // If the replicaset could have been adopted, then also ensure the channel
+      // is using the right account
+      std::string repl_user = mysqlshdk::mysql::get_replication_user(
+          *target, k_replicaset_channel_name);
+      if (repl_user != account.first && !instance.primary_master) {
+        current_console()->print_info(shcore::str_format(
+            "Changing replication user at %s to %s", instance.endpoint.c_str(),
+            account.first.c_str()));
+
+        std::string password;
+        mysqlshdk::mysql::set_random_password(*get_primary_master(),
+                                              account.first, {host}, &password);
+
+        mysqlshdk::mysql::stop_replication_receiver(target.get(),
+                                                    k_replicaset_channel_name);
+
+        mysqlshdk::mysql::change_replication_credentials(
+            *target, account.first, password, k_replicaset_channel_name);
+
+        mysqlshdk::mysql::start_replication_receiver(target.get(),
+                                                     k_replicaset_channel_name);
+      }
+    }
+  }
+}
+
 void Replica_set_impl::_set_option(const std::string &option,
-                                   const shcore::Value & /*value*/) {
-  throw shcore::Exception::argument_error("Option '" + option +
-                                          "' not supported.");
+                                   const shcore::Value &value) {
+  if (option == kReplicationAllowedHost) {
+    if (value.type != shcore::String || value.as_string().empty())
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for '%s': Argument #2 is expected "
+                             "to be a string.",
+                             option.c_str()));
+
+    update_replication_allowed_host(value.as_string());
+
+    get_metadata_storage()->update_cluster_attribute(
+        get_id(), k_cluster_attribute_replication_allowed_host, value);
+
+    current_console()->print_info(shcore::str_format(
+        "Internally managed replication users updated for ReplicaSet '%s'",
+        get_name().c_str()));
+  } else {
+    throw shcore::Exception::argument_error("Option '" + option +
+                                            "' not supported.");
+  }
 }
 
 }  // namespace dba

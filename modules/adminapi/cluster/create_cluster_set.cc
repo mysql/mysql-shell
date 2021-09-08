@@ -74,37 +74,34 @@ void Create_cluster_set::check_illegal_channels() {
   auto console = mysqlsh::current_console();
 
   // Get all cluster instances from the Metadata and their respective GR state.
-  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-      instance_defs = m_cluster->get_instances_with_state();
+  m_cluster->execute_in_members(
+      [console](const std::shared_ptr<Instance> &instance,
+                const Instance_md_and_gr_member &info) {
+        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE ||
+            info.second.state == mysqlshdk::gr::Member_state::RECOVERING) {
+          // Verify if the instance has a replication channel set and running
+          log_debug(
+              "Checking if instance '%s' has asynchronous (source-replica) "
+              "replication configured.",
+              instance->descr().c_str());
 
-  // Check if there are unknown replication channels running at
-  // any member of the cluster
-  for (const auto &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state = instance_def.second.state;
+          if (mysqlsh::dba::checks::check_illegal_async_channels(*instance,
+                                                                 {})) {
+            console->print_error(
+                "Cluster member '" + instance->descr() +
+                "' has asynchronous (source-replica) replication channel(s) "
+                "configured which is not supported in InnoDB ClusterSet.");
 
-    if (state == mysqlshdk::gr::Member_state::ONLINE ||
-        state == mysqlshdk::gr::Member_state::RECOVERING) {
-      // Verify if the instance has a replication channel set and running
-      std::string instance_address = instance_def.first.address;
-      auto instance =
-          m_cluster->get_session_to_cluster_instance(instance_address);
-      log_debug(
-          "Checking if instance '%s' has asynchronous (source-replica) "
-          "replication configured.",
-          instance_address.c_str());
-
-      if (mysqlsh::dba::checks::check_illegal_async_channels(*instance, {})) {
-        console->print_error(
-            "Cluster member '" + instance_address +
-            "' has asynchronous (source-replica) replication channel(s) "
-            "configured which is not supported in InnoDB ClusterSet.");
-
-        throw shcore::Exception(
-            "Unsupported active replication channel.",
-            SHERR_DBA_CLUSTER_UNSUPPORTED_REPLICATION_CHANNEL);
-      }
-    }
-  }
+            throw shcore::Exception(
+                "Unsupported active replication channel.",
+                SHERR_DBA_CLUSTER_UNSUPPORTED_REPLICATION_CHANNEL);
+          }
+        }
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
 }
 
 void Create_cluster_set::check_gr_configuration() {
@@ -221,8 +218,8 @@ void Create_cluster_set::prepare() {
   mysqlsh::dba::validate_cluster_name(m_domain_name,
                                       Cluster_type::REPLICATED_CLUSTER);
 
-  // The target cluster must comply with the following requirements to become a
-  // ClusterSet:
+  // The target cluster must comply with the following requirements to become
+  // a ClusterSet:
   //
   //  - Must be ONLINE (OK, OK_PARTIAL, OK_NO_TOLERANCE,
   //  OK_NO_TOLERANCE_PARTIAL)
@@ -346,12 +343,15 @@ shcore::Value Create_cluster_set::execute() {
     if (!m_options.dry_run) {
       // create and record the replication user for this cluster
       auto repl_user = cs->create_cluster_replication_user(
-          m_cluster->get_primary_master().get(), m_options.dry_run);
-      cs->record_cluster_replication_user(m_cluster, repl_user);
+          m_cluster->get_primary_master().get(),
+          m_options.replication_allowed_host, m_options.dry_run);
+
+      cs->record_cluster_replication_user(m_cluster, repl_user.first,
+                                          repl_user.second);
 
       undo_list.push_front([=]() {
         log_info("Revert: Dropping replication account '%s'",
-                 repl_user.user.c_str());
+                 repl_user.first.user.c_str());
         cs->drop_cluster_replication_user(m_cluster);
       });
 
@@ -375,8 +375,8 @@ shcore::Value Create_cluster_set::execute() {
       console->print_info();
       console->print_info(
           "ClusterSet successfully created. Use "
-          "ClusterSet.<<<createReplicaCluster>>>() to add Replica Clusters to "
-          "it.");
+          "ClusterSet.<<<createReplicaCluster>>>() to add Replica Clusters "
+          "to it.");
       console->print_info();
 
       return shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(

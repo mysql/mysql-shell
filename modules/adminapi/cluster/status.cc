@@ -1060,7 +1060,8 @@ shcore::Array_t validate_instance_recovery_user(
   if (instance && !endpoints.empty()) {
     auto it = endpoints.find(actual_server_uuid);
     if (it != endpoints.end()) {
-      std::string recovery_user = mysqlshdk::gr::get_recovery_user(*instance);
+      std::string recovery_user = mysqlshdk::mysql::get_replication_user(
+          *instance, mysqlshdk::gr::k_gr_recovery_channel);
 
       // it->second is recovery user from MD
       if (!recovery_user.empty()) {

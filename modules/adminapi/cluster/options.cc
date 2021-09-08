@@ -88,7 +88,7 @@ shcore::Array_t Options::collect_global_options() {
 
   auto group_instance = m_cluster.get_cluster_server();
 
-  for (const auto &cfg : k_global_options) {
+  for (const auto &cfg : k_global_cluster_options) {
     shcore::Dictionary_t option = shcore::make_dict();
     std::string value = *group_instance->get_sysvar_string(
         cfg.second, mysqlshdk::mysql::Var_qualifier::GLOBAL);
@@ -105,6 +105,19 @@ shcore::Array_t Options::collect_global_options() {
   (*option)["option"] = shcore::Value(kDisableClone);
   (*option)["value"] = shcore::Value(m_cluster.get_disable_clone_option());
   array->push_back(shcore::Value(option));
+
+  {
+    shcore::Value allowed_host;
+    if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
+            m_cluster.get_id(), k_cluster_attribute_replication_allowed_host,
+            &allowed_host))
+      allowed_host = shcore::Value::Null();
+
+    option = shcore::make_dict();
+    (*option)["option"] = shcore::Value(kReplicationAllowedHost);
+    (*option)["value"] = shcore::Value(allowed_host);
+    array->push_back(shcore::Value(option));
+  }
 
   return array;
 }

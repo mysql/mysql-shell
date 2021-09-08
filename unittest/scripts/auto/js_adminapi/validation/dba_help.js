@@ -432,6 +432,11 @@ DESCRIPTION
       - manualStartOnBoot: boolean (default false). If false, Group Replication
         in cluster instances will automatically start and rejoin when MySQL
         starts, otherwise it must be started manually.
+      - replicationAllowedHost: string value to use as the host name part of
+        internal replication accounts (i.e.
+        'mysql_innodb_cluster_###'@'hostname'). Default is %. It must be
+        possible for any member of the Cluster to connect to any other member
+        using accounts with this hostname value.
       - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic
@@ -742,6 +747,10 @@ DESCRIPTION
       - gtidSetIsComplete: boolean value which indicates whether the GTID set
         of the seed instance corresponds to all transactions executed. Default
         is false.
+      - replicationAllowedHost: string value to use as the host name part of
+        internal replication accounts (i.e. 'mysql_innodb_rs_###'@'hostname').
+        Default is %. It must be possible for any member of the ReplicaSet to
+        connect to any other member using accounts with this hostname value.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL

@@ -213,11 +213,6 @@ bool is_protocol_upgrade_possible(
 std::map<std::string, utils::nullable<std::string>> get_all_configurations(
     const mysqlshdk::mysql::IInstance &instance);
 
-// Function to do a change master (set the GR recovery user)
-void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
-                                 const std::string &rpl_user,
-                                 const std::string &rpl_pwd);
-
 // Functions to manage the GR plugin
 bool install_group_replication_plugin(
     const mysqlshdk::mysql::IInstance &instance,
@@ -274,8 +269,6 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
     bool clone_supported = false, bool auto_failover = false);
-
-std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
 
 /**
  * Checks if the thread for a delayed initialization of the group replication is

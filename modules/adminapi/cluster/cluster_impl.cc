@@ -85,6 +85,8 @@ Cluster_impl::Cluster_impl(
     Cluster_availability availability)
     : Cluster_impl(metadata, group_server, metadata_storage, availability) {
   m_cluster_set = cluster_set;
+  if (cluster_set->get_primary_master())
+    m_primary_master = cluster_set->get_primary_master();
 }
 
 Cluster_impl::Cluster_impl(
@@ -258,8 +260,6 @@ void Cluster_impl::adopt_from_gr() {
     console->println("Adding Instance '" + instance.host + ":" +
                      std::to_string(instance.port) + "'...");
 
-    // TODO(somebody): what if the password is different on each server?
-    // And what if is different from the current session?
     auto md_instance = get_metadata_storage()->get_md_server();
 
     auto session_data = md_instance->get_connection_options();
@@ -351,6 +351,34 @@ void Cluster_impl::execute_in_members(
       log_debug("Cluster iteration stopped because functor returned false.");
       break;
     }
+  }
+}
+
+void Cluster_impl::execute_in_members(
+    const std::function<bool(const std::shared_ptr<Instance> &instance,
+                             const Instance_md_and_gr_member &info)>
+        &on_connect,
+    const std::function<bool(const shcore::Error &error,
+                             const Instance_md_and_gr_member &info)>
+        &on_connect_error) const {
+  auto instance_definitions = get_instances_with_state(true);
+  auto ipool = current_ipool();
+
+  for (const auto &i : instance_definitions) {
+    Scoped_instance instance_session;
+
+    try {
+      instance_session =
+          Scoped_instance(ipool->connect_unchecked_endpoint(i.first.endpoint));
+    } catch (const shcore::Error &e) {
+      if (on_connect_error) {
+        if (!on_connect_error(e, i)) break;
+        continue;
+      } else {
+        throw;
+      }
+    }
+    if (!on_connect(instance_session, i)) break;
   }
 }
 
@@ -622,8 +650,8 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
         {}, get_cluster_server()->get_connection_options(), {},
         [this, &console, &endpoints](const std::shared_ptr<Instance> &instance,
                                      const mysqlshdk::gr::Member &gr_member) {
-          std::string recovery_user =
-              mysqlshdk::gr::get_recovery_user(*instance);
+          std::string recovery_user = mysqlshdk::mysql::get_replication_user(
+              *instance, mysqlshdk::gr::k_gr_recovery_channel);
 
           bool recovery_is_valid = false;
           if (!recovery_user.empty()) {
@@ -651,8 +679,9 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
             auto it = endpoints.find(instance->get_uuid());
             if (it != endpoints.end()) {
               if (it->second != recovery_user) {
-                get_metadata_storage()->update_instance_recovery_account(
-                    gr_member.uuid, recovery_user, "%");
+                get_metadata_storage()->update_instance_repl_account(
+                    gr_member.uuid, Cluster_type::GROUP_REPLICATION,
+                    recovery_user, "%");
               }
             }
 
@@ -776,12 +805,21 @@ void Cluster_impl::validate_server_id(
   }
 }
 
-std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state()
-    const {
+std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state(
+    bool allow_offline) const {
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>> ret;
 
-  std::vector<mysqlshdk::gr::Member> members(
-      mysqlshdk::gr::get_members(*get_cluster_server()));
+  std::vector<mysqlshdk::gr::Member> members;
+
+  if (get_cluster_server()) {
+    try {
+      members = mysqlshdk::gr::get_members(*get_cluster_server());
+    } catch (const std::runtime_error &e) {
+      if (!allow_offline ||
+          !strstr(e.what(), "Group replication does not seem to be"))
+        throw;
+    }
+  }
 
   std::vector<Instance_metadata> md(get_instances());
 
@@ -1337,7 +1375,7 @@ Cluster_impl::refresh_clusterset_replication_user() {
     // Change the replication user to use the newly generated password
     std::string repl_password;
     mysqlshdk::mysql::set_random_password(*get_primary_master(), creds.user,
-                                          {"%"}, &repl_password);
+                                          {repl_user_host}, &repl_password);
     creds.password = repl_password;
   } catch (const std::exception &e) {
     throw shcore::Exception::runtime_error(shcore::str_format(
@@ -1346,6 +1384,51 @@ Cluster_impl::refresh_clusterset_replication_user() {
   }
 
   return creds;
+}
+
+void Cluster_impl::update_replication_allowed_host(const std::string &host) {
+  bool upgraded = false;
+  auto primary = get_primary_master();
+
+retry:
+  for (const Instance_metadata &instance : get_instances()) {
+    auto account = get_metadata_storage()->get_instance_repl_account(
+        instance.uuid, Cluster_type::GROUP_REPLICATION);
+
+    if (account.first.empty()) {
+      if (!upgraded) {
+        upgraded = true;
+        current_console()->print_note(
+            "Legacy cluster account management detected, will update it "
+            "first.");
+        ensure_metadata_has_recovery_accounts();
+        goto retry;
+      } else {
+        throw shcore::Exception::runtime_error(
+            "Unable to perform account management upgrade for the cluster.");
+      }
+    } else if (account.second != host) {
+      log_info("Re-creating account for %s: %s@%s -> %s@%s",
+               instance.endpoint.c_str(), account.first.c_str(),
+               account.second.c_str(), account.first.c_str(), host.c_str());
+      clone_user(*primary, account.first, account.second, account.first, host);
+
+      // drop all (other) hosts in case the account was created at an old
+      // version with multiple accounts per user
+      auto hosts =
+          mysqlshdk::mysql::get_all_hostnames_for_user(*primary, account.first);
+      for (const auto &h : hosts) {
+        if (host != h) primary->drop_user(account.first, h, true);
+      }
+
+      get_metadata_storage()->update_instance_repl_account(
+          instance.uuid, Cluster_type::GROUP_REPLICATION, account.first, host);
+    } else {
+      log_info("Skipping account recreation for %s: %s@%s == %s@%s",
+               instance.endpoint.c_str(), account.first.c_str(),
+               account.second.c_str(), account.first.c_str(), host.c_str());
+    }
+  }
 }
 
 shcore::Value Cluster_impl::describe() {
@@ -2300,15 +2383,27 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
   return lowest_version;
 }
 
-mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
-    mysqlshdk::mysql::IInstance *target) {
+std::pair<mysqlshdk::mysql::Auth_options, std::string>
+Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target) {
   assert(target);
 
-  std::string recovery_user = get_replication_user_name(
-      target, mysqlshdk::gr::k_group_recovery_user_prefix);
+  std::string host = "%";
 
-  log_info("Creating recovery account '%s'@'%%' for instance '%s'",
-           recovery_user.c_str(), target->descr().c_str());
+  mysqlshdk::mysql::Auth_options creds;
+  shcore::Value allowed_host;
+  if (get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_replication_allowed_host,
+          &allowed_host) &&
+      allowed_host.type == shcore::String &&
+      !allowed_host.as_string().empty()) {
+    host = allowed_host.as_string();
+  }
+
+  creds.user = make_replication_user_name(
+      target->get_server_id(), mysqlshdk::gr::k_group_recovery_user_prefix);
+
+  log_info("Creating recovery account '%s'@'%s' for instance '%s'",
+           creds.user.c_str(), host.c_str(), target->descr().c_str());
 
   // When in a clusterset, this needs to happen at the global primary,
   // but during replica creation, acquiring the global primary from cluster
@@ -2317,14 +2412,14 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
 
   // Check if the replication user already exists and delete it if it does,
   // before creating it again.
-  bool rpl_user_exists = primary->user_exists(recovery_user, "%");
+  bool rpl_user_exists = primary->user_exists(creds.user, host);
   if (rpl_user_exists) {
     auto console = current_console();
     console->print_note(shcore::str_format(
-        "User '%s'@'%%' already existed at instance '%s'. It will be "
+        "User '%s'@'%s' already existed at instance '%s'. It will be "
         "deleted and created again with a new password.",
-        recovery_user.c_str(), primary->descr().c_str()));
-    primary->drop_user(recovery_user, "%");
+        creds.user.c_str(), host.c_str(), primary->descr().c_str()));
+    primary->drop_user(creds.user, host);
   }
 
   // Check if clone is available on ALL cluster members, to avoid a failing
@@ -2343,11 +2438,72 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
   bool clone_available =
       clone_available_all_members && clone_available_on_target;
 
-  return mysqlshdk::gr::create_recovery_user(recovery_user, *primary, {"%"}, {},
-                                             clone_available);
+  return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, {host}, {},
+                                              clone_available),
+          host};
 }
 
-void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
+bool Cluster_impl::drop_replication_user(const std::string &server_uuid,
+                                         const std::string &endpoint) {
+  auto console = current_console();
+
+  auto primary = get_primary_master();
+
+  std::string recovery_user;
+  std::string recovery_user_host;
+
+  std::tie(recovery_user, recovery_user_host) =
+      get_metadata_storage()->get_instance_repl_account(
+          server_uuid, Cluster_type::GROUP_REPLICATION);
+  if (recovery_user.empty()) return false;
+
+  /*
+    Since clone copies all the data, including mysql.slave_master_info
+    (where the CHANGE MASTER credentials are stored) an instance may be
+    using the info stored in the donor's mysql.slave_master_info.
+
+    To avoid such situation, we re-issue the CHANGE MASTER query after
+    clone to ensure the right account is used. However, if the monitoring
+    process is interrupted or waitRecovery = 0, that won't be done.
+
+    The approach to tackle this issue is to store the donor recovery account
+    in the target instance MD.instances table before doing the new CHANGE
+    and only update it to the right account after a successful CHANGE
+    MASTER. With this approach we can ensure that the account is not removed
+    if it is being used.
+
+    As so were we must query the Metadata to check whether the
+    recovery user of that instance is registered for more than one instance
+    and if that's the case then it won't be dropped.
+  */
+  if (get_metadata_storage()->is_recovery_account_unique(recovery_user)) {
+    log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
+             recovery_user.c_str(), recovery_user_host.c_str(),
+             endpoint.c_str());
+
+    try {
+      primary->drop_user(recovery_user, recovery_user_host, true);
+    } catch (...) {
+      console->print_warning(shcore::str_format(
+          "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
+          recovery_user.c_str(), recovery_user_host.c_str(), endpoint.c_str(),
+          format_active_exception().c_str()));
+    }
+
+    // Also update metadata
+    try {
+      get_metadata_storage()->update_instance_repl_account(
+          server_uuid, Cluster_type::GROUP_REPLICATION, "", "");
+    } catch (const std::exception &e) {
+      log_warning("Could not update recovery account metadata for '%s': %s",
+                  endpoint.c_str(), e.what());
+    }
+  }
+  return true;
+}
+
+void Cluster_impl::drop_replication_user_old(
+    mysqlshdk::mysql::IInstance *target) {
   assert(target);
   auto console = current_console();
 
@@ -2374,6 +2530,8 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
                              recovery_user + ": " + e.what());
     }
   } else {
+    std::string recovery_user_host = recovery_user_hosts.front();
+
     /*
       Since clone copies all the data, including mysql.slave_master_info
       (where the CHANGE MASTER credentials are stored) an instance may be
@@ -2394,27 +2552,57 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
       and if that's the case then it won't be dropped.
     */
     if (get_metadata_storage()->is_recovery_account_unique(recovery_user)) {
-      log_info("Dropping recovery account '%s'@'%%' for instance '%s'",
-               recovery_user.c_str(), target->descr().c_str());
+      log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
+               recovery_user.c_str(), recovery_user_host.c_str(),
+               target->descr().c_str());
 
       try {
-        primary->drop_user(recovery_user, "%", true);
-      } catch (const std::exception &e) {
+        primary->drop_user(recovery_user, recovery_user_host, true);
+      } catch (...) {
         console->print_warning(shcore::str_format(
-            "Error dropping recovery account '%s'@'%%' for instance '%s'",
-            recovery_user.c_str(), target->descr().c_str()));
+            "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
+            recovery_user.c_str(), recovery_user_host.c_str(),
+            target->descr().c_str(), format_active_exception().c_str()));
       }
 
       // Also update metadata
       try {
-        get_metadata_storage()->update_instance_recovery_account(
-            target->get_uuid(), "", "");
+        get_metadata_storage()->update_instance_repl_account(
+            target->get_uuid(), Cluster_type::GROUP_REPLICATION, "", "");
       } catch (const std::exception &e) {
         log_warning("Could not update recovery account metadata for '%s': %s",
                     target->descr().c_str(), e.what());
       }
     }
   }
+}
+
+void Cluster_impl::drop_replication_users() {
+  auto ipool = current_ipool();
+
+  execute_in_members(
+      [this](const std::shared_ptr<Instance> &instance,
+             const Instance_md_and_gr_member &info) {
+        try {
+          drop_replication_user_old(instance.get());
+        } catch (...) {
+          current_console()->print_warning("Could not drop internal user for " +
+                                           info.first.endpoint + ": " +
+                                           format_active_exception());
+        }
+        return true;
+      },
+      [this](const shcore::Error &connect_error,
+             const Instance_md_and_gr_member &info) {
+        // drop user based on MD lookup (will not work if the instance is still
+        // using legacy account management)
+        if (!drop_replication_user(info.first.uuid, info.first.endpoint)) {
+          current_console()->print_warning("Could not drop internal user for " +
+                                           info.first.endpoint + ": " +
+                                           connect_error.format());
+        }
+        return true;
+      });
 }
 
 bool Cluster_impl::contains_instance_with_address(
@@ -2572,8 +2760,8 @@ Cluster_impl::get_replication_user(
   bool from_metadata = false;
   std::vector<std::string> recovery_user_hosts;
   std::tie(recovery_user, recovery_user_host) =
-      get_metadata_storage()->get_instance_recovery_account(
-          target_instance.get_uuid());
+      get_metadata_storage()->get_instance_repl_account(
+          target_instance.get_uuid(), Cluster_type::GROUP_REPLICATION);
   if (recovery_user.empty()) {
     // Assuming the account was created by an older version of the shell,
     // which did not store account name in metadata
@@ -2582,8 +2770,8 @@ Cluster_impl::get_replication_user(
         "old account style",
         target_instance.descr().c_str());
 
-    auto unrecorded_recovery_user =
-        mysqlshdk::gr::get_recovery_user(target_instance);
+    auto unrecorded_recovery_user = mysqlshdk::mysql::get_replication_user(
+        target_instance, mysqlshdk::gr::k_gr_recovery_channel);
     assert(!unrecorded_recovery_user.empty());
 
     if (shcore::str_beginswith(

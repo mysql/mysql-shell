@@ -256,6 +256,10 @@ ${*}
             {
                 "option": "disableClone",
                 "value": [[*]]
+            }, 
+            {
+                "option": "replicationAllowedHost", 
+                "value": null
             }
         ],
         "tags": {

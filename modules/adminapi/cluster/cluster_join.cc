@@ -238,7 +238,7 @@ void Cluster_join::ensure_unique_server_id() const {
   }
 }
 
-void Cluster_join::handle_recovery_account() const {
+void Cluster_join::store_cloned_replication_account() const {
   /*
     Since clone copies all the data, including mysql.slave_master_info (where
     the CHANGE MASTER credentials are stored), the following issue may happen:
@@ -287,29 +287,32 @@ void Cluster_join::handle_recovery_account() const {
 
   std::string recovery_user, recovery_user_host;
   std::tie(recovery_user, recovery_user_host) =
-      m_cluster->get_metadata_storage()->get_instance_recovery_account(
-          md_inst->get_uuid());
+      m_cluster->get_metadata_storage()->get_instance_repl_account(
+          md_inst->get_uuid(), Cluster_type::GROUP_REPLICATION);
 
   // Insert the "donor" recovery account into the MD of the target instance
   log_debug("Adding donor recovery account to metadata");
-  m_cluster->get_metadata_storage()->update_instance_recovery_account(
-      m_target_instance->get_uuid(), recovery_user, "%");
+  m_cluster->get_metadata_storage()->update_instance_repl_account(
+      m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+      recovery_user, recovery_user_host);
 }
 
-void Cluster_join::update_change_master() const {
-  // See note in handle_recovery_account()
+void Cluster_join::restore_group_replication_account() const {
+  // See note in store_cloned_replication_account()
   std::string source_term = mysqlshdk::mysql::get_replication_source_keyword(
       m_target_instance->get_version());
   log_debug("Re-issuing the CHANGE %s command", source_term.c_str());
 
-  mysqlshdk::gr::change_recovery_credentials(
+  mysqlshdk::mysql::change_replication_credentials(
       *m_target_instance, m_gr_opts.recovery_credentials->user,
-      m_gr_opts.recovery_credentials->password.get_safe());
+      m_gr_opts.recovery_credentials->password.get_safe(),
+      mysqlshdk::gr::k_gr_recovery_channel);
 
   // Update the recovery account to the right one
   log_debug("Adding recovery account to metadata");
-  m_cluster->get_metadata_storage()->update_instance_recovery_account(
-      m_target_instance->get_uuid(), m_gr_opts.recovery_credentials->user, "%");
+  m_cluster->get_metadata_storage()->update_instance_repl_account(
+      m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+      m_gr_opts.recovery_credentials->user, m_account_host);
 }
 
 void Cluster_join::refresh_target_connections() {
@@ -772,12 +775,12 @@ bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch) {
   return true;
 }
 
-bool Cluster_join::handle_replication_user() {
+bool Cluster_join::create_replication_user() {
   // Creates the replication user ONLY if not already given.
   // NOTE: User always created at the seed instance.
   if (!m_gr_opts.recovery_credentials ||
       m_gr_opts.recovery_credentials->user.empty()) {
-    m_gr_opts.recovery_credentials =
+    std::tie(m_gr_opts.recovery_credentials, m_account_host) =
         m_cluster->create_replication_user(m_target_instance.get());
     return true;
   }
@@ -791,10 +794,11 @@ void Cluster_join::clean_replication_user() {
   if (m_gr_opts.recovery_credentials &&
       !m_gr_opts.recovery_credentials->user.empty()) {
     auto primary = m_cluster->get_cluster_server();
-    log_debug("Dropping recovery user '%s'@'%%' at instance '%s'.",
+    log_debug("Dropping recovery user '%s'@'%s' at instance '%s'.",
               m_gr_opts.recovery_credentials->user.c_str(),
-              primary->descr().c_str());
-    primary->drop_user(m_gr_opts.recovery_credentials->user, "%", true);
+              m_account_host.c_str(), primary->descr().c_str());
+    primary->drop_user(m_gr_opts.recovery_credentials->user, m_account_host,
+                       true);
   }
 }
 
@@ -1009,7 +1013,7 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
   }
 
   // Handle the replication user creation.
-  bool owns_repl_user = handle_replication_user();
+  bool owns_repl_user = create_replication_user();
 
   // enable skip_slave_start if the cluster belongs to a ClusterSet, and
   // configure the managed replication channel if the cluster is a replica.
@@ -1077,7 +1081,7 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
 
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
-        handle_recovery_account();
+        store_cloned_replication_account();
       }
     }
 
@@ -1085,12 +1089,12 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
     update_group_peers(cluster_member_count, address_in_metadata);
 
     // Re-issue the CHANGE MASTER command
-    // See note in handle_recovery_account()
+    // See note in store_cloned_replication_account()
     // NOTE: if waitRecover is zero we cannot do it since distributed recovery
     // may be running and the change master command will fail as the slave io
     // thread is running
     if (owns_repl_user && progress_style != Recovery_progress_style::NOWAIT) {
-      update_change_master();
+      restore_group_replication_account();
     }
 
     // Only commit transaction once everything is done, so that things don't

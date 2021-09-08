@@ -122,6 +122,8 @@ struct Create_cluster_options : public Force_interactive_options {
   mysqlshdk::null_bool multi_primary;
   mysqlshdk::null_bool clear_read_only;
   bool dry_run = false;
+
+  std::string replication_allowed_host;
 };
 
 struct Create_replicaset_options : public Interactive_option {
@@ -132,6 +134,9 @@ struct Create_replicaset_options : public Interactive_option {
   bool dry_run = false;
   bool gtid_set_is_complete = false;
   std::string instance_label;
+
+  std::string replication_allowed_host;
+
   // TODO(rennox): This is here but is not really used (options never set)
   Async_replication_options ar_options;
 };

@@ -41,6 +41,7 @@
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -447,28 +448,32 @@ void Create_cluster::setup_recovery(Cluster_impl *cluster,
                                     std::string *out_username) {
   // Setup recovery account for this seed instance, which will be used
   // when/if it needs to rejoin.
-  mysqlshdk::mysql::Auth_options repl_account =
+  std::string repl_account_host;
+  mysqlshdk::mysql::Auth_options repl_account;
+  std::tie(repl_account, repl_account_host) =
       cluster->create_replication_user(target);
 
   if (out_username) *out_username = repl_account.user;
 
   // Insert the recovery account on the Metadata Schema.
-  cluster->get_metadata_storage()->update_instance_recovery_account(
-      target->get_uuid(), repl_account.user, "%");
+  cluster->get_metadata_storage()->update_instance_repl_account(
+      target->get_uuid(), Cluster_type::GROUP_REPLICATION, repl_account.user,
+      repl_account_host);
 
   // Set the GR replication (recovery) user.
   log_debug("Changing GR recovery user details for %s",
             target->descr().c_str());
 
   try {
-    mysqlshdk::gr::change_recovery_credentials(*target, repl_account.user,
-                                               *repl_account.password);
+    mysqlshdk::mysql::change_replication_credentials(
+        *target, repl_account.user, *repl_account.password,
+        mysqlshdk::gr::k_gr_recovery_channel);
   } catch (const std::exception &e) {
     current_console()->print_warning(
         shcore::str_format("Error updating recovery credentials for %s: %s",
                            target->descr().c_str(), e.what()));
 
-    cluster->drop_replication_user(target);
+    cluster->drop_replication_user_old(target);
   }
 }
 
@@ -485,7 +490,8 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
       {}, cluster->get_cluster_server()->get_connection_options(), {},
       [&](const std::shared_ptr<Instance> &target,
           const mysqlshdk::gr::Member &) {
-        old_users.insert(mysqlshdk::gr::get_recovery_user(*target));
+        old_users.insert(mysqlshdk::mysql::get_replication_user(
+            *target, mysqlshdk::gr::k_gr_recovery_channel));
 
         std::string new_user;
         setup_recovery(cluster, target.get(), &new_user);
@@ -574,7 +580,7 @@ shcore::Value Create_cluster::execute() {
   }
 
   if (*m_options.multi_primary && !m_options.adopt_from_gr) {
-    log_info(
+    console->print_info(
         "The MySQL InnoDB cluster is going to be setup in advanced "
         "Multi-Primary Mode. Consult its requirements and limitations in "
         "https://dev.mysql.com/doc/refman/en/"
@@ -671,6 +677,12 @@ shcore::Value Create_cluster::execute() {
 
     metadata->create_cluster_record(cluster_impl.get(),
                                     m_options.adopt_from_gr);
+
+    metadata->update_cluster_attribute(
+        cluster_impl->get_id(), k_cluster_attribute_replication_allowed_host,
+        m_options.replication_allowed_host.empty()
+            ? shcore::Value("%")
+            : shcore::Value(m_options.replication_allowed_host));
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_assume_gtid_set_complete,

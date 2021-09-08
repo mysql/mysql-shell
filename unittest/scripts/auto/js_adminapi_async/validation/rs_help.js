@@ -631,6 +631,9 @@ DESCRIPTION
 
       The accepted options are:
 
+      - replicationAllowedHost string value to use as the host name part of
+        internal replication accounts. Existing accounts will be re-created
+        with the new value.
       - tag:<option>: built-in and user-defined tags to be associated to the
         Cluster.
 

@@ -66,6 +66,7 @@ Create_replica_cluster::prepare_create_cluster_options() {
   shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options;
 
   options->dry_run = m_options.dry_run;
+  options->replication_allowed_host = m_options.replication_allowed_host;
 
   options->gr_options.ssl_mode = m_options.gr_options.ssl_mode;
   options->gr_options.ip_allowlist = m_options.gr_options.ip_allowlist;
@@ -154,7 +155,9 @@ void Create_replica_cluster::ensure_compatible_clone_donor(
 }
 
 void Create_replica_cluster::handle_clone(
-    const Async_replication_options &ar_options, bool dry_run) {
+    const Async_replication_options &ar_options,
+    const std::string &repl_account_host, bool dry_run) {
+  // TODO(alfredo) merge this with the handle_clone in Cluster addinst?
   auto console = current_console();
   /*
    * Clone handling:
@@ -238,14 +241,16 @@ void Create_replica_cluster::handle_clone(
   //
   // For that reason, we create a user in the recipient with the same username
   // and password as the replication user created in the donor.
-  create_clone_recovery_user_nobinlog(
-      m_target_instance.get(), *ar_options.repl_credentials, m_options.dry_run);
+  create_clone_recovery_user_nobinlog(m_target_instance.get(),
+                                      *ar_options.repl_credentials,
+                                      repl_account_host, m_options.dry_run);
 
   if (!dry_run) {
     // Ensure the donor's recovery account has the clone usage required
     // privileges: BACKUP_ADMIN
     m_primary_instance->executef("GRANT BACKUP_ADMIN ON *.* TO ?@?",
-                                 ar_options.repl_credentials->user, "%");
+                                 ar_options.repl_credentials->user,
+                                 repl_account_host);
 
     // If the donor instance is processing transactions, it may have the
     // clone-user handling (create + grant) still in the backlog waiting to be
@@ -344,8 +349,9 @@ void Create_replica_cluster::handle_clone(
           m_cluster_set->get_metadata_storage()->get_md_server().get());
 
       // Remove the BACKUP_ADMIN grant from the recovery account
-      m_primary_instance->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
-                                   ar_options.repl_credentials->user);
+      m_primary_instance->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
+                                   ar_options.repl_credentials->user,
+                                   repl_account_host);
     } catch (const stop_monitoring &) {
       console->print_info();
       console->print_note("Recovery process canceled. Reverting changes...");
@@ -376,7 +382,7 @@ void Create_replica_cluster::handle_clone(
                                    ar_options.repl_credentials->user);
 
       cleanup_clone_recovery(m_target_instance.get(),
-                             *ar_options.repl_credentials);
+                             *ar_options.repl_credentials, repl_account_host);
 
       // Thrown the exception cancel_sync up
       throw cancel_sync();
@@ -401,8 +407,8 @@ void Create_replica_cluster::handle_clone(
 }
 
 std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
-    const mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options>
-        &repl_credentials) {
+    const mysqlshdk::mysql::Auth_options &repl_credentials,
+    const std::string &repl_account_host) {
   std::shared_ptr<Cluster_impl> cluster;
 
   log_info("Creating Cluster object on %s", m_target_instance->descr().c_str());
@@ -414,11 +420,11 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
   // record previously created async replication user for this cluster, now
   // that we have metadata for it
   log_info("Recording metadata for the newly created replication user %s",
-           repl_credentials->user.c_str());
+           repl_credentials.user.c_str());
 
   if (!m_options.dry_run) {
-    m_cluster_set->record_cluster_replication_user(cluster.get(),
-                                                   *repl_credentials);
+    m_cluster_set->record_cluster_replication_user(
+        cluster.get(), repl_credentials, repl_account_host);
   }
 
   // New clusters inherit this attribute
@@ -660,6 +666,8 @@ shcore::Value Create_replica_cluster::execute() {
     // Do not send the target_instance back to the pool
     m_target_instance->steal();
 
+    std::string repl_account_host;
+
     // Prepare the replication options
     {
       ar_options = m_cluster_set->get_clusterset_replication_options();
@@ -668,9 +676,9 @@ shcore::Value Create_replica_cluster::execute() {
       ar_options.auto_failover = true;
 
       // Create recovery account
-      ar_options.repl_credentials =
+      std::tie(ar_options.repl_credentials, repl_account_host) =
           m_cluster_set->create_cluster_replication_user(
-              m_target_instance.get(), m_options.dry_run);
+              m_target_instance.get(), "", m_options.dry_run);
 
       if (!m_options.dry_run) {
         undo_list.push_front([=]() {
@@ -687,7 +695,7 @@ shcore::Value Create_replica_cluster::execute() {
         Member_recovery_method::CLONE) {
       try {
         // Do and monitor the clone
-        handle_clone(ar_options, m_options.dry_run);
+        handle_clone(ar_options, repl_account_host, m_options.dry_run);
 
         // When clone is used, the target instance will restart and all
         // connections are closed so we need to test if the connection to the
@@ -707,7 +715,7 @@ shcore::Value Create_replica_cluster::execute() {
 
     // Create a new InnoDB Cluster and update its Metadata
     auto repl_user = *ar_options.repl_credentials;
-    auto cluster = create_cluster_object(repl_user);
+    auto cluster = create_cluster_object(repl_user, repl_account_host);
 
     undo_list.push_front([=]() {
       log_info("Revert: Dropping Cluster '%s' from Metadata",

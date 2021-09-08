@@ -34,6 +34,10 @@
             {
                 "option": "disableClone",
                 "value": false
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {
@@ -258,6 +262,10 @@
             {
                 "option": "disableClone",
                 "value": true
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {
@@ -482,6 +490,10 @@ ONLINE
             {
                 "option": "disableClone",
                 "value": false
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {
@@ -706,6 +718,10 @@ ONLINE
             {
                 "option": "disableClone",
                 "value": true
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {

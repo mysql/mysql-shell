@@ -106,12 +106,12 @@ class Cluster_join {
                              checks::Check_type check_type);
 
   void resolve_ssl_mode();
-  bool handle_replication_user();
+  bool create_replication_user();
   void clean_replication_user();
   void log_used_gr_options();
   void ensure_unique_server_id() const;
-  void handle_recovery_account() const;
-  void update_change_master() const;
+  void store_cloned_replication_account() const;
+  void restore_group_replication_account() const;
   void check_cluster_members_limit() const;
 
   void refresh_target_connections();
@@ -142,6 +142,7 @@ class Cluster_join {
   mysqlsh::dba::Instance *m_primary_instance;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   Group_replication_options m_gr_opts;
+  std::string m_account_host;
   Clone_options m_clone_opts;
   bool m_interactive = false;
 

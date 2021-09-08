@@ -34,6 +34,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Creating InnoDB cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
+The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
@@ -434,6 +435,10 @@ one server failure.
             {
                 "option": "disableClone",
                 "value": <<<(__version_num>=80017)?"false":"true">>>
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {
@@ -557,6 +562,10 @@ one server failure.
             {
                 "option": "disableClone",
                 "value": true
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {
@@ -676,6 +685,10 @@ one server failure.
             {
                 "option": "disableClone",
                 "value": true
+            },
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
             }
         ],
         "tags": {

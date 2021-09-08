@@ -187,16 +187,19 @@ void delete_managed_connection_failover(
 
 void create_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,
-    const mysqlshdk::mysql::Auth_options &donor_account, bool dry_run);
+    const mysqlshdk::mysql::Auth_options &donor_account,
+    const std::string &account_host, bool dry_run);
 
 void drop_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,
-    const mysqlshdk::mysql::Auth_options &account);
+    const mysqlshdk::mysql::Auth_options &account,
+    const std::string &account_host);
 
 void refresh_target_connections(mysqlshdk::mysql::IInstance *recipient);
 
 void cleanup_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
-                            const mysqlshdk::mysql::Auth_options &clone_user);
+                            const mysqlshdk::mysql::Auth_options &clone_user,
+                            const std::string &account_host);
 }  // namespace dba
 }  // namespace mysqlsh
 

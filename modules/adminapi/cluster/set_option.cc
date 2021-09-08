@@ -63,9 +63,11 @@ void Set_option::ensure_option_valid() {
    *     - failoverConsistency
    *     - consistency
    *     - expelTimeout
+   *     - replicationAllowedHost
    */
   if (k_global_cluster_supported_options.count(m_option) == 0 &&
-      m_option != kClusterName && m_option != kDisableClone) {
+      m_option != kClusterName && m_option != kDisableClone &&
+      m_option != kReplicationAllowedHost) {
     throw shcore::Exception::argument_error("Option '" + m_option +
                                             "' not supported.");
   }
@@ -93,6 +95,12 @@ void Set_option::ensure_option_valid() {
       throw shcore::Exception::type_error(
           "Invalid value for 'disableClone': Argument #2 is expected to be a "
           "boolean.");
+    }
+  } else if (m_option == kReplicationAllowedHost) {
+    if (m_value_str.is_null() || m_value_str->empty()) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for 'replicationAllowedHost': Argument #2 is expected "
+          "to be a string.");
     }
   }
 }
@@ -228,7 +236,8 @@ void Set_option::prepare() {
 
   // Verify if all cluster members support the option
   // NOTE: clusterName and disableClone do not require this validation
-  if (m_option != kClusterName && m_option != kDisableClone) {
+  if (m_option != kClusterName && m_option != kDisableClone &&
+      m_option != kReplicationAllowedHost) {
     ensure_option_supported_all_members_cluster();
 
     // Get the Cluster Config Object
@@ -255,7 +264,8 @@ void Set_option::prepare() {
 shcore::Value Set_option::execute() {
   auto console = mysqlsh::current_console();
 
-  if (m_option != kClusterName && m_option != kDisableClone) {
+  if (m_option != kClusterName && m_option != kDisableClone &&
+      m_option != kReplicationAllowedHost) {
     // Update the option values in all Cluster members:
     std::string option_gr_variable =
         k_global_cluster_supported_options.at(m_option).option_variable;
@@ -335,6 +345,16 @@ shcore::Value Set_option::execute() {
       console->print_info("Successfully set the value of '" + m_option +
                           "' to '" + m_value_printable + "' in the Cluster: '" +
                           current_cluster_name + "'.");
+    } else if (m_option == kReplicationAllowedHost) {
+      m_cluster->update_replication_allowed_host(*m_value_str);
+
+      m_cluster->get_metadata_storage()->update_cluster_attribute(
+          m_cluster->get_id(), k_cluster_attribute_replication_allowed_host,
+          shcore::Value(*m_value_str));
+
+      current_console()->print_info(shcore::str_format(
+          "Internally managed GR recovery accounts updated for Cluster '%s'",
+          m_cluster->get_name().c_str()));
     }
   }
 

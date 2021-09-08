@@ -725,6 +725,9 @@ DESCRIPTION
         instance will attempt to rejoin the cluster after being expelled.
       - disableClone: boolean value used to disable the clone usage on the
         cluster.
+      - replicationAllowedHost string value to use as the host name part of
+        internal replication accounts. Existing accounts will be re-created
+        with the new value.
 
       ATTENTION: The failoverConsistency option will be removed in a future
                  release. Please use the consistency option instead.
@@ -1261,6 +1264,10 @@ DESCRIPTION
         will be thrown when finished.
       - clusterSetReplicationSslMode: SSL mode for the ClusterSet replication
         channels.
+      - replicationAllowedHost: string value to use as the host name part of
+        internal replication accounts (i.e. 'mysql_innodb_cs_###'@'hostname').
+        Default is %. It must be possible for any member of the ClusterSet to
+        connect to any other member using accounts with this hostname value.
 
       The clusterSetReplicationSslMode option supports the following values:
 

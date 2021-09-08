@@ -462,7 +462,7 @@ shcore::Value Remove_instance::execute() {
     // to ensure the that user removal is also propagated to the target
     // instance to remove (if ONLINE), but before metadata removal, since
     // we need account info stored there.
-    m_cluster->drop_replication_user(m_target_instance.get());
+    m_cluster->drop_replication_user_old(m_target_instance.get());
   }
 
   // JOB: Remove instance from the MD (metadata).

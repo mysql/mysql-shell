@@ -273,7 +273,8 @@ void change_replication_credentials(const mysqlshdk::mysql::IInstance &instance,
   try {
     instance.execute(change_master_stmt);
   } catch (const std::exception &err) {
-    throw std::runtime_error{"Cannot set replication user to '" + rpl_user +
+    throw std::runtime_error{"Cannot set replication user of channel '" +
+                             repl_channel + "' to '" + rpl_user +
                              "'. Error executing CHANGE " + source_term +
                              " statement: " + err.what()};
   }

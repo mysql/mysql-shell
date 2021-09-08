@@ -26,6 +26,7 @@
 
 #include <mysqld_error.h>
 #include <memory>
+#include <set>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -49,6 +50,10 @@ static constexpr size_t kPASSWORD_LENGTH = 32;
 
 using Account_attribute_set =
     utils::Enum_set<Account_attribute, Account_attribute::Grants>;
+
+void clone_user(const IInstance &instance, const std::string &orig_user,
+                const std::string &orig_host, const std::string &new_user,
+                const std::string &new_host);
 
 void clone_user(const IInstance &instance, const std::string &orig_user,
                 const std::string &orig_host, const std::string &new_user,

@@ -956,8 +956,25 @@ std::string MetadataStorage::get_table_tags(const std::string &tablename,
   return tags;
 }
 
-void MetadataStorage::update_instance_recovery_account(
-    const std::string &instance_uuid, const std::string &recovery_account_user,
+namespace {
+std::string repl_account_user_key(Cluster_type type) {
+  if (type == Cluster_type::GROUP_REPLICATION)
+    return "$.recoveryAccountUser";
+  else
+    return "$.replicationAccountUser";
+}
+
+std::string repl_account_host_key(Cluster_type type) {
+  if (type == Cluster_type::GROUP_REPLICATION)
+    return "$.recoveryAccountHost";
+  else
+    return "$.replicationAccountHost";
+}
+}  // namespace
+
+void MetadataStorage::update_instance_repl_account(
+    const std::string &instance_uuid, Cluster_type type,
+    const std::string &recovery_account_user,
     const std::string &recovery_account_host) {
   shcore::sqlstring query;
 
@@ -965,11 +982,12 @@ void MetadataStorage::update_instance_recovery_account(
     query = shcore::sqlstring(
         "UPDATE mysql_innodb_cluster_metadata.instances"
         " SET attributes = json_set(COALESCE(attributes, '{}'),"
-        "  '$.recoveryAccountUser', ?,"
-        "  '$.recoveryAccountHost', ?)"
+        "  ?, ?,  ?, ?)"
         " WHERE mysql_server_uuid = ?",
         0);
+    query << repl_account_user_key(type);
     query << recovery_account_user;
+    query << repl_account_host_key(type);
     query << recovery_account_host;
     query << instance_uuid;
     query.done();
@@ -978,25 +996,27 @@ void MetadataStorage::update_instance_recovery_account(
     // of the instance from the metadata.
     query = shcore::sqlstring(
         "UPDATE mysql_innodb_cluster_metadata.instances"
-        " SET attributes = json_remove(attributes,"
-        "  '$.recoveryAccountUser', '$.recoveryAccountHost')"
+        " SET attributes = json_remove(attributes, ?, ?)"
         " WHERE mysql_server_uuid = ?",
         0);
+    query << repl_account_user_key(type);
+    query << repl_account_host_key(type);
     query << instance_uuid;
     query.done();
   }
   execute_sql(query);
 }
 
-std::pair<std::string, std::string>
-MetadataStorage::get_instance_recovery_account(
-    const std::string &instance_uuid) {
+std::pair<std::string, std::string> MetadataStorage::get_instance_repl_account(
+    const std::string &instance_uuid, Cluster_type type) {
   shcore::sqlstring query = shcore::sqlstring{
-      "SELECT (attributes->>'$.recoveryAccountUser') as recovery_user,"
-      " (attributes->>'$.recoveryAccountHost') as recovery_host"
+      "SELECT (attributes->>?) as recovery_user,"
+      " (attributes->>?) as recovery_host"
       " FROM mysql_innodb_cluster_metadata.instances "
       " WHERE mysql_server_uuid = ?",
       0};
+  query << repl_account_user_key(type);
+  query << repl_account_host_key(type);
   query << instance_uuid;
   query.done();
   std::string recovery_user, recovery_host;
@@ -1008,25 +1028,6 @@ MetadataStorage::get_instance_recovery_account(
     recovery_host = row->get_string(1, "");
   }
   return std::make_pair(recovery_user, recovery_host);
-}
-
-void MetadataStorage::remove_instance_recovery_account(
-    const std::string &instance_uuid,
-    const std::string &recovery_account_user) {
-  shcore::sqlstring query;
-
-  if (!recovery_account_user.empty()) {
-    query = shcore::sqlstring(
-        "UPDATE mysql_innodb_cluster_metadata.instances "
-        "SET attributes = json_remove(attributes, "
-        "'$.recoveryAccountUser') WHERE mysql_server_uuid = ? AND "
-        "attributes->>'$.recoveryAccountUser' = ?",
-        0);
-    query << instance_uuid;
-    query << recovery_account_user;
-    query.done();
-    execute_sql(query);
-  }
 }
 
 void MetadataStorage::update_cluster_repl_account(

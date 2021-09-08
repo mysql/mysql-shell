@@ -1,6 +1,12 @@
 //@<OUT> WL#13788 Check the output of rs.options is as expected and that the function gets its information through the primary
 {
     "replicaSet": {
+        "globalOptions": [
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
+            }
+        ],
         "name": "myrs",
         "tags": {
             ".global": [
@@ -147,6 +153,12 @@
 //@<OUT> Check the output of options after changing applierWorkerThreads {VER(>=8.0.23)}
 {
     "replicaSet": {
+        "globalOptions": [
+            {
+                "option": "replicationAllowedHost", 
+                "value": "%"
+            }
+        ], 
         "name": "myrs",
         "tags": {
             ".global": [

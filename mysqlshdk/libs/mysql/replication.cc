@@ -657,6 +657,14 @@ Replication_channel::Status Replication_channel::applier_status() const {
   return ON;
 }
 
+std::string get_replication_user(const mysqlshdk::mysql::IInstance &instance,
+                                 const std::string &channel_name) {
+  return instance.queryf_one_string(
+      0, "",
+      "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = ?",
+      channel_name);
+}
+
 Replication_channel wait_replication_done_connecting(
     const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name) {
   // Check that the IO thread for the channel switches to ON/OFF.

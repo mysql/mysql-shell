@@ -66,11 +66,12 @@ class Create_replica_cluster : public Command_interface {
 
   void ensure_compatible_clone_donor(const std::string &instance_def);
 
-  void handle_clone(const Async_replication_options &ar_options, bool dry_run);
+  void handle_clone(const Async_replication_options &ar_options,
+                    const std::string &repl_account_host, bool dry_run);
 
   std::shared_ptr<Cluster_impl> create_cluster_object(
-      const mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options>
-          &repl_credentials);
+      const mysqlshdk::mysql::Auth_options &repl_credentials,
+      const std::string &repl_account_host);
 
  private:
   Cluster_set_impl *m_cluster_set = nullptr;

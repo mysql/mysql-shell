@@ -44,6 +44,9 @@ FUNCTIONS
             Lists the Router instances of the ClusterSet, or a single Router
             instance.
 
+      options()
+            Lists the ClusterSet configuration options.
+
       rejoinCluster(clusterName[, options])
             Rejoin an invalidated Cluster back to the ClusterSet and update
             replication.
@@ -53,6 +56,9 @@ FUNCTIONS
 
       routingOptions([router])
             Lists the ClusterSet Routers configuration options.
+
+      setOption(option, value)
+            Changes the value of an option for the whole ClusterSet.
 
       setPrimaryCluster(clusterName[, options])
             Performs a safe switchover of the PRIMARY Cluster of the
@@ -168,6 +174,11 @@ DESCRIPTION
         instance will attempt to rejoin the Cluster after being expelled.
       - timeout: maximum number of seconds to wait for the instance to sync up
         with the PRIMARY Cluster. Default is 0 and it means no timeout.
+      - replicationAllowedHost: string value to use as the host name part of
+        internal replication accounts (i.e.
+        'mysql_innodb_cluster_###'@'hostname'). Default is %. It must be
+        possible for any member of the Cluster to connect to any other member
+        using accounts with this hostname value.
 
       The recoveryMethod option supports the following values:
 
@@ -732,3 +743,40 @@ DESCRIPTION
 
       If the value is null, the option value is cleared and the default value
       takes effect.
+
+
+//@<OUT> setOption
+NAME
+      setOption - Changes the value of an option for the whole ClusterSet.
+
+SYNTAX
+      <ClusterSet>.setOption(option, value)
+
+WHERE
+      option: The option to be changed.
+      value: The value that the option shall get.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function changes an option for the ClusterSet.
+
+      The accepted options are:
+
+      - replicationAllowedHost string value to use as the host name part of
+        internal replication accounts. Existing accounts will be re-created
+        with the new value.
+
+//@<OUT> options
+NAME
+      options - Lists the ClusterSet configuration options.
+
+SYNTAX
+      <ClusterSet>.options()
+
+RETURNS
+      A JSON object describing the configuration options of the ClusterSet.
+
+DESCRIPTION
+      This function lists the configuration options for the ClusterSet.

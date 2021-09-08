@@ -179,10 +179,13 @@ class Cluster_impl : public Base_cluster_impl,
     m_topology_type = topology_type;
   }
 
-  mysqlshdk::mysql::Auth_options create_replication_user(
-      mysqlshdk::mysql::IInstance *target);
+  std::pair<mysqlshdk::mysql::Auth_options, std::string>
+  create_replication_user(mysqlshdk::mysql::IInstance *target);
 
-  void drop_replication_user(mysqlshdk::mysql::IInstance *target);
+  void drop_replication_user_old(mysqlshdk::mysql::IInstance *target);
+  bool drop_replication_user(const std::string &server_uuid,
+                             const std::string &endpoint);
+  void drop_replication_users();
 
   bool contains_instance_with_address(const std::string &host_port) const;
 
@@ -284,6 +287,14 @@ class Cluster_impl : public Base_cluster_impl,
           &condition = nullptr,
       bool ignore_network_conn_errors = true) const;
 
+  void execute_in_members(
+      const std::function<bool(const std::shared_ptr<Instance> &instance,
+                               const Instance_md_and_gr_member &info)>
+          &on_connect,
+      const std::function<bool(const shcore::Error &error,
+                               const Instance_md_and_gr_member &info)>
+          &on_connect_error = {}) const;
+
   /**
    * Get the primary instance address.
    *
@@ -384,7 +395,8 @@ class Cluster_impl : public Base_cluster_impl,
    * Return list of instances registered in metadata along with their current
    * GR member state.
    */
-  std::vector<Instance_md_and_gr_member> get_instances_with_state() const;
+  std::vector<Instance_md_and_gr_member> get_instances_with_state(
+      bool allow_offline = false) const;
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       const std::vector<std::string> &ignored_instances = {},
@@ -461,6 +473,8 @@ class Cluster_impl : public Base_cluster_impl,
    */
   // XXX removethis
   mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user();
+
+  void update_replication_allowed_host(const std::string &host);
 
  protected:
   void _set_option(const std::string &option,

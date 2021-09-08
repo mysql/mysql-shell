@@ -253,6 +253,7 @@ constexpr const char kTimeout[] = "timeout";
 constexpr const char kInvalidateErrorInstances[] = "invalidateErrorInstances";
 constexpr const char kClusterSetReplicationSslMode[] =
     "clusterSetReplicationSslMode";
+constexpr const char kReplicationAllowedHost[] = "replicationAllowedHost";
 
 constexpr const int k_group_replication_members_limit = 9;
 
@@ -268,7 +269,7 @@ struct Option_availability {
  * Map of the global Cluster configuration options of the AdminAPI
  * <sysvar, name>
  */
-const std::map<std::string, std::string> k_global_options{
+const std::map<std::string, std::string> k_global_cluster_options{
     {kGroupName, kGrGroupName}, {kMemberSslMode, kGrMemberSslMode}};
 
 /**

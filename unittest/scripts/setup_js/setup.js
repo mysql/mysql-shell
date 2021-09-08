@@ -553,6 +553,9 @@ function exist_in_metadata_schema(port) {
 
 function reset_instance(session) {
   session.runSql("STOP SLAVE");
+  try {
+  session.runSql("STOP group_replication");
+  } catch (e) {}
   session.runSql("SET GLOBAL super_read_only=0");
   session.runSql("SET GLOBAL read_only=0");
   session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");

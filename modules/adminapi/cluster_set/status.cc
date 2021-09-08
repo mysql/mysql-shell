@@ -336,14 +336,6 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
                 return a.primary_cluster < b.primary_cluster;
               });
 
-    // ensure the primary cluster is the last in the list, so that
-    // GTID_EXECUTED we query to compare between clusters is the freshest
-    std::sort(clusters.begin(), clusters.end(),
-              [](const Cluster_set_member_metadata &a,
-                 const Cluster_set_member_metadata &b) {
-                return a.primary_cluster < b.primary_cluster;
-              });
-
     Cluster_global_status primary_status = Cluster_global_status::UNKNOWN;
     Cluster_id primary_cluster_id;
     mysqlshdk::mysql::Gtid_set primary_gtid_set;

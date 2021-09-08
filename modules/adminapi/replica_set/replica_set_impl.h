@@ -27,6 +27,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
@@ -130,15 +131,15 @@ class Replica_set_impl : public Base_cluster_impl {
 
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
-  mysqlshdk::mysql::Auth_options refresh_replication_user(
-      mysqlshdk::mysql::IInstance *slave, bool dry_run);
+  std::pair<mysqlshdk::mysql::Auth_options, std::string>
+  refresh_replication_user(mysqlshdk::mysql::IInstance *slave, bool dry_run);
 
-  void drop_replication_user(mysqlshdk::mysql::IInstance *slave,
-                             const std::string &prefix);
+  void drop_replication_user(const std::string &server_uuid,
+                             mysqlshdk::mysql::IInstance *slave = nullptr);
 
-  mysqlshdk::mysql::Auth_options create_replication_user(
-      mysqlshdk::mysql::IInstance *slave, const std::string &prefix,
-      bool dry_run, mysqlshdk::mysql::IInstance *master = nullptr);
+  std::pair<mysqlshdk::mysql::Auth_options, std::string>
+  create_replication_user(mysqlshdk::mysql::IInstance *slave, bool dry_run,
+                          mysqlshdk::mysql::IInstance *master = nullptr);
 
  private:
   void _set_option(const std::string &option,
@@ -148,10 +149,10 @@ class Replica_set_impl : public Base_cluster_impl {
                             const std::string &option,
                             const shcore::Value &value) override;
 
-  void create(const std::string &instance_label, bool dry_run);
+  void create(const Create_replicaset_options &options, bool dry_run);
 
   void adopt(Global_topology_manager *topology,
-             const std::string &instance_label, bool dry_run);
+             const Create_replicaset_options &options, bool dry_run);
 
   void validate_add_instance(Global_topology_manager *topology,
                              mysqlshdk::mysql::IInstance *master,
@@ -171,9 +172,10 @@ class Replica_set_impl : public Base_cluster_impl {
                                 Instance_metadata *out_instance_md,
                                 bool *out_repl_working);
 
-  Instance_id manage_instance(Instance *instance,
-                              const std::string &instance_label,
-                              Instance_id master_id, bool is_primary);
+  Instance_id manage_instance(
+      Instance *instance, const std::pair<std::string, std::string> &repl_user,
+      const std::string &instance_label, Instance_id master_id,
+      bool is_primary);
 
   void do_set_primary_instance(
       Instance *master, Instance *new_master,
@@ -213,6 +215,7 @@ class Replica_set_impl : public Base_cluster_impl {
   void handle_clone(const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
                     const Clone_options &clone_options,
                     const Async_replication_options &ar_options,
+                    const std::string &repl_account_host,
                     const Recovery_progress_style &progress_style,
                     int sync_timeout, bool dry_run);
 
@@ -223,6 +226,8 @@ class Replica_set_impl : public Base_cluster_impl {
       bool interactive);
 
   shcore::Dictionary_t get_topology_options();
+
+  void update_replication_allowed_host(const std::string &host);
 
   Global_topology_type m_topology_type;
 };

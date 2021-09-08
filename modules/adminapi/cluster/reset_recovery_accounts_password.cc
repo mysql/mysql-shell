@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 
 namespace mysqlsh {
@@ -203,7 +204,8 @@ shcore::Value Reset_recovery_accounts_password::execute() {
 
     // do a change master on the instance to user the new replication account
     log_debug("Changing '%s'\'s recovery credentials", instance_repr.c_str());
-    mysqlshdk::gr::change_recovery_credentials(*instance, user, password);
+    mysqlshdk::mysql::change_replication_credentials(
+        *instance, user, password, mysqlshdk::gr::k_gr_recovery_channel);
   }
 
   // Print appropriate output message depending if some operation was skipped.

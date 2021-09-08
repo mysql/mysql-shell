@@ -1047,6 +1047,9 @@ Changes the value of an option for the whole ReplicaSet.
 This function changes an option for the ReplicaSet.
 
 The accepted options are:
+@li replicationAllowedHost string value to use as the host name part of
+internal replication accounts. Existing accounts will be re-created with the new
+value.
 ${NAMESPACE_TAG}
 
 ${NAMESPACE_TAG_DETAIL_REPLICASET}

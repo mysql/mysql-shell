@@ -1164,6 +1164,10 @@ one.
 @li manualStartOnBoot: boolean (default false). If false, Group Replication in
 cluster instances will automatically start and rejoin when MySQL starts,
 otherwise it must be started manually.
+@li replicationAllowedHost: string value to use as the host name part of
+internal replication accounts (i.e. 'mysql_innodb_cluster_###'@'hostname').
+Default is %. It must be possible for any member of the Cluster to connect to
+any other member using accounts with this hostname value.
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_CONSISTENCY}
@@ -1700,6 +1704,10 @@ set are executed, but no changes are actually made. An exception will be thrown
 when finished.
 @li gtidSetIsComplete: boolean value which indicates whether the GTID set
 of the seed instance corresponds to all transactions executed. Default is false.
+@li replicationAllowedHost: string value to use as the host name part of
+internal replication accounts (i.e. 'mysql_innodb_rs_###'@'hostname'). Default is %.
+It must be possible for any member of the ReplicaSet to connect to any other
+member using accounts with this hostname value.
 ${OPT_INTERACTIVE}
 )*");
 /**

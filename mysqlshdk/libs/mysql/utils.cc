@@ -59,6 +59,29 @@ std::string::size_type skip_quoted_thing(const std::string &grant,
     return std::string::npos;
 }
 
+std::string replace_created_user(const std::string &create_user,
+                                 const std::string &replacement) {
+  std::string::size_type p;
+
+  if (shcore::str_ibeginswith(create_user, "CREATE USER IF NOT EXISTS"))
+    p = strlen("CREATE USER IF NOT EXISTS ");
+  else
+    p = strlen("CREATE USER ");
+
+  auto start = p;
+  p = skip_quoted_thing(create_user, p);
+  if (p == std::string::npos)
+    throw std::logic_error("Could not parse CREATE USER: " + create_user);
+  if (create_user[p] != '@')
+    throw std::logic_error("Could not parse CREATE USER: " + create_user);
+  ++p;
+  auto end = p = skip_quoted_thing(create_user, p);
+  if (p == std::string::npos)
+    throw std::logic_error("Could not parse CREATE USER: " + create_user);
+
+  return create_user.substr(0, start) + replacement + create_user.substr(end);
+}
+
 std::string replace_grantee(const std::string &grant,
                             const std::string &replacement) {
   // GRANT .... TO `user`@`host` KEYWORD*
@@ -136,6 +159,38 @@ void drop_table_or_view(const IInstance &instance, const std::string &schema,
     } else {
       throw;
     }
+  }
+}
+
+void clone_user(const IInstance &instance, const std::string &orig_user,
+                const std::string &orig_host, const std::string &new_user,
+                const std::string &new_host) {
+  std::string account = shcore::quote_identifier(new_user) + "@" +
+                        shcore::quote_identifier(new_host);
+
+  std::string create_user = instance.queryf_one_string(
+      0, "", "SHOW CREATE USER ?@?", orig_user, orig_host);
+
+  instance.execute(detail::replace_created_user(create_user, account));
+
+  std::vector<std::string> grants;
+  auto result =
+      instance.queryf("SHOW GRANTS FOR /*(*/ ?@? /*)*/", orig_user, orig_host);
+  while (auto row = result->fetch_one()) {
+    std::string grant = row->get_string(0);
+    assert(shcore::str_beginswith(grant, "GRANT "));
+
+    // GRANT PROXY not supported
+    assert(!shcore::str_beginswith(grant, "GRANT PROXY"));
+    if (shcore::str_beginswith(grant, "GRANT PROXY")) continue;
+
+    // replace original user with new one
+    grants.push_back(detail::replace_grantee(grant, account));
+  }
+
+  // grant everything
+  for (const auto &grant : grants) {
+    instance.execute(grant);
   }
 }
 

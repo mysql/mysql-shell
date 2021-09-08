@@ -400,18 +400,9 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   // Dissolve cluster.
   output_handler.prompts.push_back({"*", "yes"});
 
-  output_handler.set_log_level(shcore::Logger::LOG_INFO);
-
   // Tests cluster functionality, adding, removing instances
   // error conditions.
   validate_interactive("dba_cluster_multimaster_interactive.js");
-
-  std::vector<std::string> log{
-      "The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary "
-      "Mode. Consult its requirements and limitations in "
-      "https://dev.mysql.com/doc/refman/en/group-replication-limitations.html"};
-
-  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 #if 0

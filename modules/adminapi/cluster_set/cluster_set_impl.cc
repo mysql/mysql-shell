@@ -66,17 +66,6 @@ Cluster_set_impl::Cluster_set_impl(
   m_id = csmd.id;
 }
 
-void Cluster_set_impl::_set_instance_option(
-    const std::string & /*instance_def*/, const std::string & /*option*/,
-    const shcore::Value & /*value*/) {
-  throw std::logic_error("Not implemented yet.");
-}
-
-void Cluster_set_impl::_set_option(const std::string & /*option*/,
-                                   const shcore::Value & /*value*/) {
-  throw std::logic_error("Not implemented yet.");
-}
-
 void Cluster_set_impl::disconnect() {
   Base_cluster_impl::disconnect();
 
@@ -106,18 +95,34 @@ std::pair<std::string, std::string> Cluster_set_impl::get_cluster_repl_account(
   return get_metadata_storage()->get_cluster_repl_account(cluster->get_id());
 }
 
-mysqlshdk::mysql::Auth_options
-Cluster_set_impl::create_cluster_replication_user(Instance *cluster_primary,
-                                                  bool dry_run) {
+std::pair<mysqlshdk::mysql::Auth_options, std::string>
+Cluster_set_impl::create_cluster_replication_user(
+    Instance *cluster_primary, const std::string &account_host, bool dry_run) {
   // we use server_id as an arbitrary unique number within the clusterset. Once
   // the user is created, no relationship between the server_id and the number
   // should be assumed. The only way to obtain the replication user name for a
   // cluster is through the metadata.
   std::string repl_user = shcore::str_format(
       "%s%x", k_cluster_set_async_user_name, cluster_primary->get_server_id());
+  std::string repl_host = "%";
 
-  log_info("Creating async replication account '%s'@'%%' for new cluster at %s",
-           repl_user.c_str(), cluster_primary->descr().c_str());
+  if (account_host.empty()) {
+    mysqlshdk::mysql::Auth_options creds;
+    shcore::Value allowed_host;
+    if (get_metadata_storage()->query_cluster_set_attribute(
+            get_id(), k_cluster_attribute_replication_allowed_host,
+            &allowed_host) &&
+        allowed_host.type == shcore::String &&
+        !allowed_host.as_string().empty()) {
+      repl_host = allowed_host.as_string();
+    }
+  } else {
+    repl_host = account_host;
+  }
+
+  log_info("Creating async replication account '%s'@'%s' for new cluster at %s",
+           repl_user.c_str(), repl_host.c_str(),
+           cluster_primary->descr().c_str());
 
   auto primary = get_metadata_storage()->get_md_server();
 
@@ -129,18 +134,19 @@ Cluster_set_impl::create_cluster_replication_user(Instance *cluster_primary,
     // required grants. For those reasons, we must simply drop the account if
     // already exists to ensure a new one is created.
     mysqlshdk::mysql::drop_all_accounts_for_user(*primary, repl_user);
-    repl_account = mysqlshdk::gr::create_recovery_user(repl_user, *primary,
-                                                       {"%"}, {}, true, true);
+    repl_account = mysqlshdk::gr::create_recovery_user(
+        repl_user, *primary, {repl_host}, {}, true, true);
   } else {
     repl_account.user = repl_user;
   }
-  return repl_account;
+  return {repl_account, repl_host};
 }
 
 void Cluster_set_impl::record_cluster_replication_user(
-    Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user) {
-  get_metadata_storage()->update_cluster_repl_account(cluster->get_id(),
-                                                      repl_user.user, "%");
+    Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user,
+    const std::string &repl_user_host) {
+  get_metadata_storage()->update_cluster_repl_account(
+      cluster->get_id(), repl_user.user, repl_user_host.c_str());
 }
 
 void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
@@ -174,15 +180,17 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
     and if that's the case then it won't be dropped.
   */
   if (get_metadata_storage()->is_recovery_account_unique(repl_user, true)) {
-    log_info("Dropping replication account '%s'@'%%' for cluster '%s'",
-             repl_user.c_str(), cluster->get_name().c_str());
+    log_info("Dropping replication account '%s'@'%s' for cluster '%s'",
+             repl_user.c_str(), repl_user_host.c_str(),
+             cluster->get_name().c_str());
 
     try {
-      primary->drop_user(repl_user, "%", true);
+      primary->drop_user(repl_user, repl_user_host.c_str(), true);
     } catch (const std::exception &e) {
       console->print_warning(shcore::str_format(
-          "Error dropping replication account '%s'@'%%' for cluster '%s'",
-          repl_user.c_str(), cluster->get_name().c_str()));
+          "Error dropping replication account '%s'@'%s' for cluster '%s'",
+          repl_user.c_str(), repl_user_host.c_str(),
+          cluster->get_name().c_str()));
     }
 
     // Also update metadata
@@ -197,25 +205,25 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
 }
 
 mysqlshdk::mysql::Auth_options
-Cluster_set_impl::refresh_cluster_replication_user(const std::string &user,
+Cluster_set_impl::refresh_cluster_replication_user(Cluster_impl *cluster,
                                                    bool dry_run) {
   auto primary = get_primary_master();
 
-  mysqlshdk::mysql::Auth_options creds;
+  std::string repl_user;
+  std::string repl_user_host;
+  std::string repl_password;
 
-  creds.user = user;
+  std::tie(repl_user, repl_user_host) = get_cluster_repl_account(cluster);
 
   try {
     auto console = mysqlsh::current_console();
 
-    log_info("Resetting password for %s@%% at %s", creds.user.c_str(),
-             primary->descr().c_str());
+    log_info("Resetting password for %s@%s at %s", repl_user.c_str(),
+             repl_user_host.c_str(), primary->descr().c_str());
     // re-create replication with a new generated password
     if (!dry_run) {
-      std::string repl_password;
-      mysqlshdk::mysql::set_random_password(*primary, creds.user, {"%"},
-                                            &repl_password);
-      creds.password = repl_password;
+      mysqlshdk::mysql::set_random_password(*primary, repl_user,
+                                            {repl_user_host}, &repl_password);
     }
   } catch (const std::exception &e) {
     throw shcore::Exception::runtime_error(shcore::str_format(
@@ -223,7 +231,7 @@ Cluster_set_impl::refresh_cluster_replication_user(const std::string &user,
         e.what()));
   }
 
-  return creds;
+  return {repl_user, repl_password};
 }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_primary_cluster() const {
@@ -425,6 +433,7 @@ mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
 
     check_cluster_online(primary_cluster.get());
   }
+
   return primary;
 }
 
@@ -1095,7 +1104,7 @@ void Cluster_set_impl::remove_cluster(
         DBUG_EXECUTE_IF("dba_remove_cluster_fail_post_cs_member_removed",
                         { throw std::logic_error("debug"); });
 
-        // Drop replication user
+        // Drop cluster replication user
         drop_cluster_replication_user(target_cluster.get());
 
         // Revert the replication account handling
@@ -1107,13 +1116,18 @@ void Cluster_set_impl::remove_cluster(
           if (primary || !skip_replication_user_undo_step) {
             log_info("Revert: Creating replication account at '%s'",
                      primary->descr().c_str());
-            auto repl_credentials =
-                create_cluster_replication_user(primary.get(), options.dry_run);
+            std::string repl_account_host;
+            mysqlshdk::mysql::Auth_options repl_credentials;
+
+            std::tie(repl_credentials, repl_account_host) =
+                create_cluster_replication_user(primary.get(), "",
+                                                options.dry_run);
 
             // Update the credentials on the primary and restart the channel
             // otherwise the channel will be broken
             // NOTE: Only if the channel exists, otherwise skip it
-            if (get_channel_status(*target_cluster->get_cluster_server(),
+            if (target_cluster->get_cluster_server() &&
+                get_channel_status(*target_cluster->get_cluster_server(),
                                    {k_clusterset_async_channel_name},
                                    nullptr)) {
               stop_channel(target_cluster->get_cluster_server().get(),
@@ -1128,8 +1142,8 @@ void Cluster_set_impl::remove_cluster(
                             k_clusterset_async_channel_name, false);
             }
 
-            record_cluster_replication_user(target_cluster.get(),
-                                            repl_credentials);
+            record_cluster_replication_user(
+                target_cluster.get(), repl_credentials, repl_account_host);
           }
         });
 
@@ -1172,7 +1186,7 @@ void Cluster_set_impl::remove_cluster(
       // channel to use in the revert process in case of a failure
       auto ar_options = get_clusterset_replication_options();
 
-      if (target_cluster->get_primary_master() &&
+      if (target_cluster->get_cluster_server() &&
           target_cluster->cluster_availability() ==
               Cluster_availability::ONLINE) {
         // Call the primitive to remove the replica, ensuring:
@@ -1194,14 +1208,15 @@ void Cluster_set_impl::remove_cluster(
           skip_replication_user_undo_step = true;
           log_info("Revert: Re-adding Cluster as Replica");
           auto repl_credentials = create_cluster_replication_user(
-              target_cluster->get_primary_master().get(), options.dry_run);
+              target_cluster->get_primary_master().get(), "", options.dry_run);
 
           record_cluster_replication_user(target_cluster.get(),
-                                          repl_credentials);
+                                          repl_credentials.first,
+                                          repl_credentials.second);
 
           auto ar_channel_options = ar_options;
 
-          ar_channel_options.repl_credentials = repl_credentials;
+          ar_channel_options.repl_credentials = repl_credentials.first;
 
           update_replica(target_cluster->get_cluster_server().get(),
                          get_primary_master().get(), ar_channel_options, true,
@@ -1210,57 +1225,54 @@ void Cluster_set_impl::remove_cluster(
       } else {
         // If the target cluster is OFFLINE, check if there are reachable
         // members in order to reset the settings in those instances
-        mysqlshdk::db::Connection_options opts_cluster =
-            target_cluster->get_metadata_storage()
-                ->get_md_server()
-                ->get_connection_options();
+        target_cluster->execute_in_members(
+            [this, options, ar_options, &undo_list,
+             &skip_replication_user_undo_step](
+                const std::shared_ptr<Instance> &instance,
+                const Instance_md_and_gr_member &) {
+              Scoped_instance reachable_member(instance);
 
-        for (const auto &instance_def :
-             target_cluster->get_metadata_storage()->get_all_instances(
-                 target_cluster->get_id())) {
-          mysqlshdk::db::Connection_options opts(instance_def.endpoint);
+              // Check if super_read_only is enabled. If so it must be
+              // disabled to reset the ClusterSet settings
+              if (reachable_member->get_sysvar_bool("super_read_only")
+                      .get_safe()) {
+                reachable_member->set_sysvar("super_read_only", false);
+              }
 
-          try {
-            opts.set_login_options_from(opts_cluster);
-            auto reachable_member = Instance::connect(opts);
+              // Reset the ClusterSet settings and replication channel
+              remove_replica(reachable_member.get(), options.dry_run);
 
-            // Check if super_read_only is enabled. If so it must be disabled to
-            // reset the ClusterSet settings
-            if (reachable_member->get_sysvar_bool("super_read_only")
-                    .get_safe()) {
-              reachable_member->set_sysvar("super_read_only", false);
-            }
-
-            // Reset the ClusterSet settings and replication channel
-            remove_replica(reachable_member.get(), options.dry_run);
-
-            // Disable skip_replica_start
-            reachable_member->set_sysvar(
-                "skip_replica_start", false,
-                mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
-
-            // Revert in case of failure
-            // NOTE: Mark the user handling undo step to be skipped. On this
-            // case the replication user wasn't dropped because the primary
-            // cluster is offline we can simply call update_replica without any
-            // credentials because it will keep them
-            undo_list.push_front([=, &skip_replication_user_undo_step]() {
-              skip_replication_user_undo_step = true;
-              log_info("Revert: Re-adding Cluster as Replica");
-              update_replica(reachable_member.get(), get_primary_master().get(),
-                             ar_options, false, options.dry_run);
-
-              log_info("Revert: Enabling skip_replica_start");
+              // Disable skip_replica_start
               reachable_member->set_sysvar(
-                  "skip_replica_start", true,
+                  "skip_replica_start", false,
                   mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+
+              // Revert in case of failure
+              // NOTE: Mark the user handling undo step to be skipped. On this
+              // case the replication user wasn't dropped because the primary
+              // cluster is offline we can simply call update_replica without
+              // any credentials because it will keep them
+              undo_list.push_front([=, &skip_replication_user_undo_step]() {
+                skip_replication_user_undo_step = true;
+                log_info("Revert: Re-adding Cluster as Replica");
+                update_replica(reachable_member.get(),
+                               get_primary_master().get(), ar_options, false,
+                               options.dry_run);
+
+                log_info("Revert: Enabling skip_replica_start");
+                reachable_member->set_sysvar(
+                    "skip_replica_start", true,
+                    mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+              });
+              return true;
+            },
+            [console](const shcore::Error &error,
+                      const Instance_md_and_gr_member &info) {
+              console->print_warning(shcore::str_format(
+                  "Configuration update of %s skipped: %s",
+                  info.first.endpoint.c_str(), error.format().c_str()));
+              return true;
             });
-          } catch (const shcore::Error &e) {
-            // Unreachable member, ignore
-            mysqlsh::current_console()->print_note("Can't connect to '" +
-                                                   opts.as_uri() + "'");
-          }
-        }
       }
 
       // Set debug trap to test reversion of replica removal
@@ -1298,6 +1310,8 @@ void Cluster_set_impl::remove_cluster(
       // Remove the Cluster's Metadata and Cluster members' info from the
       // Metadata of the ClusterSet
       if (!options.dry_run) {
+        target_cluster->drop_replication_users();
+
         metadata->drop_cluster(target_cluster->get_name());
       }
 
@@ -1705,6 +1719,12 @@ void Cluster_set_impl::record_in_metadata(
       csid, k_cluster_set_attribute_ssl_mode,
       shcore::Value(to_string(m_options.ssl_mode)));
 
+  metadata->update_cluster_set_attribute(
+      csid, k_cluster_attribute_replication_allowed_host,
+      m_options.replication_allowed_host.empty()
+          ? shcore::Value("%")
+          : shcore::Value(m_options.replication_allowed_host));
+
   // Migrate Routers registered in the Cluster to the ClusterSet
   log_info(
       "Migrating Metadata records of the Cluster Router instances to "
@@ -1729,6 +1749,99 @@ shcore::Value Cluster_set_impl::describe() {
   check_preconditions("describe");
 
   return shcore::Value(clusterset::cluster_set_describe(this));
+}
+
+shcore::Value Cluster_set_impl::options() {
+  check_preconditions("options");
+
+  // command should go through the primary
+  try {
+    acquire_primary();
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) {
+      current_console()->print_warning(e.format());
+    } else {
+      throw;
+    }
+  }
+  auto finally = shcore::on_leave_scope([this]() { release_primary(); });
+
+  shcore::Dictionary_t inner_dict = shcore::make_dict();
+  (*inner_dict)["domainName"] = shcore::Value(get_name());
+
+  {
+    shcore::Value allowed_host;
+    if (!get_metadata_storage()->query_cluster_set_attribute(
+            get_id(), k_cluster_attribute_replication_allowed_host,
+            &allowed_host))
+      allowed_host = shcore::Value::Null();
+
+    shcore::Array_t options = shcore::make_array();
+
+    options->emplace_back(shcore::Value(
+        shcore::make_dict("option", shcore::Value(kReplicationAllowedHost),
+                          "value", allowed_host)));
+
+    (*inner_dict)["globalOptions"] = shcore::Value(options);
+  }
+
+  shcore::Dictionary_t res = shcore::make_dict();
+  (*res)["clusterSet"] = shcore::Value(inner_dict);
+  return shcore::Value(res);
+}
+
+void Cluster_set_impl::_set_instance_option(
+    const std::string & /*instance_def*/, const std::string & /*option*/,
+    const shcore::Value & /*value*/) {
+  throw std::logic_error("Not implemented yet.");
+}
+
+void Cluster_set_impl::update_replication_allowed_host(
+    const std::string &host) {
+  for (const Cluster_metadata &cluster : get_clusters()) {
+    auto account =
+        get_metadata_storage()->get_cluster_repl_account(cluster.cluster_id);
+
+    if (account.second != host) {
+      log_info("Re-creating account for cluster %s: %s@%s -> %s@%s",
+               cluster.cluster_name.c_str(), account.first.c_str(),
+               account.second.c_str(), account.first.c_str(), host.c_str());
+      clone_user(*get_primary_master(), account.first, account.second,
+                 account.first, host);
+
+      get_primary_master()->drop_user(account.first, account.second, true);
+
+      get_metadata_storage()->update_cluster_repl_account(cluster.cluster_id,
+                                                          account.first, host);
+    } else {
+      log_info("Skipping account recreation for cluster %s: %s@%s == %s@%s",
+               cluster.cluster_name.c_str(), account.first.c_str(),
+               account.second.c_str(), account.first.c_str(), host.c_str());
+    }
+  }
+}
+
+void Cluster_set_impl::_set_option(const std::string &option,
+                                   const shcore::Value &value) {
+  if (option == kReplicationAllowedHost) {
+    if (value.type != shcore::String || value.as_string().empty())
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for '%s': Argument #2 is expected "
+                             "to be a string.",
+                             option.c_str()));
+
+    update_replication_allowed_host(value.as_string());
+
+    get_metadata_storage()->update_cluster_set_attribute(
+        get_id(), k_cluster_attribute_replication_allowed_host, value);
+
+    current_console()->print_info(shcore::str_format(
+        "Internally managed replication users updated for ClusterSet '%s'",
+        get_name().c_str()));
+  } else {
+    throw shcore::Exception::argument_error("Option '" + option +
+                                            "' not supported.");
+  }
 }
 
 void Cluster_set_impl::set_primary_cluster(
@@ -1828,8 +1941,8 @@ void Cluster_set_impl::set_primary_cluster(
 
   console->print_info("* Refreshing replication account of demoted cluster");
   // Re-generate a new password for the master being demoted.
-  ar_options.repl_credentials = refresh_cluster_replication_user(
-      get_cluster_repl_account(primary_cluster.get()).first, options.dry_run);
+  ar_options.repl_credentials =
+      refresh_cluster_replication_user(primary_cluster.get(), options.dry_run);
 
   console->print_info("* Synchronizing transaction backlog at " +
                       promoted->descr());
@@ -2449,7 +2562,7 @@ void Cluster_set_impl::rejoin_cluster(
     throw;
   }
 
-  auto rejoining_primary = rejoining_cluster->get_primary_master();
+  auto rejoining_primary = rejoining_cluster->get_cluster_server();
 
   bool refresh_only = false;
 
@@ -2497,8 +2610,7 @@ void Cluster_set_impl::rejoin_cluster(
       console->print_info("* Refreshing replication settings");
 
       ar_options.repl_credentials = refresh_cluster_replication_user(
-          get_cluster_repl_account(rejoining_cluster.get()).first,
-          options.dry_run);
+          rejoining_cluster.get(), options.dry_run);
 
       update_replica(rejoining_cluster.get(), primary, ar_options,
                      options.dry_run);
@@ -2514,8 +2626,7 @@ void Cluster_set_impl::rejoin_cluster(
 
     // configure as a replica
     ar_options.repl_credentials = refresh_cluster_replication_user(
-        get_cluster_repl_account(rejoining_cluster.get()).first,
-        options.dry_run);
+        rejoining_cluster.get(), options.dry_run);
 
     update_replica(rejoining_cluster.get(), primary, ar_options,
                    options.dry_run);

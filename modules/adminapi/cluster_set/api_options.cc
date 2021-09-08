@@ -43,7 +43,9 @@ const shcore::Option_pack_def<Create_cluster_set_options>
       shcore::Option_pack_def<Create_cluster_set_options>()
           .optional(kDryRun, &Create_cluster_set_options::dry_run)
           .optional(kClusterSetReplicationSslMode,
-                    &Create_cluster_set_options::set_ssl_mode);
+                    &Create_cluster_set_options::set_ssl_mode)
+          .optional(kReplicationAllowedHost,
+                    &Create_cluster_set_options::replication_allowed_host);
 
   return opts;
 }
@@ -71,6 +73,8 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
           .optional(kDryRun, &Create_replica_cluster_options::dry_run)
           .optional(kRecoveryVerbosity,
                     &Create_replica_cluster_options::set_recovery_verbosity)
+          .optional(kReplicationAllowedHost,
+                    &Create_replica_cluster_options::replication_allowed_host)
           .include(&Create_replica_cluster_options::gr_options)
           .include(&Create_replica_cluster_options::clone_options);
 

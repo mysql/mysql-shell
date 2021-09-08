@@ -53,14 +53,14 @@ TEST_F(Gtid_utils, gtid_set_basics) {
     auto session = std::make_shared<testing::Mock_mysql_session>();
     mysqlshdk::mysql::Instance server(session);
 
-    session->expect_query("select @@gtid_executed")
+    session->expect_query("select @@global.gtid_executed")
         .then({""})
         .add_row({"8b8dc2ba-8803-11eb-af3d-a1178d81dccc:1-43"});
 
     gs = Gtid_set::from_gtid_executed(server);
     EXPECT_EQ("8b8dc2ba-8803-11eb-af3d-a1178d81dccc:1-43", gs.str());
 
-    session->expect_query("select @@gtid_purged")
+    session->expect_query("select @@global.gtid_purged")
         .then({""})
         .add_row({"8b8dc2ba-8803-11eb-af3d-a1178d81dccc:5"});
 

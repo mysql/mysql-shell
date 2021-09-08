@@ -351,9 +351,7 @@ shcore::Value Dissolve::execute() {
   // JOB: Remove replication accounts used for recovery of GR.
   // Note: This operation MUST be performed before leave-cluster to ensure
   // that all changed are propagated to the online instances.
-  for (auto &instance : m_available_instances) {
-    m_cluster->drop_replication_user(instance.get());
-  }
+  m_cluster->drop_replication_users();
 
   // Drop the cluster's metadata.
   std::string cluster_name = m_cluster->get_name();

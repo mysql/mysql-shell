@@ -107,6 +107,9 @@ void ClusterSet::init() {
   expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
   expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
 
+  expose("options", &ClusterSet::options)->cli();
+  expose("setOption", &ClusterSet::set_option, "option", "value")->cli();
+
   // TODO(konrad): cli does not support yet such overloads
   expose("setRoutingOption", &ClusterSet::set_routing_option, "option",
          "value");
@@ -261,6 +264,10 @@ it from the Cluster.
 instance will attempt to rejoin the Cluster after being expelled.
 @li timeout: maximum number of seconds to wait for the instance to sync up
 with the PRIMARY Cluster. Default is 0 and it means no timeout.
+@li replicationAllowedHost: string value to use as the host name part of
+internal replication accounts (i.e. 'mysql_innodb_cluster_###'@'hostname').
+Default is %. It must be possible for any member of the Cluster to connect to
+any other member using accounts with this hostname value.
 
 The recoveryMethod option supports the following values:
 
@@ -785,6 +792,69 @@ void ClusterSet::rejoin_cluster(
                                    impl()->default_admin_credentials());
 
   impl()->rejoin_cluster(cluster_name, *options);
+}
+
+REGISTER_HELP_FUNCTION(options, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_OPTIONS, R"*(
+Lists the ClusterSet configuration options.
+
+@returns A JSON object describing the configuration options of the ClusterSet.
+
+This function lists the configuration options for the ClusterSet.
+)*");
+
+/**
+ * $(CLUSTERSET_OPTIONS_BRIEF)
+ *
+ * $(CLUSTERSET_OPTIONS)
+ */
+#if DOXYGEN_JS
+String ClusterSet::options() {}
+#elif DOXYGEN_PY
+str ClusterSet::options() {}
+#endif
+
+shcore::Value ClusterSet::options() {
+  // Throw an error if the clusterset is invalid
+  assert_valid("options");
+
+  return impl()->options();
+}
+
+REGISTER_HELP_FUNCTION(setOption, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETOPTION, R"*(
+Changes the value of an option for the whole ClusterSet.
+
+@param option The option to be changed.
+@param value The value that the option shall get.
+
+@returns Nothing.
+
+This function changes an option for the ClusterSet.
+
+The accepted options are:
+@li replicationAllowedHost string value to use as the host name part of
+internal replication accounts. Existing accounts will be re-created with the new
+value.
+
+)*");
+
+/**
+ * $(CLUSTERSET_SETOPTION_BRIEF)
+ *
+ * $(CLUSTERSET_SETOPTION)
+ */
+#if DOXYGEN_JS
+Undefined ClusterSet::setOption(String option, String value) {}
+#elif DOXYGEN_PY
+None ClusterSet::set_option(str option, str value) {}
+#endif
+
+void ClusterSet::set_option(const std::string &option,
+                            const shcore::Value &value) {
+  assert_valid("setOption");
+
+  impl()->set_option(option, value);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, ClusterSet);

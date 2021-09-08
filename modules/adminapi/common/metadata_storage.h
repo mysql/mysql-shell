@@ -283,27 +283,26 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    * Update the information on the metadata about the recovery user being used
    * by the instance with the given uuid.
    * @param instance_uuid The uuid of the instance
+   * @param type whether account is for ReplicaSet or Cluster
    * @param recovery_account_user string with the username of the recovery user.
    * If the string is empty, any existing information about the recovery user
    * of the instance with the given uuid is dropped from the metadata.
    * @param recovery_account_host string with the host of the recovery user.
    */
-  void update_instance_recovery_account(
-      const std::string &instance_uuid,
-      const std::string &recovery_account_user,
-      const std::string &recovery_account_host);
+  void update_instance_repl_account(const std::string &instance_uuid,
+                                    Cluster_type type,
+                                    const std::string &recovery_account_user,
+                                    const std::string &recovery_account_host);
   /**
    * Fetch from the metadata the recovery account being used by the instance
    * with the given uuid.
    * @param instance_uuid the uuid of the instance
+   * @param type whether account is for ReplicaSet or Cluster
    * @return a pair with the recovery account user name and recovery account
    * hostname
    */
-  std::pair<std::string, std::string> get_instance_recovery_account(
-      const std::string &instance_uuid);
-  void remove_instance_recovery_account(
-      const std::string &instance_uuid,
-      const std::string &recovery_account_user);
+  std::pair<std::string, std::string> get_instance_repl_account(
+      const std::string &instance_uuid, Cluster_type type);
 
   void update_cluster_repl_account(const Cluster_id &cluster_id,
                                    const std::string &repl_account_user,

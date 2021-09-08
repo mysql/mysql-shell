@@ -612,47 +612,6 @@ std::map<std::string, utils::nullable<std::string>> get_all_configurations(
 }
 
 /**
- * Change the recovery user credentials for Group Replication.
- *
- * NOTE: Execute the CHANGE MASTER statement to configure the GR recovery user.
- *
- * @param instance session object to connect to the target instance.
- * @param rpl_user string with the username that will be used for replication.
- *                 Note: this user should already exist with the proper
- *                       privileges.
- * @param rpl_pwd string with the password for the replication user.
- */
-void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
-                                 const std::string &rpl_user,
-                                 const std::string &rpl_pwd) {
-  std::string source_term_cmd =
-      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version(),
-                                                       true);
-
-  std::string source_term =
-      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version());
-
-  std::string change_master_stmt_fmt =
-      "CHANGE " + source_term_cmd + " TO " + source_term +
-      "_USER = /*(*/ ? /*)*/, " + source_term +
-      "_PASSWORD = /*((*/ ? /*))*/ "
-      "FOR CHANNEL 'group_replication_recovery'";
-  shcore::sqlstring change_master_stmt =
-      shcore::sqlstring(change_master_stmt_fmt.c_str(), 0);
-  change_master_stmt << rpl_user;
-  change_master_stmt << rpl_pwd;
-  change_master_stmt.done();
-
-  try {
-    instance.execute(change_master_stmt);
-  } catch (const std::exception &err) {
-    throw std::runtime_error{
-        "Cannot set Group Replication recovery user to '" + rpl_user +
-        "'. Error executing CHANGE MASTER statement: " + err.what()};
-  }
-}
-
-/**
  * Start the Group Replication.
  *
  * If the serve is indicated to be the bootstrap member, this function
@@ -793,32 +752,6 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
         e.what()));
   }
   return creds;
-}
-
-/**
- * Get the replication user used for recovery.
- *
- * This function returns the replication user used in the (last)
- * CHANGE MASTER TO statement FOR CHANNEL 'group_replication_recovery'.
- *
- * NOTE: The correct execution of this function requires the variable
- *       master_info_repository=TABLE to be set which is a requirement for
- *       Group Replication.
- *
- * @param instance instance object of target member to obtain the
- *                 replication user.
- * @return a string with the replication (recovery) user set for the specified
- *         instance. Note: If no replication user was specified an empty string
- *         is returned.
- */
-std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance) {
-  std::string rpl_user;
-  std::shared_ptr<db::IResult> result(
-      instance.query("SELECT User_name FROM mysql.slave_master_info "
-                     "WHERE Channel_name = 'group_replication_recovery'"));
-  auto row = result->fetch_one();
-  if (row) rpl_user = row->get_string(0);
-  return rpl_user;
 }
 
 bool is_group_replication_delayed_starting(
