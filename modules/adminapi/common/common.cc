@@ -1758,6 +1758,12 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
     progress_bar->set_total(total_transactions_primary);
     progress_bar->start();
 
+    // Always terminate the progress bar when going out of the scope of the
+    // function. That must happen regardless if the function ended successfully
+    // or not, or because of an exception, to ensure the output is cleared out.
+    shcore::Scoped_callback end_progress_bar(
+        [&progress_bar]() { progress_bar->end(); });
+
     // Update the progress bar to show the current state of the transactions
     // missing
     auto gtid_set_target =
@@ -1815,7 +1821,6 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       // wait succeeded, get out of here
       if (progress_reporting == Progress_reporting::PROGRESSBAR) {
         update_progress(progress_bar.get(), total_transactions_primary, 0);
-        progress_bar->end();
       }
       break;
     }
