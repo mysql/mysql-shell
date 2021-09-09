@@ -49,7 +49,7 @@ Oci_par_directory::Oci_par_directory(const std::string &url)
 }
 
 Oci_par_directory::Oci_par_directory(const Par_structure &par)
-    : m_par_data(par) {
+    : Http_directory(true), m_par_data(par) {
   init_rest();
 }
 
