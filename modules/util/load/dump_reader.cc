@@ -653,9 +653,9 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
   compute_filtered_data_size();
 }
 
-void Dump_reader::add_deferred_indexes(const std::string &schema,
-                                       const std::string &table,
-                                       std::vector<std::string> &&indexes) {
+uint64_t Dump_reader::add_deferred_indexes(const std::string &schema,
+                                           const std::string &table,
+                                           std::vector<std::string> &&indexes) {
   auto s = m_contents.schemas.find(schema);
   if (s == m_contents.schemas.end())
     throw std::runtime_error("Unable to find schema " + schema +
@@ -682,6 +682,15 @@ void Dump_reader::add_deferred_indexes(const std::string &schema,
                        return false;
                      }),
       idx.end());
+
+  const auto size = idx.size();
+
+  if (0 == size) {
+    // if all queries were FK-related, we're done here
+    t->second->indexes_done = true;
+  }
+
+  return size;
 }
 
 void Dump_reader::replace_target_schema(const std::string &schema) {
@@ -796,10 +805,6 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
   has_sql = md->get_bool("includesDdl", true);
   di.has_data = md->get_bool("includesData", true);
 
-  if (di.has_data) {
-    reader->on_table_with_data();
-  }
-
   options = md->get_map("options");
 
   if (options) {
@@ -855,8 +860,6 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     const auto basenames = md->get_map("basenames");
 
     if (basenames && !basenames->empty()) {
-      reader->on_table_with_partitions();
-
       for (const auto &p : *basenames) {
         auto copy = di;
 
@@ -871,8 +874,8 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     }
   }
 
+  reader->on_table_metadata_parsed(*this);
   md_done = true;
-  reader->on_metadata_parsed();
 }
 
 void Dump_reader::Table_info::rescan(const Files &files) {
@@ -1352,6 +1355,22 @@ std::unique_ptr<shcore::Thread_pool> Dump_reader::create_thread_pool() const {
 
   return std::make_unique<shcore::Thread_pool>(
       m_options.background_threads_count(threads));
+}
+
+void Dump_reader::on_table_metadata_parsed(const Table_info &info) {
+  const auto partitions = info.data_info.size();
+  assert(partitions > 0);
+
+  if (info.data_info[0].has_data) {
+    ++m_tables_to_load;
+    m_tables_and_partitions_to_load += partitions;
+
+    if (partitions > 1) {
+      m_dump_has_partitions = true;
+    }
+  }
+
+  on_metadata_parsed();
 }
 
 }  // namespace mysqlsh
