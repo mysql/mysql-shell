@@ -822,8 +822,8 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 bool Dump_loader::Worker::Index_recreation_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will recreate indexes for table `%s`.`%s`", id(),
-            schema().c_str(), table().c_str());
+  log_debug("worker%zu will recreate %zu indexes for table `%s`.`%s`", id(),
+            m_queries.size(), schema().c_str(), table().c_str());
 
   const auto console = current_console();
 
@@ -845,6 +845,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
           execute_statement(
               session, query,
               "While recreating indexes for table `" + m_table + "`");
+          ++loader->m_indexes_recreated;
         } catch (const shcore::Error &e) {
           // Deadlocks and duplicate key errors should not happen but if they
           // do they can be ignored at least for a while
@@ -865,7 +866,6 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   }
 
   log_debug("worker%zu done", id());
-  ++loader->m_indexes_recreated;
 
   // signal for more work
   loader->post_worker_event(worker, Worker_event::INDEX_END);
@@ -1590,6 +1590,10 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
     if (m_options.load_deferred_indexes()) {
       setup_create_indexes_progress();
 
+      if (is_data_load_complete()) {
+        m_index_count_is_known = true;
+      }
+
       const auto load_finished = [this](const std::vector<std::string> &keys) {
         std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
         for (const auto &key : keys) {
@@ -1606,11 +1610,8 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
       if (m_dump->next_deferred_index(&schema, &table, &indexes,
                                       load_finished)) {
         assert(indexes != nullptr);
-        ++m_indexes_to_recreate;
         worker->recreate_indexes(schema, table, *indexes);
         return true;
-      } else if (Dump_reader::Status::COMPLETE == m_dump->status()) {
-        m_all_index_tasks_scheduled = true;
       }
     }
 
@@ -1630,7 +1631,7 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
           worker->analyze_table(schema, table, histograms);
           return true;
         }
-      } else if (Dump_reader::Status::COMPLETE == m_dump->status()) {
+      } else if (is_data_load_complete()) {
         m_all_analyze_tasks_scheduled = true;
       }
     }
@@ -1708,7 +1709,7 @@ void Dump_loader::show_summary() {
         m_num_chunks_loaded.load(),
         format_items("rows", "rows", m_num_rows_loaded.load()).c_str(),
         format_bytes(m_num_bytes_loaded.load()).c_str(),
-        m_dump->unique_tables(), m_dump->schemas().size(),
+        m_dump->tables_to_load(), m_dump->schemas().size(),
         format_seconds(seconds, false).c_str(),
         format_throughput_bytes(
             m_num_bytes_loaded.load() - m_num_bytes_previously_loaded,
@@ -2738,8 +2739,10 @@ void Dump_loader::on_table_ddl_end(
   if (!placeholder) {
     m_load_log->end_table_ddl(schema, table);
 
-    if (deferred_indexes && !deferred_indexes->empty())
-      m_dump->add_deferred_indexes(schema, table, std::move(*deferred_indexes));
+    if (deferred_indexes && !deferred_indexes->empty()) {
+      m_indexes_to_recreate += m_dump->add_deferred_indexes(
+          schema, table, std::move(*deferred_indexes));
+    }
   }
 
   on_ddl_done_for_schema(schema);
@@ -2838,11 +2841,8 @@ void Dump_loader::setup_load_data_progress() {
 
   config.space_before_item = false;
   config.initial = [this]() { return m_num_bytes_previously_loaded; };
-  config.current = [this]() {
-    const uint64_t current = m_num_bytes_loaded;
-    const auto total = m_dump->filtered_data_size();
-
-    if (Dump_reader::Status::COMPLETE == m_dump->status() && current >= total) {
+  config.current = [this]() -> uint64_t {
+    if (is_data_load_complete()) {
       // this callback can be called before m_load_data_stage is assigned to
       if (m_load_data_stage) {
         // finish the stage when all data is loaded
@@ -2850,7 +2850,7 @@ void Dump_loader::setup_load_data_progress() {
       }
     }
 
-    return current;
+    return m_num_bytes_loaded;
   };
   config.total = [this]() { return m_dump->filtered_data_size(); };
 
@@ -2909,13 +2909,12 @@ void Dump_loader::setup_create_indexes_progress() {
   }
 
   m_indexes_recreated = 0;
-  m_indexes_to_recreate = 0;
-  m_all_index_tasks_scheduled = false;
+  m_index_count_is_known = false;
 
   dump::Progress_thread::Progress_config config;
   config.current = [this]() -> uint64_t { return m_indexes_recreated; };
   config.total = [this]() { return m_indexes_to_recreate; };
-  config.is_total_known = [this]() { return m_all_index_tasks_scheduled; };
+  config.is_total_known = [this]() { return m_index_count_is_known; };
 
   m_create_indexes_stage =
       m_progress_thread.start_stage("Recreating indexes", std::move(config));
@@ -2952,6 +2951,11 @@ void Dump_loader::on_ddl_done_for_schema(const std::string &schema) {
   if (0 == --(it->second)) {
     m_ddl_in_progress_per_schema.erase(it);
   }
+}
+
+bool Dump_loader::is_data_load_complete() const {
+  return Dump_reader::Status::COMPLETE == m_dump->status() &&
+         m_num_bytes_loaded >= m_dump->filtered_data_size();
 }
 
 }  // namespace mysqlsh

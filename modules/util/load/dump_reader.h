@@ -185,12 +185,13 @@ class Dump_reader {
 
   void rescan(dump::Progress_thread *progress_thread = nullptr);
 
-  void add_deferred_indexes(const std::string &schema, const std::string &table,
-                            std::vector<std::string> &&indexes);
+  uint64_t add_deferred_indexes(const std::string &schema,
+                                const std::string &table,
+                                std::vector<std::string> &&indexes);
 
   void validate_options();
 
-  size_t tables_with_data() const { return m_tables_with_data.size(); }
+  size_t tables_with_data() const { return m_tables_to_load; }
 
   enum class Status {
     INVALID,  // No dump or not enough data to start loading yet
@@ -217,11 +218,11 @@ class Dump_reader {
 
   uint64_t metadata_parsed() { return m_metadata_parsed; }
 
-  void on_table_with_data() { ++m_unique_tables_with_data; }
+  struct Table_info;
 
-  uint64_t unique_tables() { return m_unique_tables_with_data; }
+  void on_table_metadata_parsed(const Table_info &info);
 
-  void on_table_with_partitions() { m_dump_has_partitions = true; }
+  uint64_t tables_to_load() { return m_tables_to_load; }
 
   bool has_partitions() const { return m_dump_has_partitions; }
 
@@ -251,8 +252,6 @@ class Dump_reader {
     bool sql_seen = false;
     bool sql_pre_seen = false;
   };
-
-  struct Table_info;
 
   struct Table_data_info {
     Table_info *owner = nullptr;
@@ -442,7 +441,10 @@ class Dump_reader {
   std::unordered_set<Table_data_info *> m_tables_with_data;
 
   // tables which have data to be loaded (possibly partitioned)
-  std::atomic<uint64_t> m_unique_tables_with_data{0};
+  std::atomic<uint64_t> m_tables_to_load{0};
+
+  // tables and partitions which have data to be loaded
+  std::atomic<uint64_t> m_tables_and_partitions_to_load{0};
 
   bool m_dump_has_partitions = false;
 

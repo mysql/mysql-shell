@@ -386,6 +386,8 @@ class Dump_loader {
 
   void on_ddl_done_for_schema(const std::string &schema);
 
+  bool is_data_load_complete() const;
+
   template <typename T>
   static inline std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
@@ -508,12 +510,12 @@ class Dump_loader {
   std::atomic<uint64_t> m_ddl_executed;
 
   std::atomic<uint64_t> m_indexes_recreated;
-  uint64_t m_indexes_to_recreate;
-  bool m_all_index_tasks_scheduled;
+  uint64_t m_indexes_to_recreate = 0;
+  bool m_index_count_is_known = false;
 
   std::atomic<uint64_t> m_tables_analyzed;
-  uint64_t m_tables_to_analyze;
-  bool m_all_analyze_tasks_scheduled;
+  uint64_t m_tables_to_analyze = 0;
+  bool m_all_analyze_tasks_scheduled = false;
 
   std::unordered_map<std::string, bool> m_schema_ddl_ready;
   std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;
