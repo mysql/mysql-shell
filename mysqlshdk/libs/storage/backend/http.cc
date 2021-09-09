@@ -304,7 +304,12 @@ std::unordered_set<IDirectory::File_info> Http_directory::filter_files(
 
 std::unique_ptr<IFile> Http_directory::file(
     const std::string &name, const File_options & /*options*/) const {
-  return std::make_unique<Http_get>(full_path(), name);
+  // file may outlive the directory, need to copy the values
+  const auto full = full_path();
+  auto real = full.real();
+  auto masked = full.masked();
+  Masked_string copy = {std::move(real), std::move(masked)};
+  return std::make_unique<Http_get>(copy, name, m_use_retry);
 }
 
 bool Http_directory::is_local() const { return false; }

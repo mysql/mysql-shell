@@ -118,6 +118,36 @@ EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressF
   "Util.load_dump: Not Found")
 EXPECT_PAR_IS_SECRET()
 
+#@<> BUG#33332080 - load a dump which is still in progress
+all_read_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), "shell-test/", "ListObjects")
+
+# download the @.done.json file, remove it from the bucket
+testutil.anycopy({"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/@.done.json"}, "@.done.json")
+delete_object(OS_BUCKET_NAME, "shell-test/@.done.json", OS_NAMESPACE)
+
+# incomplete dump should require the 'waitDumpTimeout' option
+remove_local_progress_file()
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": local_progress_file}), "RuntimeError: Util.load_dump: Incomplete dump")
+EXPECT_PAR_IS_SECRET()
+
+# asynchronously start the load process
+remove_local_progress_file()
+proc = testutil.call_mysqlsh_async([__sandbox_uri2, "--py", "-e", f"util.load_dump('{all_read_par}', {{'progressFile': '{local_progress_file}', 'waitDumpTimeout': 60}})"])
+
+# wait a bit and reupload the @.done.json file
+time.sleep(5)
+testutil.anycopy("@.done.json", {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/@.done.json"})
+
+# wait for the upload to finish (should catch up with the @.done.json file)
+testutil.wait_mysqlsh_async(proc)
+
+# verify if everything was OK
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+validate_load_progress(local_progress_file)
+session.run_sql("drop schema if exists sample")
+
 #@<> BUG#33122234 - setup
 tested_schema = "test_schema"
 tested_table = "test_table_"
