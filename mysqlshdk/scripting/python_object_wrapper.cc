@@ -326,47 +326,50 @@ static PyObject *object_printable(PyShObjObject *self) {
 }
 
 static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
+  if (auto object = PyObject_GenericGetAttr(reinterpret_cast<PyObject *>(self),
+                                            attr_name))
+    return object;
+
+  // At this point Python exception is set and we either return it to the user
+  // if conversion fails or need to clear it
   std::string attrname;
+  if (!Python_context::pystring_to_string(attr_name, &attrname)) return nullptr;
 
-  if (Python_context::pystring_to_string(attr_name, &attrname)) {
-    PyObject *object;
-    if ((object = PyObject_GenericGetAttr((PyObject *)self, attr_name)))
-      return object;
-    PyErr_Clear();
+  PyErr_Clear();
 
-    std::shared_ptr<Cpp_object_bridge> cobj(
-        std::static_pointer_cast<Cpp_object_bridge>(*self->object));
+  std::shared_ptr<Cpp_object_bridge> cobj(
+      std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-    shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
+  shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
-    if (cobj->has_method_advanced(attrname)) {
-      return wrap_method(cobj, attrname.c_str());
-    }
+  if (cobj->has_method_advanced(attrname)) {
+    return wrap_method(cobj, attrname.c_str());
+  }
 
-    shcore::Value member;
-    bool error_handled = false;
-    try {
-      member = cobj->get_member_advanced(attrname);
-    } catch (const Exception &exc) {
-      if (!exc.is_attribute()) {
-        Python_context::set_python_error(exc, "");
-        error_handled = true;
-      }
-    } catch (...) {
-      translate_python_exception();
+  shcore::Value member;
+  bool error_handled = false;
+  try {
+    member = cobj->get_member_advanced(attrname);
+  } catch (const Exception &exc) {
+    if (!exc.is_attribute()) {
+      Python_context::set_python_error(exc, "");
       error_handled = true;
     }
-
-    if (member.type != shcore::Undefined) {
-      object = py::convert(member);
-      self->cache->members[attrname] = object;
-      return object;
-    } else if (!error_handled) {
-      std::string err = std::string("unknown attribute: ") + attrname;
-      Python_context::set_python_error(PyExc_AttributeError, err.c_str());
-    }
+  } catch (...) {
+    translate_python_exception();
+    error_handled = true;
   }
-  return NULL;
+
+  if (member.type != shcore::Undefined) {
+    auto object = py::convert(member);
+    self->cache->members[attrname] = object;
+    return object;
+  } else if (!error_handled) {
+    std::string err = std::string("unknown attribute: ") + attrname;
+    Python_context::set_python_error(PyExc_AttributeError, err.c_str());
+  }
+
+  return nullptr;
 }
 
 static int object_setattro(PyShObjObject *self, PyObject *attr_name,

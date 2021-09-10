@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace mysqlsh {
 
@@ -121,6 +122,20 @@ t = threading.Thread(target=testf)
 t.start()
 t.join()
 )*");
+}
+
+TEST_F(Shell_python, non_string_index) {
+  for (const auto &texts : std::vector<std::pair<const char *, const char *>>{
+           {"dba[1]", "TypeError: attribute name must be string, not 'int'"},
+           {"util[True]",
+            "TypeError: attribute name must be string, not 'bool'"},
+           {"shell[('ene', 'due')]",
+            "TypeError: attribute name must be string, not 'tuple'"}}) {
+    execute(texts.first);
+    EXPECT_EQ("", output_handler.std_out);
+    EXPECT_THAT(output_handler.std_err, testing::HasSubstr(texts.second));
+    wipe_all();
+  }
 }
 
 }  // namespace mysqlsh
