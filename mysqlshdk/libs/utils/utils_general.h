@@ -213,9 +213,27 @@ std::string SHCORE_PUBLIC make_account(const Account &account);
 std::string SHCORE_PUBLIC get_member_name(const std::string &name,
                                           shcore::NamingStyle style);
 
+/**
+ * Ensures at most 2 identifiers are found on the string:
+ *  - if 2 identifiers are found then they are set to schema and table
+ *  - If 1 identifier is found it is set to table
+ * Ensures the table name is not empty.
+ */
 void SHCORE_PUBLIC split_schema_and_table(const std::string &str,
                                           std::string *out_schema,
                                           std::string *out_table);
+
+/**
+ * Ensures at most 3 identifiers are found on the string:
+ *  - if 3 identifiers are found then they are set to schema, table and object
+ *  - if 2 identifiers are found then they are set to table and object
+ *  - if 1 identifier is found it is set to object
+ * Ensures the object name is not empty.
+ */
+void SHCORE_PUBLIC split_schema_table_and_object(const std::string &str,
+                                                 std::string *out_schema,
+                                                 std::string *out_table,
+                                                 std::string *out_object);
 
 void SHCORE_PUBLIC split_priv_level(const std::string &str,
                                     std::string *out_schema,

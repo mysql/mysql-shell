@@ -908,21 +908,8 @@ for view in test_schema_views:
 
 #@<> options param being a dictionary that contains an unknown key
 # WL13804-TSFR_11_1_2
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: dummy", types_schema, types_schema_tables, test_output_relative, { "dummy": "fails" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: indexColumn", types_schema, types_schema_tables, test_output_relative, { "indexColumn": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsTerminatedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsTerminatedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsEnclosedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsEnclosedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsEscapedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsEscapedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsOptionallyEnclosed", types_schema, types_schema_tables, test_output_relative, { "fieldsOptionallyEnclosed": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: linesTerminatedBy", types_schema, types_schema_tables, test_output_relative, { "linesTerminatedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: dialect", types_schema, types_schema_tables, test_output_relative, { "dialect": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: events", types_schema, types_schema_tables, test_output_relative, { "events": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: routines", types_schema, types_schema_tables, test_output_relative, { "routines": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: users", types_schema, types_schema_tables, test_output_relative, { "users": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: excludeUsers", types_schema, types_schema_tables, test_output_relative, { "excludeUsers": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: includeUsers", types_schema, types_schema_tables, test_output_relative, { "includeUsers": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: excludeTables", types_schema, types_schema_tables, test_output_relative, { "excludeTables": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #4: Invalid options: excludeSchemas", types_schema, types_schema_tables, test_output_relative, { "excludeSchemas": "dummy" })
+for param in { "dummy", "users", "excludeUsers", "includeUsers", "indexColumn", "fieldsTerminatedBy", "fieldsEnclosedBy", "fieldsEscapedBy", "fieldsOptionallyEnclosed", "linesTerminatedBy", "dialect", "excludeSchemas", "includeSchemas", "excludeTables", "includeTables", "events", "excludeEvents", "includeEvents", "routines", "excludeRoutines", "includeRoutines" }:
+    EXPECT_FAIL("ValueError", f"Argument #4: Invalid options: {param}", types_schema, types_schema_tables, test_output_relative, { param: "fails" })
 
 # FR12 - The `util.dumpTables()` function must create:
 # * table data dumps, as specified in WL#13807, FR7,
@@ -2295,6 +2282,99 @@ testutil.wait_mysqlsh_async(pid, 0)
 
 #@<> BUG#32954757 cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> WL14244 - help entries
+util.help('dump_tables')
+
+# WL14244-TSFR_7_3
+EXPECT_STDOUT_CONTAINS("""
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+""")
+
+# WL14244-TSFR_8_3
+EXPECT_STDOUT_CONTAINS("""
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+""")
+
+#@<> WL14244 - helpers
+def dump_and_load(options):
+    WIPE_STDOUT()
+    # remove everything from the server
+    wipeout_server(session)
+    # create sample DB structure
+    session.run_sql("CREATE SCHEMA schema_1")
+    session.run_sql("CREATE TABLE schema_1.existing_table_1 (id INT)")
+    session.run_sql("CREATE TABLE schema_1.existing_table_2 (id INT)")
+    session.run_sql("CREATE VIEW schema_1.existing_view AS SELECT * FROM schema_1.existing_table_1")
+    session.run_sql("CREATE EVENT schema_1.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
+    session.run_sql("CREATE FUNCTION schema_1.existing_routine() RETURNS INT DETERMINISTIC RETURN 1")
+    session.run_sql("CREATE TRIGGER schema_1.existing_trigger_1 AFTER DELETE ON schema_1.existing_table_1 FOR EACH ROW BEGIN END")
+    session.run_sql("CREATE TRIGGER schema_1.existing_trigger_2 AFTER DELETE ON schema_1.existing_table_2 FOR EACH ROW BEGIN END")
+    session.run_sql("CREATE SCHEMA not_specified_schema")
+    session.run_sql("CREATE TABLE not_specified_schema.table (id INT)")
+    session.run_sql("CREATE VIEW not_specified_schema.view AS SELECT * FROM not_specified_schema.table")
+    session.run_sql("CREATE EVENT not_specified_schema.event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
+    session.run_sql("CREATE PROCEDURE not_specified_schema.routine() DETERMINISTIC BEGIN END")
+    session.run_sql("CREATE TRIGGER not_specified_schema.trigger AFTER DELETE ON not_specified_schema.table FOR EACH ROW BEGIN END")
+    # we're only interested in DDL, progress is not important
+    options["ddlOnly"] = True
+    options["showProgress"] = False
+    # do the dump
+    shutil.rmtree(test_output_absolute, True)
+    util.dump_tables("schema_1", ["existing_table_1", "existing_table_2"], test_output_absolute, options)
+    # remove everything from the server once again, load the dump
+    wipeout_server(session)
+    util.load_dump(test_output_absolute, { "showProgress": False })
+    # fetch data about the current DB structure
+    return snapshot_instance(session)
+
+def entries(snapshot, keys = []):
+    entry = snapshot["schemas"]
+    for key in keys:
+        entry = entry[key]
+    return sorted(list(entry.keys()))
+
+#@<> WL14244 - includeTriggers - invalid values
+EXPECT_FAIL("ValueError", "Argument #4: The trigger to be included must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.", types_schema, types_schema_tables, test_output_absolute, { "includeTriggers": [ "trigger" ] })
+EXPECT_FAIL("ValueError", "Argument #4: Failed to parse trigger to be included 'schema.@': Invalid character in identifier", types_schema, types_schema_tables, test_output_absolute, { "includeTriggers": [ "schema.@" ] })
+
+#@<> WL14244-TSFR_7_7
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
+EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+snapshot = dump_and_load({ "includeTriggers": [] })
+EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
+EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+#@<> WL14244-TSFR_7_11
+snapshot = dump_and_load({ "includeTriggers": ['schema_1.existing_table_1', 'schema_1.non_existing_table', 'non_schema.table', 'not_specified_schema.table', 'schema_1.existing_table_2.existing_trigger_2', 'schema_1.existing_table_2.non_existing_trigger'] })
+EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
+EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+#@<> WL14244 - excludeTriggers - invalid values
+EXPECT_FAIL("ValueError", "Argument #4: The trigger to be excluded must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.", types_schema, types_schema_tables, test_output_absolute, { "excludeTriggers": [ "trigger" ] })
+EXPECT_FAIL("ValueError", "Argument #4: Failed to parse trigger to be excluded 'schema.@': Invalid character in identifier", types_schema, types_schema_tables, test_output_absolute, { "excludeTriggers": [ "schema.@" ] })
+
+#@<> WL14244-TSFR_8_7
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
+EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+snapshot = dump_and_load({ "excludeTriggers": [] })
+EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
+EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+#@<> WL14244-TSFR_8_11
+snapshot = dump_and_load({ "excludeTriggers": ['schema_1.existing_table_1', 'schema_1.non_existing_table', 'non_schema.table', 'not_specified_schema.table', 'schema_1.existing_table_2.existing_trigger_2', 'schema_1.existing_table_2.non_existing_trigger'] })
+EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
+EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
 
 #@<> Cleanup
 drop_all_schemas()

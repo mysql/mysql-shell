@@ -1253,11 +1253,21 @@ table data is loaded, which in many cases can reduce load times. If "fulltext",
 only full-text indexes will be deferred.
 @li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
 that would be performed, without actually doing so.
+@li <b>excludeEvents</b>: array of strings (default not set) - Skip loading
+specified events from the dump. Strings are in format <b>schema</b>.<b>event</b>,
+quoted using backtick characters when required.
+@li <b>excludeRoutines</b>: array of strings (default not set) - Skip loading
+specified routines from the dump. Strings are in format <b>schema</b>.<b>routine</b>,
+quoted using backtick characters when required.
 @li <b>excludeSchemas</b>: array of strings (default not set) - Skip loading
 specified schemas from the dump.
 @li <b>excludeTables</b>: array of strings (default not set) - Skip loading
-specified tables from the dump. Strings are in format schema.table or
-`schema`.`table`.
+specified tables from the dump. Strings are in format <b>schema</b>.<b>table</b>,
+quoted using backtick characters when required.
+@li <b>excludeTriggers</b>: array of strings (default not set) - Skip loading
+specified triggers from the dump. Strings are in format <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or <b>schema</b>.<b>table</b>.<b>trigger</b>
+(the individual trigger), quoted using backtick characters when required.
 @li <b>excludeUsers</b>: array of strings (default not set) - Skip loading
 specified users from the dump. Each user is in the format of
 'user_name'[@'host']. If the host is not specified, all the accounts with the
@@ -1267,11 +1277,25 @@ it contains objects that already exist in the target database.
 @li <b>ignoreVersion</b>: bool (default false) - Load the dump even if the
 major version number of the server where it was created is different from where
 it will be loaded.
+@li <b>includeEvents</b>: array of strings (default not set) - Loads only the
+specified events from the dump. Strings are in format <b>schema</b>.<b>event</b>,
+quoted using backtick characters when required. By default, all events are
+included.
+@li <b>includeRoutines</b>: array of strings (default not set) - Loads only the
+specified routines from the dump. Strings are in format <b>schema</b>.<b>routine</b>,
+quoted using backtick characters when required. By default, all routines are
+included.
 @li <b>includeSchemas</b>: array of strings (default not set) - Loads only the
 specified schemas from the dump. By default, all schemas are included.
 @li <b>includeTables</b>: array of strings (default not set) - Loads only the
-specified tables from the dump. Strings are in format schema.table or
-`schema`.`table`. By default, all tables from all schemas are included.
+specified tables from the dump. Strings are in format <b>schema</b>.<b>table</b>,
+quoted using backtick characters when required. By default, all tables from all
+schemas are included.
+@li <b>includeTriggers</b>: array of strings (default not set) - Loads only the
+specified triggers from the dump. Strings are in format <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or <b>schema</b>.<b>table</b>.<b>trigger</b>
+(the individual trigger), quoted using backtick characters when required. By
+default, all triggers are included.
 @li <b>includeUsers</b>: array of strings (default not set) - Load only the
 specified users from the dump. Each user is in the format of
 'user_name'[@'host']. If the host is not specified, all the accounts with the
@@ -1576,6 +1600,15 @@ expiration time for the PARs generated when ociParManifest is enabled.
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
 @li <b>triggers</b>: bool (default: true) - Include triggers for each dumped
 table.
+@li <b>excludeTriggers</b>: list of strings (default: empty) - List of triggers
+to be excluded from the dump in the format of <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or
+<b>schema</b>.<b>table</b>.<b>trigger</b> (the individual trigger).
+@li <b>includeTriggers</b>: list of strings (default: empty) - List of triggers
+to be included in the dump in the format of <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or
+<b>schema</b>.<b>table</b>.<b>trigger</b> (the individual trigger).
+
 @li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
 
 @li <b>consistent</b>: bool (default: true) - Enable or disable consistent data
@@ -1608,15 +1641,27 @@ values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
 "strip_tablespaces".)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
-@li <b>excludeTables</b>: list of strings (default: empty) - List of tables to
-be excluded from the dump in the format of <b>schema</b>.<b>table</b>.
+@li <b>excludeTables</b>: list of strings (default: empty) - List of tables or
+views to be excluded from the dump in the format of <b>schema</b>.<b>table</b>.
+@li <b>includeTables</b>: list of strings (default: empty) - List of tables or
+views to be included in the dump in the format of <b>schema</b>.<b>table</b>.
 
 ${TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS}
 
 @li <b>events</b>: bool (default: true) - Include events from each dumped
 schema.
+@li <b>excludeEvents</b>: list of strings (default: empty) - List of events
+to be excluded from the dump in the format of <b>schema</b>.<b>event</b>.
+@li <b>includeEvents</b>: list of strings (default: empty) - List of events
+to be included in the dump in the format of <b>schema</b>.<b>event</b>.
+
 @li <b>routines</b>: bool (default: true) - Include functions and stored
-procedures for each dumped schema.)*");
+procedures for each dumped schema.
+@li <b>excludeRoutines</b>: list of strings (default: empty) - List of routines
+to be excluded from the dump in the format of <b>schema</b>.<b>routine</b>.
+@li <b>includeRoutines</b>: list of strings (default: empty) - List of routines
+to be included in the dump in the format of <b>schema</b>.<b>routine</b>.
+)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SESSION_DETAILS, R"*(
 Requires an open, global Shell session, and uses its connection options, such as
@@ -1658,16 +1703,15 @@ Data dumps cannot be created for the following tables:
 @li mysql.slow_log
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTION_DETAILS, R"*(
-The names given in the <b>excludeTables</b> option should be valid MySQL
-identifiers, quoted using backtick characters when required.
-
-If the <b>excludeTables</b> option contains a table which does not exist, or a
-table which belongs to a schema which is not included in the dump or does not
-exist, it is ignored.
-)*");
-
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS, R"*(
+The names given in the <b>exclude{object}</b> or <b>include{object}</b> options
+should be valid MySQL identifiers, quoted using backtick characters when
+required.
+
+If the <b>exclude{object}</b> or <b>include{object}</b> options contain an
+object which does not exist, or an object which belongs to a schema which is not
+included in the dump or does not exist, it is ignored.
+
 The <b>tzUtc</b> option allows dumping TIMESTAMP data when a server has data in
 different time zones or data is being moved between servers with different time
 zones.
@@ -2001,7 +2045,6 @@ ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
 <b>Options</b>
 
-${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
@@ -2058,8 +2101,10 @@ Dumps the whole database to files in the output directory.
 ${TOPIC_UTIL_DUMP_DDL_COMMON_PARAMETERS}
 
 <b>The following options are supported:</b>
-@li <b>excludeSchemas</b>: list of strings (default: empty) - list of schemas to
+@li <b>excludeSchemas</b>: list of strings (default: empty) - List of schemas to
 be excluded from the dump.
+@li <b>includeSchemas</b>: list of strings (default: empty) - List of schemas to
+be included in the dump.
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS}
 @li <b>users</b>: bool (default: true) - Include users, roles and grants in the
 dump file.
@@ -2070,6 +2115,7 @@ is not specified, all the accounts with the given user name are excluded.
 specified users. Each user is in the format of 'user_name'[@'host']. If the host
 is not specified, all the accounts with the given user name are included. By
 default, all users are included.
+
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
@@ -2087,10 +2133,9 @@ Dumps cannot be created for the following schemas:
 
 <b>Options</b>
 
-If the <b>excludeSchemas</b> option contains a schema which is not included in
-the dump or does not exist, it is ignored.
+If the <b>excludeSchemas</b> or <b>includeSchemas</b> options contain a schema
+which is not included in the dump or does not exist, it is ignored.
 
-${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}

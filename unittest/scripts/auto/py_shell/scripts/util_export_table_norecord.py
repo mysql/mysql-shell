@@ -671,26 +671,8 @@ session.run_sql("DROP TABLE !.!;", [ test_schema, custom_dialect_table ])
 EXPECT_FAIL("ValueError", "Argument #3: The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting in a fixed-row format. This is currently not supported.", quote(types_schema, types_schema_tables[0]), test_output_absolute, { "fieldsTerminatedBy": "", "fieldsEnclosedBy": "" })
 
 #@<> options param being a dictionary that contains an unknown key
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: dummy", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dummy": "fails" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: indexColumn", quote(types_schema, types_schema_tables[0]), test_output_relative, { "indexColumn": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: consistent", quote(types_schema, types_schema_tables[0]), test_output_relative, { "consistent": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: triggers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "triggers": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: events", quote(types_schema, types_schema_tables[0]), test_output_relative, { "events": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: routines", quote(types_schema, types_schema_tables[0]), test_output_relative, { "routines": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: users", quote(types_schema, types_schema_tables[0]), test_output_relative, { "users": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: excludeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeUsers": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: includeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "includeUsers": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: tzUtc", quote(types_schema, types_schema_tables[0]), test_output_relative, { "tzUtc": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: ddlOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ddlOnly": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: dataOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dataOnly": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: dryRun", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dryRun": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: chunking", quote(types_schema, types_schema_tables[0]), test_output_relative, { "chunking": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: bytesPerChunk", quote(types_schema, types_schema_tables[0]), test_output_relative, { "bytesPerChunk": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: threads", quote(types_schema, types_schema_tables[0]), test_output_relative, { "threads": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: excludeTables", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeTables": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: excludeSchemas", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeSchemas": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: ociParManifest", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociParManifest": "dummy" })
-EXPECT_FAIL("ValueError", "Argument #3: Invalid options: ociParExpireTime", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociParExpireTime": "dummy" })
+for param in { "dummy", "indexColumn", "consistent", "triggers", "events", "routines", "users", "excludeUsers", "includeUsers", "ddlOnly", "dataOnly", "dryRun", "chunking", "bytesPerChunk", "threads", "excludeTables", "includeTables", "excludeSchemas", "includeSchemas", "excludeEvents", "includeEvents", "excludeRoutines", "includeRoutines", "excludeTriggers", "includeTriggers", "ociParManifest", "ociParExpireTime" }:
+    EXPECT_FAIL("ValueError", f"Argument #3: Invalid options: {param}", quote(types_schema, types_schema_tables[0]), test_output_relative, { param: "fails" })
 
 #@<> WL13804-FR15 - Once the dump is complete, the summary of the export process must be presented to the user. It must contain:
 # * The number of rows written.

@@ -51,38 +51,71 @@ bool is_mds(const mysqlshdk::utils::Version &version) {
   return shcore::str_endswith(version.get_extra(), "cloud");
 }
 
-void parse_tables(const std::vector<std::string> &opt_tables,
-                  std::unordered_set<std::string> *out_filter,
-                  bool add_schema_entry) {
-  for (const auto &table_def : opt_tables) {
-    std::string schema, table;
+void parse_objects(const std::vector<std::string> &opt_objects,
+                   const std::string &object_name,
+                   std::unordered_set<std::string> *out_filter,
+                   bool add_schema_entry = false) {
+  const auto throw_invalid_argument = [&object_name](const std::string &entry) {
+    throw std::invalid_argument(
+        "Can't parse " + object_name + " filter '" + entry + "'. The " +
+        object_name + " must be in the following form: schema." + object_name +
+        ", with optional backtick quotes.");
+  };
+
+  for (const auto &entry : opt_objects) {
+    std::string schema, object;
+
     try {
-      shcore::split_schema_and_table(table_def, &schema, &table);
+      shcore::split_schema_and_table(entry, &schema, &object);
     } catch (const std::exception &e) {
-      throw std::invalid_argument(
-          "Can't parse table filter '" + table_def +
-          "'. The table must be in the following form: "
-          "schema.table, with optional backtick quotes.");
+      throw_invalid_argument(entry);
     }
 
     if (schema.empty()) {
-      throw std::invalid_argument(
-          "Can't parse table filter '" + table_def +
-          "'. The table must be in the following form: "
-          "schema.table, with optional backtick quotes.");
+      throw_invalid_argument(entry);
     }
 
-    if (schema[0] == '`') schema = shcore::unquote_identifier(schema);
-
-    if (table[0] == '`') table = shcore::unquote_identifier(table_def);
-
-    out_filter->insert(schema_table_key(schema, table));
+    out_filter->insert(schema_object_key(schema, object));
 
     if (add_schema_entry) {
       // insert schema."", so that we can check whether we want to include
       // one or more tables for a given schema, but not the whole schema
-      out_filter->insert(schema_table_key(schema, ""));
+      out_filter->insert(schema_object_key(schema, ""));
     }
+  }
+}
+
+void parse_triggers(const std::vector<std::string> &opt_triggers,
+                    std::unordered_set<std::string> *out_filter) {
+  const auto throw_invalid_argument = [](const std::string &entry) {
+    throw std::invalid_argument(
+        "Can't parse trigger filter '" + entry +
+        "'. The filter must be in the following form: schema.table or "
+        "schema.table.trigger, with optional backtick quotes.");
+  };
+
+  for (const auto &entry : opt_triggers) {
+    std::string schema, table, object;
+
+    try {
+      shcore::split_schema_table_and_object(entry, &schema, &table, &object);
+    } catch (const std::exception &e) {
+      throw_invalid_argument(entry);
+    }
+
+    if (table.empty()) {
+      throw_invalid_argument(entry);
+    }
+
+    if (schema.empty()) {
+      // we got schema.table, need to move names around
+      std::swap(schema, table);
+      std::swap(table, object);
+    }
+
+    // if object is empty (all triggers are included/excluded), `schema`.`table`
+    // will be inserted
+    out_filter->insert(schema_table_object_key(schema, table, object));
   }
 }
 
@@ -110,10 +143,20 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("dryRun", &Load_dump_options::m_dry_run)
           .optional("resetProgress", &Load_dump_options::m_reset_progress)
           .optional("progressFile", &Load_dump_options::m_progress_file)
+          .optional("includeEvents", &Load_dump_options::set_str_vector_option)
+          .optional("includeRoutines",
+                    &Load_dump_options::set_str_vector_option)
           .optional("includeSchemas", &Load_dump_options::set_str_vector_option)
           .optional("includeTables", &Load_dump_options::set_str_vector_option)
+          .optional("includeTriggers",
+                    &Load_dump_options::set_str_vector_option)
+          .optional("excludeEvents", &Load_dump_options::set_str_vector_option)
+          .optional("excludeRoutines",
+                    &Load_dump_options::set_str_vector_option)
           .optional("excludeSchemas", &Load_dump_options::set_str_vector_option)
           .optional("excludeTables", &Load_dump_options::set_str_vector_option)
+          .optional("excludeTriggers",
+                    &Load_dump_options::set_str_vector_option)
           .optional("characterSet", &Load_dump_options::m_character_set)
           .optional("skipBinlog", &Load_dump_options::m_skip_binlog)
           .optional("ignoreExistingObjects",
@@ -159,7 +202,11 @@ void Load_dump_options::set_wait_timeout(const double &timeout_seconds) {
 
 void Load_dump_options::set_str_vector_option(
     const std::string &option, const std::vector<std::string> &data) {
-  if (option == "includeSchemas") {
+  if (option == "includeEvents") {
+    parse_objects(data, "event", &m_include_events);
+  } else if (option == "includeRoutines") {
+    parse_objects(data, "routine", &m_include_routines);
+  } else if (option == "includeSchemas") {
     for (const auto &schema : data) {
       if (!schema.empty() && schema[0] != '`')
         m_include_schemas.insert(shcore::quote_identifier(schema));
@@ -167,7 +214,13 @@ void Load_dump_options::set_str_vector_option(
         m_include_schemas.insert(schema);
     }
   } else if (option == "includeTables") {
-    parse_tables(data, &m_include_tables, true);
+    parse_objects(data, "table", &m_include_tables, true);
+  } else if (option == "includeTriggers") {
+    parse_triggers(data, &m_include_triggers);
+  } else if (option == "excludeEvents") {
+    parse_objects(data, "event", &m_exclude_events);
+  } else if (option == "excludeRoutines") {
+    parse_objects(data, "routine", &m_exclude_routines);
   } else if (option == "excludeSchemas") {
     for (const auto &schema : data) {
       if (!schema.empty() && schema[0] != '`')
@@ -176,7 +229,9 @@ void Load_dump_options::set_str_vector_option(
         m_exclude_schemas.insert(schema);
     }
   } else if (option == "excludeTables") {
-    parse_tables(data, &m_exclude_tables, false);
+    parse_objects(data, "table", &m_exclude_tables);
+  } else if (option == "excludeTriggers") {
+    parse_triggers(data, &m_exclude_triggers);
   } else {
     // This function should only be called with the options above.
     assert(false);
@@ -495,30 +550,82 @@ Load_dump_options::create_progress_file_handle() const {
 // Filtering works as:
 // (includeSchemas + includeTables || *) - excludeSchemas - excludeTables
 bool Load_dump_options::include_schema(const std::string &schema) const {
-  std::string qschema = shcore::quote_identifier(schema);
+  const auto qschema = shcore::quote_identifier(schema);
 
   if (m_exclude_schemas.count(qschema) > 0) return false;
 
   // If includeSchemas neither includeTables are given, then all schemas
   // are included by default
   if ((m_include_schemas.empty() && m_include_tables.empty()) ||
-      m_include_schemas.count(qschema) > 0)
+      m_include_schemas.count(qschema) > 0 ||
+      m_include_tables.count(qschema) > 0) {
     return true;
+  }
 
   return false;
 }
 
 bool Load_dump_options::include_table(const std::string &schema,
                                       const std::string &table) const {
-  std::string key = schema_table_key(schema, table);
+  return include_object(schema, table, m_include_tables, m_exclude_tables);
+}
 
-  if (m_exclude_tables.count(key) > 0 ||
-      m_exclude_schemas.count(shcore::quote_identifier(schema)) > 0)
-    return false;
+bool Load_dump_options::include_event(const std::string &schema,
+                                      const std::string &event) const {
+  return include_object(schema, event, m_include_events, m_exclude_events);
+}
 
-  if ((include_schema(schema) && m_include_tables.empty()) ||
-      m_include_tables.count(key) > 0)
-    return true;
+bool Load_dump_options::include_routine(const std::string &schema,
+                                        const std::string &routine) const {
+  return include_object(schema, routine, m_include_routines,
+                        m_exclude_routines);
+}
+
+bool Load_dump_options::include_object(
+    const std::string &schema, const std::string &object,
+    const std::unordered_set<std::string> &included,
+    const std::unordered_set<std::string> &excluded) const {
+  assert(!schema.empty());
+  assert(!object.empty());
+
+  if (include_schema(schema)) {
+    const auto key = schema_object_key(schema, object);
+
+    if (excluded.count(key) > 0) {
+      return false;
+    }
+
+    if (included.empty() || included.count(key) > 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool Load_dump_options::include_trigger(const std::string &schema,
+                                        const std::string &table,
+                                        const std::string &trigger) const {
+  assert(!schema.empty());
+  assert(!table.empty());
+  assert(!trigger.empty());
+
+  if (include_table(schema, table)) {
+    // filters for triggers contain either `schema`.`table` or
+    // `schema`.`table`.`trigger` entries
+    const auto table_key = schema_object_key(schema, table);
+    const auto trigger_key = schema_table_object_key(schema, table, trigger);
+
+    if (m_exclude_triggers.count(table_key) > 0 ||
+        m_exclude_triggers.count(trigger_key) > 0) {
+      return false;
+    }
+
+    if (m_include_triggers.empty() || m_include_triggers.count(table_key) > 0 ||
+        m_include_triggers.count(trigger_key) > 0) {
+      return true;
+    }
+  }
 
   return false;
 }

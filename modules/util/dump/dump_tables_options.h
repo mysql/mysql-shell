@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,10 @@ class Dump_tables_options : public Ddl_dumper_options {
 
   bool m_dump_all = false;
   bool m_has_tables = false;
+
+  std::string m_schema;
+
+  Instance_cache_builder::Filter m_tables;
 };
 
 }  // namespace dump

@@ -2829,7 +2829,7 @@ TEST_F(Instance_cache_test, bug32540460) {
       "test_schema_" + std::to_string(rand() % (schemas - 1));
   // exclude all existing schemas, to make sure only newly created ones are in
   // the result
-  Instance_cache_builder::Object_filters excluded_schemas;
+  Instance_cache_builder::Filter excluded_schemas;
 
   const auto cleanup = [this](std::size_t s) {
     for (std::size_t i = 0; i < s; ++i) {
@@ -2886,6 +2886,985 @@ TEST_F(Instance_cache_test, bug32540460) {
   }
 
   cleanup(schemas);
+}
+
+TEST_F(Instance_cache_test, filter_events) {
+  {
+    // setup
+    m_session->execute("CREATE SCHEMA first;");
+    m_session->execute(
+        "CREATE EVENT first.one ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute(
+        "CREATE EVENT first.two ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute("CREATE SCHEMA second;");
+    m_session->execute(
+        "CREATE EVENT second.one ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute(
+        "CREATE EVENT second.two ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute("CREATE SCHEMA third;");
+    m_session->execute(
+        "CREATE EVENT third.one ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute(
+        "CREATE EVENT third.two ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+  }
+
+  const auto EXPECT_EVENTS =
+      [](const Instance_cache &cache, const std::string &schema,
+         const std::unordered_set<std::string> &expected) {
+        SCOPED_TRACE("schema: " + schema);
+
+        const auto it = cache.schemas.find(schema);
+        ASSERT_TRUE(cache.schemas.end() != it)
+            << "cache does not contain schema `" << schema << "`";
+
+        EXPECT_EQ(expected, it->second.events);
+      };
+
+  {
+    SCOPED_TRACE("all filters are empty");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {"one", "two"});
+    EXPECT_EVENTS(cache, "second", {"one", "two"});
+    EXPECT_EVENTS(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude event from non-existing schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {{"fourth", {"four"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {"one", "two"});
+    EXPECT_EVENTS(cache, "second", {"one", "two"});
+    EXPECT_EVENTS(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude non-existing event");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {{"third", {"four"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {"one", "two"});
+    EXPECT_EVENTS(cache, "second", {"one", "two"});
+    EXPECT_EVENTS(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing event");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {{"third", {"two"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {"one", "two"});
+    EXPECT_EVENTS(cache, "second", {"one", "two"});
+    EXPECT_EVENTS(cache, "third", {"one"});
+  }
+
+  {
+    SCOPED_TRACE(
+        "exclude existing, non-existing event and an event in non-existing "
+        "schema");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .events({}, {{"third", {"two", "four"}}, {"fourth", {"four"}}})
+            .build();
+
+    EXPECT_EVENTS(cache, "first", {"one", "two"});
+    EXPECT_EVENTS(cache, "second", {"one", "two"});
+    EXPECT_EVENTS(cache, "third", {"one"});
+  }
+
+  {
+    SCOPED_TRACE("exclude all events from the same schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {{"third", {"one", "two", "three"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {"one", "two"});
+    EXPECT_EVENTS(cache, "second", {"one", "two"});
+    EXPECT_EVENTS(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing events from different schemas");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {{"first", {"one"}},
+                                        {"second", {"two"}},
+                                        {"third", {"one"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {"two"});
+    EXPECT_EVENTS(cache, "second", {"one"});
+    EXPECT_EVENTS(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include event from non-existing schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({{"fourth", {"four"}}}, {})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include non-existing event");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({{"third", {"four"}}}, {})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing event");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({{"third", {"two"}}}, {})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing and non-existing events");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .events({{"third", {"two", "four"}}, {"fourth", {"four"}}}, {})
+            .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing events from the same schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({{"third", {"one", "two"}}}, {})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing events from different schemas");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .events(
+                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}},
+                {})
+            .build();
+
+    EXPECT_EVENTS(cache, "first", {"one"});
+    EXPECT_EVENTS(cache, "second", {"two"});
+    EXPECT_EVENTS(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing event");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({{"third", {"two"}}}, {{"third", {"two"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing event + some more");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({{"third", {"two"}}}, {{"second", {"two"}},
+                                                          {"third", {"two"}},
+                                                          {"fourth", {"four"}}})
+                           .build();
+
+    EXPECT_EVENTS(cache, "first", {});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude existing events from different schemas");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .events(
+                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"two"}}},
+                {{"first", {"two"}}, {"second", {"two"}}, {"third", {"one"}}})
+            .build();
+
+    EXPECT_EVENTS(cache, "first", {"one"});
+    EXPECT_EVENTS(cache, "second", {});
+    EXPECT_EVENTS(cache, "third", {"two"});
+  }
+}
+
+TEST_F(Instance_cache_test, filter_routines) {
+  {
+    // setup
+    m_session->execute("CREATE SCHEMA first;");
+    m_session->execute(
+        "CREATE FUNCTION first.one() RETURNS INT DETERMINISTIC RETURN 1;");
+    m_session->execute("CREATE PROCEDURE first.two() DETERMINISTIC BEGIN END;");
+    m_session->execute("CREATE SCHEMA second;");
+    m_session->execute(
+        "CREATE PROCEDURE second.one() DETERMINISTIC BEGIN END;");
+    m_session->execute(
+        "CREATE FUNCTION second.two() RETURNS INT DETERMINISTIC RETURN 1;");
+    m_session->execute("CREATE SCHEMA third;");
+    m_session->execute(
+        "CREATE FUNCTION third.one() RETURNS INT DETERMINISTIC RETURN 1;");
+    m_session->execute("CREATE PROCEDURE third.two() DETERMINISTIC BEGIN END;");
+  }
+
+  const auto EXPECT_ROUTINES =
+      [](const Instance_cache &cache, const std::string &schema,
+         const std::unordered_set<std::string> &expected) {
+        SCOPED_TRACE("schema: " + schema);
+
+        const auto it = cache.schemas.find(schema);
+        ASSERT_TRUE(cache.schemas.end() != it)
+            << "cache does not contain schema `" << schema << "`";
+
+        std::unordered_set<std::string> routines = it->second.functions;
+        routines.insert(it->second.procedures.begin(),
+                        it->second.procedures.end());
+        EXPECT_EQ(expected, routines);
+      };
+
+  {
+    SCOPED_TRACE("all filters are empty");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one", "two"});
+    EXPECT_ROUTINES(cache, "second", {"one", "two"});
+    EXPECT_ROUTINES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude routine from non-existing schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {{"fourth", {"four"}}})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one", "two"});
+    EXPECT_ROUTINES(cache, "second", {"one", "two"});
+    EXPECT_ROUTINES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude non-existing routine");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {{"third", {"four"}}})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one", "two"});
+    EXPECT_ROUTINES(cache, "second", {"one", "two"});
+    EXPECT_ROUTINES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing routine");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {{"third", {"two"}}})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one", "two"});
+    EXPECT_ROUTINES(cache, "second", {"one", "two"});
+    EXPECT_ROUTINES(cache, "third", {"one"});
+  }
+
+  {
+    SCOPED_TRACE(
+        "exclude existing, non-existing routine and a routine in non-existing "
+        "schema");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .routines({}, {{"third", {"two", "four"}}, {"fourth", {"four"}}})
+            .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one", "two"});
+    EXPECT_ROUTINES(cache, "second", {"one", "two"});
+    EXPECT_ROUTINES(cache, "third", {"one"});
+  }
+
+  {
+    SCOPED_TRACE("exclude all routines from the same schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {{"third", {"one", "two", "three"}}})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one", "two"});
+    EXPECT_ROUTINES(cache, "second", {"one", "two"});
+    EXPECT_ROUTINES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing routines from different schemas");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {{"first", {"one"}},
+                                          {"second", {"two"}},
+                                          {"third", {"one"}}})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {"two"});
+    EXPECT_ROUTINES(cache, "second", {"one"});
+    EXPECT_ROUTINES(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include routine from non-existing schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({{"fourth", {"four"}}}, {})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include non-existing routine");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({{"third", {"four"}}}, {})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing routine");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({{"third", {"two"}}}, {})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing and non-existing routines");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .routines({{"third", {"two", "four"}}, {"fourth", {"four"}}}, {})
+            .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing routines from the same schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({{"third", {"one", "two"}}}, {})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing routines from different schemas");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .routines(
+                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}},
+                {})
+            .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one"});
+    EXPECT_ROUTINES(cache, "second", {"two"});
+    EXPECT_ROUTINES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing routine");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({{"third", {"two"}}}, {{"third", {"two"}}})
+                           .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing routine + some more");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .routines(
+                {{"third", {"two"}}},
+                {{"second", {"two"}}, {"third", {"two"}}, {"fourth", {"four"}}})
+            .build();
+
+    EXPECT_ROUTINES(cache, "first", {});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE(
+        "include and exclude existing routines from different schemas");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .routines(
+                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"two"}}},
+                {{"first", {"two"}}, {"second", {"two"}}, {"third", {"one"}}})
+            .build();
+
+    EXPECT_ROUTINES(cache, "first", {"one"});
+    EXPECT_ROUTINES(cache, "second", {});
+    EXPECT_ROUTINES(cache, "third", {"two"});
+  }
+}
+
+TEST_F(Instance_cache_test, filter_triggers) {
+  {
+    // setup
+    m_session->execute("CREATE SCHEMA first;");
+    m_session->execute("CREATE TABLE first.one (id INT);");
+    m_session->execute(
+        "CREATE TRIGGER first.t1 AFTER DELETE ON first.one FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER first.t2 AFTER DELETE ON first.one FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute("CREATE TABLE first.two (id INT);");
+    m_session->execute(
+        "CREATE TRIGGER first.t3 AFTER DELETE ON first.two FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER first.t4 AFTER DELETE ON first.two FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute("CREATE SCHEMA second;");
+    m_session->execute("CREATE TABLE second.one (id INT);");
+    m_session->execute(
+        "CREATE TRIGGER second.t1 AFTER DELETE ON second.one FOR EACH ROW "
+        "BEGIN END;");
+    m_session->execute(
+        "CREATE TRIGGER second.t2 AFTER DELETE ON second.one FOR EACH ROW "
+        "BEGIN END;");
+    m_session->execute("CREATE TABLE second.two (id INT);");
+    m_session->execute(
+        "CREATE TRIGGER second.t3 AFTER DELETE ON second.two FOR EACH ROW "
+        "BEGIN END;");
+    m_session->execute(
+        "CREATE TRIGGER second.t4 AFTER DELETE ON second.two FOR EACH ROW "
+        "BEGIN END;");
+    m_session->execute("CREATE SCHEMA third;");
+    m_session->execute("CREATE TABLE third.one (id INT);");
+    m_session->execute(
+        "CREATE TRIGGER third.t1 AFTER DELETE ON third.one FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER third.t2 AFTER DELETE ON third.one FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute("CREATE TABLE third.two (id INT);");
+    m_session->execute(
+        "CREATE TRIGGER third.t3 AFTER DELETE ON third.two FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER third.t4 AFTER DELETE ON third.two FOR EACH ROW BEGIN "
+        "END;");
+  }
+
+  const auto EXPECT_TRIGGERS =
+      [](const Instance_cache &cache, const std::string &schema,
+         const std::string &table, const std::vector<std::string> &expected) {
+        SCOPED_TRACE("schema: " + schema + ", table: " + table);
+
+        const auto s = cache.schemas.find(schema);
+        ASSERT_TRUE(cache.schemas.end() != s)
+            << "cache does not contain schema `" << schema << "`";
+        const auto t = s->second.tables.find(table);
+        ASSERT_TRUE(s->second.tables.end() != t)
+            << "schema does not contain table `" << table << "`";
+
+        EXPECT_EQ(expected, t->second.triggers);
+      };
+
+  {
+    SCOPED_TRACE("all filters are empty");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude trigger from non-existing schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"fourth", {{"four", {"t1"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE(
+        "exclude trigger from non-existing table (name does not match)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"third", {{"three", {"t9"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude trigger from non-existing table (name matches)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"third", {{"three", {"t1"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude non-existing trigger");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"third", {{"one", {"t7"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing trigger");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"third", {{"one", {"t1"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing trigger from another table");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"third", {{"one", {"t4"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE(
+        "exclude existing, non-existing trigger and a trigger in non-existing "
+        "schema");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .triggers({}, {{"third", {{"one", {"t1", "t4", "t7"}}}},
+                           {"fourth", {{"four", {"t1"}}}}})
+            .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude all triggers from the same table");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .triggers({}, {{"third", {{"one", {"t1", "t2", "t3"}}}}})
+            .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude all triggers from the same table (2)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"third", {{"one", {}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing triggers from different schemas");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {{"first", {{"one", {"t1", "t5"}}}},
+                                          {"second", {{"two", {"t3", "t5"}}}},
+                                          {"third", {{"one", {}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t2"});
+    EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
+    EXPECT_TRIGGERS(cache, "second", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t4"});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {"t3", "t4"});
+  }
+
+  {
+    SCOPED_TRACE("include trigger from non-existing schema");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"fourth", {{"four", {"t1"}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE(
+        "include trigger from non-existing table (name does not match)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"three", {"t9"}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include trigger from non-existing table (name matches)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"three", {"t1"}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include non-existing trigger");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t7"}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing trigger");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t1"}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing trigger from another table");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t4"}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include all triggers");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .triggers({{"third", {{"one", {"t1", "t2", "t3"}}}}}, {})
+            .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include all triggers (2)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {}}}}}, {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing and non-existing triggers");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t1", "t4", "t7"}}}},
+                                      {"fourth", {{"four", {"t1"}}}}},
+                                     {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing triggers from different schemas");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"first", {{"one", {"t1"}}}},
+                                      {"second", {{"two", {"t3"}}}},
+                                      {"third", {{"one", {}}}}},
+                                     {})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {"t1"});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {"t3"});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1", "t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing triggers");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t1"}}}}},
+                                     {{"third", {{"one", {"t1"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude triggers from the same table");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {}}}}},
+                                     {{"third", {{"one", {"t1"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t2"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude triggers from the same table (2)");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .triggers({{"third", {{"one", {}}}}}, {{"third", {{"one", {}}}}})
+            .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude triggers from the same table (3)");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t1"}}}}},
+                                     {{"third", {{"one", {}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing triggers + some more");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"third", {{"one", {"t1"}}}}},
+                                     {{"first", {{"one", {"t1"}}}},
+                                      {"third", {{"one", {"t1"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+
+  {
+    SCOPED_TRACE(
+        "include and exclude existing triggers from different schemas");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({{"first", {{"one", {"t1"}}}},
+                                      {"second", {{"two", {"t3"}}}},
+                                      {"third", {{"one", {}}}}},
+                                     {{"first", {{"one", {}}}},
+                                      {"second", {{"two", {"t3"}}}},
+                                      {"third", {{"one", {"t2"}}}}})
+                           .build();
+
+    EXPECT_TRIGGERS(cache, "first", "one", {});
+    EXPECT_TRIGGERS(cache, "first", "two", {});
+    EXPECT_TRIGGERS(cache, "second", "one", {});
+    EXPECT_TRIGGERS(cache, "second", "two", {});
+    EXPECT_TRIGGERS(cache, "third", "one", {"t1"});
+    EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
 }
 
 }  // namespace tests

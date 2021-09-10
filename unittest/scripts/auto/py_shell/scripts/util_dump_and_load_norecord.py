@@ -8,6 +8,7 @@ import json
 import os
 import os.path
 import random
+import shutil
 import threading
 import time
 
@@ -966,6 +967,213 @@ new_uuid = session.run_sql("SELECT @@server_uuid").fetch_one()[0]
 #@<> BUG#32561035: test
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "progressFile": os.path.join(dump_dir, f"load-progress.{saved_uuid}.json"),"showProgress": False }), f"Progress file was created for a server with UUID {saved_uuid}, while the target server has UUID: {new_uuid}")
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+
+#@<> WL14244 - help entries
+util.help('load_dump')
+
+# WL14244-TSFR_3_3
+EXPECT_STDOUT_CONTAINS("""
+      - includeRoutines: array of strings (default not set) - Loads only the
+        specified routines from the dump. Strings are in format schema.routine,
+        quoted using backtick characters when required. By default, all
+        routines are included.
+""")
+
+# WL14244-TSFR_4_3
+EXPECT_STDOUT_CONTAINS("""
+      - excludeRoutines: array of strings (default not set) - Skip loading
+        specified routines from the dump. Strings are in format schema.routine,
+        quoted using backtick characters when required.
+""")
+
+# WL14244-TSFR_5_3
+EXPECT_STDOUT_CONTAINS("""
+      - includeEvents: array of strings (default not set) - Loads only the
+        specified events from the dump. Strings are in format schema.event,
+        quoted using backtick characters when required. By default, all events
+        are included.
+""")
+
+# WL14244-TSFR_6_3
+EXPECT_STDOUT_CONTAINS("""
+      - excludeEvents: array of strings (default not set) - Skip loading
+        specified events from the dump. Strings are in format schema.event,
+        quoted using backtick characters when required.
+""")
+
+# WL14244-TSFR_7_4
+EXPECT_STDOUT_CONTAINS("""
+      - includeTriggers: array of strings (default not set) - Loads only the
+        specified triggers from the dump. Strings are in format schema.table
+        (all triggers from the specified table) or schema.table.trigger (the
+        individual trigger), quoted using backtick characters when required. By
+        default, all triggers are included.
+""")
+
+# WL14244-TSFR_8_4
+EXPECT_STDOUT_CONTAINS("""
+      - excludeTriggers: array of strings (default not set) - Skip loading
+        specified triggers from the dump. Strings are in format schema.table
+        (all triggers from the specified table) or schema.table.trigger (the
+        individual trigger), quoted using backtick characters when required.
+""")
+
+#@<> WL14244 - helpers
+def dump_and_load(options):
+    WIPE_STDOUT()
+    # remove everything from the server
+    wipeout_server(session)
+    # create sample DB structure
+    session.run_sql("CREATE SCHEMA existing_schema_1")
+    session.run_sql("CREATE TABLE existing_schema_1.existing_table (id INT)")
+    session.run_sql("CREATE VIEW existing_schema_1.existing_view AS SELECT * FROM existing_schema_1.existing_table")
+    session.run_sql("CREATE EVENT existing_schema_1.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
+    session.run_sql("CREATE FUNCTION existing_schema_1.existing_routine() RETURNS INT DETERMINISTIC RETURN 1")
+    session.run_sql("CREATE TRIGGER existing_schema_1.existing_trigger AFTER DELETE ON existing_schema_1.existing_table FOR EACH ROW BEGIN END")
+    session.run_sql("CREATE SCHEMA existing_schema_2")
+    session.run_sql("CREATE TABLE existing_schema_2.existing_table (id INT)")
+    session.run_sql("CREATE VIEW existing_schema_2.existing_view AS SELECT * FROM existing_schema_2.existing_table")
+    session.run_sql("CREATE EVENT existing_schema_2.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
+    session.run_sql("CREATE PROCEDURE existing_schema_2.existing_routine() DETERMINISTIC BEGIN END")
+    session.run_sql("CREATE TRIGGER existing_schema_2.existing_trigger AFTER DELETE ON existing_schema_2.existing_table FOR EACH ROW BEGIN END")
+    # do the dump
+    dump_dir = os.path.join(outdir, "wl14244")
+    shutil.rmtree(dump_dir, True)
+    util.dump_instance(dump_dir, { "showProgress": False })
+    # remove everything from the server once again, load the dump
+    wipeout_server(session)
+    # we're only interested in DDL, progress is not important
+    options["loadData"] = False
+    options["showProgress"] = False
+    util.load_dump(dump_dir, options)
+    # fetch data about the current DB structure
+    return snapshot_instance(session)
+
+def entries(snapshot, keys = []):
+    entry = snapshot["schemas"]
+    for key in keys:
+        entry = entry[key]
+    return sorted(list(entry.keys()))
+
+#@<> WL14244 - includeRoutines - invalid values
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeRoutines": [ "routine" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'routine'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeRoutines": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'schema.@'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
+
+#@<> WL14244-TSFR_3_6
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_1", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+snapshot = dump_and_load({ "includeRoutines": [] })
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_1", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+#@<> WL14244-TSFR_3_9
+snapshot = dump_and_load({ "includeRoutines": ['existing_schema_1.existing_routine', 'existing_schema_1.non_existing_routine', 'non_existing_schema.routine'] })
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_1", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+#@<> WL14244 - excludeRoutines - invalid values
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "routine" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'routine'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'schema.@'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
+
+#@<> WL14244-TSFR_4_6
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_1", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+snapshot = dump_and_load({ "excludeRoutines": [] })
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_1", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+#@<> WL14244-TSFR_4_9
+snapshot = dump_and_load({ "excludeRoutines": ['existing_schema_1.existing_routine', 'existing_schema_1.non_existing_routine', 'non_existing_schema.routine'] })
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
+EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+#@<> WL14244 - includeEvents - invalid values
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "event" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'event'. The event must be in the following form: schema.event, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'schema.@'. The event must be in the following form: schema.event, with optional backtick quotes.")
+
+#@<> WL14244-TSFR_5_6
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_1", "events"]))
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"]))
+
+snapshot = dump_and_load({ "includeEvents": [] })
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_1", "events"]))
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"]))
+
+#@<> WL14244-TSFR_5_9
+snapshot = dump_and_load({ "includeEvents": ['existing_schema_1.existing_event', 'existing_schema_1.non_existing_event', 'non_existing_schema.event'] })
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_1", "events"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "events"]))
+
+#@<> WL14244 - excludeEvents - invalid values
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeEvents": [ "event" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'event'. The event must be in the following form: schema.event, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeEvents": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'schema.@'. The event must be in the following form: schema.event, with optional backtick quotes.")
+
+#@<> WL14244-TSFR_6_6
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_1", "events"]))
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"]))
+
+snapshot = dump_and_load({ "excludeEvents": [] })
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_1", "events"]))
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"]))
+
+#@<> WL14244-TSFR_6_9
+snapshot = dump_and_load({ "excludeEvents": ['existing_schema_1.existing_event', 'existing_schema_1.non_existing_event', 'non_existing_schema.event'] })
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "events"]))
+EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"]))
+
+#@<> WL14244 - includeTriggers - invalid values
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeTriggers": [ "trigger" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'trigger'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeTriggers": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'schema.@'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
+
+#@<> WL14244-TSFR_7_8
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
+
+snapshot = dump_and_load({ "includeTriggers": [] })
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
+
+#@<> WL14244-TSFR_7_12
+snapshot = dump_and_load({ "includeTriggers": ['existing_schema_1.existing_table', 'existing_schema_1.non_existing_table', 'non_existing_schema.table', 'existing_schema_2.existing_table.existing_trigger', 'existing_schema_1.existing_table.non_existing_trigger'] })
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
+
+#@<> WL14244 - excludeTriggers - invalid values
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTriggers": [ "trigger" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'trigger'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTriggers": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'schema.@'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
+
+#@<> WL14244-TSFR_8_8
+snapshot = dump_and_load({})
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
+
+snapshot = dump_and_load({ "excludeTriggers": [] })
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
+EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
+
+#@<> WL14244-TSFR_8_12
+snapshot = dump_and_load({ "excludeTriggers": ['existing_schema_1.existing_table', 'existing_schema_1.non_existing_table', 'non_existing_schema.table', 'existing_schema_2.existing_table.existing_trigger', 'existing_schema_1.existing_table.non_existing_trigger'] })
+EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

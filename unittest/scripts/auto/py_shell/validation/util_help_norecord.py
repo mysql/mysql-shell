@@ -168,10 +168,14 @@ DESCRIPTION
 
       The following options are supported:
 
-      - excludeSchemas: list of strings (default: empty) - list of schemas to
+      - excludeSchemas: list of strings (default: empty) - List of schemas to
         be excluded from the dump.
-      - excludeTables: list of strings (default: empty) - List of tables to be
-        excluded from the dump in the format of schema.table.
+      - includeSchemas: list of strings (default: empty) - List of schemas to
+        be included in the dump.
+      - excludeTables: list of strings (default: empty) - List of tables or
+        views to be excluded from the dump in the format of schema.table.
+      - includeTables: list of strings (default: empty) - List of tables or
+        views to be included in the dump in the format of schema.table.
       - ocimds: bool (default: false) - Enable checks for compatibility with
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
@@ -180,8 +184,16 @@ DESCRIPTION
         "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
         "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
+      - excludeEvents: list of strings (default: empty) - List of events to be
+        excluded from the dump in the format of schema.event.
+      - includeEvents: list of strings (default: empty) - List of events to be
+        included in the dump in the format of schema.event.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
+      - excludeRoutines: list of strings (default: empty) - List of routines to
+        be excluded from the dump in the format of schema.routine.
+      - includeRoutines: list of strings (default: empty) - List of routines to
+        be included in the dump in the format of schema.routine.
       - users: bool (default: true) - Include users, roles and grants in the
         dump file.
       - excludeUsers: array of strings (default not set) - Skip dumping the
@@ -194,6 +206,14 @@ DESCRIPTION
         are included. By default, all users are included.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
@@ -270,15 +290,16 @@ DESCRIPTION
 
       Options
 
-      If the excludeSchemas option contains a schema which is not included in
-      the dump or does not exist, it is ignored.
+      If the excludeSchemas or includeSchemas options contain a schema which is
+      not included in the dump or does not exist, it is ignored.
 
-      The names given in the excludeTables option should be valid MySQL
-      identifiers, quoted using backtick characters when required.
+      The names given in the exclude{object} or include{object} options should
+      be valid MySQL identifiers, quoted using backtick characters when
+      required.
 
-      If the excludeTables option contains a table which does not exist, or a
-      table which belongs to a schema which is not included in the dump or does
-      not exist, it is ignored.
+      If the exclude{object} or include{object} options contain an object which
+      does not exist, or an object which belongs to a schema which is not
+      included in the dump or does not exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -502,8 +523,10 @@ DESCRIPTION
 
       The following options are supported:
 
-      - excludeTables: list of strings (default: empty) - List of tables to be
-        excluded from the dump in the format of schema.table.
+      - excludeTables: list of strings (default: empty) - List of tables or
+        views to be excluded from the dump in the format of schema.table.
+      - includeTables: list of strings (default: empty) - List of tables or
+        views to be included in the dump in the format of schema.table.
       - ocimds: bool (default: false) - Enable checks for compatibility with
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
@@ -512,10 +535,26 @@ DESCRIPTION
         "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
         "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
+      - excludeEvents: list of strings (default: empty) - List of events to be
+        excluded from the dump in the format of schema.event.
+      - includeEvents: list of strings (default: empty) - List of events to be
+        included in the dump in the format of schema.event.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
+      - excludeRoutines: list of strings (default: empty) - List of routines to
+        be excluded from the dump in the format of schema.routine.
+      - includeRoutines: list of strings (default: empty) - List of routines to
+        be included in the dump in the format of schema.routine.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
@@ -584,12 +623,13 @@ DESCRIPTION
 
       Options
 
-      The names given in the excludeTables option should be valid MySQL
-      identifiers, quoted using backtick characters when required.
+      The names given in the exclude{object} or include{object} options should
+      be valid MySQL identifiers, quoted using backtick characters when
+      required.
 
-      If the excludeTables option contains a table which does not exist, or a
-      table which belongs to a schema which is not included in the dump or does
-      not exist, it is ignored.
+      If the exclude{object} or include{object} options contain an object which
+      does not exist, or an object which belongs to a schema which is not
+      included in the dump or does not exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -825,6 +865,14 @@ DESCRIPTION
         "strip_tablespaces".
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the dump in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
@@ -898,6 +946,14 @@ DESCRIPTION
       empty array, all views and tables from the specified schema are going to
       be dumped. If the tables parameter is not set to an empty array, an
       exception is thrown.
+
+      The names given in the exclude{object} or include{object} options should
+      be valid MySQL identifiers, quoted using backtick characters when
+      required.
+
+      If the exclude{object} or include{object} options contain an object which
+      does not exist, or an object which belongs to a schema which is not
+      included in the dump or does not exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -1576,11 +1632,21 @@ DESCRIPTION
         "fulltext", only full-text indexes will be deferred.
       - dryRun: bool (default: false) - Scans the dump and prints everything
         that would be performed, without actually doing so.
+      - excludeEvents: array of strings (default not set) - Skip loading
+        specified events from the dump. Strings are in format schema.event,
+        quoted using backtick characters when required.
+      - excludeRoutines: array of strings (default not set) - Skip loading
+        specified routines from the dump. Strings are in format schema.routine,
+        quoted using backtick characters when required.
       - excludeSchemas: array of strings (default not set) - Skip loading
         specified schemas from the dump.
       - excludeTables: array of strings (default not set) - Skip loading
-        specified tables from the dump. Strings are in format schema.table or
-        `schema`.`table`.
+        specified tables from the dump. Strings are in format schema.table,
+        quoted using backtick characters when required.
+      - excludeTriggers: array of strings (default not set) - Skip loading
+        specified triggers from the dump. Strings are in format schema.table
+        (all triggers from the specified table) or schema.table.trigger (the
+        individual trigger), quoted using backtick characters when required.
       - excludeUsers: array of strings (default not set) - Skip loading
         specified users from the dump. Each user is in the format of
         'user_name'[@'host']. If the host is not specified, all the accounts
@@ -1590,11 +1656,25 @@ DESCRIPTION
       - ignoreVersion: bool (default false) - Load the dump even if the major
         version number of the server where it was created is different from
         where it will be loaded.
+      - includeEvents: array of strings (default not set) - Loads only the
+        specified events from the dump. Strings are in format schema.event,
+        quoted using backtick characters when required. By default, all events
+        are included.
+      - includeRoutines: array of strings (default not set) - Loads only the
+        specified routines from the dump. Strings are in format schema.routine,
+        quoted using backtick characters when required. By default, all
+        routines are included.
       - includeSchemas: array of strings (default not set) - Loads only the
         specified schemas from the dump. By default, all schemas are included.
       - includeTables: array of strings (default not set) - Loads only the
-        specified tables from the dump. Strings are in format schema.table or
-        `schema`.`table`. By default, all tables from all schemas are included.
+        specified tables from the dump. Strings are in format schema.table,
+        quoted using backtick characters when required. By default, all tables
+        from all schemas are included.
+      - includeTriggers: array of strings (default not set) - Loads only the
+        specified triggers from the dump. Strings are in format schema.table
+        (all triggers from the specified table) or schema.table.trigger (the
+        individual trigger), quoted using backtick characters when required. By
+        default, all triggers are included.
       - includeUsers: array of strings (default not set) - Load only the
         specified users from the dump. Each user is in the format of
         'user_name'[@'host']. If the host is not specified, all the accounts

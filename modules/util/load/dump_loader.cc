@@ -351,11 +351,26 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
                m_resuming ? "Re-executing" : "Executing", schema().c_str());
 
       if (!loader->m_options.dry_run()) {
+        auto transforms = loader->m_default_sql_transforms;
+
+        transforms.add_execute_conditionally(
+            [this, loader](const std::string &type, const std::string &name) {
+              bool execute = true;
+
+              if (shcore::str_caseeq(type, "EVENT")) {
+                execute = loader->m_options.include_event(schema(), name);
+              } else if (shcore::str_caseeq_mv(type, "FUNCTION", "PROCEDURE")) {
+                execute = loader->m_options.include_routine(schema(), name);
+              }
+
+              return execute;
+            });
+
         // execute sql
         execute_script(session, m_script,
                        shcore::str_format("While processing schema `%s`",
                                           schema().c_str()),
-                       loader->m_default_sql_transforms);
+                       transforms);
       }
     } catch (const std::exception &e) {
       current_console()->print_error(shcore::str_format(
@@ -1247,17 +1262,18 @@ void Dump_loader::on_schema_end(const std::string &schema) {
   m_dump->schema_table_triggers(schema, &triggers);
 
   for (const auto &it : triggers) {
-    auto status = m_load_log->triggers_ddl_status(schema, it.first);
+    const auto &table = it.first;
+    const auto status = m_load_log->triggers_ddl_status(schema, table);
 
-    log_debug("Triggers DDL for `%s`.`%s` (%s)", schema.c_str(),
-              it.first.c_str(), to_string(status).c_str());
+    log_debug("Triggers DDL for `%s`.`%s` (%s)", schema.c_str(), table.c_str(),
+              to_string(status).c_str());
 
     if (m_options.load_ddl()) {
-      m_load_log->start_triggers_ddl(schema, it.first);
+      m_load_log->start_triggers_ddl(schema, table);
 
       if (status != Load_progress_log::DONE) {
         log_info("Executing triggers SQL for `%s`.`%s`", schema.c_str(),
-                 it.first.c_str());
+                 table.c_str());
 
         it.second->open(mysqlshdk::storage::Mode::READ);
         std::string script = mysqlshdk::storage::read_file(it.second.get());
@@ -1266,12 +1282,26 @@ void Dump_loader::on_schema_end(const std::string &schema) {
         if (!m_options.dry_run()) {
           executef("USE !", schema);
 
+          auto transforms = m_default_sql_transforms;
+
+          transforms.add_execute_conditionally(
+              [this, &schema, &table](const std::string &type,
+                                      const std::string &name) {
+                bool execute = true;
+
+                if (shcore::str_caseeq(type, "TRIGGER")) {
+                  execute = m_options.include_trigger(schema, table, name);
+                }
+
+                return execute;
+              });
+
           execute_script(m_session, script, "While executing triggers SQL",
-                         m_default_sql_transforms);
+                         transforms);
         }
       }
 
-      m_load_log->end_triggers_ddl(schema, it.first);
+      m_load_log->end_triggers_ddl(schema, table);
     }
   }
 }
@@ -1392,7 +1422,7 @@ bool Dump_loader::schedule_table_chunk(
     std::lock_guard<std::recursive_mutex> lock(m_skip_schemas_mutex);
 
     if (m_skip_schemas.find(schema) != m_skip_schemas.end() ||
-        m_skip_tables.find(schema_table_key(schema, table)) !=
+        m_skip_tables.find(schema_object_key(schema, table)) !=
             m_skip_tables.end() ||
         !m_options.include_table(schema, table))
       return false;
@@ -1400,8 +1430,8 @@ bool Dump_loader::schedule_table_chunk(
 
   {
     std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
-    m_tables_being_loaded.emplace(partition_key(schema, table, partition),
-                                  file->file_size());
+    m_tables_being_loaded.emplace(
+        schema_table_object_key(schema, table, partition), file->file_size());
   }
 
   log_debug("Scheduling chunk for table %s (%s) - worker%zi",
@@ -2763,7 +2793,8 @@ void Dump_loader::on_chunk_load_end(const std::string &schema,
   m_load_log->end_table_chunk(schema, table, partition, index, bytes_loaded,
                               raw_bytes_loaded);
 
-  m_unique_tables_loaded.insert(partition_key(schema, table, partition));
+  m_unique_tables_loaded.insert(
+      schema_table_object_key(schema, table, partition));
 
   log_debug("Ended loading chunk %s (%s, %s)",
             format_table(schema, table, partition, index).c_str(),
@@ -2807,6 +2838,69 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
       *out_new_sql = m[1].str() + m[2].str() + new_modes + m[4].str();
     } else {
       *out_new_sql = sql;
+    }
+  });
+}
+
+void Dump_loader::Sql_transform::add_execute_conditionally(
+    std::function<bool(const std::string &, const std::string &)> &&f) {
+  add([f = std::move(f)](const std::string &sql, std::string *out_new_sql) {
+    *out_new_sql = sql;
+
+    mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+
+    while (it.valid()) {
+      auto token = it.next_token();
+
+      if (shcore::str_caseeq_mv(token, "CREATE", "ALTER", "DROP")) {
+        auto type = it.next_token();
+
+        if (shcore::str_caseeq(type, "DEFINER")) {
+          // =
+          it.next_token();
+          // user
+          it.next_token();
+          // type or @
+          type = it.next_token();
+
+          if (shcore::str_caseeq(type, "@")) {
+            // continuation of an account, host
+            it.next_token();
+            // type
+            type = it.next_token();
+          }
+        }
+
+        if (shcore::str_caseeq_mv(type, "EVENT", "FUNCTION", "PROCEDURE",
+                                  "TRIGGER")) {
+          auto name = it.next_token();
+
+          if (shcore::str_caseeq(name, "IF")) {
+            // NOT or EXISTS
+            token = it.next_token();
+
+            if (shcore::str_caseeq(token, "NOT")) {
+              // EXISTS
+              it.next_token();
+            }
+
+            // name follows
+            name = it.next_token();
+          }
+
+          // name can be either object_name, `object_name` or
+          // schema.`object_name`, split_schema_and_table will handle all these
+          // cases and unquote the object name
+          std::string object_name;
+          shcore::split_schema_and_table(name, nullptr, &object_name);
+
+          if (!f(type, object_name)) {
+            out_new_sql->clear();
+          }
+        }
+
+        return;
+      }
     }
   });
 }

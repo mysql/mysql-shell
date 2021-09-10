@@ -265,6 +265,16 @@ OPTIONS
             "strip_definers", "strip_restricted_grants", "strip_tablespaces".
             Default: empty.
 
+--excludeTriggers=<str list>
+            List of triggers to be excluded from the dump in the format of
+            schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger). Default: empty.
+
+--includeTriggers=<str list>
+            List of triggers to be included in the dump in the format of
+            schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger). Default: empty.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
@@ -291,18 +301,41 @@ OPTIONS
             is being executed. Default: not set.
 
 --excludeTables=<str list>
-            List of tables to be excluded from the dump in the format of
+            List of tables or views to be excluded from the dump in the format
+            of schema.table. Default: empty.
+
+--includeTables=<str list>
+            List of tables or views to be included in the dump in the format of
             schema.table. Default: empty.
 
 --events=<bool>
             Include events from each dumped schema. Default: true.
 
+--excludeEvents=<str list>
+            List of events to be excluded from the dump in the format of
+            schema.event. Default: empty.
+
+--includeEvents=<str list>
+            List of events to be included in the dump in the format of
+            schema.event. Default: empty.
+
 --routines=<bool>
             Include functions and stored procedures for each dumped schema.
             Default: true.
 
+--excludeRoutines=<str list>
+            List of routines to be excluded from the dump in the format of
+            schema.routine. Default: empty.
+
+--includeRoutines=<str list>
+            List of routines to be included in the dump in the format of
+            schema.routine. Default: empty.
+
 --excludeSchemas=<str list>
             List of schemas to be excluded from the dump. Default: empty.
+
+--includeSchemas=<str list>
+            List of schemas to be included in the dump. Default: empty.
 
 --users=<bool>
             Include users, roles and grants in the dump file. Default: true.
@@ -389,6 +422,16 @@ OPTIONS
             "strip_definers", "strip_restricted_grants", "strip_tablespaces".
             Default: empty.
 
+--excludeTriggers=<str list>
+            List of triggers to be excluded from the dump in the format of
+            schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger). Default: empty.
+
+--includeTriggers=<str list>
+            List of triggers to be included in the dump in the format of
+            schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger). Default: empty.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
@@ -415,15 +458,35 @@ OPTIONS
             is being executed. Default: not set.
 
 --excludeTables=<str list>
-            List of tables to be excluded from the dump in the format of
+            List of tables or views to be excluded from the dump in the format
+            of schema.table. Default: empty.
+
+--includeTables=<str list>
+            List of tables or views to be included in the dump in the format of
             schema.table. Default: empty.
 
 --events=<bool>
             Include events from each dumped schema. Default: true.
 
+--excludeEvents=<str list>
+            List of events to be excluded from the dump in the format of
+            schema.event. Default: empty.
+
+--includeEvents=<str list>
+            List of events to be included in the dump in the format of
+            schema.event. Default: empty.
+
 --routines=<bool>
             Include functions and stored procedures for each dumped schema.
             Default: true.
+
+--excludeRoutines=<str list>
+            List of routines to be excluded from the dump in the format of
+            schema.routine. Default: empty.
+
+--includeRoutines=<str list>
+            List of routines to be included in the dump in the format of
+            schema.routine. Default: empty.
 
 //@<OUT> CLI util dump-tables --help
 NAME
@@ -496,6 +559,16 @@ OPTIONS
             "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
             "strip_definers", "strip_restricted_grants", "strip_tablespaces".
             Default: empty.
+
+--excludeTriggers=<str list>
+            List of triggers to be excluded from the dump in the format of
+            schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger). Default: empty.
+
+--includeTriggers=<str list>
+            List of triggers to be included in the dump in the format of
+            schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger). Default: empty.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
@@ -843,21 +916,56 @@ OPTIONS
             Stores load progress information in the given local file path.
             Default: load-progress.<server_uuid>.progress.
 
+--includeEvents=<str list>
+            Loads only the specified events from the dump. Strings are in
+            format schema.event, quoted using backtick characters when
+            required. By default, all events are included. Default: not set.
+
+--includeRoutines=<str list>
+            Loads only the specified routines from the dump. Strings are in
+            format schema.routine, quoted using backtick characters when
+            required. By default, all routines are included. Default: not set.
+
 --includeSchemas=<str list>
             Loads only the specified schemas from the dump. By default, all
             schemas are included. Default: not set.
 
 --includeTables=<str list>
             Loads only the specified tables from the dump. Strings are in
-            format schema.table or `schema`.`table`. By default, all tables
-            from all schemas are included. Default: not set.
+            format schema.table, quoted using backtick characters when
+            required. By default, all tables from all schemas are included.
+            Default: not set.
+
+--includeTriggers=<str list>
+            Loads only the specified triggers from the dump. Strings are in
+            format schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger), quoted using
+            backtick characters when required. By default, all triggers are
+            included. Default: not set.
+
+--excludeEvents=<str list>
+            Skip loading specified events from the dump. Strings are in format
+            schema.event, quoted using backtick characters when required.
+            Default: not set.
+
+--excludeRoutines=<str list>
+            Skip loading specified routines from the dump. Strings are in
+            format schema.routine, quoted using backtick characters when
+            required. Default: not set.
 
 --excludeSchemas=<str list>
             Skip loading specified schemas from the dump. Default: not set.
 
 --excludeTables=<str list>
             Skip loading specified tables from the dump. Strings are in format
-            schema.table or `schema`.`table`. Default: not set.
+            schema.table, quoted using backtick characters when required.
+            Default: not set.
+
+--excludeTriggers=<str list>
+            Skip loading specified triggers from the dump. Strings are in
+            format schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger), quoted using
+            backtick characters when required. Default: not set.
 
 --characterSet=<str>
             Overrides the character set to be used for loading dump data. By

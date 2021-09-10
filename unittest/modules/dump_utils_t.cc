@@ -170,8 +170,8 @@ class Dump_scheduler : public ::testing::Test {
       auto iter = f(tables_being_loaded, &tables_with_data);
 
       if (iter != tables_with_data.end()) {
-        *out_table = partition_key((*iter)->owner->schema,
-                                   (*iter)->owner->table, (*iter)->partition);
+        *out_table = schema_table_object_key(
+            (*iter)->owner->schema, (*iter)->owner->table, (*iter)->partition);
 
         size_t chunk_index;
         size_t chunks_total;
@@ -268,8 +268,8 @@ class Dump_scheduler : public ::testing::Test {
         // std::cout << "Proportion per table:\n";
         // check that all pending tables are scheduled
         for (auto tbl : old_tables_with_data) {
-          auto table_key = partition_key(tbl->owner->schema, tbl->owner->table,
-                                         tbl->partition);
+          auto table_key = schema_table_object_key(
+              tbl->owner->schema, tbl->owner->table, tbl->partition);
           if (std::count_if(threads.begin(), threads.end(),
                             [&](const Thread &thd) {
                               return thd.table == table_key;

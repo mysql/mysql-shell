@@ -1877,15 +1877,17 @@ void Dumper::initialize_instance_cache() {
 
   if (m_options.dump_ddl()) {
     if (m_options.dump_events()) {
-      builder.events();
+      builder.events(m_options.included_events(), m_options.excluded_events());
     }
 
     if (m_options.dump_routines()) {
-      builder.routines();
+      builder.routines(m_options.included_routines(),
+                       m_options.excluded_routines());
     }
 
     if (m_options.dump_triggers()) {
-      builder.triggers();
+      builder.triggers(m_options.included_triggers(),
+                       m_options.excluded_triggers());
     }
   }
 

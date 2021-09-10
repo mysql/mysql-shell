@@ -70,6 +70,10 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("ocimds", &Ddl_dumper_options::set_ocimds)
           .optional("compatibility",
                     &Ddl_dumper_options::set_compatibility_options)
+          .optional("excludeTriggers",
+                    &Ddl_dumper_options::set_exclude_triggers)
+          .optional("includeTriggers",
+                    &Ddl_dumper_options::set_include_triggers)
           .include(&Ddl_dumper_options::m_oci_option_unpacker)
           .on_done(&Ddl_dumper_options::on_unpacked_options)
           .on_log(&Ddl_dumper_options::on_log_options);
@@ -120,6 +124,19 @@ void Ddl_dumper_options::on_unpacked_options() {
         to_string(Compatibility_option::CREATE_INVISIBLE_PKS).c_str(),
         to_string(Compatibility_option::IGNORE_MISSING_PKS).c_str()));
   }
+
+  // We need to check trigger filters and handle the case, when schema.table
+  // filter was given by the user. In such case, all trigger names are removed,
+  // to mark that all triggers should be excluded/included.
+  for (auto &filter : {&m_excluded_triggers, &m_included_triggers}) {
+    for (auto &schema : *filter) {
+      for (auto &table : schema.second) {
+        if (table.second.end() != table.second.find("")) {
+          table.second.clear();
+        }
+      }
+    }
+  }
 }
 
 void Ddl_dumper_options::set_bytes_per_chunk(const std::string &value) {
@@ -135,6 +152,16 @@ void Ddl_dumper_options::set_bytes_per_chunk(const std::string &value) {
   }
 
   m_bytes_per_chunk = expand_to_bytes(value);
+}
+
+void Ddl_dumper_options::set_exclude_triggers(
+    const std::vector<std::string> &data) {
+  add_trigger_filters(data, "exclude", &m_excluded_triggers);
+}
+
+void Ddl_dumper_options::set_include_triggers(
+    const std::vector<std::string> &data) {
+  add_trigger_filters(data, "include", &m_included_triggers);
 }
 
 }  // namespace dump

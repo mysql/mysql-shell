@@ -44,16 +44,16 @@
 
 namespace mysqlsh {
 
-inline std::string schema_table_key(const std::string &schema,
-                                    const std::string &table) {
+inline std::string schema_object_key(const std::string &schema,
+                                     const std::string &table) {
   return shcore::quote_identifier(schema) +
          (table.empty() ? "" : "." + shcore::quote_identifier(table));
 }
 
-inline std::string partition_key(const std::string &schema,
-                                 const std::string &table,
-                                 const std::string &partition) {
-  return schema_table_key(schema, table) +
+inline std::string schema_table_object_key(const std::string &schema,
+                                           const std::string &table,
+                                           const std::string &partition) {
+  return schema_object_key(schema, table) +
          (partition.empty() ? "" : "." + shcore::quote_identifier(partition));
 }
 
@@ -141,6 +141,11 @@ class Load_dump_options {
 
   bool include_schema(const std::string &schema) const;
   bool include_table(const std::string &schema, const std::string &table) const;
+  bool include_event(const std::string &schema, const std::string &event) const;
+  bool include_routine(const std::string &schema,
+                       const std::string &routine) const;
+  bool include_trigger(const std::string &schema, const std::string &table,
+                       const std::string &trigger) const;
 
   bool ignore_existing_objects() const { return m_ignore_existing_objects; }
 
@@ -207,6 +212,10 @@ class Load_dump_options {
 
   void add_excluded_users(std::vector<shcore::Account> &&users);
 
+  bool include_object(const std::string &schema, const std::string &object,
+                      const std::unordered_set<std::string> &included,
+                      const std::unordered_set<std::string> &excluded) const;
+
   std::string m_url;
   std::string m_prefix;
   mysqlshdk::storage::backend::oci::Par_type m_par_type;
@@ -224,9 +233,21 @@ class Load_dump_options {
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
 
   std::unordered_set<std::string> m_include_schemas;  // only load these schemas
-  std::unordered_set<std::string> m_include_tables;   // only load these tables
   std::unordered_set<std::string> m_exclude_schemas;  // skip these schemas
-  std::unordered_set<std::string> m_exclude_tables;   // skip these tables
+
+  std::unordered_set<std::string> m_include_tables;  // only load these tables
+  std::unordered_set<std::string> m_exclude_tables;  // skip these tables
+
+  std::unordered_set<std::string> m_include_events;  // only load these events
+  std::unordered_set<std::string> m_exclude_events;  // skip these events
+
+  std::unordered_set<std::string>
+      m_include_routines;  // only load these routines
+  std::unordered_set<std::string> m_exclude_routines;  // skip these routines
+
+  std::unordered_set<std::string>
+      m_include_triggers;  // only load these triggers
+  std::unordered_set<std::string> m_exclude_triggers;  // skip these triggers
 
   std::vector<shcore::Account> m_included_users;  // only load these users
   std::vector<shcore::Account> m_excluded_users;  // skip these users

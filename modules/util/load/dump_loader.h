@@ -73,7 +73,7 @@ class Dump_loader {
       Task(const std::string &schema, const std::string &table)
           : m_schema(schema),
             m_table(table),
-            m_key(schema_table_key(schema, table)) {}
+            m_key(schema_object_key(schema, table)) {}
       virtual ~Task() {}
 
       virtual bool execute(
@@ -171,7 +171,7 @@ class Dump_loader {
             m_resume(resume),
             m_bytes_to_skip(bytes_to_skip),
             m_partition(partition) {
-        m_key = partition_key(schema, table, partition);
+        m_key = schema_table_object_key(schema, table, partition);
       }
 
       size_t bytes_loaded = 0;
@@ -425,6 +425,7 @@ class Dump_loader {
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
+  FRIEND_TEST(Load_dump, add_execute_conditionally);
   FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_threads);
   FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_tables);
   FRIEND_TEST(Load_dump_mocked, filter_user_script_for_mds);
@@ -433,7 +434,8 @@ class Dump_loader {
 
   class Sql_transform {
    public:
-    bool operator()(const char *sql, size_t length, std::string *out_new_sql) {
+    bool operator()(const char *sql, size_t length,
+                    std::string *out_new_sql) const {
       if (m_ops.empty()) return false;
 
       std::string orig_sql(sql, length);
@@ -449,6 +451,17 @@ class Dump_loader {
     }
 
     void add_strip_removed_sql_modes();
+
+    /**
+     * Adds a callback which is going to be called whenever a CREATE|ALTER|DROP
+     * statement for an EVENT|FUNCTION|PROCEDURE|TRIGGER object is about to
+     * be executed. Callback is called with two arguments:
+     *  - type - EVENT|FUNCTION|PROCEDURE|TRIGGER
+     *  - name - name of the object
+     * Callback should return true if this statement should be executed.
+     */
+    void add_execute_conditionally(
+        std::function<bool(const std::string &, const std::string &)> &&f);
 
    private:
     void add(std::function<void(const std::string &, std::string *)> &&f) {

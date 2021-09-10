@@ -147,18 +147,17 @@ class Instance_cache_builder final {
  public:
   using Users = std::vector<shcore::Account>;
 
-  using Object_filters = std::set<std::string>;
-  using Table_filters = std::unordered_map<std::string, Object_filters>;
+  using Filter = std::unordered_set<std::string>;
+  using Object_filters = std::unordered_map<std::string, Filter>;
+  using Trigger_filters = std::unordered_map<std::string, Object_filters>;
 
   Instance_cache_builder() = delete;
 
   Instance_cache_builder(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Object_filters &included_schemas,
-      const Table_filters &included_tables,
-      const Object_filters &excluded_schemas,
-      const Table_filters &excluded_tables, Instance_cache &&cache = {},
-      bool include_metadata = true);
+      const Filter &included_schemas, const Object_filters &included_tables,
+      const Filter &excluded_schemas, const Object_filters &excluded_tables,
+      Instance_cache &&cache = {}, bool include_metadata = true);
 
   Instance_cache_builder(const Instance_cache_builder &) = delete;
   Instance_cache_builder(Instance_cache_builder &&) = default;
@@ -170,11 +169,14 @@ class Instance_cache_builder final {
 
   Instance_cache_builder &users(const Users &included, const Users &excluded);
 
-  Instance_cache_builder &events();
+  Instance_cache_builder &events(const Object_filters &included,
+                                 const Object_filters &excluded);
 
-  Instance_cache_builder &routines();
+  Instance_cache_builder &routines(const Object_filters &included,
+                                   const Object_filters &excluded);
 
-  Instance_cache_builder &triggers();
+  Instance_cache_builder &triggers(const Trigger_filters &included,
+                                   const Trigger_filters &excluded);
 
   Instance_cache_builder &binlog_info();
 
@@ -254,11 +256,10 @@ class Instance_cache_builder final {
 
   inline void set_has_views() { m_has_views = true; }
 
-  void set_schema_filter(const Object_filters &included,
-                         const Object_filters &excluded);
+  void set_schema_filter(const Filter &included, const Filter &excluded);
 
-  void set_table_filter(const Table_filters &included,
-                        const Table_filters &excluded);
+  void set_table_filter(const Object_filters &included,
+                        const Object_filters &excluded);
 
   std::string schema_filter(const std::string &schema_column) const;
 
@@ -268,6 +269,14 @@ class Instance_cache_builder final {
                            const std::string &table_column) const;
 
   std::string schema_and_table_filter(const Iterate_table &info) const;
+
+  std::string object_filter(const Iterate_schema &info,
+                            const Object_filters &included,
+                            const Object_filters &excluded) const;
+
+  std::string trigger_filter(const Iterate_table &info,
+                             const Trigger_filters &included,
+                             const Trigger_filters &excluded) const;
 
   template <typename T>
   inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {

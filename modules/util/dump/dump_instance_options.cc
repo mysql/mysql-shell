@@ -61,6 +61,8 @@ const shcore::Option_pack_def<Dump_instance_options>
           .include<Dump_schemas_options>()
           .optional("excludeSchemas",
                     &Dump_instance_options::set_string_list_option)
+          .optional("includeSchemas",
+                    &Dump_instance_options::set_string_list_option)
           .optional("users", &Dump_instance_options::m_dump_users)
           .optional("excludeUsers",
                     &Dump_instance_options::set_string_list_option)
@@ -80,6 +82,8 @@ void Dump_instance_options::set_string_list_option(
     set_included_users(data);
   } else if (option == "excludeSchemas") {
     m_excluded_schemas.insert(data.begin(), data.end());
+  } else if (option == "includeSchemas") {
+    m_included_schemas.insert(data.begin(), data.end());
   } else {
     // This function should only be called with the options above.
     assert(false);

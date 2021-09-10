@@ -246,6 +246,64 @@ TEST(utils_general, split_schema_and_table) {
   EXPECT_EQ("schema.table", table);
 }
 
+TEST(utils_general, split_schema_table_and_object) {
+  std::string schema;
+  std::string table;
+  std::string object;
+
+  EXPECT_THROW_LIKE(split_schema_table_and_object("", &schema, &table, &object),
+                    std::runtime_error,
+                    "Invalid identifier, object name cannot be empty.");
+  EXPECT_THROW_LIKE(
+      split_schema_table_and_object("`table`.", &schema, &table, &object),
+      std::runtime_error, "Invalid identifier, object name cannot be empty.");
+  EXPECT_THROW_LIKE(split_schema_table_and_object("`schema`.`table`.", &schema,
+                                                  &table, &object),
+                    std::runtime_error,
+                    "Invalid identifier, object name cannot be empty.");
+
+  EXPECT_THROW_LIKE(split_schema_table_and_object("`table`x`object`", &schema,
+                                                  &table, &object),
+                    std::runtime_error,
+                    "Invalid object name, expected '.', but got: 'x'.");
+  EXPECT_THROW_LIKE(split_schema_table_and_object("`schema`x`table`x`object`",
+                                                  &schema, &table, &object),
+                    std::runtime_error,
+                    "Invalid object name, expected '.', but got: 'x'.");
+
+  const char *tests[][4] = {
+      {"object", "", "", "object"},
+      {"`object`", "", "", "object"},
+      {"table.object", "", "table", "object"},
+      {"`table`.object", "", "table", "object"},
+      {"table.`object`", "", "table", "object"},
+      {"`table`.`object`", "", "table", "object"},
+      {"`table.object`", "", "", "table.object"},
+      {"schema.table.object", "schema", "table", "object"},
+      {"`schema`.table.object", "schema", "table", "object"},
+      {"schema.`table`.object", "schema", "table", "object"},
+      {"schema.table.`object`", "schema", "table", "object"},
+      {"`schema`.`table`.object", "schema", "table", "object"},
+      {"`schema`.table.`object`", "schema", "table", "object"},
+      {"schema.`table`.`object`", "schema", "table", "object"},
+      {"`schema`.`table`.`object`", "schema", "table", "object"},
+      {"`schema.table.object`", "", "", "schema.table.object"},
+  };
+
+  for (const auto &test : tests) {
+    SCOPED_TRACE(test[0]);
+
+    schema = table = object = "";
+
+    EXPECT_NO_THROW(
+        split_schema_table_and_object(test[0], &schema, &table, &object));
+
+    EXPECT_EQ(test[1], schema);
+    EXPECT_EQ(test[2], table);
+    EXPECT_EQ(test[3], object);
+  }
+}
+
 TEST(utils_general, unquote_identifier) {
   EXPECT_THROW_LIKE(unquote_identifier(""), std::runtime_error,
                     "Object name cannot be empty.");

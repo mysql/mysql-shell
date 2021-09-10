@@ -119,6 +119,104 @@ TEST(Load_dump, sql_transforms_strip_sql_mode) {
             "sql_mode='ANSI_QUOTES,NO_AUTO_CREATE_USER,NO_ZERO_DATE' */"));
 }
 
+TEST(Load_dump, add_execute_conditionally) {
+  const auto call = [](const Dump_loader::Sql_transform &tx, const char *s) {
+    std::string tmp;
+    EXPECT_TRUE(tx(s, strlen(s), &tmp));
+    return tmp;
+  };
+
+  {
+    Dump_loader::Sql_transform tx;
+    tx.add_execute_conditionally(
+        [](const std::string &, const std::string &) { return true; });
+
+    EXPECT_EQ("CREATE EVENT foo", call(tx, "CREATE EVENT foo"));
+  }
+
+  {
+    Dump_loader::Sql_transform tx;
+    tx.add_execute_conditionally(
+        [](const std::string &, const std::string &) { return false; });
+
+    EXPECT_EQ("", call(tx, "CREATE EVENT foo"));
+  }
+
+  const auto EXPECT_TYPE_NAME =
+      [](const std::string &stmt, const std::string &type,
+         const std::string &name, const bool called = true) {
+        SCOPED_TRACE("statement: " + stmt + ", type: " + type + ", name " +
+                     name + ", called: " + (called ? "true" : "false"));
+
+        bool was_called = false;
+        Dump_loader::Sql_transform tx;
+
+        tx.add_execute_conditionally(
+            [&was_called, &type, &name](const std::string &t,
+                                        const std::string &n) {
+              EXPECT_EQ(type, t);
+              EXPECT_EQ(name, n);
+              was_called = true;
+              return true;
+            });
+
+        std::string tmp;
+        EXPECT_TRUE(tx(stmt.c_str(), stmt.length(), &tmp));
+
+        EXPECT_EQ(was_called, called);
+      };
+
+  EXPECT_TYPE_NAME("CREATE EVENT foo", "EVENT", "foo");
+  EXPECT_TYPE_NAME("/*!50106 DROP EVENT foo */", "EVENT", "foo");
+  EXPECT_TYPE_NAME("/*!50106 DROP EVENT IF EXISTS foo */", "EVENT", "foo");
+  EXPECT_TYPE_NAME("/*!50106 CREATE EVENT `foo`", "EVENT", "foo");
+  EXPECT_TYPE_NAME("/*!50106 CREATE DEFINER=root EVENT `foo`", "EVENT", "foo");
+  EXPECT_TYPE_NAME("/*!50106 CREATE DEFINER=root EVENT IF NOT EXISTS `foo`",
+                   "EVENT", "foo");
+  EXPECT_TYPE_NAME("/*!50106 CREATE DEFINER=`root` EVENT `foo`", "EVENT",
+                   "foo");
+  EXPECT_TYPE_NAME("/*!50106 CREATE DEFINER=`root`@`localhost` EVENT `foo`",
+                   "EVENT", "foo");
+  EXPECT_TYPE_NAME(
+      "/*!50106 CREATE DEFINER=`root`@`localhost` EVENT IF NOT EXISTS `foo`",
+      "EVENT", "foo");
+  EXPECT_TYPE_NAME(
+      "/*!50106 CREATE DEFINER=`root`@`localhost` EVENT IF NOT EXISTS "
+      "bar.`foo`",
+      "EVENT", "foo");
+
+  EXPECT_TYPE_NAME("DROP FUNCTION foo", "FUNCTION", "foo");
+  EXPECT_TYPE_NAME("/*!50003 DROP FUNCTION IF EXISTS foo */", "FUNCTION",
+                   "foo");
+  EXPECT_TYPE_NAME(
+      "/*!50003 CREATE DEFINER=`root`@`localhost` FUNCTION `foo`(p INT) "
+      "RETURNS int */",
+      "FUNCTION", "foo");
+
+  EXPECT_TYPE_NAME("/*!50003 DROP PROCEDURE IF EXISTS foo */", "PROCEDURE",
+                   "foo");
+  EXPECT_TYPE_NAME("CREATE DEFINER=`root`@`localhost` PROCEDURE `bar`.`foo`()",
+                   "PROCEDURE", "foo");
+
+  EXPECT_TYPE_NAME("/*!50032 DROP TRIGGER IF EXISTS foo */;", "TRIGGER", "foo");
+  EXPECT_TYPE_NAME(
+      "/*!50003 CREATE DEFINER=`root`@`localhost` TRIGGER `foo` BEFORE INSERT "
+      "ON `bar` FOR EACH ROW BEGIN END */",
+      "TRIGGER", "foo");
+
+  EXPECT_TYPE_NAME("/*!50001 CREATE VIEW `foo` AS */", "", "", false);
+  EXPECT_TYPE_NAME("/*!50001 CREATE SQL SECURITY DEFINER VIEW `foo` AS */", "",
+                   "", false);
+  EXPECT_TYPE_NAME(
+      "/*!50001 CREATE DEFINER=`root`@`%` SQL SECURITY DEFINER VIEW `foo` AS "
+      "*/",
+      "", "", false);
+  EXPECT_TYPE_NAME(
+      "/*!50001 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`%` SQL SECURITY "
+      "DEFINER VIEW `foo` AS */",
+      "", "", false);
+}
+
 static std::string table_name_for_chunk_file(const std::string &f) {
   return shcore::str_rstrip(f.substr(0, f.rfind('@')), "@");
 }

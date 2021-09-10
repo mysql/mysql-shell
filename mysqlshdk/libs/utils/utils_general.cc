@@ -902,6 +902,26 @@ std::string make_account(const Account &account) {
   return make_account(account.user, account.host);
 }
 
+namespace {
+
+void ensure_dot(const std::string &str, std::size_t pos) {
+  if (str[pos] != '.') {
+    throw std::runtime_error(
+        std::string("Invalid object name, expected '.', but got: '") +
+        str[pos] + "'.");
+  }
+}
+
+void ensure_eos(const std::string &str, std::size_t pos) {
+  if (pos < str.length()) {
+    throw std::runtime_error(
+        std::string("Invalid object name, expected end of name, but got: '") +
+        str[pos] + "'.");
+  }
+}
+
+}  // namespace
+
 void split_schema_and_table(const std::string &str, std::string *out_schema,
                             std::string *out_table) {
   std::string schema;
@@ -910,19 +930,11 @@ void split_schema_and_table(const std::string &str, std::string *out_schema,
   auto pos = span_quotable_identifier(str, 0, &schema);
 
   if (pos < str.length()) {
-    if (str[pos] != '.') {
-      throw std::runtime_error(
-          std::string("Invalid object name, expected '.', but got: '") +
-          str[pos] + "'.");
-    }
+    ensure_dot(str, pos);
 
     pos = span_quotable_identifier(str, ++pos, &table);
 
-    if (pos < str.length()) {
-      throw std::runtime_error(
-          std::string("Invalid object name, expected end of name, but got: '") +
-          str[pos] + "'.");
-    }
+    ensure_eos(str, pos);
   } else {
     // there's only table name
     std::swap(schema, table);
@@ -939,6 +951,55 @@ void split_schema_and_table(const std::string &str, std::string *out_schema,
 
   if (out_table) {
     *out_table = std::move(table);
+  }
+}
+
+void split_schema_table_and_object(const std::string &str,
+                                   std::string *out_schema,
+                                   std::string *out_table,
+                                   std::string *out_object) {
+  std::string schema;
+  std::string table;
+  std::string object;
+
+  auto pos = span_quotable_identifier(str, 0, &schema);
+
+  if (pos < str.length()) {
+    ensure_dot(str, pos);
+
+    pos = span_quotable_identifier(str, ++pos, &table);
+
+    if (pos < str.length()) {
+      ensure_dot(str, pos);
+
+      pos = span_quotable_identifier(str, ++pos, &object);
+
+      ensure_eos(str, pos);
+    } else {
+      // there are table and object names
+      std::swap(table, object);
+      std::swap(schema, table);
+    }
+  } else {
+    // there's only object name
+    std::swap(schema, object);
+  }
+
+  if (object.empty()) {
+    throw std::runtime_error(
+        "Invalid identifier, object name cannot be empty.");
+  }
+
+  if (out_schema) {
+    *out_schema = std::move(schema);
+  }
+
+  if (out_table) {
+    *out_table = std::move(table);
+  }
+
+  if (out_object) {
+    *out_object = std::move(object);
   }
 }
 

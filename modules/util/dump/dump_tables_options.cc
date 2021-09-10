@@ -42,26 +42,25 @@ const shcore::Option_pack_def<Dump_tables_options>
 }
 
 void Dump_tables_options::set_schema(const std::string &schema) {
-  m_included_schemas.emplace(schema);
+  m_schema = schema;
+  m_included_schemas.emplace(m_schema);
 }
 
 void Dump_tables_options::set_tables(const std::vector<std::string> &tables) {
   m_has_tables = !tables.empty();
 
-  assert(!m_included_schemas.empty());
+  assert(!m_schema.empty());
 
   if (m_has_tables) {
-    m_included_tables[*m_included_schemas.begin()].insert(tables.begin(),
-                                                          tables.end());
+    m_tables = {tables.begin(), tables.end()};
+    m_included_tables[m_schema].insert(m_tables.begin(), m_tables.end());
   }
 }
 
 void Dump_tables_options::validate_options() const {
   Ddl_dumper_options::validate_options();
 
-  const auto &schema = *m_included_schemas.begin();
-
-  if (schema.empty()) {
+  if (m_schema.empty()) {
     throw std::invalid_argument(
         "The 'schema' parameter cannot be an empty string.");
   }
@@ -77,17 +76,17 @@ void Dump_tables_options::validate_options() const {
         "be an empty list.");
   }
 
-  if (!exists(schema)) {
-    throw std::invalid_argument("The requested schema '" + schema +
+  if (!exists(m_schema)) {
+    throw std::invalid_argument("The requested schema '" + m_schema +
                                 "' was not found in the database.");
   }
 
   if (!m_dump_all) {
-    const auto missing = find_missing(schema, m_included_tables.at(schema));
+    const auto missing = find_missing(m_schema, m_tables);
 
     if (!missing.empty()) {
       throw std::invalid_argument(
-          "Following tables were not found in the schema '" + schema +
+          "Following tables were not found in the schema '" + m_schema +
           "': " + shcore::str_join(missing, ", ", [](const std::string &t) {
             return "'" + t + "'";
           }));

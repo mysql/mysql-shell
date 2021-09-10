@@ -79,6 +79,11 @@ class Ddl_dumper_options : public Dump_options {
   void set_bytes_per_chunk(const std::string &value);
   void set_ocimds(bool value);
   void set_compatibility_options(const std::vector<std::string> &options);
+
+  void set_exclude_triggers(const std::vector<std::string> &data);
+
+  void set_include_triggers(const std::vector<std::string> &data);
+
   mysqlshdk::oci::Oci_option_unpacker<
       mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE>
       m_oci_option_unpacker;

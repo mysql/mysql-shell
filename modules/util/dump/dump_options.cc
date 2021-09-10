@@ -112,13 +112,14 @@ bool Dump_options::exists(const std::string &schema,
 }
 
 std::set<std::string> Dump_options::find_missing(
-    const std::set<std::string> &schemas) const {
+    const std::unordered_set<std::string> &schemas) const {
   return find_missing_impl(
       "SELECT SCHEMA_NAME AS name FROM information_schema.schemata", schemas);
 }
 
 std::set<std::string> Dump_options::find_missing(
-    const std::string &schema, const std::set<std::string> &tables) const {
+    const std::string &schema,
+    const std::unordered_set<std::string> &tables) const {
   return find_missing_impl(
       shcore::sqlstring("SELECT TABLE_NAME AS name "
                         "FROM information_schema.tables WHERE TABLE_SCHEMA = ?",
@@ -128,7 +129,8 @@ std::set<std::string> Dump_options::find_missing(
 }
 
 std::set<std::string> Dump_options::find_missing_impl(
-    const std::string &subquery, const std::set<std::string> &objects) const {
+    const std::string &subquery,
+    const std::unordered_set<std::string> &objects) const {
   std::string query =
       "SELECT n.name FROM (SELECT " +
       shcore::str_join(objects, " UNION SELECT ",

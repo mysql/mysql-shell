@@ -97,8 +97,7 @@ Dump_reader::Status Dump_reader::open() {
   shcore::Dictionary_t basenames(md->get_map("basenames"));
 
   for (const auto &schema : *md->get_array("schemas")) {
-    if (m_options.include_schema(schema.as_string()) ||
-        m_options.include_table(schema.as_string(), "")) {
+    if (m_options.include_schema(schema.as_string())) {
       auto info = std::make_shared<Schema_info>();
 
       info->schema = schema.get_string();
@@ -403,8 +402,8 @@ Dump_reader::schedule_chunk_proportionally(
 
     for (auto it = tables_with_data->begin(); it != tables_with_data->end();
          ++it) {
-      std::string key = partition_key((*it)->owner->schema, (*it)->owner->table,
-                                      (*it)->partition);
+      std::string key = schema_table_object_key(
+          (*it)->owner->schema, (*it)->owner->table, (*it)->partition);
       if (tables_being_loaded.find(key) == tables_being_loaded.end()) {
         if (best == tables_with_data->end() ||
             (*it)->bytes_available() > (*best)->bytes_available())
@@ -462,9 +461,9 @@ Dump_reader::schedule_chunk_proportionally(
       tables_with_data->begin();
 
   for (const auto &cand : candidate_weights) {
-    std::string key =
-        partition_key((*cand.first)->owner->schema, (*cand.first)->owner->table,
-                      (*cand.first)->partition);
+    std::string key = schema_table_object_key((*cand.first)->owner->schema,
+                                              (*cand.first)->owner->table,
+                                              (*cand.first)->partition);
     auto it = worker_weights.find(key);
     if (it != worker_weights.end()) {
       double d = cand.second - it->second;
@@ -541,7 +540,7 @@ bool Dump_reader::next_deferred_index(
 
         for (const auto &di : table.second->data_info) {
           keys.emplace_back(
-              partition_key(schema.first, table.first, di.partition));
+              schema_table_object_key(schema.first, table.first, di.partition));
         }
 
         if (load_finished(keys)) {

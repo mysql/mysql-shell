@@ -1,4 +1,117 @@
+import json
+import re
 import urllib.parse
+
+def md5_table(session, schema, table):
+    columns = ""
+    has_pri = 0 != session.run_sql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetch_one()[0]
+    for c in session.run_sql("desc !.!", [schema, table]).fetch_all():
+        columns += f", convert(`{c[0]}` using binary)"
+    query = f"SELECT min(least(length(@crc := sha1(concat(@crc, sha1(concat_ws('#'{columns}))))),@cnt := @cnt + 1)) as discard from !.!"
+    if has_pri:
+        query += " use index(PRIMARY)"
+    session.run_sql("SET @crc = ''")
+    session.run_sql("SET @cnt = 0")
+    session.run_sql(query, [schema, table])
+    row = session.run_sql("select @crc, @cnt").fetch_one()
+    return {"sha1": row[0], "count": row[1]}
+
+def snapshot_account(session, auser, ahost):
+    user = {}
+    user["create"] = session.run_sql("SHOW CREATE USER ?@?", [auser, ahost]).fetch_one()[0]
+    user["grants"] = []
+    for row in session.run_sql("SHOW GRANTS FOR ?@?", [auser, ahost]).fetch_all():
+        user["grants"].append(row[0])
+    return user
+
+def snapshot_accounts(session):
+    accounts = {}
+    for row in session.run_sql("SELECT user, host FROM mysql.user").fetch_all():
+        user = snapshot_account(session, row[0], row[1])
+        name = row[0] + "@" + row[1]
+        accounts[name]=user
+    return accounts
+
+def snapshot_table_data(session, schema, table):
+    # CHECKSUM TABLE returns different values for floating point values when they're loaded with LOAD DATA - BUG#31071891
+    # cksum = session.run_sql("CHECKSUM TABLE !.!", [schema, table]).fetch_one()[1]
+    # count = session.run_sql("SELECT count(*) FROM !.!", [schema, table])).fetch_one()[0]
+    # return {"checksum":cksum, "rowcount":count}
+    return md5_table(session, schema, table)
+
+def snapshot_tables_and_triggers(session, schema):
+    tables = {}
+    for row in session.run_sql("SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? and table_type = 'BASE TABLE'", [schema]).fetch_all():
+        name = row[0]
+        tables[name] = snapshot_table_data(session, schema, name)
+        tables[name]["ddl"] = session.run_sql("SHOW CREATE TABLE !.!", [schema, name]).fetch_one()[1]
+        # on Windows "SHOW CREATE" keeps adding slashes at the end of a DATA|INDEX directory, mitigate that
+        tables[name]["ddl"] = re.compile(r"\/+").sub("/", tables[name]["ddl"])
+        triggers = {}
+        for row in session.run_sql("SELECT trigger_name FROM information_schema.triggers WHERE trigger_schema = ? and event_object_table = ?", [schema, name]).fetch_all():
+            trigger = row[0]
+            triggers[trigger] = session.run_sql("SHOW CREATE TRIGGER !.!", [schema, trigger]).fetch_one()[2]
+        tables[name]["triggers"] = triggers
+    return tables
+
+def snapshot_views(session, schema):
+    tables = {}
+    for row in session.run_sql("SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? and table_type = 'VIEW'", [schema]).fetch_all():
+        name = row[0]
+        tables[name] = {}
+        tables[name]["ddl"] = session.run_sql("SHOW CREATE VIEW !.!", [schema, name]).fetch_one()[1]
+    return tables
+
+def snapshot_routines(session, schema, type):
+    routines = {}
+    for row in session.run_sql(f"SELECT ROUTINE_NAME FROM information_schema.routines WHERE routine_schema = ? and routine_type = '{type}'", [schema]).fetch_all():
+        name = row[0]
+        routines[name] = {}
+        routines[name]["ddl"] = session.run_sql(f"SHOW CREATE {type} !.!", [schema, name]).fetch_one()[2]
+    return routines
+
+def snapshot_procedures(session, schema):
+    return snapshot_routines(session, schema, "PROCEDURE")
+
+def snapshot_functions(session, schema):
+    return snapshot_routines(session, schema, "FUNCTION")
+
+def snapshot_events(session, schema):
+    events = {}
+    for row in session.run_sql("SHOW EVENTS IN !", [schema]).fetch_all():
+        name = row.name
+        events[name] = {}
+        events[name]["ddl"] = session.run_sql("SHOW CREATE EVENT !.!", [schema, name]).fetch_one()[3]
+    return events
+
+def snapshot_schema(session, schema):
+    obj = {}
+    obj["tables"] = snapshot_tables_and_triggers(session, schema)
+    obj["views"] = snapshot_views(session, schema)
+    obj["procedures"] = snapshot_procedures(session, schema)
+    obj["functions"] = snapshot_functions(session, schema)
+    obj["events"] = snapshot_events(session, schema)
+    return obj
+
+def snapshot_schemas(session):
+    schemas = {}
+    for row in session.run_sql("SELECT SCHEMA_NAME FROM information_schema.schemata WHERE schema_name not in ('sys', 'information_schema', 'mysql', 'performance_schema')").fetch_all():
+        name = row[0]
+        schemas[name] = snapshot_schema(session, name)
+        schemas[name]["ddl"] = session.run_sql("SHOW CREATE SCHEMA !", [name]).fetch_one()[1]
+    return schemas
+
+def snapshot_tablespaces(session):
+    # not supported atm
+    return {}
+
+def snapshot_instance(session):
+    snapshot = {}
+    snapshot["accounts"] = snapshot_accounts(session)
+    snapshot["tablespaces"] = snapshot_tablespaces(session)
+    snapshot["schemas"] = snapshot_schemas(session)
+    # normalize the JSON encoding
+    return json.loads(json.dumps(snapshot))
 
 def wipeout_server(session):
     session.run_sql("set foreign_key_checks=0")

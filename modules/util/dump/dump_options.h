@@ -27,6 +27,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -108,20 +109,44 @@ class Dump_options {
     return m_included_users;
   }
 
-  const Instance_cache_builder::Object_filters &included_schemas() const {
+  const Instance_cache_builder::Filter &included_schemas() const {
     return m_included_schemas;
   }
 
-  const Instance_cache_builder::Object_filters &excluded_schemas() const {
+  const Instance_cache_builder::Filter &excluded_schemas() const {
     return m_excluded_schemas;
   }
 
-  const Instance_cache_builder::Table_filters &included_tables() const {
+  const Instance_cache_builder::Object_filters &included_tables() const {
     return m_included_tables;
   }
 
-  const Instance_cache_builder::Table_filters &excluded_tables() const {
+  const Instance_cache_builder::Object_filters &excluded_tables() const {
     return m_excluded_tables;
+  }
+
+  const Instance_cache_builder::Object_filters &included_events() const {
+    return m_included_events;
+  }
+
+  const Instance_cache_builder::Object_filters &excluded_events() const {
+    return m_excluded_events;
+  }
+
+  const Instance_cache_builder::Object_filters &included_routines() const {
+    return m_included_routines;
+  }
+
+  const Instance_cache_builder::Object_filters &excluded_routines() const {
+    return m_excluded_routines;
+  }
+
+  const Instance_cache_builder::Trigger_filters &included_triggers() const {
+    return m_included_triggers;
+  }
+
+  const Instance_cache_builder::Trigger_filters &excluded_triggers() const {
+    return m_excluded_triggers;
   }
 
   virtual bool split() const = 0;
@@ -192,21 +217,102 @@ class Dump_options {
     }
   }
 
+  template <typename C, typename M>
+  void add_object_filters(const C &data, const std::string &object_type,
+                          const std::string &action, M *map) {
+    std::string schema;
+    std::string object;
+
+    for (const auto &t : data) {
+      schema.clear();
+      object.clear();
+
+      try {
+        shcore::split_schema_and_table(t, &schema, &object);
+      } catch (const std::runtime_error &e) {
+        throw std::invalid_argument("Failed to parse " + object_type +
+                                    " to be " + action + "d '" + t +
+                                    "': " + e.what());
+      }
+
+      if (schema.empty()) {
+        throw std::invalid_argument(
+            "The " + object_type + " to be " + action +
+            "d must be in the following form: schema." + object_type +
+            ", with optional backtick quotes, wrong value: '" + t + "'.");
+      }
+
+      (*map)[schema].emplace(std::move(object));
+    }
+  }
+
+  template <typename C>
+  void add_trigger_filters(const C &data, const std::string &action,
+                           Instance_cache_builder::Trigger_filters *target) {
+    std::string schema;
+    std::string table;
+    std::string object;
+
+    for (const auto &t : data) {
+      schema.clear();
+      table.clear();
+      object.clear();
+
+      try {
+        shcore::split_schema_table_and_object(t, &schema, &table, &object);
+      } catch (const std::runtime_error &e) {
+        throw std::invalid_argument("Failed to parse trigger to be " + action +
+                                    "d '" + t + "': " + e.what());
+      }
+
+      if (table.empty()) {
+        throw std::invalid_argument(
+            "The trigger to be " + action +
+            "d must be in the following form: schema.table or "
+            "schema.table.trigger, with optional backtick quotes, wrong value: "
+            "'" +
+            t + "'.");
+      }
+
+      if (schema.empty()) {
+        // we got schema.table, need to move names around
+        std::swap(schema, table);
+        std::swap(table, object);
+      }
+
+      // Object name can be empty, in this case all triggers in a table are
+      // included/excluded. We add it as is, so later we can detect cases like
+      // 'schema.table' and 'schema.table.trigger' given by the user at the same
+      // time.
+      (*target)[schema][table].emplace(std::move(object));
+    }
+  }
+
   bool exists(const std::string &schema) const;
 
   bool exists(const std::string &schema, const std::string &table) const;
 
   std::set<std::string> find_missing(
-      const std::set<std::string> &schemas) const;
+      const std::unordered_set<std::string> &schemas) const;
 
-  std::set<std::string> find_missing(const std::string &schema,
-                                     const std::set<std::string> &tables) const;
+  std::set<std::string> find_missing(
+      const std::string &schema,
+      const std::unordered_set<std::string> &tables) const;
 
-  Instance_cache_builder::Object_filters m_included_schemas;
-  Instance_cache_builder::Object_filters m_excluded_schemas;
+  Instance_cache_builder::Filter m_included_schemas;
+  Instance_cache_builder::Filter m_excluded_schemas;
 
-  Instance_cache_builder::Table_filters m_included_tables;
-  Instance_cache_builder::Table_filters m_excluded_tables;
+  Instance_cache_builder::Object_filters m_included_tables;
+  Instance_cache_builder::Object_filters m_excluded_tables;
+
+  Instance_cache_builder::Object_filters m_included_events;
+  Instance_cache_builder::Object_filters m_excluded_events;
+
+  Instance_cache_builder::Object_filters m_included_routines;
+  Instance_cache_builder::Object_filters m_excluded_routines;
+
+  Instance_cache_builder::Trigger_filters m_included_triggers;
+  Instance_cache_builder::Trigger_filters m_excluded_triggers;
 
  protected:
   void on_start_unpack(const shcore::Dictionary_t &options);
@@ -225,7 +331,8 @@ class Dump_options {
   void set_string_option(const std::string &option, const std::string &value);
 
   std::set<std::string> find_missing_impl(
-      const std::string &subquery, const std::set<std::string> &objects) const;
+      const std::string &subquery,
+      const std::unordered_set<std::string> &objects) const;
 
   // global session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
