@@ -49,20 +49,21 @@ void Json_shell::process_line(const std::string &line) {
     if (doc.HasMember("execute")) {
       if (doc["execute"].IsString()) {
         std::string data = doc["execute"].GetString();
-        std::stringstream stream(data);
         log_debug2("CODE:\n%s", data.c_str());
-        process_stream(stream, "", {}, true);
+        std::vector<std::string> lines = shcore::split_string(data, "\\n");
+        for (const auto &code : lines) {
+          Mysql_shell::process_line(code);
+        }
+
+        // If at the end of the processing the input state is in continuation,
+        // we force the execution as it is
+        if (_input_mode == shcore::Input_state::ContinuedSingle ||
+            _input_mode == shcore::Input_state::ContinuedBlock) {
+          flush_input();
+        }
       } else {
         console->print_error(
             "Invalid input for 'execute', string expected in value: " + line);
-      }
-    } else if (doc.HasMember("command")) {
-      if (doc["command"].IsString()) {
-        log_debug2("COMMAND:\n%s", doc["command"].GetString());
-        Mysql_shell::process_line(doc["command"].GetString());
-      } else {
-        console->print_error(
-            "Invalid input for 'command', string expected in value: " + line);
       }
     } else if (doc.HasMember("complete")) {
       if (doc["complete"].IsObject() && doc["complete"].HasMember("data") &&
@@ -113,5 +114,4 @@ void Json_shell::process_line(const std::string &line) {
     console->print_error("Invalid input: " + line);
   }
 }
-
 }  // namespace mysqlsh

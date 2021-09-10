@@ -47,12 +47,12 @@ class Shell_javascript : public Shell_language {
 
   void set_argv(const std::vector<std::string> &argv = {}) override;
 
-  void handle_input(std::string &code, Input_state &state,
-                    bool interactive) override;
+  void handle_input(std::string &code, Input_state &state) override;
+
+  void flush_input(const std::string &code) override;
 
   std::shared_ptr<JScript_context> javascript_context() { return _js; }
 
-  void clear_input() override;
   std::string get_continued_input_context() override;
 
   bool load_plugin(const Plugin_definition &plugin) override;
@@ -61,7 +61,8 @@ class Shell_javascript : public Shell_language {
   void abort() noexcept;
   std::shared_ptr<JScript_context> _js;
   std::function<void(shcore::Value, bool)> _result_processor;
-  Input_state m_last_input_state;
+
+  void handle_input(std::string &code, bool flush);
 };
 }  // namespace shcore
 

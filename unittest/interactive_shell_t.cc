@@ -1102,6 +1102,41 @@ TEST_F(Interactive_shell_test, shell_command_source_invalid_path_py) {
   output_handler.wipe_all();
 }
 
+TEST_F(Interactive_shell_test, shell_command_source_incomplete_files) {
+  std::vector<std::tuple<std::string, std::string, std::string>> data = {
+      {"\\js", R"*(function sample(data) {
+  print(data);
+  )*",
+       "SyntaxError: Unexpected end of input"},
+      {"\\py", R"*(def sample(data):
+                   print(data)*",
+       "SyntaxError: unexpected EOF while parsing"},
+      {"\\sql", R"*(select *
+                   from)*",
+       "ERROR: 1064: You have an error in your SQL syntax;"}};
+
+  execute("\\connect --mx " + _uri);
+
+  for (const auto &item : data) {
+    const auto &mode = std::get<0>(item);
+    _interactive_shell->process_line(mode);
+
+    // directory
+    std::string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : ".";
+    std::string filename =
+        shcore::path::join_path(tmpdir, "srctest." + mode.substr(2));
+    shcore::create_file(filename, std::get<1>(item));
+    _interactive_shell->process_line("\\source " + filename);
+    MY_EXPECT_STDERR_CONTAINS(std::get<2>(item));
+
+    shcore::delete_file(filename);
+
+    output_handler.wipe_all();
+  }
+
+  execute("\\disconnect");
+}
+
 TEST_F(Interactive_shell_test, python_startup_scripts) {
   if (g_test_parallel_execution) {
     SKIP_TEST(

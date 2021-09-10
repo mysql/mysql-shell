@@ -101,7 +101,8 @@ class SHCORE_PUBLIC Shell_command_handler {
 
 class SHCORE_PUBLIC Shell_language {
  public:
-  explicit Shell_language(IShell_core *owner) : _owner(owner) {}
+  explicit Shell_language(IShell_core *owner)
+      : _owner(owner), m_input_state(Input_state::Ok) {}
 
   virtual ~Shell_language() {}
 
@@ -114,18 +115,22 @@ class SHCORE_PUBLIC Shell_language {
   }
 
   virtual std::string preprocess_input_line(const std::string &s) { return s; }
-  virtual void handle_input(std::string &code, Input_state &state,
-                            bool interactive) = 0;
+
+  virtual void handle_input(std::string &code, Input_state &state) = 0;
+
+  virtual void flush_input(const std::string &code) = 0;
 
   virtual std::string get_handled_input() { return _last_handled; }
 
-  virtual void clear_input() {}
+  virtual void clear_input() { m_input_state = Input_state::Ok; }
   virtual std::string get_continued_input_context() = 0;
 
   virtual void execute_module(
       const std::string &UNUSED(file_name),
       const std::vector<std::string> &) { /* Does Nothing by default */
   }
+
+  Input_state input_state() const { return m_input_state; }
 
   /**
    * Loads the specified plugin file.
@@ -146,6 +151,7 @@ class SHCORE_PUBLIC Shell_language {
   IShell_core *_owner;
   std::string _last_handled;
   Shell_command_handler _shell_command_handler;
+  Input_state m_input_state;
 };
 
 #if DOXYGEN_JS_CPP
@@ -156,10 +162,11 @@ class SHCORE_PUBLIC Shell_language {
 
 class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
  public:
-  Shell_core();
+  explicit Shell_core(bool interactive = true);
   virtual ~Shell_core();
 
   Mode interactive_mode() const override { return _mode; }
+  bool interactive() const override { return m_interactive; }
   bool switch_mode(Mode mode) override;
 
   // sets a global variable, exposed to all supported scripting languages
@@ -189,17 +196,13 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   }
 
   virtual std::string preprocess_input_line(const std::string &s);
-  void handle_input(std::string &code, Input_state &state,
-                    bool interactive = mysqlsh::current_shell_options()
-                                           ->get()
-                                           .interactive) override;
+  void handle_input(std::string &code, Input_state &state) override;
+  void flush_input(const std::string &code) override;
   bool handle_shell_command(const std::string &code) override;
   size_t handle_inline_shell_command(const std::string &code) override;
   std::string get_handled_input() override;
-  int process_stream(std::istream &stream, const std::string &source,
-                     bool interactive = mysqlsh::current_shell_options()
-                                            ->get()
-                                            .interactive) override;
+  int process_stream(std::istream &stream, const std::string &source) override;
+  Input_state input_state();
 
   virtual void execute_module(const std::string &module_name,
                               const std::vector<std::string> &argv);
@@ -247,6 +250,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   Mode _mode;
   int m_global_return_code;
   Help_manager m_help;
+  bool m_interactive;
 };
 }  // namespace shcore
 

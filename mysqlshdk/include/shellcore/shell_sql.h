@@ -28,6 +28,7 @@
 #include <stack>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -61,15 +62,16 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
     return _result_processor;
   }
 
-  virtual void set_global(const std::string &, const Value &) {}
+  void set_global(const std::string &, const Value &) override {}
 
-  virtual void handle_input(std::string &code, Input_state &state,
-                            bool interactive);
+  void handle_input(std::string &code, Input_state &state) override;
 
-  virtual bool handle_input_stream(std::istream *istream);
+  void flush_input(const std::string &code) override;
 
-  virtual void clear_input();
-  virtual std::string get_continued_input_context();
+  bool handle_input_stream(std::istream *istream) override;
+
+  void clear_input() override;
+  std::string get_continued_input_context() override;
 
   void print_exception(const shcore::Exception &e);
 
@@ -110,6 +112,10 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
   std::pair<size_t, bool> handle_command(const char *p, size_t len, bool bol);
 
   void cmd_process_file(const std::vector<std::string> &params);
+
+  std::shared_ptr<mysqlshdk::db::ISession> get_session();
+  void handle_input(std::shared_ptr<mysqlshdk::db::ISession> session,
+                    bool flush);
 };
 }  // namespace shcore
 

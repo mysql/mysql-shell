@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -243,11 +243,18 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     extern int g_test_default_verbosity;
     std::string options_file = get_options_file_name();
     if (remove_config) std::remove(options_file.c_str());
+
     _opts.reset(new mysqlsh::Shell_options(argc, const_cast<char **>(argv),
                                            options_file));
     _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
     if (!argv) _options->verbose_level = g_test_default_verbosity;
     _options->db_name_cache = false;
+
+    // If no options are provided, the interactive flag is set to true by
+    // default
+    if (argc == 0) {
+      _options->interactive = true;
+    }
 
     // don't load any plugins except in plugin specific tests
     _options->plugins_path = "";

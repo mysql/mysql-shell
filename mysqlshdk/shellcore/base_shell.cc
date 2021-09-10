@@ -81,7 +81,10 @@ Base_shell::Base_shell(const std::shared_ptr<Shell_options> &cmdline_options)
 
   _input_mode = shcore::Input_state::Ok;
 
-  _shell = std::make_shared<shcore::Shell_core>();
+  // Whether the Shell_core is interactive or not will depend from the
+  // interactive option which is set depending on how the shell is started
+  _shell = std::make_shared<shcore::Shell_core>(
+      m_shell_options.get()->get().interactive);
   _completer_object_registry =
       std::make_shared<shcore::completer::Object_registry>();
 }
@@ -451,8 +454,6 @@ void Base_shell::clear_input() {
 }
 
 void Base_shell::process_line(const std::string &line) {
-  std::string to_history;
-
   if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty()) {
     _input_mode = shcore::Input_state::Ok;
   }
@@ -467,35 +468,47 @@ void Base_shell::process_line(const std::string &line) {
 
   if (_input_mode != shcore::Input_state::ContinuedBlock &&
       !_input_buffer.empty()) {
-    try {
+    execute_buffered_code(false);
+  }
+}
+
+void Base_shell::execute_buffered_code(bool flush) {
+  std::string to_history;
+  try {
+    if (flush) {
+      shcore::Scoped_callback reset_state([&]() { clear_input(); });
+      _shell->flush_input(_input_buffer);
+    } else {
       _shell->handle_input(_input_buffer, _input_mode);
-
-      // Here we analyze the input mode as it was let after executing the code
-      if (_input_mode == shcore::Input_state::Ok) {
-        to_history = _shell->get_handled_input();
-      }
-    } catch (shcore::Exception &exc) {
-      print_value(shcore::Value(exc.error()), "error");
-      to_history = _input_buffer;
-    } catch (const std::exception &exc) {
-      std::string error(exc.what());
-      error += "\n";
-      print_diag(error);
-      to_history = _input_buffer;
     }
 
-    // TODO: Do we need this cleanup? i.e. in case of exceptions above??
-    // Clears the buffer if OK, if continued, buffer will contain
-    // the non executed code
+    // Here we analyze the input mode as it was let after executing the code
     if (_input_mode == shcore::Input_state::Ok) {
-      _input_buffer.clear();
+      to_history = _shell->get_handled_input();
     }
+  } catch (shcore::Exception &exc) {
+    print_value(shcore::Value(exc.error()), "error");
+    to_history = _input_buffer;
+  } catch (const std::exception &exc) {
+    std::string error(exc.what());
+    error += "\n";
+    print_diag(error);
+    to_history = _input_buffer;
+  }
+
+  // TODO: Do we need this cleanup? i.e. in case of exceptions above??
+  // Clears the buffer if OK, if continued, buffer will contain
+  // the non executed code
+  if (_input_mode == shcore::Input_state::Ok) {
+    _input_buffer.clear();
   }
 
   if (!to_history.empty()) {
     notify_executed_statement(to_history);
   }
 }
+
+void Base_shell::flush_input() { execute_buffered_code(true); }
 
 void Base_shell::notify_executed_statement(const std::string &line) {
   shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
@@ -639,17 +652,17 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
       if (options().full_interactive) print(prompt());
     }
 
-    // If stream ended, but doesn't have newline at the end, then last statement
-    // won't be executed.  We force process empty line to be able to escape from
-    // ContinuedBlock state and execute last statement.
-    if (_input_mode == shcore::Input_state::ContinuedBlock) {
-      process_line(std::string());
+    // If stream ended, and state is in continuation mode, the execution is
+    // forced
+    if (_input_mode == shcore::Input_state::ContinuedBlock ||
+        _input_mode == shcore::Input_state::ContinuedSingle) {
+      flush_input();
     }
 
     // Being interactive, we do not care about the return value
     return 0;
   } else {
-    return _shell->process_stream(stream, source, false);
+    return _shell->process_stream(stream, source);
   }
 }
 

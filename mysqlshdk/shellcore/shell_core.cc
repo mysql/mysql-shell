@@ -60,7 +60,8 @@ REGISTER_HELP(COMMANDS_EXAMPLE_DESC,
               "Displays information about the <b>\\connect</b> command.");
 namespace shcore {
 
-Shell_core::Shell_core() : IShell_core(), m_global_return_code(0) {
+Shell_core::Shell_core(bool interactive)
+    : IShell_core(), m_global_return_code(0), m_interactive(interactive) {
   DEBUG_OBJ_ALLOC(Shell_core);
   _mode = Mode::None;
   _registry = new Object_registry();
@@ -99,14 +100,15 @@ std::string Shell_core::preprocess_input_line(const std::string &s) {
   return _langs[_mode]->preprocess_input_line(s);
 }
 
-void Shell_core::handle_input(std::string &code, Input_state &state,
-                              bool interactive) {
-  try {
-    _langs[_mode]->handle_input(code, state, interactive);
-  } catch (...) {
-    throw;
-  }
+void Shell_core::handle_input(std::string &code, Input_state &state) {
+  _langs[_mode]->handle_input(code, state);
 }
+
+void Shell_core::flush_input(const std::string &code) {
+  _langs[_mode]->flush_input(code);
+}
+
+Input_state Shell_core::input_state() { return _langs[_mode]->input_state(); }
 
 std::string Shell_core::get_handled_input() {
   return _langs[_mode]->get_handled_input();
@@ -124,8 +126,8 @@ void Shell_core::set_argv(const std::vector<std::string> &args) {
  * - 1 in case of any processing error is found.
  * - 0 if no processing errors were found.
  */
-int Shell_core::process_stream(std::istream &stream, const std::string &source,
-                               bool interactive) {
+int Shell_core::process_stream(std::istream &stream,
+                               const std::string &source) {
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on
   //       process_result this global return code may be used again once the
@@ -159,7 +161,7 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
         data[0] == '#' && data[1] == '!')
       data.replace(0, 2, "//");
 
-    handle_input(data, state, interactive);
+    handle_input(data, state);
   }
 
   return m_global_return_code;

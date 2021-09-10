@@ -40,8 +40,7 @@ using namespace shcore;
 Shell_python::Shell_python(Shell_core *shcore)
     : Shell_language(shcore),
       _py(new Python_context(
-          mysqlsh::current_shell_options()->get().interactive)),
-      m_last_input_state(Input_state::Ok) {}
+          mysqlsh::current_shell_options()->get().interactive)) {}
 
 std::string Shell_python::preprocess_input_line(const std::string &s) {
   const char *p = s.c_str();
@@ -58,8 +57,17 @@ void Shell_python::set_result_processor(
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Input_state &state,
-                                bool interactive) {
+void Shell_python::handle_input(std::string &code, Input_state &state) {
+  handle_input(code, false);
+  state = m_input_state;
+}
+
+void Shell_python::flush_input(const std::string &code) {
+  std::string code_copy{code};
+  handle_input(code_copy, true);
+}
+
+void Shell_python::handle_input(std::string &code, bool flush) {
   shcore::Interrupt_handler inth([this]() {
     abort();
     return true;
@@ -69,9 +77,9 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
   }
 
   Value result;
-  if (interactive) {
+  if (_owner->interactive()) {
     WillEnterPython lock;
-    result = _py->execute_interactive(code, state);
+    result = _py->execute_interactive(code, m_input_state, flush);
   } else {
     try {
       WillEnterPython lock;
@@ -81,13 +89,13 @@ void Shell_python::handle_input(std::string &code, Input_state &state,
       // and the correct return_value of undefined is set
     }
   }
-  _last_handled = code;
+  if (!code.empty()) {
+    _last_handled = code;
+  }
 
   // Only processes the result when full statements are executed
-  if (state == Input_state::Ok)
+  if (m_input_state == Input_state::Ok)
     _result_processor(result, result.type == shcore::Undefined);
-
-  m_last_input_state = state;
 }
 
 /*
@@ -153,11 +161,6 @@ bool Shell_python::load_plugin(const Plugin_definition &plugin) {
   return _py->load_plugin(plugin);
 }
 
-void Shell_python::clear_input() {
-  Shell_language::clear_input();
-  m_last_input_state = Input_state::Ok;
-}
-
 std::string Shell_python::get_continued_input_context() {
-  return m_last_input_state == Input_state::Ok ? "" : "-";
+  return m_input_state == Input_state::Ok ? "" : "-";
 }

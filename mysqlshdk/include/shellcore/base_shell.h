@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,7 @@ class SHCORE_PUBLIC Base_shell {
   }
 
   virtual void process_line(const std::string &line);
+  void flush_input();
   shcore::Input_state input_state() const { return _input_mode; }
   void clear_input();
 
@@ -132,6 +133,7 @@ class SHCORE_PUBLIC Base_shell {
   enum class Prompt_variables_update_type { NO_UPDATE, UPDATE, CLEAR_CACHE };
 
   void update_prompt_variables();
+  void execute_buffered_code(bool flush);
 
   Prompt_variables_update_type m_pending_update =
       Prompt_variables_update_type::UPDATE;

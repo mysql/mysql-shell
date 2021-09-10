@@ -20,11 +20,12 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+#include "mysqlshdk/libs/utils/utils_json.h"
+#include "src/mysqlsh/json_shell.h"
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
-
-#include "src/mysqlsh/json_shell.h"
 
 namespace mysqlsh {
 
@@ -83,21 +84,6 @@ TEST(Json_shell, invalid_input) {
                                      "'execute', string expected in value:"));
   }
 
-  // --- INVALID DATA FOR COMMAND COMMAND --- //
-  // The Json object for execute should be: {"command": <json-string>}
-  std::vector<std::string> invalid_command_input = {
-      "{\"command\":1}", "{\"command\":true}",
-      "{\"command\":[\"value-array\"]}", "{\"command\":{\"json\":\"doc\"}}"};
-
-  for (const auto &input : invalid_command_input) {
-    capture.clear();
-    shell.process_line(input);
-    SCOPED_TRACE("Testing: " + input);
-    EXPECT_THAT(capture,
-                ::testing::HasSubstr("{\"error\":\"Invalid input for "
-                                     "'command', string expected in value:"));
-  }
-
   // --- INVALID DATA FOR COMPLETE COMMAND --- //
   // The Json object for execute should be:
   //   {"complete": {"data":<string>[,"offset":<uint>]}}
@@ -147,7 +133,7 @@ TEST(Json_shell, valid_commands) {
                            "\\\"checkInstanceConfiguration()\\\","));
 
   capture.clear();
-  shell.process_line("{\"command\":\"\\\\py\"}");
+  shell.process_line("{\"execute\":\"\\\\py\"}");
   EXPECT_THAT(capture, ::testing::HasSubstr(
                            "{\"info\":\"Switching to Python mode...\"}"));
 
@@ -158,6 +144,240 @@ TEST(Json_shell, valid_commands) {
                            "\\\"check_instance_configuration()\\\","));
 
   current_console()->remove_print_handler(&handler);
+}
+
+TEST(Json_shell, incomplete_javascript) {
+  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  shell.process_line({"{\"execute\":\"\\\\js\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  std::vector<std::tuple<std::string, std::string>> invalid_inputs = {
+      {
+          R"*(function sample() {
+        print("sample");
+      )*",
+          "{\"error\":\"SyntaxError: Unexpected end of input at (shell):4:1"},
+      {
+          R"*(function sample() {
+        print("sample";
+        }
+      )*",
+          "{\"error\":\"SyntaxError: missing ) after argument list at "
+          "(shell):2:15"},
+      {
+          R"*(function sample() {
+        print("sample);
+        }
+      )*",
+          "{\"error\":\"SyntaxError: Invalid or unexpected token at "
+          "(shell):2:15"},
+  };  // namespace mysqlsh
+
+  for (const auto &input : invalid_inputs) {
+    shcore::JSON_dumper doc;
+
+    doc.start_object();
+    doc.append_string("execute");
+    doc.append_string(std::get<0>(input));
+    doc.end_object();
+
+    shell.process_line(doc.str());
+    SCOPED_TRACE("Testing: " + std::get<0>(input));
+    EXPECT_THAT(capture, ::testing::HasSubstr(std::get<1>(input)));
+    capture.clear();
+  }
+
+  current_console()->remove_print_handler(&handler);
+}
+
+TEST(Json_shell, incomplete_python) {
+  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  shell.process_line({"{\"execute\":\"\\\\py\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  std::vector<std::tuple<std::string, std::string>> invalid_inputs = {
+      {R"*(
+def sample(data):
+  print(data)
+
+sample("some text"
+)*",
+       "{\"error\":\"unexpected EOF while parsing\"}"},
+      {R"*(
+def sample(data):
+  print(data)
+
+sample("some text)
+)*",
+       "\"error\":\"EOL while scanning string literal\"}"}};
+
+  for (const auto &input : invalid_inputs) {
+    shcore::JSON_dumper doc;
+
+    doc.start_object();
+    doc.append_string("execute");
+    doc.append_string(std::get<0>(input));
+    doc.end_object();
+
+    shell.process_line(doc.str());
+    SCOPED_TRACE("Testing: " + std::get<0>(input));
+    EXPECT_THAT(capture, ::testing::HasSubstr(std::get<1>(input)));
+    capture.clear();
+  }
+
+  current_console()->remove_print_handler(&handler);
+}
+
+TEST(Json_shell, incomplete_sql) {
+  const char *pwd = getenv("MYSQL_PWD");
+  auto coptions = shcore::get_connection_options("mysql://root@localhost");
+  if (pwd)
+    coptions.set_password(pwd);
+  else
+    coptions.set_password("");
+  coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
+
+  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  shell.process_line({"{\"execute\":\"\\\\sql\"}"});
+  shell.process_line({"{\"execute\":\"\\\\c " +
+                      coptions.as_uri(mysqlshdk::db::uri::formats::full()) +
+                      "\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  std::vector<std::tuple<std::string, std::string>> invalid_inputs = {
+      {R"*(select *
+from mysql
+where)*",
+       "{\"error\":{\"code\":1064,\"message\":\"You have an error in your SQL "
+       "syntax; check the manual that corresponds to your MySQL server version "
+       "for the right syntax to use near '' at line "
+       "3\",\"state\":\"42000\",\"type\":\"MySQL Error\"}}"},
+      {R"*(select * from mysql.user
+where user = 'weirdo)*",
+       "{\"error\":{\"code\":1064,\"message\":\"You have an error in your SQL "
+       "syntax; check the manual that corresponds to your MySQL server version "
+       "for the right syntax to use near ''weirdo' at line "
+       "2\",\"state\":\"42000\",\"type\":\"MySQL Error\"}}"}};
+
+  for (const auto &input : invalid_inputs) {
+    shcore::JSON_dumper doc;
+
+    doc.start_object();
+    doc.append_string("execute");
+    doc.append_string(std::get<0>(input));
+    doc.end_object();
+
+    shell.process_line(doc.str());
+    SCOPED_TRACE("Testing: " + std::get<0>(input));
+    EXPECT_THAT(capture, ::testing::HasSubstr(std::get<1>(input)));
+    capture.clear();
+  }
+
+  current_console()->remove_print_handler(&handler);
+  shell.process_line({"{\"execute\":\"\\\\disconnect\"}"});
+}
+
+TEST(Json_shell, js_completed_without_new_line) {
+  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  shell.process_line({"{\"execute\":\"\\\\js\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  // The processing of the following function will make the shell enter in
+  // multiline mode, expecting for an empty line to get out, however, the
+  // JSON_shell expects complete statements so it will force the execution of
+  // the code, exiting the multiline mode and letting the shell ready for the
+  // next command
+  shcore::JSON_dumper doc;
+  doc.start_object();
+  doc.append_string("execute");
+  doc.append_string(R"*(function sample(data) {
+  print(data);
+})*");
+  doc.end_object();
+  capture.clear();
+
+  // No errors and the function is properly defined
+  shell.process_line(doc.str());
+  EXPECT_STREQ("", capture.c_str());
+  shell.process_line("{\"execute\":\"sample('Successful!!!')\"}");
+  EXPECT_THAT(capture, ::testing::HasSubstr("{\"info\":\"Successful!!!\"}"));
+}
+
+TEST(Json_shell, py_completed_without_new_line) {
+  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  shell.process_line({"{\"execute\":\"\\\\py\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  // The processing of the following function will make the shell enter in
+  // multiline mode, expecting for an empty line to get out, however, the
+  // JSON_shell expects complete statements so it will force the execution of
+  // the code, exiting the multiline mode and letting the shell ready for the
+  // next command
+  shcore::JSON_dumper doc;
+  doc.start_object();
+  doc.append_string("execute");
+  doc.append_string(R"*(def sample(data):
+  print(data))*");
+  doc.end_object();
+  capture.clear();
+
+  // No errors and the function is properly defined
+  shell.process_line(doc.str());
+  EXPECT_STREQ("", capture.c_str());
+  shell.process_line("{\"execute\":\"sample('Successful!!!')\"}");
+  EXPECT_THAT(capture, ::testing::HasSubstr("{\"info\":\"Successful!!!\"}"));
+}
+
+TEST(Json_shell, sql_completed_without_delimiter) {
+  const char *pwd = getenv("MYSQL_PWD");
+  auto coptions = shcore::get_connection_options("mysql://root@localhost");
+  if (pwd)
+    coptions.set_password(pwd);
+  else
+    coptions.set_password("");
+  coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
+
+  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  shell.process_line({"{\"execute\":\"\\\\sql\"}"});
+  shell.process_line({"{\"execute\":\"\\\\c " +
+                      coptions.as_uri(mysqlshdk::db::uri::formats::full()) +
+                      "\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  // The processing of the following function will make the shell enter in
+  // multiline mode, expecting for the SQL Delimiter, however, the
+  // Json_shell expects complete statements so it will force the execution of
+  // the code, successfully processing the SQL command even the delimiter is not
+  // present
+  shell.process_line("{\"execute\":\"show databases\"}");
+  EXPECT_THAT(capture, ::testing::HasSubstr("{\"hasData\":true,\"rows\":["));
+
+  current_console()->remove_print_handler(&handler);
+  shell.process_line({"{\"execute\":\"\\\\disconnect\"}"});
 }
 
 }  // namespace mysqlsh

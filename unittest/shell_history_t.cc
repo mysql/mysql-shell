@@ -23,6 +23,7 @@
 
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 #ifndef _WIN32
 #include <sys/stat.h>
@@ -844,22 +845,12 @@ TEST_F(Shell_history, check_history_source_py_nonl_continuedstate_interactive) {
     enable_capture();
 
     shell.process_line("\\source test_source_nonl.py");
-    EXPECT_EQ(shell.input_state(), shcore::Input_state::ContinuedBlock);
+    EXPECT_EQ(shell.input_state(), shcore::Input_state::Ok);
     EXPECT_EQ(1, linenoiseHistorySize());
     EXPECT_EQ(std::string{"\\source test_source_nonl.py"},
               std::string(linenoiseHistoryLine(0)));
-    EXPECT_EQ(R"*(mysql-py> 
-l = ['line1', 'line2', 'line3']
-
-mysql-py> 
-for s in l:
-
-       -> 
-  print(s
-
-       -> 
-)*",
-              m_capture);
+    EXPECT_THAT(m_capture,
+                ::testing::HasSubstr("unexpected EOF while parsing"));
   }
 
   shcore::delete_file("test_source_nonl.py");
@@ -1614,7 +1605,7 @@ TEST_F(Shell_history, history_split_by_mode) {
 
   {
     char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
-                    nullptr};
+                    const_cast<char *>("--interactive"), nullptr};
     mysqlsh::Command_line_shell shell(
         std::make_shared<Shell_options>(2, args, _options_file));
 

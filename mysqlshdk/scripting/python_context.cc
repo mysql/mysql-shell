@@ -679,7 +679,8 @@ Value Python_context::execute(const std::string &code,
 }
 
 Value Python_context::execute_interactive(const std::string &code,
-                                          Input_state &r_state) noexcept {
+                                          Input_state &r_state,
+                                          bool flush) noexcept {
   Value retvalue;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
   r_state = shcore::Input_state::Ok;
@@ -738,26 +739,30 @@ Value Python_context::execute_interactive(const std::string &code,
     // input til it's completed
     PyErr_Fetch(&exc, &value, &tb);
     if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError)) {
-      const char *msg;
-      PyObject *obj;
-      if (PyArg_ParseTuple(value, "sO", &msg, &obj)) {
-        if (strncmp(msg,
-                    "unexpected character after line continuation character",
-                    strlen("unexpected character after line continuation "
-                           "character")) == 0) {
-          // NOTE: These two characters will come if explicit line
-          // continuation is specified
-          if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
-              code[code.length() - 1] == '\n')
+      // If there's no more input then the interpreter should not continue in
+      // continued mode so any error should bubble up
+      if (!flush) {
+        const char *msg;
+        PyObject *obj;
+        if (PyArg_ParseTuple(value, "sO", &msg, &obj)) {
+          if (strncmp(msg,
+                      "unexpected character after line continuation character",
+                      strlen("unexpected character after line continuation "
+                             "character")) == 0) {
+            // NOTE: These two characters will come if explicit line
+            // continuation is specified
+            if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
+                code[code.length() - 1] == '\n')
+              r_state = Input_state::ContinuedSingle;
+          } else if (strncmp(msg,
+                             "EOF while scanning triple-quoted string literal",
+                             strlen("EOF while scanning triple-quoted string "
+                                    "literal")) == 0) {
             r_state = Input_state::ContinuedSingle;
-        } else if (strncmp(msg,
-                           "EOF while scanning triple-quoted string literal",
-                           strlen("EOF while scanning triple-quoted string "
-                                  "literal")) == 0) {
-          r_state = Input_state::ContinuedSingle;
-        } else if (strncmp(msg, "unexpected EOF while parsing",
-                           strlen("unexpected EOF while parsing")) == 0) {
-          r_state = Input_state::ContinuedBlock;
+          } else if (strncmp(msg, "unexpected EOF while parsing",
+                             strlen("unexpected EOF while parsing")) == 0) {
+            r_state = Input_state::ContinuedBlock;
+          }
         }
       }
     }

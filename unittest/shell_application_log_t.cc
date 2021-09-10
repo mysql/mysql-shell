@@ -48,7 +48,7 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
   }
 
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp() {
+  void SetUp() override {
     Shell_core_test_wrapper::SetUp();
     Shell_application_log_tests::i = 0;
 
@@ -65,7 +65,9 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
                         "');");
   }
 
-  virtual void TearDown() { m_logger->detach_log_hook(my_hook); }
+  void set_options() override { _opts->set_interactive(false); }
+
+  void TearDown() override { m_logger->detach_log_hook(my_hook); }
 };
 
 std::string Shell_application_log_tests::error = "";
