@@ -50,10 +50,14 @@ class Oci_rest_service;
 struct Oci_request : public rest::Request {
  public:
   explicit Oci_request(Masked_string path, rest::Headers headers = {},
-                       bool sign = true)
-      : Request(std::move(path), std::move(headers)), sign_request(sign) {}
+                       bool sign = true, bool is_par = false)
+      : Request(std::move(path), std::move(headers)),
+        sign_request(sign),
+        is_par_request(is_par) {}
 
-  bool sign_request;
+  bool sign_request = true;
+
+  bool is_par_request = false;
 
   const Headers &headers() const override;
 

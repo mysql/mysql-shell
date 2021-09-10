@@ -80,6 +80,11 @@ std::string encode_json(Args &&... args) {
   return json.str();
 }
 
+const std::string &object_name_for_log(const std::string &object_name,
+                                       const Oci_request &request) {
+  return request.is_par_request ? request.path().masked() : object_name;
+}
+
 }  // namespace
 
 std::string to_string(PAR_access_type access_type) {
@@ -323,15 +328,17 @@ void Bucket::put_object(const std::string &object_name, const char *body,
     headers["if-none-match"] = "*";
   }
 
-  try {
-    auto request = create_request(object_name, std::move(headers));
-    request.body = body;
-    request.size = size;
+  auto request = create_request(object_name, std::move(headers));
+  request.body = body;
+  request.size = size;
 
+  try {
     m_rest_service->put(&request);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to put object '" + object_name +
-                                           "': " + error.what());
+    throw Response_error(error.code(),
+                         "Failed to put object '" +
+                             object_name_for_log(object_name, request) +
+                             "': " + error.what());
   }
 }
 
@@ -339,18 +346,18 @@ void Bucket::delete_object(const std::string &object_name) {
   // Ensures the REST connection is established
   ensure_connection();
 
+  Headers headers;
+  const auto par = is_par(object_name);
+
+  if (par) {
+    headers.emplace("content-type", "application/octet-stream");
+  } else {
+    headers.emplace("accept", "*/*");
+  }
+
+  auto request = create_request(object_name, std::move(headers));
+
   try {
-    Headers headers;
-    const auto par = is_par(object_name);
-
-    if (par) {
-      headers.emplace("content-type", "application/octet-stream");
-    } else {
-      headers.emplace("accept", "*/*");
-    }
-
-    auto request = create_request(object_name, std::move(headers));
-
     if (par) {
       // truncate the file, a PAR URL does not support DELETE
       char body = 0;
@@ -362,8 +369,10 @@ void Bucket::delete_object(const std::string &object_name) {
       m_rest_service->delete_(&request);
     }
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to delete object '" +
-                                           object_name + "': " + error.what());
+    throw Response_error(error.code(),
+                         "Failed to delete object '" +
+                             object_name_for_log(object_name, request) +
+                             "': " + error.what());
   }
 }
 
@@ -371,14 +380,16 @@ size_t Bucket::head_object(const std::string &object_name) {
   // Ensures the REST connection is established
   ensure_connection();
 
+  auto request = create_request(object_name);
   Response response;
 
   try {
-    auto request = create_request(object_name);
     m_rest_service->head(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to get summary for object '" +
-                                           object_name + "': " + error.what());
+    throw Response_error(error.code(),
+                         "Failed to get summary for object '" +
+                             object_name_for_log(object_name, request) +
+                             "': " + error.what());
   }
 
   return std::stoul(response.headers.at("content-length"));
@@ -402,14 +413,16 @@ size_t Bucket::get_object(const std::string &object_name,
     headers["range"] = range;
   }
 
+  auto request = create_request(object_name, std::move(headers));
+
   try {
-    auto request = create_request(object_name, std::move(headers));
     Response response;
     response.body = buffer;
     m_rest_service->get(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(),
-                         "Failed to get object '" + object_name + "'" +
+                         "Failed to get object '" +
+                             object_name_for_log(object_name, request) + "'" +
                              (range.empty() ? "" : " [" + range + "]") + ": " +
                              error.what());
   }
@@ -439,13 +452,13 @@ size_t Bucket::get_object(const std::string &object_name,
                     mysqlshdk::utils::nullable<size_t>{});
 }
 
-void Bucket::rename_object(const std::string &sourceName,
-                           const std::string &newName) {
+void Bucket::rename_object(const std::string &source_name,
+                           const std::string &new_name) {
   // Ensures the REST connection is established
   ensure_connection();
 
   // Rename Object Details
-  std::string rod = encode_json("sourceName", sourceName, "newName", newName);
+  std::string rod = encode_json("sourceName", source_name, "newName", new_name);
 
   try {
     auto request = Oci_request(kRenameObjectPath);
@@ -454,7 +467,7 @@ void Bucket::rename_object(const std::string &sourceName,
     m_rest_service->post(&request);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to rename object '" +
-                                           sourceName + "' to '" + newName +
+                                           source_name + "' to '" + new_name +
                                            "': " + error.what());
   }
 }
@@ -874,7 +887,7 @@ Oci_request Bucket::create_request(const std::string &object_name,
   return Oci_request(par ? anonymize_par(object_name)
                          : shcore::str_format(kObjectActionFormat.c_str(),
                                               encode_path(object_name).c_str()),
-                     std::move(headers), !par);
+                     std::move(headers), !par, par);
 }
 
 }  // namespace oci
