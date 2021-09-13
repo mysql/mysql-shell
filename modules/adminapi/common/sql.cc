@@ -90,8 +90,8 @@ TargetType::Type get_gr_instance_type(
     // mysql_server_uuid too.
     query =
         "SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE "
-        "CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char "
-        "ascii)";
+        "CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = "
+        "CAST(@@server_uuid AS CHAR CHARACTER SET ASCII)";
 
     try {
       auto result = instance.query(query);
@@ -141,8 +141,8 @@ TargetType::Type get_gr_instance_type(
       // mysql_server_uuid too.
       query =
           "SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE "
-          "CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char "
-          "ascii)";
+          "CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = "
+          "CAST(@@server_uuid AS CHAR CHARACTER SET ASCII)";
 
       result = instance.query(query);
       row = result->fetch_one();

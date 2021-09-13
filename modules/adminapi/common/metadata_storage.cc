@@ -181,8 +181,8 @@ constexpr const char *k_all_online_check_query_2_0_0 =
     "FROM !.instances "
     "WHERE cluster_id = (SELECT cluster_id "
     "FROM !.instances "
-    "WHERE CAST(mysql_server_uuid AS char ascii) = "
-    "CAST(@@server_uuid AS char ascii))) "
+    "WHERE CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = "
+    "CAST(@@server_uuid AS CHAR CHARACTER SET ASCII))) "
     "= (SELECT count(*) FROM performance_schema.replication_group_members "
     "WHERE member_state = 'ONLINE') as all_online";
 

@@ -544,7 +544,7 @@ function exist_in_metadata_schema(port) {
     var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = '" + hostname + ":" + port + "';");
   } else {
     var result = session.runSql(
-      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char ascii);');
+      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = CAST(@@server_uuid AS CHAR CHARACTER SET ASCII);');
   }
 
   var row = result.fetchOne();

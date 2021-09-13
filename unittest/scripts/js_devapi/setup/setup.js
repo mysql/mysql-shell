@@ -363,7 +363,7 @@ function check_server_version(major, minor, patch) {
 // Check if the instance exists in the Metadata schema
 function exist_in_metadata_schema() {
   var result = session.runSql(
-      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char ascii);');
+      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = CAST(@@server_uuid AS CHAR CHARACTER SET ASCII);');
   var row = result.fetchOne();
   return row[0] != 0;
 }
