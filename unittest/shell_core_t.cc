@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -86,6 +86,7 @@ class Shell_core_test : public Shell_core_test_wrapper {
 };
 
 TEST_F(Shell_core_test, test_process_stream) {
+  _opts->set_interactive(false);
   connect();
   const char *err_table_57 = "Table 'unexisting.whatever' doesn't exist";
   const char *err_table_80 = "Unknown database 'unexisting'";

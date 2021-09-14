@@ -94,6 +94,7 @@ TEST_F(Shell_error_printing, python_stack) {
 
 #ifdef HAVE_V8
 TEST_F(Shell_error_printing, js_stack) {
+  _opts->set_interactive(false);
   reset_shell();
   execute("\\js");
   wipe_all();

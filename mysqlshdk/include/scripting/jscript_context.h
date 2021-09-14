@@ -51,7 +51,8 @@ class SHCORE_PUBLIC JScript_context {
   std::pair<Value, bool> execute(const std::string &code,
                                  const std::string &source = "");
   std::pair<Value, bool> execute_interactive(const std::string &code,
-                                             Input_state *r_state) noexcept;
+                                             Input_state *r_state,
+                                             bool flush = true) noexcept;
 
   v8::Isolate *isolate() const;
   v8::Local<v8::Context> context() const;

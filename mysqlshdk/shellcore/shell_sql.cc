@@ -253,8 +253,22 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
   return true;
 }
 
-void Shell_sql::handle_input(std::string &code, Input_state &state,
-                             [[maybe_unused]] bool interactive) {
+std::shared_ptr<mysqlshdk::db::ISession> Shell_sql::get_session() {
+  const auto s = _owner->get_dev_session();
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+
+  if (s) {
+    session = s->get_core_session();
+  }
+
+  if (!s || !session || !session->is_open()) {
+    print_exception(shcore::Exception::logic_error("Not connected."));
+  }
+
+  return session;
+}
+
+void Shell_sql::handle_input(std::string &code, Input_state &state) {
   // TODO(kolesink) this is a temporary solution and should be removed when
   // splitter is adjusted to be able to restart parsing from previous state
   if (state == Input_state::ContinuedSingle) {
@@ -271,29 +285,31 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
       return;
     }
   }
+  auto session = get_session();
 
-  state = Input_state::Ok;
-  std::shared_ptr<mysqlshdk::db::ISession> session;
-  bool got_error = false;
-
-  {
-    const auto s = _owner->get_dev_session();
-
-    if (s) {
-      session = s->get_core_session();
-    }
-
-    if (!s || !session || !session->is_open()) {
-      print_exception(shcore::Exception::logic_error("Not connected."));
-    }
-  }
   m_splitter->set_ansi_quotes(ansi_quotes_enabled(session));
   _last_handled.clear();
 
   m_buffer->append(code);
   code.clear();
 
-  {
+  // Reinitializes the input state, will be changed back to the Continued state
+  // if no complete statement is found
+  m_input_state = Input_state::Ok;
+  handle_input(session, false);
+  state = m_input_state;
+}
+
+void Shell_sql::flush_input(const std::string &code) {
+  auto session = get_session();
+  m_buffer->append(code);
+  handle_input(session, true);
+}
+
+void Shell_sql::handle_input(std::shared_ptr<mysqlshdk::db::ISession> session,
+                             bool flush) {
+  bool got_error = false;
+  if (!m_buffer->empty()) {
     // Parses the input string to identify individual statements in it.
     // Will return a range for every statement that ends with the delimiter, if
     // there is additional code after the last delimiter, a range for it will be
@@ -304,17 +320,23 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
     std::string delim;
 
     for (;;) {
-      if (m_splitter->next_range(&range, &delim)) {
+      // If there's no more input, the code in the buffer should be executed no
+      // matter if it is a complete statement or not, any generated error will
+      // bubble up
+      if (m_splitter->next_range(&range, &delim) || flush) {
         if (!process_sql(&m_buffer->at(range.offset), range.length, delim, 0,
                          session, m_splitter)) {
           got_error = true;
         }
+        if (flush) {
+          break;
+        }
       } else {
         m_splitter->pack_buffer(m_buffer, range);
         if (m_buffer->size() > 0 && range.length > 0) {
-          state = m_splitter->context() == Sql_splitter::NONE
-                      ? Input_state::Ok
-                      : Input_state::ContinuedSingle;
+          m_input_state = m_splitter->context() == Sql_splitter::NONE
+                              ? Input_state::Ok
+                              : Input_state::ContinuedSingle;
         } else {
           m_buffer->clear();
         }
@@ -324,7 +346,12 @@ void Shell_sql::handle_input(std::string &code, Input_state &state,
   }
 
   // signal error during input processing
-  if (got_error) _result_processor(nullptr, {});
+  if (got_error) {
+    _result_processor(nullptr, {});
+  }
+  if (flush) {
+    clear_input();
+  }
 }
 
 void Shell_sql::clear_input() {

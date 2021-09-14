@@ -83,7 +83,7 @@ class Shell_sql_test : public Shell_core_test_wrapper {
     env.shell_sql->set_result_processor(
         std::bind(&Shell_sql_test::process_sql_result, this, _1, _2));
     std::string q = query + "\n";
-    env.shell_sql->handle_input(q, state, false);
+    env.shell_sql->handle_input(q, state);
     query = q;
   }
 

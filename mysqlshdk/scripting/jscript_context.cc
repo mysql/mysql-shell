@@ -1131,7 +1131,7 @@ std::pair<Value, bool> JScript_context::execute(const std::string &code_str,
 }
 
 std::pair<Value, bool> JScript_context::execute_interactive(
-    const std::string &code_str, Input_state *r_state) noexcept {
+    const std::string &code_str, Input_state *r_state, bool flush) noexcept {
   // makes isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(isolate());
   // creates a pool for all the handles that are created in this scope
@@ -1158,47 +1158,53 @@ std::pair<Value, bool> JScript_context::execute_interactive(
     isolate()->CancelTerminateExecution();
     console->print_diag("Script execution interrupted by user.");
   } else if (try_catch.HasCaught()) {
-    // check if this was an error of type
-    // - SyntaxError: Unexpected end of input
-    // - SyntaxError: Unterminated template literal
-    // which we treat as a multiline mode trigger or
-    // - SyntaxError: Invalid or unexpected token
-    // which may be a sign of unfinished C style comment
-    const std::string unexpected_end_exc =
-        "SyntaxError: Unexpected end of input";
-    const std::string unterminated_template_exc =
-        "SyntaxError: Unterminated template literal";
-    const std::string unexpected_tok_exc =
-        "SyntaxError: Invalid or unexpected token";
+    // If there's no more input then the interpreter should not continue in
+    // continued mode so any error should bubble up
+    if (!flush) {
+      // check if this was an error of type
+      // - SyntaxError: Unexpected end of input
+      // - SyntaxError: Unterminated template literal
+      // which we treat as a multiline mode trigger or
+      // - SyntaxError: Invalid or unexpected token
+      // which may be a sign of unfinished C style comment
+      const std::string unexpected_end_exc =
+          "SyntaxError: Unexpected end of input";
+      const std::string unterminated_template_exc =
+          "SyntaxError: Unterminated template literal";
+      const std::string unexpected_tok_exc =
+          "SyntaxError: Invalid or unexpected token";
 
-    auto message = m_impl->to_string(try_catch.Exception());
+      auto message = m_impl->to_string(try_catch.Exception());
 
-    if (message == unexpected_end_exc || message == unterminated_template_exc) {
-      *r_state = Input_state::ContinuedBlock;
-    } else if (message == unexpected_tok_exc) {
-      v8::ScriptOrigin origin(v8_string(k_origin_shell));
+      if (message == unexpected_end_exc ||
+          message == unterminated_template_exc) {
+        *r_state = Input_state::ContinuedBlock;
+      } else if (message == unexpected_tok_exc) {
+        v8::ScriptOrigin origin(v8_string(k_origin_shell));
 
-      auto comment_pos = code_str.rfind("/*");
+        auto comment_pos = code_str.rfind("/*");
 
-      while (comment_pos != std::string::npos &&
-             code_str.find("*/", comment_pos + 2) == std::string::npos) {
-        try_catch.Reset();
+        while (comment_pos != std::string::npos &&
+               code_str.find("*/", comment_pos + 2) == std::string::npos) {
+          try_catch.Reset();
 
-        if (!v8::Script::Compile(
-                 lcontext, v8_string(code_str.substr(0, comment_pos)), &origin)
-                 .IsEmpty()) {
-          *r_state = Input_state::ContinuedSingle;
-        } else {
-          message = m_impl->to_string(try_catch.Exception());
+          if (!v8::Script::Compile(lcontext,
+                                   v8_string(code_str.substr(0, comment_pos)),
+                                   &origin)
+                   .IsEmpty()) {
+            *r_state = Input_state::ContinuedSingle;
+          } else {
+            message = m_impl->to_string(try_catch.Exception());
 
-          if (message == unexpected_end_exc) {
-            *r_state = Input_state::ContinuedBlock;
-          } else if (message == unexpected_tok_exc && comment_pos > 0) {
-            comment_pos = code_str.rfind("/*", comment_pos - 1);
-            continue;
+            if (message == unexpected_end_exc) {
+              *r_state = Input_state::ContinuedBlock;
+            } else if (message == unexpected_tok_exc && comment_pos > 0) {
+              comment_pos = code_str.rfind("/*", comment_pos - 1);
+              continue;
+            }
           }
+          break;
         }
-        break;
       }
     }
 

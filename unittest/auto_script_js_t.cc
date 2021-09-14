@@ -41,7 +41,7 @@ class Auto_script_js : public Shell_js_script_tester,
   bool _skip_set_defaults = false;
 
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp() {
+  void SetUp() override {
     _skip_set_defaults = true;
     Shell_js_script_tester::SetUp();
 
@@ -50,7 +50,7 @@ class Auto_script_js : public Shell_js_script_tester,
                                              "setup.js"));
   }
 
-  virtual void set_defaults() {
+  void set_defaults() override {
     if (_skip_set_defaults) {
       _skip_set_defaults = false;
       return;
@@ -72,121 +72,121 @@ class Auto_script_js : public Shell_js_script_tester,
     assert(!m_mysql_port.empty());
 
     std::string code = "var hostname = '" + hostname() + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var real_hostname = '" + real_hostname() + "';";
-    exec_and_out_equals(code);
+    execute(code);
 
     if (real_host_is_loopback())
       code = "var real_host_is_loopback = true;";
     else
       code = "var real_host_is_loopback = false;";
-    exec_and_out_equals(code);
+    execute(code);
 
     code = "var hostname_ip = '" + hostname_ip() + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var __user = '" + user + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var __host = '" + host + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var __port = " + m_port + ";";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var __mysql_port = " + m_mysql_port + ";";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var __uri = '" + user + "@" + host + ":" + m_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code =
         "var __mysql_uri = '" + user + "@" + host + ":" + m_mysql_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
-      exec_and_out_equals(code);
+      execute(code);
       code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i] * 10 + 1);
-      exec_and_out_equals(code);
+      execute(code);
       code = shcore::str_format("var __mysql_sandbox_x_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i] * 10);
-      exec_and_out_equals(code);
+      execute(code);
       code = shcore::str_format(
           "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
           _mysql_sandbox_ports[i]);
-      exec_and_out_equals(code);
+      execute(code);
       code = shcore::str_format("var __endpoint%i = '%s:%i';", i + 1,
                                 hostname().c_str(), _mysql_sandbox_ports[i]);
-      exec_and_out_equals(code);
+      execute(code);
       code = shcore::str_format("var __sandbox%i = 'localhost:%i';", i + 1,
                                 _mysql_sandbox_ports[i]);
-      exec_and_out_equals(code);
+      execute(code);
       code = shcore::str_format(
           "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
           hostname().c_str(), _mysql_sandbox_ports[i]);
-      exec_and_out_equals(code);
+      execute(code);
     }
 
     code = "var localhost = 'localhost'";
-    exec_and_out_equals(code);
+    execute(code);
 
     code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" +
            m_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            m_mysql_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
 
     // for MySQL 5.6 tests
     if (getenv("MYSQL56_URI")) {
       code = "var __mysql56_uri = '";
       code += getenv("MYSQL56_URI");
       code += "';";
-      exec_and_out_equals(code);
+      execute(code);
     } else {
-      exec_and_out_equals("var __mysql56_uri = null;");
+      execute("var __mysql56_uri = null;");
     }
 
     code = "var __system_user = '" + shcore::get_system_user() + "';";
-    exec_and_out_equals(code);
+    execute(code);
 
     if (_replaying)
       code = "var __replaying = true;";
     else
       code = "var __replaying = false;";
-    exec_and_out_equals(code);
+    execute(code);
     if (_recording)
       code = "var __recording = true;";
     else
       code = "var __recording = false;";
-    exec_and_out_equals(code);
+    execute(code);
 
     code = "var __data_path = " +
            shcore::quote_string(shcore::path::join_path(g_test_home, "data"),
                                 '\'') +
            ";";
-    exec_and_out_equals(code);
+    execute(code);
 
     code = "var __import_data_path = " +
            shcore::quote_string(
                shcore::path::join_path(g_test_home, "data", "import"), '\'') +
            ";";
-    exec_and_out_equals(code);
+    execute(code);
 
     code =
         "var __tmp_dir = " + shcore::quote_string(getenv("TMPDIR"), '\'') + ";";
-    exec_and_out_equals(code);
+    execute(code);
 
     code = "var __bin_dir = " +
            shcore::quote_string(shcore::get_binary_folder(), '\'') + ";";
-    exec_and_out_equals(code);
+    execute(code);
 
     code =
         "var __mysqlsh = " + shcore::quote_string(get_path_to_mysqlsh(), '\'') +
         ";";
-    exec_and_out_equals(code);
+    execute(code);
 
     code = "var __dba_data_path = " +
            shcore::quote_string(
                shcore::path::join_path(g_test_home, "data", "dba"), '\'') +
            ";";
-    exec_and_out_equals(code);
+    execute(code);
   }
 
   void run_and_check() {
@@ -223,16 +223,17 @@ class Auto_script_js : public Shell_js_script_tester,
       for (const auto &variable : variables) {
         std::string code = shcore::str_format(
             "var %s = os.getenv('%s')", variable.c_str(), variable.c_str());
-        exec_and_out_equals(code);
+        execute(code);
       }
     }
 
     const std::vector<std::string> argv;
     _interactive_shell->process_file(_setup_script, argv);
 
-    exec_and_out_equals("const __script_file = '" + GetParam() + "'");
+    execute("const __script_file = '" + GetParam() + "'");
 
     set_config_folder("auto/" + folder);
+    wipe_all();
     validate_interactive(name);
 
     // ensure nothing left in expected prompts
@@ -315,6 +316,11 @@ class Credential_store_test : public Auto_script_js {
     execute("shell.options.unset(\"credentialStore.excludeFilters\");");
   }
 
+  void set_options() override {
+    _options->interactive =
+        strstr(GetParam().c_str(), "_interactive.") ? true : false;
+  }
+
   void TearDown() override {
     execute(
         "(function(){var a = shell.listCredentialHelpers();"
@@ -333,54 +339,55 @@ class Credential_store_test : public Auto_script_js {
     std::string user = std::string(k_first_user);
     std::string password = std::string(k_first_password);
     std::string code = "var __cred = {x:{}, mysql:{}, second:{}, third:{}};";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.user = '" + user + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.pwd = '" + password + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.host = '" + m_host + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.x.port = " + _port + ";";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.mysql.port = " + _mysql_port + ";";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.x.uri = '" + user + "@" + m_host + ":" + _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code =
         "__cred.mysql.uri = '" + user + "@" + m_host + ":" + _mysql_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.x.uri_pwd = '" + user + ":" + password + "@" + m_host + ":" +
            _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.mysql.uri_pwd = '" + user + ":" + password + "@" + m_host +
            ":" + _mysql_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.x.host_port = '" + m_host + ":" + _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.mysql.host_port = '" + m_host + ":" + _mysql_port + "';";
-    exec_and_out_equals(code);
+    execute(code);
 
     user = std::string(k_second_user);
     password = std::string(k_second_password);
 
     code = "__cred.second.uri_pwd = '" + user + ":" + password + "@" + m_host +
            ":" + _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.second.uri = '" + user + "@" + m_host + ":" + _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.second.pwd = '" + password + "';";
-    exec_and_out_equals(code);
+    execute(code);
 
     user = std::string(k_third_user);
     password = std::string(k_third_password);
 
     code = "__cred.third.uri_pwd = '" + user + ":" + password + "@" + m_host +
            ":" + _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.third.uri = '" + user + "@" + m_host + ":" + _port + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__cred.third.pwd = '" + password + "';";
-    exec_and_out_equals(code);
+    execute(code);
+    wipe_all();
   }
 
  private:
@@ -446,12 +453,12 @@ class Pager_test : public Auto_script_js {
     Auto_script_js::set_defaults();
 
     std::string code = "var __pager = {};";
-    exec_and_out_equals(code);
+    execute(code);
     code = "__pager.file = '" + s_output_file + "';";
-    exec_and_out_equals(code);
+    execute(code);
     code =
         "__pager.cmd = '" + s_pager_binary + " --file=" + s_output_file + "';";
-    exec_and_out_equals(code);
+    execute(code);
   }
 
  private:

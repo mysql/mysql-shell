@@ -149,8 +149,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *get_shell_python_support_module();
 
   Value execute(const std::string &code, const std::string &source = "");
-  Value execute_interactive(const std::string &code,
-                            Input_state &r_state) noexcept;
+  Value execute_interactive(const std::string &code, Input_state &r_state,
+                            bool flush = true) noexcept;
 
   std::vector<std::pair<bool, std::string>> list_globals();
   static void get_members_of(

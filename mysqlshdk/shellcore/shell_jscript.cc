@@ -31,17 +31,24 @@
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
-    : Shell_language(shcore),
-      _js(new JScript_context(shcore->registry())),
-      m_last_input_state(Input_state::Ok) {}
+    : Shell_language(shcore), _js(new JScript_context(shcore->registry())) {}
 
 void Shell_javascript::set_result_processor(
     std::function<void(shcore::Value, bool)> result_processor) {
   _result_processor = result_processor;
 }
 
-void Shell_javascript::handle_input(std::string &code, Input_state &state,
-                                    bool interactive) {
+void Shell_javascript::handle_input(std::string &code, Input_state &state) {
+  handle_input(code, false);
+  state = m_input_state;
+}
+
+void Shell_javascript::flush_input(const std::string &code) {
+  std::string code_copy{code};
+  handle_input(code_copy, true);
+}
+
+void Shell_javascript::handle_input(std::string &code, bool flush) {
   // Undefined to be returned in case of errors
   Value result;
 
@@ -51,8 +58,9 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
   });
 
   bool got_error = true;
-  if (interactive)
-    std::tie(result, got_error) = _js->execute_interactive(code, &state);
+  if (_owner->interactive())
+    std::tie(result, got_error) =
+        _js->execute_interactive(code, &m_input_state, flush);
   else {
     try {
       std::tie(result, got_error) =
@@ -62,10 +70,11 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state,
     }
   }
 
-  _last_handled = code;
+  if (!code.empty()) {
+    _last_handled = code;
+  }
 
   _result_processor(result, got_error);
-  m_last_input_state = state;
 }
 
 void Shell_javascript::set_global(const std::string &name, const Value &value) {
@@ -84,13 +93,8 @@ void Shell_javascript::abort() noexcept {
   _js->terminate();
 }
 
-void Shell_javascript::clear_input() {
-  Shell_language::clear_input();
-  m_last_input_state = Input_state::Ok;
-}
-
 std::string Shell_javascript::get_continued_input_context() {
-  return m_last_input_state == Input_state::Ok ? "" : "-";
+  return m_input_state == Input_state::Ok ? "" : "-";
 }
 
 bool Shell_javascript::load_plugin(const Plugin_definition &plugin) {

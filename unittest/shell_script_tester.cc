@@ -1809,8 +1809,23 @@ void Shell_script_tester::set_scripting_context() {
 }
 
 void Shell_script_tester::execute_setup() {
-  const std::vector<std::string> argv;
-  _interactive_shell->process_file(_setup_script, argv);
+  // No need to process setup scripts line by line
+#ifdef _WIN32
+  std::ifstream s(shcore::utf8_to_wide(_setup_script));
+#else
+  std::ifstream s(_setup_script.c_str());
+#endif
+
+  if (!s.fail()) {
+    // The return value now depends on the stream processing
+    _interactive_shell->process_stream(s, _setup_script, {}, true);
+
+    s.close();
+  } else {
+    std::string text("Unable to open test script: " + _setup_script);
+    SCOPED_TRACE(text.c_str());
+    ADD_FAILURE();
+  }
 }
 
 // Append option to the end of the given config file.
