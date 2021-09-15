@@ -52,14 +52,21 @@ constexpr int k_default_mysql_port = 3306;
 constexpr int k_default_mysql_x_port = 33060;
 constexpr int k_default_connect_timeout = 10000;
 
-class SHCORE_PUBLIC Connection_options {
+class SHCORE_PUBLIC Connection_options final {
  public:
-  Connection_options(const Connection_options &) = default;
   explicit Connection_options(
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
   explicit Connection_options(
       const std::string &uri,
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+
+  Connection_options(const Connection_options &other) = default;
+  Connection_options(Connection_options &&other) = default;
+
+  Connection_options &operator=(const Connection_options &other) = default;
+  Connection_options &operator=(Connection_options &&other) = default;
+
+  ~Connection_options() = default;
 
   void set_login_options_from(const Connection_options &options);
   void set_ssl_options(const Ssl_options &options);

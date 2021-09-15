@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,14 +41,21 @@ enum class Case { SENSITIVE, INSENSITIVE };
 
 enum class Escape { YES, NO };
 
-class Config_file {
+class Config_file final {
  public:
   /**
    * Constructors
    */
   explicit Config_file(Case group_case = Case::INSENSITIVE,
                        Escape escape = Escape::YES);
-  Config_file(const Config_file &cnf_obj) = default;
+
+  Config_file(const Config_file &other) = default;
+  Config_file(Config_file &&other) = default;
+
+  Config_file &operator=(const Config_file &other) = default;
+  Config_file &operator=(Config_file &&other) = default;
+
+  ~Config_file() = default;
 
   bool operator==(const Config_file &other) const {
     return m_configmap == other.m_configmap;
