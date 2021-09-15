@@ -124,6 +124,7 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
                              Cluster_impl *cluster,
                              Cluster_global_status cl_status, int extended,
                              mysqlshdk::mysql::Gtid_set *out_gtid_set,
+                             mysqlshdk::mysql::Gtid_set *out_received_gtid_set,
                              std::string *out_view_change_uuid) {
   // Get trimmed down cluster
   auto primary = clusterset->get_primary_master();
@@ -198,6 +199,9 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
   if (auto cluster_server = cluster->get_cluster_server()) {
     *out_gtid_set =
         mysqlshdk::mysql::Gtid_set::from_gtid_executed(*cluster_server);
+    *out_received_gtid_set =
+        mysqlshdk::mysql::Gtid_set::from_received_transaction_set(
+            *cluster_server, k_clusterset_async_channel_name);
     *out_view_change_uuid =
         cluster_server->get_sysvar_string("group_replication_view_change_uuid")
             .get_safe();
@@ -250,16 +254,24 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
 void check_cluster_consistency(
     Cluster_impl *cluster, shcore::Dictionary_t status,
     const mysqlshdk::mysql::Gtid_set &cluster_gtid,
+    const mysqlshdk::mysql::Gtid_set &cluster_received_gtid,
     const std::vector<std::string> &view_change_uuids,
     const mysqlshdk::mysql::Gtid_set &primary_gtid, int extended) {
+  auto cluster_server = cluster->get_cluster_server();
+
   mysqlshdk::mysql::Gtid_set gtid_missing = primary_gtid;
-  gtid_missing.subtract(cluster_gtid, *cluster->get_cluster_server());
+  gtid_missing.subtract(cluster_gtid, *cluster_server);
 
   mysqlshdk::mysql::Gtid_set gtid_errant = cluster_gtid;
+
+  // filter out GTIDs received via clusterset AR channel, so that we don't
+  // report transactions that were already replicated but not yet exposed to
+  // GTID_EXECUTED at the source (can happen if the primary has very high load)
+  gtid_errant.subtract(cluster_received_gtid, *cluster_server);
+
   for (const auto &uuid : view_change_uuids)
-    gtid_errant.subtract(gtid_errant.get_gtids_from(uuid),
-                         *cluster->get_cluster_server());
-  gtid_errant.subtract(primary_gtid, *cluster->get_cluster_server());
+    gtid_errant.subtract(gtid_errant.get_gtids_from(uuid), *cluster_server);
+  gtid_errant.subtract(primary_gtid, *cluster_server);
 
   if (extended > 0 || !gtid_errant.empty()) {
     status->set("transactionSetConsistencyStatus",
@@ -340,7 +352,8 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
 
     std::map<Cluster_id,
              std::tuple<std::shared_ptr<Cluster_impl>, shcore::Dictionary_t,
-                        mysqlshdk::mysql::Gtid_set, std::string>>
+                        mysqlshdk::mysql::Gtid_set, mysqlshdk::mysql::Gtid_set,
+                        std::string>>
         gtid_sets;
 
     std::vector<std::string> view_change_uuids;
@@ -350,16 +363,17 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
       auto cl_status = cluster_set->get_cluster_global_status(cluster.get());
 
       mysqlshdk::mysql::Gtid_set gtid_executed;
+      mysqlshdk::mysql::Gtid_set gtid_received;
       std::string view_change_uuid;
-      auto status =
-          cluster_status(cluster_md, cluster_set, cluster.get(), cl_status,
-                         extended, &gtid_executed, &view_change_uuid);
+      auto status = cluster_status(cluster_md, cluster_set, cluster.get(),
+                                   cl_status, extended, &gtid_executed,
+                                   &gtid_received, &view_change_uuid);
 
       view_change_uuids.emplace_back(view_change_uuid);
 
       gtid_sets.emplace(cluster_md.cluster.cluster_id,
                         std::make_tuple(cluster, status.as_map(), gtid_executed,
-                                        view_change_uuid));
+                                        gtid_received, view_change_uuid));
 
       cstatus->set(cluster->get_name(), status);
 
@@ -384,23 +398,30 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
       const auto &info = gtid_sets[cluster_md.cluster.cluster_id];
       auto cluster = std::get<0>(info);
       auto status = std::get<1>(info);
-      auto cluster_gtid = std::get<2>(info);
-      std::string view_change_uuid = std::get<3>(info);
+      const auto &cluster_gtid = std::get<2>(info);
+      const auto &received_gtid = std::get<3>(info);
+
+      bool is_primary = cluster_md.cluster.cluster_id == primary_cluster_id;
 
       if (extended > 0) {
-        if (!cluster->get_cluster_server())
+        if (!cluster->get_cluster_server()) {
           status->set("transactionSet", shcore::Value::Null());
-        else
+          if (extended > 1 && !is_primary)
+            status->set("receivedTransactionSet", shcore::Value::Null());
+        } else {
           status->set("transactionSet", shcore::Value(shcore::str_replace(
                                             cluster_gtid.str(), "\n", "")));
+          if (extended > 1 && !is_primary)
+            status->set("receivedTransactionSet",
+                        shcore::Value(received_gtid.str()));
+        }
       }
       // check cluster consistency if we could query the primary
-      if (!primary_gtid_set.empty() &&
-          cluster_md.cluster.cluster_id != primary_cluster_id) {
+      if (!primary_gtid_set.empty() && !is_primary) {
         if (cluster->get_cluster_server())
           check_cluster_consistency(cluster.get(), status, cluster_gtid,
-                                    view_change_uuids, primary_gtid_set,
-                                    extended);
+                                    received_gtid, view_change_uuids,
+                                    primary_gtid_set, extended);
       }
     }
 
