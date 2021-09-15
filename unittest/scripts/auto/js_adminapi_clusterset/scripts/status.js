@@ -109,6 +109,7 @@ EXPECT_EQ("R/W", cluster1(s)["topology"][__address1h]["mode"]);
 EXPECT_EQ("ONLINE", cluster1(s)["topology"][__address1h]["status"]);
 EXPECT_NE(null, cluster1(s)["topology"][__address1h]["version"]);
 EXPECT_EQ("String", type(cluster1(s)["transactionSet"]));
+EXPECT_EQ(undefined, cluster1(s)["receivedTransactionSet"]);
 EXPECT_EQ(undefined, cluster1(s)["transactionSetConsistencyStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["transactionSetErrantGtidSet"]);
 EXPECT_EQ(undefined, cluster1(s)["transactionSetMissingGtidSet"]);
@@ -142,6 +143,7 @@ EXPECT_EQ("ON", cluster3(s)["clusterSetReplication"]["receiverStatus"]);
 s = cs.status({extended:1});
 
 CHECK_EXTENDED_1(s);
+EXPECT_EQ(undefined, cluster2(s)["receivedTransactionSet"]);
 
 c1s = c1.status({extended:1});
 CHECK_STANDALONE_STATUS_PRIMARY(c1s);
@@ -156,6 +158,8 @@ CHECK_STANDALONE_STATUS_REPLICA(c3s);
 s = cs.status({extended:2});
 
 CHECK_EXTENDED_1(s);
+
+EXPECT_EQ("String", type(cluster2(s)["receivedTransactionSet"]));
 
 c1s = c1.status({extended:2});
 CHECK_STANDALONE_STATUS_PRIMARY(c1s);
@@ -183,6 +187,8 @@ EXPECT_EQ(15, cluster2(s)["clusterSetReplication"]["receiverTimeSinceLastMessage
 s = cs.status({extended:3});
 
 CHECK_EXTENDED_1(s);
+
+EXPECT_EQ("String", type(cluster2(s)["receivedTransactionSet"]));
 
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplication"]);
 EXPECT_EQ(3, cluster2(s)["clusterSetReplication"]["options"]["connectRetry"]);
