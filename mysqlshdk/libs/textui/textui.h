@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -116,15 +116,22 @@ struct SHCORE_PUBLIC Style {
     uint8_t color_256 = 0;
     uint8_t color_rgb[3] = {0, 0, 0};
 
-    Color() {}
+    Color() = default;
 
-    Color(const Color &c) = default;
+    Color(const Color &other) = default;
     Color(uint8_t c16, uint8_t c256, const uint8_t rgb[3])
         : color_16(c16), color_256(c256) {
       color_rgb[0] = rgb[0];
       color_rgb[1] = rgb[1];
       color_rgb[2] = rgb[2];
     }
+
+    Color(Color &&other) = default;
+
+    Color &operator=(const Color &other) = default;
+    Color &operator=(Color &&other) = default;
+
+    ~Color() = default;
 
     bool operator==(const Color &c) const {
       return color_16 == c.color_16 && color_256 == c.color_256 &&
