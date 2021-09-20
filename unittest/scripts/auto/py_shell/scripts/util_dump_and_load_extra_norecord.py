@@ -175,6 +175,36 @@ for f in ordered:
         if not EXPECT_THROWS(lambda: util.load_dump(target, {"waitDumpTimeout": 0.001}), "Dump timeout"):
             break
 
+#@<> BUG#BUG33332497 ensure progress reporting is correct
+# clean up after the previous test
+testutil.rmfile(target+"/*")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+# copy just the first metadata file
+copy(ordered[0])
+
+# start the process which will load the dump asynchronously
+proc = testutil.call_mysqlsh_async([__sandbox_uri2, "--py", "-e", f"util.load_dump('{target}', {{'waitDumpTimeout': 60, 'showProgress': True}})"])
+
+# copy the remaining files
+for f in ordered[1:]:
+    copy(f)
+    if f.endswith(".idx"):
+        # .idx files make no difference so add more to save some time
+        continue
+    time.sleep(1)
+
+# wait for the load to finish
+testutil.wait_mysqlsh_async(proc)
+
+# check that progress is going up
+for progress in re.findall(r'(\d+) / (\d+) tables done', testutil.fetch_captured_stdout(False)):
+    EXPECT_LE(int(progress[0]), int(progress[1]))
+
+compare_servers(session1, session2, check_rows=True, check_users=False)
+
 ### BUG#32430402 showMetadata option
 
 #@<> setup showMetadata tests

@@ -223,7 +223,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   size_t get_object(const std::string &object_name,
                     mysqlshdk::rest::Base_response_buffer *buffer);
 
-  void rename_object(const std::string &srcName, const std::string &newName);
+  void rename_object(const std::string &src_name, const std::string &new_name);
 
   // Multipart Handling
   /**

@@ -721,9 +721,17 @@ bool Cluster_set_impl::check_gtid_consistency(Cluster_impl *cluster) const {
       *cluster->get_cluster_server());
   auto my_view_change_uuid = *cluster->get_cluster_server()->get_sysvar_string(
       "group_replication_view_change_uuid");
+  auto my_received_gtid_set =
+      mysqlshdk::mysql::Gtid_set::from_received_transaction_set(
+          *cluster->get_cluster_server(), k_clusterset_async_channel_name);
 
+  // exclude gtids from view changes
   my_gtid_set.subtract(my_gtid_set.get_gtids_from(my_view_change_uuid),
                        *cluster->get_cluster_server());
+
+  // exclude gtids that were received by the async channel, just in case we got
+  // GTIDs that haven't been exposed to GTID_EXECUTED in the source yet
+  my_gtid_set.subtract(my_received_gtid_set, *cluster->get_cluster_server());
 
   // always query GTID_EXECUTED from source after replica
   auto source_gtid_set =
@@ -735,11 +743,12 @@ bool Cluster_set_impl::check_gtid_consistency(Cluster_impl *cluster) const {
   if (!errants.empty()) {
     log_warning(
         "Cluster %s has errant transactions: source=%s source_gtids=%s "
-        "replica=%s replica_gtids=%s errants=%s",
+        "replica=%s replica_gtids=%s received_gtids=%s errants=%s",
         cluster->get_name().c_str(), get_primary_master()->descr().c_str(),
         source_gtid_set.str().c_str(),
         cluster->get_cluster_server()->descr().c_str(),
-        my_gtid_set.str().c_str(), errants.str().c_str());
+        my_gtid_set.str().c_str(), my_received_gtid_set.str().c_str(),
+        errants.str().c_str());
   }
 
   return errants.empty();
