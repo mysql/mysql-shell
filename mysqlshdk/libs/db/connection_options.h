@@ -24,8 +24,10 @@
 #ifndef MYSQLSHDK_LIBS_DB_CONNECTION_OPTIONS_H_
 #define MYSQLSHDK_LIBS_DB_CONNECTION_OPTIONS_H_
 
+#include <array>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -47,6 +49,8 @@ using utils::Nullable_options;
 using utils::nullable_options::Comparison_mode;
 enum Transport_type { Tcp, Socket, Pipe };
 std::string to_string(Transport_type type);
+
+using Mfa_passwords = std::array<std::optional<std::string>, 3>;
 
 constexpr int k_default_mysql_port = 3306;
 constexpr int k_default_mysql_x_port = 33060;
@@ -72,7 +76,7 @@ class SHCORE_PUBLIC Connection_options final {
 
   const std::string &get_scheme() const { return get_value(kScheme); }
   const std::string &get_user() const { return get_value(kUser); }
-  const std::string &get_password() const { return get_value(kPassword); }
+  const std::string &get_password() const;
   const std::string &get_host() const { return get_value(kHost); }
   const std::string &get_schema() const { return get_value(kSchema); }
   const std::string &get_socket() const { return get_value(kSocket); }
@@ -86,6 +90,7 @@ class SHCORE_PUBLIC Connection_options final {
     return m_extra_options.get_value(kCompressionAlgorithms);
   }
   int64_t get_compression_level() const;
+  const Mfa_passwords &get_mfa_passwords() const;
 
   const std::string &get(const std::string &name) const;
 
@@ -97,7 +102,10 @@ class SHCORE_PUBLIC Connection_options final {
   bool has_data() const;
   bool has_scheme() const { return has_value(kScheme); }
   bool has_user() const { return has_value(kUser); }
-  bool has_password() const { return has_value(kPassword); }
+  bool has_password() const {
+    return has_value(kPassword) || m_mfa_passwords[0].has_value();
+  }
+  bool has_mfa_passwords() const;
   bool has_host() const { return has_value(kHost); }
   bool has_port() const { return !m_port.is_null(); }
   bool has_schema() const { return has_value(kSchema); }
@@ -126,6 +134,9 @@ class SHCORE_PUBLIC Connection_options final {
   void set_compression_level(int64_t compression_level) {
     m_compress_level = compression_level;
   }
+  void set_mfa_passwords(const Mfa_passwords &mfa_passwords) {
+    m_mfa_passwords = mfa_passwords;
+  }
 
   void set(const std::string &attribute,
            const std::vector<std::string> &values);
@@ -135,6 +146,7 @@ class SHCORE_PUBLIC Connection_options final {
   void clear_scheme() { clear_value(kScheme); }
   void clear_user() { clear_value(kUser); }
   void clear_password() { clear_value(kPassword); }
+  void clear_mfa_passwords();
   void clear_host();
   void clear_port();
   void clear_schema() { clear_value(kSchema); }
@@ -214,6 +226,7 @@ class SHCORE_PUBLIC Connection_options final {
   Nullable_options m_extra_options;
   bool m_enable_connection_attributes;
   Nullable_options m_connection_attributes;
+  mutable Mfa_passwords m_mfa_passwords;
 
   std::vector<std::string> m_warnings;
 };

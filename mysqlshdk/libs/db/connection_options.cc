@@ -89,6 +89,11 @@ void Connection_options::set_login_options_from(
     set_password(options.get_password());
   }
 
+  clear_mfa_passwords();
+  if (options.has_mfa_passwords()) {
+    set_mfa_passwords(options.get_mfa_passwords());
+  }
+
   m_ssl_options.clear_ca();
   m_ssl_options.clear_capath();
   m_ssl_options.clear_cert();
@@ -114,6 +119,11 @@ void Connection_options::set_login_options_from(
 
 void Connection_options::set_ssl_options(const Ssl_options &options) {
   m_ssl_options = options;
+}
+
+const std::string &Connection_options::get_password() const {
+  return m_mfa_passwords[0].has_value() ? *m_mfa_passwords[0]
+                                        : get_value(kPassword);
 }
 
 bool Connection_options::has_data() const {
@@ -419,6 +429,11 @@ int64_t Connection_options::get_compression_level() const {
   return *m_compress_level;
 }
 
+const Mfa_passwords &Connection_options::get_mfa_passwords() const {
+  if (has_password()) m_mfa_passwords[0] = get_password();
+  return m_mfa_passwords;
+}
+
 const std::string &Connection_options::get(const std::string &name) const {
   if (m_options.has(name))
     return get_value(name);
@@ -428,6 +443,19 @@ const std::string &Connection_options::get(const std::string &name) const {
     return m_extra_options.get_value(name);
   else
     return get_value(name);  // <-- This will throw the standard message
+}
+
+bool Connection_options::has_mfa_passwords() const {
+  for (const auto &p : m_mfa_passwords) {
+    if (p.has_value()) return true;
+  }
+  return false;
+}
+
+void Connection_options::clear_mfa_passwords() {
+  for (auto &p : m_mfa_passwords) {
+    p.reset();
+  }
 }
 
 void Connection_options::clear_host() {

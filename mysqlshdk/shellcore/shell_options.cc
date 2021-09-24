@@ -46,10 +46,10 @@ using mysqlshdk::db::Transport_type;
 
 bool Shell_options::Storage::has_connection_data() const {
   return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
-         !sock.is_null() || port != 0 || password != NULL || prompt_password ||
-         !connect_timeout_cmdline.empty() || ssl_options.has_data() ||
-         !compress.empty() || !compress_algorithms.empty() ||
-         !compress_level.is_null();
+         !sock.is_null() || port != 0 || mfa_passwords[0].has_value() ||
+         prompt_password || !connect_timeout_cmdline.empty() ||
+         ssl_options.has_data() || !compress.empty() ||
+         !compress_algorithms.empty() || !compress_level.is_null() || is_mfa();
 }
 
 /**
@@ -94,7 +94,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   // other options need to be set after scheme, as some of them require specific
   // scheme type (i.e. pipe)
   shcore::update_connection_data(
-      &target_server, user, password, host, port, sock, schema, ssl_options,
+      &target_server, user, nullptr, host, port, sock, schema, ssl_options,
       auth_method, get_server_public_key, server_public_key_path,
       connect_timeout_cmdline, compress, compress_algorithms, compress_level);
 
@@ -102,7 +102,24 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     target_server.set_password("");
   }
 
+  if (is_mfa()) {
+    if (target_server.has_scheme() && target_server.get_scheme() == "mysqlx")
+      throw shcore::Exception::argument_error(
+          "Multi-factor authentication is only compatible with MySQL protocol");
+    target_server.clear_scheme();
+    target_server.set_scheme("mysql");
+  }
+
+  target_server.set_mfa_passwords(mfa_passwords);
+
   return target_server;
+}
+
+bool Shell_options::Storage::is_mfa(bool check_values) const {
+  return (mfa_passwords[1].has_value() &&
+          (!check_values || !mfa_passwords[1]->empty())) ||
+         (mfa_passwords[2].has_value() &&
+          (!check_values || !mfa_passwords[2]->empty()));
 }
 
 static std::string hide_password_in_uri(std::string uri,
@@ -197,6 +214,18 @@ Shell_options::Shell_options(int argc, char **argv,
       "If password is empty, connection will be made without using a password.")
     (cmdline("--dbpassword[=<pass>]"), deprecated("--password"))
     (cmdline("-p", "--password"), "Request password prompt to set the password")
+    (cmdline("--password1[=<pass>]"),
+      "Password for first factor authentication plugin.")
+    (cmdline("--password2[=<pass>]"),
+      "Password for second factor authentication plugin.",
+      [this](const std::string&, const char* value) {
+          storage.mfa_passwords[1] = value == nullptr ? "" : value;
+      })
+    (cmdline("--password3[=<pass>]"),
+      "Password for third factor authentication plugin.",
+      [this](const std::string&, const char* value) {
+          storage.mfa_passwords[2] = value == nullptr ? "" : value;
+      })
     (cmdline("-C", "--compress[=<value>]"),
         "Use compression in client/server protocol. Valid values: 'REQUIRED', "
         "'PREFFERED', 'DISABLED', 'True', 'False', '1', and '0'. Boolean values"
@@ -634,6 +663,8 @@ Shell_options::Shell_options(int argc, char **argv,
     check_file_execute_conflicts();
     check_import_options();
     check_result_format();
+    // Calls connection options to validate the rest of the options
+    storage.connection_options();
     shcore::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -797,7 +828,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
 
     iterator->next();
   } else if ("--password" == option || "-p" == option ||
-             "--dbpassword" == option) {
+             "--dbpassword" == option || "--password1" == option) {
     // Note that in any connection attempt, password prompt will be done if
     // the password is missing.
     // The behavior of the password cmd line argument is as follows:
@@ -831,10 +862,9 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       // --password=value || -pvalue
       const auto value = iterator->value();
 
-      storage.pwd.assign(value);
-      storage.password = storage.pwd.c_str();
+      storage.mfa_passwords[0] = value;
 
-      const std::string stars(storage.pwd.length(), '*');
+      const std::string stars(storage.mfa_passwords[0]->length(), '*');
 
       strncpy(const_cast<char *>(value), stars.c_str(), strlen(value) + 1);
 
@@ -1027,8 +1057,8 @@ void Shell_options::check_user_conflicts() {
 }
 
 void Shell_options::check_password_conflicts() {
-  if (storage.password != NULL && uri_data.has_password()) {
-    if (storage.password != uri_data.get_password()) {
+  if (storage.mfa_passwords[0].has_value() && uri_data.has_password()) {
+    if (*storage.mfa_passwords[0] != uri_data.get_password()) {
       const auto error =
           "Conflicting options: provided password differs from the "
           "password in the URI.";
@@ -1051,7 +1081,8 @@ void Shell_options::check_password_conflicts() {
     throw std::runtime_error(error);
   }
 
-  if (storage.no_password && storage.password && strlen(storage.password) > 0) {
+  if (storage.no_password && storage.mfa_passwords[0].has_value() &&
+      storage.mfa_passwords[0]->length() > 0) {
     const auto error =
         "Conflicting options: --no-password cannot be used if password is "
         "provided.";

@@ -41,6 +41,12 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   password is empty, connection will be made
                                   without using a password.
   -p, --password                  Request password prompt to set the password
+  --password1[=<pass>]            Password for first factor authentication
+                                  plugin.
+  --password2[=<pass>]            Password for second factor authentication
+                                  plugin.
+  --password3[=<pass>]            Password for third factor authentication
+                                  plugin.
   -C, --compress[=<value>]        Use compression in client/server protocol.
                                   Valid values: 'REQUIRED', 'PREFFERED',
                                   'DISABLED', 'True', 'False', '1', and '0'.

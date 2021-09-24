@@ -86,8 +86,18 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->host;
     else if (option == "user")
       return options->user;
-    else if (option == "password")
-      return options->password ? std::string(options->password) : "";
+    else if (option == "password" || option == "password1")
+      return options->mfa_passwords[0].has_value()
+                 ? std::string(*options->mfa_passwords[0])
+                 : "";
+    else if (option == "password2")
+      return options->mfa_passwords[1].has_value()
+                 ? std::string(*options->mfa_passwords[1])
+                 : "";
+    else if (option == "password3")
+      return options->mfa_passwords[2].has_value()
+                 ? std::string(*options->mfa_passwords[2])
+                 : "";
     else if (option == "port")
       return AS__STRING(options->port);
     else if (option == "schema")
@@ -672,7 +682,9 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_EQ(options.log_level, shcore::Logger::LOG_INFO);
   EXPECT_EQ("table", options.result_format);
   EXPECT_EQ("off", options.wrap_json);
-  EXPECT_EQ(nullptr, options.password);
+  EXPECT_FALSE(options.mfa_passwords[0].has_value());
+  EXPECT_FALSE(options.mfa_passwords[1].has_value());
+  EXPECT_FALSE(options.mfa_passwords[2].has_value());
   EXPECT_FALSE(options.passwords_from_stdin);
   EXPECT_EQ(options.port, 0);
   EXPECT_FALSE(options.prompt_password);
@@ -731,13 +743,23 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("-C", "compress", "REQUIRED");
   test_option_with_no_value("--compress", "compress", "REQUIRED");
   test_option_with_no_value("-p", "prompt_password", "1");
+  test_option_with_no_value("--password", "prompt_password", "1");
+  test_option_with_no_value("--password1", "prompt_password", "1");
 
   test_option_equal_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
                           "password");
+  test_option_equal_value("password1", "mypwd", IS_CONNECTION_DATA, "password");
+  test_option_equal_value("password2", "mypwd", IS_CONNECTION_DATA);
+  test_option_equal_value("password3", "mypwd", IS_CONNECTION_DATA);
+
   test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA, "password",
                           "");
   test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
                           "prompt_password", "1");
+  test_option_space_value("password1", "mypwd", IS_CONNECTION_DATA,
+                          "prompt_password", "1");
+  test_option_space_value("password2", "mypwd", IS_CONNECTION_DATA);
+  test_option_space_value("password3", "mypwd", IS_CONNECTION_DATA);
   test_short_option_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA,
                           "password");
   test_short_option_space_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA,
@@ -1271,11 +1293,10 @@ TEST_F(Shell_cmdline_options, conflicts_compression) {
   char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--compress"),
                    const_cast<char *>("--compression-algorithms=uncompressed"),
                    uri, NULL};
-  Shell_options so(4, argv0);
-  EXPECT_EQ(0, so.get().exit_code);
-  EXPECT_THROW_LIKE(so.get().connection_options(), std::invalid_argument,
-                    "Conflicting connection options: compression=REQUIRED, "
-                    "compression-algorithms=uncompressed");
+  test_conflicting_options(
+      "compressoon conflicts", 3, argv0,
+      "Conflicting connection options: compression=REQUIRED, "
+      "compression-algorithms=uncompressed.\n");
 }
 
 TEST_F(Shell_cmdline_options, test_uri_with_password) {
@@ -1554,6 +1575,49 @@ TEST_F(Shell_cmdline_options, test_file_and_execute) {
         const_cast<char *>("SELECT 1"),     nullptr};
 
     test_options("--file --execute", 5, argv);
+  }
+}
+
+TEST_F(Shell_cmdline_options, mfa_tests) {
+  {
+    // Password in --password1 differs from password in URI
+    char uri[] = {"--uri=mysqlx://root:password@localhost"};
+    char wrong_pwd1[] = {"--password1=example"};
+    char *argv0[] = {const_cast<char *>("ut"), uri, wrong_pwd1, NULL};
+
+    test_conflicting_options(
+        "Different passwords", 3, argv0,
+        "Conflicting options: provided password differs from the "
+        "password in the URI.\n");
+  }
+  {
+    // Password 1 and X Protocol is OK
+    char pwd1[] = {"--password1=example"};
+    char *argv0[] = {const_cast<char *>("ut"),
+                     const_cast<char *>("mysqlx://root@localhost"), pwd1, NULL};
+    Shell_options so(3, argv0);
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+  }
+  {
+    char *passwords[] = {const_cast<char *>("--password2=whatever"),
+                         const_cast<char *>("--password3=whatever")};
+    char *x_proto_args[] = {const_cast<char *>("--mysqlx"),
+                            const_cast<char *>("--mx"),
+                            const_cast<char *>("--sqlx")};
+
+    // MFA and X Protocol are not OK
+    for (size_t index = 0; index < 2; index++) {
+      for (size_t pindex = 0; pindex < 2; pindex++) {
+        char *argv0[] = {const_cast<char *>("ut"), passwords[pindex],
+                         x_proto_args[index],
+                         const_cast<char *>("root@localhost"), NULL};
+
+        test_conflicting_options("Different passwords", 4, argv0,
+                                 "Multi-factor authentication is only "
+                                 "compatible with MySQL protocol\n");
+      }
+    }
   }
 }
 

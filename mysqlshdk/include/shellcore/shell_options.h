@@ -62,8 +62,10 @@
 #define SHCORE_PROGRESS_REPORTING "progressReporting"
 
 #include <stdlib.h>
+#include <array>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -83,8 +85,6 @@ class Shell_options : public shcore::Options {
 
     // Individual connection parameters
     std::string user;
-    std::string pwd;
-    const char *password = nullptr;
     std::string host;
     int port = 0;
     std::string schema;
@@ -97,6 +97,7 @@ class Shell_options : public shcore::Options {
     std::string compress;
     std::string compress_algorithms;
     mysqlshdk::utils::nullable<int64_t> compress_level;
+    mysqlshdk::db::Mfa_passwords mfa_passwords;
 
     std::string protocol;
 
@@ -176,6 +177,9 @@ class Shell_options : public shcore::Options {
     int exit_code = 0;
 
     bool has_connection_data() const;
+
+    // Did user specify > 1 password?
+    bool is_mfa(bool check_values = false) const;
 
     mysqlshdk::db::Connection_options connection_options() const;
   };

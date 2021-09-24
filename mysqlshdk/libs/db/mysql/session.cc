@@ -238,6 +238,16 @@ void Session_impl::connect(
 
   DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());
 
+  // If this fails Mfa_passwords definition has to be changed
+  static_assert(MAX_AUTH_FACTORS == 3);
+  auto passwords = _connection_options.get_mfa_passwords();
+  for (unsigned int factor = 1; factor <= passwords.size(); factor++) {
+    if (passwords[factor - 1]) {
+      mysql_options4(_mysql, MYSQL_OPT_USER_PASSWORD, &factor,
+                     passwords[factor - 1]->c_str());
+    }
+  }
+
   if (!mysql_real_connect(
           _mysql,
           _connection_options.has_host()
@@ -246,9 +256,7 @@ void Session_impl::connect(
           _connection_options.has_user()
               ? _connection_options.get_user().c_str()
               : NULL,
-          _connection_options.has_password()
-              ? _connection_options.get_password().c_str()
-              : NULL,
+          NULL,
           _connection_options.has_schema()
               ? _connection_options.get_schema().c_str()
               : NULL,

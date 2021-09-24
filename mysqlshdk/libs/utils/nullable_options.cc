@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -156,8 +156,7 @@ void Nullable_options::throw_invalid_option(const std::string &name) const {
 
 void Nullable_options::throw_no_value(const std::string &name) const {
   throw std::invalid_argument("The " + _ctx + "option '" + name +
-                              "' has no "
-                              "value.");
+                              "' has no value.");
 }
 
 void Nullable_options::throw_already_defined_option(
@@ -166,9 +165,7 @@ void Nullable_options::throw_already_defined_option(
   if (has_value(name)) value = " as '" + get_value(name) + "'";
 
   throw std::invalid_argument("The " + _ctx + "option '" + name +
-                              "' is "
-                              "already defined" +
-                              value + ".");
+                              "' is already defined" + value + ".");
 }
 
 bool Nullable_options::operator==(const Nullable_options &other) const {
