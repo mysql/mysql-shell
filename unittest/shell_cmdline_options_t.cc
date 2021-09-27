@@ -147,7 +147,7 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "run_file")
       return options->run_file;
     else if (option == "connect-timeout")
-      return options->m_connect_timeout;
+      return options->connect_timeout_cmdline;
     else if (option == "quiet-start")
       return AS__STRING(static_cast<int>(options->quiet_start));
     else if (option == "showColumnTypeInfo")
@@ -697,7 +697,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.execute_statement.empty());
   EXPECT_TRUE(options.wizards);
   EXPECT_TRUE(options.default_session_type);
-  EXPECT_TRUE(options.m_connect_timeout.empty());
+  EXPECT_TRUE(options.connect_timeout_cmdline.empty());
   EXPECT_EQ(Shell_options::Quiet_start::NOT_SET, options.quiet_start);
   EXPECT_FALSE(options.show_column_type_info);
   EXPECT_TRUE(options.compress.empty());

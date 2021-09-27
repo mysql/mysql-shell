@@ -18,7 +18,8 @@ testutil.waitForReplConnectionError(__mysql_sandbox_port2, "");
 testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
 
 // faster connection timeouts
-testutil.dbugSet("+d,contimeout");
+shell.options["connectTimeout"] = 1.0;
+shell.options["dba.connectTimeout"] = 1.0;
 
 //@ Check status from a member
 shell.connect(__sandbox_uri2);

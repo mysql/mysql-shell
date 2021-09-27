@@ -69,7 +69,7 @@ def EXPECT_NO_GR_OPS_DURING_FTWRL_(logs, sb):
     unlock = logs.find(sb, "UNLOCK TABLES")
     op = logs.find(sb, r"SELECT (asynchronous_|group_replication_).*\(.*\)")
     if op and ftwrl and unlock:
-        EXPECT_NOT_BETWEEN(ftwrl[0], op[0], unlock[0])
+        EXPECT_NOT_BETWEEN(ftwrl, op, unlock)
     EXPECT_TRUE(not ftwrl or unlock)
 
 

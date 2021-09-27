@@ -111,16 +111,19 @@ def EXPECT_GT(expected, actual, note=""):
     testutil.fail(context)
 
 def EXPECT_BETWEEN(expected_from, expected_to, actual, note=""):
-  if expected_from >= actual >= expected_to:
-    context = "Tested value not as expected: "+note+f"\n\t{expected_from} >= {actual} >= {expected_to}"
+  if expected_from <= actual <= expected_to:
+    pass
+  else:
+    context = "Tested value not as expected: "+note+f"\n\t{expected_from} <= {actual} <= {expected_to}"
     testutil.fail(context)
 
 def EXPECT_NOT_BETWEEN(expected_from, expected_to, actual, note=""):
-  if expected_from >= actual >= expected_to:
-    pass
-  else:
-    context = "Tested value not as expected: "+note+f"\n\tNOT ({expected_from} >= {actual} >= {expected_to})"
+  if expected_from <= actual <= expected_to:
+    context = "Tested value not as expected: "+note+f"\n\tNOT ({expected_from} <= {actual} <= {expected_to})"
     testutil.fail(context)
+
+def EXPECT_DELTA(expected, allowed_delta, actual, note=""):
+  EXPECT_BETWEEN(expected - allowed_delta, expected + allowed_delta, actual, note)
 
 def EXPECT_TRUE(value, note=""):
   if not value:

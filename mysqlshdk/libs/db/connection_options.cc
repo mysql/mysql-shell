@@ -617,5 +617,14 @@ void Connection_options::set_connection_attributes(
   }
 }
 
+int64_t default_connect_timeout() {
+  // some tests execute SQL before options are available, in that case use the
+  // default value
+  const auto options = mysqlsh::current_shell_options(true);
+  const auto &storage =
+      options ? options->get() : mysqlsh::Shell_options::Storage();
+  return storage.connect_timeout * 1000;
+}
+
 }  // namespace db
 }  // namespace mysqlshdk

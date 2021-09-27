@@ -27,7 +27,8 @@ var session3 = mysql.getSession(__hostname_uri3);
 var userhost=session3.runSql("select user()").fetchOne()[0];
 
 // faster connection timeouts
-testutil.dbugSet("+d,contimeout");
+shell.options["connectTimeout"] = 1.0;
+shell.options["dba.connectTimeout"] = 1.0;
 
 // Runtime problems
 //--------------------------------

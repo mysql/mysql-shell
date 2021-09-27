@@ -299,7 +299,23 @@ os.loadTextFile(options_file);
 \option --unset --persist pager
 \option pager
 
+//@ connectTimeout update and set back to default using \option
+\option --persist connectTimeout = 20.1
+\option connectTimeout
+os.loadTextFile(options_file);
+\option --unset --persist connectTimeout
+\option connectTimeout
+
+//@ dba.connectTimeout update and set back to default using \option
+\option --persist dba.connectTimeout = 20.1
+\option dba.connectTimeout
+os.loadTextFile(options_file);
+\option --unset --persist dba.connectTimeout
+\option dba.connectTimeout
+
 //@ List all the options using \option
+// WL14698-TSFR_1_2
+// WL14698-TSFR_2_2
 \option -l
 
 //@ List all the options using \option and show-origin
@@ -355,6 +371,30 @@ shell.options.unset(InvalidOption)
 \option verbose = 0
 \option verbose = 5
 \option --unset verbose
+
+//@ Verify option connectTimeout
+// WL14698-TSFR_1_6
+\option connectTimeout = -5.1234
+\option connectTimeout = -1
+\option connectTimeout = "not valid"
+// WL14698-TSFR_1_5
+\option connectTimeout = 0
+\option connectTimeout = 0.1
+\option connectTimeout = 4
+\option connectTimeout = 4.5
+\option --unset connectTimeout
+
+//@ Verify option dba.connectTimeout
+// WL14698-TSFR_2_6
+\option dba.connectTimeout = -5.1234
+\option dba.connectTimeout = -1
+\option dba.connectTimeout = "not valid"
+// WL14698-TSFR_2_5
+\option dba.connectTimeout = 0
+\option dba.connectTimeout = 0.1
+\option dba.connectTimeout = 4
+\option dba.connectTimeout = 4.5
+\option --unset dba.connectTimeout
 
 //@ Configuration operation available in SQL mode
 \sql
@@ -434,3 +474,40 @@ test_cli_option_update('showColumnTypeInfo', false, true);
 test_cli_option_update('showWarnings', true, false);
 test_cli_option_update('useWizards', true, false);
 test_cli_option_update('verbose', 0, 2);
+
+//@<> WL14698-TSFR_1_3
+test_cli_option_update('connectTimeout', 10, 123.4);
+
+//@<> WL14698-TSFR_2_3
+test_cli_option_update('dba.connectTimeout', 5, 123.4);
+
+//@<> helper for testing unpersisted changes of option values
+function test_option_update(option, default_value, test_value) {
+    function quote(value) {
+        return typeof(value) === "string" ? '"' + value + '"' : value;
+    }
+
+    const expected_default_value = quote(default_value);
+    const expected_test_value = quote(test_value);
+
+    WIPE_OUTPUT();
+    callMysqlsh(['-i', '-e', `println("Value of '${option}' (before): " + shell.options["${option}"]);shell.options["${option}"] = ${expected_test_value};println("Value of '${option}' (after): " + shell.options["${option}"]);`])
+    EXPECT_STDOUT_CONTAINS(`
+Value of '${option}' (before): ${expected_default_value}
+Value of '${option}' (after): ${expected_test_value}
+`);
+
+    WIPE_OUTPUT();
+    callMysqlsh(['-i', '-e', `println("Value of '${option}' (restarted): " + shell.options["${option}"]);`])
+    EXPECT_STDOUT_CONTAINS(`
+Value of '${option}' (restarted): ${expected_default_value}
+`);
+
+    WIPE_OUTPUT();
+}
+
+//@<> WL14698-TSFR_1_4
+test_option_update('connectTimeout', 10, 2);
+
+//@<> WL14698-TSFR_2_4
+test_option_update('dba.connectTimeout', 5, 3);

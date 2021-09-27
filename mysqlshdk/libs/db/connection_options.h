@@ -50,7 +50,6 @@ std::string to_string(Transport_type type);
 
 constexpr int k_default_mysql_port = 3306;
 constexpr int k_default_mysql_x_port = 33060;
-constexpr int k_default_connect_timeout = 10000;
 
 class SHCORE_PUBLIC Connection_options final {
  public:
@@ -218,6 +217,8 @@ class SHCORE_PUBLIC Connection_options final {
 
   std::vector<std::string> m_warnings;
 };
+
+int64_t default_connect_timeout();
 
 }  // namespace db
 }  // namespace mysqlshdk

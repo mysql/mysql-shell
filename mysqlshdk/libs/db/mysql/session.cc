@@ -148,11 +148,7 @@ void Session_impl::connect(
 #endif
 
   {  // Sets the connection timeout (comes in milliseconds, must be in seconds)
-    uint connect_timeout = mysqlshdk::db::k_default_connect_timeout;
-
-    // TODO(alfredo) Hack for connections to fail fast during testing. Should be
-    // replaced by a global defaultConnectTimeout option in the shell.
-    connect_timeout = DBUG_EVALUATE_IF("contimeout", 1, connect_timeout);
+    uint connect_timeout = mysqlshdk::db::default_connect_timeout();
 
     if (_connection_options.has(kConnectTimeout)) {
       connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));

@@ -56,6 +56,9 @@
 #define SHCORE_DEBUG "debug"
 #define SHCORE_MYSQL_PLUGIN_DIR "mysqlPluginDir"
 
+#define SHCORE_CONNECT_TIMEOUT "connectTimeout"
+#define SHCORE_DBA_CONNECT_TIMEOUT "dba.connectTimeout"
+
 #define SHCORE_PROGRESS_REPORTING "progressReporting"
 
 #include <stdlib.h>
@@ -90,7 +93,7 @@ class Shell_options : public shcore::Options {
     std::string oci_profile;
     std::string oci_config_file;
     std::string auth_method;
-    std::string m_connect_timeout;
+    std::string connect_timeout_cmdline;
     std::string compress;
     std::string compress_algorithms;
     mysqlshdk::utils::nullable<int64_t> compress_level;
@@ -157,6 +160,9 @@ class Shell_options : public shcore::Options {
     // override default plugin search path ; separated in windows, : elsewhere
     mysqlshdk::null_string plugins_path;
     std::string mysql_plugin_dir;
+
+    double connect_timeout = 10.0;
+    double dba_connect_timeout = 5.0;
 
     // TODO(anyone): Expose the option
     enum class Progress_reporting {

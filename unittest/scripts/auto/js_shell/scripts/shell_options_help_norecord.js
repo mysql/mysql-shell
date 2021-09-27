@@ -59,3 +59,9 @@
 
 //@ verbose output
 \option --help verbose
+
+//@ WL14698-TSFR_1_1 connectTimeout option help text
+\option --help connectTimeout
+
+//@ WL14698-TSFR_2_1 dba.connectTimeout option help text
+\option --help dba.connectTimeout

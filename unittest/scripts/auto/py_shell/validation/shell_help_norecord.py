@@ -608,6 +608,8 @@ DESCRIPTION
         enabled. The \rehash command can be used for manual refresh
       - batchContinueOnError: read-only, boolean value to indicate if the
         execution of an SQL script in batch mode shall continue if errors occur
+      - connectTimeout: float, default connection timeout used by Shell
+        sessions, in seconds
       - credentialStore.excludeFilters: array of URLs for which automatic
         password storage is disabled, supports glob characters '*' and '?'
       - credentialStore.helper: name of the credential helper to use to
@@ -616,6 +618,8 @@ DESCRIPTION
         disable the credential store
       - credentialStore.savePasswords: controls automatic password storage,
         allowed values: "always", "prompt" or "never"
+      - dba.connectTimeout: float, default connection timeout used for sessions
+        created in AdminAPI operations, in seconds
       - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
         synchronized
       - dba.logSql: 0..2, log SQL statements executed by AdminAPI operations: 0

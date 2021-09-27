@@ -328,7 +328,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   }
 
   // Sets the connection timeout
-  int64_t connect_timeout = mysqlshdk::db::k_default_connect_timeout;
+  int64_t connect_timeout = mysqlshdk::db::default_connect_timeout();
   if (_connection_options.has(kConnectTimeout)) {
     connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
   }

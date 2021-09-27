@@ -285,12 +285,28 @@
 ||
 ||
 
+//@ connectTimeout update and set back to default using \option
+||
+|20.1|
+|"connectTimeout": "20.1"|
+||
+|10|
+
+//@ dba.connectTimeout update and set back to default using \option
+||
+|20.1|
+|"dba.connectTimeout": "20.1"|
+||
+|5|
+
 //@<OUT> List all the options using \option
  autocomplete.nameCache          true
  batchContinueOnError            false
+ connectTimeout                  10
  credentialStore.excludeFilters  []
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
+ dba.connectTimeout              5
  dba.gtidWaitTimeout             60
  dba.logSql                      0
  dba.restartWaitTimeout          60
@@ -320,9 +336,11 @@
 //@<OUT> List all the options using \option and show-origin
  autocomplete.nameCache          true (Compiled default)
  batchContinueOnError            false (Compiled default)
+ connectTimeout                  10 (Compiled default)
  credentialStore.excludeFilters  [] (Compiled default)
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
+ dba.connectTimeout              5 (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)
@@ -398,6 +416,26 @@
 ||
 ||
 
+//@ Verify option connectTimeout
+||value out of range
+||value out of range
+||Incorrect option value.
+||
+||
+||
+||
+||
+
+//@ Verify option dba.connectTimeout
+||value out of range
+||value out of range
+||Incorrect option value.
+||
+||
+||
+||
+||
+
 //@ Configuration operation available in SQL mode
 |Switching to SQL mode... Commands end with ;|
 |8|
@@ -409,9 +447,11 @@
 //@<OUT> List all the options using \option for SQL mode
  autocomplete.nameCache          true
  batchContinueOnError            false
+ connectTimeout                  10
  credentialStore.excludeFilters  []
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
+ dba.connectTimeout              5
  dba.gtidWaitTimeout             60
  dba.logSql                      0
  dba.restartWaitTimeout          60
@@ -442,9 +482,11 @@
 Switching to SQL mode... Commands end with ;
  autocomplete.nameCache          true (Compiled default)
  batchContinueOnError            false (Compiled default)
+ connectTimeout                  10 (Compiled default)
  credentialStore.excludeFilters  [] (Compiled default)
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
+ dba.connectTimeout              5 (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)

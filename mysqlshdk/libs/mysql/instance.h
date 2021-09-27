@@ -301,7 +301,14 @@ class Instance : public IInstance {
   void drop_user(const std::string &user, const std::string &host,
                  bool if_exists = false) const override;
   mysqlshdk::db::Connection_options get_connection_options() const override {
-    return _session->get_connection_options();
+    auto co = _session->get_connection_options();
+
+    // we don't want to be using cached value of connect-timeout option
+    if (co.has_value(mysqlshdk::db::kConnectTimeout)) {
+      co.remove(mysqlshdk::db::kConnectTimeout);
+    }
+
+    return co;
   }
   std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host) const override;

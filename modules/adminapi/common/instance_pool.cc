@@ -46,8 +46,9 @@ namespace {
 static constexpr char k_lock[] = "AdminAPI_lock";
 static constexpr char k_lock_name_instance[] = "AdminAPI_instance";
 
-// Reduce the default timeout from 10s to 5s
-static const char k_default_adminapi_connect_timeout[] = "5000";
+int64_t default_adminapi_connect_timeout() {
+  return mysqlsh::current_shell_options()->get().dba_connect_timeout * 1000;
+}
 
 std::shared_ptr<mysqlshdk::db::ISession> connect_session(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
@@ -85,8 +86,10 @@ std::shared_ptr<Instance> Instance::connect_raw(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
   mysqlshdk::db::Connection_options op(opts);
 
-  if (!op.has_value(mysqlshdk::db::kConnectTimeout))
-    op.set(mysqlshdk::db::kConnectTimeout, k_default_adminapi_connect_timeout);
+  if (!op.has_value(mysqlshdk::db::kConnectTimeout)) {
+    op.set(mysqlshdk::db::kConnectTimeout,
+           std::to_string(default_adminapi_connect_timeout()));
+  }
 
   return std::make_shared<Instance>(connect_session(op, interactive));
 }

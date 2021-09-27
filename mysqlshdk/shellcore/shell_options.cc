@@ -47,7 +47,7 @@ using mysqlshdk::db::Transport_type;
 bool Shell_options::Storage::has_connection_data() const {
   return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
          !sock.is_null() || port != 0 || password != NULL || prompt_password ||
-         !m_connect_timeout.empty() || ssl_options.has_data() ||
+         !connect_timeout_cmdline.empty() || ssl_options.has_data() ||
          !compress.empty() || !compress_algorithms.empty() ||
          !compress_level.is_null();
 }
@@ -96,7 +96,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   shcore::update_connection_data(
       &target_server, user, password, host, port, sock, schema, ssl_options,
       auth_method, get_server_public_key, server_public_key_path,
-      m_connect_timeout, compress, compress_algorithms, compress_level);
+      connect_timeout_cmdline, compress, compress_algorithms, compress_level);
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
@@ -489,7 +489,14 @@ Shell_options::Shell_options(int argc, char **argv,
         "Oracle Cloud Infrastructure (OCI) configuration file profile name.")
     (&storage.mysql_plugin_dir, "", SHCORE_MYSQL_PLUGIN_DIR,
         cmdline("--mysql-plugin-dir[=<path>]"),
-        "Directory for client-side authentication plugins.");
+        "Directory for client-side authentication plugins.")
+    (&storage.connect_timeout, 10.0, SHCORE_CONNECT_TIMEOUT,
+        "Default connection timeout used by Shell sessions.",
+        shcore::opts::Range<double>(0.0, std::numeric_limits<double>::max()))
+    (&storage.dba_connect_timeout, 5.0, SHCORE_DBA_CONNECT_TIMEOUT,
+        "Default connection timeout used for sessions created in AdminAPI "
+        "operations.",
+        shcore::opts::Range<double>(0.0, std::numeric_limits<double>::max()));
 
 
   add_startup_options()
@@ -691,6 +698,11 @@ shcore::Value Shell_options::get(const std::string &option) {
   Concrete_option<int> *opt_int =
       dynamic_cast<Concrete_option<int> *>(it->second);
   if (opt_int != nullptr) return shcore::Value(opt_int->get());
+
+  {
+    const auto opt_double = dynamic_cast<Concrete_option<double> *>(it->second);
+    if (opt_double != nullptr) return shcore::Value(opt_double->get());
+  }
 
   auto opt_set_string =
       dynamic_cast<Concrete_option<std::vector<std::string>> *>(it->second);
@@ -986,7 +998,7 @@ void Shell_options::set_connection_timeout(const std::string & /*option*/,
   // validations are performed on the data
   mysqlshdk::db::Connection_options{}.set(mysqlshdk::db::kConnectTimeout,
                                           value);
-  storage.m_connect_timeout.assign(value);
+  storage.connect_timeout_cmdline.assign(value);
 }
 
 void Shell_options::check_session_type_conflicts() {

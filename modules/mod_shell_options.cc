@@ -47,6 +47,9 @@ name cache is enabled. The \rehash command can be used for manual refresh
 @li batchContinueOnError: read-only, boolean value to indicate if the
 execution of an SQL script in batch mode shall continue if errors occur
 
+@li connectTimeout: float, default connection timeout used by Shell sessions,
+in seconds
+
 @li credentialStore.excludeFilters: array of URLs for which
 automatic password storage is disabled, supports glob characters '*' and '?'
 
@@ -57,6 +60,9 @@ supported to use platform default helper; a special value
 
 @li credentialStore.savePasswords: controls automatic password
 storage, allowed values: "always", "prompt" or "never"
+
+@li dba.connectTimeout: float, default connection timeout used for sessions
+created in AdminAPI operations, in seconds
 
 @li dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
 synchronized

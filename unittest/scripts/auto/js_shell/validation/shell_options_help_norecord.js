@@ -74,3 +74,10 @@
           messages; 1 - display error, warning and informational messages; 2,
           3, 4 - include higher levels of debug messages. If level is not
           given, 1 is assumed.
+
+//@<OUT> WL14698-TSFR_1_1 connectTimeout option help text
+ connectTimeout      Default connection timeout used by Shell sessions.
+
+//@<OUT> WL14698-TSFR_2_1 dba.connectTimeout option help text
+ dba.connectTimeout  Default connection timeout used for sessions created in
+                     AdminAPI operations.
