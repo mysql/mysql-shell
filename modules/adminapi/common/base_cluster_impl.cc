@@ -137,6 +137,8 @@ void Base_cluster_impl::sync_transactions(
             " to be applied on instance '" + target_instance.descr() + "'",
         SHERR_DBA_GTID_SYNC_TIMEOUT);
   }
+
+  current_console()->print_info();
 }
 
 std::string Base_cluster_impl::get_replication_user_name(

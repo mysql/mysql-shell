@@ -122,6 +122,9 @@ typedef mysqlshdk::utils::Enum_set<Cluster_global_status,
                                    Cluster_global_status::UNKNOWN>
     Cluster_global_status_mask;
 
+typedef mysqlshdk::utils::Enum_set<Cluster_status, Cluster_status::UNKNOWN>
+    Cluster_status_mask;
+
 // Note that this structure may be initialized using initializer
 // lists, so the order of the fields is very important
 struct Function_availability {
@@ -133,6 +136,7 @@ struct Function_availability {
   // Defines the global state in which the operation is allowed
   // Empty indicates the operation is not allowed for instances in a cluster set
   Cluster_global_status_mask cluster_set_state = {};
+  bool allowed_on_fenced = false;
 };
 
 struct Cluster_check_info {

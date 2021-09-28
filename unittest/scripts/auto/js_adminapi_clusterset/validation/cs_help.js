@@ -416,7 +416,7 @@ DESCRIPTION
       be reachable from the shell and have consistent transaction sets with the
       current PRIMARY Cluster. If the PRIMARY Cluster is not available and
       cannot be restored, a failover must be performed instead, using
-      <ClusterSet>.forcePrimaryCluster().
+      ClusterSet.forcePrimaryCluster().
 
       The switchover will be canceled if there are REPLICA Clusters that are
       unreachable or unavailable. To continue, they must either be restored or
@@ -497,7 +497,9 @@ DESCRIPTION
         only connect to the invalid Cluster will behave as if nothing changed.
         If applications can still update the database through such Router
         instances, there will be a "Split-Brain" and the database will become
-        inconsistent.
+        inconsistent. To avoid such scenario, fence the old primary from all
+        traffic using <Cluster>.fenceAllTraffic(), or from write traffic only
+        using <Cluster>.fenceWrites().
       - An invalidated PRIMARY Cluster that is later restored can only be
         rejoined if its GTID set has not diverged relative to the rest of the
         ClusterSet.

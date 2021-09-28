@@ -359,12 +359,17 @@ WARNING: You are about to dissolve the whole cluster and lose the high availabil
 
 Are you sure you want to dissolve the cluster? [y/N]:
 * Waiting for instance to synchronize with the primary...
+
 * Waiting for instance to synchronize with the primary...
+
 * Waiting for instance to synchronize with the primary...
+
 * Waiting for instance to synchronize with the primary...
+
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 * Waiting for instance to synchronize with the primary...
+
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
@@ -373,20 +378,20 @@ Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the
 The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.
 
-//@ Cluster: no operations can be done on a dissolved cluster
-||Can't access object member 'name' on a dissolved cluster
-||Can't call function 'addInstance' on a dissolved cluster
-||Can't call function 'checkInstanceState' on a dissolved cluster
-||Can't call function 'describe' on a dissolved cluster
-||Can't call function 'dissolve' on a dissolved cluster
-||Can't call function 'forceQuorumUsingPartitionOf' on a dissolved cluster
-||Can't call function 'getName' on a dissolved cluster
-||Can't call function 'rejoinInstance' on a dissolved cluster
-||Can't call function 'removeInstance' on a dissolved cluster
-||Can't call function 'rescan' on a dissolved cluster
-||Can't call function 'status' on a dissolved cluster
-||Can't call function 'listRouters' on a dissolved cluster
+//@ Cluster: no operations can be done on an offline cluster
+||Can't access object member 'name' on an offline cluster
+||Can't call function 'addInstance' on an offline cluster
+||Can't call function 'checkInstanceState' on an offline cluster
+||Can't call function 'describe' on an offline cluster
+||Can't call function 'dissolve' on an offline cluster
+||Can't call function 'forceQuorumUsingPartitionOf' on an offline cluster
+||Can't call function 'getName' on an offline cluster
+||Can't call function 'rejoinInstance' on an offline cluster
+||Can't call function 'removeInstance' on an offline cluster
+||Can't call function 'rescan' on an offline cluster
+||Can't call function 'status' on an offline cluster
+||Can't call function 'listRouters' on an offline cluster
 ||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
 
-//@ Cluster: disconnect() is ok on a dissolved cluster
+//@ Cluster: disconnect() is ok on an offline cluster
 ||

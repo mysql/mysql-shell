@@ -1434,7 +1434,9 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
   if (!has_quorum) {
     return Cluster_status::NO_QUORUM;
   } else {
-    if (total_members > num_online) {
+    if (num_online > 0 && is_fenced_from_writes()) {
+      return Cluster_status::FENCED_WRITES;
+    } else if (total_members > num_online) {
       // partial, some members are not online
       if (number_of_failures_tolerated == 0) {
         return Cluster_status::OK_NO_TOLERANCE_PARTIAL;
@@ -1504,6 +1506,246 @@ void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
   op_reset.prepare();
   // Execute the reset_recovery_accounts_password command.
   op_reset.execute();
+}
+
+void Cluster_impl::enable_super_read_only_globally() const {
+  auto console = mysqlsh::current_console();
+  // Enable super_read_only on the primary member
+  auto primary = get_cluster_server();
+
+  if (!primary->get_sysvar_bool("super_read_only").get_safe()) {
+    console->print_info("* Enabling super_read_only on '" + primary->descr() +
+                        "'...");
+    primary->set_sysvar("super_read_only", true);
+  }
+
+  // Enable super_read_only on the remaining members
+  using mysqlshdk::gr::Member_state;
+  execute_in_members({Member_state::ONLINE, Member_state::RECOVERING},
+                     get_cluster_server()->get_connection_options(),
+                     {primary->descr()},
+                     [=](const std::shared_ptr<Instance> &instance,
+                         const mysqlshdk::gr::Member &) {
+                       console->print_info("* Enabling super_read_only on '" +
+                                           instance->descr() + "'...");
+                       instance->set_sysvar("super_read_only", true);
+                       return true;
+                     });
+}
+
+void Cluster_impl::fence_all_traffic() {
+  check_preconditions("fenceAllTraffic");
+  acquire_primary();
+
+  auto console = mysqlsh::current_console();
+  console->print_info("The Cluster '" + get_name() +
+                      "' will be fenced from all traffic");
+  console->print_info();
+
+  // To fence all traffic, the command must:
+  //  1. enable super_read_only and offline on the primary member
+  //  2. enable offline_mode and stop Group Replication on all secondaries
+  //  3. stop Group Replication on the primary
+
+  // Enable super_read_only and off_line on the primary member
+  auto primary = get_cluster_server();
+  console->print_info("* Enabling super_read_only on the primary '" +
+                      primary->descr() + "'...");
+  primary->set_sysvar("super_read_only", true);
+
+  console->print_info("* Enabling offline_mode on the primary '" +
+                      primary->descr() + "'...");
+  primary->set_sysvar("offline_mode", true);
+
+  // Enable super_read_only, offline_mode and stop GR on all secondaries
+  using mysqlshdk::gr::Member_state;
+  execute_in_members(
+      {Member_state::ONLINE, Member_state::RECOVERING},
+      get_cluster_server()->get_connection_options(),
+      {get_cluster_server()->descr()},
+      [=](const std::shared_ptr<Instance> &instance,
+          const mysqlshdk::gr::Member &) {
+        // Every secondary should be already super_read_only
+        if (!instance->get_sysvar_bool("super_read_only").get_safe()) {
+          console->print_info("* Enabling super_read_only on '" +
+                              instance->descr() + "'...");
+          instance->set_sysvar("super_read_only", true);
+        }
+
+        console->print_info("* Enabling offline_mode on '" + instance->descr() +
+                            "'...");
+        instance->set_sysvar("offline_mode", true);
+
+        console->print_info("* Stopping Group Replication on '" +
+                            instance->descr() + "'...");
+        mysqlshdk::gr::stop_group_replication(*instance);
+
+        return true;
+      });
+
+  // Stop Group Replication on the primary member
+  console->print_info("* Stopping Group Replication on the primary '" +
+                      primary->descr() + "'...");
+  mysqlshdk::gr::stop_group_replication(*primary);
+
+  console->print_info();
+  console->print_info("Cluster successfully fenced from all traffic");
+}
+
+void Cluster_impl::fence_writes() {
+  check_preconditions("fenceWrites");
+  acquire_primary();
+
+  auto console = mysqlsh::current_console();
+
+  console->print_info("The Cluster '" + get_name() +
+                      "' will be fenced from write traffic");
+  console->print_info();
+
+  // Check if the Cluster belongs to a ClusterSet and is a REPLICA Cluster
+  if (is_cluster_set_member() && !is_primary_cluster()) {
+    throw shcore::Exception("The Cluster '" + get_name() +
+                                "' is a REPLICA Cluster of the ClusterSet '" +
+                                get_cluster_set()->get_name() + "'",
+                            SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);
+  }
+
+  // Disable the GR member action mysql_disable_super_read_only_if_primary
+  auto primary = get_cluster_server();
+
+  console->print_info(
+      "* Disabling automatic super_read_only management on the Cluster...");
+  mysqlshdk::gr::disable_member_action(
+      *primary, mysqlshdk::gr::k_gr_disable_super_read_only_if_primary,
+      mysqlshdk::gr::k_gr_member_action_after_primary_election);
+
+  // Enable super_read_only on the primary member first and after all remaining
+  // members
+  enable_super_read_only_globally();
+
+  console->print_info();
+  console->print_note(
+      "Applications will now be blocked from performing writes on Cluster '" +
+      get_name() +
+      "'. Use <Cluster>.<<<unfenceWrites>>>() to resume writes if you're "
+      "certain a split-brain is not in effect.");
+
+  console->print_info();
+  console->print_info("Cluster successfully fenced from write traffic");
+}
+
+void Cluster_impl::unfence_writes() {
+  check_preconditions("unfenceWrites");
+  acquire_primary();
+
+  auto console = mysqlsh::current_console();
+
+  console->print_info("The Cluster '" + get_name() +
+                      "' will be unfenced from write traffic");
+  console->print_info();
+
+  auto primary = get_cluster_server();
+
+  // Check if the Cluster is fenced from Write traffic
+  if (!is_fenced_from_writes()) {
+    throw shcore::Exception("Cluster not fenced to write traffic",
+                            SHERR_DBA_CLUSTER_NOT_FENCED);
+  }
+
+  // Check if offline_mode is enabled and disable it on all members
+  using mysqlshdk::gr::Member_state;
+  execute_in_members(
+      {Member_state::ONLINE, Member_state::RECOVERING},
+      get_cluster_server()->get_connection_options(), {},
+      [=](const std::shared_ptr<Instance> &instance,
+          const mysqlshdk::gr::Member &) {
+        if (instance->get_sysvar_bool("offline_mode").get_safe()) {
+          console->print_info("* Disabling offline_mode on '" +
+                              instance->descr() + "'...");
+          instance->set_sysvar("offline_mode", false);
+        }
+        return true;
+      });
+
+  // Enable the GR member action mysql_disable_super_read_only_if_primary
+  console->print_info(
+      "* Enabling automatic super_read_only management on the Cluster...");
+  mysqlshdk::gr::enable_member_action(
+      *primary, mysqlshdk::gr::k_gr_disable_super_read_only_if_primary,
+      mysqlshdk::gr::k_gr_member_action_after_primary_election);
+
+  // Disable super_read_only on the primary member
+  if (primary->get_sysvar_bool("super_read_only").get_safe()) {
+    console->print_info("* Disabling super_read_only on the primary '" +
+                        primary->descr() + "'...");
+    primary->set_sysvar("super_read_only", false);
+  }
+
+  console->print_info();
+  console->print_info("Cluster successfully unfenced from write traffic");
+}
+
+bool Cluster_impl::is_fenced_from_writes() const {
+  if (!m_cluster_server) {
+    return false;
+  }
+
+  auto primary = m_cluster_server;
+
+  // Fencing is only supported for versions >= 8.0.27 with the introduction of
+  // ClusterSet
+  if (primary->get_version() < k_min_cs_version) {
+    return false;
+  }
+
+  // If Cluster is a standalone Cluster or a PRIMARY Cluster it cannot be fenced
+  if (!is_cluster_set_member() ||
+      (is_cluster_set_member() && !is_primary_cluster())) {
+    return false;
+  }
+
+  if (!mysqlshdk::gr::is_active_member(*primary)) {
+    return false;
+  } else if (!mysqlshdk::gr::is_primary(*primary)) {
+    // Try to get the primary member, if we cannot return false right away since
+    // we cannot determine whether the cluster is fenced or not
+    try {
+      primary = get_primary_member_from_group(primary);
+    } catch (...) {
+      log_info(
+          "Failed to get primary member from cluster '%s' using the session "
+          "from '%s': %s",
+          get_name().c_str(), primary->descr().c_str(),
+          format_active_exception().c_str());
+      return false;
+    }
+  }
+
+  // Check if GR group action 'mysql_disable_super_read_only_if_primary' is
+  // enabled
+  bool disable_sro_if_primary_enabled = false;
+  try {
+    mysqlshdk::gr::get_member_action_status(
+        *primary, mysqlshdk::gr::k_gr_disable_super_read_only_if_primary,
+        &disable_sro_if_primary_enabled);
+  } catch (...) {
+    log_debug(
+        "Failed to get status of GR member action "
+        "'mysql_disable_super_read_only_if_primary' from '%s': %s",
+        primary->descr().c_str(), format_active_exception().c_str());
+    return false;
+  }
+
+  if (disable_sro_if_primary_enabled) {
+    return false;
+  }
+
+  // Check if SRO is enabled on the primary member
+  if (!primary->get_sysvar_bool("super_read_only").get_safe()) {
+    return false;
+  }
+
+  return true;
 }
 
 shcore::Value Cluster_impl::create_cluster_set(

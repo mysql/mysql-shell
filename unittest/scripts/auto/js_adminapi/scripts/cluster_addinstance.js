@@ -52,6 +52,11 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
+// Enable offline_mode (BUG#33396423)
+var session2 = mysql.getSession(__sandbox_uri2);
+session.runSql("SET GLOBAL offline_mode=1");
+session2.runSql("SET GLOBAL offline_mode=1");
+
 //@ BUG#27084767: Create a cluster in single-primary mode
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
@@ -66,6 +71,10 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<> BUG#27084767: Verify the values of auto_increment_%
 EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
 EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
+
+// ensure offline_mode was disabled (BUG#33396423)
+EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port1, "offline_mode"));
+EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port2, "offline_mode"));
 
 // Test in multi-primary mode
 

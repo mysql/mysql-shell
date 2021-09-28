@@ -76,6 +76,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Boolean removeRouterMetadata(RouterDef routerDef);
   Undefined setupAdminAccount(String user, Dictionary options);
   Undefined setupRouterAccount(String user, Dictionary options);
+  Undefined fenceAllTraffic();
+  Undefined fenceWrites();
+  Undefined unfenceWrites();
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -102,6 +105,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   bool remove_router_metadata(RouterDef routerDef);
   None setup_admin_account(str user, dict options);
   None setup_router_account(str user, dict options);
+  None fence_all_traffic();
+  None fence_writes();
+  None unfence_writes();
 #endif
 
   explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);
@@ -178,6 +184,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void set_instance_option(const Connection_options &instance_def,
                            const std::string &option,
                            const shcore::Value &value);
+
+  void fence_all_traffic();
+  void fence_writes();
+  void unfence_writes();
 
   // ClusterSet
   shcore::Value create_cluster_set(

@@ -124,6 +124,8 @@ testutil.waitMemberState(__mysql_sandbox_port2, "RECOVERING");
 //@ BUG#29754915: stop Group Replication on instance 3.
 session.close();
 shell.connect(__sandbox_uri3);
+// Enable offline_mode (BUG#33396423)
+session.runSql("SET GLOBAL offline_mode=1");
 session.runSql("STOP GROUP_REPLICATION");
 
 //@ BUG#29754915: get cluster to try to rejoin instance 3.
@@ -134,6 +136,9 @@ var c = dba.getCluster();
 //@<> BUG#29754915: rejoin instance 3 successfully.
 c.rejoinInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+// ensure offline_mode was disabled (BUG#33396423)
+EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port3, "offline_mode"));
 
 //@<> BUG#29754915: confirm cluster status.
 var topology = c.status()["defaultReplicaSet"]["topology"];

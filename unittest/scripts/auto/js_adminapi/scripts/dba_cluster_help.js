@@ -188,6 +188,33 @@ cluster.help("getClusterSet")
 //@ getClusterSet, \help [USE:getClusterSet]
 \help cluster.getClusterSet
 
+//@ fenceAllTraffic
+cluster.help("fenceAllTraffic")
+
+//@ fenceAllTraffic, \? [USE:fenceAllTraffic]
+\? cluster.fenceAllTraffic
+
+//@ fenceAllTraffic, \help [USE:fenceAllTraffic]
+\help cluster.fenceAllTraffic
+
+//@ fenceWrites
+cluster.help("fenceWrites")
+
+//@ fenceWrites, \? [USE:fenceWrites]
+\? cluster.fenceWrites
+
+//@ fenceWrites, \help [USE:fenceWrites]
+\help cluster.fenceWrites
+
+//@ unfenceWrites
+cluster.help("unfenceWrites")
+
+//@ unfenceWrites, \? [USE:unfenceWrites]
+\? cluster.unfenceWrites
+
+//@ unfenceWrites, \help [USE:unfenceWrites]
+\help cluster.unfenceWrites
+
 //@<> Finalization
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

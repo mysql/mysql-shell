@@ -100,6 +100,9 @@ session2 = mysql.getSession(__sandbox_uri2);
 
 shell.connect(__sandbox_uri1);
 
+// Enable offline_mode (BUG#33396423)
+session.runSql("SET GLOBAL offline_mode=1");
+
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances:[__sandbox_uri2]});
 
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
@@ -107,6 +110,9 @@ session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
 // ensure configs after reboot are the same as before
 EXPECT_EQ(vars1, session1.runSql("show variables like 'group_replication%'").fetchAll());
 EXPECT_EQ(vars2, session2.runSql("show variables like 'group_replication%'").fetchAll());
+
+// ensure offline_mode was disabled (BUG#33396423)
+EXPECT_EQ(0, session.runSql("select @@offline_mode").fetchOne()[0]);
 
 //@ Add instance 3
 session.close();

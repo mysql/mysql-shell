@@ -185,7 +185,8 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Dba.dropMetadataSchema",
          {k_min_adminapi_server_version,
           TargetType::StandaloneWithMetadata |
@@ -281,7 +282,8 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
 
         // GR Cluster functions
         {"Cluster.addInstance",
@@ -311,14 +313,16 @@ const std::map<std::string, Function_availability>
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.status",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.resetRecoveryAccountsPassword",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -332,7 +336,8 @@ const std::map<std::string, Function_availability>
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.dissolve",
          {k_min_gr_version,
           TargetType::InnoDBCluster,
@@ -402,7 +407,8 @@ const std::map<std::string, Function_availability>
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.removeRouterMetadata",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -424,6 +430,31 @@ const std::map<std::string, Function_availability>
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           Cluster_global_status_mask(Cluster_global_status::OK)}},
+        {"Cluster.fenceAllTraffic",
+         {k_min_cs_version,
+          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
+          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO |
+              ManagedInstance::State::Recovering,
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
+          kClusterGlobalStateAny}},
+        {"Cluster.fenceWrites",
+         {k_min_cs_version,
+          TargetType::InnoDBClusterSet,
+          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO |
+              ManagedInstance::State::Recovering,
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
+          kClusterGlobalStateAny}},
+        {"Cluster.unfenceWrites",
+         {k_min_cs_version,
+          TargetType::InnoDBClusterSet,
+          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO |
+              ManagedInstance::State::Recovering,
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.getClusterSet",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
@@ -432,7 +463,8 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.createClusterSet",
          {k_min_cs_version,
           TargetType::InnoDBCluster,
@@ -504,14 +536,16 @@ const std::map<std::string, Function_availability>
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"ClusterSet.listRouters",
          {k_min_gr_version,
           TargetType::InnoDBClusterSet,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"ClusterSet.status",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
@@ -520,7 +554,8 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"ClusterSet.describe",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
@@ -529,7 +564,8 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
 
         // ReplicaSet Functions
         {"ReplicaSet.addInstance",
@@ -761,6 +797,11 @@ Cluster_check_info Precondition_checker::check_preconditions(
           state.source_type == TargetType::InnoDBClusterSetOffline) {
         check_cluster_set_preconditions(availability.cluster_set_state);
       }
+
+      // Validate command availability based on the Cluster status
+      if (state.source_type == TargetType::InnoDBClusterSet) {
+        check_cluster_fenced_preconditions(availability.allowed_on_fenced);
+      }
     }
   } else {
     state = get_cluster_check_info(*m_metadata, m_group_server.get(), true);
@@ -944,6 +985,23 @@ Cluster_global_status Precondition_checker::get_cluster_global_state() {
   throw std::logic_error("Cluster metadata not found");
 }
 
+Cluster_status Precondition_checker::get_cluster_status() {
+  Cluster_metadata cluster_md;
+  Cluster_set_metadata cset_md;
+
+  if (m_metadata->get_cluster_for_server_uuid(m_group_server->get_uuid(),
+                                              &cluster_md)) {
+    Cluster_impl cluster(cluster_md, m_group_server, m_metadata,
+                         Cluster_availability::ONLINE);
+    auto finally_primary =
+        shcore::on_leave_scope([&cluster]() { cluster.release_primary(); });
+
+    return cluster.cluster_status();
+  }
+
+  throw std::logic_error("Cluster metadata not found");
+}
+
 /**
  * Verifies if a function is allowed or not based considering:
  * - If the caller instance belongs to a cluster set
@@ -970,6 +1028,34 @@ void Precondition_checker::check_cluster_set_preconditions(
           to_string(global_state) +
           " within the ClusterSet. Operation is not possible when in that "
           "state ";
+
+      throw shcore::Exception::runtime_error(error);
+    }
+  }
+}
+
+/**
+ * Verifies if a function is allowed or not based on:
+ *   - If the caller instance belongs to a Cluster or ClusterSet
+ *   - The cluster is Fenced to Writes
+ *
+ * @param allowed_on_fenced indicates if the operation is allowed on a fenced
+ * cluster
+ */
+void Precondition_checker::check_cluster_fenced_preconditions(
+    bool allowed_on_fenced) {
+  std::string error;
+
+  // Only queries status if not allowed on fenced
+  if (!allowed_on_fenced) {
+    Cluster_status cluster_status = get_cluster_status();
+
+    if (cluster_status == Cluster_status::FENCED_WRITES) {
+      // ERROR: The function is available on instances in a Cluster
+      // with status FENCED_WRITES
+      error =
+          "Unable to perform the operation on an InnoDB Cluster with status " +
+          to_string(cluster_status);
 
       throw shcore::Exception::runtime_error(error);
     }

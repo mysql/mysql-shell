@@ -122,6 +122,10 @@ class Cluster_impl : public Base_cluster_impl,
   shcore::Value check_instance_state(const Connection_options &instance_def);
   void reset_recovery_password(const mysqlshdk::null_bool &force,
                                const bool interactive);
+  void fence_all_traffic();
+  void fence_writes();
+  void unfence_writes();
+  bool is_fenced_from_writes() const;
   shcore::Value create_cluster_set(
       const std::string &domain_name,
       const clusterset::Create_cluster_set_options &options);
@@ -421,6 +425,14 @@ class Cluster_impl : public Base_cluster_impl,
    */
   void validate_rejoin_gtid_consistency(
       const mysqlshdk::mysql::IInstance &target_instance);
+
+  /**
+   * Enables super_read_only in the whole Cluster
+   *
+   * This functions enables super_read_only in the Cluster, starting by the
+   * primary instance and proceeding to the remaining secondary members
+   */
+  void enable_super_read_only_globally() const;
 
  public:
   // clusterset related methods

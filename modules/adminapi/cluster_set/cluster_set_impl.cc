@@ -659,7 +659,11 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
             case Cluster_channel_status::UNKNOWN:
             case Cluster_channel_status::STOPPED:
             case Cluster_channel_status::MISSING:
-              ret = Cluster_global_status::OK;
+              if (cl_status == Cluster_status::FENCED_WRITES) {
+                ret = Cluster_global_status::OK_FENCED_WRITES;
+              } else {
+                ret = Cluster_global_status::OK;
+              }
               break;
           }
         }
@@ -1730,6 +1734,10 @@ shcore::Value Cluster_set_impl::describe() {
 void Cluster_set_impl::set_primary_cluster(
     const std::string &cluster_name,
     const clusterset::Set_primary_cluster_options &options) {
+  // TODO(miguel): preconditions check is generating generic error messages in
+  // favor of the fine-grained ones of this command
+  // check_preconditions("setPrimaryCluster");
+
   auto console = current_console();
 
   shcore::Scoped_callback_list undo_list;
@@ -2200,7 +2208,12 @@ void Cluster_set_impl::primary_instance_did_change(
 void Cluster_set_impl::force_primary_cluster(
     const std::string &cluster_name,
     const clusterset::Force_primary_cluster_options &options) {
+  // TODO(miguel): preconditions check is generating generic error messages in
+  // favor of the fine-grained ones of this command
+  // check_preconditions("forcePrimaryCluster");
+
   auto console = current_console();
+  auto primary_cluster_name = get_primary_cluster()->get_name();
   int lock_timeout = current_shell_options()->get().dba_gtid_wait_timeout;
 
   console->print_info("Failing-over primary cluster of the clusterset to '" +
@@ -2319,9 +2332,17 @@ void Cluster_set_impl::force_primary_cluster(
   console->print_info("PRIMARY cluster failed-over to '" +
                       promoted_cluster->get_name() +
                       "'. The PRIMARY instance is '" + promoted->descr() + "'");
+  console->print_info("Former PRIMARY cluster '" + primary_cluster_name +
+                      "' was INVALIDATED, transactions that were not yet "
+                      "replicated may be lost.");
   console->print_info(
-      "Former PRIMARY cluster was INVALIDATED, transactions that were not yet "
-      "replicated may be lost.");
+      "In case of network partitions and similar, the former PRIMARY "
+      "Cluster '" +
+      primary_cluster_name +
+      "' may still be online and a split-brain can happen. To avoid "
+      "it, use <Cluster>.<<<fenceAllTraffic>>>() to fence the Cluster from "
+      "all application traffic, or <Cluster>.<<<fenceWrites()>>> to fence it "
+      "from write traffic only.");
   console->print_info();
 
   if (options.dry_run) {
@@ -2405,6 +2426,10 @@ void Cluster_set_impl::ensure_transaction_set_consistent(
 void Cluster_set_impl::rejoin_cluster(
     const std::string &cluster_name,
     const clusterset::Rejoin_cluster_options &options) {
+  // TODO(miguel): preconditions check is generating generic error messages in
+  // favor of the fine-grained ones of this command
+  // check_preconditions("rejoinCluster");
+
   auto console = current_console();
 
   console->print_info("Rejoining cluster '" + cluster_name +

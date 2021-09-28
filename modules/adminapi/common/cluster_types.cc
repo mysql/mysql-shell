@@ -112,6 +112,9 @@ std::string to_string(Cluster_status state) {
     case Cluster_status::UNKNOWN:
       ret_val = "UNKNOWN";
       break;
+    case Cluster_status::FENCED_WRITES:
+      ret_val = "FENCED_WRITES";
+      break;
   }
   return ret_val;
 }
@@ -129,6 +132,8 @@ Cluster_status to_cluster_status(const std::string &s) {
     return Cluster_status::NO_QUORUM;
   else if (s == "UNKNOWN")
     return Cluster_status::UNKNOWN;
+  else if (s == "FENCED_WRITES")
+    return Cluster_status::FENCED_WRITES;
   else
     throw std::invalid_argument("Invalid value " + s);
 }
@@ -149,6 +154,8 @@ std::string to_string(Cluster_global_status status) {
       return "INVALIDATED";
     case Cluster_global_status::UNKNOWN:
       return "UNKNOWN";
+    case Cluster_global_status::OK_FENCED_WRITES:
+      return "OK_FENCED_WRITES";
   }
   throw std::logic_error("internal error");
 }

@@ -42,9 +42,11 @@ class Mock_precondition_checker : public mysqlsh::dba::Precondition_checker {
   virtual ~Mock_precondition_checker() {}
 
   MOCK_METHOD0(get_cluster_global_state, mysqlsh::dba::Cluster_global_status());
+  MOCK_METHOD0(get_cluster_status, mysqlsh::dba::Cluster_status());
 
  private:
   mysqlsh::dba::Cluster_global_status def_get_cluster_global_state();
+  mysqlsh::dba::Cluster_status def_get_cluster_status();
 };
 }  // namespace testing
 

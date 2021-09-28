@@ -24,6 +24,7 @@ WARNING: You are about to dissolve the whole cluster and lose the high availabil
 
 Are you sure you want to dissolve the cluster? [y/N]:
 * Waiting for instance to synchronize with the primary...
+
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port1+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 
@@ -47,7 +48,7 @@ Replication was disabled but user data was left intact.
 ||
 
 //@ Cluster.dissolve already dissolved
-||Can't call function 'dissolve' on a dissolved cluster
+||Can't call function 'dissolve' on an offline cluster
 
 //@<OUT> Verify cluster data removed from metadata on instance 1
 false
@@ -206,6 +207,7 @@ WARNING: An error occurred when trying to catch up with cluster transactions and
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port2+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 * Waiting for instance to synchronize with the primary...
+
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is attempting to leave the cluster...
 <<<(__version_num<80011)?"WARNING: On instance '"+hostname+":"+__mysql_sandbox_port3+"' configuration cannot be persisted since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.\n":""\>>>
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...

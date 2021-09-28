@@ -38,7 +38,7 @@ struct Create_cluster_set_options {
   void set_ssl_mode(const std::string &value);
 
   bool dry_run = false;
-  Cluster_ssl_mode ssl_mode;
+  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
 };
 
 struct Create_replica_cluster_options : public Interactive_option,

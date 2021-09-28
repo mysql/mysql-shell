@@ -375,7 +375,7 @@ for (index in tests) {
             } else {
                 // The rest of the functions should fail as the cluster is dissolved, this means
                 // the metadata precondition passed the check
-                EXPECT_THROWS(not_ro_tests[not_ro_index], "on a dissolved cluster");
+                EXPECT_THROWS(not_ro_tests[not_ro_index], "on an offline cluster");
             }
         }
     }

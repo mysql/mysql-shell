@@ -889,7 +889,7 @@
 ?{}
 ?{VER(>=8.0.19) && VER(<8.0.28)}
                 {
-                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3",
+                    "value": "[[*]]",
                     "variable": "group_replication_recovery_tls_version"
                 },
 ?{}
@@ -1228,7 +1228,7 @@
 ?{}
 ?{VER(>=8.0.19) && VER(<8.0.28)}
                 {
-                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3",
+                    "value": "[[*]]",
                     "variable": "group_replication_recovery_tls_version"
                 },
 ?{}
@@ -1567,7 +1567,7 @@
 ?{}
 ?{VER(>=8.0.19) && VER(<8.0.28)}
                 {
-                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3",
+                    "value": "[[*]]",
                     "variable": "group_replication_recovery_tls_version"
                 },
 ?{}

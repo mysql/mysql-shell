@@ -704,7 +704,6 @@ void Replica_set_impl::add_instance(
         throw;
       }
     }
-    console->print_info();
 
     Instance_id master_id = static_cast<const topology::Server *>(
                                 topology->topology()->get_primary_master_node())
@@ -920,8 +919,6 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
         throw e;
       }
     }
-
-    console->print_info();
 
     console->print_info("* Updating the Metadata...");
     // Set new instance information and store in MD.
@@ -1326,7 +1323,6 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   if (!dry_run) {
     sync_transactions(*new_master, {k_replicaset_channel_name}, timeout);
   }
-  console->print_info();
 
   console->print_info("* Updating metadata");
   // Re-generate a new password for the master being demoted.

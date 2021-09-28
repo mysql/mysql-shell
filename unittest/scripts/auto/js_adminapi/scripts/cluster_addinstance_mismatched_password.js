@@ -31,25 +31,13 @@ EXPECT_THROWS(function () {
 }, "Could not open connection to 'localhost:"+__mysql_sandbox_port2+"': Access denied for user 'cluster_admin'@'localhost' (using password: YES)");
 EXPECT_OUTPUT_CONTAINS("ERROR: MySQL Error 1045 (28000): Access denied for user 'cluster_admin'@'localhost' (using password: YES): Credentials for user cluster_admin at localhost:"+__mysql_sandbox_port2+" must be the same as in the rest of the cluster.");
 
-// Added instance has custom credentials
-
-//@<> Add instance with custom credentials (interactive password, wrong)
-testutil.expectPassword("Please provide the password for 'cluster_admin2@localhost:"+__mysql_sandbox_port2+"': ", "bla");
+//@<> Add instance using account that exists in the seed but the password does not match
+dba.configureInstance(__sandbox_uri2, { clusterAdmin: "cluster_admin", clusterAdminPassword: "bar" });
 
 EXPECT_THROWS(function () {
-    cluster.addInstance({ user: 'cluster_admin2', host: 'localhost', port: __mysql_sandbox_port2 }, { recoveryMethod: "incremental", interactive:1 });
-}, "Could not open connection to 'localhost:"+__mysql_sandbox_port2+"': Access denied for user 'cluster_admin2'@'localhost' (using password: YES)");
-
-EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to the target instance 'localhost:"+__mysql_sandbox_port2+"'. Please verify the connection settings, make sure the instance is available and try again.");
-
-//@<> Add instance with custom credentials, incremental (interactive password, correct)
-testutil.expectPassword("Please provide the password for 'cluster_admin2@localhost:"+__mysql_sandbox_port2+"': ", "bar");
-cluster.addInstance({ user: 'cluster_admin2', host: 'localhost', port: __mysql_sandbox_port2 }, { recoveryMethod: "incremental", interactive:1 });
-
-cluster.removeInstance(__sandbox_uri2);
-
-//@<> Add instance with custom credentials, good password, clone {VER(>=8.0)}
-cluster.addInstance({ user: 'cluster_admin2', password: 'bar', host: 'localhost', port: __mysql_sandbox_port2 }, { recoveryMethod: "clone" });
+    cluster.addInstance('localhost:'+__mysql_sandbox_port2, { recoveryMethod: "incremental" });
+}, "Could not open connection to 'localhost:"+__mysql_sandbox_port2+"': Access denied for user 'cluster_admin'@'localhost' (using password: YES)");
+EXPECT_OUTPUT_CONTAINS("ERROR: MySQL Error 1045 (28000): Access denied for user 'cluster_admin'@'localhost' (using password: YES): Credentials for user cluster_admin at localhost:"+__mysql_sandbox_port2+" must be the same as in the rest of the cluster.");
 
 //@<> Cleanup
 session.close()

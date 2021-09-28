@@ -211,17 +211,17 @@ Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> no
 ||
 
 //@ Cluster: no operations can be done on a dissolved cluster
-||Can't access object member 'name' on a dissolved cluster
-||Can't call function 'addInstance' on a dissolved cluster
-||Can't call function 'checkInstanceState' on a dissolved cluster
-||Can't call function 'describe' on a dissolved cluster
-||Can't call function 'dissolve' on a dissolved cluster
-||Can't call function 'forceQuorumUsingPartitionOf' on a dissolved cluster
-||Can't call function 'getName' on a dissolved cluster
-||Can't call function 'rejoinInstance' on a dissolved cluster
-||Can't call function 'removeInstance' on a dissolved cluster
-||Can't call function 'rescan' on a dissolved cluster
-||Can't call function 'status' on a dissolved cluster
+||Can't access object member 'name' on an offline cluster
+||Can't call function 'addInstance' on an offline cluster
+||Can't call function 'checkInstanceState' on an offline cluster
+||Can't call function 'describe' on an offline cluster
+||Can't call function 'dissolve' on an offline cluster
+||Can't call function 'forceQuorumUsingPartitionOf' on an offline cluster
+||Can't call function 'getName' on an offline cluster
+||Can't call function 'rejoinInstance' on an offline cluster
+||Can't call function 'removeInstance' on an offline cluster
+||Can't call function 'rescan' on an offline cluster
+||Can't call function 'status' on an offline cluster
 
 //@ Cluster: disconnect should work, tho
 ||

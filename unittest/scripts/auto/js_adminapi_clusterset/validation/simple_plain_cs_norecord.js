@@ -29,7 +29,9 @@ ClusterSet successfully created. Use ClusterSet.createReplicaCluster() to add Re
 The Cluster 'replicacluster' will be removed from the InnoDB ClusterSet.
 
 * Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
 * Updating topology
+
 * Stopping and deleting ClusterSet managed replication channel...
 
 The Cluster 'replicacluster' was removed from the ClusterSet.

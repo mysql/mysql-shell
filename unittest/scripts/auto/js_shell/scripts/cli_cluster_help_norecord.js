@@ -62,3 +62,12 @@ callMysqlsh(["--", "cluster", "status", "--help"])
 
 //@ CLI cluster switch-to-single-primary-mode --help
 callMysqlsh(["--", "cluster", "switch-to-single-primary-mode", "--help"])
+
+//@ CLI cluster fence-all-traffic --help
+callMysqlsh(["--", "cluster", "fence-all-traffic", "--help"])
+
+//@ CLI cluster fence-writes --help
+callMysqlsh(["--", "cluster", "fence-writes", "--help"])
+
+//@ CLI cluster unfence-writes --help
+callMysqlsh(["--", "cluster", "unfence-writes", "--help"])

@@ -33,7 +33,10 @@ validate_members(cluster, [
     'set_instance_option',
     'switch_to_multi_primary_mode',
     'switch_to_single_primary_mode',
-    'create_cluster_set'
+    'create_cluster_set',
+    'fence_all_traffic',
+    'fence_writes',
+    'unfence_writes'
     ])
 
 cluster.disconnect()

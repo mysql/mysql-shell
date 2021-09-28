@@ -40,7 +40,10 @@ validateMembers(Cluster, [
   'setInstanceOption',
   'setupAdminAccount',
   'setupRouterAccount',
-  'createClusterSet'
+  'createClusterSet',
+  'fenceAllTraffic',
+  'fenceWrites',
+  'unfenceWrites'
 ])
 
 //@ Cluster: addInstance errors

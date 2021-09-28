@@ -84,7 +84,8 @@ enum class Cluster_status {
   OFFLINE,                  // No members ONLINE (but all reachable)
   INVALIDATED,              // Part of a ClusterSet but is invalidated
   ERROR,                    // Group Replication Error
-  UNKNOWN                   // No members ONLINE (some or all unreachable)
+  FENCED_WRITES,            // Cluster fenced to Writes
+  UNKNOWN,                  // No members ONLINE (some or all unreachable)
 };
 
 std::string to_string(Cluster_status state);
@@ -108,6 +109,7 @@ enum class Cluster_global_status {
   NOT_OK,              // Primary Cluster has status NO_QUORUM or OFFLINE, or a
                        // Replica Cluster with status NO_QUORUM or OFFLINE
   INVALIDATED,         // The cluster was invalidated by a failover.
+  OK_FENCED_WRITES,    // The Cluster is OK but fenced from writes.
   UNKNOWN              // If it's a Primary Cluster with status UNKNOWN.
 };
 

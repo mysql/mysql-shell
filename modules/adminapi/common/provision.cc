@@ -668,6 +668,12 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // persisted (except in 5.7).
   config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
 
+  // Check if offline_mode is enabled to disable it
+  if (instance.get_sysvar_bool("offline_mode").get_safe()) {
+    log_info("Disabling offline_mode on '%s'", instance.descr().c_str());
+    config->set("offline_mode", mysqlshdk::utils::nullable<bool>(false));
+  }
+
   mysqlshdk::utils::nullable<bool> single_primary_mode;
   if (!multi_primary.is_null()) single_primary_mode = !*multi_primary;
 
@@ -729,6 +735,12 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
   // in case it restarts. To avoid any possible races, we must make sure the
   // instance is never in the metadata unless sro=1 is persisted
   config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
+
+  // Check if offline_mode is enabled to disable it
+  if (instance.get_sysvar_bool("offline_mode").get_safe()) {
+    log_info("Disabling offline_mode on '%s'", instance.descr().c_str());
+    config->set("offline_mode", mysqlshdk::utils::nullable<bool>(false));
+  }
 
   std::string gr_group_name, gr_view_change_uuid;
   bool single_primary_mode;

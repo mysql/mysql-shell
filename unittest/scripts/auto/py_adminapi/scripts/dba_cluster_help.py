@@ -243,6 +243,33 @@ c.help('get_cluster_set')
 #@ global help for get_cluster_set[USE:cluster.get_cluster_set]
 \help cluster.get_cluster_set
 
+#@ cluster.fence_all_traffic
+c.help('fence_all_traffic')
+
+#@ global ? for fence_all_traffic[USE:cluster.fence_all_traffic]
+\? cluster.fence_all_traffic
+
+#@ global help for fence_all_traffic[USE:cluster.fence_all_traffic]
+\help cluster.fence_all_traffic
+
+#@ cluster.fence_writes
+c.help('fence_writes')
+
+#@ global ? for fence_writes[USE:cluster.fence_writes]
+\? cluster.fence_writes
+
+#@ global help for fence_writes[USE:cluster.fence_writes]
+\help cluster.fence_writes
+
+#@ cluster.unfence_writes
+c.help('unfence_writes')
+
+#@ global ? for unfence_writes[USE:cluster.unfence_writes]
+\? cluster.unfence_writes
+
+#@ global help for unfence_writes[USE:cluster.unfence_writes]
+\help cluster.unfence_writes
+
 c.disconnect()
 
 testutil.destroy_sandbox(__mysql_sandbox_port1);

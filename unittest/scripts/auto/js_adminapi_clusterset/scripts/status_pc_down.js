@@ -202,13 +202,18 @@ EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will 
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 // replicationStatus will take a while to switch from OK to ERROR
-// EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
-// EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will be unable to perform updates until it's restored.", "WARNING: Replication from the Primary Cluster not in expected state"], cluster2(s)["clusterErrors"]);
+testutil.waitForReplConnectionError(__mysql_sandbox_port4, "clusterset_replication");
+testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
+s = cs.status();
+EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will be unable to perform updates until it's restored.", "WARNING: Replication from the Primary Cluster not in expected state"], cluster2(s)["clusterErrors"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
-// EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
-// EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
+EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 
+testutil.waitForReplConnectionError(__mysql_sandbox_port4, "clusterset_replication");
+testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
 s = cs.status({extended:1});
 s2 = c2.status({extended:1});
 s3 = c3.status({extended:1});

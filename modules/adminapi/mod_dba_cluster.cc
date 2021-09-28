@@ -143,6 +143,9 @@ void Cluster::init() {
          "?options")
       ->cli();
   expose("getClusterSet", &Cluster::get_cluster_set)->cli(false);
+  expose("fenceAllTraffic", &Cluster::fence_all_traffic)->cli();
+  expose("fenceWrites", &Cluster::fence_writes)->cli();
+  expose("unfenceWrites", &Cluster::unfence_writes)->cli();
 }
 
 // Documentation of the getName function
@@ -196,12 +199,12 @@ void Cluster::assert_valid(const std::string &option_name) const {
       name = get_function_name(option_name, false);
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
                                              "Can't call function '" + name +
-                                             "' on a dissolved cluster");
+                                             "' on an offline cluster");
     } else {
       name = get_member_name(option_name, shcore::current_naming_style());
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
                                              "Can't access object member '" +
-                                             name + "' on a dissolved cluster");
+                                             name + "' on an offline cluster");
     }
   }
   if (!m_impl->get_cluster_server()) {
@@ -1422,6 +1425,105 @@ void Cluster::setup_router_account(
   std::tie(username, host) = validate_account_name(user);
 
   m_impl->setup_router_account(username, host, *options);
+}
+
+REGISTER_HELP_FUNCTION(fenceAllTraffic, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FENCEALLTRAFFIC, R"*(
+Fences a Cluster from All Traffic.
+
+@returns Nothing
+
+This function fences a Cluster from all Traffic by ensuring the Group
+Replication is completely shut down and all members are Read-Only and in
+Offline mode, preventing regular client connections from connecting to it.
+
+Use this function when performing a PRIMARY Cluster failover in a
+ClusterSet to prevent a split-brain.
+
+@attention The Cluster will be put OFFLINE but Cluster members will not be
+shut down. This is the equivalent of a graceful shutdown of Group Replication.
+To restore the Cluster use dba.<<<rebootClusterFromCompleteOutage>>>().
+)*");
+
+/**
+ * $(CLUSTER_FENCEALLTRAFFIC_BRIEF)
+ *
+ * $(CLUSTER_FENCEALLTRAFFIC)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::fenceAllTraffic() {}
+#elif DOXYGEN_PY
+None Cluster::fence_all_traffic() {}
+#endif
+void Cluster::fence_all_traffic() {
+  assert_valid("fenceAllTraffic");
+
+  m_impl->fence_all_traffic();
+
+  // Invalidate the cluster object
+  invalidate();
+}
+
+REGISTER_HELP_FUNCTION(fenceWrites, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FENCEWRITES, R"*(
+Fences a Cluster from Write Traffic.
+
+@returns Nothing
+
+This function fences a Cluster from all Write Traffic by ensuring all of its
+members are Read-Only regardless of any topology change on it.
+The Cluster will be put into READ ONLY mode and all members will remain
+available for reads.
+To unfence the Cluster so it restores its normal functioning and can accept all
+traffic use Cluster.unfence().
+
+Use this function when performing a PRIMARY Cluster failover in a ClusterSet to
+allow only read traffic in the previous Primary Cluster in the event of a
+split-brain.
+)*");
+/**
+ * $(CLUSTER_FENCEWRITES_BRIEF)
+ *
+ * $(CLUSTER_FENCEWRITES)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::fenceWrites() {}
+#elif DOXYGEN_PY
+None Cluster::fence_writes() {}
+#endif
+void Cluster::fence_writes() {
+  assert_valid("fenceWrites");
+
+  m_impl->fence_writes();
+}
+
+REGISTER_HELP_FUNCTION(unfenceWrites, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_UNFENCEWRITES, R"*(
+Unfences a Cluster.
+
+@returns Nothing
+
+This function unfences a Cluster that was previously fenced to Write traffic
+with Cluster.<<<fenceWrites>>>().
+
+@attention This function does not unfence Clusters that have been fenced to ALL
+traffic. Those Cluster are completely shut down and can only be restored using
+dba.<<<rebootClusterFromCompleteOutage>>>().
+)*");
+/**
+ * $(CLUSTER_UNFENCEWRITES_BRIEF)
+ *
+ * $(CLUSTER_UNFENCEWRITES)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::unfenceWrites() {}
+#elif DOXYGEN_PY
+None Cluster::unfence_writes() {}
+#endif
+void Cluster::unfence_writes() {
+  assert_valid("unfenceWrites");
+
+  m_impl->unfence_writes();
 }
 
 REGISTER_HELP_FUNCTION(createClusterSet, Cluster);

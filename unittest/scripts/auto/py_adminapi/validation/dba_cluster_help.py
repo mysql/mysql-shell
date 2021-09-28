@@ -37,6 +37,12 @@ FUNCTIONS
       dissolve([options])
             Dissolves the cluster.
 
+      fence_all_traffic()
+            Fences a Cluster from All Traffic.
+
+      fence_writes()
+            Fences a Cluster from Write Traffic.
+
       force_quorum_using_partition_of(instance[, password])
             Restores the cluster from quorum loss.
 
@@ -93,6 +99,9 @@ FUNCTIONS
 
       switch_to_single_primary_mode([instance])
             Switches the cluster to single-primary mode.
+
+      unfence_writes()
+            Unfences a Cluster.
 
       For more help on a specific function use: cluster.help('<functionName>')
 
@@ -1286,3 +1295,68 @@ DESCRIPTION
       This function will also work if the PRIMARY Cluster is unreachable or
       unavailable, although ClusterSet change operations will not be possible,
       except for failover with force_primary_cluster().
+
+#@<OUT> cluster.fence_all_traffic
+NAME
+      fence_all_traffic - Fences a Cluster from All Traffic.
+
+SYNTAX
+      <Cluster>.fence_all_traffic()
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This function fences a Cluster from all Traffic by ensuring the Group
+      Replication is completely shut down and all members are Read-Only and in
+      Offline mode, preventing regular client connections from connecting to
+      it.
+
+      Use this function when performing a PRIMARY Cluster failover in a
+      ClusterSet to prevent a split-brain.
+
+      ATTENTION: The Cluster will be put OFFLINE but Cluster members will not
+                 be shut down. This is the equivalent of a graceful shutdown of
+                 Group Replication. To restore the Cluster use
+                 dba.reboot_cluster_from_complete_outage().
+
+#@<OUT> cluster.fence_writes
+NAME
+      fence_writes - Fences a Cluster from Write Traffic.
+
+SYNTAX
+      <Cluster>.fence_writes()
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This function fences a Cluster from all Write Traffic by ensuring all of
+      its members are Read-Only regardless of any topology change on it. The
+      Cluster will be put into READ ONLY mode and all members will remain
+      available for reads. To unfence the Cluster so it restores its normal
+      functioning and can accept all traffic use Cluster.unfence().
+
+      Use this function when performing a PRIMARY Cluster failover in a
+      ClusterSet to allow only read traffic in the previous Primary Cluster in
+      the event of a split-brain.
+
+#@<OUT> cluster.unfence_writes
+NAME
+      unfence_writes - Unfences a Cluster.
+
+SYNTAX
+      <Cluster>.unfence_writes()
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This function unfences a Cluster that was previously fenced to Write
+      traffic with Cluster.fence_writes().
+
+      ATTENTION: This function does not unfence Clusters that have been fenced
+                 to ALL traffic. Those Cluster are completely shut down and can
+                 only be restored using
+                 dba.reboot_cluster_from_complete_outage().
+

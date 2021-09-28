@@ -455,6 +455,11 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
           }
           break;
 
+        case Cluster_global_status::OK_FENCED_WRITES:
+          status_text = "Primary Cluster is fenced from write traffic.";
+          global_availability = Cluster_set_global_status::UNAVAILABLE;
+          break;
+
         case Cluster_global_status::INVALIDATED:        // shouldn't happen
         case Cluster_global_status::OK_NOT_CONSISTENT:  // shouldn't happen
           assert(0);

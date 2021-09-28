@@ -54,7 +54,10 @@ validateMembers(Cluster, [
   'setInstanceOption',
   'setupAdminAccount',
   'setupRouterAccount',
-  'createClusterSet'
+  'createClusterSet',
+  'fenceAllTraffic',
+  'fenceWrites',
+  'unfenceWrites'
 ])
 
 //@ Cluster: addInstance errors
@@ -197,7 +200,7 @@ EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"]["z3rd_sandbox"]["mode"]
 // Regression for BUG#27837231: useless 'force' parameter for dissolve
 Cluster.dissolve();
 
-//@ Cluster: no operations can be done on a dissolved cluster
+//@ Cluster: no operations can be done on an offline cluster
 Cluster.name;
 Cluster.addInstance();
 Cluster.checkInstanceState();
@@ -212,7 +215,7 @@ Cluster.status();
 Cluster.listRouters();
 Cluster.removeRouterInstance();
 
-//@ Cluster: disconnect() is ok on a dissolved cluster
+//@ Cluster: disconnect() is ok on an offline cluster
 Cluster.disconnect();
 
 // Close session

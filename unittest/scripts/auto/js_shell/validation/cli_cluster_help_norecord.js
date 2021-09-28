@@ -17,6 +17,12 @@ The following operations are available at 'cluster':
    dissolve
       Dissolves the cluster.
 
+   fence-all-traffic
+      Fences a Cluster from All Traffic.
+
+   fence-writes
+      Fences a Cluster from Write Traffic.
+
    force-quorum-using-partition-of
       Restores the cluster from quorum loss.
 
@@ -61,6 +67,9 @@ The following operations are available at 'cluster':
 
    switch-to-single-primary-mode
       Switches the cluster to single-primary mode.
+
+   unfence-writes
+      Unfences a Cluster.
 
 //@<OUT> CLI cluster add-instance --help
 NAME
@@ -485,3 +494,32 @@ WHERE
 RETURNS
       Nothing.
 
+//@<OUT> CLI cluster fence-all-traffic --help
+NAME
+      fence-all-traffic - Fences a Cluster from All Traffic.
+
+SYNTAX
+      cluster fence-all-traffic
+
+RETURNS
+      Nothing
+
+//@<OUT> CLI cluster fence-writes --help
+NAME
+      fence-writes - Fences a Cluster from Write Traffic.
+
+SYNTAX
+      cluster fence-writes
+
+RETURNS
+      Nothing
+
+//@<OUT> CLI cluster unfence-writes --help
+NAME
+      unfence-writes - Unfences a Cluster.
+
+SYNTAX
+      cluster unfence-writes
+
+RETURNS
+      Nothing

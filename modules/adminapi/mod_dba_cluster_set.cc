@@ -576,7 +576,7 @@ For a switchover to be possible, all instances of the target
 Cluster must be reachable from the shell and have consistent transaction
 sets with the current PRIMARY Cluster. If the PRIMARY Cluster is not
 available and cannot be restored, a failover must be performed instead, using
-<ClusterSet>.<<<forcePrimaryCluster>>>().
+ClusterSet.<<<forcePrimaryCluster>>>().
 
 The switchover will be canceled if there are REPLICA Clusters that
 are unreachable or unavailable. To continue, they must either be restored or
@@ -586,7 +586,7 @@ and rejoined, using <<<removeCluster>>>() or <<<rejoinCluster>>>().
 
 Additionally, if any available REPLICA Cluster has members that are not ONLINE
 and/or reachable, these members will not be in a properly configured state even
-after being restored and rejoined. To ensure failover works correctly, 
+after being restored and rejoined. To ensure failover works correctly,
 <<<rejoinCluster>>>() must be called on the Cluster once these members are
 rejoined.
 
@@ -668,7 +668,10 @@ topology. MySQL Router instances that can connect to the new PRIMARY Cluster
 will be able to tell which topology is the correct one, but those instances
 that can only connect to the invalid Cluster will behave as if nothing changed.
 If applications can still update the database through such Router instances,
-there will be a "Split-Brain" and the database will become inconsistent.
+there will be a "Split-Brain" and the database will become inconsistent. To
+avoid such scenario, fence the old primary from all traffic using
+<Cluster>.<<<fenceAllTraffic>>>(), or from write traffic only using
+<Cluster>.<<<fenceWrites>>>().
 
 @li An invalidated PRIMARY Cluster that is later restored can only be rejoined
 if its GTID set has not diverged relative to the rest of the ClusterSet.

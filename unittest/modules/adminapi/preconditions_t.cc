@@ -420,7 +420,8 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "ClusterSet.forcePrimaryCluster", "ClusterSet.listRouters",
       "ClusterSet.rejoinCluster",       "ClusterSet.removeCluster",
       "ClusterSet.routingOptions",      "ClusterSet.setPrimaryCluster",
-      "ClusterSet.setRoutingOption"};
+      "ClusterSet.setRoutingOption",    "Cluster.fenceWrites",
+      "Cluster.unfenceWrites"};
 
   std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",
@@ -445,7 +446,8 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.options",
       "Cluster.status",
       "Dba.getCluster",
-      "Dba.upgradeMetadata"};
+      "Dba.upgradeMetadata",
+      "Cluster.fenceAllTraffic"};
 
   std::set<std::string> cset_sometimes_allowed_expected = {
       "Cluster.addInstance",
@@ -528,6 +530,32 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
             standalone_cluster_exclusive);
   EXPECT_EQ(cset_always_allowed_expected, cset_always_allowed);
   EXPECT_EQ(cset_sometimes_allowed_expected, cset_sometimes_allowed);
-}  // namespace dba
+}
+
+TEST_F(Preconditions, check_cluster_fenced_preconditions) {
+  struct Invalid_states {
+    bool allowed_on_fenced;
+    std::string error;
+  };
+
+  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance);
+
+  EXPECT_CALL(checker, get_cluster_status())
+      .WillOnce(Return(mysqlsh::dba::Cluster_status::FENCED_WRITES));
+
+  EXPECT_THROW_LIKE(checker.check_cluster_fenced_preconditions(false),
+                    shcore::Exception,
+                    "Unable to perform the operation on an InnoDB Cluster with "
+                    "status FENCED_WRITES");
+
+  EXPECT_NO_THROW(checker.check_cluster_fenced_preconditions(true));
+
+  EXPECT_CALL(checker, get_cluster_status())
+      .WillRepeatedly(Return(mysqlsh::dba::Cluster_status::OK));
+
+  EXPECT_NO_THROW(checker.check_cluster_fenced_preconditions(true));
+
+  EXPECT_NO_THROW(checker.check_cluster_fenced_preconditions(false));
+}
 }  // namespace dba
 }  // namespace mysqlsh

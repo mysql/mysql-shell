@@ -183,7 +183,12 @@ shcore::Dictionary_t Status::check_group_status(
     desc_status = "Cluster has no quorum as visible from '" + instance.descr() +
                   "' and cannot process write transactions.";
   } else {
-    if (m_cluster.is_cluster_set_member() && m_cluster.is_invalidated()) {
+    if (m_cluster.is_fenced_from_writes()) {
+      rs_status = Cluster_status::FENCED_WRITES;
+
+      desc_status = "Cluster is fenced from Write Traffic.";
+    } else if (m_cluster.is_cluster_set_member() &&
+               m_cluster.is_invalidated()) {
       rs_status = Cluster_status::INVALIDATED;
 
       desc_status = "Cluster was invalidated by the ClusterSet it belongs to.";
@@ -1031,6 +1036,12 @@ shcore::Array_t group_diagnostics(
     case Cluster_availability::ONLINE:
     case Cluster_availability::ONLINE_NO_PRIMARY:
       break;
+  }
+
+  if (cluster->is_fenced_from_writes()) {
+    issues->push_back(
+        shcore::Value("WARNING: Cluster is fenced from Write traffic. Use "
+                      "cluster.unfenceWrites() to unfence the Cluster."));
   }
 
   return issues;

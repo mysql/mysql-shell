@@ -90,6 +90,7 @@ class Precondition_checker {
   FRIEND_TEST(Preconditions, check_quorum_state_preconditions);
   FRIEND_TEST(Preconditions, check_cluster_set_preconditions_errors);
   FRIEND_TEST(Preconditions, check_cluster_set_preconditions);
+  FRIEND_TEST(Preconditions, check_cluster_fenced_preconditions);
 #endif
 
   void check_session() const;
@@ -105,9 +106,11 @@ class Precondition_checker {
       mysqlsh::dba::ReplicationQuorum::State allowed_states) const;
   void check_cluster_set_preconditions(
       mysqlsh::dba::Cluster_global_status_mask allowed_states);
+  void check_cluster_fenced_preconditions(bool allowed_on_fenced);
 
  protected:
   virtual Cluster_global_status get_cluster_global_state();
+  virtual Cluster_status get_cluster_status();
 
   std::shared_ptr<MetadataStorage> m_metadata;
   std::shared_ptr<Instance> m_group_server;

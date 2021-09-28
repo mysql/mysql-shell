@@ -30,6 +30,9 @@ Mock_precondition_checker::Mock_precondition_checker(
   ON_CALL(*this, get_cluster_global_state())
       .WillByDefault(Invoke(
           this, &Mock_precondition_checker::def_get_cluster_global_state));
+  ON_CALL(*this, get_cluster_status())
+      .WillByDefault(
+          Invoke(this, &Mock_precondition_checker::def_get_cluster_status));
 }
 
 mysqlsh::dba::Cluster_global_status
@@ -37,4 +40,8 @@ Mock_precondition_checker::def_get_cluster_global_state() {
   return mysqlsh::dba::Precondition_checker::get_cluster_global_state();
 }
 
+mysqlsh::dba::Cluster_status
+Mock_precondition_checker::def_get_cluster_status() {
+  return mysqlsh::dba::Precondition_checker::get_cluster_status();
+}
 }  // namespace testing
