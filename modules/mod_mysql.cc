@@ -304,7 +304,6 @@ ClassicSession get_session(ConnectionData connectionData, str password) {}
 std::shared_ptr<shcore::Object_bridge> Mysql::get_session(
     const mysqlshdk::db::Connection_options &co_, const char *password) {
   auto co = co_;
-  co.show_tls_deprecation_warning(true);
   set_password_from_string(&co, password);
 
   // Sessions through the classic protocol will use the plugin dir from the

@@ -927,7 +927,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
         "Recreate schema requested, but no schema specified");
 
   auto new_session = ShellBaseSession::wrap_session(
-      establish_session(connection_options, options().wizards, false, true));
+      establish_session(connection_options, options().wizards));
   if (shell_global_session) {
     auto old_session(_shell->get_dev_session());
     set_active_session(new_session);
@@ -1034,10 +1034,9 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
                                              const Connection_options &opts) {
   const auto dev_session = shell_context()->get_dev_session();
   const std::string target = secondary ? "SECONDARY" : "PRIMARY";
-
   const auto session =
       opts.has_data()
-          ? establish_session(opts, options().wizards, false, true)
+          ? establish_session(opts, options().wizards)
           : dev_session && dev_session->is_open()
                 ? dev_session->get_core_session()
                 : throw std::runtime_error("Redirecting to a " + target +

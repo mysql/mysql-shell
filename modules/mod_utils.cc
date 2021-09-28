@@ -449,7 +449,7 @@ void password_prompt(Connection_options *options) {
 
 std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop, bool show_tls_deprecation) {
+    bool prompt_in_loop) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -457,7 +457,6 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     Connection_options copy = options;
 
     copy.set_default_connection_data();
-    copy.show_tls_deprecation_warning(show_tls_deprecation);
 
     if (!copy.has_password() && copy.has_user()) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
@@ -521,7 +520,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
 
 std::shared_ptr<mysqlshdk::db::ISession> establish_mysql_session(
     const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop, bool show_tls_deprecation) {
+    bool prompt_in_loop) {
   Connection_options copy = options;
 
   if (copy.has_scheme()) {
@@ -530,8 +529,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_mysql_session(
 
   copy.set_scheme("mysql");
 
-  return establish_session(copy, prompt_for_password, prompt_in_loop,
-                           show_tls_deprecation);
+  return establish_session(copy, prompt_for_password, prompt_in_loop);
 }
 
 Connection_options get_classic_connection_options(

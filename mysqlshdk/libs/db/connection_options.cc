@@ -23,7 +23,6 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include <algorithm>
 #include <cassert>
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
@@ -550,15 +549,6 @@ void Connection_options::throw_invalid_connect_timeout(
                          "connection timeout value must be a positive integer "
                          "(including 0).",
                          value.c_str(), kConnectTimeout));
-}
-
-void Connection_options::show_tls_deprecation_warning(bool show) const {
-  if (show) {
-    const auto msg = this->get_ssl_options().tls_deprecation_message();
-    if (!msg.empty()) {
-      mysqlsh::current_console()->print_warning(msg);
-    }
-  }
 }
 
 bool Connection_options::is_auth_method(const std::string &method_id) const {

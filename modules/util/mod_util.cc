@@ -394,8 +394,8 @@ void check_upgrade(const Connection_options &connection_options,
   auto print =
       Upgrade_check_output_formatter::get_formatter(opts.output_format);
 
-  auto session = establish_session(
-      connection_options, current_shell_options()->get().wizards, false, true);
+  auto session = establish_session(connection_options,
+                                   current_shell_options()->get().wizards);
 
   auto result = session->query("select current_user();");
   const mysqlshdk::db::IRow *row = result->fetch_one();

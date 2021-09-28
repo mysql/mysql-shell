@@ -58,8 +58,7 @@ void Switch_to_single_primary_mode::prepare() {
     std::string target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());
 
-    auto target_instance =
-        mysqlsh::dba::Instance::connect(m_instance_cnx_opts, false, true);
+    auto target_instance = mysqlsh::dba::Instance::connect(m_instance_cnx_opts);
 
     m_target_uuid = target_instance->get_uuid();
 

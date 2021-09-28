@@ -114,7 +114,7 @@ void Set_instance_option::ensure_target_member_reachable() {
   log_debug("Connecting to instance '%s'", m_target_instance_address.c_str());
 
   try {
-    m_target_instance = Instance::connect(m_instance_cnx_opts, false, true);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();

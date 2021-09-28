@@ -126,8 +126,6 @@ get_connection_map(const Connection_options &connection_options);
  *        user for password.
  * @param prompt_in_loop If true, prompt is presented in a loop until correct
  *        password is given or operation is canceled via CTRL-C.
- * @param show_tls_deprecation if true, prints warning when tls-version
- * connection option is set to deprecated TLS versions.
  *
  * @return A session object connected to the server specified by connection
  *         options.
@@ -137,9 +135,9 @@ get_connection_map(const Connection_options &connection_options);
  *         connection cannot be established using both X and MySQL protocol
  * @throws mysqlshdk::db::Error if session could not be established
  */
-std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC establish_session(
-    const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop = false, bool show_tls_deprecation = false);
+std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
+establish_session(const Connection_options &options, bool prompt_for_password,
+                  bool prompt_in_loop = false);
 
 /**
  * Forces the session to use MySQL protocol changing the scheme to "mysql",
@@ -150,15 +148,13 @@ std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC establish_session(
  *        user for password.
  * @param prompt_in_loop If true, prompt is presented in a loop until correct
  *        password is given or operation is canceled via CTRL-C.
- * @param show_tls_deprecation if true, prints warning when tls-version
- * connection option is set to deprecated TLS versions.
  *
  * @return A session object connected to the server specified by connection
  *         options.
  */
-std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC establish_mysql_session(
-    const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop = false, bool show_tls_deprecation = false);
+std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
+establish_mysql_session(const Connection_options &options,
+                        bool prompt_for_password, bool prompt_in_loop = false);
 
 /**
  * Provides connection options for a classic session. If session parameter is a

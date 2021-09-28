@@ -102,7 +102,6 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void set(const std::string &name, const std::string &value);
   void remove(const std::string &name);
   void validate() const;
-  std::string tls_deprecation_message() const;
 
   static constexpr const char *const option_str_list[] = {
       kSslCa,     kSslCaPath,     kSslCert,

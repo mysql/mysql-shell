@@ -549,9 +549,7 @@ Shell_options::Shell_options(int argc, char **argv,
         "PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
         std::bind(&Shell_options::set_ssl_mode, this, _1, _2))
     (cmdline("--tls-version=<version>"),
-        "TLS version to use. Allowed values: TLSv1, TLSv1.1, TLSv1.2, TLSv1.3."
-        " TLS versions TLSv1 and TLSv1.1 are now deprecated and will be"
-        " removed in a future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.",
+        "TLS version to use. Allowed values: TLSv1.2, TLSv1.3.",
         std::bind(&Ssl_options::set_tls_version, &storage.ssl_options, _2))
     (cmdline("--tls-ciphersuites=<name>"), "TLS v1.3 cipher to use.",
         std::bind(&Ssl_options::set_tls_ciphersuites, &storage.ssl_options, _2))

@@ -95,7 +95,7 @@ void Set_primary_instance::prepare() {
 
   std::string address_in_md;
   try {
-    m_target_instance = Instance::connect(m_instance_cnx_opts, false, true);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     m_target_uuid = m_target_instance->get_uuid();
     address_in_md = m_target_instance->get_canonical_address();

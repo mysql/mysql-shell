@@ -566,9 +566,7 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7,
               "connections that use TLS protocols up through TLSv1.2.");
 REGISTER_HELP(
     TOPIC_URI_CONNECTION_OPTIONS8,
-    "@li tls-version: List of protocols permitted for secure connections. TLS "
-    "versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a "
-    "future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.");
+    "@li tls-version: List of protocols permitted for secure connections.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9,
               "@li tls-ciphers: List of TLS v1.3 ciphers to use.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10,
@@ -828,11 +826,8 @@ REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE6, "@li VERIFY_IDENTITY");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION, "<b>TLS Version</b>");
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION1,
-              "The tls-version option accepts the following values:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION2, "@li TLSv1");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION3, "@li TLSv1.1");
-REGISTER_HELP(TOPIC_CONNECTION_OPTION_TLS_VERSION4,
-              "@li TLSv1.2 (Supported only on commercial packages)");
+              "The tls-version option accepts values in the following format: "
+              "TLSv<version>, e.g. TLSv1.2, TLSv1.3.");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_AUTH_METHOD,
               "<b>Authentication method</b>");
@@ -961,8 +956,6 @@ std::shared_ptr<ShellBaseSession> Shell::connect_to_primary(
   if (co.has_data()) {
     mysqlsh::set_password_from_string(&co, password);
   }
-
-  co.show_tls_deprecation_warning(true);
 
   if (!_shell->redirect_session_if_needed(false, co)) {
     current_console()->print_note("Already connected to a PRIMARY.");

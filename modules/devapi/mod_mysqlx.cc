@@ -249,8 +249,6 @@ Session get_session(ConnectionData connectionData, str password) {}
 std::shared_ptr<shcore::Object_bridge> Mysqlx::get_session(
     const mysqlshdk::db::Connection_options &co_, const char *password) {
   auto co = co_;
-  co.show_tls_deprecation_warning(true);
-
   set_password_from_string(&co, password);
   return Session::create(co);
 }

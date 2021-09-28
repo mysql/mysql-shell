@@ -147,28 +147,5 @@ void Ssl_options::validate() const {
   }
 }
 
-std::string Ssl_options::tls_deprecation_message() const {
-  if (!has_tls_version()) {
-    return std::string{};
-  }
-
-  const auto &tls_string = get_tls_version();
-  auto tls_tuple = shcore::str_split(tls_string, ",");
-  const std::vector<std::string> deprecated_tls{"TLSv1", "TLSv1.1"};
-
-  for (const auto &needle : deprecated_tls) {
-    for (const auto &haystack : tls_tuple) {
-      if (needle == haystack) {
-        return std::string{
-            "TLS versions TLSv1 and TLSv1.1 are now deprecated and will be "
-            "removed in a future release of MySQL Shell. Use TLSv1.2 or "
-            "TLSv1.3."};
-      }
-    }
-  }
-
-  return std::string{};
-}
-
 }  // namespace db
 }  // namespace mysqlshdk

@@ -158,15 +158,15 @@ void Base_cluster_impl::set_target_server(
 
 std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
     const std::string &instance_def, bool print_error,
-    bool allow_account_override, bool show_tls_deprecation) {
+    bool allow_account_override) {
   return connect_target_instance(
       mysqlshdk::db::Connection_options(instance_def), print_error,
-      allow_account_override, show_tls_deprecation);
+      allow_account_override);
 }
 
 std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
     const mysqlshdk::db::Connection_options &instance_def, bool print_error,
-    bool allow_account_override, bool show_tls_deprecation) {
+    bool allow_account_override) {
   assert(m_cluster_server);
 
   // Once an instance is part of the cluster, it must accept the same
@@ -252,7 +252,7 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
 
   try {
     try {
-      return ipool->connect_unchecked(connect_opts, show_tls_deprecation);
+      return ipool->connect_unchecked(connect_opts);
     } catch (const shcore::Error &err) {
       if (err.code() == ER_ACCESS_DENIED_ERROR) {
         if (!allow_account_override) {
@@ -380,7 +380,7 @@ void Base_cluster_impl::set_instance_tag(const std::string &instance_def,
   // Connect to the target Instance and check if it belongs to the
   // cluster/replicaSet
   const auto target_instance =
-      Scoped_instance(connect_target_instance(instance_def, true, false, true));
+      Scoped_instance(connect_target_instance(instance_def));
   const auto target_uuid = target_instance->get_uuid();
   const auto is_instance_on_md = get_metadata_storage()->is_instance_on_cluster(
       get_id(), target_instance->get_canonical_address());

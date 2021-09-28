@@ -52,13 +52,11 @@ class Instance : public mysqlshdk::mysql::Instance {
   // Session is prepared for executing non-trivial queries, like sql_mode
   // and autocommit being set to default values.
   static std::shared_ptr<Instance> connect(
-      const mysqlshdk::db::Connection_options &copts, bool interactive = false,
-      bool show_tls_deprecation = false);
+      const mysqlshdk::db::Connection_options &copts, bool interactive = false);
 
   // Non-prepared version
   static std::shared_ptr<Instance> connect_raw(
-      const mysqlshdk::db::Connection_options &copts, bool interactive = false,
-      bool show_tls_deprecation = false);
+      const mysqlshdk::db::Connection_options &copts, bool interactive = false);
 
  public:
   Instance() {}
@@ -253,8 +251,7 @@ class Instance_pool {
 
   // Connect to the specified instance without doing any checks
   std::shared_ptr<Instance> connect_unchecked(
-      const mysqlshdk::db::Connection_options &opts,
-      bool show_tls_deprecation = false);
+      const mysqlshdk::db::Connection_options &opts);
 
   // Same as above, but by uuid
   std::shared_ptr<Instance> connect_unchecked_uuid(const std::string &uuid);

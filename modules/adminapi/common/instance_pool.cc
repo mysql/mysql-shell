@@ -50,15 +50,13 @@ static constexpr char k_lock_name_instance[] = "AdminAPI_instance";
 static const char k_default_adminapi_connect_timeout[] = "5000";
 
 std::shared_ptr<mysqlshdk::db::ISession> connect_session(
-    const mysqlshdk::db::Connection_options &opts, bool interactive,
-    bool show_tls_deprecation) {
+    const mysqlshdk::db::Connection_options &opts, bool interactive) {
   if (SessionType::X == opts.get_session_type()) {
     throw make_unsupported_protocol_error();
   }
 
   try {
-    return establish_mysql_session(opts, interactive, false,
-                                   show_tls_deprecation);
+    return establish_mysql_session(opts, interactive);
   } catch (const shcore::Exception &e) {
     if (CR_VERSION_ERROR == e.code() ||
         (CR_SERVER_LOST == e.code() &&
@@ -84,21 +82,18 @@ static constexpr const char *k_default_sql_mode =
     "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION";
 
 std::shared_ptr<Instance> Instance::connect_raw(
-    const mysqlshdk::db::Connection_options &opts, bool interactive,
-    bool show_tls_deprecation) {
+    const mysqlshdk::db::Connection_options &opts, bool interactive) {
   mysqlshdk::db::Connection_options op(opts);
 
   if (!op.has_value(mysqlshdk::db::kConnectTimeout))
     op.set(mysqlshdk::db::kConnectTimeout, k_default_adminapi_connect_timeout);
 
-  return std::make_shared<Instance>(
-      connect_session(op, interactive, show_tls_deprecation));
+  return std::make_shared<Instance>(connect_session(op, interactive));
 }
 
 std::shared_ptr<Instance> Instance::connect(
-    const mysqlshdk::db::Connection_options &opts, bool interactive,
-    bool show_tls_deprecation) {
-  const auto instance = connect_raw(opts, interactive, show_tls_deprecation);
+    const mysqlshdk::db::Connection_options &opts, bool interactive) {
+  const auto instance = connect_raw(opts, interactive);
 
   instance->prepare_session();
 
@@ -577,7 +572,7 @@ std::shared_ptr<Instance> Instance_pool::adopt(
 
 // Connect to the specified instance without doing any checks
 std::shared_ptr<Instance> Instance_pool::connect_unchecked(
-    const mysqlshdk::db::Connection_options &opts, bool show_tls_deprecation) {
+    const mysqlshdk::db::Connection_options &opts) {
   DBUG_TRACE;
   for (auto &inst : m_pool) {
     if (!inst.leased && inst.instance->get_connection_options() == opts) {
@@ -586,7 +581,7 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked(
     }
   }
 
-  return Instance::connect(opts, m_allow_password_prompt, show_tls_deprecation);
+  return Instance::connect(opts, m_allow_password_prompt);
 }
 
 std::shared_ptr<Instance> Instance_pool::connect_unchecked_endpoint(

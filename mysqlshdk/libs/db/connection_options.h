@@ -188,8 +188,6 @@ class SHCORE_PUBLIC Connection_options final {
 
   static void throw_invalid_connect_timeout(const std::string &value);
 
-  void show_tls_deprecation_warning(bool show) const;
-
   bool is_auth_method(const std::string &method_id) const;
 
  private:

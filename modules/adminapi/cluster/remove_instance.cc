@@ -226,7 +226,7 @@ void Remove_instance::prepare() {
   //       instance is available.
   log_debug("Connecting to instance '%s'", m_instance_address.c_str());
   try {
-    m_target_instance = Instance::connect(m_instance_cnx_opts, false, true);
+    m_target_instance = Instance::connect(m_instance_cnx_opts);
     log_debug("Successfully connected to instance");
 
     // If we can connect directly to the instance, the following cases are
