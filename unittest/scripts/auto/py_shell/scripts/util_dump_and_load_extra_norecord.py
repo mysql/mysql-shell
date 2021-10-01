@@ -186,7 +186,7 @@ wipeout_server(session)
 copy(ordered[0])
 
 # start the process which will load the dump asynchronously
-proc = testutil.call_mysqlsh_async([__sandbox_uri2, "--py", "-e", f"util.load_dump('{target}', {{'waitDumpTimeout': 60, 'showProgress': True}})"])
+proc = testutil.call_mysqlsh_async([__sandbox_uri2, "--py", "-e", "util.load_dump('{0}', {{'waitDumpTimeout': 60, 'showProgress': True}})".format(target.replace("\\", "/"))])
 
 # copy the remaining files
 for f in ordered[1:]:

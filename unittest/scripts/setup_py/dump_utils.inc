@@ -143,9 +143,9 @@ def compare_query_results(session1, session2, query, args=[], ignore_columns=[])
     r1.sort()
     r2=list([list([str(f) for i,f in enumerate(r) if i not in ignore_columns]) for r in session2.run_sql(query, args).fetch_all()])
     r2.sort()
-    EXPECT_EQ(len(r1), len(r2), query)
+    EXPECT_EQ(len(r1), len(r2), query + ", args: " + str(args))
     for i in range(len(r1)):
-        EXPECT_EQ(str(r1[i]), str(r2[i]))
+        EXPECT_EQ(str(r1[i]), str(r2[i]) if i < len(r2) else "<missing>")
     return r1
 
 def compare_schema(session1, session2, schema, check_rows=True):
