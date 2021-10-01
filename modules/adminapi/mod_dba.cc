@@ -2760,7 +2760,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // Schema
   try {
     cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                          metadata, target_instance, true);
+                          metadata, target_instance, true, true);
   } catch (const shcore::Error &e) {
     // If the GR plugin is not installed, we can get this error.
     // In that case, we install the GR plugin and retry.
@@ -2772,9 +2772,44 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
                                                       nullptr);
 
       cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                            metadata, target_instance, true);
+                            metadata, target_instance, true, true);
     } else {
       throw;
+    }
+  }
+
+  // Check if the Cluster belongs to a ClusterSet and is Invalidated to block
+  // the usage of 'rejoinInstances' and 'removeInstances'. This is necessary
+  // because the usage of those options can lead to the introduction of errant
+  // transactions since the Metadata changes are performed on the primary
+  // instance of the cluster being rebooted.
+  bool is_invalidated = false;
+
+  {
+    bool options_set = !options->remove_instances.empty() ||
+                       !options->rejoin_instances.empty();
+
+    // Check if the target Cluster is invalidated in a clusterset
+    if (cluster->impl()->is_cluster_set_member() &&
+        cluster->impl()->is_primary_cluster()) {
+      auto cs = cluster->impl()->get_cluster_set();
+      find_real_cluster_set_primary(cs);
+
+      auto pc = cs->get_primary_cluster();
+      // If the real PC is different, it means the cluster was invalidated
+      is_invalidated = pc->get_id() != cluster->impl()->get_id();
+      if (is_invalidated && options_set) {
+        console->print_error(
+            "Cannot proceed using 'removeInstances' and/or 'removeInstances': "
+            "The Cluster is INVALIDATED");
+        console->print_info(
+            "Please add or remove the instances after the Cluster is rejoined "
+            "to the ClusterSet");
+
+        throw shcore::Exception::argument_error(
+            "removeInstances and/or rejoinInstances options cannot be used for "
+            "Invalidated Clusters");
+      }
     }
   }
 
@@ -2878,8 +2913,16 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
         // When rebooting old version there's no option to modify, instances are
         // included in the cluster right away
+        // When the cluster is invalidated, the instances are not included nor
+        // there's a prompt
         if (rebooting_old_version) {
           rejoin_instances_list.push_back(instance_address);
+        } else if (is_invalidated) {
+          console->print_info(
+              "The instance '" + instance_address +
+              "' was part of the cluster configuration but the Cluster is "
+              "invalidated. Please rejoin the instance after the Cluster is "
+              "rejoined to the ClusterSet");
         } else {
           console->println("The instance '" + instance_address +
                            "' was part of the cluster configuration.");
@@ -2921,9 +2964,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
             cluster_impl->get_name() + "'.");
     }
 
-    // When rebooting old version there's no option to remove instances
+    // When rebooting old version or the cluster is invalidated there's no
+    // option to remove instances
     if (options->remove_instances.empty() && interactive &&
-        !rebooting_old_version) {
+        !rebooting_old_version && !is_invalidated) {
       for (const auto &value : instances) {
         std::string instance_address = value.first.endpoint;
         std::string instance_status = value.second;
@@ -2981,6 +3025,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     joiner.reboot();
 
     console->print_info(target_instance->descr() + " was restored.");
+
+    // Acquire primary to ensure the correct primary member will be used from
+    // now on when the Cluster belongs to a ClusterSet
+    cluster_impl->acquire_primary();
   }
 
   // 7. Update the Metadata Schema information
