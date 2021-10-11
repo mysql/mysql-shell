@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <set>
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -35,6 +36,40 @@ using shcore::Topic_mask;
 using shcore::Topic_type;
 
 namespace mysqlsh {
+namespace {
+/**
+ * Traverses the topic list trying to identify a unique match given the received
+ * matcher
+ *
+ * @param pattern The pattern used to query for help
+ * @param topics The topics found with the given pattern.
+ * @param matcher flag to identify the case to be used on the comparison
+ * @returns the index of the unique match found if any, otherwise an empty
+ * index.
+ */
+std::optional<int> find_unique_match(
+    const std::vector<const shcore::Help_topic *> &topics,
+    const std::function<bool(const shcore::Help_topic *)> &matcher) {
+  // Verifies if in the topics there is an exact match case sensitive;
+  std::optional<int> match_index;
+
+  for (size_t index = 0; index < topics.size(); index++) {
+    if (matcher(topics[index])) {
+      if (!match_index.has_value()) {
+        // At the first found the index is set
+        match_index = index;
+      } else {
+        // If more than one found the index is reset and we leave as there's no
+        // unique
+        match_index.reset();
+        break;
+      }
+    }
+  }
+
+  return match_index;
+}
+}  // namespace
 bool Command_help::execute(const std::vector<std::string> &args) {
   // Gets the entire help system
   auto help = _shell->get_helper();
@@ -187,42 +222,6 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
   return sql_topics;
 }
 
-/**
- * Traverses the topic list trying to identify exact matches doing case
- * sensitive/insnesitive comparison based on the case_sensitive flag.
- *
- * @param pattern The pattern used to query for help
- * @param topics The topics found with the given pattern.
- * @param case_sensitive flag to identify the case to be used on the comparison
- * @returns null if no match was found, -1 if more than one matches were found
- *          the topic index if one match was found.
- */
-mysqlshdk::utils::nullable<int> Command_help::find_exact_match(
-    const std::string &pattern,
-    const std::vector<const shcore::Help_topic *> &topics,
-    bool case_sensitive) {
-  // Verifies if in the topics there is an exact match case sensitive;
-  mysqlshdk::utils::nullable<int> match_index;
-
-  for (size_t index = 0; index < topics.size(); index++) {
-    bool matched = false;
-    if (case_sensitive)
-      matched = pattern == topics[index]->m_name;
-    else
-      matched = shcore::str_caseeq(pattern, topics[index]->m_name);
-
-    if (matched) {
-      if (match_index.is_null()) {
-        match_index = index;
-      } else {
-        match_index = -1;
-      }
-    }
-  }
-
-  return match_index;
-}
-
 void Command_help::print_help_multiple_topics(
     const std::string &pattern,
     const std::vector<const shcore::Help_topic *> &topics) {
@@ -230,14 +229,34 @@ void Command_help::print_help_multiple_topics(
            std::set<const shcore::Help_topic *, shcore::Help_topic_id_compare>>
       groups;
 
-  // attempts to find  a case sensitive exact match on the found topics
-  auto index = find_exact_match(pattern, topics, true);
+  // Let's see if from the list, any topic fully qualified id matches the
+  // searched sctring
+  std::optional<int> index;
+  auto mode = _shell->get_helper()->get_mode();
+  index = find_unique_match(topics,
+                            [&pattern, mode](const shcore::Help_topic *topic) {
+                              return topic->get_id(mode) == pattern;
+                            });
 
-  // If no exact match was found, now attempts case insensitive
-  if (index.is_null()) index = find_exact_match(pattern, topics, false);
+  // If no matches so far, tries a case sensitive exact match on the found
+  // topics
+  if (!index.has_value()) {
+    index =
+        find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
+          return topic->m_name == pattern;
+        });
+  }
+
+  // Finally it tries a case insensitive match with the found topics
+  if (!index.has_value()) {
+    index =
+        find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
+          return shcore::str_caseeq(pattern, topic->m_name);
+        });
+  }
 
   const shcore::Help_topic *match = nullptr;
-  if (!index.is_null() && *index != -1) match = topics[*index];
+  if (index.has_value() && *index != -1) match = topics[*index];
 
   for (auto topic : topics) {
     if (topic != match) {

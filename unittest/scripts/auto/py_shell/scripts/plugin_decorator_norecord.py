@@ -324,5 +324,66 @@ rc = call_mysqlsh_cli("decorator", "test_optional_parameters", 'two', "1", "True
 #@<> Test calling function with options 1 (cli)
 rc = call_mysqlsh_cli("decorator", "inner", "test_options", 'Passing No Options')
 
+
+#@<> BUG#33451028 - Unable to register plugin named as pre-exiting plugin nested object
+aaa_plugin_code = '''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin
+class aaa:
+    """
+    Brief description of the aaa plugin.
+    """
+
+    class bbb:
+        """
+        Brief description of aaa.bbb plugin object.
+        """
+        pass
+
+    pass
+'''
+
+bbb_plugin_code = '''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin
+class bbb:
+    """
+    Brief description of the bbb plugin.
+    """
+
+    class aaa:
+        """
+        Brief description of aaa.bbb plugin object.
+        """
+        pass
+
+    pass
+'''
+
+aaa_folder_path = os.path.join(plugins_path, "aaa")
+bbb_folder_path = os.path.join(plugins_path, "bbb")
+aaa_path =  os.path.join(aaa_folder_path, "init.py")
+bbb_path =  os.path.join(bbb_folder_path, "init.py")
+testutil.mkdir(aaa_folder_path, True)
+testutil.mkdir(bbb_folder_path, True)
+testutil.create_file(aaa_path, aaa_plugin_code)
+testutil.create_file(bbb_path, bbb_plugin_code)
+
+
+#@<OUT> Help for aaa
+rc = call_mysqlsh_e("\\? aaa")
+
+#@<OUT> Help for nested aaa
+rc = call_mysqlsh_e("\\? bbb.aaa")
+
+#@<OUT> Help for bbb
+rc = call_mysqlsh_e("\\? bbb")
+
+#@<OUT> Help for nested bbb
+rc = call_mysqlsh_e("\\? aaa.bbb")
+
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

@@ -187,7 +187,6 @@ std::string strip_param_type(const std::string &input) {
   }
   return ret_val;
 }
-
 }  // namespace
 using Mode_mask = shcore::IShell_core::Mode_mask;
 
@@ -606,8 +605,10 @@ void Help_registry::add_help(const std::string &prefix, size_t *sequence,
 
 std::vector<Help_topic *> Help_registry::add_help_topic(
     const std::string &name, Topic_type type, const std::string &tag,
-    const std::string &parent_id, Mode_mask mode, Keyword_location loc) {
-  auto parent = get_topic(parent_id, true, get_parent_topic_types());
+    const std::string &parent_id, Mode_mask mode, Keyword_location loc,
+    bool exact_id_match) {
+  auto parent =
+      get_topic(parent_id, true, get_parent_topic_types(), exact_id_match);
 
   if (loc == Keyword_location::LOCAL_CTX) {
     return {get_thread_context_help()->add_help_topic(name, type, tag,
@@ -650,6 +651,11 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
     }
   } else {
     register_topic(new_topic, true, mode);
+  }
+
+  if (new_topic->is_api_object()) {
+    add_help_topic("help", Topic_type::FUNCTION, "help", new_topic->m_id,
+                   new_topic, mode);
   }
 
   return new_topic;
@@ -837,8 +843,6 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
     add_help(help_tag + "_PARAM",
              "@param member Optional If specified, provides detailed "
              "information on the given member.");
-
-    add_help_topic("help", Topic_type::FUNCTION, "help", topic->m_id, mode);
   }
 
   // If there are orphans associated to the new topic, they are properly
@@ -1081,10 +1085,12 @@ std::vector<const Help_topic *> Help_registry::search_topics(
 
 Help_topic *Help_registry::get_topic(const std::string &id,
                                      bool allow_unexisting,
-                                     const Topic_mask &type) const {
-  auto topics = get_topic(this, id, true, type);
+                                     const Topic_mask &type,
+                                     bool exact_id_match) const {
+  auto topics = get_topic(this, id, true, type, exact_id_match);
   if (topics == nullptr && !m_c_tor) {
-    topics = get_topic(get_thread_context_help(), id, allow_unexisting, type);
+    topics = get_topic(get_thread_context_help(), id, allow_unexisting, type,
+                       exact_id_match);
   }
 
   if (!allow_unexisting && topics == nullptr) {
@@ -1097,30 +1103,50 @@ Help_topic *Help_registry::get_topic(const std::string &id,
 Help_topic *Help_registry::get_topic(const Help_registry *registry,
                                      const std::string &id,
                                      bool allow_unexisting,
-                                     const Topic_mask &type) const {
+                                     const Topic_mask &type,
+                                     bool exact_id_match) const {
+  // This contains all the topics associated to the keyword, despite their type
   auto it = registry->m_keywords.find(id);
+  decltype(it->second) *topics = nullptr;
+
+  // Type matches contains the list filtered by the matching types
+  decltype(it->second) type_matches;
   if (it != registry->m_keywords.end()) {
-    auto &topics = it->second;
-    if (type == Topic_mask::any()) {
-      if (topics.size() > 1)
-        throw std::logic_error("Non unique topic found as '" + id + "'");
-      return topics.begin()->first;
-    } else {
-      Help_topic *found_topic = nullptr;
-      int topic_count = 0;
-      for (const auto &topic : topics) {
-        if (type.is_set(topic.first->m_type)) {
-          found_topic = topic.first;
-          topic_count++;
-          if (topic_count > 1)
-            throw std::logic_error("Non unique topic found as '" + id + "'");
-        }
+    for (const auto &topic : it->second) {
+      if (type.is_set(topic.first->m_type)) {
+        type_matches[topic.first] = topic.second;
       }
-      return found_topic;
     }
-  } else {
-    if (!allow_unexisting)
-      throw std::logic_error("Unable to find topic '" + id + "'");
+    // We are really interested ONLY in the type matches
+    topics = &type_matches;
+  }
+
+  decltype(it->second) exact_matches;
+  // If there are more than 1 topic, let's search for exact id matches only
+  if (topics && (topics->size() > 2 || exact_id_match)) {
+    for (const auto &topic : *topics) {
+      if (topic.first->get_id() == id) {
+        exact_matches[topic.first] = topic.second;
+        break;
+      }
+    }
+
+    // If exact_id_match was requested we update the list to the exact matches
+    // whether there was one or not. Otoh, if not requested but we found then we
+    // update topics too
+    if (exact_id_match || !exact_matches.empty()) {
+      topics = &exact_matches;
+    }
+  }
+
+  if (topics && !topics->empty()) {
+    if (topics->size() > 1) {
+      throw std::logic_error("Non unique topic found as '" + id + "'");
+    } else {
+      return topics->begin()->first;
+    }
+  } else if (!allow_unexisting) {
+    throw std::logic_error("Unable to find topic '" + id + "'");
   }
 
   return nullptr;

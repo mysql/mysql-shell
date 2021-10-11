@@ -121,6 +121,7 @@ struct Help_topic {
   bool is_enabled(IShell_core::Mode mode) const;
   std::string get_name(IShell_core::Mode mode) const;
   std::string get_base_name() const;
+  std::string get_id() const { return m_id; }
   std::string get_id(IShell_core::Mode mode,
                      Topic_id_mode id_mode = Topic_id_mode::FULL) const;
 
@@ -270,7 +271,8 @@ class Help_registry {
   std::vector<Help_topic *> add_help_topic(
       const std::string &name, Topic_type type, const std::string &tag,
       const std::string &parent, IShell_core::Mode_mask mode,
-      Keyword_location loc = Keyword_location::GLOBAL_CTX);
+      Keyword_location loc = Keyword_location::GLOBAL_CTX,
+      bool exact_id_match = false);
 
   void remove_topic(Help_topic *topic, Keyword_location loc);
 
@@ -291,7 +293,8 @@ class Help_registry {
                                                 bool case_sensitive);
 
   Help_topic *get_topic(const std::string &id, bool allow_unexisting = false,
-                        const Topic_mask &type = Topic_mask::any()) const;
+                        const Topic_mask &type = Topic_mask::any(),
+                        bool exact_id_match = false) const;
 
   Help_topic *get_class_parent(Help_topic *topic) const;
 
@@ -377,7 +380,8 @@ class Help_registry {
 
   Help_topic *get_topic(const Help_registry *registry, const std::string &id,
                         bool allow_unexisting = false,
-                        const Topic_mask &type = Topic_mask::any()) const;
+                        const Topic_mask &type = Topic_mask::any(),
+                        bool exact_id_match = false) const;
 
   // Registers a new topic and it's associated keywords
   Help_topic *add_help_topic(const std::string &name, Topic_type type,

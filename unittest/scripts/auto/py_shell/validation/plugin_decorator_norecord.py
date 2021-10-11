@@ -581,3 +581,89 @@ aList value: [4, 5, 6]
 #@<OUT> Test calling function with options 1 (cli)
 stritem value: Passing No Options
 
+#@<OUT> Help for aaa
+[[*]]> \? aaa
+NAME
+      aaa - Brief description of the aaa plugin.
+
+DESCRIPTION
+      Brief description of the aaa plugin.
+
+PROPERTIES
+      bbb
+            Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+SEE ALSO
+
+Additional entries were found matching aaa
+
+The following topics were found at the bbb category:
+
+- bbb.aaa
+
+For help on a specific topic use: \? <topic>
+
+e.g.: \? bbb.aaa
+
+#@<OUT> Help for nested aaa
+[[*]]> \? bbb.aaa
+NAME
+      aaa - Brief description of aaa.bbb plugin object.
+
+SYNTAX
+      bbb.aaa
+
+DESCRIPTION
+      Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+#@<OUT> Help for bbb
+[[*]]> \? bbb
+NAME
+      bbb - Brief description of the bbb plugin.
+
+DESCRIPTION
+      Brief description of the bbb plugin.
+
+PROPERTIES
+      aaa
+            Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+SEE ALSO
+
+Additional entries were found matching bbb
+
+The following topics were found at the aaa category:
+
+- aaa.bbb
+
+For help on a specific topic use: \? <topic>
+
+e.g.: \? aaa.bbb
+
+#@<OUT> Help for nested bbb
+[[*]]> \? aaa.bbb
+NAME
+      bbb - Brief description of aaa.bbb plugin object.
+
+SYNTAX
+      aaa.bbb
+
+DESCRIPTION
+      Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+

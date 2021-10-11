@@ -763,7 +763,8 @@ void Extensible_object::register_help(const std::string &brief,
     auto help = shcore::Help_registry::get();
 
     // Attempts getting the fully qualified object
-    shcore::Help_topic *topic = help->get_topic(m_qualified_name, true);
+    shcore::Help_topic *topic = help->get_topic(
+        m_qualified_name, true, shcore::Topic_mask::any(), true);
 
     if (topic) {
       mysqlsh::current_console()->print_warning("Help for " + m_qualified_name +
@@ -781,7 +782,7 @@ void Extensible_object::register_help(const std::string &brief,
       auto type = is_global ? shcore::Topic_type::GLOBAL_OBJECT
                             : shcore::Topic_type::OBJECT;
       help->add_help_topic(m_name, type, m_qualified_name, parent, mask,
-                           shcore::Keyword_location::LOCAL_CTX);
+                           shcore::Keyword_location::LOCAL_CTX, true);
 
       // Now registers the object brief, parameters and details
       auto prefix = shcore::str_upper(m_qualified_name);
@@ -810,7 +811,7 @@ void Extensible_object::register_property_help(
   // Creates the help topic for the object
   help->add_help_topic(def->name, shcore::Topic_type::PROPERTY, def->name,
                        m_qualified_name, mask,
-                       shcore::Keyword_location::LOCAL_CTX);
+                       shcore::Keyword_location::LOCAL_CTX, true);
 
   // Now registers the object brief, parameters and details
   auto object = shcore::str_upper(m_name);
@@ -847,7 +848,7 @@ void Extensible_object::register_function_help(
     // Creates the help topic for the function
     help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
                          m_qualified_name, mask,
-                         shcore::Keyword_location::LOCAL_CTX);
+                         shcore::Keyword_location::LOCAL_CTX, true);
 
     // Now registers the function brief, parameters and details
     auto prefix = shcore::str_upper(m_name + "_" + names[0]);
@@ -1080,7 +1081,8 @@ struct Compare_help_topic_and_string {
 }  // namespace
 
 void Extensible_object::enable_help() {
-  auto topic = shcore::Help_registry::get()->get_topic(m_qualified_name, true);
+  auto topic = shcore::Help_registry::get()->get_topic(
+      m_qualified_name, true, shcore::Topic_mask::any(), true);
 
   if (topic && !topic->is_enabled()) {
     topic->set_enabled(true);
@@ -1105,7 +1107,8 @@ void Extensible_object::enable_help() {
 }
 
 void Extensible_object::disable_help() {
-  auto topic = shcore::Help_registry::get()->get_topic(m_qualified_name, true);
+  auto topic = shcore::Help_registry::get()->get_topic(
+      m_qualified_name, true, shcore::Topic_mask::any(), true);
 
   if (topic && topic->is_enabled()) {
     topic->set_enabled(false);
