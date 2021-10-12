@@ -210,14 +210,14 @@ def sample(data):
 
 sample("some text"
 )*",
-       "{\"error\":\"unexpected EOF while parsing\"}"},
+       "{\"error\":\"SyntaxError\"}"},
       {R"*(
 def sample(data):
   print(data)
 
 sample("some text)
 )*",
-       "\"error\":\"EOL while scanning string literal\"}"}};
+       "\"error\":\"SyntaxError\"}"}};
 
   for (const auto &input : invalid_inputs) {
     shcore::JSON_dumper doc;

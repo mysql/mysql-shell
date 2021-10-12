@@ -28,8 +28,6 @@
 #include <exception>
 #include <type_traits>
 
-#include <Python-ast.h>
-
 #include "mysqlshdk/include/scripting/python_object_wrapper.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -158,65 +156,128 @@ void py_unregister_module(const std::string &name) {
   PyDict_DelItemString(PyImport_GetModuleDict(), name.c_str());
 }
 
-PyObject *py_run_string_interactive(const char *str, PyObject *globals,
+PyObject *py_run_string_interactive(const std::string &str, PyObject *globals,
                                     PyObject *locals, PyCompilerFlags *flags) {
-  // This is a copy of PyRun_StringFlags adapted to our needs.
+  // Previously, we were using PyRun_StringFlags() with the Py_single_input flag
+  // to run the code string and capture its output using a custom
+  // sys.displayhook, however Python's grammar allows only for a single
+  // statement (simple_stmt or compound_stmt) to be used in such case. Since we
+  // want to be able to run multiple statements at once, Py_file_input flag is
+  // the alternative which allows the code string to be a sequence of
+  // statements, but unfortunately it does not allow to obtain the result of the
+  // execution.
   //
-  // Previously, we were using Py_single_input flag to run the code string and
-  // capture its output using a custom sys.displayhook, however Python's grammar
-  // allows only for a single statement (simple_stmt or compound_stmt) to be
-  // used in such case. Since we want to be able to run multiple statements at
-  // once, Py_file_input flag is the alternative which allows the code string to
-  // be a sequence of statements, but unfortunately it does not allow to obtain
-  // the result of the execution.
-  // We're using the fact that both file_input and single_input have the same
-  // AST representation: a sequence of statements (which is possible, because
-  // single_input can be a simple_stmt, simple_stmt is a semicolon-separated
-  // sequence of small_stmt and all statements have the same super-type - stmt).
-  // Their internal binary representation is also the same. Their compilation is
-  // controlled by their kind, with the difference being that the former
-  // (Module_kind) can have a top-level doc-string, and the latter
-  // (Interactive_kind) generates an additional opcode which prints out the
-  // result of an expression statement using sys.displayhook.
   // Below, the code string is parsed as a series of statements using the
-  // Py_file_input flag, then the kind is changed to Interactive_kind, so that
-  // PRINT_EXPR opcodes are generated, finally code is executed and results can
-  // be captured using the custom sys.displayhook.
+  // Py_file_input flag, producing the AST representation. We use this
+  // representation to split the code into separate statements, which can be
+  // safely executed by PyRun_StringFlags() and results can be captured using
+  // the custom sys.displayhook.
+
+  assert(flags);
   PyObject *ret = nullptr;
-  const auto arena = PyArena_New();
 
-  if (nullptr != arena) {
-    const py::Release filename{PyString_FromString("<string>")};
-    const auto mod = PyParser_ASTFromStringObject(str, filename, Py_file_input,
-                                                  flags, arena);
+  // set the flag, so that we get the AST representation
+  flags->cf_flags |= PyCF_ONLY_AST;
 
-    if (nullptr != mod) {
-      // modification -> begin
-      // make sure changing the kind is safe
-      // Module is a superset of Interactive
-      static_assert(sizeof(mod->v.Module) >= sizeof(mod->v.Interactive),
-                    "Interactive is bigger than Module");
-      // Interactive type contains only body (it is a pointer, padding should
-      // not be a problem)
-      static_assert(
-          sizeof(mod->v.Interactive) == sizeof(mod->v.Interactive.body),
-          "Interactive contains more than a body");
-      // Module and Interactive types both have the same body type
-      static_assert(std::is_same<decltype(mod->v.Module.body),
-                                 decltype(mod->v.Interactive.body)>::value,
-                    "Module and Interactive have different body types");
-      mod->kind = Interactive_kind;
-      // modification -> end
+  // compile the input string using Py_file_input, so that multiple statements
+  // are allowed
+  py::Release ast{
+      Py_CompileStringFlags(str.c_str(), "<string>", Py_file_input, flags)};
 
-      auto *co = PyAST_CompileObject(mod, filename, flags, -1, arena);
+  // remove the AST flag
+  flags->cf_flags &= ~PyCF_ONLY_AST;
 
-      if (nullptr != co) {
-        ret = PyEval_EvalCode((PyObject *)co, globals, locals);
-        Py_DECREF(co);
+  // if there was no syntax error, execute the statements one by one
+  if (ast) {
+    try {
+      py::Release body{PyObject_GetAttrString(ast, "body")};
+
+      if (!body) {
+        throw std::runtime_error("AST is missing a body attribute");
       }
-    }
 
-    PyArena_Free(arena);
+      if (!PyList_Check(body)) {
+        throw std::runtime_error("AST.body is not a list");
+      }
+
+      auto code = str;
+
+      const auto get_int = [](PyObject *obj, const char *name) {
+        py::Release item{PyObject_GetAttrString(obj, name)};
+
+        if (!item) {
+          throw std::runtime_error("Object has no attribute called: " +
+                                   std::string{name});
+        }
+
+        if (!PyLong_Check(item)) {
+          throw std::runtime_error("Attribute is not an integer: " +
+                                   std::string{name});
+        }
+
+        return PyLong_AsLong(item);
+      };
+
+      const auto size = PyList_GET_SIZE((PyObject *)body);
+
+      for (auto i = decltype(size){0}; i < size; ++i) {
+        const auto statement = PyList_GET_ITEM((PyObject *)body, i);
+        // subtract 1 to get zero-based line number
+        const auto lineno = get_int(statement, "lineno") - 1;
+        const auto end_lineno = get_int(statement, "end_lineno") - 1;
+        // offset is zero-based
+        const auto col_offset = get_int(statement, "col_offset");
+        const auto end_col_offset = get_int(statement, "end_col_offset");
+
+        // find the code block to be executed
+        std::size_t begin = 0;
+
+        // find the first line
+        for (auto line = decltype(lineno){0}; line < lineno; ++line) {
+          begin = code.find('\n', begin) + 1;
+        }
+
+        std::size_t end = begin;
+
+        // find the last line
+        for (auto line = decltype(lineno){0}; line < end_lineno - lineno;
+             ++line) {
+          end = code.find('\n', end) + 1;
+        }
+
+        // adjust for the column offset
+        begin += col_offset;
+        end += end_col_offset;
+
+        // select the code block
+        const auto code_char = code[end];
+        code[end] = '\0';
+        // get the pointer after string has been modified, some compilers
+        // optimize string copy operations and use copy-on-write
+        const auto code_ptr = code.c_str() + begin;
+
+        // release the previous result (if there's one)
+        if (ret) {
+          Py_XDECREF(ret);
+        }
+
+        // run the code block
+        ret = PyRun_StringFlags(code_ptr, Py_single_input, globals, locals,
+                                flags);
+
+        // stop the execution if there was an error
+        if (!ret) {
+          break;
+        }
+
+        code[end] = code_char;
+      }
+    } catch (const std::runtime_error &e) {
+      log_error("Error processing Python code: %s, while executing:\n%s",
+                e.what(), str.c_str());
+      throw std::runtime_error(
+          "Internal error processing Python code, see log for more details");
+    }
   }
 
   return ret;
@@ -314,9 +375,8 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
 #endif  // !_WIN32
     set_python_home(home);
     set_program_name();
-    Py_InitializeEx(0);
 
-    // Initialize the signal module, so we can use PyErr_SetInterrupt().
+    // Initialize the signals, so we can use PyErr_SetInterrupt().
     //
     // Python 3.5+ uses PyErr_CheckSignals() to double check if time.sleep()
     // was interrupted and continues to sleep if that function returns 0.
@@ -351,13 +411,6 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
     // SIGINT set, but with no Python signal handler. We can continue to use
     // our own signal handler, and deliver the CTRL-C notification to Python
     // via PyErr_SetInterrupt().
-    //
-    // Python 2 @ Windows:
-    // Initializing the signal module early and in a controlled way will also
-    // prevent an issue when user imports this module and calls time.sleep().
-    // In that case sleep cannot be interrupted by CTRL-C, because the
-    // initialization of signal module will overwrite the default signal
-    // handler and the mechanism used by Python 2.7 to wake up will not work.
     {
 #ifdef _WIN32
       // on Windows there's no sigaction() and no siginterrupt()
@@ -378,7 +431,7 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
       sigaction(SIGINT, &default_action, &prev_action);
 #endif  // !_WIN32
 
-      PyOS_InitInterrupts();
+      Py_Initialize();
 
 #ifdef _WIN32
       signal(SIGINT, prev_signal);
@@ -720,8 +773,8 @@ Value Python_context::execute_interactive(const std::string &code,
 
   PyObject *py_result = nullptr;
   try {
-    py_result = py_run_string_interactive(code.c_str(), _globals, _locals,
-                                          &m_compiler_flags);
+    py_result =
+        py_run_string_interactive(code, _globals, _locals, &m_compiler_flags);
   } catch (const std::exception &e) {
     set_python_error(PyExc_RuntimeError, e.what());
 
@@ -738,29 +791,47 @@ Value Python_context::execute_interactive(const std::string &code,
     // that would indicate that the command is not complete and needs more
     // input til it's completed
     PyErr_Fetch(&exc, &value, &tb);
-    if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError)) {
+    if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError) ||
+        PyErr_GivenExceptionMatches(exc, PyExc_IndentationError)) {
       // If there's no more input then the interpreter should not continue in
       // continued mode so any error should bubble up
       if (!flush) {
         const char *msg;
         PyObject *obj;
         if (PyArg_ParseTuple(value, "sO", &msg, &obj)) {
-          if (strncmp(msg,
-                      "unexpected character after line continuation character",
-                      strlen("unexpected character after line continuation "
-                             "character")) == 0) {
+          constexpr auto unexpected_character =
+              "unexpected character after line continuation character";
+          constexpr auto eof_while_scanning =
+              "EOF while scanning triple-quoted string literal";
+          constexpr auto unterminated_triple_quoted =
+              "unterminated triple-quoted string literal";
+          // "'%c' was never closed"
+          constexpr auto was_never_closed = "was never closed";
+          constexpr auto unexpected_eof = "unexpected EOF while parsing";
+          constexpr auto expected_indented_block = "expected an indented block";
+
+          if (strncmp(msg, unexpected_character,
+                      strlen(unexpected_character)) == 0) {
             // NOTE: These two characters will come if explicit line
             // continuation is specified
             if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
-                code[code.length() - 1] == '\n')
+                code[code.length() - 1] == '\n') {
               r_state = Input_state::ContinuedSingle;
-          } else if (strncmp(msg,
-                             "EOF while scanning triple-quoted string literal",
-                             strlen("EOF while scanning triple-quoted string "
-                                    "literal")) == 0) {
+            }
+          } else if (strncmp(msg, eof_while_scanning,
+                             strlen(eof_while_scanning)) == 0) {
             r_state = Input_state::ContinuedSingle;
-          } else if (strncmp(msg, "unexpected EOF while parsing",
-                             strlen("unexpected EOF while parsing")) == 0) {
+          } else if (strncmp(msg, unterminated_triple_quoted,
+                             strlen(unterminated_triple_quoted)) == 0) {
+            r_state = Input_state::ContinuedSingle;
+          } else if (strncmp(msg + 4, was_never_closed,
+                             strlen(was_never_closed)) == 0) {
+            r_state = Input_state::ContinuedBlock;
+          } else if (strncmp(msg, unexpected_eof, strlen(unexpected_eof)) ==
+                     0) {
+            r_state = Input_state::ContinuedBlock;
+          } else if (strncmp(msg, expected_indented_block,
+                             strlen(expected_indented_block)) == 0) {
             r_state = Input_state::ContinuedBlock;
           }
         }

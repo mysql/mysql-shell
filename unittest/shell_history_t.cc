@@ -849,8 +849,7 @@ TEST_F(Shell_history, check_history_source_py_nonl_continuedstate_interactive) {
     EXPECT_EQ(1, linenoiseHistorySize());
     EXPECT_EQ(std::string{"\\source test_source_nonl.py"},
               std::string(linenoiseHistoryLine(0)));
-    EXPECT_THAT(m_capture,
-                ::testing::HasSubstr("unexpected EOF while parsing"));
+    EXPECT_THAT(m_capture, ::testing::HasSubstr("SyntaxError"));
   }
 
   shcore::delete_file("test_source_nonl.py");

@@ -307,7 +307,7 @@ ${*}
 [[*]]print('Test Plugin Version: ' + repo.version())
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
-NameError: name 'repo' is not defined
+NameError: name 'repo' is not defined[[*]]
 
 #@<OUT> Removes the test plugin repository
 [[*]]repositories.remove_plugin_repository(url='http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json')

@@ -1156,7 +1156,7 @@ TEST_F(Interactive_shell_test, shell_command_source_incomplete_files) {
        "SyntaxError: Unexpected end of input"},
       {"\\py", R"*(def sample(data):
                    print(data)*",
-       "SyntaxError: unexpected EOF while parsing"},
+       "SyntaxError: "},
       {"\\sql", R"*(select *
                    from)*",
        "ERROR: 1064: You have an error in your SQL syntax;"}};
