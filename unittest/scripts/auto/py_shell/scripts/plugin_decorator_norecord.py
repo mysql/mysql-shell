@@ -385,5 +385,38 @@ rc = call_mysqlsh_e("\\? bbb")
 rc = call_mysqlsh_e("\\? aaa.bbb")
 
 
+#@<> Bug#33462107 - plugin_function: unable to attach function to existing object
+sample_plugin_code = '''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin
+class sample():
+    """
+    A sample plugin
+    """
+
+    class myObject():
+        """
+        A nested object...
+        """
+
+@plugin_function("sample.myObject.testFunction")
+def test():
+    print("My test function")
+'''
+
+sample_folder_path = os.path.join(plugins_path, "sample")
+sample_path =  os.path.join(sample_folder_path, "init.py")
+testutil.mkdir(sample_folder_path, True)
+testutil.create_file(sample_path, sample_plugin_code)
+
+WIPE_OUTPUT()
+call_mysqlsh_e("sample.myObject.testFunction()")
+EXPECT_STDOUT_CONTAINS("My test function")
+
+WIPE_OUTPUT()
+call_mysqlsh_py_e("sample.my_object.test_function()")
+EXPECT_STDOUT_CONTAINS("My test function")
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

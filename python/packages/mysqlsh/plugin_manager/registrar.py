@@ -521,6 +521,9 @@ class PluginRegistrar:
     def __init__(self):
         pass
 
+    def _get_python_name(self, name):
+        return "_".join([x.lower() for x in re.split("([A-Z][a-z0-9_]*)", name) if x])
+
     def register_object(self, name, docs, members=None):
         try:
             plugin_obj = self.get_plugin_object(name, docs)
@@ -561,15 +564,22 @@ class PluginRegistrar:
                 # Loop over all plugins in the hierarchy and ensure they exist
                 parent = mysqlsh.globals
                 for h_name in hierarchy[0:-1]:
-                    if h_name in dir(parent):
-                        parent = getattr(parent, h_name)
+                    py_name = h_name
+                    # Global objects have the same name in JS/PY, but child
+                    # objects are registered as properties in which case naming
+                    # convention is followed
+                    if parent != mysqlsh.globals:
+                        py_name = self._get_python_name(h_name)
+                    if py_name in dir(parent):
+                        parent = getattr(parent, py_name)
                     else:
                         raise Exception(
-                            f"Object {h_name} not found in hierarchy: {name}"
+                            f"Object {py_name} not found in hierarchy: {name}"
                         )
 
                 # Return the plugin object if it already exists
-                plugin_obj = getattr(parent, plugin_name, None)
+                py_plugin_name = self._get_python_name(plugin_name)
+                plugin_obj = getattr(parent, py_plugin_name, None)
                 if not plugin_obj:
                     if docs is None:
                         raise ValueError(
