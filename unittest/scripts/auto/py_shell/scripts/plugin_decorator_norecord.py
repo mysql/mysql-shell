@@ -375,15 +375,42 @@ testutil.create_file(bbb_path, bbb_plugin_code)
 #@<OUT> Help for aaa
 rc = call_mysqlsh_e("\\? aaa")
 
+#@<OUT> aaa.help()
+rc = call_mysqlsh_e("aaa.help()")
+
 #@<OUT> Help for nested aaa
 rc = call_mysqlsh_e("\\? bbb.aaa")
+
+#@<OUT> bbb.aaa.help()
+rc = call_mysqlsh_e("bbb.aaa.help()")
 
 #@<OUT> Help for bbb
 rc = call_mysqlsh_e("\\? bbb")
 
+#@<OUT> bbb.help()
+rc = call_mysqlsh_e("bbb.help()")
+
 #@<OUT> Help for nested bbb
 rc = call_mysqlsh_e("\\? aaa.bbb")
 
+#@<OUT> aaa.bbb.help()
+rc = call_mysqlsh_e("aaa.bbb.help()")
+
+#@<OUT> Help from thread
+test_thread_code = """
+import threading
+
+def test_help():
+    print(aaa.help())
+
+t = threading.Thread(target=test_help)
+t.start()
+t.join()
+"""
+
+testutil.create_file("thread_test.py", test_thread_code)
+rc = __call_mysqlsh(["--py", "-f", "thread_test.py"])
+testutil.rmfile("thread_test.py")
 
 #@<> Bug#33462107 - plugin_function: unable to attach function to existing object
 sample_plugin_code = '''

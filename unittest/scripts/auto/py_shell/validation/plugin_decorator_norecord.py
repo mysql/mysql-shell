@@ -609,8 +609,39 @@ For help on a specific topic use: \? <topic>
 
 e.g.: \? bbb.aaa
 
+#@<OUT> aaa.help()
+[[*]]> aaa.help()
+NAME
+      aaa - Brief description of the aaa plugin.
+
+DESCRIPTION
+      Brief description of the aaa plugin.
+
+PROPERTIES
+      bbb
+            Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
 #@<OUT> Help for nested aaa
 [[*]]> \? bbb.aaa
+NAME
+      aaa - Brief description of aaa.bbb plugin object.
+
+SYNTAX
+      bbb.aaa
+
+DESCRIPTION
+      Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+#@<OUT> bbb.aaa.help()
+[[*]]> bbb.aaa.help()
 NAME
       aaa - Brief description of aaa.bbb plugin object.
 
@@ -652,6 +683,22 @@ For help on a specific topic use: \? <topic>
 
 e.g.: \? aaa.bbb
 
+#@<OUT> bbb.help()
+[[*]]> bbb.help()
+NAME
+      bbb - Brief description of the bbb plugin.
+
+DESCRIPTION
+      Brief description of the bbb plugin.
+
+PROPERTIES
+      aaa
+            Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
 #@<OUT> Help for nested bbb
 [[*]]> \? aaa.bbb
 NAME
@@ -666,4 +713,40 @@ DESCRIPTION
 FUNCTIONS
       help([member])
             Provides help about this object and it's members
+
+#@<OUT> aaa.bbb.help()
+[[*]]> aaa.bbb.help()
+NAME
+      bbb - Brief description of aaa.bbb plugin object.
+
+SYNTAX
+      aaa.bbb
+
+DESCRIPTION
+      Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+#@<OUT> Help from thread
+NAME
+      aaa - Brief description of the aaa plugin.
+
+DESCRIPTION
+      Brief description of the aaa plugin.
+
+PROPERTIES
+      bbb
+            Brief description of aaa.bbb plugin object.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+#@<OUT> Bug#33462107 - plugin_function: unable to attach function to existing object
+MySQL Py> sample.my_object.test_function()
+My test function
+MySQL Py> 
+0
 

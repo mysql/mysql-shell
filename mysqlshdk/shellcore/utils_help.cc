@@ -2349,6 +2349,7 @@ std::string Help_manager::get_help(const std::string &topic_id, Topic_mask type,
 std::string Help_manager::get_help(const std::string &topic_id, Topic_mask type,
                                    const Help_options &options) {
   auto topics = search_topics(topic_id);
+  decltype(topics) *found_topics = &topics;
 
   if (!type.empty()) {
     for (size_t index = 0; index < topics.size(); index++) {
@@ -2359,12 +2360,28 @@ std::string Help_manager::get_help(const std::string &topic_id, Topic_mask type,
     }
   }
 
-  if (topics.empty())
+  // This function is for internal use, meaning the provided topic_id might be
+  // exact, i.e. in extension objects.
+  // At this point if we still have multiple topics, we search to see if there's
+  // an exact match with the provided topic_id, if so, that one is returned
+  decltype(topics) exact_matches;
+  if (topics.size() > 1) {
+    for (size_t index = 0; index < topics.size(); index++) {
+      if (topics[index]->get_id() == topic_id) {
+        exact_matches.push_back(topics[index]);
+      }
+      if (!exact_matches.empty()) {
+        found_topics = &exact_matches;
+      }
+    }
+  }
+
+  if (found_topics->empty())
     throw std::logic_error("Unable to find help for '" + topic_id + "'");
-  else if (topics.size() > 1)
+  else if (found_topics->size() > 1)
     throw std::logic_error("Multiple matches found for topic '" + topic_id +
                            "'");
 
-  return get_help(**topics.begin(), options);
+  return get_help(**found_topics->begin(), options);
 }
 }  // namespace shcore

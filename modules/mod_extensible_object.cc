@@ -31,6 +31,7 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/threads.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -182,6 +183,14 @@ const std::map<std::string, shcore::Value_type> kTypeMapping = {
     {"object", shcore::Object},  {"array", shcore::Array},
     {"dictionary", shcore::Map}, {"function", shcore::Function},
 };
+
+// The help for the extension objects is registered in the corresponding
+// context depending on where the plugins are being loaded.
+shcore::Keyword_location help_context() {
+  return mysqlshdk::utils::in_main_thread()
+             ? shcore::Keyword_location::GLOBAL_CTX
+             : shcore::Keyword_location::LOCAL_CTX;
+}
 
 }  // namespace
 
@@ -782,19 +791,17 @@ void Extensible_object::register_help(const std::string &brief,
       auto type = is_global ? shcore::Topic_type::GLOBAL_OBJECT
                             : shcore::Topic_type::OBJECT;
       help->add_help_topic(m_name, type, m_qualified_name, parent, mask,
-                           shcore::Keyword_location::LOCAL_CTX, true);
+                           help_context(), true);
 
       // Now registers the object brief, parameters and details
       auto prefix = shcore::str_upper(m_qualified_name);
 
-      help->add_help(prefix, "BRIEF", brief,
-                     shcore::Keyword_location::LOCAL_CTX);
+      help->add_help(prefix, "BRIEF", brief, help_context());
       help->add_help(prefix, "DETAIL", &m_detail_sequence, details,
-                     shcore::Keyword_location::LOCAL_CTX);
+                     help_context());
 
       if (is_global)
-        help->add_help(prefix, "GLOBAL_BRIEF", brief,
-                       shcore::Keyword_location::LOCAL_CTX);
+        help->add_help(prefix, "GLOBAL_BRIEF", brief, help_context());
     }
   } else {
     m_definition.reset(new Member_definition("", brief, details));
@@ -810,22 +817,20 @@ void Extensible_object::register_property_help(
 
   // Creates the help topic for the object
   help->add_help_topic(def->name, shcore::Topic_type::PROPERTY, def->name,
-                       m_qualified_name, mask,
-                       shcore::Keyword_location::LOCAL_CTX, true);
+                       m_qualified_name, mask, help_context(), true);
 
   // Now registers the object brief, parameters and details
   auto object = shcore::str_upper(m_name);
   auto prefix = object + "_" + shcore::str_upper(def->name);
   if (!def->brief.empty()) {
-    help->add_help(prefix, "BRIEF", def->brief,
-                   shcore::Keyword_location::LOCAL_CTX);
+    help->add_help(prefix, "BRIEF", def->brief, help_context());
   }
 
   size_t member_sequence = 0;
 
   if (!def->details.empty()) {
     help->add_help(prefix, "DETAIL", &member_sequence, def->details,
-                   shcore::Keyword_location::LOCAL_CTX);
+                   help_context());
   }
 }
 
@@ -847,17 +852,14 @@ void Extensible_object::register_function_help(
 
     // Creates the help topic for the function
     help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
-                         m_qualified_name, mask,
-                         shcore::Keyword_location::LOCAL_CTX, true);
+                         m_qualified_name, mask, help_context(), true);
 
     // Now registers the function brief, parameters and details
     auto prefix = shcore::str_upper(m_name + "_" + names[0]);
     if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
-    help->add_help(prefix, "PARAM", params,
-                   shcore::Keyword_location::LOCAL_CTX);
-    help->add_help(prefix, "DETAIL", details,
-                   shcore::Keyword_location::LOCAL_CTX);
-    help->add_help(prefix, examples, shcore::Keyword_location::LOCAL_CTX);
+    help->add_help(prefix, "PARAM", params, help_context());
+    help->add_help(prefix, "DETAIL", details, help_context());
+    help->add_help(prefix, examples, help_context());
   } else {
     topic->set_enabled(true);
   }
