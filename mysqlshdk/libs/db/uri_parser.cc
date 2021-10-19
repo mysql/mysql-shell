@@ -555,7 +555,7 @@ void Uri_parser::parse_path() {
 #ifdef _WIN32
     // on Windows we have to replace the \ with /, we do this only for file
     // scheme
-    if (_data->get_scheme() == "file") {
+    if (_data->has_scheme() && _data->get_scheme() == "file") {
       std::replace(_input.begin() + _chunks[URI_PATH].first,
                    _input.begin() + _chunks[URI_PATH].second, '\\', '/');
       _tokenizer.set_input(_input);
