@@ -76,6 +76,17 @@ class Gtid_set {
                     true);
   }
 
+  static Gtid_set from_received_transaction_set(
+      const mysqlshdk::mysql::IInstance &server, const std::string &channel) {
+    return Gtid_set(server.queryf_one_string(
+                        0, "",
+                        "select received_transaction_set"
+                        " from performance_schema.replication_connection_status"
+                        " where channel_name=?",
+                        channel),
+                    true);
+  }
+
   Gtid_set &normalize(const mysqlshdk::mysql::IInstance &server);
 
   Gtid_set &subtract(const Gtid_set &other,
