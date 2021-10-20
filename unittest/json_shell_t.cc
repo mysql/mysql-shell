@@ -135,7 +135,7 @@ TEST(Json_shell, valid_commands) {
   capture.clear();
   shell.process_line("{\"execute\":\"\\\\py\"}");
   EXPECT_THAT(capture, ::testing::HasSubstr(
-                           "{\"info\":\"Switching to Python mode...\"}"));
+                           "{\"info\":\"Switching to Python mode...\\n\"}"));
 
   capture.clear();
   shell.process_line("{\"complete\":{\"data\":\"dba.\"}}");

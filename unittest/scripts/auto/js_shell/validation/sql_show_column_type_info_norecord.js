@@ -503,7 +503,7 @@ Flags:     BINARY
 
 //@<OUT> Column type info enabled X JSON
 {
-    "warning": "Using a password on the command line interface can be insecure."
+    "warning": "Using a password on the command line interface can be insecure.\n"
 }
 {
     "Field 1": {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -244,7 +244,7 @@ void Shell_console::print(const std::string &text) const {
 
 void Shell_console::println(const std::string &text) const {
   if (use_json()) {
-    if (!text.empty()) dump_json("info", text);
+    if (!text.empty()) dump_json("info", text + "\n");
   } else {
     raw_print(text + "\n", Output_stream::STDOUT);
   }
@@ -294,7 +294,7 @@ void Shell_console::print_diag(const std::string &text) const {
 void Shell_console::print_error(const std::string &text) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("error", ftext);
+    dump_json("error", ftext + "\n");
   } else {
     delegate_print_error(
         (mysqlshdk::textui::error("ERROR: ") + ftext + "\n").c_str());
@@ -308,7 +308,7 @@ void Shell_console::print_error(const std::string &text) const {
 void Shell_console::print_warning(const std::string &text) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("warning", ftext);
+    dump_json("warning", ftext + "\n");
   } else {
     delegate_print_error(
         (mysqlshdk::textui::warning("WARNING: ") + ftext + "\n").c_str());
@@ -322,7 +322,7 @@ void Shell_console::print_warning(const std::string &text) const {
 void Shell_console::print_note(const std::string &text) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("note", ftext);
+    dump_json("note", ftext + "\n");
   } else {
     delegate_print_error(
         (mysqlshdk::textui::notice("NOTE: ") + ftext + "\n").c_str());
@@ -336,7 +336,7 @@ void Shell_console::print_note(const std::string &text) const {
 void Shell_console::print_info(const std::string &text) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("info", ftext);
+    dump_json("info", ftext + "\n");
   } else {
     delegate_print_error((ftext + "\n").c_str());
   }
@@ -349,7 +349,7 @@ void Shell_console::print_info(const std::string &text) const {
 void Shell_console::print_status(const std::string &text) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("status", ftext);
+    dump_json("status", ftext + "\n");
   } else {
     delegate_print_error((ftext + "\n").c_str());
   }
@@ -362,7 +362,7 @@ void Shell_console::print_status(const std::string &text) const {
 void Shell_console::print_para(const std::string &text) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("info", ftext);
+    dump_json("info", ftext + "\n\n");
   } else {
     delegate_print_error((fit_screen(ftext) + "\n\n").c_str());
   }
@@ -607,14 +607,15 @@ void Shell_console::print_value(const shcore::Value &value,
     // If no tag is provided, prints the JSON representation of the Value
     if (tag.empty()) {
       output = value.json(mysqlsh::current_shell_options()->get().wrap_json ==
-                          "json") +
-               "\n";
+                          "json");
     } else {
       if (value.type == shcore::String)
         output = json_obj(tag.c_str(), value.get_string());
       else
         output = json_obj(tag.c_str(), value);
     }
+
+    output += "\n";
 
     // JSON output is always printed to stdout
     delegate_print(output.c_str());
