@@ -3550,6 +3550,15 @@ char *linenoise(const char *prompt) {
       --count;
       buf8[count] = '\0';
     }
+
+#ifdef _WIN32
+    // if fgets() gave us the carriage return, also removes it
+    if (count > 0 && buf8[count - 1] == '\r') {
+      --count;
+      buf8[count] = '\0';
+    }
+#endif
+
     return strdup(buf8.get());  // caller must free buffer
   }
 }
