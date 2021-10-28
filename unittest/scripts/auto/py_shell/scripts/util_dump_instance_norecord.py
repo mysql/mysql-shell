@@ -2170,7 +2170,8 @@ EXPECT_EQ(["existing_schema_1", "existing_schema_2"], entries(dump_and_load({ "i
 EXPECT_EQ(["existing_schema_2"], entries(dump_and_load({ "includeSchemas": [ "existing_schema_2", "non_existing_schema" ] })))
 
 #@<> WL14244-TSFR_1_4
-EXPECT_FAIL("LogicError", "Filters for schemas result in an empty set.", test_output_relative, { "includeSchemas": [ "non_existing_schema" ] })
+# BUG#33502098
+EXPECT_FAIL("LogicError", "Filters for schemas result in an empty set.", test_output_relative, { "includeSchemas": [ "non_existing_schema" ], "users": False })
 
 #@<> WL14244 - includeTables - invalid values
 EXPECT_FAIL("ValueError", "Argument #2: The table to be included must be in the following form: schema.table, with optional backtick quotes, wrong value: 'table'.", test_output_absolute, { "includeTables": [ "table" ] })

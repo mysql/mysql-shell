@@ -1915,6 +1915,8 @@ void Dumper::initialize_instance_cache_minimal() {
                                    m_options.excluded_schemas(),
                                    m_options.excluded_tables(), {}, false)
                 .build();
+
+  validate_schemas_list();
 }
 
 void Dumper::initialize_instance_cache() {
@@ -1951,6 +1953,8 @@ void Dumper::initialize_instance_cache() {
   }
 
   m_cache = builder.build();
+
+  validate_schemas_list();
 
   print_object_stats();
 }
@@ -3507,6 +3511,12 @@ void Dumper::validate_privileges() const {
 
 bool Dumper::is_gtid_executed_inconsistent() const {
   return !m_options.consistent_dump() || m_ftwrl_failed;
+}
+
+void Dumper::validate_schemas_list() const {
+  if (!m_options.dump_users() && m_cache.schemas.empty()) {
+    throw std::logic_error("Filters for schemas result in an empty set.");
+  }
 }
 
 void Dumper::log_server_version() const {

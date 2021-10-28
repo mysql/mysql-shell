@@ -340,6 +340,8 @@ class Dumper {
 
   void print_object_stats() const;
 
+  void validate_schemas_list() const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
