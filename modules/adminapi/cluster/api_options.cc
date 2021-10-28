@@ -112,7 +112,7 @@ void Status_options::set_query_members(bool value) {
                          "Please use the 'extended' option%s instead.",
                          kQueryMembers, specific_value.c_str()));
 
-  console->println();
+  console->print_info();
 
   if (value) {
     extended = 3;

@@ -62,7 +62,7 @@ void Check_instance::check_instance_address() {
     // bug#26393614
     auto console = mysqlsh::current_console();
     console->print_note("Instance detected as a sandbox.");
-    console->println(
+    console->print_info(
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
@@ -72,8 +72,8 @@ void Check_instance::check_instance_address() {
 bool Check_instance::check_schema_compatibility() {
   auto console = mysqlsh::current_console();
   if (!m_silent) {
-    console->println();
-    console->println(
+    console->print_info();
+    console->print_info(
         "Checking whether existing tables comply with Group Replication "
         "requirements...");
   }
@@ -111,8 +111,8 @@ bool Check_instance::check_configuration() {
 
   auto console = mysqlsh::current_console();
   if (!m_silent) {
-    console->println();
-    console->println("Checking instance configuration...");
+    console->print_info();
+    console->print_info("Checking instance configuration...");
 
     bool local_target = mysqlshdk::utils::Net::is_local_address(
         m_target_instance->get_connection_options().get_host());
@@ -121,8 +121,8 @@ bool Check_instance::check_configuration() {
         throw shcore::Exception::argument_error(
             "mycnfPath or verifyMyCnf not allowed for remote instances");
       } else {
-        console->println("Configuration file " + m_mycnf_path +
-                         " will also be checked.");
+        console->print_info("Configuration file " + m_mycnf_path +
+                            " will also be checked.");
       }
     }
   } else {
@@ -238,7 +238,7 @@ void Check_instance::prepare() {
     throw;
   }
   if (m_is_valid && !m_silent) {
-    console->println();
+    console->print_info();
     console->print_info("The instance '" + target +
                         "' is valid to be used in an InnoDB cluster.");
   }
@@ -251,7 +251,7 @@ void Check_instance::prepare() {
  * is a no-op.
  */
 shcore::Value Check_instance::execute() {
-  mysqlsh::current_console()->println();
+  mysqlsh::current_console()->print_info();
   return m_ret_val;
 }
 

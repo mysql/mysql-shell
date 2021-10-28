@@ -104,7 +104,7 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
         row = result->fetch_one();
       }
       tables.append("\n");
-      console->println(tables);
+      console->print_info(tables);
     }
   }
   {
@@ -140,7 +140,7 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
         row = result->fetch_one();
       }
       tables.append("\n");
-      console->println(tables);
+      console->print_info(tables);
     }
   }
   if (!ok) {
@@ -249,7 +249,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
   }
 
   if (verbose > 0) {
-    console->println();
+    console->print_info();
     console->print_info(
         "This instance reports its own address as " +
         mysqlshdk::textui::bold(instance.get_canonical_address()));
@@ -423,7 +423,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
   if (!invalid_cfs_vec.empty()) {
     auto console = mysqlsh::current_console();
 
-    console->println();
+    console->print_info();
     print_validation_results(check_result.as_map(), true);
     if (*restart_needed) {
       // if we have to change some read only variables, print a message to the

@@ -197,7 +197,7 @@ void Set_instance_option::prepare() {
         "The member will only proceed according to its exitStateAction if "
         "auto-rejoin fails (i.e. all retry attempts are exhausted).";
     console->print_warning(warn_msg);
-    console->println();
+    console->print_info();
   }
 }
 
@@ -213,7 +213,7 @@ shcore::Value Set_instance_option::execute() {
       "Setting the value of '" + m_option + "' to '" +
       (m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str) +
       "' in the instance: '" + m_target_instance_address + "' ...");
-  console->println();
+  console->print_info();
 
   if (m_option == "label") {
     m_cluster.get_metadata_storage()->set_instance_label(

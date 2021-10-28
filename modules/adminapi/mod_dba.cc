@@ -982,7 +982,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     if (current_shell_options()->get().wizards) {
       auto state = get_cluster_check_info(*metadata);
       if (state.source_state == mysqlsh::dba::ManagedInstance::OnlineRO) {
-        console->println(
+        console->print_info(
             "WARNING: You are connected to an instance in state '" +
             mysqlsh::dba::ManagedInstance::describe(
                 static_cast<mysqlsh::dba::ManagedInstance::State>(
@@ -991,7 +991,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
             "Write operations on the InnoDB cluster will not be allowed.\n");
       } else if (state.source_state !=
                  mysqlsh::dba::ManagedInstance::OnlineRW) {
-        console->println(
+        console->print_info(
             "WARNING: You are connected to an instance in state '" +
             mysqlsh::dba::ManagedInstance::describe(
                 static_cast<mysqlsh::dba::ManagedInstance::State>(
@@ -1454,11 +1454,11 @@ void Dba::drop_metadata_schema(
 
     metadata::uninstall(instance);
     if (interactive) {
-      console->println("Metadata Schema successfully removed.");
+      console->print_info("Metadata Schema successfully removed.");
     }
   } else {
     if (interactive) {
-      console->println("No changes made to the Metadata Schema.");
+      console->print_info("No changes made to the Metadata Schema.");
     } else {
       throw shcore::Exception::runtime_error(
           "No operation executed, use the 'force' option");
@@ -1928,9 +1928,9 @@ void Dba::exec_instance_op(const std::string &function, int port,
   shcore::Value::Array_type_ref errors;
 
   if (interactive) {
-    console->println();
-    console->println(sandbox::Operations_text[function].progressive +
-                     " MySQL instance...");
+    console->print_info();
+    console->print_info(sandbox::Operations_text[function].progressive +
+                        " MySQL instance...");
   }
 
   int rc = 0;
@@ -1949,11 +1949,11 @@ void Dba::exec_instance_op(const std::string &function, int port,
   if (rc != 0) {
     throw_instance_op_error(errors);
   } else if (interactive) {
-    console->println();
-    console->println("Instance localhost:" + std::to_string(port) +
-                     " successfully " +
-                     sandbox::Operations_text[function].past + ".");
-    console->println();
+    console->print_info();
+    console->print_info("Instance localhost:" + std::to_string(port) +
+                        " successfully " +
+                        sandbox::Operations_text[function].past + ".");
+    console->print_info();
   }
 }
 
@@ -2023,7 +2023,7 @@ void Dba::deploy_sandbox_instance(
       shcore::path::join_path(options->sandbox_dir, std::to_string(port));
 
   if (interactive) {
-    console->println(
+    console->print_info(
         "A new MySQL sandbox instance will be created on this host in \n" +
         path +
         "\n\nWarning: Sandbox instances are only suitable for deploying and "
@@ -2048,8 +2048,8 @@ void Dba::deploy_sandbox_instance(
   }
 
   if (interactive) {
-    console->println();
-    console->println("Deploying new MySQL instance...");
+    console->print_info();
+    console->print_info("Deploying new MySQL instance...");
   }
 
   shcore::Array_t errors;
@@ -2236,9 +2236,9 @@ void Dba::stop_sandbox_instance(
   auto console = mysqlsh::current_console();
   std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
   if (interactive) {
-    console->println("The MySQL sandbox instance on this host in \n" + path +
-                     " will be " + sandbox::Operations_text["stop"].past +
-                     "\n");
+    console->print_info("The MySQL sandbox instance on this host in \n" + path +
+                        " will be " + sandbox::Operations_text["stop"].past +
+                        "\n");
 
     if (password.is_null()) {
       std::string answer;
@@ -2924,8 +2924,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
               "invalidated. Please rejoin the instance after the Cluster is "
               "rejoined to the ClusterSet");
         } else {
-          console->println("The instance '" + instance_address +
-                           "' was part of the cluster configuration.");
+          console->print_info("The instance '" + instance_address +
+                              "' was part of the cluster configuration.");
 
           if (console->confirm("Would you like to rejoin it to the cluster?",
                                mysqlsh::Prompt_answer::NO) ==
@@ -2936,7 +2936,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
             // so it must be skipped on the GTID check
             instances_to_skip_gtid_check.push_back(instance_address);
           }
-          console->println();
+          console->print_info();
         }
       }
     }
@@ -2986,8 +2986,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
                                  });
           if (it != rejoin_instances_list.end()) continue;
         }
-        console->println("Could not open a connection to '" + instance_address +
-                         "': '" + instance_status + "'");
+        console->print_info("Could not open a connection to '" +
+                            instance_address + "': '" + instance_status + "'");
 
         if (console->confirm(
                 "Would you like to remove it from the cluster's metadata?",
@@ -2998,7 +2998,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
           // so it must be skipped on the GTID check
           instances_to_skip_gtid_check.push_back(instance_address);
         }
-        console->println();
+        console->print_info();
       }
     }
   }

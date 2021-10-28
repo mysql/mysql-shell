@@ -118,7 +118,7 @@ shcore::Value Set_primary_instance::execute() {
   console->print_info("Setting instance '" + target_instance_address +
                       "' as the primary instance of cluster '" +
                       m_cluster->get_name() + "'...");
-  console->println();
+  console->print_info();
 
   // Restore the replication channel if the cluster belongs to a ClusterSet and
   // is a replica cluster

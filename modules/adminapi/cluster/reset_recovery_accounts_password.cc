@@ -40,12 +40,12 @@ Reset_recovery_accounts_password::Reset_recovery_accounts_password(
 
 bool Reset_recovery_accounts_password::prompt_to_force_reset() const {
   auto console = mysqlsh::current_console();
-  console->println();
+  console->print_info();
   bool result = console->confirm(
                     "Do you want to continue anyway (the recovery "
                     "password for the instance will not be reset)?",
                     Prompt_answer::NO) == Prompt_answer::YES;
-  console->println();
+  console->print_info();
   return result;
 }
 
@@ -107,7 +107,7 @@ void Reset_recovery_accounts_password::ensure_instance_reachable(
       console->print_note(
           "The recovery password of instance '" + instance_address +
           "' will not be reset because the instance is not reachable.");
-      console->println();
+      console->print_info();
     }
   }
 }
@@ -160,7 +160,7 @@ void Reset_recovery_accounts_password::handle_not_online_instances(
         instance_address + "' because it is '" + instance_state +
         "'. To reset the recovery password, bring the instance back ONLINE and "
         "run the <Cluster>.<<<resetRecoveryAccountsPassword>>>() again.");
-    console->println();
+    console->print_info();
   }
 }
 shcore::Value Reset_recovery_accounts_password::execute() {
@@ -240,10 +240,10 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     console->print_warning(warning_msg);
   } else {
     // All of cluster's recovery accounts were reset
-    console->println(
+    console->print_info(
         "The recovery account passwords of all the cluster instances' were "
         "successfully reset.");
-    console->println();
+    console->print_info();
   }
   return shcore::Value();
 }

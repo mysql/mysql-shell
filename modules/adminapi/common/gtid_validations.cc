@@ -272,7 +272,7 @@ void check_gtid_consistency_and_recoverability(
 
   switch (state) {
     case mysqlshdk::mysql::Replica_gtid_state::NEW:
-      console->println();
+      console->print_info();
       if (gtid_set_is_complete) {
         msg = "The target instance '" + target_instance->descr() +
               "' has not been pre-provisioned (GTID set is empty), but the " +
@@ -315,7 +315,7 @@ void check_gtid_consistency_and_recoverability(
       break;
 
     case mysqlshdk::mysql::Replica_gtid_state::DIVERGED:
-      console->println();
+      console->print_info();
       console->print_warning(
           "A GTID set check of the MySQL instance at '" +
           target_instance->descr() +

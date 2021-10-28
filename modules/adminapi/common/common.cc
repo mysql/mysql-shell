@@ -756,7 +756,7 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
       if (console->confirm(
               "Do you want to disable super_read_only and continue?",
               mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::NO) {
-        console->println();
+        console->print_info();
         throw shcore::Exception::runtime_error(
             "Server in SUPER_READ_ONLY mode");
       } else {
@@ -912,8 +912,8 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   // Detect the OS
   auto console = mysqlsh::current_console();
 
-  console->println();
-  console->println("Detecting the configuration file...");
+  console->print_info();
+  console->print_info("Detecting the configuration file...");
   std::vector<std::string> config_paths, default_paths;
 
   if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
@@ -937,9 +937,9 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   // to modify any of them
   for (const auto &value : config_paths) {
     // Prompt the user to validate if shall use it or not
-    console->println("Found configuration file being used by instance '" +
-                     instance.get_connection_options().uri_endpoint() +
-                     "' at location: " + value);
+    console->print_info("Found configuration file being used by instance '" +
+                        instance.get_connection_options().uri_endpoint() +
+                        "' at location: " + value);
 
     if (console->confirm("Do you want to modify this file?") ==
         Prompt_answer::YES) {
@@ -953,8 +953,8 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
     for (const auto &value : default_paths) {
       if (shcore::is_file(value)) {
         // Prompt the user to validate if shall use it or not
-        console->println("Found configuration file at standard location: " +
-                         value);
+        console->print_info("Found configuration file at standard location: " +
+                            value);
 
         if (console->confirm("Do you want to modify this file?") ==
             Prompt_answer::YES) {
@@ -966,7 +966,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
   }
 
   if (cnfPath.empty()) {
-    console->println("Default file not found at the standard locations.");
+    console->print_info("Default file not found at the standard locations.");
 
     bool done = false;
     std::string tmpPath;
@@ -981,9 +981,9 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
           cnfPath = tmpPath;
           done = true;
         } else {
-          console->println(
+          console->print_info(
               "The given path to the MySQL configuration file is invalid.");
-          console->println();
+          console->print_info();
         }
       }
     }
@@ -1004,18 +1004,18 @@ int prompt_menu(const std::vector<std::string> &options, int defopt) {
   int i = 0;
   auto console = mysqlsh::current_console();
   for (const auto &opt : options) {
-    console->println(std::to_string(++i) + ") " + opt);
+    console->print_info(std::to_string(++i) + ") " + opt);
   }
   for (;;) {
     std::string result;
     if (defopt > 0) {
-      console->println();
+      console->print_info();
       if (console->prompt(
               "Please select an option [" + std::to_string(defopt) + "]: ",
               &result) != shcore::Prompt_result::Ok)
         return 0;
     } else {
-      console->println();
+      console->print_info();
       if (console->prompt("Please select an option: ", &result) !=
           shcore::Prompt_result::Ok)
         return 0;
@@ -1173,7 +1173,7 @@ void dump_table(const std::vector<std::string> &column_names,
     // if (numerics[index])
     //  formats[index] = formats[index].replace(1, 1, "");
   }
-  console->println();
+  console->print_info();
   console->print(separator);
 
   if (documents) {
@@ -1190,11 +1190,11 @@ void dump_table(const std::vector<std::string> &column_names,
 
         console->print(data.c_str());
       }
-      console->println();
+      console->print_info();
     }
   }
 
-  console->println(separator);
+  console->print_info(separator);
 }
 
 /*

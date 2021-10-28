@@ -180,14 +180,14 @@ int ProvisioningInterface::execute_mysqlprovision(
   auto console = mysqlsh::current_console();
 
   if (verbose > 1) {
-    console->println(message);
+    console->print_info(message);
   }
 
   if (verbose) {
     std::string title = " MySQL Provision Output ";
     std::string half_header((78 - title.size()) / 2, '=');
     std::string header = half_header + title + half_header;
-    console->println(header);
+    console->print_info(header);
   }
 
   std::string stage_action;
@@ -302,7 +302,7 @@ int ProvisioningInterface::execute_mysqlprovision(
 
   if (verbose) {
     std::string footer(78, '=');
-    console->println(footer);
+    console->print_info(footer);
   }
 
 #ifndef NDEBUG

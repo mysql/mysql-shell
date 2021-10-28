@@ -257,8 +257,8 @@ void Cluster_impl::adopt_from_gr() {
 
     log_info("Adopting member %s:%d from existing group", instance.host.c_str(),
              instance.port);
-    console->println("Adding Instance '" + instance.host + ":" +
-                     std::to_string(instance.port) + "'...");
+    console->print_info("Adding Instance '" + instance.host + ":" +
+                        std::to_string(instance.port) + "'...");
 
     auto md_instance = get_metadata_storage()->get_md_server();
 
@@ -2015,11 +2015,11 @@ void Cluster_impl::force_quorum_using_partition_of(
     std::string message = "Restoring cluster '" + get_name() +
                           "' from loss of quorum, by using the partition "
                           "composed of [" +
-                          group_peers_print + "]\n\n";
-    console->print(message);
+                          group_peers_print + "]\n";
+    console->print_info(message);
 
-    console->println("Restoring the InnoDB cluster ...");
-    console->println();
+    console->print_info("Restoring the InnoDB cluster ...");
+    console->print_info();
   }
 
   std::string instance_address =
@@ -2194,17 +2194,17 @@ void Cluster_impl::force_quorum_using_partition_of(
   }
 
   if (interactive) {
-    console->println(
+    console->print_info(
         "The InnoDB cluster was successfully restored using the partition "
         "from the instance '" +
         instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
         "'.");
-    console->println();
-    console->println(
+    console->print_info();
+    console->print_info(
         "WARNING: To avoid a split-brain scenario, ensure that all other "
         "members of the cluster are removed or joined back to the group that "
         "was restored.");
-    console->println();
+    console->print_info();
   }
 }
 

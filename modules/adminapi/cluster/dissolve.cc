@@ -53,13 +53,14 @@ void Dissolve::prompt_to_confirm_dissolve() const {
   auto console = mysqlsh::current_console();
 
   // Show cluster description.
-  console->println("The cluster still has the following registered instances:");
+  console->print_info(
+      "The cluster still has the following registered instances:");
   shcore::Value res = m_cluster->describe();
 
   // Pretty print description only if wrap_json is not json/raw.
   bool use_pretty_print =
       (current_shell_options()->get().wrap_json.compare("json/raw") != 0);
-  console->println(res.descr(use_pretty_print));
+  console->print_info(res.descr(use_pretty_print));
 
   console->print_warning(
       "You are about to dissolve the whole cluster and lose the high "
@@ -68,7 +69,7 @@ void Dissolve::prompt_to_confirm_dissolve() const {
       "replication will be stopped, internal recovery user accounts and "
       "the cluster metadata will be dropped. User data will be maintained "
       "intact in all instances.");
-  console->println();
+  console->print_info();
 
   if (console->confirm("Are you sure you want to dissolve the cluster?",
                        Prompt_answer::NO) == Prompt_answer::NO) {
@@ -78,12 +79,12 @@ void Dissolve::prompt_to_confirm_dissolve() const {
 
 bool Dissolve::prompt_to_force_dissolve() const {
   auto console = mysqlsh::current_console();
-  console->println();
+  console->print_info();
   bool result = console->confirm(
                     "Do you want to continue anyway (only the instance "
                     "metadata will be removed)?",
                     Prompt_answer::NO) == Prompt_answer::YES;
-  console->println();
+  console->print_info();
   return result;
 }
 
@@ -122,7 +123,7 @@ void Dissolve::ensure_instance_reachable(const std::string &instance_address) {
           "' is not reachable and it will only be removed from the metadata. "
           "Please take any necessary actions to make sure that the instance "
           "will not start/rejoin the cluster if brought back online.");
-      console->println();
+      console->print_info();
     }
   }
 }
@@ -230,7 +231,7 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
         "' and it will only be removed from the metadata. "
         "Please take any necessary actions to make sure that the instance "
         "will not start/rejoin the cluster if brought back online.");
-    console->println();
+    console->print_info();
   }
 }
 
@@ -238,7 +239,7 @@ void Dissolve::prepare() {
   // Confirm execution of operation in interactive mode.
   if (m_interactive) {
     prompt_to_confirm_dissolve();
-    mysqlsh::current_console()->println();
+    mysqlsh::current_console()->print_info();
   }
 
   // Get cluster session to use the same authentication credentials for all
@@ -328,7 +329,7 @@ void Dissolve::remove_instance(const std::string &instance_address,
           "' from the cluster. The instance might have been left active "
           "and in an inconsistent state, requiring manual action to "
           "fully dissolve the cluster.");
-      console->println();
+      console->print_info();
     }
   }
 }
@@ -414,7 +415,7 @@ shcore::Value Dissolve::execute() {
               instance_address +
               "' might have been left in an inconsistent state that will lead "
               "to errors if it is reused.");
-          console->println();
+          console->print_info();
         }
       }
 
@@ -439,7 +440,7 @@ shcore::Value Dissolve::execute() {
   m_cluster->disconnect();
 
   // Print appropriate output message depending if some operation was skipped.
-  console->println();
+  console->print_info();
   if (!m_skipped_instances.empty()) {
     // Some instance were skipped and not properly removed from the cluster
     // despite being dissolved.
@@ -486,9 +487,10 @@ shcore::Value Dissolve::execute() {
     console->print_warning(warning_msg);
   } else {
     // Full cluster successfully removed.
-    console->println("The cluster was successfully dissolved.");
-    console->println("Replication was disabled but user data was left intact.");
-    console->println();
+    console->print_info("The cluster was successfully dissolved.");
+    console->print_info(
+        "Replication was disabled but user data was left intact.");
+    console->print_info();
   }
 
   return shcore::Value();

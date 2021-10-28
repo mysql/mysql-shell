@@ -94,13 +94,13 @@ bool Configure_instance::check_config_path_for_update() {
       console->print_error(
           "The path to the MySQL configuration file is required to verify and "
           "fix InnoDB cluster related options.");
-      console->println("Please provide its path with the mycnfPath option.");
+      console->print_info("Please provide its path with the mycnfPath option.");
       return false;
     }
   } else {
     if (m_is_cnf_from_sandbox)
-      console->println("Sandbox MySQL configuration file at: " +
-                       m_options.mycnf_path);
+      console->print_info("Sandbox MySQL configuration file at: " +
+                          m_options.mycnf_path);
   }
 
   bool prompt_output_path = false;
@@ -119,7 +119,7 @@ bool Configure_instance::check_config_path_for_update() {
           return false;
         }
       } else {
-        console->println(m_options.mycnf_path + " will be created.");
+        console->print_info(m_options.mycnf_path + " will be created.");
       }
     }
     // If path exists (or if it's OK to create it), check if it's also writable
@@ -129,7 +129,7 @@ bool Configure_instance::check_config_path_for_update() {
       if (m_options.interactive()) {
         console->print_warning("mycnfPath is not writable: " +
                                m_options.mycnf_path + ": " + e.what());
-        console->println(
+        console->print_info(
             "The required configuration changes may be written to a "
             "different file, which you can copy over to its proper location.");
 
@@ -137,7 +137,7 @@ bool Configure_instance::check_config_path_for_update() {
       } else {
         console->print_error("mycnfPath is not writable: " +
                              m_options.mycnf_path + ": " + e.what());
-        console->println(
+        console->print_info(
             "The outputMycnfPath option may be used to have "
             "the updated configuration file written to a different path.");
         return false;
@@ -207,7 +207,7 @@ bool prompt_full_account(std::string *out_account) {
         if (out_account) *out_account = create_user;
         break;
       } catch (const std::runtime_error &) {
-        console->println(
+        console->print_info(
             "`" + create_user +
             "` is not a valid account name. Must be user[@host] or "
             "'user'[@'host']");
@@ -275,12 +275,12 @@ bool prompt_create_usable_admin_account(const std::string &user,
       return true;
     case 4:
     default:
-      console->println("Canceling...");
+      console->print_info("Canceling...");
       return false;
   }
 
   if (cancelled) {
-    console->println("Canceling...");
+    console->print_info("Canceling...");
     return false;
   }
   return true;
@@ -304,7 +304,7 @@ void Configure_instance::check_create_admin_user() {
       // If interaction is enabled use the console_handler admin-user
       // handling function
       if (m_options.interactive()) {
-        console->println();
+        console->print_info();
         if (!prompt_create_usable_admin_account(m_current_user, m_current_host,
                                                 m_options.cluster_type,
                                                 &m_options.cluster_admin)) {
@@ -350,7 +350,7 @@ void Configure_instance::check_create_admin_user() {
             "User " + m_options.cluster_admin +
             " already exists and will not be created. However, it is missing "
             "privileges.");
-        console->println(error_info);
+        console->print_info(error_info);
 
         throw shcore::Exception::runtime_error(
             "The account " +
@@ -459,7 +459,7 @@ bool Configure_instance::check_configuration_updates(
     return !(*restart && !*config_file_change && !*dynamic_sysvar_change &&
              (m_can_set_persist.is_null() || !*m_can_set_persist));
   } else {
-    console->println();
+    console->print_info();
     console->print_info(
         "The instance '" + m_target_instance->descr() +
         "' is valid to be used in " +
@@ -475,7 +475,7 @@ void Configure_instance::ensure_instance_address_usable() {
   // Sanity check for the instance address
   if (is_sandbox(*m_target_instance, nullptr)) {
     console->print_note("Instance detected as a sandbox.");
-    console->println(
+    console->print_info(
         "Please note that sandbox instances are only suitable for deploying "
         "test clusters for use within the same host.");
   }
@@ -491,7 +491,7 @@ void Configure_instance::ensure_configuration_change_possible(
   if (!m_can_set_persist.is_null() && !*m_can_set_persist) {
     auto console = mysqlsh::current_console();
     console->print_note("persisted_globals_load option is OFF");
-    console->println(
+    console->print_info(
         "Remote configuration of the instance is not possible because "
         "options changed with SET PERSIST will not be loaded, unless "
         "'persisted_globals_load' is set to ON.");
@@ -511,11 +511,11 @@ void Configure_instance::ensure_configuration_change_possible(
       auto console = mysqlsh::current_console();
 
       console->print_error("Unable to change MySQL configuration.");
-      console->println(
+      console->print_info(
           "MySQL server configuration needs to be "
           "updated, but neither remote nor local configuration is possible.");
       if (m_target_instance->get_version() < mysqlshdk::utils::Version(8, 0, 5))
-        console->println(
+        console->print_info(
             "Please run this command locally, in the same host as the MySQL "
             "server being configured, and pass the path to its configuration "
             "file through the mycnfPath option.");
@@ -546,7 +546,7 @@ void Configure_instance::validate_config_path() {
     console->print_error(
         "The specified MySQL option file does not exist. A valid path is "
         "required for the mycnfPath option.");
-    console->println(
+    console->print_info(
         "Please provide a valid path for the mycnfPath option or leave it "
         "empty if you which to skip the verification of the MySQL option "
         "file.");
@@ -779,7 +779,7 @@ void Configure_instance::prepare() {
     // the separation between prepare() and execute() isn't so important anymore
     if (m_options.clear_read_only.is_null() && m_options.interactive() &&
         m_create_cluster_admin) {
-      console->println();
+      console->print_info();
       if (prompt_super_read_only(*m_target_instance, true)) {
         m_options.clear_read_only = true;
       }

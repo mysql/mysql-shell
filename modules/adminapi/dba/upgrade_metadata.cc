@@ -204,7 +204,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
     bool do_rolling_upgrade = m_metadata->get_state() == MDState::MAJOR_LOWER;
 
     if (!done_router_upgrade) {
-      console->println(shcore::str_format(
+      console->print_info(shcore::str_format(
           "An upgrade of all cluster router instances is %s. All router "
           "installations should be updated first before doing the actual "
           "metadata upgrade.\n",
@@ -230,7 +230,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
 
           std::string answer;
 
-          console->println(shcore::str_format(
+          console->print_info(shcore::str_format(
               "There %s %zu Router%s to upgrade. Please "
               "upgrade %s and select Continue once %s restarted.\n",
               (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s",
@@ -307,7 +307,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
               case 'H':
               case 'h':
               case '?':
-                console->println(shcore::str_subvars(
+                console->print_info(shcore::str_subvars(
                     "To perform a rolling upgrade of the InnoDB "
                     "Cluster/ReplicaSet metadata, execute the following "
                     "steps:\n\n"
@@ -326,7 +326,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
 
                 routers = get_outdated_routers();
                 if (routers) {
-                  console->println(
+                  console->print_info(
                       "If the following Router instances no longer exist, "
                       "select Unregister to delete their metadata.");
                   print_router_list(routers);
@@ -344,12 +344,12 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
       if (!done_router_upgrade) {
         if (m_dry_run) {
           size_t count = routers->size() - 1;
-          console->println(shcore::str_format(
+          console->print_info(shcore::str_format(
               "There %s %zu Router%s to be upgraded in order to perform the "
               "Metadata schema upgrade.\n",
               (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s"));
         } else if (m_abort_rolling_upgrade) {
-          console->println("The metadata upgrade has been aborted.");
+          console->print_info("The metadata upgrade has been aborted.");
         } else {
           throw shcore::Exception::runtime_error(
               "Outdated Routers found. Please upgrade the Routers before "

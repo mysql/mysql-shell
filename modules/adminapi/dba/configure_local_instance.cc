@@ -83,8 +83,8 @@ void Configure_local_instance::prepare() {
   if (m_instance_type == TargetType::InnoDBCluster) {
     auto console = mysqlsh::current_console();
 
-    console->println("The instance '" + m_target_instance->descr() +
-                     "' belongs to an InnoDB cluster.");
+    console->print_info("The instance '" + m_target_instance->descr() +
+                        "' belongs to an InnoDB cluster.");
 
     if (m_target_instance->get_version() >=
         mysqlshdk::utils::Version(8, 0, 5)) {

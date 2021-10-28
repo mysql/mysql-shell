@@ -80,7 +80,7 @@ void Create_cluster::validate_create_cluster_options() {
         "The member will only proceed according to its exitStateAction if "
         "auto-rejoin fails (i.e. all retry attempts are exhausted).";
     console->print_warning(warn_msg);
-    console->println();
+    console->print_info();
   }
 
   // Get the instance GR state
@@ -144,10 +144,10 @@ void Create_cluster::validate_create_cluster_options() {
 
       if (console->confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
           mysqlsh::Prompt_answer::NO) {
-        console->println();
+        console->print_info();
         throw shcore::cancelled("Cancelled");
       } else {
-        console->println();
+        console->print_info();
         m_options.force = true;
       }
     } else {
@@ -217,7 +217,7 @@ void Create_cluster::resolve_ssl_mode() {
 
 void Create_cluster::prepare() {
   auto console = mysqlsh::current_console();
-  console->println(
+  console->print_info(
       std::string{"A new InnoDB cluster will be created"} +
       (m_options.adopt_from_gr ? " based on the existing replication group"
                                : "") +

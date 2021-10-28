@@ -407,7 +407,7 @@ void wait_all_apply_retrieved_trx(
               errors.size()),
           SHERR_DBA_GTID_SYNC_ERROR);
     } else {
-      console->println();
+      console->print_info();
     }
   }
 }

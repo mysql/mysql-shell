@@ -72,7 +72,7 @@ shcore::Value Switch_to_single_primary_mode::execute() {
 
   console->print_info("Switching cluster '" + m_cluster->get_name() +
                       "' to Single-Primary mode...");
-  console->println();
+  console->print_info();
 
   // Execute the UDF: SELECT group_replication_switch_to_single_primary_mode()
   if (!m_target_uuid.empty()) {
@@ -116,7 +116,7 @@ shcore::Value Switch_to_single_primary_mode::execute() {
       "Existing connections that expected a R/W connection must be "
       "disconnected, i.e. instances that became SECONDARY.");
 
-  console->println();
+  console->print_info();
 
   console->print_info(
       "The cluster successfully switched to Single-Primary mode.");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@ shcore::Value Switch_to_multi_primary_mode::execute() {
   auto console = mysqlsh::current_console();
   console->print_info("Switching cluster '" + m_cluster->get_name() +
                       "' to Multi-Primary mode...");
-  console->println();
+  console->print_info();
 
   // Execute the UDF: SELECT group_replication_switch_to_multi_primary_mode()
   mysqlshdk::gr::switch_to_multi_primary_mode(*m_cluster_session_instance);

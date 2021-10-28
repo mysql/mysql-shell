@@ -654,7 +654,7 @@ void Replica_set_impl::add_instance(
   auto topology = setup_topology_manager();
 
   console->print_info("Adding instance to the replicaset...");
-  console->println();
+  console->print_info();
 
   console->print_info("* Performing validation checks");
   validate_add_instance(topology.get(), active_master, target_instance.get(),
@@ -1593,7 +1593,7 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     console->print_note(shcore::str_format(
         "%zi instances will be skipped and invalidated during the failover",
         invalidate_ids.size()));
-    console->println();
+    console->print_info();
   }
 
   try {
@@ -2583,7 +2583,7 @@ void Replica_set_impl::check_replication_applier_errors(
           "One or more instances have replication applier errors.",
           SHERR_DBA_REPLICATION_APPLIER_ERROR);
     } else {
-      console->println();
+      console->print_info();
 
       // Update instances lists according to invalidated instances.
       for (const auto &uuid : error_uuids) {

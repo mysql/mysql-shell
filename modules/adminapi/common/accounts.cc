@@ -431,7 +431,7 @@ bool check_admin_account_access_restrictions(
     auto console = mysqlsh::current_console();
 
     if (hosts.size() == 1 && n_wildcard_accounts == 0) {
-      console->println();
+      console->print_info();
       std::string err_msg =
           "User '" + user + "' can only connect from '" + hosts[0] + "'.";
       std::string msg =
@@ -500,7 +500,7 @@ std::string prompt_new_account_password() {
       res = console->prompt_password("Confirm password: ", &password2);
       if (shcore::Prompt_result::Ok == res) {
         if (password1 != password2) {
-          console->println("Passwords don't match, please try again.");
+          console->print_info("Passwords don't match, please try again.");
           continue;
         }
       }

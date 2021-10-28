@@ -251,7 +251,7 @@ void Set_option::prepare() {
           "exitStateAction if auto-rejoin fails (i.e. all retry attempts are "
           "exhausted).";
       console->print_warning(warn_msg);
-      console->println();
+      console->print_info();
     }
   }
 
@@ -274,7 +274,7 @@ shcore::Value Set_option::execute() {
         "Setting the value of '" + m_option + "' to '" +
         (m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str) +
         "' in all cluster members ...");
-    console->println();
+    console->print_info();
 
     if (!m_value_str.is_null()) {
       m_cfg->set(option_gr_variable, m_value_str);
