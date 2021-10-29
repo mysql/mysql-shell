@@ -212,7 +212,7 @@ EXPECT_TRUE(ok);
 
 // create test accounts
 session.runSql("CREATE USER 'admin user'@'%' IDENTIFIED BY 'abrakadabra'");
-session.runSql("GRANT ALL ON test.* TO 'admin user'@'%' WITH GRANT OPTION");
+session.runSql("GRANT ALL ON sakila.* TO 'admin user'@'%' WITH GRANT OPTION");
 
 session.runSql("CREATE USER loader@'%'");
 session.runSql("GRANT ALL ON *.* TO loader@'%' WITH GRANT OPTION");

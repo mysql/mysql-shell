@@ -1048,7 +1048,8 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   return std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session);
 }
 
-std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {
+std::function<bool(const std::string &, const std::string &)>
+Dump_loader::filter_user_script_for_mds() const {
   // In MDS, the list of grants that a service user can have is restricted,
   // even in "root" accounts.
   // User accounts have at most:
@@ -1088,43 +1089,39 @@ std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {
 #endif
 
   // filter the users script
-  return dump::Schema_dumper::preprocess_users_script(
-      script,
-      [this](const std::string &account) {
-        return m_options.include_user(shcore::split_account(account));
-      },
-      [&restrictions, &allowed_global_grants](const std::string &priv_type,
-                                              const std::string &priv_level) {
-        // strip global privileges
-        if (priv_level == "*.*") {
-          // return true if the priv should be stripped
-          return std::find_if(allowed_global_grants.begin(),
-                              allowed_global_grants.end(),
-                              [&priv_type](const std::string &priv) {
-                                return shcore::str_caseeq(priv, priv_type);
-                              }) == allowed_global_grants.end();
-        }
+  return [restrictions = std::move(restrictions),
+          allowed_global_grants = std::move(allowed_global_grants)](
+             const std::string &priv_type, const std::string &priv_level) {
+    // strip global privileges
+    if (priv_level == "*.*") {
+      // return true if the priv should be stripped
+      return std::find_if(allowed_global_grants.begin(),
+                          allowed_global_grants.end(),
+                          [&priv_type](const std::string &priv) {
+                            return shcore::str_caseeq(priv, priv_type);
+                          }) == allowed_global_grants.end();
+    }
 
-        std::string schema, object;
-        shcore::split_priv_level(priv_level, &schema, &object);
+    std::string schema, object;
+    shcore::split_priv_level(priv_level, &schema, &object);
 
-        if (object.empty() && schema == "*") return false;
+    if (object.empty() && schema == "*") return false;
 
-        // strip DB privileges
-        // only schema.* revokes are expected, this needs to be reviewed if
-        // object specific revokes are ever added
-        for (const auto &r : restrictions) {
-          if (r.first == schema) {
-            // return true if the priv should be stripped
-            return std::find_if(r.second.begin(), r.second.end(),
-                                [&priv_type](const std::string &priv) {
-                                  return shcore::str_caseeq(priv, priv_type);
-                                }) != r.second.end();
-          }
-        }
+    // strip DB privileges
+    // only schema.* revokes are expected, this needs to be reviewed if
+    // object specific revokes are ever added
+    for (const auto &r : restrictions) {
+      if (r.first == schema) {
+        // return true if the priv should be stripped
+        return std::find_if(r.second.begin(), r.second.end(),
+                            [&priv_type](const std::string &priv) {
+                              return shcore::str_caseeq(priv, priv_type);
+                            }) != r.second.end();
+      }
+    }
 
-        return false;
-      });
+    return false;
+  };
 }
 
 void Dump_loader::on_dump_begin() {
@@ -1145,16 +1142,34 @@ void Dump_loader::on_dump_end() {
 
     current_console()->print_status("Executing user accounts SQL...");
 
+    std::function<bool(const std::string &, const std::string &)>
+        strip_revoked_privilege;
+
     if (m_options.is_mds()) {
-      script = filter_user_script_for_mds(script);
-    } else {
-      script = dump::Schema_dumper::preprocess_users_script(
-          script,
-          [this](const std::string &account) {
-            return m_options.include_user(shcore::split_account(account));
-          },
-          {});
+      strip_revoked_privilege = filter_user_script_for_mds();
     }
+
+    script = dump::Schema_dumper::preprocess_users_script(
+        script,
+        [this](const std::string &account) {
+          return m_options.include_user(shcore::split_account(account));
+        },
+        [this](const std::string &schema, const std::string &object,
+               dump::Schema_dumper::Object_type type) {
+          switch (type) {
+            case dump::Schema_dumper::Object_type::SCHEMA:
+              return m_options.include_schema(schema);
+
+            case dump::Schema_dumper::Object_type::TABLE:
+              return m_options.include_table(schema, object);
+
+            case dump::Schema_dumper::Object_type::ROUTINE:
+              return m_options.include_routine(schema, object);
+          }
+
+          throw std::logic_error("Should not happen");
+        },
+        strip_revoked_privilege);
 
     if (!m_options.dry_run())
       execute_script(m_session, script, "While executing user accounts SQL",

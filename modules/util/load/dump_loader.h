@@ -372,7 +372,8 @@ class Dump_loader {
 
   void handle_schema_option();
 
-  std::string filter_user_script_for_mds(const std::string &script);
+  std::function<bool(const std::string &, const std::string &)>
+  filter_user_script_for_mds() const;
 
   bool should_create_pks() const;
 

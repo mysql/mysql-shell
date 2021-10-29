@@ -64,15 +64,23 @@ class Schema_dumper {
     Status status;
   };
 
+  enum class Object_type {
+    SCHEMA,
+    TABLE,
+    ROUTINE,
+  };
+
   explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
                          const std::vector<std::string>
                              &mysqlaas_supported_charsets = {"utf8mb4"});
 
   static std::string preprocess_users_script(
       const std::string &script,
-      const std::function<bool(const std::string &)> &include_user,
+      const std::function<bool(const std::string &)> &include_user_cb,
+      const std::function<bool(const std::string &, const std::string &,
+                               Object_type)> &include_object_cb = {},
       const std::function<bool(const std::string &, const std::string &)>
-          &strip_revoked_privilege);
+          &strip_revoked_privilege_cb = {});
 
   static const char *version();
 
@@ -319,8 +327,16 @@ class Schema_dumper {
       const std::vector<shcore::Account> &included,
       const std::vector<shcore::Account> &excluded, bool log_error = true);
 
+  bool include_grant(const std::string &grant) const;
+
+  static bool include_grant(
+      const std::string &grant,
+      const std::function<bool(const std::string &, const std::string &,
+                               Object_type)> &include_object);
+
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);
+  FRIEND_TEST(Schema_dumper_test, include_grant);
 #endif  // FRIEND_TEST
 };
 

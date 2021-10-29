@@ -261,12 +261,10 @@ std::vector<shcore::Account> Dump_reader::accounts() const {
 
   // parse the script to extract user list
   dump::Schema_dumper::preprocess_users_script(
-      script,
-      [&account_list](const std::string &account) {
+      script, [&account_list](const std::string &account) {
         account_list.emplace_back(shcore::split_account(account));
         return true;
-      },
-      {});
+      });
 
   return account_list;
 }
