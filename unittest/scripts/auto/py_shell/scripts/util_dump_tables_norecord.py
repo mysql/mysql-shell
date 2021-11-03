@@ -128,8 +128,9 @@ def EXPECT_SUCCESS(schema, tables, output_url, options = {}, views = [], expecte
     shutil.rmtree(test_output_absolute, True)
     EXPECT_FALSE(os.path.isdir(test_output_absolute))
     util.dump_tables(schema, tables + views, output_url, options)
-    EXPECT_TRUE(os.path.isdir(test_output_absolute))
-    EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(tables) if expected_length is None else expected_length))
+    if not "dryRun" in options:
+        EXPECT_TRUE(os.path.isdir(test_output_absolute))
+        EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(tables) if expected_length is None else expected_length))
 
 def EXPECT_FAIL(error, msg, schema, tables, output_url, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
@@ -679,10 +680,16 @@ EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "trigger
 # WL13804-TSFR_12_6
 EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
 
+EXPECT_STDOUT_CONTAINS("4 tables and 0 views will be dumped.")
+
 #@<> WL13804: WL13807-FR4.5.1 - If the `triggers` option is not given, a default value of `true` must be used instead.
 # WL13804-TSFR_11_2_4
 EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
+
+#@<> BUG#33396153 - dumpInstance() + triggers
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "excludeTriggers": [ f"`{test_schema}`.`{test_table_no_index}`" ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("4 tables and 0 views will be dumped and within them 0 out of 1 trigger.")
 
 #@<> WL13804: WL13807-FR4.6 - The `options` dictionary may contain a `tzUtc` key with a Boolean value, which specifies whether to set the time zone to UTC and include a `SET TIME_ZONE='+00:00'` statement in the DDL files and to execute this statement before the data dump is started. This allows dumping TIMESTAMP data when a server has data in different time zones or data is being moved between servers with different time zones.
 # WL13804-TSFR_11_2_10

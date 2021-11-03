@@ -2603,6 +2603,8 @@ void Dump_loader::execute_tasks() {
 
   m_session = create_session();
 
+  log_server_version();
+
   setup_progress_file(&m_resuming);
 
   // the 1st potentially slow operation, as many errors should be detected
@@ -3063,6 +3065,14 @@ void Dump_loader::on_ddl_done_for_schema(const std::string &schema) {
 bool Dump_loader::is_data_load_complete() const {
   return Dump_reader::Status::COMPLETE == m_dump->status() &&
          m_num_bytes_loaded >= m_dump->filtered_data_size();
+}
+
+void Dump_loader::log_server_version() const {
+  log_info("Destination server: %s",
+           query("SELECT CONCAT(@@version, ' ', @@version_comment)")
+               ->fetch_one()
+               ->get_string(0)
+               .c_str());
 }
 
 }  // namespace mysqlsh

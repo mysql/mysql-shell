@@ -102,6 +102,9 @@ class Dumper {
   virtual std::unique_ptr<Schema_dumper> schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
+  static std::string format_object_stats(uint64_t value, uint64_t total,
+                                         const std::string &object);
+
  private:
   struct Object_info {
     std::string name;
@@ -155,6 +158,10 @@ class Dumper {
   virtual const char *name() const = 0;
 
   virtual void summary() const = 0;
+
+  virtual std::vector<std::string> object_stats(
+      const Instance_cache::Stats &filtered,
+      const Instance_cache::Stats &total) const = 0;
 
   virtual void on_create_table_task(const std::string &schema,
                                     const std::string &table,
@@ -328,6 +335,10 @@ class Dumper {
   void validate_privileges() const;
 
   bool is_gtid_executed_inconsistent() const;
+
+  void log_server_version() const;
+
+  void print_object_stats() const;
 
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;

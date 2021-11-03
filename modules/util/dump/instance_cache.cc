@@ -324,6 +324,9 @@ Instance_cache_builder &Instance_cache_builder::users(const Users &included,
   m_cache.users = sd.get_users(included, excluded);
   m_cache.roles = sd.get_roles(included, excluded);
 
+  m_cache.filtered.users = m_cache.users.size();
+  m_cache.total.users = count("user_privileges", {}, "DISTINCT grantee");
+
   return *this;
 }
 
@@ -340,10 +343,16 @@ Instance_cache_builder &Instance_cache_builder::events(
   // event names are case insensitive
   info.where = object_filter(info, included, excluded);
 
-  iterate_schemas(info, [](const std::string &, Instance_cache::Schema *schema,
-                           const mysqlshdk::db::IRow *row) {
-    schema->events.emplace(row->get_string(1));  // EVENT_NAME
-  });
+  iterate_schemas(info,
+                  [this](const std::string &, Instance_cache::Schema *schema,
+                         const mysqlshdk::db::IRow *row) {
+                    schema->events.emplace(row->get_string(1));  // EVENT_NAME
+
+                    ++m_cache.filtered.events;
+                  });
+
+  // the total number of events within the filtered schemas
+  m_cache.total.events = count(info);
 
   return *this;
 }
@@ -364,15 +373,20 @@ Instance_cache_builder &Instance_cache_builder::routines(
 
   const std::string procedure = "PROCEDURE";
 
-  iterate_schemas(
-      info, [&procedure](const std::string &, Instance_cache::Schema *schema,
-                         const mysqlshdk::db::IRow *row) {
-        auto &target = row->get_string(2) == procedure
-                           ? schema->procedures
-                           : schema->functions;  // ROUTINE_TYPE
+  iterate_schemas(info, [&procedure, this](const std::string &,
+                                           Instance_cache::Schema *schema,
+                                           const mysqlshdk::db::IRow *row) {
+    auto &target = row->get_string(2) == procedure
+                       ? schema->procedures
+                       : schema->functions;  // ROUTINE_TYPE
 
-        target.emplace(row->get_string(1));  // ROUTINE_NAME
-      });
+    target.emplace(row->get_string(1));  // ROUTINE_NAME
+
+    ++m_cache.filtered.routines;
+  });
+
+  // the total number of routines within the filtered schemas
+  m_cache.total.routines = count(info);
 
   return *this;
 }
@@ -399,13 +413,15 @@ Instance_cache_builder &Instance_cache_builder::triggers(
         std::unordered_map<std::string, std::multimap<uint64_t, std::string>>>
         triggers;
 
-    iterate_tables(info, [&triggers](const std::string &schema_name,
-                                     const std::string &table_name,
-                                     Instance_cache::Table *,
-                                     const mysqlshdk::db::IRow *row) {
+    iterate_tables(info, [&triggers, this](const std::string &schema_name,
+                                           const std::string &table_name,
+                                           Instance_cache::Table *,
+                                           const mysqlshdk::db::IRow *row) {
       triggers[schema_name][table_name].emplace(
           row->get_uint(3),
           row->get_string(2));  // ACTION_ORDER, TRIGGER_NAME
+
+      ++m_cache.filtered.triggers;
     });
 
     for (auto &schema : triggers) {
@@ -419,6 +435,9 @@ Instance_cache_builder &Instance_cache_builder::triggers(
         }
       }
     }
+
+    // the total number of triggers within the filtered tables
+    m_cache.total.triggers = count(info);
   }
 
   return *this;
@@ -473,6 +492,10 @@ void Instance_cache_builder::filter_schemas() {
           row->get_string(1);  // DEFAULT_COLLATION_NAME
     }
   }
+
+  m_cache.filtered.schemas = m_cache.schemas.size();
+  // the total number of schemas in an instance
+  m_cache.total.schemas = count("schemata");
 }
 
 void Instance_cache_builder::filter_tables() {
@@ -511,6 +534,8 @@ void Instance_cache_builder::filter_tables() {
 
           set_has_tables();
 
+          ++m_cache.filtered.tables;
+
           DBUG_EXECUTE_IF("dumper_average_row_length_0",
                           { table.average_row_length = 0; });
         } else if ("VIEW" == table_type) {
@@ -518,8 +543,14 @@ void Instance_cache_builder::filter_tables() {
           schema->views[table_name].character_set_client.clear();
 
           set_has_views();
+
+          ++m_cache.filtered.views;
         }
       });
+
+  // the total number of tables and views within the filtered schemas
+  m_cache.total.tables = count(info, "'BASE TABLE'=TABLE_TYPE");
+  m_cache.total.views = count(info, "'VIEW'=TABLE_TYPE");
 }
 
 void Instance_cache_builder::fetch_metadata() {
@@ -1238,6 +1269,45 @@ std::string Instance_cache_builder::trigger_filter(
   }
 
   return filter;
+}
+
+uint64_t Instance_cache_builder::count(const std::string &table,
+                                       const std::string &where,
+                                       const std::string &column) const {
+  std::string sql =
+      "SELECT COUNT(" + column + ") FROM information_schema." + table;
+
+  if (!where.empty()) {
+    sql += " WHERE " + where;
+  }
+
+  return query(sql)->fetch_one()->get_uint(0);
+}
+
+uint64_t Instance_cache_builder::count(const Iterate_schema &info,
+                                       const std::string &where) const {
+  auto filter = schema_filter(info);
+
+  if (!filter.empty() && !where.empty()) {
+    filter += " AND ";
+  }
+
+  filter += where;
+
+  return count(info.table_name, filter);
+}
+
+uint64_t Instance_cache_builder::count(const Iterate_table &info,
+                                       const std::string &where) const {
+  auto filter = schema_and_table_filter(info);
+
+  if (!filter.empty() && !where.empty()) {
+    filter += " AND ";
+  }
+
+  filter += where;
+
+  return count(info.table_name, filter);
 }
 
 }  // namespace dump

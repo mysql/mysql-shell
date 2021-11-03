@@ -266,6 +266,11 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
             // this is the main connection used by the loader
 
             mock->expect_query(
+                    "SELECT CONCAT(@@version, ' ', @@version_comment)")
+                .then({"a"})
+                .add_row({m_version + " mocked"});
+
+            mock->expect_query(
                     "SELECT schema_name FROM information_schema.schemata WHERE "
                     "schema_name in ('stackoverflow')")
                 .then({"a"});

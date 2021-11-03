@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,16 @@ class Dump_instance : public Dump_schemas {
 
  private:
   const char *name() const override { return "dumpInstance"; }
+
+  std::vector<std::string> object_stats(
+      const Instance_cache::Stats &filtered,
+      const Instance_cache::Stats &total) const override {
+    auto stats = Dump_schemas::object_stats(filtered, total);
+
+    stats[0] = format_object_stats(filtered.schemas, total.schemas, "schemas");
+
+    return stats;
+  }
 };
 
 }  // namespace dump

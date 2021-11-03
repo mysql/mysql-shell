@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,6 +51,17 @@ class Dump_tables : public Ddl_dumper {
 
   void on_create_table_task(const std::string &, const std::string &,
                             const Instance_cache::Table *) override {}
+
+  std::vector<std::string> object_stats(
+      const Instance_cache::Stats &filtered,
+      const Instance_cache::Stats &) const override {
+    std::vector<std::string> stats;
+
+    stats.emplace_back(std::to_string(filtered.tables) + " tables and " +
+                       std::to_string(filtered.views) + " views");
+
+    return stats;
+  }
 };
 
 }  // namespace dump

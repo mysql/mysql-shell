@@ -124,8 +124,9 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
     shutil.rmtree(test_output_absolute, True)
     EXPECT_FALSE(os.path.isdir(test_output_absolute))
     util.dump_schemas(schemas, outputUrl, options)
-    EXPECT_TRUE(os.path.isdir(test_output_absolute))
-    EXPECT_STDOUT_CONTAINS("Schemas dumped: {0}".format(len(schemas)))
+    if not "dryRun" in options:
+        EXPECT_TRUE(os.path.isdir(test_output_absolute))
+        EXPECT_STDOUT_CONTAINS("Schemas dumped: {0}".format(len(schemas)))
 
 def EXPECT_FAIL(error, msg, schemas, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
@@ -759,9 +760,15 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "events": False, "ddlOnly"
 EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(test_schema), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
 EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
 
+EXPECT_STDOUT_CONTAINS("1 schemas will be dumped and within them 4 tables, 1 view, 2 routines, 1 trigger.")
+
 #@<> WL13807-FR4.3.1 - If the `events` option is not given, a default value of `true` must be used instead.
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+
+#@<> BUG#33396153 - dumpInstance() + events
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeEvents": [ f"`{test_schema}`.`{test_schema_event}`" ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("1 schemas will be dumped and within them 4 tables, 1 view, 0 out of 1 event, 2 routines, 1 trigger.")
 
 #@<> WL13807-FR4.4 - The `options` dictionary may contain a `routines` key with a Boolean value, which specifies whether to include functions and stored procedures in the DDL file of each schema. User-defined functions must not be included.
 TEST_BOOL_OPTION("routines")
@@ -771,10 +778,16 @@ EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(tes
 EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
 EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
 
+EXPECT_STDOUT_CONTAINS("1 schemas will be dumped and within them 4 tables, 1 view, 1 event, 1 trigger.")
+
 #@<> WL13807-FR4.4.1 - If the `routines` option is not given, a default value of `true` must be used instead.
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
 EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+
+#@<> BUG#33396153 - dumpInstance() + routines
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeRoutines": [ f"`{test_schema}`.`{test_schema_procedure}`" ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("1 schemas will be dumped and within them 4 tables, 1 view, 1 event, 1 out of 2 routines, 1 trigger.")
 
 #@<> WL13807-FR4.5 - The `options` dictionary may contain a `triggers` key with a Boolean value, which specifies whether to include triggers in the DDL file of each table.
 # WL13807-TSFR4_15
@@ -785,10 +798,16 @@ TEST_BOOL_OPTION("triggers")
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "triggers": False, "ddlOnly": True, "showProgress": False })
 EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
 
+EXPECT_STDOUT_CONTAINS("1 schemas will be dumped and within them 4 tables, 1 view, 1 event, 2 routines.")
+
 #@<> WL13807-FR4.5.1 - If the `triggers` option is not given, a default value of `true` must be used instead.
 # WL13807-TSFR4_13
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
+
+#@<> BUG#33396153 - dumpInstance() + triggers
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeTriggers": [ f"`{test_schema}`.`{test_table_no_index}`" ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("1 schemas will be dumped and within them 4 tables, 1 view, 1 event, 2 routines, 0 out of 1 trigger.")
 
 #@<> WL13807-FR4.6 - The `options` dictionary may contain a `tzUtc` key with a Boolean value, which specifies whether to set the time zone to UTC and include a `SET TIME_ZONE='+00:00'` statement in the DDL files and to execute this statement before the data dump is started. This allows dumping TIMESTAMP data when a server has data in different time zones or data is being moved between servers with different time zones.
 # WL13807-TSFR4_18

@@ -126,6 +126,16 @@ struct Instance_cache {
     std::unordered_set<std::string> procedures;
   };
 
+  struct Stats {
+    uint64_t schemas = 0;
+    uint64_t tables = 0;
+    uint64_t views = 0;
+    uint64_t events = 0;
+    uint64_t routines = 0;
+    uint64_t triggers = 0;
+    uint64_t users = 0;
+  };
+
   bool has_ndbinfo = false;
   std::string user;
   std::string hostname;
@@ -141,6 +151,8 @@ struct Instance_cache {
   std::unordered_map<std::string, Schema> schemas;
   std::vector<shcore::Account> users;
   std::vector<shcore::Account> roles;
+  Stats total;
+  Stats filtered;
 };
 
 class Instance_cache_builder final {
@@ -282,6 +294,43 @@ class Instance_cache_builder final {
   inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
     return m_session->query_log_error(sql);
   }
+
+  /**
+   * Counts the number of rows in the given information_schema table, optionally
+   * using a condition.
+   *
+   * @param table Name of the information_schema table.
+   * @param where Optional condition.
+   * @param column Optional column to use to do the counting.
+   *
+   * @returns The number of rows.
+   */
+  uint64_t count(const std::string &table, const std::string &where = {},
+                 const std::string &column = "*") const;
+
+  /**
+   * Counts the number of rows in the given information_schema table matching
+   * the schema filter, optionally using an additional condition.
+   *
+   * @param info Information about the information_schema table.
+   * @param where Optional condition.
+   *
+   * @returns The number of rows.
+   */
+  uint64_t count(const Iterate_schema &info,
+                 const std::string &where = {}) const;
+
+  /**
+   * Counts the number of rows in the given information_schema table matching
+   * the table filter, optionally using an additional condition.
+   *
+   * @param info Information about the information_schema table.
+   * @param where Optional condition.
+   *
+   * @returns The number of rows.
+   */
+  uint64_t count(const Iterate_table &info,
+                 const std::string &where = {}) const;
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 

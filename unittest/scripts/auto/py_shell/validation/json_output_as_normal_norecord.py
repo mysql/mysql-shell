@@ -4,6 +4,8 @@ Acquiring global read lock
 Global read lock acquired
 Initializing - done
 Gathering information...
+[[*]] out of [[*]] schemas will be dumped and within them 3 tables, 3 views.
+[[*]] out of [[*]] users will be dumped.
 Gathering information - done
 All transactions have been started
 Locking instance for backup
@@ -34,6 +36,8 @@ Average compressed throughput: [[*]]
 {"info":"Global read lock acquired\n"}
 {"status":"Initializing - done\n"}
 {"status":"Gathering information...\n"}
+{"status":"[[*]] out of [[*]] schemas will be dumped and within them 3 tables, 3 views.\n"}
+{"status":"[[*]] out of [[*]] users will be dumped.\n"}
 {"status":"Gathering information - done\n"}
 {"info":"All transactions have been started\n"}
 {"info":"Locking instance for backup\n"}

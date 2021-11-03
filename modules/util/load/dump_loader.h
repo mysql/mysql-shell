@@ -423,6 +423,8 @@ class Dump_loader {
     executef(m_session, sql, std::forward<Args>(args)...);
   }
 
+  void log_server_version() const;
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
