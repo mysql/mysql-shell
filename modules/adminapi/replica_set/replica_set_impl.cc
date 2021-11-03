@@ -2676,11 +2676,23 @@ void Replica_set_impl::drop_replication_user(
 
   auto account = get_metadata_storage()->get_instance_repl_account(
       server_uuid, Cluster_type::ASYNC_REPLICATION);
+
   if (account.first.empty()) {
-    assert(slave);
-    account = {make_replication_user_name(slave->get_server_id(),
-                                          k_async_cluster_user_name),
-               ""};
+    if (slave) {
+      account = {make_replication_user_name(slave->get_server_id(),
+                                            k_async_cluster_user_name),
+                 ""};
+    } else {
+      // If the instance is unreachable and the replication account info is not
+      // stored in the MD schema we cannot attempt to obtain the instance's
+      // server_id to determine the account username. In this particular
+      // scenario, we must just log that the account couldn't be removed
+      log_info(
+          "Unable to drop instance's replication account from the ReplicaSet: "
+          "Instance '%s' is unreachable, unable to determine its replication "
+          "account.",
+          server_uuid.c_str());
+    }
   }
 
   log_info("Dropping account %s@%s at %s", account.first.c_str(),
