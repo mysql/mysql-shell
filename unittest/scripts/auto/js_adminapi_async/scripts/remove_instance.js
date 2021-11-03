@@ -318,10 +318,33 @@ EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `PRIMARY instance 
 
 testutil.startSandbox(__mysql_sandbox_port1);
 
+// BUG#33499183: replicaSet.removeInstance() core dumps after replicaSet upgrade
+// Starting with 8.0.27, the replication accounts info is stored in the MD schema.
+// However, in upgrade scenarios the info won't be in the MD schema, and attempting to remove
+// an unreachable instance that does not have that info in the Metadata results in a crash since
+// the code was attempting to resolve the username using the instance's server_id
+
+//@<> remove unreachable instance that doesn't have replication accounts info in Metadata
+shell.connect(__sandbox_uri1);
+
+rs = dba.getReplicaSet();
+
+// Drop the replication accounts info from the metadata
+var instance_name3 = hostname_ip + ":" + __mysql_sandbox_port3;
+
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_remove(attributes, '$.replicationAccountUser', '$.replicationAccountHost') WHERE instance_name = '" + instance_name3 + "'");
+
+testutil.killSandbox(__mysql_sandbox_port3);
+
+EXPECT_THROWS(function() { rs.removeInstance(instance_name3); }, `Could not open connection to '${instance_name3}': Can't connect to MySQL server on '${instance_name3}'`);
+EXPECT_STDOUT_CONTAINS(`ERROR: Unable to connect to the target instance ${instance_name3}. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.`);
+
+EXPECT_NO_THROWS(function() { rs.removeInstance(instance_name3, {force: true}); });
+EXPECT_SHELL_LOG_CONTAINS("Unable to drop instance's replication account");
+
 // XXX Rollback
 //--------------------------------
 // Ensure clean rollback after failures
-
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
