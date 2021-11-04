@@ -422,7 +422,7 @@ automatically set for the allowlist.
 REGISTER_HELP_TOPIC(AdminAPI, CATEGORY, adminapi, Contents, SCRIPTING);
 REGISTER_HELP_TOPIC_WITH_BRIEF_TEXT(ADMINAPI, R"*(
 The <b>AdminAPI</b> is an API that enables configuring and managing InnoDB
-clusters and replicasets, among other things.
+Clusters, ReplicaSets, ClusterSets, among other things.
 
 The AdminAPI can be used interactively from the MySQL Shell prompt and
 non-interactively from JavaScript and Python scripts and directly from the
@@ -430,8 +430,8 @@ command line.
 
 For more information about the <b>dba</b> object use: \\? dba
 
-In the AdminAPI, an InnoDB cluster is represented as an instance of the
-<b>Cluster</b> class, while replicasets are represented as an instance
+In the AdminAPI, an InnoDB Cluster is represented as an instance of the
+<b>Cluster</b> class, while ReplicaSets are represented as an instance
 of the <b>ReplicaSet</b> class, and ClusterSets are represented as an
 instance of the <b>ClusterSet</b> class.
 
@@ -512,38 +512,50 @@ as --options, where the option name is the same as in JS/Python.
 )*");
 
 REGISTER_HELP_GLOBAL_OBJECT(dba, adminapi);
-REGISTER_HELP(DBA_BRIEF, "InnoDB cluster and replicaset management functions.");
-REGISTER_HELP(DBA_GLOBAL_BRIEF, "Used for InnoDB cluster administration.");
+REGISTER_HELP(
+    DBA_BRIEF,
+    "InnoDB Cluster, ReplicaSet, and ClusterSet management functions.");
+REGISTER_HELP(
+    DBA_GLOBAL_BRIEF,
+    "Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.");
 
 REGISTER_HELP_TOPIC_TEXT(DBA, R"*(
-Entry point for AdminAPI functions, including InnoDB clusters and replica
-sets.
+Entry point for AdminAPI functions, including InnoDB Clusters, ReplicaSets, and
+ClusterSets.
 
-<b>InnoDB clusters</b>
+<b>InnoDB Clusters</b>
 
 The dba.<<<configureInstance>>>() function can be used to configure a MySQL
-instance with the settings required to use it in an InnoDB cluster.
+instance with the settings required to use it in an InnoDB Cluster.
 
-InnoDB clusters can be created with the dba.<<<createCluster>>>() function.
+InnoDB Clusters can be created with the dba.<<<createCluster>>>() function.
 
-Once created, InnoDB cluster management objects can be obtained with the
+Once created, InnoDB Cluster management objects can be obtained with the
 dba.<<<getCluster>>>() function.
 
 <b>InnoDB ReplicaSets</b>
 
 The dba.<<<configureReplicaSetInstance>>>() function can be used to configure a
-MySQL instance with the settings required to use it in a replicaset.
+MySQL instance with the settings required to use it in a ReplicaSet.
 
 ReplicaSets can be created with the dba.<<<createReplicaSet>>>()
 function.
 
-Once created, replicaset management objects can be obtained with the
+Once created, ReplicaSet management objects can be obtained with the
 dba.<<<getReplicaSet>>>() function.
+
+<b>InnoDB ClusterSets</b>
+
+ClusterSets can be created with the <Cluster>.<<<createClusterSet>>>()
+function.
+
+Once created, ClusterSet management objected can be obtained with the
+dba.<<<getClusterSet>>>() or <Cluster>.<<<getClusterSet>>>() functions.
 
 <b>Sandboxes</b>
 
 Utility functions are provided to create sandbox MySQL instances, which can
-be used to create test clusters and replicasets.
+be used to create test Clusters and ReplicaSets.
 )*");
 
 REGISTER_HELP(DBA_CLOSING, "<b>SEE ALSO</b>");
@@ -2399,7 +2411,7 @@ REGISTER_HELP_FUNCTION(configureLocalInstance, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGURELOCALINSTANCE, R"*(
 Validates and configures a local instance for MySQL InnoDB Cluster usage.
 
-@param instance An instance definition.
+@param instance Optional An instance definition.
 @param options Optional Additional options for the operation.
 
 @returns Nothing
@@ -2800,7 +2812,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
       is_invalidated = pc->get_id() != cluster->impl()->get_id();
       if (is_invalidated && options_set) {
         console->print_error(
-            "Cannot proceed using 'removeInstances' and/or 'removeInstances': "
+            "Cannot proceed using 'removeInstances' and/or 'rejoinInstances': "
             "The Cluster is INVALIDATED");
         console->print_info(
             "Please add or remove the instances after the Cluster is rejoined "

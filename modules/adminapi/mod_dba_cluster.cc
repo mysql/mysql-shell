@@ -55,10 +55,10 @@ using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
 // Documentation of the Cluster Class
 REGISTER_HELP_CLASS(Cluster, adminapi);
-REGISTER_HELP(CLUSTER_BRIEF, "Represents an InnoDB cluster.");
+REGISTER_HELP(CLUSTER_BRIEF, "Represents an InnoDB Cluster.");
 REGISTER_HELP(CLUSTER_DETAIL,
               "The cluster object is the entry point to manage and monitor "
-              "a MySQL InnoDB cluster.");
+              "a MySQL InnoDB Cluster.");
 REGISTER_HELP(
     CLUSTER_DETAIL1,
     "A cluster is a set of MySQLd Instances which holds the user's data.");
@@ -1473,8 +1473,8 @@ Fences a Cluster from Write Traffic.
 
 @returns Nothing
 
-This function fences a Cluster from all Write Traffic by ensuring all of its
-members are Read-Only regardless of any topology change on it.
+This function fences a PRIMARY Cluster from all Write Traffic by ensuring all
+of its members are Read-Only regardless of any topology change on it.
 The Cluster will be put into READ ONLY mode and all members will remain
 available for reads.
 To unfence the Cluster so it restores its normal functioning and can accept all
@@ -1483,6 +1483,8 @@ traffic use Cluster.unfence().
 Use this function when performing a PRIMARY Cluster failover in a ClusterSet to
 allow only read traffic in the previous Primary Cluster in the event of a
 split-brain.
+
+The function is not permitted on REPLICA Clusters.
 )*");
 /**
  * $(CLUSTER_FENCEWRITES_BRIEF)

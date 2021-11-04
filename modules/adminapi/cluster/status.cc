@@ -880,10 +880,12 @@ void check_unrecognized_channels(shcore::Array_t issues, Instance *instance,
     for (const std::string &name : channels) {
       if (!(name == mysqlshdk::gr::k_gr_applier_channel ||
             name == mysqlshdk::gr::k_gr_recovery_channel ||
-            (is_cluster_set_member && name == k_clusterset_async_channel_name)))
+            (is_cluster_set_member &&
+             name == k_clusterset_async_channel_name))) {
         issues->push_back(shcore::Value(
             "ERROR: Unrecognized replication channel '" + name +
-            "' found. Unmanaged repliication channels are not supported."));
+            "' found. Unmanaged replication channels are not supported."));
+      }
     }
   }
 }

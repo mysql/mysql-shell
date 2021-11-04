@@ -85,7 +85,7 @@ shell.connect(__sandbox_uri1);
 //@<> Rebooting from complete outage a PRIMARY Cluster that has been invalidated using the options 'rejoinInstances' and 'removeInstances' (must fail)
 EXPECT_THROWS_TYPE(function(){ former_primary = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint3], removeInstances: [__endpoint2]}); }, "removeInstances and/or rejoinInstances options cannot be used for Invalidated Clusters", "ArgumentError");
 EXPECT_OUTPUT_CONTAINS("Please add or remove the instances after the Cluster is rejoined to the ClusterSet");
-EXPECT_OUTPUT_CONTAINS("ERROR: Cannot proceed using 'removeInstances' and/or 'removeInstances': The Cluster is INVALIDATED");
+EXPECT_OUTPUT_CONTAINS("ERROR: Cannot proceed using 'removeInstances' and/or 'rejoinInstances': The Cluster is INVALIDATED");
 
 //@<> Rebooting from complete outage a PRIMARY Cluster that has been invalidated without the options 'rejoinInstances' and 'removeInstances' (OK)
 EXPECT_NO_THROWS(function(){ former_primary = dba.rebootClusterFromCompleteOutage("cluster"); });

@@ -94,7 +94,8 @@ use the following wildcards:
 The following are the main help categories:
 
  - AdminAPI       The AdminAPI is an API that enables configuring and managing
-                  InnoDB clusters and replicasets, among other things.
+                  InnoDB Clusters, ReplicaSets, ClusterSets, among other
+                  things.
  - Shell Commands Provides details about the available built-in shell commands.
  - ShellAPI       Contains information about the shell and util global objects
                   as well as the mysql module that enables executing SQL on

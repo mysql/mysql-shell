@@ -1,36 +1,44 @@
 #@<OUT> dba
 NAME
-      dba - InnoDB cluster and replicaset management functions.
+      dba - InnoDB Cluster, ReplicaSet, and ClusterSet management functions.
 
 DESCRIPTION
-      Entry point for AdminAPI functions, including InnoDB clusters and replica
-      sets.
+      Entry point for AdminAPI functions, including InnoDB Clusters,
+      ReplicaSets, and ClusterSets.
 
-      InnoDB clusters
+      InnoDB Clusters
 
       The dba.configure_instance() function can be used to configure a MySQL
-      instance with the settings required to use it in an InnoDB cluster.
+      instance with the settings required to use it in an InnoDB Cluster.
 
-      InnoDB clusters can be created with the dba.create_cluster() function.
+      InnoDB Clusters can be created with the dba.create_cluster() function.
 
-      Once created, InnoDB cluster management objects can be obtained with the
+      Once created, InnoDB Cluster management objects can be obtained with the
       dba.get_cluster() function.
 
       InnoDB ReplicaSets
 
       The dba.configure_replica_set_instance() function can be used to
       configure a MySQL instance with the settings required to use it in a
-      replicaset.
+      ReplicaSet.
 
       ReplicaSets can be created with the dba.create_replica_set() function.
 
-      Once created, replicaset management objects can be obtained with the
+      Once created, ReplicaSet management objects can be obtained with the
       dba.get_replica_set() function.
+
+      InnoDB ClusterSets
+
+      ClusterSets can be created with the <Cluster>.create_cluster_set()
+      function.
+
+      Once created, ClusterSet management objected can be obtained with the
+      dba.get_cluster_set() or <Cluster>.get_cluster_set() functions.
 
       Sandboxes
 
       Utility functions are provided to create sandbox MySQL instances, which
-      can be used to create test clusters and replicasets.
+      can be used to create test Clusters and ReplicaSets.
 
 PROPERTIES
       session
@@ -48,7 +56,7 @@ FUNCTIONS
             Validates and configures an instance for MySQL InnoDB Cluster
             usage.
 
-      configure_local_instance(instance[, options])
+      configure_local_instance([instance][, options])
             Validates and configures a local instance for MySQL InnoDB Cluster
             usage.
 
@@ -240,7 +248,7 @@ NAME
                                  MySQL InnoDB Cluster usage.
 
 SYNTAX
-      dba.configure_local_instance(instance[, options])
+      dba.configure_local_instance([instance][, options])
 
 WHERE
       instance: An instance definition.

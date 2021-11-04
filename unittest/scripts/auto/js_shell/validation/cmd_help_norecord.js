@@ -13,7 +13,8 @@ use the following wildcards:
 The following are the main help categories:
 
  - AdminAPI       The AdminAPI is an API that enables configuring and managing
-                  InnoDB clusters and replicasets, among other things.
+                  InnoDB Clusters, ReplicaSets, ClusterSets, among other
+                  things.
  - Shell Commands Provides details about the available built-in shell commands.
  - ShellAPI       Contains information about the shell and util global objects
                   as well as the mysql module that enables executing SQL on
@@ -74,7 +75,7 @@ GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
- - dba      Used for InnoDB cluster administration.
+ - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
@@ -116,7 +117,8 @@ use the following wildcards:
 The following are the main help categories:
 
  - AdminAPI       The AdminAPI is an API that enables configuring and managing
-                  InnoDB clusters and replicasets, among other things.
+                  InnoDB Clusters, ReplicaSets, ClusterSets, among other
+                  things.
  - Shell Commands Provides details about the available built-in shell commands.
  - ShellAPI       Contains information about the shell and util global objects
                   as well as the mysql module that enables executing SQL on
@@ -224,8 +226,8 @@ command line.
 
 For more information about the dba object use: \? dba
 
-In the AdminAPI, an InnoDB cluster is represented as an instance of the Cluster
-class, while replicasets are represented as an instance of the ReplicaSet
+In the AdminAPI, an InnoDB Cluster is represented as an instance of the Cluster
+class, while ReplicaSets are represented as an instance of the ReplicaSet
 class, and ClusterSets are represented as an instance of the ClusterSet class.
 
 For more information about the Cluster class use: \? Cluster
@@ -298,10 +300,10 @@ The mapping from AdminAPI function signatures works as follows:
   passed as --options, where the option name is the same as in JS/Python.
 
 OBJECTS
- - dba InnoDB cluster and replicaset management functions.
+ - dba InnoDB Cluster, ReplicaSet, and ClusterSet management functions.
 
 CLASSES
- - Cluster    Represents an InnoDB cluster.
+ - Cluster    Represents an InnoDB Cluster.
  - ClusterSet Represents an InnoDB ClusterSet.
  - ReplicaSet Represents an InnoDB ReplicaSet.
 
