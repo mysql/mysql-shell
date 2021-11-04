@@ -163,7 +163,10 @@ void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
 }
 
 std::vector<Ssh_session_info> Ssh_manager::list_active_tunnels() {
-  return m_manager->list_tunnels();
+  if (m_manager) {
+    return m_manager->list_tunnels();
+  }
+  return std::vector<Ssh_session_info>();
 }
 
 Ssh_manager::~Ssh_manager() {
