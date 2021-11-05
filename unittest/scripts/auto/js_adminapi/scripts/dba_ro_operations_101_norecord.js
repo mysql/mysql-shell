@@ -11,7 +11,7 @@ var session = scene.session;
 var topology = status.defaultReplicaSet.topology;
 var instances = dir(topology);
 var gr_uuid = status.defaultReplicaSet.groupName;
-var gr_view_change_uuid = session.runSql("SELECT NULLIF(CONCAT(''/*!80025, @@group_replication_view_change_uuid*/), '')").fetchOne()[0];
+var gr_view_change_uuid = session.runSql("SELECT NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), '')").fetchOne()[0];
 var uuid1 = topology[instances[0]].memberId;
 var uuid2 = topology[instances[1]].memberId;
 

@@ -47,7 +47,7 @@ var rejoin_instance_sql = [
 ];
 
 var get_cluster_sql = [
-    "SELECT @@group_replication_group_name group_name, NULLIF(CONCAT(''/*!80025, @@group_replication_view_change_uuid*/), '') group_view_change_uuid,  @@group_replication_single_primary_mode single_primary,  @@server_uuid,  member_state,  (SELECT    sum(IF(member_state in ('ONLINE', 'RECOVERING'), 1, 0)) > sum(1)/2   FROM performance_schema.replication_group_members  WHERE member_id = @@server_uuid OR member_state <> 'ERROR' ) has_quorum, COALESCE(/*!80002 member_role = 'PRIMARY', NULL AND */     NOT @@group_replication_single_primary_mode OR     member_id = (select variable_value       from performance_schema.global_status       where variable_name = 'group_replication_primary_member') ) is_primary FROM performance_schema.replication_group_members WHERE member_id = @@server_uuid",
+    "SELECT @@group_replication_group_name group_name, NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), '') group_view_change_uuid,  @@group_replication_single_primary_mode single_primary,  @@server_uuid,  member_state,  (SELECT    sum(IF(member_state in ('ONLINE', 'RECOVERING'), 1, 0)) > sum(1)/2   FROM performance_schema.replication_group_members  WHERE member_id = @@server_uuid OR member_state <> 'ERROR' ) has_quorum, COALESCE(/*!80002 member_role = 'PRIMARY', NULL AND */     NOT @@group_replication_single_primary_mode OR     member_id = (select variable_value       from performance_schema.global_status       where variable_name = 'group_replication_primary_member') ) is_primary FROM performance_schema.replication_group_members WHERE member_id = @@server_uuid",
     "SELECT @@group_replication_group_name"
 ];
 
@@ -59,7 +59,7 @@ var status_sql = [
 ];
 
 var describe_sql = [
-    "SELECT @@group_replication_group_name group_name, NULLIF(CONCAT(''/*!80025, @@group_replication_view_change_uuid*/), '') group_view_change_uuid,  @@group_replication_single_primary_mode single_primary,",
+    "SELECT @@group_replication_group_name group_name, NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), '') group_view_change_uuid,  @@group_replication_single_primary_mode single_primary,",
     "SELECT"
 ];
 
