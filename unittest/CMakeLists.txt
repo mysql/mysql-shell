@@ -84,6 +84,7 @@ set(mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/common/metadata_management_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_collection_find_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_table_select_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/util/dump/decimal_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/dump/dump_manifest_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cli_operation_t.cc"

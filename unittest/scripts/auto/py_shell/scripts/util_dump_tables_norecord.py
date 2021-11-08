@@ -2376,6 +2376,83 @@ snapshot = dump_and_load({ "excludeTriggers": ['schema_1.existing_table_1', 'sch
 EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
 EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
 
+#@<> BUG#33400387 setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+
+decimal_digits = 0
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql(f"CREATE TABLE !.! (a DECIMAL({20 + decimal_digits},{decimal_digits}) PRIMARY KEY, b text);", [ tested_schema, tested_table ])
+
+gap_start = 18446744073709551615
+gap_items = 10000
+gap_step = 1000
+
+def test_bug_33400387(step):
+    def insert(r):
+        session.run_sql(f"""INSERT INTO !.! VALUES {",".join([f"('{v}{'.' + str(random.randint(0, (10 ** decimal_digits) - 1)) if decimal_digits else ''}', '')" for v in r])};""", [ tested_schema, tested_table ])
+    def generate_gaps():
+        value = gap_start
+        while True:
+            yield value
+            value += next(step)
+    gen = generate_gaps()
+    # clear the data
+    session.run_sql("TRUNCATE TABLE !.!;", [ tested_schema, tested_table ])
+    # insert rows with gaps in the PK
+    insert([next(gen) for i in range(gap_items)])
+    # all the remaining data is continuous
+    start = next(gen)
+    insert(range(start, start + gap_items))
+    # use some dummy data
+    session.run_sql("UPDATE !.! SET b = repeat('x', 5000);", [ tested_schema, tested_table ])
+    # analyze the table for optimum results
+    session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+    # run the test
+    EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "1M", "compression": "none", "showProgress": False })
+    # expect at least 320 chunks, we're dealing with random data, allow for some chunks which are smaller
+    CHECK_OUTPUT_SANITY(test_output_absolute, 180000, 320, 4)
+    # load the dump
+    recreate_verification_schema()
+    EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "dump should be loaded without problems")
+    # verify the checksums
+    EXPECT_EQ(compute_checksum(tested_schema, tested_table), compute_checksum(verification_schema, tested_table), "checksum mismatch")
+
+#@<> BUG#33400387 - equal gaps
+test_bug_33400387(equal_gaps())
+
+#@<> BUG#33400387 - random gaps
+test_bug_33400387(random_gaps())
+
+#@<> BUG#33400387 - increasing gaps
+test_bug_33400387(increasing_gaps())
+
+#@<> BUG#33400387 - decreasing gaps
+test_bug_33400387(decreasing_gaps())
+
+#@<> BUG#33400387 - create schema with some decimal digits
+gap_start = -2 * 18446744073709551615
+decimal_digits = 2
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql(f"CREATE TABLE !.! (a DECIMAL({20 + decimal_digits},{decimal_digits}) PRIMARY KEY, b text);", [ tested_schema, tested_table ])
+
+#@<> BUG#33400387 - equal gaps + decimal digits
+test_bug_33400387(equal_gaps())
+
+#@<> BUG#33400387 - random gaps + decimal digits
+test_bug_33400387(random_gaps())
+
+#@<> BUG#33400387 - increasing gaps + decimal digits
+test_bug_33400387(increasing_gaps())
+
+#@<> BUG#33400387 - decreasing gaps + decimal digits
+test_bug_33400387(decreasing_gaps())
+
+#@<> BUG#33400387 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

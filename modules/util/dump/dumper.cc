@@ -62,6 +62,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/console_with_progress.h"
+#include "modules/util/dump/decimal.h"
 #include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_manifest.h"
 #include "modules/util/dump/dump_utils.h"
@@ -584,10 +585,18 @@ class Dumper::Table_worker final {
     m_dumper->chunking_task_finished();
   }
 
-  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  template <typename T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+  static std::string quote(const T &v) {
+    return std::to_string(v);
+  }
+
+  static std::string quote(const Decimal &d) {
+    return '\'' + d.to_string() + '\'';
+  }
+
+  template <typename T>
   static std::string between(const std::string &column, T begin, T end) {
-    return column + " BETWEEN " + std::to_string(begin) + " AND " +
-           std::to_string(end);
+    return column + " BETWEEN " + quote(begin) + " AND " + quote(end);
   }
 
   struct Chunking_info {
@@ -660,7 +669,7 @@ class Dumper::Table_worker final {
     return ge(info, begin) + "AND" + compare_le(info, end);
   }
 
-  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  template <typename T>
   static std::string between(const Chunking_info &info, T begin, T end) {
     std::string result = info.where;
 
@@ -684,13 +693,58 @@ class Dumper::Table_worker final {
     return result;
   }
 
-  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
-  static T constant_step(const T /* from */, const T step) {
+  template <typename T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+  static uint64_t distance(const T &min, const T &max) {
+    // it should be (max - min + 1), but this can potentially overflow, check
+    // for overflow first
+    uint64_t result = max - min;
+
+    if (result < std::numeric_limits<uint64_t>::max()) {
+      ++result;
+    }
+
+    return result;
+  }
+
+  static Decimal distance(const Decimal &min, const Decimal &max) {
+    return max - min + 1;
+  }
+
+  template <typename T>
+  static T ensure_not_zero(T &&v) {
+    T t = std::forward<T>(v);
+
+    if (0 == t) {
+      ++t;
+    }
+
+    return t;
+  }
+
+  template <typename T, typename U>
+  static T cast(const U &value) {
+    // if estimated_step is greater than maximum possible value, casting will
+    // overflow, use max instead
+    return value < static_cast<U>(std::numeric_limits<T>::max())
+               ? static_cast<T>(value)
+               : std::numeric_limits<T>::max();
+  }
+
+  template <typename T>
+  static T sum(const T &value, const T &addend) {
+    // if sum is greater than max, use max instead
+    return std::numeric_limits<T>::max() - addend <= value
+               ? std::numeric_limits<T>::max()
+               : value + addend;
+  }
+
+  template <typename T>
+  static T constant_step(const T & /* from */, const T &step) {
     return step;
   }
 
-  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
-  T adaptive_step(const T from, const T step, const T max,
+  template <typename T>
+  T adaptive_step(const T &from, const T &step, const T &max,
                   const Chunking_info &info, const std::string &chunk_id) {
     static constexpr int k_chunker_retries = 10;
     static constexpr int k_chunker_iterations = 20;
@@ -723,10 +777,7 @@ class Dumper::Table_worker final {
       // each time search in a different range, we didn't find the answer in the
       // previous one
       auto left = from + retry * double_step;
-      // if right boundary is greater than max, use max instead
-      auto right = std::numeric_limits<T>::max() - double_step <= left
-                       ? std::numeric_limits<T>::max()
-                       : left + double_step;
+      auto right = sum(left, double_step);
 
       assert(left < right);
 
@@ -782,12 +833,12 @@ class Dumper::Table_worker final {
       }
     }
 
-    return middle - from;
+    return ensure_not_zero(middle - from);
   }
 
-  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
-  std::size_t chunk_integer_column(const Chunking_info &info, const T min,
-                                   const T max) {
+  template <typename T>
+  std::size_t chunk_integer_column(const Chunking_info &info, const T &min,
+                                   const T &max) {
     std::size_t ranges_count = 0;
 
     // if rows_per_chunk <= 1 it may mean that the rows are bigger than chunk
@@ -797,45 +848,33 @@ class Dumper::Table_worker final {
             ? std::max(info.row_count / info.rows_per_chunk, UINT64_C(1))
             : info.row_count;
 
-    // it should be (max - min + 1), but this can potentially overflow, check
-    // for overflow first
-    uint64_t index_range = max - min;
-
-    if (index_range < std::numeric_limits<uint64_t>::max()) {
-      ++index_range;
-    }
-
-    const auto row_count_accuracy = std::max(info.row_count / 10, UINT64_C(10));
+    using step_t = std20::remove_cvref_t<decltype(min)>;
+    const auto index_range = distance(min, max);
+    const auto row_count_accuracy = std::max(info.row_count / 10, UINT64_C(1));
     const auto estimated_step =
-        std::max(index_range / estimated_chunks, UINT64_C(1));
-
-    std::string chunk_id;
-    using step_t = decltype(min);
-
+        cast<step_t>(ensure_not_zero(index_range / estimated_chunks));
     // use constant step if number of chunks is small or index range is close to
     // the number of rows
     const bool use_constant_step =
-        estimated_chunks < 2 || std::max(index_range, info.row_count) -
-                                        std::min(index_range, info.row_count) <=
-                                    row_count_accuracy;
+        estimated_chunks < 2 ||
+        (index_range > info.row_count
+             ? index_range - info.row_count
+             : info.row_count - index_range) <= row_count_accuracy;
 
+    std::string chunk_id;
     const auto next_step =
         use_constant_step
-            ? std::function<step_t(const step_t, const step_t)>(
+            ? std::function<step_t(const step_t &, const step_t &)>(
                   constant_step<T>)
             // using the default capture [&] below results in problems with
             // GCC 5.4.0 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80543)
-            : [&info, &max, &chunk_id, this](const auto from, const auto step) {
+            : [&info, &max, &chunk_id, this](const auto &from,
+                                             const auto &step) {
                 return this->adaptive_step(from, step, max, info, chunk_id);
               };
 
     auto current = min;
-    // if estimated_step is greater than maximum possible value, casting will
-    // overflow, use max instead
-    const auto step = estimated_step < static_cast<decltype(estimated_step)>(
-                                           std::numeric_limits<step_t>::max())
-                          ? static_cast<step_t>(estimated_step)
-                          : std::numeric_limits<step_t>::max();
+    const auto step = estimated_step;
 
     log_info("Chunking %s using integer algorithm with %s step",
              info.table->task_name.c_str(),
@@ -850,12 +889,11 @@ class Dumper::Table_worker final {
 
       chunk_id = std::to_string(ranges_count);
       const auto begin = current;
-
-      const auto new_step =
-          std::max(next_step(current, step), static_cast<step_t>(1));
+      auto new_step = next_step(current, step);
 
       // ensure that there's no integer overflow
-      current = (current > max - new_step + 1 ? max : current + new_step - 1);
+      --new_step;
+      current = (current > max - new_step ? max : current + new_step);
 
       const auto end = current;
 
@@ -884,6 +922,9 @@ class Dumper::Table_worker final {
     } else if (mysqlshdk::db::Type::UInteger == type) {
       return chunk_integer_column(info, to_uint64_t(begin[info.index_column]),
                                   to_uint64_t(end[info.index_column]));
+    } else if (mysqlshdk::db::Type::Decimal == type) {
+      return chunk_integer_column(info, Decimal{begin[info.index_column]},
+                                  Decimal{end[info.index_column]});
     }
 
     throw std::logic_error(
@@ -986,7 +1027,8 @@ class Dumper::Table_worker final {
              shcore::str_join(end, ", ").c_str());
 
     if (mysqlshdk::db::Type::Integer == type ||
-        mysqlshdk::db::Type::UInteger == type) {
+        mysqlshdk::db::Type::UInteger == type ||
+        mysqlshdk::db::Type::Decimal == type) {
       return chunk_integer_column(info, begin, end);
     } else {
       return chunk_non_integer_column(info, begin, end);
@@ -1152,6 +1194,17 @@ class Dumper::Table_worker final {
   mysqlshdk::utils::Rate_limit m_rate_limit;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 };
+
+// template specialization of a static method must be defined outside of a class
+template <>
+Decimal Dumper::Table_worker::cast(const Decimal &value) {
+  return value;
+}
+
+template <>
+Decimal Dumper::Table_worker::sum(const Decimal &value, const Decimal &delta) {
+  return value + delta;
+}
 
 class Dumper::Memory_dumper final {
  public:
