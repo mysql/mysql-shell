@@ -216,6 +216,13 @@ class Load_dump_options {
                       const std::unordered_set<std::string> &included,
                       const std::unordered_set<std::string> &excluded) const;
 
+  bool error_on_object_filters_conflicts(
+      const std::unordered_set<std::string> &included,
+      const std::unordered_set<std::string> &excluded,
+      const std::string &object_label, const std::string &option_suffix) const;
+
+  bool error_on_trigger_filters_conflicts() const;
+
   std::string m_url;
   std::string m_prefix;
   mysqlshdk::storage::backend::oci::Par_type m_par_type;

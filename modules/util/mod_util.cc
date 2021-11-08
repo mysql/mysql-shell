@@ -1708,8 +1708,8 @@ should be valid MySQL identifiers, quoted using backtick characters when
 required.
 
 If the <b>exclude{object}</b> or <b>include{object}</b> options contain an
-object which does not exist, or an object which belongs to a schema which is not
-included in the dump or does not exist, it is ignored.
+object which does not exist, or an object which belongs to a schema which does
+not exist, it is ignored.
 
 The <b>tzUtc</b> option allows dumping TIMESTAMP data when a server has data in
 different time zones or data is being moved between servers with different time

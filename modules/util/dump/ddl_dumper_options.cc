@@ -137,6 +137,8 @@ void Ddl_dumper_options::on_unpacked_options() {
       }
     }
   }
+
+  error_on_trigger_filters_conflicts();
 }
 
 void Ddl_dumper_options::set_bytes_per_chunk(const std::string &value) {

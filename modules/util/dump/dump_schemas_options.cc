@@ -27,6 +27,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -58,6 +59,10 @@ void Dump_schemas_options::on_unpacked_options() {
     // if MDS compatibility option is set, mysql schema should not be dumped
     m_excluded_schemas.emplace("mysql");
   }
+
+  error_on_table_filters_conflicts();
+  error_on_event_filters_conflicts();
+  error_on_routine_filters_conflicts();
 }
 
 void Dump_schemas_options::set_schemas(

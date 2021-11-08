@@ -598,15 +598,9 @@ wipe_instance(session);
 
 //@<> includeTable + excludeSchema
 
-// this should result in sakila.film loaded
-util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["sakila"], includeTables: ["sakila.film"]});
-
-var snap=snapshot_instance(session);
-
-EXPECT_EQ([], Object.keys(snap["schemas"]));
-
-testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
-wipe_instance(session);
+// this should result in an exception
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["sakila"], includeTables: ["sakila.film"]});}, "Util.loadDump: Argument #2: Conflicting filtering options");
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `sakila`.`film` which refers to an excluded schema.");
 
 //@<> load dump where some objects already exist
 session.runSql("create schema sakila");

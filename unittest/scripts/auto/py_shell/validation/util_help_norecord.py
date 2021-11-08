@@ -309,8 +309,8 @@ DESCRIPTION
       required.
 
       If the exclude{object} or include{object} options contain an object which
-      does not exist, or an object which belongs to a schema which is not
-      included in the dump or does not exist, it is ignored.
+      does not exist, or an object which belongs to a schema which does not
+      exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -639,8 +639,8 @@ DESCRIPTION
       required.
 
       If the exclude{object} or include{object} options contain an object which
-      does not exist, or an object which belongs to a schema which is not
-      included in the dump or does not exist, it is ignored.
+      does not exist, or an object which belongs to a schema which does not
+      exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -963,8 +963,8 @@ DESCRIPTION
       required.
 
       If the exclude{object} or include{object} options contain an object which
-      does not exist, or an object which belongs to a schema which is not
-      included in the dump or does not exist, it is ignored.
+      does not exist, or an object which belongs to a schema which does not
+      exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with

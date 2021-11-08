@@ -43,6 +43,58 @@
 namespace mysqlsh {
 namespace dump {
 
+namespace {
+
+template <typename T, typename R = T>
+const R &key(const T &t) {
+  return t;
+}
+
+template <typename T, typename R = T>
+const R &value(const T &t) {
+  return t;
+}
+
+template <typename T1, typename T2>
+const T1 &key(const std::pair<T1, T2> &t) {
+  return t.first;
+}
+
+template <typename T1, typename T2>
+const T2 &value(const std::pair<T1, T2> &t) {
+  return t.second;
+}
+
+template <typename T, typename U = T>
+void find_matches(const T &included, const T &excluded,
+                  const std::string &prefix,
+                  const std::function<void(const U &, const U &,
+                                           const std::string &)> &callback) {
+  const auto included_is_smaller = included.size() < excluded.size();
+  const auto &needle = included_is_smaller ? included : excluded;
+  const auto &haystack = !included_is_smaller ? included : excluded;
+
+  for (const auto &object : needle) {
+    const auto &k = key(object);
+    const auto found = haystack.find(k);
+
+    if (haystack.end() != found) {
+      auto full_name = prefix;
+
+      if (!full_name.empty()) {
+        full_name += ".";
+      }
+
+      full_name += shcore::quote_identifier(k);
+
+      callback(value(included_is_smaller ? object : *found),
+               value(!included_is_smaller ? object : *found), full_name);
+    }
+  }
+}
+
+}  // namespace
+
 Dump_options::Dump_options()
     : m_show_progress(isatty(fileno(stdout)) ? true : false) {}
 
@@ -100,7 +152,23 @@ void Dump_options::set_session(
   on_set_session(session);
 }
 
-void Dump_options::validate() const { validate_options(); }
+void Dump_options::validate() const {
+  // cross-filter conflicts cannot be checked earlier, as filters are not
+  // initialized at the same time
+  error_on_schema_cross_filters_conflicts(included_tables(), excluded_tables(),
+                                          "a table", "Tables");
+  error_on_schema_cross_filters_conflicts(included_events(), excluded_events(),
+                                          "an event", "Events");
+  error_on_schema_cross_filters_conflicts(
+      included_routines(), excluded_routines(), "a routine", "Routines");
+  error_on_table_cross_filters_conflicts();
+
+  if (m_filter_conflicts) {
+    throw std::invalid_argument("Conflicting filtering options");
+  }
+
+  validate_options();
+}
 
 bool Dump_options::exists(const std::string &schema) const {
   return find_missing({schema}).empty();
@@ -151,6 +219,255 @@ std::set<std::string> Dump_options::find_missing_impl(
   }
 
   return missing;
+}
+
+void Dump_options::error_on_schema_filters_conflicts() const {
+  error_on_object_filters_conflicts(included_schemas(), excluded_schemas(),
+                                    "a schema", "Schemas", {});
+}
+
+void Dump_options::error_on_table_filters_conflicts() const {
+  error_on_object_filters_conflicts(included_tables(), excluded_tables(),
+                                    "a table", "Tables");
+}
+
+void Dump_options::error_on_event_filters_conflicts() const {
+  error_on_object_filters_conflicts(included_events(), excluded_events(),
+                                    "an event", "Events");
+}
+
+void Dump_options::error_on_routine_filters_conflicts() const {
+  error_on_object_filters_conflicts(included_routines(), excluded_routines(),
+                                    "a routine", "Routines");
+}
+
+void Dump_options::error_on_object_filters_conflicts(
+    const Instance_cache_builder::Filter &included,
+    const Instance_cache_builder::Filter &excluded,
+    const std::string &object_label, const std::string &option_suffix,
+    const std::string &schema_name) const {
+  find_matches<Instance_cache_builder::Filter, std::string>(
+      included, excluded, schema_name,
+      [&object_label, &option_suffix, this](const auto &, auto &,
+                                            const std::string &full_name) {
+        m_filter_conflicts = true;
+        current_console()->print_error(
+            "Both include" + option_suffix + " and exclude" + option_suffix +
+            " options contain " + object_label + " " + full_name + ".");
+      });
+}
+
+void Dump_options::error_on_object_filters_conflicts(
+    const Instance_cache_builder::Object_filters &included,
+    const Instance_cache_builder::Object_filters &excluded,
+    const std::string &object_label, const std::string &option_suffix) const {
+  find_matches<Instance_cache_builder::Object_filters,
+               Instance_cache_builder::Filter>(
+      included, excluded, {},
+      [&object_label, &option_suffix, this](const auto &i, const auto &e,
+                                            const std::string &schema_name) {
+        error_on_object_filters_conflicts(i, e, object_label, option_suffix,
+                                          schema_name);
+      });
+}
+
+void Dump_options::error_on_trigger_filters_conflicts() const {
+  find_matches<Instance_cache_builder::Trigger_filters,
+               Instance_cache_builder::Object_filters>(
+      included_triggers(), excluded_triggers(), {},
+      [this](const auto &included, const auto &excluded,
+             const std::string &schema_name) {
+        find_matches<Instance_cache_builder::Object_filters,
+                     Instance_cache_builder::Filter>(
+            included, excluded, schema_name,
+            [this](const auto &i, const auto &e,
+                   const std::string &table_name) {
+              if (!i.empty() && !e.empty()) {
+                // both trigger-level filters are not empty, check for conflicts
+                this->error_on_object_filters_conflicts(i, e, "a trigger",
+                                                        "Triggers", table_name);
+              } else if (i.empty() != e.empty()) {
+                // one of the trigger-level filters is empty, if it's the
+                // excluded one, it's a conflict
+                if (e.empty()) {
+                  m_filter_conflicts = true;
+
+                  const auto console = current_console();
+
+                  for (const auto &trigger : i) {
+                    console->print_error(
+                        "The includeTriggers option contains a trigger " +
+                        table_name + "." + shcore::quote_identifier(trigger) +
+                        " which is excluded by the value of the "
+                        "excludeTriggers option: " +
+                        table_name + ".");
+                  }
+                }
+              } else {
+                // both trigger-level filters are empty, this is a conflict
+                m_filter_conflicts = true;
+                current_console()->print_error(
+                    "Both includeTriggers and excludeTriggers options contain "
+                    "a filter " +
+                    table_name + ".");
+              }
+            });
+      });
+}
+
+template <typename C>
+void Dump_options::error_on_schema_cross_filters_conflicts(
+    const C &included, const C &excluded, const std::string &object_label,
+    const std::string &option_suffix) const {
+  const auto check_schemas = [this, &object_label, &option_suffix](
+                                 const auto &list, bool is_included) {
+    const std::string prefix = is_included ? "include" : "exclude";
+
+    for (const auto &schema : list) {
+      // excluding an object from an excluded schema is redundant, but not an
+      // error
+      if (is_included && excluded_schemas().count(schema.first) > 0) {
+        m_filter_conflicts = true;
+
+        for (const auto &object : schema.second) {
+          current_console()->print_error(
+              "The " + prefix + option_suffix + " option contains " +
+              object_label + " " + shcore::quote_identifier(schema.first) +
+              "." + shcore::quote_identifier(object) +
+              " which refers to an excluded schema.");
+        }
+      }
+
+      if (!included_schemas().empty() &&
+          0 == included_schemas().count(schema.first)) {
+        m_filter_conflicts = true;
+
+        for (const auto &object : schema.second) {
+          current_console()->print_error(
+              "The " + prefix + option_suffix + " option contains " +
+              object_label + " " + shcore::quote_identifier(schema.first) +
+              "." + shcore::quote_identifier(object) +
+              " which refers to a schema which was not included in the dump.");
+        }
+      }
+    }
+  };
+
+  check_schemas(included, true);
+  check_schemas(excluded, false);
+}
+
+void Dump_options::error_on_table_cross_filters_conflicts() const {
+  const auto print_error = [](const auto &triggers, const std::string &format) {
+    const auto console = current_console();
+
+    if (triggers.empty()) {
+      console->print_error(shcore::str_format(format.c_str(), "filter", ""));
+    } else {
+      for (const auto &trigger : triggers) {
+        console->print_error(shcore::str_format(
+            format.c_str(), "trigger",
+            ("." + shcore::quote_identifier(trigger)).c_str()));
+      }
+    }
+  };
+
+  const auto check_schemas = [this, &print_error](const auto &list,
+                                                  bool included) {
+    const std::string prefix = included ? "include" : "exclude";
+
+    for (const auto &schema : list) {
+      // excluding an object from an excluded schema is redundant, but not an
+      // error
+      if (included && excluded_schemas().count(schema.first) > 0) {
+        m_filter_conflicts = true;
+
+        for (const auto &table : schema.second) {
+          print_error(table.second,
+                      "The " + prefix + "Triggers option contains a %s " +
+                          shcore::quote_identifier(schema.first) + "." +
+                          shcore::quote_identifier(table.first) +
+                          "%s which refers to an excluded schema.");
+        }
+      }
+
+      if (!included_schemas().empty() &&
+          0 == included_schemas().count(schema.first)) {
+        m_filter_conflicts = true;
+
+        for (const auto &table : schema.second) {
+          print_error(table.second,
+                      "The " + prefix + "Triggers option contains a %s " +
+                          shcore::quote_identifier(schema.first) + "." +
+                          shcore::quote_identifier(table.first) +
+                          "%s which refers to a schema which was not included "
+                          "in the dump.");
+        }
+      }
+    }
+  };
+
+  check_schemas(included_triggers(), true);
+  check_schemas(excluded_triggers(), false);
+
+  const auto check_triggers = [this, &print_error](const auto &list,
+                                                   bool included) {
+    const std::string prefix = included ? "include" : "exclude";
+
+    const auto check_tables = [this, &prefix, &print_error](
+                                  const auto &expected, const auto &actual) {
+      for (const auto &table : expected) {
+        if (0 == actual.second.count(table.first)) {
+          m_filter_conflicts = true;
+          print_error(table.second,
+                      "The " + prefix + "Triggers option contains a %s " +
+                          shcore::quote_identifier(actual.first) + "." +
+                          shcore::quote_identifier(table.first) +
+                          "%s which refers to a table which was not included "
+                          "in the dump.");
+        }
+      }
+    };
+
+    for (const auto &schema : list) {
+      // excluding a trigger from an excluded table is redundant, but not an
+      // error
+      if (included) {
+        const auto excluded_schema = excluded_tables().find(schema.first);
+
+        if (excluded_tables().end() != excluded_schema) {
+          for (const auto &table : schema.second) {
+            if (excluded_schema->second.count(table.first) > 0) {
+              m_filter_conflicts = true;
+              print_error(table.second,
+                          "The " + prefix + "Triggers option contains a %s " +
+                              shcore::quote_identifier(schema.first) + "." +
+                              shcore::quote_identifier(table.first) +
+                              "%s which refers to an excluded table.");
+            }
+          }
+        }
+      }
+
+      const auto included_schema = included_tables().find(schema.first);
+
+      if (included_tables().end() == included_schema) {
+        if (!included_tables().empty()) {
+          // included tables filter is not empty, but the schema of the included
+          // trigger was not found there, report all tables from that schema as
+          // missing
+          check_tables(
+              schema.second,
+              std::make_pair(schema.first, Instance_cache_builder::Filter{}));
+        }
+      } else {
+        check_tables(schema.second, *included_schema);
+      }
+    }
+  };
+
+  check_triggers(included_triggers(), true);
+  check_triggers(excluded_triggers(), false);
 }
 
 }  // namespace dump

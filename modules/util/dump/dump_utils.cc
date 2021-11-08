@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -122,6 +123,46 @@ std::string get_table_data_filename(const std::string &basename,
                                     bool last_chunk) {
   return basename + k_separator + (last_chunk ? k_separator : "") +
          std::to_string(index) + "." + ext;
+}
+
+bool error_on_user_filters_conflicts(
+    const std::vector<shcore::Account> &included_users,
+    const std::vector<shcore::Account> &excluded_users) {
+  const auto console = current_console();
+  bool conflict = false;
+
+  for (const auto &included : included_users) {
+    for (const auto &excluded : excluded_users) {
+      if (included.user == excluded.user) {
+        if (included.host == excluded.host) {
+          conflict = true;
+          console->print_error(
+              "Both includeUsers and excludeUsers options contain a user " +
+              shcore::make_account(included) + ".");
+          // exact match, need to check the remaining excluded users only if the
+          // included host is not empty, as we may find the conflict handled
+          // below
+          if (included.host.empty()) {
+            break;
+          }
+        } else if (excluded.host.empty()) {
+          conflict = true;
+          console->print_error(
+              "The includeUsers option contains a user " +
+              shcore::make_account(included) +
+              " which is excluded by the value of the excludeUsers option: " +
+              shcore::make_account(excluded) + ".");
+          // fully specified included account has been excluded, but there can
+          // be another conflict, if this account is also explicitly excluded,
+          // check the remaining excluded users
+        }
+        // else, the included host is empty and excluded host is not, a valid
+        // scenario; or, the hosts are different -> no conflict
+      }
+    }
+  }
+
+  return conflict;
 }
 
 }  // namespace dump

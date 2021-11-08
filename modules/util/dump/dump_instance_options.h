@@ -56,6 +56,8 @@ class Dump_instance_options : public Dump_schemas_options {
   void set_string_list_option(const std::string &option,
                               const std::unordered_set<std::string> &data);
 
+  void error_on_user_filters_conflicts();
+
   bool m_dump_users = true;
 };
 

@@ -29,12 +29,14 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
+#include "modules/util/dump/dump_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -513,6 +515,24 @@ void Load_dump_options::on_unpacked_options() {
         "'deferTableIndexes' option needs to be enabled when "
         "'loadIndexes' option is disabled");
   }
+
+  bool has_conflicts = false;
+
+  has_conflicts |= error_on_object_filters_conflicts(
+      m_include_schemas, m_exclude_schemas, "a schema", "Schemas");
+  has_conflicts |= error_on_object_filters_conflicts(
+      m_include_tables, m_exclude_tables, "a table", "Tables");
+  has_conflicts |= error_on_object_filters_conflicts(
+      m_include_events, m_exclude_events, "an event", "Events");
+  has_conflicts |= error_on_object_filters_conflicts(
+      m_include_routines, m_exclude_routines, "a routine", "Routines");
+  has_conflicts |= error_on_trigger_filters_conflicts();
+  has_conflicts |= ::mysqlsh::dump::error_on_user_filters_conflicts(
+      m_included_users, m_excluded_users);
+
+  if (has_conflicts) {
+    throw std::invalid_argument("Conflicting filtering options");
+  }
 }
 
 void Load_dump_options::on_log_options(const char *msg) const {
@@ -654,6 +674,183 @@ bool Load_dump_options::include_user(const shcore::Account &account) const {
 void Load_dump_options::add_excluded_users(
     std::vector<shcore::Account> &&users) {
   std::move(users.begin(), users.end(), std::back_inserter(m_excluded_users));
+}
+
+bool Load_dump_options::error_on_object_filters_conflicts(
+    const std::unordered_set<std::string> &included,
+    const std::unordered_set<std::string> &excluded,
+    const std::string &object_label, const std::string &option_suffix) const {
+  const auto included_is_smaller = included.size() < excluded.size();
+  const auto &needle = included_is_smaller ? included : excluded;
+  const auto &haystack = !included_is_smaller ? included : excluded;
+  const auto console = current_console();
+  bool conflict = false;
+
+  for (const auto &object : needle) {
+    if (haystack.count(object)) {
+      conflict = true;
+      console->print_error("Both include" + option_suffix + " and exclude" +
+                           option_suffix + " options contain " + object_label +
+                           " " + object + ".");
+    }
+  }
+
+  const auto cross_check_with_schema_filters = [this, &object_label,
+                                                &option_suffix,
+                                                &conflict](const auto &list,
+                                                           bool is_included) {
+    const std::string prefix = is_included ? "include" : "exclude";
+
+    const auto schema_name = [](const std::string &o) {
+      // extract the schema part from the object name
+      return o.substr(0, mysqlshdk::utils::span_quoted_sql_identifier_bt(o, 0));
+    };
+
+    for (const auto &object : list) {
+      const auto schema = schema_name(object);
+
+      // some object filter lists contain a filter that's just the schema name,
+      // ignore those
+      if (schema == object) {
+        continue;
+      }
+
+      // excluding an object from an excluded schema is redundant, but not an
+      // error
+      if (is_included && m_exclude_schemas.count(schema) > 0) {
+        conflict = true;
+        current_console()->print_error("The " + prefix + option_suffix +
+                                       " option contains " + object_label +
+                                       " " + object +
+                                       " which refers to an excluded schema.");
+      }
+
+      if (!m_include_schemas.empty() && 0 == m_include_schemas.count(schema)) {
+        conflict = true;
+        current_console()->print_error(
+            "The " + prefix + option_suffix + " option contains " +
+            object_label + " " + object +
+            " which refers to a schema which was not included in the dump.");
+      }
+    }
+  };
+
+  // cross checking schemas vs schemas does not make sense
+  if (&included != &m_include_schemas) {
+    cross_check_with_schema_filters(included, true);
+    cross_check_with_schema_filters(excluded, false);
+  }
+
+  return conflict;
+}
+
+bool Load_dump_options::error_on_trigger_filters_conflicts() const {
+  std::string schema;
+  std::string table;
+  std::string trigger;
+  bool conflict = false;
+
+  const auto console = current_console();
+
+  for (const auto &excluded : m_exclude_triggers) {
+    shcore::split_schema_table_and_object(excluded, &schema, &table, &trigger);
+
+    // check exact matches first
+    if (m_include_triggers.count(excluded)) {
+      const std::string object_name = schema.empty() ? "filter" : "trigger";
+      conflict = true;
+      console->print_error(
+          "Both includeTriggers and excludeTriggers options contain a " +
+          object_name + " " + excluded + ".");
+    }
+
+    if (schema.empty()) {
+      // search for schema.table.trigger includes, which are excluded using
+      // schema.table filter
+      const auto prefix = excluded + '.';
+
+      for (const auto &included : m_include_triggers) {
+        if (shcore::str_beginswith(included, prefix)) {
+          conflict = true;
+          console->print_error(
+              "The includeTriggers option contains a trigger " + included +
+              " which is excluded by the value of the excludeTriggers "
+              "option: " +
+              excluded + ".");
+        }
+      }
+    }
+  }
+
+  const auto cross_check_with_filters =
+      [&conflict](
+          const auto &list, bool is_included, const std::string &filter_type,
+          const std::unordered_set<std::string> &include_filter,
+          const std::unordered_set<std::string> &exclude_filter,
+          const std::function<std::string(const std::string &)> &get_name) {
+        const std::string prefix = is_included ? "include" : "exclude";
+
+        const auto print_error = [](const std::string &object,
+                                    const std::string &format) {
+          std::string s;
+          shcore::split_schema_table_and_object(object, &s, nullptr, nullptr);
+          current_console()->print_error(shcore::str_format(
+              format.c_str(), s.empty() ? "filter" : "trigger",
+              object.c_str()));
+        };
+
+        for (const auto &filter : list) {
+          const auto object_name = get_name(filter);
+
+          // excluding an object from an excluded schema is redundant, but not
+          // an error
+          if (is_included && exclude_filter.count(object_name) > 0) {
+            conflict = true;
+            print_error(filter, "The " + prefix +
+                                    "Triggers option contains a %s %s which "
+                                    "refers to an excluded " +
+                                    filter_type + ".");
+          }
+
+          if (!include_filter.empty() &&
+              0 == include_filter.count(object_name)) {
+            conflict = true;
+            print_error(
+                filter,
+                "The " + prefix +
+                    "Triggers option contains a %s %s which refers to a " +
+                    filter_type + " which was not included in the dump.");
+          }
+        }
+      };
+
+  const auto schema_name = [](const std::string &o) {
+    // extract the schema part from the object name
+    return o.substr(0, mysqlshdk::utils::span_quoted_sql_identifier_bt(o, 0));
+  };
+
+  cross_check_with_filters(m_include_triggers, true, "schema",
+                           m_include_schemas, m_exclude_schemas, schema_name);
+  cross_check_with_filters(m_exclude_triggers, false, "schema",
+                           m_include_schemas, m_exclude_schemas, schema_name);
+
+  const auto table_name = [](const std::string &o) {
+    // extract the table part from the object name
+    auto pos = mysqlshdk::utils::span_quoted_sql_identifier_bt(o, 0);
+    // move to the next backtick
+    ++pos;
+    // find the end of table
+    pos = mysqlshdk::utils::span_quoted_sql_identifier_bt(o, pos);
+
+    return o.substr(0, pos);
+  };
+
+  cross_check_with_filters(m_include_triggers, true, "table", m_include_tables,
+                           m_exclude_tables, table_name);
+  cross_check_with_filters(m_exclude_triggers, false, "table", m_include_tables,
+                           m_exclude_tables, table_name);
+
+  return conflict;
 }
 
 }  // namespace mysqlsh

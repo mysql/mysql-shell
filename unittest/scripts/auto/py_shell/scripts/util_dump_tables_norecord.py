@@ -2361,9 +2361,16 @@ EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "exis
 EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
 
 #@<> WL14244-TSFR_7_11
-snapshot = dump_and_load({ "includeTriggers": ['schema_1.existing_table_1', 'schema_1.non_existing_table', 'non_schema.table', 'not_specified_schema.table', 'schema_1.existing_table_2.existing_trigger_2', 'schema_1.existing_table_2.non_existing_trigger'] })
+snapshot = dump_and_load({ "includeTriggers": ['schema_1.existing_table_1', 'schema_1.existing_table_2.existing_trigger_2', 'schema_1.existing_table_2.non_existing_trigger'] })
 EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
 EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+#@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - includeTriggers
+EXPECT_FAIL("ValueError", "Conflicting filtering options", types_schema, types_schema_tables, test_output_absolute, { "includeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included in the dump.")
 
 #@<> WL14244 - excludeTriggers - invalid values
 EXPECT_FAIL("ValueError", "Argument #4: The trigger to be excluded must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.", types_schema, types_schema_tables, test_output_absolute, { "excludeTriggers": [ "trigger" ] })
@@ -2379,9 +2386,112 @@ EXPECT_EQ(["existing_trigger_1"], entries(snapshot, ["schema_1", "tables", "exis
 EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
 
 #@<> WL14244-TSFR_8_11
-snapshot = dump_and_load({ "excludeTriggers": ['schema_1.existing_table_1', 'schema_1.non_existing_table', 'non_schema.table', 'not_specified_schema.table', 'schema_1.existing_table_2.existing_trigger_2', 'schema_1.existing_table_2.non_existing_trigger'] })
+snapshot = dump_and_load({ "excludeTriggers": ['schema_1.existing_table_1', 'schema_1.existing_table_2.existing_trigger_2', 'schema_1.existing_table_2.non_existing_trigger'] })
 EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_1", "triggers"]))
 EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_2", "triggers"]))
+
+#@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - excludeTriggers
+EXPECT_FAIL("ValueError", "Conflicting filtering options", types_schema, types_schema_tables, test_output_absolute, { "excludeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included in the dump.")
+
+#@<> includeX + excludeX conflicts - setup
+wipeout_server(session)
+# create sample DB structure
+session.run_sql("CREATE SCHEMA a")
+session.run_sql("CREATE TABLE a.t (id INT)")
+session.run_sql("CREATE TABLE a.t1 (id INT)")
+
+#@<> includeX + excludeX conflicts - helpers
+def dump_with_conflicts(options, throws = True):
+    WIPE_STDOUT()
+    # we're only interested in warnings
+    options["dryRun"] = True
+    options["showProgress"] = False
+    # do the dump
+    shutil.rmtree(test_output_absolute, True)
+    if throws:
+        EXPECT_THROWS(lambda: util.dump_tables("a", [ "t" , "t1"], test_output_absolute, options), "ValueError: Util.dump_tables: Conflicting filtering options")
+    else:
+        # there could be some other exceptions, we ignore them
+        try:
+            util.dump_tables("a", [ "t" , "t1"], test_output_absolute, options)
+        except Exception as e:
+            print("Exception:", e)
+
+#@<> includeTriggers + excludeTriggers conflicts
+# no conflicts
+dump_with_conflicts({ "includeTriggers": [], "excludeTriggers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t1.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t1.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+# conflicts
+dump_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t", "a.t1" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t", "a.t1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t", "a.t1.t" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t.t", "a.t1.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which is excluded by the value of the excludeTriggers option: `a`.`t`.")
+
+dump_with_conflicts({ "includeTriggers": [ "a.t.t", "a.t1.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which is excluded by the value of the excludeTriggers option: `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
 
 #@<> BUG#33400387 setup
 tested_schema = "test_schema"
