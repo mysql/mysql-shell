@@ -245,7 +245,7 @@ EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
-EXPECT_EQ(["ERROR: Unrecognized replication channel '' found. Unmanaged repliication channels are not supported."], instance1(s)["instanceErrors"]);
+EXPECT_EQ(["ERROR: Unrecognized replication channel '' found. Unmanaged replication channels are not supported."], instance1(s)["instanceErrors"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);

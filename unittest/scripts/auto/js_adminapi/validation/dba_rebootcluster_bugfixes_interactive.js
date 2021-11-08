@@ -130,7 +130,7 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
                 "instanceErrors": [
-                    "ERROR: Unrecognized replication channel '' found. Unmanaged repliication channels are not supported.",
+                    "ERROR: Unrecognized replication channel '' found. Unmanaged replication channels are not supported.",
                     "NOTE: group_replication is stopped."
                 ],
                 "memberRole": "SECONDARY",

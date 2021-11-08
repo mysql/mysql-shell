@@ -244,6 +244,7 @@ EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri5, {recove
 
 //@<> fenceWrites on a Replica Cluster (must fail)
 EXPECT_THROWS_TYPE(function(){replicacluster.fenceWrites()}, "The Cluster 'replica' is a REPLICA Cluster of the ClusterSet 'testCS'", "MYSQLSH");
+EXPECT_STDOUT_CONTAINS("Unable to fence Cluster from write traffic: operation not permitted on REPLICA Clusters");
 
 //@<> fenceAllTraffic() on a Replica Cluster
 EXPECT_NO_THROWS(function() { replicacluster.fenceAllTraffic(); });

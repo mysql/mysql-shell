@@ -1687,7 +1687,12 @@ void Cluster_impl::fence_writes() {
 
   // Check if the Cluster belongs to a ClusterSet and is a REPLICA Cluster
   if (is_cluster_set_member() && !is_primary_cluster()) {
-    throw shcore::Exception("The Cluster '" + get_name() +
+    auto cluster_name = get_name();
+    console->print_error(
+        "Unable to fence Cluster from write traffic: operation not permitted "
+        "on REPLICA Clusters");
+
+    throw shcore::Exception("The Cluster '" + cluster_name +
                                 "' is a REPLICA Cluster of the ClusterSet '" +
                                 get_cluster_set()->get_name() + "'",
                             SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);

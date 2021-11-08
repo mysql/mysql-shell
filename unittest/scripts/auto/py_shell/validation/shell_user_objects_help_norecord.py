@@ -3,7 +3,7 @@ GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
- - dba      Used for InnoDB cluster administration.
+ - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
@@ -20,7 +20,7 @@ GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
- - dba      Used for InnoDB cluster administration.
+ - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
  - myGlobal User defined global object.
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
@@ -338,7 +338,8 @@ GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
- - dba            Used for InnoDB cluster administration.
+ - dba            Used for InnoDB Cluster, ReplicaSet, and ClusterSet
+                  administration.
  - myGlobal       User defined global object.
  - mySecondGlobal User defined global object.
  - mysql          Support for connecting to MySQL servers using the classic

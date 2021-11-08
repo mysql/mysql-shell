@@ -3,11 +3,11 @@
 
 //@<OUT> Object Help
 NAME
-      Cluster - Represents an InnoDB cluster.
+      Cluster - Represents an InnoDB Cluster.
 
 DESCRIPTION
       The cluster object is the entry point to manage and monitor a MySQL
-      InnoDB cluster.
+      InnoDB Cluster.
 
       A cluster is a set of MySQLd Instances which holds the user's data.
 
@@ -1335,15 +1335,17 @@ RETURNS
       Nothing
 
 DESCRIPTION
-      This function fences a Cluster from all Write Traffic by ensuring all of
-      its members are Read-Only regardless of any topology change on it. The
-      Cluster will be put into READ ONLY mode and all members will remain
+      This function fences a PRIMARY Cluster from all Write Traffic by ensuring
+      all of its members are Read-Only regardless of any topology change on it.
+      The Cluster will be put into READ ONLY mode and all members will remain
       available for reads. To unfence the Cluster so it restores its normal
       functioning and can accept all traffic use Cluster.unfence().
 
       Use this function when performing a PRIMARY Cluster failover in a
       ClusterSet to allow only read traffic in the previous Primary Cluster in
       the event of a split-brain.
+
+      The function is not permitted on REPLICA Clusters.
 
 //@<OUT> unfenceWrites
 NAME

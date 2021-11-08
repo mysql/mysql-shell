@@ -5,13 +5,13 @@ The following objects provide command line operations:
       CLI Integration Testing Plugin
 
    cluster
-      Represents an InnoDB cluster.
+      Represents an InnoDB Cluster.
 
    clusterset
       Represents an InnoDB ClusterSet.
 
    dba
-      InnoDB cluster and replicaset management functions.
+      InnoDB Cluster, ReplicaSet, and ClusterSet management functions.
 
    rs
       Represents an InnoDB ReplicaSet.
