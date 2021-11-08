@@ -399,7 +399,7 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
   try {
     std::shared_ptr<db::IResult> result(instance.query(
         "SELECT @@group_replication_group_name group_name, "
-        "NULLIF(CONCAT(''/*!80025, @@group_replication_view_change_uuid*/), "
+        "NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), "
         "'') group_view_change_uuid, "
         " @@group_replication_single_primary_mode single_primary, "
         " @@server_uuid, "
