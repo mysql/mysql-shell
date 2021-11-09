@@ -139,9 +139,6 @@ EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.`);
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
 //@<> createReplicaCluster: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 mark_gtid_set_complete(true);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "debug", "LogicError");
@@ -150,9 +147,6 @@ EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluste
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty), but the clusterset was configured to assume that replication can completely recover the state of new instances.`);
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
-
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
 
 //@<> createReplicaCluster: recoveryMethod:incremental, subset GTIDs -> incr
 session4.runSql("RESET MASTER");
@@ -163,18 +157,12 @@ EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluste
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
 //@<> createReplicaCluster: recoveryMethod:incremental, errant GTIDs -> error
 session4.runSql("RESET MASTER");
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "RuntimeError");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it contains transactions that do not originate from the clusterset, which must be discarded before it can join the clusterset.`);
-
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
 
 // Tests for recoveryMethod = auto
 //
@@ -202,9 +190,6 @@ EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluste
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.`);
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, empty GTIDs + gtidSetIsComplete -> incr
 mark_gtid_set_complete(true);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true})}, "debug", "LogicError");
@@ -213,8 +198,6 @@ EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluste
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery was selected because it seems to be safely usable.");
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
 mark_gtid_set_complete(false);
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, errant GTIDs -> prompt c/a
@@ -232,10 +215,6 @@ EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of ${__endpoint4} with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.");
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
-
 // Non-interactive tests
 
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, empty GTID -> error
@@ -248,10 +227,6 @@ EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluste
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS("WARNING: It should be safe to rely on replication to incrementally recover the state of the new Replica Cluster if you are sure all updates ever executed in the ClusterSet were done with GTIDs enabled, there are no purged transactions and the instance used to create the new Replica Cluster contains the same GTID set as the ClusterSet or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.");
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
-
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, empty GTIDs + gtidSetIsComplete -> incr
 mark_gtid_set_complete(true);
 
@@ -262,8 +237,6 @@ EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty), but the clusterset was configured to assume that replication can completely recover the state of new instances.`);
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery was selected because it seems to be safely usable.");
 
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
 mark_gtid_set_complete(false);
 
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, subset GTIDs -> incr
@@ -273,10 +246,6 @@ session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "debug", "LogicError");
 EXPECT_OUTPUT_CONTAINS("WARNING: It should be safe to rely on replication to incrementally recover the state of the new Replica Cluster if you are sure all updates ever executed in the ClusterSet were done with GTIDs enabled, there are no purged transactions and the instance used to create the new Replica Cluster contains the same GTID set as the ClusterSet or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.");
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery was selected because it seems to be safely usable.");
-
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
 
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 session4.runSql("RESET MASTER");
@@ -288,10 +257,6 @@ EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of ${__endpoint4} with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.");
 EXPECT_OUTPUT_CONTAINS("ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target clusterset.");
-
-EXPECT_FALSE(clone_installed(session));
-EXPECT_FALSE(clone_installed(session4));
-
 
 // interactive tests
 

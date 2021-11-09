@@ -1654,3 +1654,10 @@ function libmysql_host_description(hostname, port) {
 
   return hostname;
 }
+
+function clone_installed(session) {
+    var row = session.runSql("select plugin_status from information_schema.plugins where plugin_name='clone'").fetchOne();
+    if (row)
+        return row[0] == "ACTIVE";
+    return false;
+}

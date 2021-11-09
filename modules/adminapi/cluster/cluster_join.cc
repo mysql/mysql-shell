@@ -982,6 +982,8 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
   int64_t restore_clone_threshold = 0;
 
   if (clone_supported) {
+    // Clone must e uninstalled only when disableClone is enabled on the
+    // Cluster
     bool enable_clone = !clone_disabled;
 
     // Force clone if requested
@@ -992,10 +994,6 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
       // RESET MASTER to clear GTID_EXECUTED in case it's diverged, otherwise
       // clone is not executed and GR rejects the instance
       m_target_instance->query("RESET MASTER");
-    } else if (*m_clone_opts.recovery_method ==
-               Member_recovery_method::INCREMENTAL) {
-      // Force incremental distributed recovery if requested
-      enable_clone = false;
     }
 
     // Make sure the Clone plugin is installed or uninstalled depending on the
