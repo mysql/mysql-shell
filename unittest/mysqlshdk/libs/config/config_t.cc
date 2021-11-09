@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,9 +160,9 @@ TEST_F(Config_test, config_interface) {
   EXPECT_TRUE(res);
   // create empty config file
   create_file(m_cfg_path, "");
-  res = cfg.add_handler("config_file",
-                        std::unique_ptr<IConfig_handler>(
-                            new Config_file_handler(m_cfg_path, m_cfg_path)));
+  res = cfg.add_handler(
+      "config_file", std::unique_ptr<IConfig_handler>(new Config_file_handler(
+                         "uuid1", m_cfg_path, m_cfg_path)));
   EXPECT_TRUE(res);
 
   // Test getting a bool value (default: false).
@@ -179,7 +179,7 @@ TEST_F(Config_test, config_interface) {
   EXPECT_FALSE(*bool_val);
 
   Config_file_handler cfg_handler_tmp =
-      Config_file_handler(m_cfg_path, m_cfg_path);
+      Config_file_handler("uuid1", m_cfg_path, m_cfg_path);
   // since the config file started empty and the changes haven't yet been
   // applied an exception should be thrown
   EXPECT_THROW(cfg_handler_tmp.get_bool("sql_warnings"), std::out_of_range);
@@ -198,7 +198,7 @@ TEST_F(Config_test, config_interface) {
   // No changes applied yet to wait_timeout on the server and option file.
   int_val = instance.get_sysvar_int("wait_timeout", Var_qualifier::GLOBAL);
   EXPECT_EQ(*wait_timeout, *int_val);
-  cfg_handler_tmp = Config_file_handler(m_cfg_path, m_cfg_path);
+  cfg_handler_tmp = Config_file_handler("uuid1", m_cfg_path, m_cfg_path);
   // since the config file started empty and the changes haven't yet been
   // applied an exception should be thrown
   EXPECT_THROW(cfg_handler_tmp.get_int("wait_timeout"), std::out_of_range);
@@ -215,7 +215,7 @@ TEST_F(Config_test, config_interface) {
   // No changes applied yet to lc_messages on the server and option file.
   string_val = instance.get_sysvar_string("lc_messages", Var_qualifier::GLOBAL);
   EXPECT_STREQ("en_US", (*string_val).c_str());
-  cfg_handler_tmp = Config_file_handler(m_cfg_path, m_cfg_path);
+  cfg_handler_tmp = Config_file_handler("uuid1", m_cfg_path, m_cfg_path);
   // since the config file started empty and the changes haven't yet been
   // applied an exception should be thrown
   EXPECT_THROW(cfg_handler_tmp.get_string("lc_messages"), std::out_of_range);
@@ -231,7 +231,7 @@ TEST_F(Config_test, config_interface) {
   string_val = instance.get_sysvar_string("lc_messages", Var_qualifier::GLOBAL);
   EXPECT_STREQ("pt_PT", (*string_val).c_str());
 
-  cfg_handler_tmp = Config_file_handler(m_cfg_path, m_cfg_path);
+  cfg_handler_tmp = Config_file_handler("uuid1", m_cfg_path, m_cfg_path);
   bool_val = cfg_handler_tmp.get_bool("sql_warnings");
   EXPECT_TRUE(*bool_val);
   int_val = cfg_handler_tmp.get_int("wait_timeout");
@@ -264,7 +264,7 @@ TEST_F(Config_test, config_interface) {
   cfg.apply();
 
   // Confirm values where restored properly, on both server and option file.
-  cfg_handler_tmp = Config_file_handler(m_cfg_path, m_cfg_path);
+  cfg_handler_tmp = Config_file_handler("uuid1", m_cfg_path, m_cfg_path);
   bool_val = instance.get_sysvar_bool("sql_warnings", Var_qualifier::GLOBAL);
   EXPECT_FALSE(*bool_val);
   bool_val = cfg_handler_tmp.get_bool("sql_warnings");

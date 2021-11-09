@@ -232,9 +232,8 @@ DESCRIPTION
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
 
-      The groupName, localAddress, and groupSeeds are advanced options and
-      their usage is discouraged since incorrect values can lead to Group
-      Replication errors.
+      The groupName and localAddress are advanced options and their usage is
+      discouraged since incorrect values can lead to Group Replication errors.
 
       The value for groupName is used to set the Group Replication system
       variable 'group_replication_group_name'.
@@ -250,11 +249,6 @@ DESCRIPTION
       is the port of the current active connection (session) * 10 + 1. In case
       the automatically determined default port value is invalid (> 65535) then
       an error is thrown.
-
-      The value for groupSeeds is used to set the Group Replication system
-      variable 'group_replication_group_seeds'. The groupSeeds option accepts a
-      comma-separated list of addresses in the format:
-      'host1:port1,...,hostN:portN'.
 
       The exitStateAction option supports the following values:
 

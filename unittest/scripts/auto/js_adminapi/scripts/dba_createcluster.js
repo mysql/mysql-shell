@@ -893,14 +893,6 @@ var c = dba.createCluster("cluster", {localAddress:local_address});
 //@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 var c = dba.createCluster("cluster", {ipWhitelist:"::1, 127.0.0.1"});
 
-//@ IPv6 on groupSeeds is not supported below 8.0.14 - 1 WL#12758 {VER(< 8.0.14)}
-var group_seeds = "127.0.0.1:" + __mysql_sandbox_gr_port1 + ", [::1]:" + __mysql_sandbox_gr_port2;
-var c = dba.createCluster("cluster", {groupSeeds:group_seeds});
-
-//@ IPv6 on groupSeeds is not supported below 8.0.14 - 2 WL#12758 {VER(< 8.0.14)}
-var group_seeds = "127.0.0.1:" + __mysql_sandbox_gr_port1 + ", [::1]:" + __mysql_sandbox_gr_port2 + " , [fe80::7e36:f49a:63c8:8ad6]:" + __mysql_sandbox_gr_port1;
-var c = dba.createCluster("cluster", {groupSeeds:group_seeds});
-
 //@<> Cleanup IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

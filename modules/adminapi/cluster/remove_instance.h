@@ -98,7 +98,7 @@ class Remove_instance : public Command_interface {
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::string m_address_in_metadata;
   bool m_skip_sync = false;
-  std::string m_instance_gr_local_address;
+  std::string m_instance_uuid;
 
   void validate_metadata_for_address(const std::string &address,
                                      Instance_metadata *out_metadata);

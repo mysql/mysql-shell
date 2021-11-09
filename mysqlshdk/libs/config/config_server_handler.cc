@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -158,6 +158,10 @@ void Config_server_handler::apply() {
   m_change_sequence.clear();
   m_global_change_tracker.clear();
   m_session_change_tracker.clear();
+}
+
+std::string Config_server_handler::get_server_uuid() const {
+  return *get_string("server_uuid");
 }
 
 utils::nullable<bool> Config_server_handler::get_bool(

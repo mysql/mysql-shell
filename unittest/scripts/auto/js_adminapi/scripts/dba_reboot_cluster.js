@@ -75,6 +75,7 @@ dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnfPath2});
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
+session3 = mysql.getSession(__sandbox_uri3);
 
 var vars1 = session1.runSql("show variables like 'group_replication%'").fetchAll();
 var vars2 = session2.runSql("show variables like 'group_replication%'").fetchAll();
@@ -91,12 +92,8 @@ session2.runSql("set sql_log_bin=0");
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
 session2.runSql("uninstall plugin group_replication");
 
-session1.close();
-testutil.restartSandbox(__mysql_sandbox_port1);
-session1 = mysql.getSession(__sandbox_uri1);
-session2.close();
-testutil.restartSandbox(__mysql_sandbox_port2);
-session2 = mysql.getSession(__sandbox_uri2);
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
 
@@ -131,6 +128,16 @@ var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+
+//@<> check group_seeds correctly persisted {VER(<8.0.11)}
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port2},${hostname}:${__mysql_sandbox_gr_port3}`, testutil.getSandboxConf(__mysql_sandbox_port1, "loose_group_replication_group_seeds"));
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port3}`, testutil.getSandboxConf(__mysql_sandbox_port2, "loose_group_replication_group_seeds"));
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port2}`, testutil.getSandboxConf(__mysql_sandbox_port3, "loose_group_replication_group_seeds"));
+
+//@<> check group_seeds correctly set
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port2},${hostname}:${__mysql_sandbox_gr_port3}`, session1.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port3}`, session2.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port2}`, session3.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 
 //@ Dba.rebootClusterFromCompleteOutage errors
 dba.rebootClusterFromCompleteOutage("");
@@ -229,6 +236,27 @@ session.close();
 shell.connect(__sandbox_uri2);
 print(has_new_rpl_users(rpl_users_rows) + "\n");
 session.close();
+
+//@<> Reboot cluster needs to clear group_seeds because peer members could be unreachable
+// Bug #33389693 Can't reboot after total outage with group_seeds set
+shell.connect(__sandbox_uri2);
+session.runSql("stop group_replication");
+shell.connect(__sandbox_uri1);
+session.runSql("stop group_replication");
+
+session.runSql("set global group_replication_group_seeds='127.0.0.1:"+__mysql_sandbox_gr_port2+",unreachable:1234'")
+
+shell.options.useWizards=0;
+c = dba.rebootClusterFromCompleteOutage("dev");
+
+EXPECT_EQ("", session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
+
+c.rejoinInstance(__sandbox_uri2);
+// ensure group_seeds has the correct value in each member
+shell.connect(__sandbox_uri1);
+EXPECT_EQ(hostname+":"+__mysql_sandbox_gr_port2, session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
+shell.connect(__sandbox_uri2);
+EXPECT_EQ(hostname+":"+__mysql_sandbox_gr_port1, session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 
 //@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

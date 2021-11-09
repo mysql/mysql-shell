@@ -182,45 +182,6 @@ void validate_member_weight_supported(
 }
 
 /**
- * Validate the value specified for the groupSeeds option.
- *
- * @param version version of the target instance
- * @param group_seeds string with the value we want to set for gr_group_seeds.
- * @throw ArgumentError if the value is empty.
- */
-void validate_group_seeds_option(const mysqlshdk::utils::Version &version,
-                                 const std::string &group_seeds) {
-  const std::string group_seeds_strip = shcore::str_strip(group_seeds);
-  if (group_seeds_strip.empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kGroupSeeds));
-
-  const auto group_seeds_list = shcore::str_split(group_seeds_strip, ",");
-  std::vector<std::string> unsupported_addresses;
-  for (const auto &raw_seed : group_seeds_list) {
-    const std::string seed = shcore::str_strip(raw_seed);
-    if (!mysqlshdk::gr::is_endpoint_supported_by_gr(seed, version)) {
-      unsupported_addresses.push_back(seed);
-    }
-  }
-
-  if (!unsupported_addresses.empty()) {
-    const std::string value_str =
-        (unsupported_addresses.size() == 1) ? "value" : "values";
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Instance does not support the following groupSeed %s :'%s'. IPv6 "
-        "addresses/hostnames are only supported by Group "
-        "Replication from MySQL version >= 8.0.14 and the target instance "
-        "version is %s.",
-        value_str.c_str(),
-        shcore::str_join(unsupported_addresses.cbegin(),
-                         unsupported_addresses.cend(), ", ")
-            .c_str(),
-        version.get_base().c_str()));
-  }
-}
-
-/**
  * Validates the ipWhitelist option
  *
  * Checks if the given ipWhitelist is valid for use in the AdminAPI.
@@ -338,11 +299,6 @@ void Group_replication_options::check_option_values(
 
   if (!local_address.is_null()) {
     validate_local_address_option(*local_address);
-  }
-
-  // Validate group seeds option
-  if (!group_seeds.is_null()) {
-    validate_group_seeds_option(version, *group_seeds);
   }
 
   // Validate if the exitStateAction option is supported on the target
@@ -610,13 +566,8 @@ const shcore::Option_pack_def<Join_group_replication_options>
   return opts;
 }
 
-void Join_group_replication_options::set_group_seeds(const std::string &value) {
-  const std::string group_seeds_strip = shcore::str_strip(value);
-  if (group_seeds_strip.empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kGroupSeeds));
-
-  group_seeds = value;
+void Join_group_replication_options::set_group_seeds(const std::string &) {
+  handle_deprecated_option(kGroupSeeds, "");
 }
 
 const shcore::Option_pack_def<Cluster_set_group_replication_options>

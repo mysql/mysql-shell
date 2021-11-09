@@ -124,11 +124,9 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
   config->set("group_replication_local_address", gr_opts.local_address,
               "localAddress");
 
-  // The group_seeds value matches the one of the groupSeeds option if used
-  // (not empty), otherwise it must be determined by the caller.
+  // group_seeds is set by the caller
   if (!gr_opts.group_seeds.is_null()) {
-    config->set("group_replication_group_seeds", gr_opts.group_seeds,
-                "groupSeeds");
+    config->set("group_replication_group_seeds", gr_opts.group_seeds);
   }
 
   // Set GR IP whitelist (if provided).
@@ -617,15 +615,8 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
   assert(config);
   assert(config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler));
 
-  // Get group seeds information from metadata.
-  // NOTE: Need to use the reported host to get the correct information from
-  //       the MetaData.
-  std::string reported_host = instance.get_canonical_hostname();
-  Connection_options cnx_opts = instance.get_connection_options();
-  cnx_opts.clear_host();  // Clear first to avoid error for being already set.
-  cnx_opts.set_host(reported_host);
-  std::vector<std::string> seeds = get_peer_seeds(
-      instance, cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
+  // Get group seeds information from global var, which is supposed to have been
+  // set before configureLocalInstance()
 
   // Get all GR configurations.
   log_debug("Get all group replication configurations.");
@@ -645,12 +636,9 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
                             mysqlshdk::config::k_dft_cfg_file_handler);
   }
 
-  // Update the group_replication_group_seeds.
-  if (!seeds.empty()) {
-    std::string peer_seeds = shcore::str_join(seeds, ",");
-    config->set("group_replication_group_seeds",
-                mysqlshdk::utils::nullable<std::string>(peer_seeds));
-  }
+  // Update the group_replication_group_seeds using the live global value
+  config->set("group_replication_group_seeds",
+              instance.get_sysvar_string("group_replication_group_seeds"));
 
   // Apply all changes.
   log_debug("Apply group replication configurations (write to file).");
@@ -775,10 +763,7 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - SSL variable according to the ssl_mode value (resolved by the caller);
   // - local_address determined based on the given localAddress option
   //   (resolved by the caller);
-  // - the group_seeds value matches the one of the groupSeeds option if used
-  //   (not empty), otherwise the value of all the
-  //   group_replication_local_address of all the active instances (determined
-  //   by the caller);
+  // - group_seeds as set by the caller
   // - IP whitelist (if provided);
   // - exit state action (if provided);
   // - member weight (if provided);

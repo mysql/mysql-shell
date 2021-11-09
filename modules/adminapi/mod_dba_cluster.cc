@@ -243,7 +243,7 @@ ${CLUSTER_OPT_IP_ALLOWLIST}
 used instead of the automatically generated one.
 @li groupSeeds: string value with a comma-separated list of the Group
 Replication peer addresses to be used instead of the automatically generated
-one.
+one. Deprecated and ignored.
 ${OPT_INTERACTIVE}
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
@@ -312,9 +312,9 @@ specified, the default value is the port of the target instance * 10 + 1. In
 case the automatically determined default port value is invalid (> 65535) then
 an error is thrown.
 
-The value for groupSeeds is used to set the Group Replication system variable
-'group_replication_group_seeds'. The groupSeeds option accepts a
-comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
+The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is ignored.
+'group_replication_group_seeds' is automatically set based on the current
+topology.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 
@@ -324,6 +324,8 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
+
+@attention The groupSeeds option will be removed in a future release.
 )*");
 
 /**

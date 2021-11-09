@@ -228,7 +228,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Persisting the cluster settings...
-WARNING: The 'group_replication_group_seeds' is not defined on instance 'localhost:<<<__mysql_sandbox_port1>>>'. This option is mandatory to allow the server to automatically rejoin the cluster after reboot. Please manually update its value on the option file.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
 
 The instance cluster settings were successfully persisted.

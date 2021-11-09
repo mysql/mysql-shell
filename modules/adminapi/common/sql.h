@@ -44,9 +44,6 @@ Cluster_check_info get_replication_group_state(
     const mysqlshdk::mysql::IInstance &connection,
     TargetType::Type source_type);
 
-std::vector<std::string> get_peer_seeds(
-    const mysqlshdk::mysql::IInstance &instance,
-    const std::string &instance_host);
 std::vector<std::pair<std::string, int>> get_open_sessions(
     const mysqlshdk::mysql::IInstance &instance);
 

@@ -218,7 +218,6 @@ void Remove_instance::prepare() {
 
   // Make sure the target instance is not set if an connection error occurs.
   m_target_instance.reset();
-  std::string target_uuid;
 
   // Try to establish a connection to the target instance, although it might
   // fail if the instance is down.
@@ -296,9 +295,8 @@ void Remove_instance::prepare() {
     try {
       Instance_metadata md;
       validate_metadata_for_address(m_instance_address, &md);
-      m_instance_gr_local_address = md.grendpoint;
+      m_instance_uuid = md.uuid;
       m_address_in_metadata = m_instance_address;
-      target_uuid = md.uuid;
     } catch (const std::exception &e) {
       log_warning("Couldn't get metadata for %s: %s",
                   m_instance_address.c_str(), e.what());
@@ -346,9 +344,8 @@ void Remove_instance::prepare() {
     try {
       Instance_metadata md;
       validate_metadata_for_address(m_instance_address, &md);
-      m_instance_gr_local_address = md.grendpoint;
+      m_instance_uuid = md.uuid;
       m_address_in_metadata = m_instance_address;
-      target_uuid = md.uuid;
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
@@ -363,9 +360,8 @@ void Remove_instance::prepare() {
       // of the server maps to in the metadata.
       try {
         auto md = lookup_metadata_for_uuid(uuid);
-        m_instance_gr_local_address = md.grendpoint;
+        m_instance_uuid = md.uuid;
         m_address_in_metadata = md.address;
-        target_uuid = md.uuid;
 
         log_debug(
             "Given instance address '%s' was not in metadata, but found a "
@@ -426,7 +422,7 @@ void Remove_instance::prepare() {
   // Ensure instance is not the last in the cluster.
   // Should be called after we know there's any chance the instance actually
   // belongs to the cluster.
-  ensure_not_last_instance_in_cluster(target_uuid);
+  ensure_not_last_instance_in_cluster(m_instance_uuid);
 
   // Validate user privileges to use the command (only if the instance is
   // available).
@@ -599,8 +595,7 @@ shcore::Value Remove_instance::execute() {
       // Update the cluster members (group_seed variable) and remove the
       // replication user from the instance being removed from the primary
       // instance.
-      m_cluster->update_group_members_for_removed_member(
-          m_instance_gr_local_address);
+      m_cluster->update_group_members_for_removed_member(m_instance_uuid);
     } catch (const std::exception &err) {
       console->print_error(
           shcore::str_format("Could not update remaining cluster members "

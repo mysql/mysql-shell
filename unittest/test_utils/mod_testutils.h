@@ -64,6 +64,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined waitSandboxAlive(ConnectionData data);
   Undefined changeSandboxConf(Integer port, String option, String value,
                               String section);
+  String getSandboxConf(Integer port, String option);
   Undefined upgradeSandbox(Integer port);
   Undefined removeFromSandboxConf(Integer port, String option, String section);
   String getSandboxConfPath(Integer port);
@@ -132,6 +133,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None wait_sandbox_alive(str uri);
   None wait_sandbox_alive(ConnectionData data);
   None change_sandbox_conf(int port, str option, str value, str section);
+  str get_sandbox_conf(int port, str option);
   None upgrade_sandbox(int port);
   None remove_from_sandbox_conf(int port, str option, str section);
   str get_sandbox_conf_path(int port);
@@ -257,6 +259,8 @@ class Testutils : public mysqlsh::Extensible_object {
   void change_sandbox_conf(int port, const std::string &option,
                            const std::string &value,
                            const std::string &section = "");
+  std::string get_sandbox_conf(int port, const std::string &option);
+
   void upgrade_sandbox(int port);
   void remove_from_sandbox_conf(int port, const std::string &option,
                                 const std::string &section = "");

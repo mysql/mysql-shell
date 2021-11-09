@@ -165,6 +165,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          &Testutils::end_snapshot_sandbox_error_log, "port");
   expose("changeSandboxConf", &Testutils::change_sandbox_conf, "port", "option",
          "value", "?section");
+  expose("getSandboxConf", &Testutils::get_sandbox_conf, "port", "option");
   expose("upgradeSandbox", &Testutils::upgrade_sandbox, "port");
   expose("removeFromSandboxConf", &Testutils::remove_from_sandbox_conf, "port",
          "option", "?section");
@@ -2019,6 +2020,15 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
 
   // Apply change to option file.
   cfg.write(cfgfile_path);
+}
+
+std::string Testutils::get_sandbox_conf(int port, const std::string &option) {
+  std::string cfgfile_path = get_sandbox_conf_path(port);
+
+  mysqlshdk::config::Config_file cfg;
+  cfg.read(cfgfile_path);
+
+  return cfg.get("mysqld", option).get_safe();
 }
 
 /**

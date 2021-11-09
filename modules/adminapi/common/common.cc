@@ -1384,7 +1384,8 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
 }
 
 void add_config_file_handler(mysqlshdk::config::Config *cfg,
-                             const std::string handler_name,
+                             const std::string &handler_name,
+                             const std::string &server_uuid,
                              const std::string &mycnf_path,
                              const std::string &output_mycnf_path) {
   // Add configuration handle to update option file (if provided).
@@ -1396,19 +1397,19 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
     cfg->add_handler(handler_name,
                      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
                          new mysqlshdk::config::Config_file_handler(
-                             mycnf_path, mycnf_path)));
+                             server_uuid, mycnf_path, mycnf_path)));
   } else if (mycnf_path.empty()) {
     // Update output_mycnf (creating it if needed).
-    cfg->add_handler(
-        handler_name,
-        std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-            new mysqlshdk::config::Config_file_handler(output_mycnf_path)));
+    cfg->add_handler(handler_name,
+                     std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                         new mysqlshdk::config::Config_file_handler(
+                             server_uuid, output_mycnf_path)));
   } else {
     // Read from mycnf but update output_mycnf (creating it if needed).
     cfg->add_handler(handler_name,
                      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
                          new mysqlshdk::config::Config_file_handler(
-                             mycnf_path, output_mycnf_path)));
+                             server_uuid, mycnf_path, output_mycnf_path)));
   }
 }
 

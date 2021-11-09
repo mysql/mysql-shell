@@ -1557,25 +1557,6 @@ TEST(mod_dba_common, validate_local_address_option) {
   EXPECT_NO_THROW(options.check_option_values(version));
 }
 
-TEST(mod_dba_common, validate_group_seeds_option) {
-  using mysqlsh::dba::Group_replication_options;
-
-  Group_replication_options options;
-  Version version(8, 0, 14);
-
-  // Error if the groupSeeds is empty.
-  options.group_seeds = "";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
-
-  // Error if the groupSeeds string is empty (only whitespace).
-  options.group_seeds = "  ";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
-
-  // No error if the groupSeeds is a non-empty string.
-  options.group_seeds = "host1:1234,host2:4321";
-  EXPECT_NO_THROW(options.check_option_values(version));
-}
-
 TEST(mod_dba_common, validate_label) {
   std::string t{};
 

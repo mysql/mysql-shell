@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,6 +160,8 @@ class Config_server_handler : public IConfig_handler {
    *        configurations on the server.
    */
   void apply() override;
+
+  std::string get_server_uuid() const override;
 
   /**
    * Get the boolean value for the specified server configuration (system

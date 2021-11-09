@@ -882,52 +882,21 @@ void update_auto_increment(mysqlshdk::config::Config *config,
 }
 
 void update_group_seeds(mysqlshdk::config::Config *config,
-                        const std::string &gr_address,
-                        Gr_seeds_change_type change_type) {
+                        const std::map<std::string, std::string> &group_seeds) {
   std::vector<std::string> handler_names = config->list_handler_names();
 
   // Each instance might have a different group_seed value thus each handler is
   // set individually.
-  for (std::string handler_name : handler_names) {
-    utils::nullable<std::string> gr_group_seeds_new_value;
+  for (const std::string &handler_name : handler_names) {
+    std::string gr_group_seeds_new_value;
 
-    // Get the current group_seeds value.
-    mysqlshdk::utils::nullable<std::string> gr_group_seeds =
-        config->get_string("group_replication_group_seeds", handler_name);
-    auto gr_group_seeds_vector = shcore::split_string(*gr_group_seeds, ",");
-
-    // Determine the new value for the group_seeds.
-    switch (change_type) {
-      case Gr_seeds_change_type::ADD:
-        // Add the gr_address to the current group_seeds value.
-        if (!gr_group_seeds->empty()) {
-          // if the group_seeds value is not empty, add the gr_address to it.
-          // if it is not already there.
-          if (std::find(gr_group_seeds_vector.begin(),
-                        gr_group_seeds_vector.end(),
-                        gr_address) == gr_group_seeds_vector.end()) {
-            gr_group_seeds_vector.push_back(gr_address);
-          }
-          gr_group_seeds_new_value =
-              shcore::str_join(gr_group_seeds_vector, ",");
-        } else {
-          // If the instance had no group_seeds yet defined, just set it as the
-          // value the gr_address argument.
-          gr_group_seeds_new_value = gr_address;
-        }
-        break;
-      case Gr_seeds_change_type::REMOVE:
-        // Remove the gr_address from the current group_seeds value.
-        gr_group_seeds_vector.erase(
-            std::remove(gr_group_seeds_vector.begin(),
-                        gr_group_seeds_vector.end(), gr_address),
-            gr_group_seeds_vector.end());
-        gr_group_seeds_new_value = shcore::str_join(gr_group_seeds_vector, ",");
-        break;
-      case Gr_seeds_change_type::OVERRIDE:
-        // Override the group_seeds with the gr_address.
-        gr_group_seeds_new_value = gr_address;
-        break;
+    // assemble group_seeds list with all GR endpoints except their own
+    for (const auto &it : group_seeds) {
+      if (it.first != config->get_handler(handler_name)->get_server_uuid()) {
+        if (!gr_group_seeds_new_value.empty())
+          gr_group_seeds_new_value.append(",");
+        gr_group_seeds_new_value.append(it.second);
+      }
     }
 
     config->set_for_handler("group_replication_group_seeds",

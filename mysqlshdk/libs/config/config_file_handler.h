@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,12 +44,14 @@ class Config_file_handler : public IConfig_handler {
   /**
    * Constructor
    *
+   * @param server_uuid the UUID of the server the config file belongs to
    * @param input_config_path path to the option file to be read.
    * @param output_cnf_path option path to the configuration file where any
    * changes will be saved by the apply method. This path can be the same
    * as the input_config_path.
    */
-  Config_file_handler(const std::string &input_config_path,
+  Config_file_handler(const std::string &server_uuid,
+                      const std::string &input_config_path,
                       const std::string &output_cnf_path);
 
   /**
@@ -59,10 +61,12 @@ class Config_file_handler : public IConfig_handler {
    * if it exists, therefore any existing configurations will be overwritten,
    * assuming the file is empty.
    *
+   * @param server_uuid the UUID of the server the config file belongs to
    * @param output_cnf_path option path to the option file where any
    * changes will be saved by the apply method.
    */
-  explicit Config_file_handler(const std::string &output_cnf_path);
+  Config_file_handler(const std::string &server_uuid,
+                      const std::string &output_cnf_path);
 
   /**
    * Get the boolean value for the specified option in the mysqld group.
@@ -141,6 +145,8 @@ class Config_file_handler : public IConfig_handler {
    */
   void apply() override;
 
+  std::string get_server_uuid() const override { return m_server_uuid; }
+
   /**
    * Remove the specified option from the mysqld group.
    *
@@ -191,6 +197,7 @@ class Config_file_handler : public IConfig_handler {
   Config_file m_config_file;
   std::string m_group{
       "mysqld"};  // the handler will only change settings in the mysqld group
+  std::string m_server_uuid;
 };
 }  // namespace config
 }  // namespace mysqlshdk

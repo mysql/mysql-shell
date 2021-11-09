@@ -532,7 +532,8 @@ void Configure_instance::ensure_configuration_change_possible(
         }
         mysqlsh::dba::add_config_file_handler(
             m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler,
-            m_options.mycnf_path, m_options.output_mycnf_path);
+            m_target_instance->get_uuid(), m_options.mycnf_path,
+            m_options.output_mycnf_path);
       }
     }
   }
@@ -607,7 +608,8 @@ void Configure_instance::prepare_config_object() {
   if (!m_options.mycnf_path.empty() || !m_options.output_mycnf_path.empty()) {
     mysqlsh::dba::add_config_file_handler(
         m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler,
-        m_options.mycnf_path, m_options.output_mycnf_path);
+        m_target_instance->get_uuid(), m_options.mycnf_path,
+        m_options.output_mycnf_path);
   }
 }
 

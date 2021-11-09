@@ -117,12 +117,6 @@ struct Member {
   std::string version;
 };
 
-enum class Gr_seeds_change_type {
-  ADD,
-  REMOVE,
-  OVERRIDE,
-};
-
 // Function to check membership and state.
 Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance);
 std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
@@ -342,14 +336,10 @@ void update_auto_increment(mysqlshdk::config::Config *config,
  *
  * @param config Config object used to set the GR group_seeds
  *               on all servers.
- * @param gr_address string with the input GR address used to update the current
- *                   group_seeds value.
- * @param change_type Enumeration with the type of change that will be
- *                    performed to the group_seeds (ADD, REMOVE, or OVERRIDE).
+ * @param group_seeds for each member of the group, by server_uuid
  */
 void update_group_seeds(mysqlshdk::config::Config *config,
-                        const std::string &gr_address,
-                        Gr_seeds_change_type change_type);
+                        const std::map<std::string, std::string> &group_seeds);
 
 /**
  * Configure which member of a single-primary replication group is the primary

@@ -26,6 +26,7 @@
 #include <mysql.h>
 #include <mysqld_error.h>
 #include <climits>
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -610,15 +611,27 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
     }
   }
 
-  // If no group_seeds value was provided by the user, then,
-  // before joining instance to cluster, get the values of the
-  // gr_local_address from all the active members of the cluster
-  if (user_options.group_seeds.is_null() || user_options.group_seeds->empty()) {
+  // Compute group_seeds using local_address from each active cluster member
+  {
+    auto group_seeds = [](const std::map<std::string, std::string> &seeds,
+                          const std::string &skip_uuid = "") {
+      std::string ret;
+      for (const auto &i : seeds) {
+        if (i.first != skip_uuid) {
+          if (!ret.empty()) ret.append(",");
+          ret.append(i.second);
+        }
+      }
+      return ret;
+    };
     if (type == checks::Check_type::REJOIN) {
-      m_gr_opts.group_seeds =
-          m_cluster->get_cluster_group_seeds(m_target_instance);
+      m_gr_opts.group_seeds = group_seeds(m_cluster->get_cluster_group_seeds(),
+                                          m_target_instance->get_uuid());
     } else if (type == checks::Check_type::JOIN) {
-      m_gr_opts.group_seeds = m_cluster->get_cluster_group_seeds();
+      m_gr_opts.group_seeds = group_seeds(m_cluster->get_cluster_group_seeds());
+    } else if (type == checks::Check_type::BOOTSTRAP) {
+      // no peers if we're bootstrapping
+      m_gr_opts.group_seeds = "";
     }
   }
 
@@ -843,7 +856,8 @@ void Cluster_join::log_used_gr_options() {
 }
 
 void Cluster_join::update_group_peers(int cluster_member_count,
-                                      const std::string &self_address) {
+                                      const std::string &self_address,
+                                      bool group_seeds_only) {
   // Get the gr_address of the instance being added
   std::string added_instance_gr_address = *m_gr_opts.local_address;
 
@@ -858,45 +872,51 @@ void Cluster_join::update_group_peers(int cluster_member_count,
   // Update the group_replication_group_seeds of the cluster members
   // by adding the gr_local_address of the instance that was just added.
   log_debug("Updating Group Replication seeds on all active members...");
-  mysqlshdk::gr::update_group_seeds(cluster_cfg.get(),
-                                    added_instance_gr_address,
-                                    mysqlshdk::gr::Gr_seeds_change_type::ADD);
+  {
+    auto group_seeds = m_cluster->get_cluster_group_seeds();
+    assert(!added_instance_gr_address.empty());
+    group_seeds[m_target_instance->get_uuid()] = added_instance_gr_address;
+    mysqlshdk::gr::update_group_seeds(cluster_cfg.get(), group_seeds);
+  }
+
   cluster_cfg->apply();
 
-  // Increase the cluster_member_count counter
-  cluster_member_count++;
+  if (!group_seeds_only) {
+    // Increase the cluster_member_count counter
+    cluster_member_count++;
 
-  // Auto-increment values must be updated according to:
-  //
-  // Set auto-increment for single-primary topology:
-  // - auto_increment_increment = 1
-  // - auto_increment_offset = 2
-  //
-  // Set auto-increment for multi-primary topology:
-  // - auto_increment_increment = n;
-  // - auto_increment_offset = 1 + server_id % n;
-  // where n is the size of the GR group if > 7, otherwise n = 7.
-  //
-  // We must update the auto-increment values in Cluster_join for 2
-  // scenarios
-  //   - Multi-primary Cluster
-  //   - Cluster that has 7 or more members after the Cluster_join
-  //     operation
-  //
-  // NOTE: in the other scenarios, the Cluster_join operation is in
-  // charge of updating auto-increment accordingly
+    // Auto-increment values must be updated according to:
+    //
+    // Set auto-increment for single-primary topology:
+    // - auto_increment_increment = 1
+    // - auto_increment_offset = 2
+    //
+    // Set auto-increment for multi-primary topology:
+    // - auto_increment_increment = n;
+    // - auto_increment_offset = 1 + server_id % n;
+    // where n is the size of the GR group if > 7, otherwise n = 7.
+    //
+    // We must update the auto-increment values in Cluster_join for 2
+    // scenarios
+    //   - Multi-primary Cluster
+    //   - Cluster that has 7 or more members after the Cluster_join
+    //     operation
+    //
+    // NOTE: in the other scenarios, the Cluster_join operation is in
+    // charge of updating auto-increment accordingly
 
-  // Get the topology mode of the replicaSet
-  mysqlshdk::gr::Topology_mode topology_mode =
-      m_cluster->get_metadata_storage()->get_cluster_topology_mode(
-          m_cluster->get_id());
+    // Get the topology mode of the replicaSet
+    mysqlshdk::gr::Topology_mode topology_mode =
+        m_cluster->get_metadata_storage()->get_cluster_topology_mode(
+            m_cluster->get_id());
 
-  if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
-      cluster_member_count > 7) {
-    log_debug("Updating auto-increment settings on all active members...");
-    mysqlshdk::gr::update_auto_increment(
-        cluster_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
-    cluster_cfg->apply();
+    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
+        cluster_member_count > 7) {
+      log_debug("Updating auto-increment settings on all active members...");
+      mysqlshdk::gr::update_auto_increment(
+          cluster_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+      cluster_cfg->apply();
+    }
   }
 }
 
@@ -1185,6 +1205,9 @@ void Cluster_join::rejoin() {
       1;
   mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance, m_gr_opts,
                              cluster_count, cfg.get());
+
+  // Update group_seeds in other members
+  update_group_peers(0, m_target_instance->get_canonical_address(), true);
 
   console->print_info("The instance '" + m_target_instance->descr() +
                       "' was successfully rejoined to the cluster.");
