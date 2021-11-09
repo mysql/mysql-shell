@@ -38,13 +38,6 @@ function uninstall_clone(session) {
     ensure_plugin_disabled("clone", session);
 }
 
-function clone_installed(session) {
-    var row = session.runSql("select plugin_status from information_schema.plugins where plugin_name='clone'").fetchOne();
-    if (row)
-        return row[0] == "ACTIVE";
-    return false;
-}
-
 function clone_threshold() {
     var row = session2.runSql("SELECT variable_value FROM performance_schema.global_variables WHERE variable_name = 'group_replication_clone_threshold'").fetchOne();
     if (row)
@@ -93,16 +86,6 @@ c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"foobar"});
 //@ bogus recoveryMethod (should fail if target instance does not support it) {VER(<8.0.17)}
 c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"clone"});
 
-//@ Ensure clone disabled on incremental recovery {VER(>=8.0.17)}
-session2.runSql("RESET MASTER");
-install_clone(session2);
-
-c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"incremental"});
-
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
-EXPECT_NE(1, clone_threshold());
-
 // Regression test for BUG#29954085 and BUG#29960838:
 //
 // Regardless if:
@@ -138,8 +121,6 @@ mark_gtid_set_complete(false);
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, interactive, cloneDisabled, empty GTID -> prompt i/a
@@ -149,8 +130,6 @@ mark_clone_disabled(true);
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
 
@@ -159,8 +138,6 @@ mark_gtid_set_complete(true);
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 mark_gtid_set_complete(false);
@@ -171,8 +148,6 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, interactive, errant GTIDs -> prompt c/a {VER(>=8.0.17)}
@@ -182,8 +157,6 @@ testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default 
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, interactive, errant GTIDs -> error 5.7 {VER(<8.0.17)}
@@ -192,8 +165,6 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs -> error
@@ -204,8 +175,6 @@ mark_clone_disabled(true);
 
 c.addInstance(__sandbox_uri2, {interactive:true});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
 
@@ -217,8 +186,6 @@ mark_gtid_set_complete(false);
 
 c.addInstance(__sandbox_uri2, {interactive:false});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, non-interactive, cloneDisabled, empty GTID -> error {VER(>=8.0.17)}
@@ -227,8 +194,6 @@ mark_clone_disabled(true);
 
 c.addInstance(__sandbox_uri2, {interactive:false});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
 
@@ -237,8 +202,6 @@ mark_gtid_set_complete(true);
 
 c.addInstance(__sandbox_uri2, {interactive:false});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 mark_gtid_set_complete(false);
@@ -249,8 +212,6 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
 c.addInstance(__sandbox_uri2, {interactive:false});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, non-interactive, errant GTIDs -> error
@@ -259,8 +220,6 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-
 
 c.addInstance(__sandbox_uri2, {interactive:false});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, non-interactive, cloneDisabled, errant GTIDs -> error
@@ -271,8 +230,6 @@ mark_clone_disabled(true);
 
 c.addInstance(__sandbox_uri2, {interactive:false});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
 
@@ -291,17 +248,12 @@ mark_gtid_set_complete(false);
 
 c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
-
 //@ recoveryMethod:incremental, cloneDisabled, empty GTID -> incr
 mark_gtid_set_complete(false);
 mark_clone_disabled(true);
 
 c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 mark_clone_disabled(false);
 
 //@ recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
@@ -309,8 +261,6 @@ mark_gtid_set_complete(true);
 
 c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 mark_gtid_set_complete(false);
 
 //@ recoveryMethod:incremental, subset GTIDs -> incr
@@ -319,17 +269,12 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
 c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
-
 //@ recoveryMethod:incremental, errant GTIDs -> error
 session2.runSql("RESET MASTER");
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 
 c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 
 //@ recoveryMethod:incremental, cloneDisabled, errant GTIDs -> error
 session2.runSql("RESET MASTER");
@@ -339,8 +284,6 @@ mark_clone_disabled(true);
 
 c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
-EXPECT_FALSE(clone_installed(session1));
-EXPECT_FALSE(clone_installed(session2));
 mark_clone_disabled(false);
 session2.runSql("RESET MASTER");
 

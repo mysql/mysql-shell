@@ -40,6 +40,41 @@ session.close();
 testutil.removeFromSandboxConf(__mysql_sandbox_port1, "default_table_encryption");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "default_table_encryption");
 
+//BUG#33492812 Member auto-rejoin with clone fails due to plugin being uninstalled everywhere
+// The AdminAPI uninstalls the CLONE plugin from all Cluster members when
+// incremental recovery is used to add a new instance, even though CLONE is
+// available. This causes any subsequent auto-rejoin that requires CLONE to fail
+// when it could have succeeded.
+
+//<> Ensure clone plugin is not uninstalled from all members when incremental recovery is used {VER(>=8.0.17)}
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.restartSandbox(__mysql_sandbox_port2);
+shell.connect(__sandbox_uri1);
+
+c = dba.getCluster();
+c.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
+c.addInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+
+// Create a new transaction and flush binlogs from all members
+session.runSql("CREATE schema missingtrx");
+session.runSql("FLUSH BINARY LOGS");
+session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("FLUSH BINARY LOGS");
+session3.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+
+EXPECT_TRUE(clone_installed(session));
+EXPECT_TRUE(clone_installed(session3));
+
+// Restart the instance, GR will trigger clone since incremental recovery
+// cannot be used
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 //@<> Destroy sandboxes {VER(>= 5.7) && VER(< 8.1)}
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

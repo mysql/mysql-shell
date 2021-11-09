@@ -10,9 +10,6 @@
 //@ bogus recoveryMethod (should fail if target instance does not support it) {VER(<8.0.17)}
 ||Option 'recoveryMethod=clone' not supported on target server version: '<<<__version>>>' (RuntimeError)
 
-//@# Ensure clone disabled on incremental recovery {VER(>=8.0.17)}
-||debug (LogicError)
-
 //@ Ensure clone enabled on all cluster members on clone recovery {VER(>=8.0.17)}
 ||debug (LogicError)
 
