@@ -437,7 +437,8 @@ const std::map<std::string, Function_availability>
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO |
               ManagedInstance::State::Recovering,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAny}},
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.fenceWrites",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
