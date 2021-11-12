@@ -429,6 +429,8 @@
 ||
 ||
 ||
+|Value of connectTimeout is: 0|
+||
 
 //@ Verify option dba.connectTimeout
 ||value out of range
@@ -438,6 +440,8 @@
 ||
 ||
 ||
+||
+|Value of dba.connectTimeout is: 0|
 ||
 
 //@ Configuration operation available in SQL mode

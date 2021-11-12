@@ -382,6 +382,10 @@ shell.options.unset(InvalidOption)
 \option connectTimeout = 0.1
 \option connectTimeout = 4
 \option connectTimeout = 4.5
+// BUG#33425518
+\option connectTimeout = -0
+// converting the value to string removes the minus (if it's there), just print it separately
+print("Value of connectTimeout is: "); println(shell.options["connectTimeout"])
 \option --unset connectTimeout
 
 //@ Verify option dba.connectTimeout
@@ -394,6 +398,9 @@ shell.options.unset(InvalidOption)
 \option dba.connectTimeout = 0.1
 \option dba.connectTimeout = 4
 \option dba.connectTimeout = 4.5
+// BUG#33425518
+\option dba.connectTimeout = -0
+print("Value of dba.connectTimeout is: "); println(shell.options["dba.connectTimeout"])
 \option --unset dba.connectTimeout
 
 //@ Configuration operation available in SQL mode

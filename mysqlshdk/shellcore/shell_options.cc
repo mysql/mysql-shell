@@ -582,11 +582,11 @@ Shell_options::Shell_options(int argc, char **argv,
         "Directory for client-side authentication plugins.")
     (&storage.connect_timeout, 10.0, SHCORE_CONNECT_TIMEOUT,
         "Default connection timeout used by Shell sessions.",
-        shcore::opts::Range<double>(0.0, std::numeric_limits<double>::max()))
+        shcore::opts::Non_negative<double>())
     (&storage.dba_connect_timeout, 5.0, SHCORE_DBA_CONNECT_TIMEOUT,
         "Default connection timeout used for sessions created in AdminAPI "
         "operations.",
-        shcore::opts::Range<double>(0.0, std::numeric_limits<double>::max()));
+        shcore::opts::Non_negative<double>());
 
 
   add_startup_options()
