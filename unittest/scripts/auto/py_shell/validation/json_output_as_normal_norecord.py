@@ -10,19 +10,11 @@ Locking instance for backup
 Global read lock has been released
 Writing global DDL files
 Writing users DDL
-Writing schema metadata...
-Writing DDL...
-Writing table metadata...
-Running data dump using 4 threads.
-Dumping data...
+${*}
 {{NOTE: |}}Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.
 {{NOTE: |}}Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.
 {{NOTE: |}}Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.
-Writing schema metadata - done
-Writing DDL - done
-Writing table metadata - done
-Starting data dump
-Dumping data - done
+${*}
 Dump duration: [[*]]
 Total duration: [[*]]
 Schemas dumped: 1
@@ -48,19 +40,11 @@ Average compressed throughput: [[*]]
 {"info":"Global read lock has been released\n"}
 {"status":"Writing global DDL files\n"}
 {"status":"Writing users DDL\n"}
-{"status":"Writing schema metadata...\n"}
-{"status":"Writing DDL...\n"}
-{"status":"Writing table metadata...\n"}
-{"status":"Running data dump using 4 threads.\n"}
-{"status":"Dumping data...\n"}
+${*}
 {"note":"Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.\n"}
 {"note":"Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.\n"}
 {"note":"Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.\n"}
-{"status":"Writing schema metadata - done\n"}
-{"status":"Writing DDL - done\n"}
-{"status":"Writing table metadata - done\n"}
-{"status":"Starting data dump\n"}
-{"status":"Dumping data - done\n"}
+${*}
 {"status":"Dump duration: [[*]]\n"}
 {"status":"Total duration: [[*]]\n"}
 {"status":"Schemas dumped: [[*]]\n"}
