@@ -133,7 +133,7 @@ WIPE_STDOUT()
 #@<> Tunnel Creation Errors - Invalid User
 test_ssh_uri_nopwd="unexisting_user@{host}:{port}".format(**SSH_URI_DATA)
 shell.store_credential("ssh://" + test_ssh_uri_nopwd, "password")
-testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", test_ssh_uri_nopwd, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file], "Cancel", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", test_ssh_uri_nopwd, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file], "Cancel", ["MYSQLSH_TERM_COLOR_MODE=nocolor"], os.path.join(__bin_dir, "mysqlsh"))
 EXPECT_STDOUT_CONTAINS(f"ERROR: SSH Access denied, connection to \"{test_ssh_uri_nopwd}\" could not be established.")
 EXPECT_STDOUT_CONTAINS(f"ERROR: Authentication error opening SSH tunnel: Access denied")
 EXPECT_STDOUT_CONTAINS("Tunnel connection cancelled")

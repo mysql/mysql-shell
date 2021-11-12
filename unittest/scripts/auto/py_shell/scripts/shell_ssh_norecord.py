@@ -2,6 +2,7 @@
 
 from _ssh_utils import *
 from pathlib import Path
+import shutil
 
 #@<> setup
 shell.options.useWizards = True
@@ -180,6 +181,18 @@ Host *
     KbdInteractiveAuthentication    yes
 """)
 
+# todo(kg): troubleshoot ssh data leakage between unit tests
+# "WL#14246 TSFR_7_4 create connection to invalid uri" test step from
+# shell_ssh_errors_norecord.py is leaking ssh connection entires between unit tests.
+#
+# moreover connections are not closed properly, and we have many of sshd's
+# in defunct state on ssh jump server
+#
+# # ps fuxa
+# testuser  165497  0.0  0.0      0     0 ?        Z    15:16   0:00 [sshd] <defunct>
+# sshd      165505  0.0  0.0      0     0 ?        Z    15:17   0:00 [sshd] <defunct>
+# sshd      165507  0.0  0.0      0     0 ?        Z    15:17   0:00 [sshd] <defunct>
+
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 testutil.expect_password("Password:", SSH_PASS)
 sess = shell.connect({'uri':MYSQL_OVER_SSH_URI, 'ssh':SSH_URI_NOPASS, "ssh-config-file": config_file})
@@ -221,11 +234,11 @@ for o in [(shell, 3306), (mysqlx, 33060), (mysql, 3306)]:
     conn["port"] = o[1]
     check_connection(o[0], conn)
 
-testutil.call_mysqlsh(["--ssh-identity-file",  key_without_pw, "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--sql", "-e", "SELECT 'this is an output' FROM DUAL"])
+testutil.call_mysqlsh(["--ssh-identity-file",  key_without_pw, "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--sql", "-e", "SELECT 'this is an output' FROM DUAL"], "", None, os.path.join(__bin_dir, "mysqlsh"))
 EXPECT_STDOUT_CONTAINS("this is an output")
 WIPE_STDOUT()
 testutil.call_mysqlsh(["--ssh-identity-file",  key_without_pw, "--ssh", SSH_URI_NOPASS, "--ssh-config-file", config_file,
-                       "--port", "3306", "--user", "root", "--password=sandbox", "--host", "127.0.0.1", "--sql", "-e", "SELECT 'this is an output' FROM DUAL"])
+                       "--port", "3306", "--user", "root", "--password=sandbox", "--host", "127.0.0.1", "--sql", "-e", "SELECT 'this is an output' FROM DUAL"], "", None, os.path.join(__bin_dir, "mysqlsh"))
 EXPECT_STDOUT_CONTAINS("this is an output")
 WIPE_STDOUT()
 
@@ -251,12 +264,12 @@ for o in [(shell, 3306), (mysqlx, 33060), (mysql, 3306)]:
     check_connection(o[0], conn)
 
 shell.store_credential(key_with_pw_uri, "password")
-testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh-identity-file",  key_with_pw, "--ssh", SSH_URI_NOPASS, "--ssh-config-file", config_file, MYSQL_OVER_SSH_URI, "--sql", "-e", "\"SELECT 'this is an output' FROM DUAL\""], "n")
+testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh-identity-file",  key_with_pw, "--ssh", SSH_URI_NOPASS, "--ssh-config-file", config_file, MYSQL_OVER_SSH_URI, "--sql", "-e", "\"SELECT 'this is an output' FROM DUAL\""], "n", None, os.path.join(__bin_dir, "mysqlsh"))
 EXPECT_STDOUT_CONTAINS("this is an output")
 WIPE_STDOUT()
 
 testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh-identity-file",  key_with_pw, "--ssh", SSH_URI_NOPASS, "--ssh-config-file", config_file,
-                       "--port", "3306", "--user", "root", "--password=sandbox", "--host", "127.0.0.1", "--sql", "-e", "\"SELECT 'this is an output' FROM DUAL\""], "n")
+                       "--port", "3306", "--user", "root", "--password=sandbox", "--host", "127.0.0.1", "--sql", "-e", "\"SELECT 'this is an output' FROM DUAL\""], "n", None, os.path.join(__bin_dir, "mysqlsh"))
 EXPECT_STDOUT_CONTAINS("this is an output")
 shell.delete_credential(key_with_pw_uri)
 
