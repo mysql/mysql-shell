@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -20,26 +20,29 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 class Error(Exception):
-    def __init__(self, code, msg):
+    def __init__(self, code, msg=None):
+        if msg is None:
+            msg = code
+            code = None
         self.code = code
         self.msg = msg
         self.args = (code, msg)
 
     def __str__(self):
-        msg = ""
-        if self.code > 0 and self.code < 50000:
-            msg = "MySQL Error (%s): " % self.code
-        elif self.code > 0:
-            msg = "Shell Error (%s): " % self.code
-
-        msg += self.msg
-
+        if not self.code:
+            msg = "Shell Error: %s" % (self.msg, )
+        else:
+            msg = "Shell Error (%s): %s" % (self.code, self.msg)
         return msg
+
 
 class DBError(Error):
     def __init__(self, code, msg, sqlstate=None):
         super().__init__(code, msg)
         self.sqlstate = sqlstate
+
+    def __str__(self):
+        return "MySQL Error (%s): %s" % (self.code, self.msg)
 
 
 class ShellGlobals(object):

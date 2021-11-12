@@ -1607,7 +1607,74 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
   Py_XDECREF(sys_path_backup);
 
   return ret_val;
-}  // namespace shcore
+}
+
+namespace {
+bool get_code_and_msg(int *out_code, std::string *out_msg) {
+  bool ret = false;
+
+  PyObject *exc = nullptr;
+  PyObject *value = nullptr;
+  PyObject *tb = nullptr;
+
+  PyErr_Fetch(&exc, &value, &tb);
+  {
+    PyErr_NormalizeException(&exc, &value, &tb);
+
+    PyObject *args = PyObject_GetAttrString(value, "args");
+    if (args && PyTuple_Check(args) && PyTuple_GET_SIZE(args) == 2) {
+      const char *msg;
+
+      if (PyTuple_GetItem(args, 0) == Py_None) {
+        PyObject *dummy;
+        *out_code = 0;
+        if (PyArg_ParseTuple(args, "Os", &dummy, &msg)) {
+          ret = true;
+          *out_msg = msg;
+        }
+      } else {
+        if (PyArg_ParseTuple(args, "is", out_code, &msg) && msg) {
+          ret = true;
+          *out_msg = std::string(msg);
+        }
+      }
+    }
+  }
+
+  if (ret) {
+    Py_XDECREF(exc);
+    Py_XDECREF(value);
+    Py_XDECREF(tb);
+  } else {
+    PyErr_Restore(exc, value, tb);
+  }
+
+  return ret;
+}
+}  // namespace
+
+void Python_context::throw_if_mysqlsh_error() {
+  assert(PyErr_Occurred() != nullptr);
+
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
+
+  if (PyErr_ExceptionMatches(_db_error)) {
+    int code = 0;
+    std::string msg;
+    if (get_code_and_msg(&code, &msg))
+      throw shcore::Exception::mysql_error_with_code(msg, code);
+
+  } else if (PyErr_ExceptionMatches(_error)) {
+    int code = 0;
+    std::string msg;
+    if (get_code_and_msg(&code, &msg)) {
+      if (code <= 0)
+        throw shcore::Exception::runtime_error(msg);
+      else
+        throw shcore::Exception(msg, code);
+    }
+  }
+}
 
 std::string Python_context::fetch_and_clear_exception() {
   std::string exception;

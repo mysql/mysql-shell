@@ -188,6 +188,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *error() { return _error; }
 
   std::string fetch_and_clear_exception();
+  void throw_if_mysqlsh_error();
 
   bool raw_execute(const std::string &statement, std::string *error = nullptr);
   bool raw_execute(const std::vector<std::string> &statements,

@@ -1016,6 +1016,79 @@ print("Paramiko Version: {0}".format(paramiko.__version__))
 }
 #endif
 
+TEST_F(Mysqlsh_plugin_test, error_reporting) {
+  write_user_plugin("error-reporting",
+                    R"(obj = shell.create_extension_object()
+
+def throw_error(code, msg):
+  import mysqlsh
+  raise mysqlsh.Error(code, msg)
+
+def connect(url):
+  import mysqlsh
+  mysqlsh.mysql.get_session(url)
+
+shell.add_extension_object_member(obj, "throwError", throw_error, {
+    "brief":"Test error throw",
+    "parameters": [
+       {
+         "name": "code",
+         "type": "integer",
+       },
+       {
+         "name": "msg",
+         "type": "string",
+       }
+    ]});
+
+shell.add_extension_object_member(obj, "connect", connect, {
+    "brief":"connect",
+    "parameters": [
+       {
+         "name": "url",
+         "type": "string",
+       }
+    ]});
+
+shell.register_global('errtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\py");
+  add_py_test("errtest.throw_error(0, 'py error got thrown')");
+  add_py_test("errtest.throw_error(99999, 'py another error got thrown')");
+  add_py_test("errtest.connect('rooot:r@127.0.0.1:" + _mysql_port + "')");
+
+  add_js_test("\\js");
+  add_js_test("errtest.throwError(0, 'js error got thrown')");
+  add_js_test("errtest.throwError(99998, 'js another error got thrown')");
+  add_js_test("errtest.connect('raaat:r@127.0.0.1:" + _mysql_port + "')");
+
+  run();
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "RuntimeError: errtest.throw_error: py error got thrown");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "mysqlsh.Error: Shell Error (99999): errtest.throw_error: py another "
+      "error got thrown");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "mysqlsh.DBError: MySQL Error (1045): errtest.connect: "
+      "mysql.get_session: Access denied for user 'rooot'@'localhost' (using "
+      "password: YES)");
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "errtest.throwError: js error got thrown (RuntimeError)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "errtest.throwError: js another error got thrown (MYSQLSH 99998)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "errtest.connect: mysql.get_session: Access denied for user "
+      "'raaat'@'localhost' (using password: YES) (MySQL Error 1045)");
+
+  wipe_out();
+  delete_user_plugin("error-reporting");
+}
+
 TEST_F(Mysqlsh_plugin_test, relative_require) {
   // write a simple plugin
   write_user_plugin("plugin", R"(
