@@ -121,6 +121,10 @@ Value Python_function::invoke(const Argument_list &args) {
     Py_DECREF(argv);
 
     if (ret_val == nullptr) {
+      // converts mysqlsh.Error to shcore::Error and throws the exception, if
+      // the Python exception is something else, then just returns
+      _py->throw_if_mysqlsh_error();
+
       static constexpr auto error = "User-defined function threw an exception";
       std::string details = _py->fetch_and_clear_exception();
 
