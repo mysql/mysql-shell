@@ -35,6 +35,7 @@
 #include <libssh/libssh.h>
 #include <utility>
 #include <vector>
+#include "mysqlshdk/libs/ssh/ssh_common.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
 #ifdef _WIN32
@@ -73,16 +74,18 @@ Ssh_tunnel_manager::~Ssh_tunnel_manager() {
   m_stop = true;
 
   shutdown(m_wakeup_socket, SHUT_RDWR);
+  ssh_close_socket(m_wakeup_socket);
   // first, let's shutdown all sockets
   for (auto &it : m_socket_list) {
     shutdown(it.first, SHUT_RDWR);
+    ssh_close_socket(it.first);
   }
 
   stop();  // wait for thread to finish
   auto sock_lock = lock_socket_list();
   for (auto &it : m_socket_list) {
     it.second->stop();
-    it.second.release();
+    it.second->release();
   }
 #if _MSC_VER
   WSACleanup();
@@ -145,8 +148,8 @@ std::tuple<Ssh_return_type, uint16_t> Ssh_tunnel_manager::create_tunnel(
   log_debug2("SSH: tunnel manager: Tunnel port created on socket: %d",
              ret.port);
   session->update_local_port(ret.port);
-  std::unique_ptr<Ssh_tunnel_handler> handler(
-      new Ssh_tunnel_handler(ret.port, ret.socket_handle, std::move(session)));
+  auto handler = std::make_unique<Ssh_tunnel_handler>(
+      ret.port, ret.socket_handle, std::move(session));
   handler->start();
   {
     const auto lock = lock_socket_list();
@@ -163,8 +166,10 @@ int Ssh_tunnel_manager::lookup_tunnel(const Ssh_connection_options &config) {
   for (auto &it : m_socket_list) {
     if (it.second->config().compare_connection(config)) {
       if (!it.second->is_running()) {
-        disconnect(config);
+        it.second->release();
+        disconnect(it.second.get());
         log_warning("SSH: tunnel manager: Dead tunnel found, clearing it up.");
+        m_socket_list.erase(it.first);
         return 0;
       }
       return it.second->local_port();
@@ -276,8 +281,9 @@ void Ssh_tunnel_manager::local_socket_handler() {
 
   auto sock_lock = lock_socket_list();
   for (auto &s_it : m_socket_list) {
-    s_it.second.release();
+    s_it.second->release();
     shutdown(s_it.first, SHUT_RDWR);
+    ssh_close_socket(s_it.first);
   }
 
   // This means wakeup socket is also cleared.
@@ -291,35 +297,35 @@ void Ssh_tunnel_manager::poke_wakeup_socket() {
     return;
   }
 
-  struct sockaddr_in server;
-  struct sockaddr *serverptr = (struct sockaddr *)&server;
-  int sock;
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+  int sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0) {
     log_error("SSH: tunnel manager: Error occurred opening wakeup socket");
     return;
   }
 
+  struct sockaddr_in server;
+  struct sockaddr *serverptr = (struct sockaddr *)&server;
   server.sin_family = AF_INET;
   server.sin_addr.s_addr = inet_addr("127.0.0.1");
   server.sin_port = htons(m_wakeup_socket_port);
-  if (connect(sock, serverptr, sizeof(server)) < 0) {
+  if (connect(sock, serverptr, sizeof(server)) == 0) {
     log_debug2(
         "SSH: tunnel manager: We've connected. Now we wait for socket to catch "
-        "up and "
-        "disconnect us.");
-    ssize_t readlen = 0;
-    std::vector<char> buff(1, '\0');
+        "up and disconnect us.");
+    char buff[1] = {};
     errno = 0;
-    readlen = recv(sock, buff.data(), buff.size(), 0);
-    if (readlen == 0)
+    auto readlen = recv(sock, buff, std::size(buff), 0);
+    if (readlen == 0) {
       log_debug2(
           "SSH: tunnel manager: Wakeup socket sent nothing, that's fine.");
-    else
+    } else {
       log_error("SSH: tunnel manager: Wakeup socket error: %s.",
                 get_error().c_str());
+    }
   }
 
   shutdown(sock, SHUT_RDWR);
+  ssh_close_socket(sock);
 }
 
 void Ssh_tunnel_manager::use_tunnel(const Ssh_connection_options &config) {
@@ -338,27 +344,22 @@ void Ssh_tunnel_manager::release_tunnel(const Ssh_connection_options &config) {
       auto usage = it.second->release();
 
       if (usage == 0) {
-        disconnect(config);
+        disconnect(it.second.get());
+        m_socket_list.erase(it.first);
         break;
       }
     }
   }
 }
 
-void Ssh_tunnel_manager::disconnect(const Ssh_connection_options &config) {
-  auto sock_lock = lock_socket_list();
-  for (auto &it : m_socket_list) {
-    if (it.second->config().compare_connection(config)) {
-      // Here we need to perform disconnect
-      it.second->stop();
-      it.second.release();
-      shutdown(it.first, SHUT_RDWR);
-      m_socket_list.erase(it.first);
-      log_debug2("SSH: tunnel manager: Shutdown port: %d",
-                 config.get_local_port());
-      break;
-    }
-  }
+void Ssh_tunnel_manager::disconnect(
+    mysqlshdk::ssh::Ssh_tunnel_handler *tunnel_handler) {
+  tunnel_handler->stop();
+  auto sockfd = tunnel_handler->local_socket();
+  shutdown(sockfd, SHUT_RDWR);
+  ssh_close_socket(sockfd);
+  log_debug2("SSH: tunnel manager: Shutdown port: %d",
+             tunnel_handler->local_port());
 }
 
 std::vector<Ssh_session_info> Ssh_tunnel_manager::list_tunnels() {
