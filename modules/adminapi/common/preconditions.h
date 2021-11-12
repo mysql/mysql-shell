@@ -64,6 +64,13 @@ const Cluster_global_status_mask kClusterGlobalStateAnyOk =
         .set(Cluster_global_status::OK_NOT_CONSISTENT)
         .set(Cluster_global_status::OK_MISCONFIGURED);
 
+const Cluster_global_status_mask kClusterGlobalStateAnyOkorNotOk =
+    Cluster_global_status_mask(Cluster_global_status::OK)
+        .set(Cluster_global_status::OK_NOT_REPLICATING)
+        .set(Cluster_global_status::OK_NOT_CONSISTENT)
+        .set(Cluster_global_status::OK_MISCONFIGURED)
+        .set(Cluster_global_status::NOT_OK);
+
 const Cluster_global_status_mask kClusterGlobalStateAny =
     Cluster_global_status_mask::any();
 

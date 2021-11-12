@@ -416,28 +416,18 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       mysqlsh::dba::Cluster_global_status::INVALIDATED};
 
   std::set<std::string> cset_exclusive_expected = {
-      "Cluster.getClusterSet",
-      "ClusterSet.createReplicaCluster",
-      "ClusterSet.forcePrimaryCluster",
-      "ClusterSet.listRouters",
-      "ClusterSet.rejoinCluster",
-      "ClusterSet.removeCluster",
-      "ClusterSet.routingOptions",
-      "ClusterSet.setPrimaryCluster",
-      "ClusterSet.setRoutingOption",
-      "Cluster.fenceWrites",
-      "Cluster.unfenceWrites",
-      "ClusterSet.options",
-      "ClusterSet.setOption"};
+      "Cluster.fenceWrites",      "Cluster.getClusterSet",
+      "Cluster.unfenceWrites",    "ClusterSet.createReplicaCluster",
+      "ClusterSet.listRouters",   "ClusterSet.options",
+      "ClusterSet.removeCluster", "ClusterSet.routingOptions",
+      "ClusterSet.setOption",     "ClusterSet.setRoutingOption"};
 
   std::set<std::string> cset_offline_expected = {
-      "ClusterSet.describe",
-      "ClusterSet.status",
-      "Dba.checkInstanceConfiguration",
-      "Dba.configureInstance",
-      "Dba.configureLocalInstance",
-      "Dba.getClusterSet",
-      "Dba.rebootClusterFromCompleteOutage"};
+      "ClusterSet.describe",      "ClusterSet.forcePrimaryCluster",
+      "ClusterSet.rejoinCluster", "ClusterSet.setPrimaryCluster",
+      "ClusterSet.status",        "Dba.checkInstanceConfiguration",
+      "Dba.configureInstance",    "Dba.configureLocalInstance",
+      "Dba.getClusterSet",        "Dba.rebootClusterFromCompleteOutage"};
 
   std::set<std::string> standalone_cluster_exclusive_expected = {
       "Cluster.createClusterSet", "Cluster.dissolve",

@@ -149,6 +149,8 @@ testutil.startSandbox(__mysql_sandbox_port4);
 shell.connect(__sandbox_uri4);
 c2 = dba.rebootClusterFromCompleteOutage();
 
+//TODO(miguel): it won't be necessary to call getClusterSet() whenever the refactor to ensure the objects freshness is done
+cs = dba.getClusterSet();
 cs.rejoinCluster("cluster2");
 
 //@<> failover to an invalidated cluster1 should fail

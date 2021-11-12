@@ -180,9 +180,9 @@ EXPECT_THROWS_TYPE(function(){ cluster.setupRouterAccount("foo"); }, "The InnoDB
 // ClusterSet ops
 EXPECT_THROWS_TYPE(function(){ cs.createReplicaCluster(__sandbox_uri4, "foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cs.removeCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-//EXPECT_THROWS_TYPE(function(){ cs.rejoinCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-//EXPECT_THROWS_TYPE(function(){ cs.setPrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-//EXPECT_THROWS_TYPE(function(){ cs.forcePrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){ cs.rejoinCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){ cs.setPrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){ cs.forcePrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cs.setRoutingOption("router::test", "option", "value"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 
 //@<> status() on Primary Cluster fenced to writes
