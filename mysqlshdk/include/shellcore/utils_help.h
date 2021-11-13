@@ -384,10 +384,11 @@ class Help_registry {
                         bool exact_id_match = false) const;
 
   // Registers a new topic and it's associated keywords
-  Help_topic *add_help_topic(const std::string &name, Topic_type type,
-                             const std::string &tag,
-                             const std::string &parent_id, Help_topic *parent,
-                             IShell_core::Mode_mask mode);
+  Help_topic *create_help_topic(const std::string &name, Topic_type type,
+                                const std::string &tag,
+                                const std::string &parent_id,
+                                Help_topic *parent, IShell_core::Mode_mask mode,
+                                bool do_register = true);
   void remove_topic(Help_topic *topic);
 
   bool is_enabled(const Keyword_registry &registry, const Help_topic *topic,
@@ -469,7 +470,6 @@ struct Help_class_register {
                       const std::string &upper_class,
                       Help_mode mode = Help_mode::SCRIPTING);
 };
-
 enum class Help_option {
   Name,
   Syntax,

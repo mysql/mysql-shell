@@ -611,24 +611,25 @@ std::vector<Help_topic *> Help_registry::add_help_topic(
       get_topic(parent_id, true, get_parent_topic_types(), exact_id_match);
 
   if (loc == Keyword_location::LOCAL_CTX) {
-    return {get_thread_context_help()->add_help_topic(name, type, tag,
-                                                      parent_id, parent, mode)};
+    return {get_thread_context_help()->create_help_topic(
+        name, type, tag, parent_id, parent, mode)};
   } else if (loc == Keyword_location::GLOBAL_CTX) {
-    return {add_help_topic(name, type, tag, parent_id, parent, mode)};
+    return {create_help_topic(name, type, tag, parent_id, parent, mode)};
   } else {
     std::vector<Help_topic *> ret;
-    ret.push_back(get_thread_context_help()->add_help_topic(
+    ret.push_back(get_thread_context_help()->create_help_topic(
         name, type, tag, parent_id, parent, mode));
-    ret.push_back(add_help_topic(name, type, tag, parent_id, parent, mode));
+    ret.push_back(create_help_topic(name, type, tag, parent_id, parent, mode));
     return ret;
   }
 }
 
-Help_topic *Help_registry::add_help_topic(const std::string &name,
-                                          Topic_type type,
-                                          const std::string &tag,
-                                          const std::string &parent_id,
-                                          Help_topic *parent, Mode_mask mode) {
+Help_topic *Help_registry::create_help_topic(const std::string &name,
+                                             Topic_type type,
+                                             const std::string &tag,
+                                             const std::string &parent_id,
+                                             Help_topic *parent, Mode_mask mode,
+                                             bool do_register) {
   auto lock = ensure_lock();
   Help_topic *new_topic = &(*m_topics.insert(
       m_topics.end(), {name, name, type, tag, nullptr, {}, true}));
@@ -639,8 +640,7 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
   if (!parent_id.empty()) {
     if (parent) {
       new_topic->m_parent = parent;
-
-      register_topic(new_topic, true, mode);
+      parent->m_childs.insert(new_topic);
     } else {
       // Adds the topic to the orphans so it is properly registered when the
       // parent chain is made available
@@ -648,14 +648,18 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
         m_orphans[parent_id] = {};
 
       m_orphans[parent_id].push_back(new_topic);
+
+      do_register = false;
     }
-  } else {
+  }
+
+  if (do_register) {
     register_topic(new_topic, true, mode);
   }
 
   if (new_topic->is_api_object()) {
-    add_help_topic("help", Topic_type::FUNCTION, "help", new_topic->m_id,
-                   new_topic, mode);
+    create_help_topic("help", Topic_type::FUNCTION, "help", new_topic->m_id,
+                      new_topic, mode, do_register);
   }
 
   return new_topic;
@@ -806,8 +810,6 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
         topic->m_id =
             topic->m_parent->m_id + HELP_TOPIC_SPLITTER + topic->m_name;
     }
-
-    topic->m_parent->m_childs.insert(topic);
   }
 
   register_keywords(topic, mode);
@@ -854,6 +856,7 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
 
     for (auto orphan : orphans) {
       orphan->m_parent = topic;
+      topic->m_childs.insert(orphan);
       register_topic(orphan, false, mode);
     }
   }
@@ -875,6 +878,12 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
         }
       }
     }
+  }
+
+  // If the topic has childs they need to be registered as well,
+  // this may be the case of initially orphan objects
+  for (const auto child : topic->m_childs) {
+    register_topic(child, new_topic, mode);
   }
 }
 
