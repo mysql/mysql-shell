@@ -742,9 +742,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include non-existing schema -> empty result set");
 
-    EXPECT_THROW_LIKE(Instance_cache_builder(m_session, {"fourth"}, {}, {}, {}),
-                      std::logic_error,
-                      "Filters for schemas result in an empty set.");
+    const auto cache =
+        Instance_cache_builder(m_session, {"fourth"}, {}, {}, {}).build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
@@ -814,19 +814,19 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include and exclude the same schema -> empty result set");
 
-    EXPECT_THROW_LIKE(
-        Instance_cache_builder(m_session, {"third"}, {}, {"third"}, {}),
-        std::logic_error, "Filters for schemas result in an empty set.");
+    const auto cache =
+        Instance_cache_builder(m_session, {"third"}, {}, {"third"}, {}).build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
     SCOPED_TRACE(
         "include and exclude the same schema + some more -> empty result set");
 
-    EXPECT_THROW_LIKE(Instance_cache_builder(m_session, {"third"}, {},
-                                             {"first", "third"}, {}),
-                      std::logic_error,
-                      "Filters for schemas result in an empty set.");
+    const auto cache =
+        Instance_cache_builder(m_session, {"third"}, {}, {"first", "third"}, {})
+            .build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
@@ -849,10 +849,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include non-existing schema, include existing table -> empty result "
         "set");
 
-    EXPECT_THROW_LIKE(Instance_cache_builder(m_session, {"fourth"},
-                                             {{"first", {"one"}}}, {}, {}),
-                      std::logic_error,
-                      "Filters for schemas result in an empty set.");
+    const auto cache = Instance_cache_builder(m_session, {"fourth"},
+                                              {{"first", {"one"}}}, {}, {})
+                           .build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
@@ -1742,9 +1742,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema - uppercase");
 
-    EXPECT_THROW_LIKE(Instance_cache_builder(m_session, {"FIRST"}, {}, {}, {}),
-                      std::logic_error,
-                      "Filters for schemas result in an empty set.");
+    const auto cache =
+        Instance_cache_builder(m_session, {"FIRST"}, {}, {}, {}).build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
@@ -2069,9 +2069,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude schema");
 
-    EXPECT_THROW_LIKE(
-        Instance_cache_builder(m_session, {"first"}, {}, {"first"}, {}),
-        std::logic_error, "Filters for schemas result in an empty set.");
+    const auto cache =
+        Instance_cache_builder(m_session, {"first"}, {}, {"first"}, {}).build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
@@ -2636,9 +2636,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude the same schema");
 
-    EXPECT_THROW_LIKE(
-        Instance_cache_builder(m_session, {"First"}, {}, {"First"}, {}),
-        std::logic_error, "Filters for schemas result in an empty set.");
+    const auto cache =
+        Instance_cache_builder(m_session, {"First"}, {}, {"First"}, {}).build();
+    EXPECT_TRUE(cache.schemas.empty());
   }
 
   {

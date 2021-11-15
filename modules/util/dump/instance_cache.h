@@ -258,8 +258,6 @@ class Instance_cache_builder final {
                                Instance_cache::View *,
                                const mysqlshdk::db::IRow *)> &view_callback);
 
-  void validate_schemas_list() const;
-
   inline bool has_tables() const { return m_has_tables; }
 
   inline void set_has_tables() { m_has_tables = true; }

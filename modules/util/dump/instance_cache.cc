@@ -308,8 +308,6 @@ Instance_cache_builder::Instance_cache_builder(
     filter_tables();
   }
 
-  validate_schemas_list();
-
   if (include_metadata) {
     fetch_metadata();
   }
@@ -948,6 +946,12 @@ void Instance_cache_builder::fetch_table_histograms() {
 }
 
 void Instance_cache_builder::fetch_table_partitions() {
+  Profiler profiler{"fetching table partitions"};
+
+  if (!has_tables()) {
+    return;
+  }
+
   Iterate_table info;
   info.schema_column = "TABLE_SCHEMA";  // NOT NULL
   info.table_column = "TABLE_NAME";     // NOT NULL
@@ -1100,12 +1104,6 @@ void Instance_cache_builder::iterate_views(
   Profiler profiler{"iterating views"};
 
   iterate_tables_and_views(info, {}, callback);
-}
-
-void Instance_cache_builder::validate_schemas_list() const {
-  if (m_cache.schemas.empty()) {
-    throw std::logic_error("Filters for schemas result in an empty set.");
-  }
 }
 
 void Instance_cache_builder::set_schema_filter(const Filter &included,

@@ -226,6 +226,21 @@ wipeout_server(session2)
 #@<> load ddl which is not in the dump (fail/no-op)
 util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True})
 
+#@<> BUG#33502098 - dump which does not include any schemas but includes users should succeed
+dump_dir = os.path.join(outdir, "bug_33502098")
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [ "non_existing_schema" ], "users": False }), "Filters for schemas result in an empty set.")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [ "non_existing_schema" ], "users": True }), "Dump")
+
+# load
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers":True }), "Load")
+
+# validation
+compare_users(session1, session2)
 
 #@<> Bug #32526496 - ensure dumps with users that have grants on specific objects (tables, SPs etc) can be loaded
 
