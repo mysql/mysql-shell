@@ -1862,6 +1862,61 @@ load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUser
 EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
 EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
 
+#@<> BUG#33414321 - table with a secondary engine {VER(>=8.0.21)}
+# setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+dump_dir = os.path.join(outdir, "bug_33414321")
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (id BIGINT PRIMARY KEY)", [ tested_schema, tested_table + "1" ])
+session.run_sql("""CREATE TABLE !.! (
+    id BIGINT AUTO_INCREMENT,
+    data BIGINT,
+    description TEXT,
+    fk_id BIGINT,
+    PRIMARY KEY (id),
+    UNIQUE KEY (data),
+    FULLTEXT KEY (description),
+    FOREIGN KEY (fk_id) REFERENCES !.! (id)
+) SECONDARY_ENGINE=tmp SECONDARY_ENGINE_ATTRIBUTE='{"name": "value"}'""", [ tested_schema, tested_table, tested_schema, tested_table + "1" ])
+
+# dump data
+util.dump_instance(dump_dir, { "showProgress": False })
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+
+# load with various values of deferTableIndexes
+for deferred in [ "off", "fulltext", "all" ]:
+    # wipe the destination server
+    wipeout_server(session2)
+    # load
+    util.load_dump(dump_dir, { "deferTableIndexes": deferred, "loadUsers": False, "resetProgress": True, "showProgress": False })
+    # verify correctness
+    compare_servers(session1, session2, check_users=False)
+
+#@<> BUG#33414321 - table with a secondary engine with resume {VER(>=8.0.21) and (not __dbug_off)}
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+# fail after some of the ALTER TABLE statements which restore indexes were successfully executed
+testutil.set_trap("mysql", ["sql == ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`);"], { "code": 1045, "msg": "Access denied for user `root`@`%` (using password: YES)", "state": "28000" })
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\] While recreating indexes for table `test_schema`.`test_table`: Access denied for user `root`@`%` \(using password: YES\)"))
+
+testutil.clear_traps("mysql")
+
+# resume the load operation, without a trap it should succeed
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "showProgress": False }), "resume should succeed")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+
+# verify correctness
+compare_servers(session1, session2, check_users=False)
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

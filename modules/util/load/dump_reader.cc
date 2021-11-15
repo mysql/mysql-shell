@@ -324,6 +324,12 @@ const std::vector<std::string> &Dump_reader::deferred_schema_fks(
   return s->fk_queries;
 }
 
+const std::vector<std::string> &Dump_reader::queries_on_schema_end(
+    const std::string &schema) const {
+  const auto &s = m_contents.schemas.at(schema);
+  return s->queries_on_schema_end;
+}
+
 const std::map<std::string, std::vector<std::string>>
 Dump_reader::tables_without_pk() const {
   std::map<std::string, std::vector<std::string>> res;
@@ -650,44 +656,28 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
   compute_filtered_data_size();
 }
 
-uint64_t Dump_reader::add_deferred_indexes(const std::string &schema,
-                                           const std::string &table,
-                                           std::vector<std::string> &&indexes) {
-  auto s = m_contents.schemas.find(schema);
+uint64_t Dump_reader::add_deferred_statements(
+    const std::string &schema, const std::string &table,
+    compatibility::Deferred_statements &&stmts) {
+  const auto s = m_contents.schemas.find(schema);
   if (s == m_contents.schemas.end())
     throw std::runtime_error("Unable to find schema " + schema +
                              " for adding index");
-  auto t = s->second->tables.find(table);
+  const auto t = s->second->tables.find(table);
   if (t == s->second->tables.end())
     throw std::runtime_error("Unable to find table " + table + " in schema " +
                              schema + " for adding index");
-  t->second->indexes_done = false;
-  t->second->indexes = std::move(indexes);
-  auto &idx = t->second->indexes;
-  idx.erase(
-      std::remove_if(idx.begin(), idx.end(),
-                     [&s](const std::string &q) {
-                       mysqlshdk::utils::SQL_iterator it(q);
-                       while (it.valid() &&
-                              !shcore::str_caseeq(it.next_token(), "FOREIGN")) {
-                       }
-                       if (it.valid() &&
-                           shcore::str_caseeq(it.next_token(), "KEY")) {
-                         s->second->fk_queries.emplace_back(q);
-                         return true;
-                       }
-                       return false;
-                     }),
-      idx.end());
+  t->second->indexes_done = stmts.indexes.empty();
+  t->second->indexes = std::move(stmts.indexes);
+  std::move(stmts.fks.begin(), stmts.fks.end(),
+            std::back_inserter(s->second->fk_queries));
 
-  const auto size = idx.size();
-
-  if (0 == size) {
-    // if all queries were FK-related, we're done here
-    t->second->indexes_done = true;
+  if (!stmts.secondary_engine.empty()) {
+    s->second->queries_on_schema_end.emplace_back(
+        std::move(stmts.secondary_engine));
   }
 
-  return size;
+  return t->second->indexes.size();
 }
 
 void Dump_reader::replace_target_schema(const std::string &schema) {

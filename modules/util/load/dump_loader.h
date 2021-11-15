@@ -36,6 +36,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/progress_thread.h"
 
 #include "modules/util/load/dump_reader.h"
@@ -130,8 +131,9 @@ class Dump_loader {
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
 
-      std::unique_ptr<std::vector<std::string>> steal_deferred_indexes() {
-        return std::move(m_deferred_indexes);
+      std::unique_ptr<compatibility::Deferred_statements>
+      steal_deferred_statements() {
+        return std::move(m_deferred_statements);
       }
 
       bool placeholder() const { return m_placeholder; }
@@ -154,7 +156,7 @@ class Dump_loader {
       bool m_placeholder = false;
       Load_progress_log::Status m_status;
 
-      std::unique_ptr<std::vector<std::string>> m_deferred_indexes;
+      std::unique_ptr<compatibility::Deferred_statements> m_deferred_statements;
     };
 
     class Load_chunk_task : public Task {
@@ -345,7 +347,7 @@ class Dump_loader {
                           bool placeholder);
   void on_table_ddl_end(
       const std::string &schema, const std::string &table, bool placeholder,
-      std::unique_ptr<std::vector<std::string>> deferred_indexes);
+      std::unique_ptr<compatibility::Deferred_statements> deferred_indexes);
 
   void on_chunk_load_start(const std::string &schema, const std::string &table,
                            const std::string &partition, ssize_t index);
