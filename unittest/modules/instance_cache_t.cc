@@ -108,6 +108,9 @@ class Instance_cache_test : public Shell_core_test_wrapper {
 
  private:
   void cleanup() const {
+    m_session->execute("DROP USER IF EXISTS first;");
+    m_session->execute("DROP USER IF EXISTS second;");
+    m_session->execute("DROP USER IF EXISTS third;");
     m_session->execute("DROP SCHEMA IF EXISTS first;");
     m_session->execute("DROP SCHEMA IF EXISTS second;");
     m_session->execute("DROP SCHEMA IF EXISTS third;");
@@ -3864,6 +3867,434 @@ TEST_F(Instance_cache_test, filter_triggers) {
     EXPECT_TRIGGERS(cache, "second", "two", {});
     EXPECT_TRIGGERS(cache, "third", "one", {"t1"});
     EXPECT_TRIGGERS(cache, "third", "two", {});
+  }
+}
+
+TEST_F(Instance_cache_test, stats) {
+  {
+    // setup
+    // schemas
+    m_session->execute("CREATE SCHEMA first;");
+    m_session->execute("CREATE SCHEMA second;");
+    m_session->execute("CREATE SCHEMA third;");
+
+    // tables
+    m_session->execute("CREATE TABLE first.one (id INT);");
+    m_session->execute("CREATE TABLE first.two (id INT);");
+
+    m_session->execute("CREATE TABLE second.one (id INT);");
+    m_session->execute("CREATE TABLE second.two (id INT);");
+
+    m_session->execute("CREATE TABLE third.one (id INT);");
+    m_session->execute("CREATE TABLE third.two (id INT);");
+
+    // views
+    m_session->execute("CREATE VIEW first.three AS SELECT * FROM first.one;");
+    m_session->execute("CREATE VIEW second.three AS SELECT * FROM second.one;");
+    m_session->execute("CREATE VIEW third.three AS SELECT * FROM third.one;");
+
+    // events
+    m_session->execute(
+        "CREATE EVENT first.one ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute(
+        "CREATE EVENT first.two ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+
+    m_session->execute(
+        "CREATE EVENT second.one ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute(
+        "CREATE EVENT second.two ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+
+    m_session->execute(
+        "CREATE EVENT third.one ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+    m_session->execute(
+        "CREATE EVENT third.two ON SCHEDULE EVERY 1 YEAR DO SELECT 1;");
+
+    // routines
+    m_session->execute(
+        "CREATE FUNCTION first.one() RETURNS INT DETERMINISTIC RETURN 1;");
+    m_session->execute("CREATE PROCEDURE first.two() DETERMINISTIC BEGIN END;");
+
+    m_session->execute(
+        "CREATE PROCEDURE second.one() DETERMINISTIC BEGIN END;");
+    m_session->execute(
+        "CREATE FUNCTION second.two() RETURNS INT DETERMINISTIC RETURN 1;");
+
+    m_session->execute(
+        "CREATE FUNCTION third.one() RETURNS INT DETERMINISTIC RETURN 1;");
+    m_session->execute("CREATE PROCEDURE third.two() DETERMINISTIC BEGIN END;");
+
+    // triggers
+    m_session->execute(
+        "CREATE TRIGGER first.t1 AFTER DELETE ON first.one FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER first.t2 AFTER DELETE ON first.one FOR EACH ROW BEGIN "
+        "END;");
+
+    m_session->execute(
+        "CREATE TRIGGER first.t3 AFTER DELETE ON first.two FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER first.t4 AFTER DELETE ON first.two FOR EACH ROW BEGIN "
+        "END;");
+
+    m_session->execute(
+        "CREATE TRIGGER second.t1 AFTER DELETE ON second.one FOR EACH ROW "
+        "BEGIN END;");
+    m_session->execute(
+        "CREATE TRIGGER second.t2 AFTER DELETE ON second.one FOR EACH ROW "
+        "BEGIN END;");
+
+    m_session->execute(
+        "CREATE TRIGGER second.t3 AFTER DELETE ON second.two FOR EACH ROW "
+        "BEGIN END;");
+    m_session->execute(
+        "CREATE TRIGGER second.t4 AFTER DELETE ON second.two FOR EACH ROW "
+        "BEGIN END;");
+
+    m_session->execute(
+        "CREATE TRIGGER third.t1 AFTER DELETE ON third.one FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER third.t2 AFTER DELETE ON third.one FOR EACH ROW BEGIN "
+        "END;");
+
+    m_session->execute(
+        "CREATE TRIGGER third.t3 AFTER DELETE ON third.two FOR EACH ROW BEGIN "
+        "END;");
+    m_session->execute(
+        "CREATE TRIGGER third.t4 AFTER DELETE ON third.two FOR EACH ROW BEGIN "
+        "END;");
+
+    // users
+    m_session->execute("CREATE USER first;");
+    m_session->execute("CREATE USER second;");
+    m_session->execute("CREATE USER third;");
+  }
+
+  const auto total_count = [this](const std::string &table,
+                                  const std::string &where = {},
+                                  const std::string &column = "*") {
+    auto sql = "SELECT COUNT(" + column + ") FROM information_schema." + table;
+
+    if (!where.empty()) {
+      sql += " WHERE " + where;
+    }
+
+    return m_session->query(sql)->fetch_one()->get_uint(0);
+  };
+
+  Instance_cache::Stats expected_total;
+
+  expected_total.schemas = total_count("schemata");
+  expected_total.tables = total_count("tables", "'BASE TABLE'=TABLE_TYPE");
+  expected_total.views = total_count("tables", "'VIEW'=TABLE_TYPE");
+
+  const auto total_users =
+      total_count("user_privileges", {}, "DISTINCT grantee");
+
+  const auto EXPECT_STATS = [](const Instance_cache::Stats &expected,
+                               const Instance_cache::Stats &actual) {
+    EXPECT_EQ(expected.schemas, actual.schemas);
+    EXPECT_EQ(expected.tables, actual.tables);
+    EXPECT_EQ(expected.views, actual.views);
+    EXPECT_EQ(expected.events, actual.events);
+    EXPECT_EQ(expected.routines, actual.routines);
+    EXPECT_EQ(expected.triggers, actual.triggers);
+    EXPECT_EQ(expected.users, actual.users);
+  };
+
+  {
+    SCOPED_TRACE("no filters - schemas and tables");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("no filters - schemas, tables and events");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .events({}, {})
+                           .build();
+
+    expected_total.events = total_count("events");
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("no filters - schemas, tables and routines");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .routines({}, {})
+                           .build();
+
+    expected_total.events = 0;
+    expected_total.routines = total_count("routines");
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("no filters - schemas, tables and triggers");
+
+    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
+                           .triggers({}, {})
+                           .build();
+
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = total_count("triggers");
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("no filters - schemas, tables and users");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {}).users({}, {}).build();
+
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = total_users;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter users");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {}, {}, {}, {})
+            .users({{"first", "%"}, {"second", "%"}, {"third", "%"}}, {})
+            .build();
+
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = total_users;
+
+    EXPECT_STATS(expected_total, cache.total);
+
+    expected_total.users = 3;
+
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + all tables");
+
+    const auto cache = Instance_cache_builder(
+                           m_session, {"first", "second", "third"}, {}, {}, {})
+                           .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + filtered tables");
+
+    const auto cache =
+        Instance_cache_builder(
+            m_session, {"first", "second", "third"},
+            {{"first", {"one", "three"}}, {"third", {"two"}}}, {}, {})
+            .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 2, 1}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + all events");
+
+    const auto cache = Instance_cache_builder(
+                           m_session, {"first", "second", "third"}, {}, {}, {})
+                           .events({}, {})
+                           .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 6;
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 6}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + filtered events");
+
+    const auto cache = Instance_cache_builder(
+                           m_session, {"first", "second", "third"}, {}, {}, {})
+                           .events({{"first", {"one"}}, {"third", {"two"}}}, {})
+                           .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 6;
+    expected_total.routines = 0;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 2}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + all routines");
+
+    const auto cache = Instance_cache_builder(
+                           m_session, {"first", "second", "third"}, {}, {}, {})
+                           .routines({}, {})
+                           .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 6;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 0, 6}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + filtered routines");
+
+    const auto cache =
+        Instance_cache_builder(m_session, {"first", "second", "third"}, {}, {},
+                               {})
+            .routines({{"first", {"one"}}, {"third", {"two"}}}, {})
+            .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 6;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 0, 2}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + all triggers");
+
+    const auto cache = Instance_cache_builder(
+                           m_session, {"first", "second", "third"}, {}, {}, {})
+                           .triggers({}, {})
+                           .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 12;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 0, 0, 12}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + filtered triggers");
+
+    const auto cache = Instance_cache_builder(
+                           m_session, {"first", "second", "third"}, {}, {}, {})
+                           .triggers({{"first", {{"one", {"t1"}}}},
+                                      {"second", {{"two", {"t3"}}}},
+                                      {"third", {{"one", {}}}}},
+                                     {})
+                           .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 12;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 0, 0, 4}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + filtered tables + all triggers");
+
+    const auto cache =
+        Instance_cache_builder(
+            m_session, {"first", "second", "third"},
+            {{"first", {"one", "three"}}, {"third", {"two"}}}, {}, {})
+            .triggers({}, {})
+            .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 4;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 2, 1, 0, 0, 4}, cache.filtered);
+  }
+
+  {
+    SCOPED_TRACE("filter schemas + filtered tables + filtered triggers");
+
+    const auto cache =
+        Instance_cache_builder(
+            m_session, {"first", "second", "third"},
+            {{"first", {"one", "three"}}, {"third", {"two"}}}, {}, {})
+            .triggers(
+                {{"first", {{"one", {"t1"}}}}, {"third", {{"two", {"t3"}}}}},
+                {})
+            .build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.triggers = 4;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 2, 1, 0, 0, 2}, cache.filtered);
   }
 }
 

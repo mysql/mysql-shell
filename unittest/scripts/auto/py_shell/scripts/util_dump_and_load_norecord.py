@@ -233,11 +233,12 @@ shell.connect(__sandbox_uri1)
 # first create all objects that can reference a user, since the load has to create accounts last
 # this also ensures that our assumption that the server allows objects to reference users that don't exist still holds
 session.run_sql("CREATE SCHEMA schema1")
+session.run_sql("CREATE SCHEMA schema2")
 session.run_sql("USE schema1")
 session.run_sql("CREATE definer=uuuser@localhost PROCEDURE mysp1() BEGIN END")
 session.run_sql("CREATE definer=uuuuser@localhost FUNCTION myfun1() RETURNS INT NO SQL RETURN 1")
 session.run_sql("CREATE definer=uuuuuser@localhost VIEW view1 AS select 1")
-session.run_sql("CREATE TABLE table1 (pk INT PRIMARY KEY)");
+session.run_sql("CREATE TABLE table1 (pk INT PRIMARY KEY)")
 session.run_sql("CREATE definer=uuuuuuser@localhost TRIGGER trigger1 BEFORE UPDATE ON table1 FOR EACH ROW BEGIN END")
 session.run_sql("CREATE definer=uuuuuuuser@localhost EVENT event1 ON SCHEDULE EVERY 1 year DISABLE DO BEGIN END")
 
@@ -249,7 +250,8 @@ session.run_sql("CREATE USER uuuuuuuser@localhost IDENTIFIED BY 'pwd'")
 
 session.run_sql("GRANT SELECT ON TABLE schema1.table1 TO uuuser@localhost")
 session.run_sql("GRANT EXECUTE ON FUNCTION schema1.myfun1 TO uuuser@localhost")
-session.run_sql("GRANT EXECUTE ON PROCEDURE schema1.mysp1 TO uuuser@localhost")
+session.run_sql("GRANT ALTER ROUTINE ON PROCEDURE schema1.mysp1 TO uuuser@localhost")
+session.run_sql("GRANT ALTER ON schema2.* TO uuuser@localhost")
 
 dump_dir = os.path.join(outdir, "user_load_order")
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir), "Dump")
@@ -260,6 +262,62 @@ wipeout_server(session2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {"loadUsers":True, "excludeUsers":["root@%"]}), "Load")
 
 compare_servers(session1, session2)
+
+#@<> BUG#33406711 - filtering objects should also filter relevant privileges
+# setup
+expected_accounts = snapshot_accounts(session1)
+del expected_accounts["root@%"]
+dump_dir = os.path.join(outdir, "bug_33406711")
+
+# dump excluding one of the schemas, load with no filters, schema-related privilege is not present
+wipeout_server(session2)
+
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "excludeSchemas": [ "schema2" ], "showProgress": False }), "Dump")
+
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+
+# privileges for schema2 are not included
+expected_accounts["uuuser@localhost"]["grants"] = [grant for grant in expected_accounts["uuuser@localhost"]["grants"] if "schema2" not in grant]
+# root is not re-created
+actual_accounts = snapshot_accounts(session2)
+del actual_accounts["root@%"]
+# validation
+EXPECT_EQ(expected_accounts, actual_accounts)
+
+# use the same dump, exclude a table when loading
+wipeout_server(session2)
+testutil.rmfile(os.path.join(dump_dir, "load-progress*.json"))
+
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Filtered statement with excluded database object: GRANT SELECT ON `schema1`.`table1` TO ['`]uuuser['`]@['`]localhost['`]; -> \(skipped\)"))
+
+# privileges for schema1.table1 are not included
+expected_accounts["uuuser@localhost"]["grants"] = [grant for grant in expected_accounts["uuuser@localhost"]["grants"] if "table1" not in grant]
+# root is not re-created
+actual_accounts = snapshot_accounts(session2)
+del actual_accounts["root@%"]
+# validation
+EXPECT_EQ(expected_accounts, actual_accounts)
+
+# use the same dump, exclude a table and a routine when loading
+wipeout_server(session2)
+testutil.rmfile(os.path.join(dump_dir, "load-progress*.json"))
+
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "schema1.myfun1" ], "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Filtered statement with excluded database object: GRANT SELECT ON `schema1`.`table1` TO ['`]uuuser['`]@['`]localhost['`]; -> \(skipped\)"))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Filtered statement with excluded database object: GRANT EXECUTE ON FUNCTION `schema1`.`myfun1` TO ['`]uuuser['`]@['`]localhost['`]; -> \(skipped\)"))
+
+# privileges for schema1.myfun1 are not included
+expected_accounts["uuuser@localhost"]["grants"] = [grant for grant in expected_accounts["uuuser@localhost"]["grants"] if "myfun1" not in grant]
+# root is not re-created
+actual_accounts = snapshot_accounts(session2)
+del actual_accounts["root@%"]
+# validation
+EXPECT_EQ(expected_accounts, actual_accounts)
 
 #@ Source data is utf8mb4, but double-encoded in latin1 (preparation)
 session1.run_sql("create schema dblenc")

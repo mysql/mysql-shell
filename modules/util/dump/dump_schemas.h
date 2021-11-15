@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,6 +43,25 @@ class Dump_schemas : public Ddl_dumper {
   Dump_schemas &operator=(Dump_schemas &&) = delete;
 
   ~Dump_schemas() override = default;
+
+ protected:
+  std::vector<std::string> object_stats(
+      const Instance_cache::Stats &filtered,
+      const Instance_cache::Stats &total) const override {
+    std::vector<std::string> stats;
+
+    stats.emplace_back(std::to_string(filtered.schemas) + " schemas");
+
+#define FORMAT_OBJECT_STATS(type) \
+  stats.emplace_back(format_object_stats(filtered.type, total.type, #type))
+
+    FORMAT_OBJECT_STATS(tables);
+    FORMAT_OBJECT_STATS(views);
+
+#undef FORMAT_OBJECT_STATS
+
+    return stats;
+  }
 
  private:
   const char *name() const override { return "dumpSchemas"; }

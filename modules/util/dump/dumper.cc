@@ -1535,6 +1535,8 @@ void Dumper::open_session() {
   m_session = establish_session(co, false);
 
   on_init_thread_session(m_session);
+
+  log_server_version();
 }
 
 void Dumper::close_session() {
@@ -1949,6 +1951,8 @@ void Dumper::initialize_instance_cache() {
   }
 
   m_cache = builder.build();
+
+  print_object_stats();
 }
 
 void Dumper::create_schema_tasks() {
@@ -3503,6 +3507,82 @@ void Dumper::validate_privileges() const {
 
 bool Dumper::is_gtid_executed_inconsistent() const {
   return !m_options.consistent_dump() || m_ftwrl_failed;
+}
+
+void Dumper::log_server_version() const {
+  log_info("Source server: %s",
+           query("SELECT CONCAT(@@version, ' ', @@version_comment)")
+               ->fetch_one()
+               ->get_string(0)
+               .c_str());
+}
+
+void Dumper::print_object_stats() const {
+  auto stats = object_stats(m_cache.filtered, m_cache.total);
+
+  if (stats.empty()) {
+    return;
+  }
+
+#define FORMAT_OBJECT_STATS(type)                                         \
+  do {                                                                    \
+    if (m_options.dump_##type() && 0 != m_cache.total.type) {             \
+      stats.emplace_back(format_object_stats(m_cache.filtered.type,       \
+                                             m_cache.total.type, #type)); \
+    }                                                                     \
+  } while (false)
+
+  if (m_options.dump_ddl()) {
+    FORMAT_OBJECT_STATS(events);
+    FORMAT_OBJECT_STATS(routines);
+    FORMAT_OBJECT_STATS(triggers);
+  }
+
+#undef FORMAT_OBJECT_STATS
+
+  std::string msg = stats.front() + " will be dumped";
+
+  auto current = std::next(stats.begin());
+  const auto end = stats.end();
+
+  if (end != current) {
+    msg += " and within them";
+  } else {
+    msg += '.';
+  }
+
+  for (; end != current; ++current) {
+    msg += ' ' + (*current) + ',';
+  }
+
+  msg.back() = '.';
+
+  const auto console = current_console();
+
+  console->print_status(msg);
+
+  if (m_options.dump_users()) {
+    console->print_status(format_object_stats(m_cache.filtered.users,
+                                              m_cache.total.users, "users") +
+                          " will be dumped.");
+  }
+}
+
+std::string Dumper::format_object_stats(uint64_t value, uint64_t total,
+                                        const std::string &object) {
+  std::string format;
+
+  if (value != total) {
+    format += std::to_string(value) + " out of ";
+  }
+
+  format += std::to_string(total) + " " + object;
+
+  if (1 == total && 's' == format.back()) {
+    format.pop_back();
+  }
+
+  return format;
 }
 
 }  // namespace dump

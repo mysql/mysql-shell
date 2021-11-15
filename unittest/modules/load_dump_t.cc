@@ -25,6 +25,7 @@
 
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/dump_utils.h"
+#include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/dump_loader.h"
 #include "modules/util/load/dump_reader.h"
 #include "modules/util/load/load_dump_options.h"
@@ -251,6 +252,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
               .WillRepeatedly(ReturnRef(m_coptions));
           EXPECT_CALL(*mock, get_connection_id())
               .WillRepeatedly(Return(m_session_count));
+          EXPECT_CALL(*mock, is_open()).WillRepeatedly(Return(false));
 
           if (m_auto_generate_pk_value) {
             const auto query = shcore::sqlformat(
@@ -262,6 +264,11 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
           {
             // this is the main connection used by the loader
+
+            mock->expect_query(
+                    "SELECT CONCAT(@@version, ' ', @@version_comment)")
+                .then({"a"})
+                .add_row({m_version + " mocked"});
 
             mock->expect_query(
                     "SELECT schema_name FROM information_schema.schemata WHERE "
@@ -679,7 +686,10 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
             .then({"res"})
             .add_row({k_mds_administrator_restrictions});
 
-        auto out = loader.filter_user_script_for_mds(script);
+        auto filter = loader.filter_user_script_for_mds();
+        auto out = dump::Schema_dumper::preprocess_users_script(
+            script, [](const std::string &) { return true; }, {}, filter);
+
         EXPECT_EQ(out, expected_out) << path;
 
         return true;
