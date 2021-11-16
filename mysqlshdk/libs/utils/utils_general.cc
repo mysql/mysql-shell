@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 
+#include <string_view>
 #include <utility>
 
 #include "mysqlshdk/libs/textui/textui.h"
@@ -1155,7 +1156,13 @@ OperatingSystem get_os_type() {
   return os;
 }
 
-std::string get_machine_type() { return MACHINE_TYPE; }
+std::string get_machine_type() {
+  {
+    constexpr std::string_view machine_type{MACHINE_TYPE};
+    static_assert(!machine_type.empty());
+  }
+  return MACHINE_TYPE;
+}
 
 std::string to_string(OperatingSystem os_type) {
   switch (os_type) {
