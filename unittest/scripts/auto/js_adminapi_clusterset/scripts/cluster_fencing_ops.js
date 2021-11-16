@@ -180,9 +180,9 @@ EXPECT_THROWS_TYPE(function(){ cluster.setupRouterAccount("foo"); }, "The InnoDB
 // ClusterSet ops
 EXPECT_THROWS_TYPE(function(){ cs.createReplicaCluster(__sandbox_uri4, "foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cs.removeCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-//EXPECT_THROWS_TYPE(function(){ cs.rejoinCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-//EXPECT_THROWS_TYPE(function(){ cs.setPrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-//EXPECT_THROWS_TYPE(function(){ cs.forcePrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){ cs.rejoinCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){ cs.setPrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){ cs.forcePrimaryCluster("foobar"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cs.setRoutingOption("router::test", "option", "value"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 
 //@<> status() on Primary Cluster fenced to writes
@@ -256,6 +256,30 @@ shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica", {rejoinInstances: [__endpoint5]}); });
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5], cluster, replicacluster);
+
+// BUG#33551128: From fence Writes to fence All Traffic
+// Fencing from All Traffic a Cluster that was Fenced to Write traffic
+// was forbidden by the preconditions check. It must be possible to do
+// that operation without first unfencing the Cluster since that implies
+// possible unwanted writes during that period of time.
+
+//@<> fenceAllTraffic() on a Primary Cluster fenced from Write traffic
+EXPECT_NO_THROWS(function() { cluster.fenceWrites(); });
+
+validate_fenced_write_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
+
+EXPECT_NO_THROWS(function() { cluster.fenceAllTraffic(); });
+
+validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
+
+//@<> rebootClusterFromCompleteOutage() on a primary fenced cluster from all traffic that was previously fenced from write traffic only
+shell.connect(__sandbox_uri1);
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]}); });
+
+// The Cluster is still fenced to writes so it must be unfenced
+EXPECT_NO_THROWS(function() { cluster.unfenceWrites(); });
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

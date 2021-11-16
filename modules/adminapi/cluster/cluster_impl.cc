@@ -1497,8 +1497,19 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
     target = get_cluster_server();
   }
 
-  std::vector<mysqlshdk::gr::Member> members(mysqlshdk::gr::get_members(
-      *target, &single_primary, &has_quorum, nullptr));
+  std::vector<mysqlshdk::gr::Member> members;
+
+  try {
+    members = mysqlshdk::gr::get_members(*target, &single_primary, &has_quorum,
+                                         nullptr);
+  } catch (const std::exception &e) {
+    if (shcore::str_beginswith(
+            e.what(), "Group replication does not seem to be active")) {
+      return Cluster_status::OFFLINE;
+    } else {
+      throw;
+    }
+  }
 
   int num_online = 0;
   for (const auto &m : members) {

@@ -638,7 +638,11 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
       // Acquire the primary first
       cluster->acquire_primary();
     } catch (const shcore::Exception &e) {
-      if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+      std::string err_message = e.what();
+
+      if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM ||
+          (err_message.find("Group replication does not seem to be active") !=
+           std::string::npos)) {
         ret = Cluster_global_status::NOT_OK;
       } else {
         throw;
@@ -1847,9 +1851,7 @@ void Cluster_set_impl::_set_option(const std::string &option,
 void Cluster_set_impl::set_primary_cluster(
     const std::string &cluster_name,
     const clusterset::Set_primary_cluster_options &options) {
-  // TODO(miguel): preconditions check is generating generic error messages in
-  // favor of the fine-grained ones of this command
-  // check_preconditions("setPrimaryCluster");
+  check_preconditions("setPrimaryCluster");
 
   auto console = current_console();
 
@@ -2321,9 +2323,7 @@ void Cluster_set_impl::primary_instance_did_change(
 void Cluster_set_impl::force_primary_cluster(
     const std::string &cluster_name,
     const clusterset::Force_primary_cluster_options &options) {
-  // TODO(miguel): preconditions check is generating generic error messages in
-  // favor of the fine-grained ones of this command
-  // check_preconditions("forcePrimaryCluster");
+  check_preconditions("forcePrimaryCluster");
 
   auto console = current_console();
   auto primary_cluster_name = get_primary_cluster()->get_name();
@@ -2539,9 +2539,7 @@ void Cluster_set_impl::ensure_transaction_set_consistent(
 void Cluster_set_impl::rejoin_cluster(
     const std::string &cluster_name,
     const clusterset::Rejoin_cluster_options &options) {
-  // TODO(miguel): preconditions check is generating generic error messages in
-  // favor of the fine-grained ones of this command
-  // check_preconditions("rejoinCluster");
+  check_preconditions("rejoinCluster");
 
   auto console = current_console();
 
