@@ -839,6 +839,11 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
   }
 
+  {
+    const auto trigger_list = md->get_array("triggers");
+    has_triggers = trigger_list && !trigger_list->empty();
+  }
+
   auto histogram_list = md->get_array("histograms");
 
   if (histogram_list) {
