@@ -186,11 +186,26 @@ dba.createReplicaSet("myrs", {gtidSetIsComplete:1});
 
 session.runSql("SELECT attributes FROM mysql_innodb_cluster_metadata.clusters");
 
-
 // XXX Rollback
 //--------------------------------
 // Ensure clean rollback after failures
 
+// BUG#33574005: 1:1 mapping of Cluster:Metadata not enforced
+// createReplicaSet() must always drop and re-created the MD schema to ensure older records are wiped out
+
+//@<> createCluster() must drop and re-create the MD schema
+reset_instance(session);
+
+EXPECT_NO_THROWS(function() { rs = dba.createReplicaSet("first", {gtidSetIsComplete: true}); });
+
+EXPECT_NO_THROWS(function() {rs.addInstance(__sandbox_uri2); });
+
+EXPECT_NO_THROWS(function() {rs.removeInstance(__sandbox_uri2); });
+
+shell.connect(__sandbox_uri2);
+EXPECT_NO_THROWS(function() { rs = dba.createReplicaSet("second")});
+
+EXPECT_EQ(1, session.runSql("select count(*) from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

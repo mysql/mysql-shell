@@ -990,7 +990,7 @@ bool is_valid_version(const mysqlshdk::utils::Version &version) {
 }  // namespace metadata
 
 void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
-                             bool force_overwrite, bool dry_run) {
+                             bool dry_run) {
   // Ensure that the metadata schema is ready for creating a new cluster in it
   // If the metadata schema does not exist, we create it
   // If the metadata schema already exists:
@@ -999,25 +999,23 @@ void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  mysqlshdk::utils::Version version;
-
-  if (force_overwrite)
-    version = metadata::kNotInstalled;
-  else
-    version = metadata::installed_version(target_instance);
+  mysqlshdk::utils::Version version =
+      metadata::installed_version(target_instance);
 
   if (version != metadata::kNotInstalled) {
-    current_console()->print_note("Metadata schema found in target instance");
-  } else {
-    if (!dry_run) {
-      metadata::uninstall(target_instance);
-    }
+    current_console()->print_note(
+        "Invalid Metadata schema found in target instance: re-creating new "
+        "Metadata");
+  }
 
-    log_info("Deploying metadata schema in %s%s...",
-             target_instance->descr().c_str(), dry_run ? " (dryRun)" : "");
-    if (!dry_run) {
-      metadata::install(target_instance);
-    }
+  if (!dry_run) {
+    metadata::uninstall(target_instance);
+  }
+
+  log_info("Deploying metadata schema in %s%s...",
+           target_instance->descr().c_str(), dry_run ? " (dryRun)" : "");
+  if (!dry_run) {
+    metadata::install(target_instance);
   }
 }
 

@@ -43,7 +43,30 @@ EXPECT_THROWS(function() { c = dba.createCluster("c"); }, "Instance check failed
 EXPECT_STDOUT_CONTAINS("ERROR: The following tables use a storage engine that are not supported by Group Replication:")
 EXPECT_STDOUT_CONTAINS("ERROR: The following tables do not have a Primary Key or equivalent column:")
 
+session.runSql("DROP DATABASE test");
+
+// BUG#33574005: 1:1 mapping of Cluster:Metadata not enforced
+// createCluster() must always drop and re-created the MD schema to ensure older records are wiped out
+
+//@<> createCluster() must drop and re-create the MD schema
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+EXPECT_NO_THROWS(function() { c = dba.createCluster("first", {gtidSetIsComplete: true}); });
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+EXPECT_NO_THROWS(function() {c.addInstance(__sandbox_uri2); });
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+EXPECT_NO_THROWS(function() {c.removeInstance(__sandbox_uri2); });
+
+shell.connect(__sandbox_uri2);
+EXPECT_NO_THROWS(function() { c = dba.createCluster("second"); });
+
+EXPECT_THROWS_TYPE(function() {c = dba.getCluster("first");}, "The cluster with the name 'first' does not exist.", "MYSQLSH");
+
+EXPECT_EQ(1, session.runSql("select count(*) from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
 
 //@<> cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

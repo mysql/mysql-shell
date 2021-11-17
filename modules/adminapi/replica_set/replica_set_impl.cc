@@ -349,8 +349,8 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
   console->print_info("* Updating metadata...");
 
   try {
-    // First we need to create the Metadata Schema (if it doesn't already exist)
-    prepare_metadata_schema(m_cluster_server, false, dry_run);
+    // First we need to create the Metadata Schema
+    prepare_metadata_schema(m_cluster_server, dry_run);
 
     // Update metadata
     log_info("Creating replicaset metadata...");
@@ -430,7 +430,7 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
 
   try {
     // First we need to create the Metadata Schema
-    prepare_metadata_schema(primary_instance, false, dry_run);
+    prepare_metadata_schema(primary_instance, dry_run);
 
     // Update metadata
     log_info("Creating replicaset metadata...");
