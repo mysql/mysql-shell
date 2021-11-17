@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,21 @@ std::string current_time_rfc3339();
  * Provides time in h hours as a string conforming to RFC3339.
  */
 std::string future_time_rfc3339(const std::chrono::hours &h);
+
+/**
+ * Provides time point as a string conforming to RFC3339.
+ *
+ * Note: fractions of seconds are not included.
+ */
+std::string time_point_to_rfc3339(
+    const std::chrono::system_clock::time_point &tp);
+
+/**
+ * Converts a string conforming to RFC3339 to a corresponding time point in the
+ * local time zone.
+ */
+std::chrono::system_clock::time_point rfc3339_to_time_point(
+    const std::string &s);
 
 }  // namespace shcore
 
