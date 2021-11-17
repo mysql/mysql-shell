@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,8 +26,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -302,6 +304,22 @@ struct Range : public Basic_type<T> {
   T min;
   T max;
 };
+
+/// Extension of Range validator to require zero or positive values.
+template <class T>
+struct Non_negative : public Range<T> {
+  Non_negative() : Range<T>({}, std::numeric_limits<T>::max()) {}
+
+  T operator()(const std::string &data, Source source) {
+    auto t = Range<T>::operator()(data, source);
+    if (std::signbit(t)) {
+      // this is -0.0, negate the sign
+      t = -t;
+    }
+    return t;
+  }
+};
+
 }  // namespace opts
 
 class Options {
