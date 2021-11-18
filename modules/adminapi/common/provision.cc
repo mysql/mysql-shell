@@ -243,7 +243,7 @@ void wait_super_read_only_cleared(const mysqlshdk::mysql::IInstance &instance,
 
   if (*read_only) {
     // Check if super_read_only management is disabled
-    if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 24)) {
+    if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 26)) {
       bool sro_auto_clears;
       if (!mysqlshdk::gr::get_member_action_status(
               instance, mysqlshdk::gr::k_gr_disable_super_read_only_if_primary,
