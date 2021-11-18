@@ -37,6 +37,7 @@
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/common.h"
 #include "scripting/lang_base.h"
+#include "scripting/obj_date.h"
 #include "scripting/object_registry.h"
 #include "scripting/python_utils.h"
 #include "scripting/types.h"
@@ -440,5 +441,36 @@ TEST_F(Python, function_to_py) {
   ASSERT_THROW(py->execute("test_func(123)"), shcore::Exception);
   */
 }
+
+TEST_F(Python, date_to_py) {
+  std::error_code error;
+  std::shared_ptr<shcore::Date> date(
+      new shcore::Date(2000, 1, 1, 12, 23, 35, 526));
+
+  Value v(date);
+  Input_state cont = Input_state::Ok;
+  WillEnterPython lock;
+  // this will also test conversion of a wrapped array
+  ASSERT_EQ(py->convert(py->convert(v)).repr(), v.repr());
+
+  ASSERT_EQ(py->convert(py->convert(v)), v);
+
+  py->set_global("gdate", v);
+  ASSERT_EQ(py->get_global("gdate").repr(), v.repr());
+
+  ASSERT_EQ(py->execute_interactive("gdate", cont).repr(), v.repr());
+
+  ASSERT_EQ(py->execute_interactive("str(type(gdate))", cont).repr(),
+            "\"<class \\'datetime.datetime\\'>\"");
+
+  py->execute_interactive("import datetime", cont);
+
+  auto value = py->execute_interactive(
+      "datetime.datetime(2000, 1, 1, 12, 23, 35, 526)", cont);
+
+  ASSERT_EQ(value.as_object()->class_name(), "Date");
+  ASSERT_EQ(v, value);
+}
+
 }  // namespace tests
 }  // namespace shcore

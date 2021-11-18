@@ -197,6 +197,10 @@ class TYPES_COMMON_PUBLIC Python_context {
   std::weak_ptr<py::Store> store(PyObject *object);
   void erase(const std::shared_ptr<py::Store> &object);
 
+  PyObject *create_datetime_object(int year, int month, int day, int hour,
+                                   int minute, int second, int useconds);
+  PyTypeObject *get_datetime_type() const { return _datetime_type; }
+
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,
                                const std::string &stream);
@@ -230,6 +234,9 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *_db_error;
   PyObject *_error;
 
+  PyObject *_datetime = nullptr;
+  PyTypeObject *_datetime_type = nullptr;
+
   PyObject *_mysqlsh_module = nullptr;
   PyObject *_mysqlsh_globals = nullptr;
 
@@ -244,6 +251,8 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   void register_mysqlsh_builtins();
   void register_mysqlsh_module();
+
+  void get_datetime_constructor();
 
   bool raw_execute_helper(const std::string &statement, std::string *error);
 
