@@ -812,9 +812,3 @@ one server failure.
 
 //@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 ||Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
-
-//@ IPv6 on groupSeeds is not supported below 8.0.14 - 1 WL#12758 {VER(< 8.0.14)}
-||Instance does not support the following groupSeed value :'[::1]:<<<__mysql_sandbox_gr_port2>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
-
-//@ IPv6 on groupSeeds is not supported below 8.0.14 - 2 WL#12758 {VER(< 8.0.14)}
-||Instance does not support the following groupSeed values :'[::1]:<<<__mysql_sandbox_gr_port2>>>, [fe80::7e36:f49a:63c8:8ad6]:<<<__mysql_sandbox_gr_port1>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)

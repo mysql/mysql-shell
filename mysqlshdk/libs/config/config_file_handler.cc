@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019,  Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,16 +30,19 @@
 namespace mysqlshdk {
 namespace config {
 
-Config_file_handler::Config_file_handler(const std::string &input_config_path,
+Config_file_handler::Config_file_handler(const std::string &server_uuid,
+                                         const std::string &input_config_path,
                                          const std::string &output_cnf_path)
     : m_input_config_path(input_config_path),
-      m_output_config_path(output_cnf_path) {
+      m_output_config_path(output_cnf_path),
+      m_server_uuid(server_uuid) {
   // read the config file
   m_config_file.read(m_input_config_path);
 }
 
-Config_file_handler::Config_file_handler(const std::string &output_cnf_path)
-    : m_output_config_path(output_cnf_path) {}
+Config_file_handler::Config_file_handler(const std::string &server_uuid,
+                                         const std::string &output_cnf_path)
+    : m_output_config_path(output_cnf_path), m_server_uuid(server_uuid) {}
 
 namespace {
 bool config_var_to_bool(const std::string &name, const std::string &str_value) {

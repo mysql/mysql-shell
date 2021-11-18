@@ -29,6 +29,7 @@ group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
+group_replication_group_seeds = 
 ?{VER(>=8.0.22)}
 group_replication_ip_allowlist = AUTOMATIC
 ?{}
@@ -190,6 +191,7 @@ group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
 group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
+group_replication_group_seeds = 
 ?{VER(>=8.0.22)}
 group_replication_ip_allowlist = AUTOMATIC
 ?{}

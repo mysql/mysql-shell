@@ -123,7 +123,8 @@ class Cluster_join {
                      Recovery_progress_style progress_style);
 
   void update_group_peers(int cluster_member_count,
-                          const std::string &self_address);
+                          const std::string &self_address,
+                          bool group_seeds_only = false);
 
   /*
    * Handle the loading/unloading of the clone plugin on the target cluster

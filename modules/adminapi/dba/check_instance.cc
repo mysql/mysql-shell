@@ -287,8 +287,8 @@ void Check_instance::prepare_config_object() {
   // be skipped
   if (use_cfg_handler) {
     mysqlsh::dba::add_config_file_handler(
-        m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler, m_mycnf_path,
-        m_mycnf_path);
+        m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler,
+        m_target_instance->get_uuid(), m_mycnf_path, m_mycnf_path);
   }
 }
 

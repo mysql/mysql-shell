@@ -240,7 +240,7 @@ OPTIONS
 --groupSeeds=<str>
             String value with a comma-separated list of the Group Replication
             peer addresses to be used instead of the automatically generated
-            one.
+            one. Deprecated and ignored.
 
 --exitStateAction=<str>
             String value indicating the group replication exit state action.

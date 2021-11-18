@@ -502,11 +502,13 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
  *
  * @param cfg pointer to a config object
  * @param handler_name name to be given to the config_file handler
+ * @param server_uuid of the instance the file belongs to
  * @param mycnf_path path to the mycnf_path
  * @param output_mycnf_path path to the output_cnf_path
  */
 void add_config_file_handler(mysqlshdk::config::Config *cfg,
-                             const std::string handler_name,
+                             const std::string &handler_name,
+                             const std::string &server_uuid,
                              const std::string &mycnf_path,
                              const std::string &output_mycnf_path);
 

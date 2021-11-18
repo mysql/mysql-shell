@@ -518,10 +518,10 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
 
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
-  cfg.add_handler(
-      mysqlshdk::config::k_dft_cfg_file_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_file_handler(
+                          "uuid1", m_cfg_path, m_cfg_path)));
 
   // Issues found on both server and option file (with no values set).
   res.clear();
@@ -608,10 +608,10 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
 
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
-  cfg.add_handler(
-      mysqlshdk::config::k_dft_cfg_file_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_file_handler(
+                          "uuid1", m_cfg_path, m_cfg_path)));
 
   // Issues found on both server and option file (with no values set).
   res.clear();
@@ -680,10 +680,10 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
 
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
-  cfg.add_handler(
-      mysqlshdk::config::k_dft_cfg_file_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_file_handler(
+                          "uuid1", m_cfg_path, m_cfg_path)));
 
   // Issues found on the option file (with no values set).
   res.clear();
@@ -826,10 +826,10 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
 
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
-  cfg.add_handler(
-      mysqlshdk::config::k_dft_cfg_file_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_file_handler(
+                          "uuid1", m_cfg_path, m_cfg_path)));
 
   // Issues found on the option file (with no values set).
   // The current value should be the one from the server.
@@ -946,10 +946,10 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
   mysqlshdk::config::Config cfg_file_only;
-  cfg_file_only.add_handler(
-      mysqlshdk::config::k_dft_cfg_file_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+  cfg_file_only.add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                            std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                                new mysqlshdk::config::Config_file_handler(
+                                    "uuid1", m_cfg_path, m_cfg_path)));
 
   // Issues found on the option file only (with no values set).
   res.clear();
@@ -1090,10 +1090,10 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   // add the empty file as well to the cfg handler and check that incorrect
   // server results override the incorrect file results for the current value
   // field of the invalid config.
-  cfg.add_handler(
-      mysqlshdk::config::k_dft_cfg_file_handler,
-      std::unique_ptr<mysqlshdk::config::IConfig_handler>(
-          new mysqlshdk::config::Config_file_handler(m_cfg_path, m_cfg_path)));
+  cfg.add_handler(mysqlshdk::config::k_dft_cfg_file_handler,
+                  std::unique_ptr<mysqlshdk::config::IConfig_handler>(
+                      new mysqlshdk::config::Config_file_handler(
+                          "uuid1", m_cfg_path, m_cfg_path)));
 
   // change the dynamic variables so there are server issues
   m_instance->set_sysvar("binlog_format", static_cast<std::string>("STATEMENT"),

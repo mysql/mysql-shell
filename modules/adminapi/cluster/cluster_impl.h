@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_CLUSTER_CLUSTER_IMPL_H_
 
 #include <list>
+#include <map>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -318,8 +319,7 @@ class Cluster_impl : public Base_cluster_impl,
       const mysqlshdk::mysql::IInstance &target_instance,
       const std::string &var_name) const;
 
-  std::string get_cluster_group_seeds(
-      const std::shared_ptr<Instance> &target_instance = nullptr) const;
+  std::map<std::string, std::string> get_cluster_group_seeds() const;
 
   /**
    * Get ONLINE and RECOVERING instances from the cluster.
@@ -418,8 +418,7 @@ class Cluster_impl : public Base_cluster_impl,
    *
    * @param local_gr_address string with the local GR address (XCom) to remove.
    */
-  void update_group_members_for_removed_member(
-      const std::string &local_gr_address);
+  void update_group_members_for_removed_member(const std::string &server_uuid);
 
   void adopt_from_gr();
 

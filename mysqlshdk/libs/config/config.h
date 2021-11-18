@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,6 +71,8 @@ class IConfig_handler {
                    const utils::nullable<std::string> &value,
                    const std::string &context) = 0;
   virtual void apply() = 0;
+
+  virtual std::string get_server_uuid() const = 0;
 };
 
 /**
@@ -176,6 +178,11 @@ class Config : public IConfig_handler {
    * option file or serve instance).
    */
   void apply() override;
+
+  std::string get_server_uuid() const override {
+    // this class should probably not inherit from IConfig_handler
+    throw std::logic_error("invalid");
+  }
 
   /**
    * Verify if the specified configuration handler exists (is registered).

@@ -78,7 +78,6 @@ set(mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/unittest/modules/dummy_dumpdir.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_cluster_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/preconditions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/common/clone_handling_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/common/metadata_management_t.cc"

@@ -127,21 +127,6 @@ shcore::Value Configure_local_instance::execute() {
       return {};
     console->print_info("Persisting the cluster settings...");
 
-    // Print warning if no group_seed value is empty (not set).
-    if ((*m_cfg->get_string("group_replication_group_seeds")).empty()) {
-      std::string instance_address =
-          m_target_instance->get_connection_options().as_uri(
-              mysqlshdk::db::uri::formats::only_transport());
-
-      console->print_warning(
-          "The 'group_replication_group_seeds' is not defined on instance '" +
-          instance_address +
-          "'. This option is mandatory to allow the server to automatically "
-          "rejoin the cluster after reboot. Please manually update its value "
-          "on "
-          "the option file.");
-    }
-
     // make sure super_read_only=1 is persisted to disk
     m_cfg->set_for_handler("super_read_only",
                            mysqlshdk::utils::nullable<bool>(true),

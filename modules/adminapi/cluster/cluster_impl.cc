@@ -436,92 +436,26 @@ void Cluster_impl::validate_variable_compatibility(
 }
 
 /**
- * Get an up-to-date group seeds value based on the current list of active
- * members.
+ * Returns group seeds for all members of the cluster
  *
- * An optional instance_session parameter can be provided that will be used to
- * get its current GR group seeds value and add the local address from the
- * active members (avoiding duplicates) to that initial value, allowing to
- * preserve the GR group seeds of the specified instance. If no
- * instance_session is given (nullptr) then the returned groups seeds value
- * will only be based on the currently active members, disregarding any current
- * GR group seed value on any instance (allowing to reset the group seed only
- * based on the currently active members).
- *
- * @param target_instance Session to the target instance to get the group
- *                         seeds for.
- * @return a string with a comma separated list of all the GR local address
- *         values of the currently active (ONLINE or RECOVERING) instances in
- *         the cluster.
+ * @return (server_uuid, endpoint) map of all group seeds of the cluster
  */
-std::string Cluster_impl::get_cluster_group_seeds(
-    const std::shared_ptr<Instance> &target_instance) const {
-  // Get connection option for the metadata.
+std::map<std::string, std::string> Cluster_impl::get_cluster_group_seeds()
+    const {
+  std::map<std::string, std::string> group_seeds;
 
-  std::shared_ptr<Instance> cluster_instance = get_cluster_server();
-  Connection_options cluster_cnx_opt =
-      cluster_instance->get_connection_options();
+  auto instances = get_metadata_storage()->get_all_instances(get_id());
+  for (const auto &i : instances) {
+    assert(!i.grendpoint.empty());
+    assert(!i.uuid.empty());
+    if (i.grendpoint.empty() || i.uuid.empty())
+      log_error("Metadata for instance %s is invalid (grendpoint=%s, uuid=%s)",
+                i.endpoint.c_str(), i.grendpoint.c_str(), i.uuid.c_str());
 
-  // Get list of active instances (ONLINE or RECOVERING)
-  std::vector<Instance_metadata> active_instances = get_active_instances();
-
-  std::vector<std::string> gr_group_seeds_list;
-  // If the target instance is provided, use its current GR group seed variable
-  // value as starting point to append new (missing) values to it.
-  if (target_instance) {
-    // Get the instance GR group seeds and save it to the GR group seeds list.
-    std::string gr_group_seeds = *target_instance->get_sysvar_string(
-        "group_replication_group_seeds",
-        mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    if (!gr_group_seeds.empty()) {
-      gr_group_seeds_list = shcore::split_string(gr_group_seeds, ",");
-    }
+    group_seeds[i.uuid] = i.grendpoint;
   }
 
-  // Get the update GR group seed from local address of all active instances.
-  for (Instance_metadata &instance_def : active_instances) {
-    std::string instance_address = instance_def.endpoint;
-    Connection_options target_coptions =
-        shcore::get_connection_options(instance_address, false);
-    // It is assumed that the same user and password is used by all members.
-    target_coptions.set_login_options_from(cluster_cnx_opt);
-
-    // Connect to the instance.
-    std::shared_ptr<Instance> instance;
-    try {
-      log_debug(
-          "Connecting to instance '%s' to get its value for the "
-          "group_replication_local_address variable.",
-          instance_address.c_str());
-      instance = Instance::connect(target_coptions,
-                                   current_shell_options()->get().wizards);
-    } catch (const shcore::Error &e) {
-      if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-        log_info(
-            "Could not connect to instance '%s', its local address will not "
-            "be used for the group seeds: %s",
-            instance_address.c_str(), e.format().c_str());
-        break;
-      } else {
-        throw shcore::Exception::runtime_error("While connecting to " +
-                                               target_coptions.uri_endpoint() +
-                                               ": " + e.what());
-      }
-    }
-
-    // Get the instance GR local address and add it to the GR group seeds list.
-    std::string local_address =
-        *instance->get_sysvar_string("group_replication_local_address",
-                                     mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    if (std::find(gr_group_seeds_list.begin(), gr_group_seeds_list.end(),
-                  local_address) == gr_group_seeds_list.end()) {
-      // Only add the local address if not already in the group seed list,
-      // avoiding duplicates.
-      gr_group_seeds_list.push_back(local_address);
-    }
-  }
-
-  return shcore::str_join(gr_group_seeds_list, ",");
+  return group_seeds;
 }
 
 std::vector<Instance_metadata> Cluster_impl::get_instances(
@@ -1111,7 +1045,7 @@ void Cluster_impl::query_group_wide_option_values(
 }
 
 void Cluster_impl::update_group_members_for_removed_member(
-    const std::string &local_gr_address) {
+    const std::string &server_uuid) {
   // Get the Cluster Config Object
   auto cfg = create_config_object({}, true);
 
@@ -1119,8 +1053,13 @@ void Cluster_impl::update_group_members_for_removed_member(
   // their group_replication_group_seeds value by removing the
   // gr_local_address of the instance that was removed
   log_debug("Updating group_replication_group_seeds of cluster members");
-  mysqlshdk::gr::update_group_seeds(
-      cfg.get(), local_gr_address, mysqlshdk::gr::Gr_seeds_change_type::REMOVE);
+  {
+    auto group_seeds = get_cluster_group_seeds();
+    if (group_seeds.find(server_uuid) != group_seeds.end()) {
+      group_seeds.erase(server_uuid);
+    }
+    mysqlshdk::gr::update_group_seeds(cfg.get(), group_seeds);
+  }
   cfg->apply();
 
   // Update the auto-increment values

@@ -13,10 +13,6 @@
 //@ Create cluster errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__mysql_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__mysql_port>>>'. (RuntimeError)
 
-//@ Create cluster errors using groupSeeds option
-||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-||Invalid address format: 'abc'
-
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 ||
 
@@ -47,18 +43,6 @@
 //@ Dissolve cluster (FR1-TS-1-10)
 ||
 
-//@ Create cluster specifying 127.0.0.1:<valid_port> for groupSeeds (FR2-TS-1-1)
-||
-
-//@ Dissolve cluster (FR2-TS-1-1)
-||
-
-//@ Create cluster specifying 127.0.0.1:<valid_port>,127.0.0.1:<valid_port2> for groupSeeds (FR2-TS-1-2)
-||
-
-//@ Dissolve cluster (FR2-TS-1-2)
-||
-
 //@ Create cluster specifying aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa for groupName (FR3-TS-1-1)
 ||
 
@@ -83,10 +67,6 @@
 
 //@ Add instance errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__mysql_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__mysql_port>>>'. (RuntimeError)
-
-//@ Add instance errors using groupSeeds option
-||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-||Invalid address format: 'abc'
 
 //@ Add instance error using groupName (not a valid option)
 ||Invalid options: groupName (ArgumentError)
@@ -118,28 +98,13 @@
 //@ Add instance specifying <valid_host>:<valid_port> for localAddress (FR1-TS-2-10)
 ||
 
-//@ Remove instance (FR1-TS-2-10)
-||
-
-//@ Add instance specifying 127.0.0.1:<valid_port> for groupSeeds (FR2-TS-2-1)
-||
-
-//@ Remove instance (FR2-TS-2-1)
-||
-
-//@ Add instance specifying 127.0.0.1:<valid_port>,127.0.0.1:<valid_port2> for groupSeeds (FR2-TS-2-2)
-||
-
-//@ Remove instance (FR2-TS-2-2)
-||
-
 //@ Dissolve cluster
 ||
 
-//@ Create cluster with a specific localAddress, groupSeeds and groupName (FR1-TS-4)
+//@ Create cluster with a specific localAddress and groupName (FR1-TS-4)
 ||
 
-//@ Add instance with a specific localAddress and groupSeeds (FR1-TS-4)
+//@ Add instance with a specific localAddress (FR1-TS-4)
 ||
 
 //@ Add a 3rd instance to ensure it will not affect the persisted group seed values specified on others (FR1-TS-4)

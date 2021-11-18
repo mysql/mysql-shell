@@ -143,7 +143,7 @@ DESCRIPTION
         be used instead of the automatically generated one.
       - groupSeeds: string value with a comma-separated list of the Group
         Replication peer addresses to be used instead of the automatically
-        generated one.
+        generated one. Deprecated and ignored.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
@@ -239,10 +239,9 @@ DESCRIPTION
       determined default port value is invalid (> 65535) then an error is
       thrown.
 
-      The value for groupSeeds is used to set the Group Replication system
-      variable 'group_replication_group_seeds'. The groupSeeds option accepts a
-      comma-separated list of addresses in the format:
-      'host1:port1,...,hostN:portN'.
+      The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is
+      ignored. 'group_replication_group_seeds' is automatically set based on
+      the current topology.
 
       The value for exitStateAction is used to configure how Group Replication
       behaves when a server instance leaves the group unintentionally (for
@@ -277,6 +276,8 @@ DESCRIPTION
 
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
+
+      ATTENTION: The groupSeeds option will be removed in a future release.
 
 #@<OUT> cluster.check_instance_state
 NAME

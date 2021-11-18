@@ -519,15 +519,13 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
-//@<> IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@<> IPv6 addresses are supported on localAddress and ipWhitelist WL#12758 {VER(>= 8.0.14)}
 var local_address = "[::1]:" + __mysql_sandbox_gr_port2;
 var ip_white_list = "::1, 127.0.0.1";
-var group_seeds = "[::1]:" + __mysql_sandbox_gr_port1; + ", [::1]:" + __mysql_sandbox_gr_port2;
-cluster.addInstance(__sandbox_uri2, {ipWhitelist:ip_white_list, groupSeeds:group_seeds, localAddress:local_address});
+cluster.addInstance(__sandbox_uri2, {ipWhitelist:ip_white_list, localAddress:local_address});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 shell.connect(__sandbox_uri2);
 EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
-EXPECT_EQ(group_seeds, get_sysvar(session, "group_replication_group_seeds"));
 
 //@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.22)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
@@ -566,14 +564,6 @@ cluster.addInstance(__sandbox_uri2, {localAddress: local_address});
 
 //@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 cluster.addInstance(__sandbox_uri2, {ipWhitelist: "::1, 127.0.0.1"});
-
-//@ IPv6 on groupSeeds is not supported below 8.0.14 - 1 WL#12758 {VER(< 8.0.14)}
-var group_seeds = "127.0.0.1:" + __mysql_sandbox_gr_port1 + ", [::1]:" + __mysql_sandbox_gr_port2;
-cluster.addInstance(__sandbox_uri2, {groupSeeds: group_seeds});
-
-//@ IPv6 on groupSeeds is not supported below 8.0.14 - 2 WL#12758 {VER(< 8.0.14)}
-var group_seeds = "127.0.0.1:" + __mysql_sandbox_gr_port1 + ", [::1]:" + __mysql_sandbox_gr_port2 + " , [fe80::7e36:f49a:63c8:8ad6]:" + __mysql_sandbox_gr_port1;
-cluster.addInstance(__sandbox_uri2, {groupSeeds:group_seeds});
 
 //@<> Cleanup IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 session.close();
