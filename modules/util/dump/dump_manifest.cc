@@ -374,7 +374,7 @@ std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
     Par_structure data;
     Par_type par_type = parse_par(name, &data);
     if (par_type != Par_type::NONE) {
-      if (data.region == reader->region() &&
+      if (data.region == reader->region() && data.domain == reader->domain() &&
           data.ns_name == *m_bucket->get_options().os_namespace &&
           data.bucket == *m_bucket->get_options().os_bucket_name &&
           data.object_prefix == prefix) {

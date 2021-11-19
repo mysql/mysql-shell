@@ -83,6 +83,7 @@ struct Oci_options {
 
   // Internal use options
   mysqlshdk::utils::nullable<std::string> oci_region;
+  mysqlshdk::utils::nullable<std::string> oci_domain;
 
   void set_par(const mysqlshdk::null_string &url);
 

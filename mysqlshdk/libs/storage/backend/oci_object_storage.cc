@@ -55,23 +55,23 @@ using mysqlshdk::oci::Oci_service;
 using mysqlshdk::oci::Response_error;
 
 const std::regex k_full_par_parser(
-    "^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com\\/"
-    "p\\/(.+)\\/n\\/(.+)\\/b\\/(.*)\\/o\\/((.*)\\/)?(.*)$");
+    R"(^https:\/\/objectstorage\.([^\.]+)\.([^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((.*)\/)?(.*)$)");
 
 namespace par_tokens {
 const size_t REGION = 1;
-const size_t PARID = 2;
-const size_t NAMESPACE = 3;
-const size_t BUCKET = 4;
-const size_t PREFIX = 5;
-[[maybe_unused]] const size_t DIRNAME = 6;
-const size_t BASENAME = 7;
+const size_t FULL_DOMAIN = 2;
+const size_t PARID = 3;
+const size_t NAMESPACE = 4;
+const size_t BUCKET = 5;
+const size_t PREFIX = 6;
+[[maybe_unused]] const size_t DIRNAME = 7;
+const size_t BASENAME = 8;
 }  // namespace par_tokens
 
 std::string Par_structure::get_par_url() const {
-  return shcore::str_format(
-      "https://objectstorage.%s.oraclecloud.com/p/%s/n/%s/b/%s/o/",
-      region.c_str(), par_id.c_str(), ns_name.c_str(), bucket.c_str());
+  return shcore::str_format("https://objectstorage.%s.%s/p/%s/n/%s/b/%s/o/",
+                            region.c_str(), domain.c_str(), par_id.c_str(),
+                            ns_name.c_str(), bucket.c_str());
 }
 
 std::string Par_structure::get_object_path() const {
@@ -87,6 +87,7 @@ Par_type parse_par(const std::string &url, Par_structure *data) {
   if (std::regex_match(url, results, k_full_par_parser)) {
     data->full_url = url;
     data->region = results[par_tokens::REGION];
+    data->domain = results[par_tokens::FULL_DOMAIN];
     data->par_id = results[par_tokens::PARID];
     data->ns_name = results[par_tokens::NAMESPACE];
     data->bucket = results[par_tokens::BUCKET];
