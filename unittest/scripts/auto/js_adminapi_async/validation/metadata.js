@@ -14,13 +14,7 @@
     cluster_id: [[*]]
   cluster_name: mycluster
 router_options: NULL
-*************************** 2. row ***************************
-  cluster_type: ar
-  primary_mode: pm
-    cluster_id: [[*]]
-  cluster_name: myrs
-router_options: NULL
-2
+1
 
 //@<OUT> instances
 *************************** 1. row ***************************
@@ -32,68 +26,49 @@ mysql_server_uuid: <<<uuid1>>>
          endpoint: 127.0.0.1:<<<__mysql_sandbox_port1>>>
         xendpoint: 127.0.0.1:<<<__mysql_sandbox_port1>>>0
        attributes: {"server_id": 11, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_11"}
-*************************** 2. row ***************************
-      instance_id: 2
-       cluster_id: [[*]]
-            label: 127.0.0.1:<<<__mysql_sandbox_port2>>>
-mysql_server_uuid: <<<uuid2>>>
-          address: 127.0.0.1:<<<__mysql_sandbox_port2>>>
-         endpoint: 127.0.0.1:<<<__mysql_sandbox_port2>>>
-        xendpoint: 127.0.0.1:<<<__mysql_sandbox_port2>>>0
-       attributes: {"server_id": 22, "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_22"}
-2
+1
 
 //@# this_instance
 |cluster_id	instance_id	cluster_name	cluster_type|
-|<<<cluster_id1>>>	1	mycluster	gr|
-|cluster_id	instance_id	cluster_name	cluster_type|
-|<<<cluster_id2>>>	2	myrs	ar|
+|<<<cluster_id2>>>	1	myrs	ar|
 
-//@# Check sb1.getCluster() with mixed metadata
-|<Cluster:mycluster>|
-|    "clusterName": "mycluster",|
-|       "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
+//@# Check sb1.getCluster()
+||
 
-//@# Check sb1.getReplicaSet() with mixed metadata (should fail)
+//@# Check sb1.getReplicaSet() (should fail)
 ||This function is not available through a session to an instance already in an InnoDB Cluster
 
-//@# Check sb2.getCluster() with mixed metadata (should fail)
+//@# Check sb2.getCluster() (should fail)
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet
 
-//@# Check sb2.getReplicaSet() with mixed metadata
+//@# Check sb2.getReplicaSet()
 |<ReplicaSet:myrs>|
 |"metadataVersion": "<<<testutil.getInstalledMetadataVersion()>>>",|
 |"name": "myrs",|
 |"primary": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
 
 //@# Merge schema from different sources (rs then cluster)
-|               Slave_IO_State: Waiting for <<<__source_keyword>>> to send event|
-|      Slave_SQL_Running_State: <<<__replica_keyword_capital>>> has read all relay log; waiting for more updates|
 |cluster_type	primary_mode	cluster_id	cluster_name	router_options|
 |ar	pm	<<<cluster_id1>>>	myrs	NULL|
-|gr	pm	<<<cluster_id2>>>	mycluster	NULL|
 |instance_id	cluster_id	label	mysql_server_uuid	address	endpoint	xendpoint	attributes|
 |1	<<<cluster_id1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	<<<uuid1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>0	{"server_id": 11, "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_11"}|
-|2	<<<cluster_id2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>	<<<uuid2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>	127.0.0.1:<<<__mysql_sandbox_port2>>>0	{"server_id": 22, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_22"}|
 
 //@# this_instance again
 |cluster_id	instance_id	cluster_name	cluster_type|
 |<<<cluster_id1>>>	1	myrs	ar|
-|cluster_id	instance_id	cluster_name	cluster_type|
-|<<<cluster_id2>>>	2	mycluster	gr|
 
-//@# Check sb1.getCluster() with mixed metadata again (should fail)
+//@# Check sb1.getCluster() (should fail)
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 
-//@# Check sb1.getReplicaSet() with mixed metadata again
+//@# Check sb1.getReplicaSet()
 |<ReplicaSet:myrs>|
 |"name": "myrs",|
 |"primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
 
-//@# Check sb2.getCluster() with mixed metadata again
+//@# Check sb2.getCluster()
 |<Cluster:mycluster>|
 |    "clusterName": "mycluster",|
 |       "primary": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
 
-//@# Check sb2.getReplicaSet() with mixed metadata again (should fail)
+//@# Check sb2.getReplicaSet() (should fail)
 ||This function is not available through a session to an instance already in an InnoDB Cluster

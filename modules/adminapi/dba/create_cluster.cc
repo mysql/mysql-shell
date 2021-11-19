@@ -440,7 +440,7 @@ void Create_cluster::prepare_metadata_schema() {
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  mysqlsh::dba::prepare_metadata_schema(m_target_instance, m_retrying, false);
+  mysqlsh::dba::prepare_metadata_schema(m_target_instance, false);
 }
 
 void Create_cluster::setup_recovery(Cluster_impl *cluster,

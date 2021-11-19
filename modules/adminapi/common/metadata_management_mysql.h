@@ -36,7 +36,7 @@ namespace mysqlsh {
 namespace dba {
 
 void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
-                             bool force_overwrite, bool dry_run);
+                             bool dry_run);
 
 namespace metadata {
 
