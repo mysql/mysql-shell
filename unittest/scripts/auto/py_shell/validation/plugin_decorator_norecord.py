@@ -11,6 +11,12 @@ DESCRIPTION
       On this case, a global object will be registered using as name this class
       name.
 
+      Unordered lists are supported using sphinx syntax:
+
+      - Item 1
+      - Item 2
+      - Item 3
+
 PROPERTIES
       inner
             Brief description of a child plugin object.
@@ -234,6 +240,12 @@ DESCRIPTION
       On this case, a global object will be registered using as name this class
       name.
 
+      Unordered lists are supported using sphinx syntax:
+
+      - Item 1
+      - Item 2
+      - Item 3
+
 PROPERTIES
       inner
             Brief description of a child plugin object.
@@ -384,6 +396,12 @@ WHERE
 DESCRIPTION
       This test ensures the dictionaries and options are properly parsed based
       on the documentation.
+
+      Unordered lists are supported using sphinx syntax:
+
+      - Item 1
+      - Item 2
+      - Item 3
 
       The dictOne parameter accepts the following options:
 

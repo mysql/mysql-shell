@@ -15,6 +15,12 @@ class decorator:
 
     On this case, a global object will be registered using as name this class
     name.
+
+    Unordered lists are supported using sphinx syntax:
+
+    * Item 1
+    * Item 2
+    * Item 3
     """
 
     class inner:
@@ -149,6 +155,12 @@ def test_more_options(dictOne, dictTwo, dictThree, dictFour):
 
     This test ensures the dictionaries and options are properly parsed
     based on the documentation.
+
+    Unordered lists are supported using sphinx syntax:
+
+    * Item 1
+    * Item 2
+    * Item 3
 
     Allowed options for optOne:
         strSample (str): sample option

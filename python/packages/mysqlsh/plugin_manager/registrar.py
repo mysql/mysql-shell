@@ -206,7 +206,7 @@ class PluginRegistrar:
                     options.append(o.format_info())
                 info["options"] = options
 
-            if self.definition.name == "kwargs":
+            if self.definition.kind == inspect.Parameter.VAR_KEYWORD:
                 info["required"] = False
 
             return info
@@ -308,7 +308,7 @@ class PluginRegistrar:
                 if line.endswith(":"):
                     section_name = line
                     section = self._get_doc_section(section_name)
-                elif section_name.startswith("global") or len(line) == 0 or line[0] == " ":
+                elif section_name.startswith("global") or len(line) == 0 or line[0] == " " or line.startswith("* "):
                     section.append(line)
                 else:
                     global_count = global_count + 1
@@ -319,11 +319,15 @@ class PluginRegistrar:
             # Removes leading and trailing blank lines from all the sections
             for name, section in self._doc_sections.items():
                 name = name  # name is not used
-                while len(section[0]) == 0:
+
+                while section and len(section[0]) == 0:
                     section.pop(0)
 
-                while len(section[-1]) == 0:
+                while section and len(section[-1]) == 0:
                     section.pop(-1)
+
+                if len(section) == 0:
+                    raise Exception(f"Invalid format: section without content: {name}")
 
             # Parses the function brief description
             self._parse_function_brief()
@@ -407,11 +411,23 @@ class PluginRegistrar:
                     if not section_name.startswith("global"):
                         details.append("<b>" + section_name + "</b>")
 
+                    # Backup the section index, in case it was not really a
+                    # section, i.e. it is the description of a list of items
+                    # the bold will be removed
+                    section_index = len(details) - 1
+
                     for line in section:
                         stripped_line = line.strip()
                         if len(stripped_line) == 0:
                             details.append(" ".join(paragraph))
                             paragraph.clear()
+                        elif line.startswith("* "):
+                            # If this is the first thing added to the section,
+                            # then it was not a real section but the
+                            # description of a list of items. Remove the <b>
+                            if section_index == len(details) - 2:
+                                details[section_index] = section_name
+                            details.append(line.replace("* ", "@li "))
                         else:
                             paragraph.append(line)
 
