@@ -1462,7 +1462,7 @@ void Dumper::do_run() {
   const auto server_version = Version(m_cache.server_version);
 
   if (server_version < Version(8, 0, 21) ||
-      server_version > Version(8, 0, 23) || !m_options.dump_users()) {
+      server_version > Version(8, 0, 23) || !dump_users()) {
     // SHOW CREATE USER auto-commits transaction in some 8.0 versions, we don't
     // check if transaction is still open in such case if users were dumped
     assert_transaction_is_open(session());
@@ -1555,8 +1555,10 @@ void Dumper::fetch_user_privileges() {
 
   instance.get_current_user(&user, &host);
 
-  m_user_privileges = std::make_unique<User_privileges>(instance, user, host);
+  m_user_privileges = instance.get_user_privileges(user, host, true);
   m_user_account = shcore::make_account(user, host);
+  m_skip_grant_tables_active =
+      "'skip-grants user'@'skip-grants host'" == m_user_account;
 }
 
 void Dumper::lock_all_tables() {
@@ -1928,7 +1930,7 @@ void Dumper::initialize_instance_cache() {
       m_options.excluded_schemas(), m_options.excluded_tables(),
       std::move(m_cache));
 
-  if (m_options.dump_users()) {
+  if (dump_users()) {
     builder.users(m_options.included_users(), m_options.excluded_users());
   }
 
@@ -2010,7 +2012,7 @@ void Dumper::create_schema_tasks() {
 
 void Dumper::validate_mds() const {
   if (!m_options.mds_compatibility() ||
-      (!m_options.dump_ddl() && !m_options.dump_users())) {
+      (!m_options.dump_ddl() && !dump_users())) {
     return;
   }
 
@@ -2051,7 +2053,7 @@ void Dumper::validate_mds() const {
 
   const auto dumper = schema_dumper(session());
 
-  if (m_options.dump_users()) {
+  if (dump_users()) {
     issues(dump_users(dumper.get()));
   }
 
@@ -2309,7 +2311,7 @@ void Dumper::dump_global_ddl() const {
 }
 
 void Dumper::dump_users_ddl() const {
-  if (!m_options.dump_users()) {
+  if (!dump_users()) {
     return;
   }
 
@@ -2737,7 +2739,7 @@ void Dumper::write_dump_started_metadata() const {
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
   }
 
-  if (m_options.dump_users()) {
+  if (dump_users()) {
     const auto dumper = schema_dumper(session());
 
     // list of users
@@ -3426,7 +3428,7 @@ void Dumper::validate_privileges() const {
     table_required.emplace(std::move(select));
   }
 
-  if (m_cache.server_is_5_6 && m_options.dump_users()) {
+  if (m_cache.server_is_5_6 && dump_users()) {
     // on 5.6, SUPER is required to get the real hash value from SHOW GRANTS
     std::string super{"SUPER"};
     all_required.emplace(super);
@@ -3514,7 +3516,7 @@ bool Dumper::is_gtid_executed_inconsistent() const {
 }
 
 void Dumper::validate_schemas_list() const {
-  if (!m_options.dump_users() && m_cache.schemas.empty()) {
+  if (!dump_users() && m_cache.schemas.empty()) {
     throw std::logic_error("Filters for schemas result in an empty set.");
   }
 }
@@ -3572,9 +3574,15 @@ void Dumper::print_object_stats() const {
   console->print_status(msg);
 
   if (m_options.dump_users()) {
-    console->print_status(format_object_stats(m_cache.filtered.users,
-                                              m_cache.total.users, "users") +
-                          " will be dumped.");
+    if (m_skip_grant_tables_active) {
+      console->print_warning(
+          "Server is running with the --skip-grant-tables option active, "
+          "dumping users, roles and grants has been disabled.");
+    } else {
+      console->print_status(format_object_stats(m_cache.filtered.users,
+                                                m_cache.total.users, "users") +
+                            " will be dumped.");
+    }
   }
 }
 
@@ -3593,6 +3601,10 @@ std::string Dumper::format_object_stats(uint64_t value, uint64_t total,
   }
 
   return format;
+}
+
+bool Dumper::dump_users() const {
+  return m_options.dump_users() && !m_skip_grant_tables_active;
 }
 
 }  // namespace dump

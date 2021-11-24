@@ -158,6 +158,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
   expose("restartSandbox", &Testutils::restart_sandbox, "port");
   expose("waitSandboxAlive", &Testutils::wait_sandbox_alive, "port_or_uri");
+  expose("waitSandboxDead", &Testutils::wait_sandbox_dead, "port");
   expose("snapshotSandboxConf", &Testutils::snapshot_sandbox_conf, "port");
   expose("beginSnapshotSandboxErrorLog",
          &Testutils::begin_snapshot_sandbox_error_log, "port");
@@ -1615,6 +1616,19 @@ static int os_file_lock(int fd) {
 }
 #endif
 
+//!<  @name Sandbox Operations
+///@{
+/**
+ * Waits for the sandbox at the indicated port to stop.
+ * @param port The port where the sandbox listens for mysql protocol
+ * connections.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::waitSandboxDead(Integer port);
+#elif DOXYGEN_PY
+None Testutils::wait_sandbox_dead(int port);
+#endif
+///@}
 void Testutils::wait_sandbox_dead(int port) {
   log_info("Waiting for ports (%d)...", port);
   // wait until classic, x and Xcom ports are free

@@ -1917,6 +1917,46 @@ EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed 
 # verify correctness
 compare_servers(session1, session2, check_users=False)
 
+#@<> BUG#33592520 dump when --skip-grant-tables is active
+# prepare the server
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+session.run_sql("create database test;")
+session.run_sql("use test;")
+session.run_sql("create table t(a int primary key, b int, c int, index(b), index(c)) engine=innodb;")
+session.run_sql("set @N=0;")
+session.run_sql("insert into t select @N:=@N+1, if(@N<50 or @N=999950, 1, 2 + rand()*1000), if(@N<50 or @N=999950, 50, 49 + rand()*5) from mysql.help_topic a, mysql.help_topic b, mysql.help_topic c limit 100000;")
+session.run_sql("analyze table t;")
+
+# get the socket URI, use invalid credentials
+socket_uri = shell.unparse_uri({ **shell.parse_uri(get_socket_uri(session)), "user": "invalid", "password": "invalid" })
+
+# enable --skip-grant-tables, restart the server
+testutil.change_sandbox_conf(__mysql_sandbox_port2, "skip-grant-tables", "ON")
+testutil.restart_sandbox(__mysql_sandbox_port2)
+testutil.wait_sandbox_alive(socket_uri)
+
+# dump the instance, include users, this should be implicitly disabled, since --skip-grant-tables is in effect
+dump_dir = os.path.join(outdir, "bug_33592520")
+
+shell.connect(socket_uri)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "showProgress": False }), "Dumping should not throw")
+EXPECT_STDOUT_CONTAINS("WARNING: Server is running with the --skip-grant-tables option active, dumping users, roles and grants has been disabled.")
+
+# disable --skip-grant-tables, restart the server
+testutil.change_sandbox_conf(__mysql_sandbox_port2, "skip-grant-tables", "OFF")
+# testutil.restart_sandbox() will not work here, as ports are not active (--skip-grant-tables enables --skip-networking)
+session.run_sql("SHUTDOWN")
+testutil.wait_sandbox_dead(__mysql_sandbox_port2)
+testutil.start_sandbox(__mysql_sandbox_port2)
+testutil.wait_sandbox_alive(__mysql_sandbox_port2)
+
+# load the dump
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading should not throw")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

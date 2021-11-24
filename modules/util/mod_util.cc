@@ -394,34 +394,34 @@ void check_upgrade(const Connection_options &connection_options,
   auto print =
       Upgrade_check_output_formatter::get_formatter(opts.output_format);
 
-  auto session = establish_session(connection_options,
-                                   current_shell_options()->get().wizards);
-
-  auto result = session->query("select current_user();");
-  const mysqlshdk::db::IRow *row = result->fetch_one();
-  if (row == nullptr)
-    throw std::runtime_error("Unable to get information about a user");
+  const auto session = establish_session(
+      connection_options, current_shell_options()->get().wizards);
 
   try {
     std::string user;
     std::string host;
-    shcore::split_account(row->get_string(0), &user, &host, true);
-    if (user != "skip-grants user" && host != "skip-grants host") {
-      mysqlshdk::mysql::Instance instance(session);
-      auto res = instance.get_user_privileges(user, host)
-                     ->validate({"PROCESS", "RELOAD", "SELECT"});
-      if (res.has_missing_privileges())
-        throw std::invalid_argument(
-            "The upgrade check needs to be performed by user with RELOAD, "
-            "PROCESS, and SELECT privileges.");
+
+    mysqlshdk::mysql::Instance instance(session);
+    instance.get_current_user(&user, &host);
+
+    if (instance.get_user_privileges(user, host, true)
+            ->validate({"PROCESS", "RELOAD", "SELECT"})
+            .has_missing_privileges()) {
+      throw std::invalid_argument(
+          "The upgrade check needs to be performed by user with RELOAD, "
+          "PROCESS, and SELECT privileges.");
     }
   } catch (const std::runtime_error &e) {
     log_error("Unable to check permissions: %s", e.what());
+  } catch (const std::invalid_argument &) {
+    throw;
+  } catch (const std::logic_error &e) {
+    throw std::runtime_error("Unable to get information about a user");
   }
 
   auto version_result = session->query(
       "select @@version, @@version_comment, UPPER(@@version_compile_os);");
-  row = version_result->fetch_one();
+  auto row = version_result->fetch_one();
   if (row == nullptr) throw std::runtime_error("Unable to get server version");
 
   opts.server_version = Version(row->get_string(0));

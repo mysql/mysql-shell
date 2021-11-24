@@ -54,9 +54,13 @@ class User_privileges {
    * @param instance The Instance object used to query the database.
    * @param user The username part for the user account to check.
    * @param host The host part for the user account to check.
+   * @param allow_skip_grants_user If true, the
+   *        'skip-grants user'@@'skip-grants host' account is recognized as a
+   *         valid account which has all the privileges (without GRANT OPTION).
    */
   User_privileges(const mysqlshdk::mysql::IInstance &instance,
-                  const std::string &user, const std::string &host);
+                  const std::string &user, const std::string &host,
+                  bool allow_skip_grants_user = false);
 
   User_privileges(const User_privileges &) = delete;
   User_privileges(User_privileges &&) = default;

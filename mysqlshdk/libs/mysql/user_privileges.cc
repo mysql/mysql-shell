@@ -138,10 +138,14 @@ const char User_privileges::k_wildcard[] = "*";
 
 User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &user,
-                                 const std::string &host)
+                                 const std::string &host,
+                                 bool allow_skip_grants_user)
     : m_user(user), m_host(host) {
   m_account = shcore::make_account(m_user, m_host);
-  m_user_exists = check_if_user_exists(instance);
+  const bool is_skip_grants_user =
+      ("'skip-grants user'@'skip-grants host'" == m_account) &&
+      allow_skip_grants_user;
+  m_user_exists = is_skip_grants_user ? true : check_if_user_exists(instance);
 
   // Set list of individual privileges included by ALL.
   set_all_privileges(instance);
@@ -151,27 +155,35 @@ User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
     return;
   }
 
-  // Read user roles, if they are not supported, method will simply exit
-  try {
-    log_debug("Reading roles information for user %s", m_account.c_str());
-    read_user_roles(instance);
-  } catch (const mysqlshdk::db::Error &err) {
-    log_debug("Failed to read user roles: %s", err.format().c_str());
+  if (is_skip_grants_user) {
+    // if this is a skip-grants users, account has all privileges without GRANT
+    // OPTION (as GRANT statements cannot be executed anyway)
+    parse_grant(
+        "GRANT ALL PRIVILEGES ON *.* TO 'skip-grants user'@'skip-grants host'");
+  } else {
+    // Read user roles, if they are not supported, method will simply exit
+    try {
+      log_debug("Reading roles information for user %s", m_account.c_str());
+      read_user_roles(instance);
+    } catch (const mysqlshdk::db::Error &err) {
+      log_debug("Failed to read user roles: %s", err.format().c_str());
 
-    if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
-      const auto console = mysqlsh::current_console();
+      if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
+        const auto console = mysqlsh::current_console();
 
-      console->print_error("Unable to check privileges for user " + m_account +
-                           ". User requires SELECT privilege on mysql.* to "
-                           "obtain information about all roles.");
+        console->print_error("Unable to check privileges for user " +
+                             m_account +
+                             ". User requires SELECT privilege on mysql.* to "
+                             "obtain information about all roles.");
 
-      throw std::runtime_error{"Unable to get roles information."};
-    } else {
-      throw;
+        throw std::runtime_error{"Unable to get roles information."};
+      } else {
+        throw;
+      }
     }
-  }
 
-  parse_user_grants(instance);
+    parse_user_grants(instance);
+  }
 }
 
 bool User_privileges::user_exists() const { return m_user_exists; }

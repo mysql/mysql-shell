@@ -117,7 +117,11 @@ namespace user_privileges {
 void setup(const Setup_options &options, Mock_session *session) {
   const auto account = shcore::make_account(options.user, options.host);
 
-  {
+  const bool is_skip_grants_user =
+      ("'skip-grants user'@'skip-grants host'" == account) &&
+      options.allow_skip_grants_user;
+
+  if (!is_skip_grants_user) {
     std::vector<std::vector<std::string>> user_exists;
 
     if (options.user_exists) {
@@ -145,7 +149,7 @@ void setup(const Setup_options &options, Mock_session *session) {
         .then_return({{"", {"Privilege"}, {Type::String}, all_privileges}});
   }
 
-  if (options.user_exists) {
+  if (options.user_exists && !is_skip_grants_user) {
     EXPECT_CALL(*session, get_server_version())
         .WillRepeatedly(
             Return(options.is_8_0 ? Version(8, 0, 0) : Version(5, 7, 28)));
@@ -285,7 +289,8 @@ class User_privileges_test : public tests::Shell_base_test {
   User_privileges setup_test(const Setup_options &options) {
     setup(options, m_session.get());
 
-    return {Instance(m_session), options.user, options.host};
+    return {Instance(m_session), options.user, options.host,
+            options.allow_skip_grants_user};
   }
 
  private:
@@ -877,6 +882,59 @@ TEST_F(User_privileges_test, parse_grants) {
 
   ASSERT_EQ(1, up.m_privileges.size());
   EXPECT_EQ((std::set<std::string>{"INSERT"}), up.m_privileges.at("`11`.`11`"));
+}
+
+TEST_F(User_privileges_test, skip_grant_tables) {
+  {
+    // skip grants user when --skip-grant-tables is not supported does not exist
+    Setup_options setup;
+
+    setup.user = "skip-grants user";
+    setup.host = "skip-grants host";
+    setup.user_exists = false;
+    setup.allow_skip_grants_user = false;
+
+    const auto up = setup_test(setup);
+
+    EXPECT_FALSE(up.user_exists());
+  }
+
+  {
+    // non skip grants user when --skip-grant-tables is supported does not exist
+    Setup_options setup;
+
+    setup.user = "user";
+    setup.host = "host";
+    setup.user_exists = false;
+    setup.allow_skip_grants_user = true;
+
+    const auto up = setup_test(setup);
+
+    EXPECT_FALSE(up.user_exists());
+  }
+
+  {
+    // skip grants user when --skip-grant-tables is supported exists and has all
+    // privileges, but no roles
+    Setup_options setup;
+
+    setup.user = "skip-grants user";
+    setup.host = "skip-grants host";
+    setup.user_exists = false;
+    setup.allow_skip_grants_user = true;
+
+    const auto up = setup_test(setup);
+
+    EXPECT_TRUE(up.user_exists());
+    EXPECT_TRUE(up.get_user_roles().empty());
+
+    const auto result = up.validate(all_privileges(), "*", "*");
+
+    EXPECT_TRUE(result.user_exists());
+    EXPECT_FALSE(result.has_grant_option());
+    EXPECT_FALSE(result.has_missing_privileges());
+    EXPECT_TRUE(result.missing_privileges().empty());
+  }
 }
 
 }  // namespace mysql
