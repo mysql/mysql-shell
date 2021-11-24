@@ -230,7 +230,7 @@ void Command_help::print_help_multiple_topics(
       groups;
 
   // Let's see if from the list, any topic fully qualified id matches the
-  // searched sctring
+  // searched string
   std::optional<int> index;
   auto mode = _shell->get_helper()->get_mode();
   index = find_unique_match(topics,
@@ -247,11 +247,21 @@ void Command_help::print_help_multiple_topics(
         });
   }
 
-  // Finally it tries a case insensitive match with the found topics
+  // If no matches so far, tries a case sensitive exact match on the found
+  // topics
   if (!index.has_value()) {
     index =
         find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
           return shcore::str_caseeq(pattern, topic->m_name);
+        });
+  }
+
+  // Finally it tries a case search by name and global objects
+  if (!index.has_value()) {
+    index =
+        find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
+          return topic->m_name == pattern &&
+                 topic->m_type == shcore::Topic_type::GLOBAL_OBJECT;
         });
   }
 
