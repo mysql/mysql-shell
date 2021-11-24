@@ -109,6 +109,7 @@ class Manifest_reader final : public Manifest_base {
   const std::string &get_object_prefix() const { return m_meta.object_prefix; }
   const std::string &url() const { return m_meta.full_url; }
   const std::string &region() const { return m_meta.region; }
+  const std::string &domain() const { return m_meta.domain; }
   void reload();
 
  private:

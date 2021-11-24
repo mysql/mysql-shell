@@ -56,6 +56,7 @@ enum class Par_type { MANIFEST, PREFIX, GENERAL, NONE };
 struct Par_structure {
   std::string full_url;
   std::string region;
+  std::string domain;
   std::string par_id;
   std::string ns_name;
   std::string bucket;

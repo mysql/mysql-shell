@@ -54,17 +54,19 @@ bool parse_par(const std::string &par, std::vector<std::string> *data_ptr) {
   std::smatch results;
   if (std::regex_match(
           par, results,
-          std::regex("^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com\\/"
-                     "p\\/.+\\/n\\/(.+)\\/b\\/"
-                     "(.+)\\/o\\/.*$"))) {
+          std::regex(
+              R"(^https:\/\/objectstorage\.([^\.]+)\.([^\/]+)\/p\/.+\/n\/(.+)\/b\/(.+)\/o\/.*$)"))) {
     // Region
     data_ptr->push_back(results[1]);
 
-    // Namespace
+    // Domain
     data_ptr->push_back(results[2]);
 
-    // Bucket
+    // Namespace
     data_ptr->push_back(results[3]);
+
+    // Bucket
+    data_ptr->push_back(results[4]);
 
     return true;
   }
@@ -78,8 +80,9 @@ std::map<std::string, std::string> Oci_options::s_tenancy_names = {};
 void Oci_options::load_defaults() {
   if (!par_data.empty()) {
     oci_region = par_data[0];
-    os_namespace = par_data[1];
-    os_bucket_name = par_data[2];
+    oci_domain = par_data[1];
+    os_namespace = par_data[2];
+    os_bucket_name = par_data[3];
   } else {
     if (!operator bool()) {
       throw std::invalid_argument("The osBucketName option is missing.");
@@ -184,12 +187,12 @@ void Oci_options::set_par(const mysqlshdk::null_string &url) {
 
   if (!url.get_safe().empty()) {
     if (parse_par(*url, &par_data)) {
-      if (!os_namespace.is_null() && *os_namespace != par_data[1]) {
+      if (!os_namespace.is_null() && *os_namespace != par_data[2]) {
         throw std::invalid_argument(
             "The option 'osNamespace' doesn't match the namespace of the "
             "provided pre-authenticated request.");
       }
-      if (!os_bucket_name.is_null() && *os_bucket_name != par_data[2]) {
+      if (!os_bucket_name.is_null() && *os_bucket_name != par_data[3]) {
         throw std::invalid_argument(
             "The option 'osBucketName' doesn't match the bucket name of "
             "the provided pre-authenticated request.");
@@ -266,6 +269,8 @@ const std::string &Oci_options::get_hash() const {
     m_hash.append(to_string(target));
     m_hash.append(1, '-');
     m_hash.append(oci_region.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(oci_domain.get_safe());
     m_hash.append(1, '-');
     m_hash.append(os_namespace.get_safe());
     m_hash.append(1, '-');
