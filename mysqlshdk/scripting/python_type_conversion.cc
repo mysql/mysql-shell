@@ -25,6 +25,7 @@
 
 #include <cassert>
 
+#include "scripting/obj_date.h"
 #include "scripting/python_array_wrapper.h"
 #include "scripting/python_function_wrapper.h"
 #include "scripting/python_map_wrapper.h"
@@ -170,21 +171,50 @@ Value convert(PyObject *py, Python_context **context) {
     } else if (unwrap(py, function)) {
       return Value(function);
     } else {
-      PyObject *obj_repr = PyObject_Repr(py);
-      std::string s;
-      Value ret_val;
-
-      if (Python_context::pystring_to_string(obj_repr, &s)) {
-        ret_val = Value(s);
+      if (!*context) {
+        try {
+          *context = Python_context::get();
+        } catch (const std::exception &e) {
+          throw std::runtime_error(
+              std::string{"Could not get SHELL context: "} + e.what());
+        }
       }
 
-      Py_DECREF(obj_repr);
+      if (PyObject_TypeCheck(py, (*context)->get_datetime_type())) {
+        auto get_value = [](PyObject *datetime, const char *name) {
+          auto att = PyObject_GetAttrString(datetime, name);
+          int64_t ret_val = PyLong_AsLongLong(att);
+          Py_XDECREF(att);
+          return ret_val;
+        };
 
-      if (ret_val)
-        return ret_val;
-      else
-        throw std::invalid_argument(
-            "Cannot convert Python value to internal value");
+        auto year = get_value(py, "year");
+        auto month = get_value(py, "month");
+        auto day = get_value(py, "day");
+        auto hour = get_value(py, "hour");
+        auto min = get_value(py, "minute");
+        auto sec = get_value(py, "second");
+        auto usec = get_value(py, "microsecond");
+
+        return shcore::Value(Object_bridge_ref(
+            new Date(year, month, day, hour, min, sec, usec)));
+      } else {
+        PyObject *obj_repr = PyObject_Repr(py);
+        std::string s;
+        Value ret_val;
+
+        if (Python_context::pystring_to_string(obj_repr, &s)) {
+          ret_val = Value(s);
+        }
+
+        Py_DECREF(obj_repr);
+
+        if (ret_val)
+          return ret_val;
+        else
+          throw std::invalid_argument(
+              "Cannot convert Python value to internal value");
+      }
     }
   }
   // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object
@@ -192,7 +222,7 @@ Value convert(PyObject *py, Python_context **context) {
   return retval;
 }
 
-PyObject *convert(const Value &value) {
+PyObject *convert(const Value &value, Python_context * /*context*/) {
   PyObject *r = nullptr;
   switch (value.type) {
     case Undefined:
@@ -218,9 +248,22 @@ PyObject *convert(const Value &value) {
     case Float:
       r = PyFloat_FromDouble(value.value.d);
       break;
-    case Object:
-      r = wrap(*value.value.o);
+    case Object: {
+      if (value.as_object()->class_name() == "Date") {
+        auto ctx = Python_context::get();
+        std::shared_ptr<Date> date = value.as_object<Date>();
+
+        r = ctx->create_datetime_object(date->get_year(), date->get_month(),
+                                        date->get_day(), date->get_hour(),
+                                        date->get_min(), date->get_sec(),
+                                        date->get_usec());
+
+      } else {
+        r = wrap(*value.value.o);
+      }
       break;
+    }
+
     case Array:
       r = wrap(*value.value.array);
       break;

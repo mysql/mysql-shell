@@ -37,7 +37,7 @@ Value convert(PyObject *value, Python_context *context = nullptr);
 
 Value convert(PyObject *value, Python_context **context);
 
-PyObject *convert(const Value &value);
+PyObject *convert(const Value &value, Python_context *context = nullptr);
 
 }  // namespace py
 }  // namespace shcore

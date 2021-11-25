@@ -509,6 +509,7 @@ Python_context::Python_context(bool redirect_stdio) {
   register_mysqlsh_module();
   register_shell_python_support_module();
   register_mysqlsh_builtins();
+  get_datetime_constructor();
 
   PySys_SetObject(const_cast<char *>("real_stdout"),
                   PySys_GetObject(const_cast<char *>("stdout")));
@@ -606,6 +607,8 @@ Python_context::~Python_context() {
     Py_XDECREF(_shell_stdout_module);
     Py_XDECREF(_shell_stdin_module);
     Py_XDECREF(_shell_python_support_module);
+    Py_XDECREF(_datetime);
+    Py_XDECREF(_datetime_type);
 
     py_unregister_module("mysqlsh");
     Py_XDECREF(_mysqlsh_module);
@@ -1384,6 +1387,42 @@ void Python_context::register_mysqlsh_module() {
 
   _mysqlsh_globals = PyDict_GetItemString(py_mysqlsh_dict, "globals");
   assert(_mysqlsh_globals);
+}
+
+void Python_context::get_datetime_constructor() {
+  PyObject *py_datetime_module = PyImport_ImportModule("datetime");
+  if (py_datetime_module == nullptr) {
+    PyErr_Print();
+
+    throw std::runtime_error("Could not import Python datetime module");
+  }
+
+  PyObject *py_datetime_dict = PyModule_GetDict(py_datetime_module);
+
+  _datetime = PyDict_GetItemString(py_datetime_dict, "datetime");
+  Py_XINCREF(_datetime);
+
+  if (!_datetime) PyErr_Print();
+  assert(_datetime);
+
+  // Creates a remporary datetime object to cache the python type
+  auto tmp_date = create_datetime_object(2000, 1, 1, 1, 1, 1, 0);
+  _datetime_type = tmp_date->ob_type;
+  Py_XINCREF(_datetime_type);
+  Py_XDECREF(tmp_date);
+}
+
+PyObject *Python_context::create_datetime_object(int year, int month, int day,
+                                                 int hour, int minute,
+                                                 int second, int useconds) {
+  PyObject *args = Py_BuildValue("(iiiiiii)", year, month, day, hour, minute,
+                                 second, useconds);
+
+  PyObject *new_date = PyObject_Call(_datetime, args, nullptr);
+
+  Py_XDECREF(args);
+
+  return new_date;
 }
 
 void Python_context::register_shell_stderr_module() {
