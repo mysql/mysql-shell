@@ -30,6 +30,7 @@
 
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
+#include "modules/util/load/load_errors.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -59,12 +60,12 @@ shcore::Dictionary_t parse_metadata(const std::string &data,
   try {
     auto metadata = shcore::Value::parse(data);
     if (metadata.type != shcore::Map) {
-      throw std::runtime_error("Invalid metadata file " + fn);
+      THROW_ERROR(SHERR_LOAD_INVALID_METADATA_FILE, fn.c_str());
     }
     return metadata.as_map();
   } catch (const shcore::Exception &e) {
-    throw shcore::Exception::runtime_error("Could not parse metadata file " +
-                                           fn + ": " + e.format());
+    THROW_ERROR(SHERR_LOAD_PARSING_METADATA_FILE_FAILED, fn.c_str(),
+                e.format().c_str());
   }
 }
 
@@ -660,13 +661,19 @@ uint64_t Dump_reader::add_deferred_statements(
     const std::string &schema, const std::string &table,
     compatibility::Deferred_statements &&stmts) {
   const auto s = m_contents.schemas.find(schema);
-  if (s == m_contents.schemas.end())
-    throw std::runtime_error("Unable to find schema " + schema +
-                             " for adding index");
+
+  if (s == m_contents.schemas.end()) {
+    throw std::logic_error("Unable to find schema " + schema +
+                           " for adding index");
+  }
+
   const auto t = s->second->tables.find(table);
-  if (t == s->second->tables.end())
-    throw std::runtime_error("Unable to find table " + table + " in schema " +
-                             schema + " for adding index");
+
+  if (t == s->second->tables.end()) {
+    throw std::logic_error("Unable to find table " + table + " in schema " +
+                           schema + " for adding index");
+  }
+
   t->second->indexes_done = stmts.indexes.empty();
   t->second->indexes = std::move(stmts.indexes);
   std::move(stmts.fks.begin(), stmts.fks.end(),

@@ -34,6 +34,7 @@ file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
       "util/dump/capability.cc"
+      "util/dump/common_errors.cc"
       "util/dump/compatibility.cc"
       "util/dump/compatibility_option.cc"
       "util/dump/console_with_progress.cc"

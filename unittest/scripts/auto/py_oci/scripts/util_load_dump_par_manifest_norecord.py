@@ -103,7 +103,7 @@ WIPE_SHELL_LOG()
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/read-only-progress.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "RuntimeError: Util.load_dump: Failed to put object")
+EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "Error: Shell Error (54404): Util.load_dump: Failed to put object")
 EXPECT_PAR_IS_SECRET()
 
 # BUG#32593125 - check if details of failed operation are logged
@@ -134,7 +134,7 @@ testutil.anycopy("@.manifest.json.partial", {"osBucketName":OS_BUCKET_NAME, "osN
 
 # incomplete dump should require the 'waitDumpTimeout' option
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": "progress.txt"}), "RuntimeError: Util.load_dump: Incomplete dump")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": "progress.txt"}), "Error: Shell Error (53008): Util.load_dump: Incomplete dump")
 EXPECT_PAR_IS_SECRET()
 
 # asynchronously start the load process
@@ -163,7 +163,7 @@ delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"RuntimeError: Util.load_dump: Failed to put object '/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object '/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#31606223 - read only, empty progress file
@@ -172,7 +172,7 @@ open("par-load-progress.json", "w").close()
 testutil.anycopy("par-load-progress.json", {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/par-load-progress.json"})
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"RuntimeError: Util.load_dump: Failed to put object '/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object '/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
 EXPECT_PAR_IS_SECRET()
 
 os.remove("par-load-progress.json")
@@ -285,7 +285,7 @@ testutil.anycopy("@.manifest.json.expired", {"osBucketName":OS_BUCKET_NAME, "osN
 # expired PARs should result in an exception
 remove_local_progress_file()
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": local_progress_file}), f"RuntimeError: Util.load_dump: The PARs in the manifest file have expired, the expiration time was set to: {current_time}")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": local_progress_file}), f"Error: Shell Error (53000): Util.load_dump: The PARs in the manifest file have expired, the expiration time was set to: {current_time}")
 EXPECT_PAR_IS_SECRET()
 
 # cleanup

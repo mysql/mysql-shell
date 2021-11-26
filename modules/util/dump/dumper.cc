@@ -64,6 +64,7 @@
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/decimal.h"
 #include "modules/util/dump/dialect_dump_writer.h"
+#include "modules/util/dump/dump_errors.h"
 #include "modules/util/dump/dump_manifest.h"
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
@@ -1359,7 +1360,7 @@ void Dumper::run() {
     do_run();
   } catch (...) {
     kill_workers();
-    throw;
+    translate_current_exception(m_progress_thread);
   }
 
   if (m_worker_interrupt) {
@@ -1591,10 +1592,9 @@ void Dumper::lock_all_tables() {
               ? "schema " + shcore::quote_identifier(schema)
               : "table " + quote(schema, table);
 
-      throw std::runtime_error(
-          "User " + m_user_account +
-          " is missing the following privilege(s) for " + object + ": " +
-          shcore::str_join(result.missing_privileges(), ", ") + ".");
+      THROW_ERROR(SHERR_DUMP_LOCK_TABLES_MISSING_PRIVILEGES,
+                  m_user_account.c_str(), object.c_str(),
+                  shcore::str_join(result.missing_privileges(), ", ").c_str());
     }
   };
 
@@ -1759,7 +1759,7 @@ void Dumper::acquire_read_locks() {
         } else {
           current_console()->print_error(
               "Failed to acquire global read lock: " + e.format());
-          throw std::runtime_error("Unable to acquire global read lock");
+          THROW_ERROR0(SHERR_DUMP_GLOBAL_READ_LOCK_FAILED);
         }
       }
 
@@ -1793,7 +1793,7 @@ void Dumper::acquire_read_locks() {
         current_console()->print_error(
             "Unable to acquire global read lock neither table read locks.");
 
-        throw std::runtime_error("Unable to lock tables: " + msg);
+        THROW_ERROR(SHERR_DUMP_LOCK_TABLES_FAILED, msg.c_str());
       };
 
       // if FTWRL isn't executable by the user, try LOCK TABLES instead
@@ -1886,7 +1886,7 @@ void Dumper::lock_instance() {
         console->print_error("User " + m_user_account +
                              " is missing the BACKUP_ADMIN privilege and "
                              "cannot execute 'LOCK INSTANCE FOR BACKUP'.");
-        throw std::runtime_error("Could not acquire the backup lock");
+        THROW_ERROR0(SHERR_DUMP_BACKUP_LOCK_MISSING_PRIVILEGES);
       }
 
       if (!m_options.is_dry_run()) {
@@ -2113,7 +2113,7 @@ void Dumper::validate_mds() const {
           "Compatibility issues with MySQL Database Service " + version +
           " were found. Please use the 'compatibility' option to apply "
           "compatibility adaptations to the dumped DDL.");
-      throw std::runtime_error("Compatibility issues were found");
+      THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
 
     case Issue_status::FIXED:
     case Issue_status::FIXED_CREATE_PKS:
@@ -2327,8 +2327,7 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
   if (!m_options.mds_compatibility()) {
     // if MDS is on, changes done by compatibility options were printed earlier
     if (show_issues(in_memory.issues()) >= Issue_status::ERROR) {
-      throw std::runtime_error(
-          "Could not apply some of the compatibility options");
+      THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
     }
   }
 
@@ -2481,7 +2480,10 @@ void Dumper::create_table_tasks() {
 
   m_all_table_metadata_tasks_scheduled = false;
 
-  if (!m_options.is_dry_run()) {
+  const auto write_metadata =
+      !m_options.is_dry_run() && !m_options.is_export_only();
+
+  if (write_metadata) {
     Progress_thread::Progress_config config;
 
     config.current = [this]() -> uint64_t { return m_table_metadata_written; };
@@ -2498,7 +2500,7 @@ void Dumper::create_table_tasks() {
     for (const auto &table : schema.tables) {
       auto task = create_table_task(schema, table);
 
-      if (!m_options.is_dry_run() && should_dump_data(task)) {
+      if (write_metadata && should_dump_data(task)) {
         ++m_table_metadata_to_write;
 
         m_worker_tasks.push({"writing metadata of " + table.quoted_name,
@@ -3166,7 +3168,7 @@ void Dumper::summarize() const {
 void Dumper::rethrow() const {
   for (const auto &exc : m_worker_exceptions) {
     if (exc) {
-      throw std::runtime_error("Fatal error during dump");
+      THROW_ERROR0(SHERR_DUMP_WORKER_THREAD_FATAL_ERROR);
     }
   }
 }
@@ -3454,10 +3456,8 @@ void Dumper::validate_privileges() const {
     const auto global_missing = get_missing(global_result, global_required);
 
     if (!global_missing.empty()) {
-      throw std::runtime_error(
-          "User " + m_user_account +
-          " is missing the following global privilege(s): " +
-          shcore::str_join(global_missing, ", ") + ".");
+      THROW_ERROR(SHERR_DUMP_MISSING_GLOBAL_PRIVILEGES, m_user_account.c_str(),
+                  shcore::str_join(global_missing, ", ").c_str());
     }
 
     if (global_result.has_missing_privileges()) {
@@ -3480,11 +3480,9 @@ void Dumper::validate_privileges() const {
         const auto schema_missing = get_missing(schema_result, schema_required);
 
         if (!schema_missing.empty()) {
-          throw std::runtime_error(
-              "User " + m_user_account +
-              " is missing the following privilege(s) for schema " +
-              schema.quoted_name + ": " +
-              shcore::str_join(schema_missing, ", ") + ".");
+          THROW_ERROR(SHERR_DUMP_MISSING_SCHEMA_PRIVILEGES,
+                      m_user_account.c_str(), schema.quoted_name.c_str(),
+                      shcore::str_join(schema_missing, ", ").c_str());
         }
 
         if (schema_result.has_missing_privileges()) {
@@ -3497,12 +3495,11 @@ void Dumper::validate_privileges() const {
             // if at this stage there are any missing privileges, they are all
             // table-level ones
             if (table_result.has_missing_privileges()) {
-              throw std::runtime_error(
-                  "User " + m_user_account +
-                  " is missing the following privilege(s) for table " +
-                  table.quoted_name + ": " +
-                  shcore::str_join(table_result.missing_privileges(), ", ") +
-                  ".");
+              THROW_ERROR(
+                  SHERR_DUMP_MISSING_TABLE_PRIVILEGES, m_user_account.c_str(),
+                  table.quoted_name.c_str(),
+                  shcore::str_join(table_result.missing_privileges(), ", ")
+                      .c_str());
             }
           }
         }
@@ -3517,7 +3514,7 @@ bool Dumper::is_gtid_executed_inconsistent() const {
 
 void Dumper::validate_schemas_list() const {
   if (!dump_users() && m_cache.schemas.empty()) {
-    throw std::logic_error("Filters for schemas result in an empty set.");
+    THROW_ERROR0(SHERR_DUMP_NO_SCHEMAS_SELECTED);
   }
 }
 

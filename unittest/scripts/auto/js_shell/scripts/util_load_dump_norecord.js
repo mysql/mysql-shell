@@ -300,7 +300,7 @@ session.runSql("SET GLOBAL local_infile=1");
 //@<> Try to load the dump with sql_require_primary_key enabled (should fail)
 if(__version_num>80013) {
   session.runSql("set @@global.sql_require_primary_key=ON;");
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: sql_require_primary_key enabled at destination server");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: While 'Scanning metadata': sql_require_primary_key enabled at destination server");
   EXPECT_STDOUT_CONTAINS_MULTILINE(`ERROR: The sql_require_primary_key option is enabled at the destination server and one or more tables without a Primary Key were found in the dump:
 schema \`all_features\`: \`findextable3\`, \`findextable\`
 schema \`xtest\`: \`t_bigint\`, \`t_bit\`, \`t_char\`, \`t_date\`, \`t_decimal1\`, \`t_decimal2\`, \`t_decimal3\`, \`t_double\`, \`t_enum\`, \`t_float\`, \`t_geom_all\`, \`t_geom\`, \`t_int\`, \`t_integer\`, \`t_json\`, \`t_lchar\`, \`t_lob\`, \`t_mediumint\`, \`t_numeric1\`, \`t_numeric2\`, \`t_real\`, \`t_set\`, \`t_smallint\`, \`t_tinyint\`
@@ -395,7 +395,7 @@ if(__version_num>80000) {
   EXPECT_OUTPUT_CONTAINS("Appending dumped gtid set to GTID_PURGED");
 } else {
   EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "append"});}, "Util.loadDump: Target MySQL server does not support updateGtidSet:'append'.");
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "replace"});}, "Util.loadDump: updateGtidSet option on MySQL 5.7 target server can only be used if skipBinlog option is enabled.");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "replace"});}, "Util.loadDump: The updateGtidSet option on MySQL 5.7 target server can only be used if the skipBinlog option is enabled.");
   wipe_instance(session);
 }
 
@@ -612,7 +612,7 @@ session.runSql("CREATE FUNCTION mysqlaas_compat.func2 () RETURNS INT NO SQL SQL 
 session.runSql("CREATE PROCEDURE mysqlaas_compat.proc2 () NO SQL SQL SECURITY DEFINER BEGIN END;");
 session.runSql("CREATE EVENT mysqlaas_compat.event2 ON SCHEDULE EVERY 1 DAY DO BEGIN END;");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "Util.loadDump: Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
 
 //@<> load dump where some objects already exist, but exclude them from the load
 util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, excludeSchemas: ["sakila", "mysqlaas_compat"]});
@@ -812,7 +812,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump");
 //@<> load again using a different progress file should assume a fresh load
 // in practice this means the load will fail because of duplicate objects from the previous attempt
 // TSFR12_2
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: __tmp_dir+"/progress", dryRun: 1});}, "Util.loadDump: Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: __tmp_dir+"/progress", dryRun: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
 
 EXPECT_STDOUT_NOT_CONTAINS("Load progress file detected.");
 
@@ -936,7 +936,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump-big");
 
 //@<> try loading an already loaded dump after resetting progress (will fail because of duplicate objects)
 WIPE_SHELL_LOG();
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
 
 EXPECT_SHELL_LOG_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Schema `sakila` already contains a view named ");

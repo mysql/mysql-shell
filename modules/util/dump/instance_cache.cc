@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/dump/dump_errors.h"
 #include "modules/util/dump/schema_dumper.h"
 
 namespace mysqlsh {
@@ -581,7 +582,7 @@ void Instance_cache_builder::fetch_version() {
       m_cache.server_is_8_0 = true;
     }
   } else {
-    throw std::runtime_error("Failed to fetch version of the server.");
+    THROW_ERROR0(SHERR_DUMP_IC_FAILED_TO_FETCH_VERSION);
   }
 }
 

@@ -29,6 +29,8 @@
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
+#include "modules/util/dump/dump_errors.h"
+
 namespace mysqlsh {
 namespace dump {
 
@@ -176,8 +178,8 @@ Dump_write_result Dump_writer::write_buffer(const char *context) const {
         output()->write(buffer()->data(), result.m_data_bytes);
 
     if (bytes_written < 0) {
-      throw std::runtime_error("Failed to write " + std::string(context) +
-                               " into file " + output()->full_path().masked());
+      THROW_ERROR(SHERR_DUMP_DW_WRITE_FAILED, context,
+                  output()->full_path().masked().c_str());
     }
 
     result.m_bytes_written =

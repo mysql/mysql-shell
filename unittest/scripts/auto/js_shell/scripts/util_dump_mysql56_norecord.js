@@ -158,7 +158,7 @@ session.runSql("FLUSH PRIVILEGES;");
 
 //@<> BUG#32883314 - SUPER is required to dump users
 shell.connect(almost_superuser_uri);
-EXPECT_THROWS(function() { util.dumpInstance(k_users_dump); }, "Util.dumpInstance: User 'almost_superuser'@'%' is missing the following global privilege(s): SUPER.");
+EXPECT_THROWS(function() { util.dumpInstance(k_users_dump); }, "Util.dumpInstance: While 'Gathering information': User 'almost_superuser'@'%' is missing the following global privilege(s): SUPER.");
 shell.connect(__mysql56_uri);
 
 //@<> BUG#32883314 - dumpInstance should be able to dump users

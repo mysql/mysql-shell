@@ -24,6 +24,7 @@
 #ifndef MODULES_UTIL_DUMP_PROGRESS_THREAD_H_
 #define MODULES_UTIL_DUMP_PROGRESS_THREAD_H_
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -387,6 +388,16 @@ class Progress_thread final {
    */
   const Duration &duration() const { return m_total_duration; }
 
+  /**
+   * Returns current stage.
+   *
+   * Can be null, if thread hasn't been started yet. Returns last stage which
+   * was executed, if thread has already finished.
+   *
+   * @return current stage
+   */
+  const Stage *current_stage() const { return m_current_stage; }
+
  private:
   template <class T, class... Args>
   Stage *start_stage(const std::string &description, Args &&... args);
@@ -416,6 +427,7 @@ class Progress_thread final {
   std::unique_ptr<std::thread> m_progress_thread;
   std::exception_ptr m_exception;
   volatile bool m_interrupt = false;
+  std::atomic<Stage *> m_current_stage = nullptr;
 
   // animated progress
   std::unique_ptr<mysqlshdk::textui::Base_progress> m_progress;

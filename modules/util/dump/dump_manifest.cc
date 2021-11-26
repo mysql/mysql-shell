@@ -35,6 +35,9 @@
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 
+#include "modules/util/dump/dump_errors.h"
+#include "modules/util/load/load_errors.h"
+
 static constexpr auto k_at_manifest_json = "@.manifest.json";
 static constexpr auto k_par_prefix = "shell-dump-";
 static constexpr auto k_dumping_suffix = ".dumping";
@@ -87,8 +90,7 @@ const IDirectory::File_info &Manifest_base::get_object(
   if (object != m_objects.end()) {
     return object->second;
   } else {
-    throw std::logic_error(
-        shcore::str_format("Unknown object in manifest: %s", name.c_str()));
+    THROW_ERROR(SHERR_LOAD_MANIFEST_UNKNOWN_OBJECT, name.c_str());
   }
 }
 
@@ -255,10 +257,7 @@ void Manifest_reader::unserialize(const std::string &data) {
 
     if (std::chrono::system_clock::now() >=
         shcore::rfc3339_to_time_point(expire_time)) {
-      throw std::runtime_error(
-          "The PARs in the manifest file have expired, the expiration time was "
-          "set to: " +
-          expire_time);
+      THROW_ERROR(SHERR_LOAD_MANIFEST_EXPIRED_PARS, expire_time.c_str());
     }
   }
 
@@ -348,7 +347,7 @@ Dump_manifest::Dump_manifest(Manifest_mode mode,
             std::make_unique<mysqlshdk::storage::backend::oci::Object>(name));
       } else {
         // Any other name is not supported.
-        throw std::runtime_error(
+        throw std::invalid_argument(
             shcore::str_format("Invalid manifest PAR: %s", name.c_str()));
       }
     } else {
@@ -398,9 +397,7 @@ std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
         // prefix = "";
         return std::make_unique<mysqlshdk::storage::backend::oci::Object>(name);
       } else {
-        throw std::runtime_error(shcore::str_format(
-            "The provided PAR must be a file on the dump location: '%s'",
-            name.c_str()));
+        THROW_ERROR(SHERR_LOAD_MANIFEST_PAR_MISMATCH, name.c_str());
       }
     }
   }
@@ -561,9 +558,8 @@ void Dump_manifest_object::close() {
 
   // throw only after everything is cleaned up
   if (m_manifest->get_mode() == Manifest_mode::WRITE && !m_par) {
-    throw std::runtime_error(
-        shcore::str_format("Failed creating PAR for object '%s': %s",
-                           object_name().c_str(), m_par_thread_error.c_str()));
+    THROW_ERROR(SHERR_DUMP_MANIFEST_PAR_CREATION_FAILED, object_name().c_str(),
+                m_par_thread_error.c_str());
   }
 }
 

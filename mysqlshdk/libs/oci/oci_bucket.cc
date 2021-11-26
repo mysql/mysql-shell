@@ -29,12 +29,20 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace mysqlshdk {
 namespace oci {
 
 const size_t MAX_LIST_OBJECTS_LIMIT = 1000;
+
+FI_DEFINE(oci_put_object, ([](const mysqlshdk::utils::FI::Args &args) {
+            throw mysqlshdk::oci::Response_error(
+                static_cast<mysqlshdk::oci::Response::Status_code>(
+                    args.get_int("code")),
+                args.get_string("msg"));
+          }));
 
 namespace {
 std::string encode_path(const std::string &data) {
@@ -333,6 +341,9 @@ void Bucket::put_object(const std::string &object_name, const char *body,
   request.size = size;
 
   try {
+    FI_TRIGGER_TRAP(oci_put_object, mysqlshdk::utils::FI::Trigger_options(
+                                        {{"name", object_name}}));
+
     m_rest_service->put(&request);
   } catch (const Response_error &error) {
     throw Response_error(error.code(),

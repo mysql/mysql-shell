@@ -192,7 +192,7 @@ shell.connect(__sandbox_uri2)
 
 #@<> load data which is not in the dump (fail)
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly",
-                                     {"loadData": True, "loadDdl": False, "excludeSchemas":["all_features","all_features2"]}), "RuntimeError: Util.load_dump: Error loading dump")
+                                     {"loadData": True, "loadDdl": False, "excludeSchemas":["all_features","all_features2"]}), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\] While executing DDL script for `.+`\.`.+`: Unknown database 'world'"))
 
 testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
@@ -209,9 +209,10 @@ shell.connect(__sandbox_uri2)
 
 #@<> load data assuming tables already exist
 
+# WL14841-TSFR_2_1
 # will fail because tables already exist
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/dataonly",
-                                     {"dryRun": True}), "RuntimeError: Util.load_dump: Duplicate objects found in destination database")
+                                     {"dryRun": True}), "Error: Shell Error (53021): Util.load_dump: While 'Scanning metadata': Duplicate objects found in destination database")
 
 # will pass because we're explicitly only loading data
 util.load_dump(outdir+"/dataonly", {"dryRun": True, "loadDdl": False})
@@ -585,12 +586,12 @@ shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2)
 
 # join all but the last privilege with ', ', append ' or ' if there is more than one privilege, append the last privilege
 missing_privileges = ', '.join(sql_log_bin_privileges[:-1]) + (' or ' if len(sql_log_bin_privileges) > 1 else '') + sql_log_bin_privileges[-1]
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "RuntimeError: Util.load_dump: 'SET sql_log_bin=0' failed with error - MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "Error: Shell Error (53004): Util.load_dump: 'SET sql_log_bin=0' failed with error: MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
 
 # when loading into MDS instance, if skipBinlog is set, but user doesn't have required privileges, exception should be thrown
 testutil.dbug_set("+d,dump_loader_force_mds")
 
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "RuntimeError: Util.load_dump: 'SET sql_log_bin=0' failed with error - MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "Error: Shell Error (53004): Util.load_dump: 'SET sql_log_bin=0' failed with error: MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
 
 testutil.dbug_set("")
 
@@ -608,7 +609,7 @@ testutil.dbug_set("+d,dump_loader_force_mds")
 
 # loading non-MDS dump into MDS should fail
 
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "RuntimeError: Util.load_dump: Dump is not MDS compatible")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Error: Shell Error (53010): Util.load_dump: Dump is not MDS compatible")
 EXPECT_STDOUT_CONTAINS("ERROR: Destination is a MySQL Database Service instance but the dump was produced without the compatibility option. Please enable the 'ocimds' option when dumping your database. Alternatively, enable the 'ignoreVersion' option to load anyway.")
 
 # loading non-MDS dump into MDS with the 'ignoreVersion' option enabled should succeed
@@ -1905,7 +1906,7 @@ wipeout_server(session2)
 # fail after some of the ALTER TABLE statements which restore indexes were successfully executed
 testutil.set_trap("mysql", ["sql == ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`);"], { "code": 1045, "msg": "Access denied for user `root`@`%` (using password: YES)", "state": "28000" })
 
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\] While recreating indexes for table `test_schema`.`test_table`: Access denied for user `root`@`%` \(using password: YES\)"))
 
 testutil.clear_traps("mysql")

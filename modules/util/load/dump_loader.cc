@@ -37,6 +37,7 @@
 #include "modules/util/dump/capability.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/import_table/load_data.h"
+#include "modules/util/load/load_errors.h"
 #include "modules/util/load/load_progress_log.h"
 #include "mysqlshdk/include/scripting/naming_style.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -80,11 +81,6 @@ static constexpr const int k_supported_dump_version_minor = 0;
 // before we enable sub-chunking for it.
 static constexpr const auto k_chunk_size_overshoot_tolerance = 1.5;
 
-class dump_wait_timeout : public std::runtime_error {
- public:
-  explicit dump_wait_timeout(const char *w) : std::runtime_error(w) {}
-};
-
 namespace {
 
 bool histograms_supported(const Version &version) {
@@ -125,8 +121,7 @@ compatibility::Deferred_statements preprocess_table_script_for_indexes(
         return true;
       },
       [&key](const std::string &err) {
-        throw std::runtime_error("Error splitting DDL script for table " + key +
-                                 ": " + err);
+        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(), err.c_str());
       });
   return stmts;
 }
@@ -152,8 +147,7 @@ void add_invisible_pk(std::string *script, const std::string &key) {
         return true;
       },
       [&key](const std::string &err) {
-        throw std::runtime_error("Error splitting DDL script for table " + key +
-                                 ": " + err);
+        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(), err.c_str());
       });
 }
 
@@ -491,10 +485,7 @@ void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
           // recreated table already has a secondary engine (possibly table was
           // modified by the user), but not all indexes were applied, we're
           // unable to continue, as ALTER TABLE statements will fail
-          throw std::runtime_error(
-              shcore::str_format("The table %s has a secondary engine set, but "
-                                 "not all indexes have been recreated",
-                                 table_name.c_str()));
+          THROW_ERROR(SHERR_LOAD_SECONDARY_ENGINE_ERROR, table_name.c_str());
         } else {
           // recreated table has all the indexes and the secondary engine in
           // place, nothing more to do
@@ -1042,8 +1033,7 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
     try {
       execute(session, "SET sql_log_bin=0");
     } catch (const mysqlshdk::db::Error &e) {
-      throw shcore::Exception::runtime_error(
-          "'SET sql_log_bin=0' failed with error - " + e.format());
+      THROW_ERROR(SHERR_LOAD_FAILED_TO_DISABLE_BINLOG, e.format().c_str());
     }
   }
 
@@ -1745,19 +1735,24 @@ void Dump_loader::interrupt() {
 }
 
 void Dump_loader::run() {
-  m_progress_thread.start();
+  try {
+    m_progress_thread.start();
 
-  open_dump();
+    open_dump();
 
-  spawn_workers();
-  {
-    shcore::on_leave_scope cleanup([this]() {
-      join_workers();
+    spawn_workers();
 
-      m_progress_thread.finish();
-    });
+    {
+      shcore::on_leave_scope cleanup([this]() {
+        join_workers();
 
-    execute_tasks();
+        m_progress_thread.finish();
+      });
+
+      execute_tasks();
+    }
+  } catch (...) {
+    translate_current_exception(m_progress_thread);
   }
 
   show_summary();
@@ -1769,7 +1764,7 @@ void Dump_loader::run() {
 
   for (const auto &e : m_thread_exceptions) {
     if (e) {
-      throw std::runtime_error("Error loading dump");
+      THROW_ERROR0(SHERR_LOAD_WORKER_THREAD_FATAL_ERROR);
     }
   }
 }
@@ -1829,7 +1824,7 @@ void Dump_loader::open_dump(
         "Dump format has version " + m_dump->dump_version().get_full() +
         " which is not supported by this version of MySQL Shell. "
         "Please upgrade MySQL Shell to load it.");
-    throw std::runtime_error("Unsupported dump version");
+    THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_DUMP_VERSION);
   }
 
   if (m_dump->dump_version() < Version(dump::Schema_dumper::version())) {
@@ -1863,7 +1858,7 @@ void Dump_loader::open_dump(
         missing_capabilities +
         "The minimum required version of MySQL Shell to load this dump is: " +
         minimum_version.get_base() + ".");
-    throw std::runtime_error("Unsupported dump capabilities");
+    THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_DUMP_CAPABILITIES);
   }
 
   if (status != Dump_reader::Status::COMPLETE) {
@@ -1876,7 +1871,7 @@ void Dump_loader::open_dump(
           "Dump is not yet finished. Use the 'waitDumpTimeout' option to "
           "enable concurrent load and set a timeout for when we need to wait "
           "for new data to become available.");
-      throw std::runtime_error("Incomplete dump");
+      THROW_ERROR0(SHERR_LOAD_INCOMPLETE_DUMP);
     }
   }
 
@@ -1904,8 +1899,7 @@ void Dump_loader::check_server_version() {
   console->print_info(msg);
 
   if (target_server < Version(5, 7, 0)) {
-    throw std::runtime_error(
-        "Loading dumps is only supported in MySQL 5.7 or newer");
+    THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_SERVER_VERSION);
   }
 
   if (mds && !m_dump->mds_compatibility()) {
@@ -1927,7 +1921,7 @@ void Dump_loader::check_server_version() {
 
       console->print_error(msg);
 
-      throw std::runtime_error("Dump is not MDS compatible");
+      THROW_ERROR0(SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE);
     }
   }
 
@@ -1949,7 +1943,7 @@ void Dump_loader::check_server_version() {
     } else {
       msg += " Enable the 'ignoreVersion' option to load anyway.";
       console->print_error(msg);
-      throw std::runtime_error("MySQL version mismatch");
+      THROW_ERROR0(SHERR_LOAD_SERVER_VERSION_MISMATCH);
     }
   }
 
@@ -1969,29 +1963,26 @@ void Dump_loader::check_server_version() {
           "MEMBER_STATE <> 'OFFLINE';");
     } catch (...) {
     }
-    if (group_replication_running)
-      throw std::runtime_error(
-          "updateGtidSet option cannot be used on server with group "
-          "replication running");
+
+    if (group_replication_running) {
+      THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_GR_IS_RUNNING);
+    }
 
     if (target_server < Version(8, 0, 0)) {
       if (m_options.update_gtid_set() ==
-          Load_dump_options::Update_gtid_set::APPEND)
-        throw std::runtime_error(
-            "Target MySQL server does not support updateGtidSet:'append'.");
+          Load_dump_options::Update_gtid_set::APPEND) {
+        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_APPEND_NOT_SUPPORTED);
+      }
 
-      if (!m_options.skip_binlog())
-        throw std::runtime_error(
-            "updateGtidSet option on MySQL 5.7 target server can only be "
-            "used if skipBinlog option is enabled.");
+      if (!m_options.skip_binlog()) {
+        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REQUIRES_SKIP_BINLOG);
+      }
 
       if (!session.queryf_one_int(0, 0,
                                   "select @@global.gtid_executed = '' and "
-                                  "@@global.gtid_purged = ''"))
-        throw std::runtime_error(
-            "updateGtidSet:'replace' on target server version can only be "
-            "used if GTID_PURGED and GTID_EXECUTED are empty, but they’re "
-            "not.");
+                                  "@@global.gtid_purged = ''")) {
+        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REPLACE_REQUIRES_EMPTY_VARIABLES);
+      }
     } else {
       const char *g = m_dump->gtid_executed().c_str();
       if (m_options.update_gtid_set() ==
@@ -2001,32 +1992,26 @@ void Dump_loader::check_server_version() {
                 "select GTID_SUBTRACT(?, "
                 "GTID_SUBTRACT(@@global.gtid_executed, "
                 "@@global.gtid_purged)) = gtid_subtract(?, '')",
-                g, g))
-          throw std::runtime_error(
-              "updateGtidSet:'replace' can only be used if "
-              "gtid_subtract(gtid_executed,gtid_purged) "
-              "on target server does not intersects with dumped gtid set.");
+                g, g)) {
+          THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REPLACE_SETS_INTERSECT);
+        }
+
         if (!session.queryf_one_int(
-                0, 0, "select GTID_SUBSET(@@global.gtid_purged, ?);", g))
-          throw std::runtime_error(
-              "updateGtidSet:'replace' can only be used if dumped gtid set "
-              "is a superset of the current value of gtid_purged on target "
-              "server");
+                0, 0, "select GTID_SUBSET(@@global.gtid_purged, ?);", g)) {
+          THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REPLACE_REQUIRES_SUPERSET);
+        }
       } else if (!session.queryf_one_int(
                      0, 0,
                      "select GTID_SUBTRACT(@@global.gtid_executed, ?) = "
                      "@@global.gtid_executed",
                      g)) {
-        throw std::runtime_error(
-            "updateGtidSet:'append' can only be used if gtid_executed on "
-            "target server does not intersects with dumped gtid set.");
+        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_APPEND_SETS_INTERSECT);
       }
     }
   }
 
   if (should_create_pks() && target_server < Version(8, 0, 24)) {
-    throw std::runtime_error(
-        "The 'createInvisiblePKs' option requires server 8.0.24 or newer.");
+    THROW_ERROR0(SHERR_LOAD_INVISIBLE_PKS_UNSUPPORTED_SERVER_VERSION);
   }
 }
 
@@ -2085,8 +2070,7 @@ void Dump_loader::check_tables_without_primary_key() {
         "prevent your database from functioning properly)",
         tbs.c_str());
     current_console()->print_error(error_msg);
-    throw shcore::Exception::runtime_error(
-        "sql_require_primary_key enabled at destination server");
+    THROW_ERROR0(SHERR_LOAD_REQUIRE_PRIMARY_KEY_ENABLED);
   }
 }
 
@@ -2251,8 +2235,7 @@ void Dump_loader::check_existing_objects() {
           "One or more objects in the dump already exist in the destination "
           "database. You must either DROP these objects or exclude them from "
           "the load.");
-      throw std::runtime_error(
-          "Duplicate objects found in destination database");
+      THROW_ERROR0(SHERR_LOAD_DUPLICATE_OBJECTS_FOUND);
     }
   }
 }
@@ -2745,7 +2728,7 @@ bool Dump_loader::wait_for_more_data() {
               "Timeout while waiting for dump to finish. Imported data "
               "may be incomplete.");
 
-          throw dump_wait_timeout("Dump timeout");
+          THROW_ERROR0(SHERR_LOAD_DUMP_WAIT_TIMEOUT);
         }
       } else {
         // Dump isn't complete yet, but we're not waiting for it

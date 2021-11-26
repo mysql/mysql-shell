@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/rest/error_codes.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -118,7 +119,7 @@ bool Directory::exists() const {
     try {
       m_bucket->list_objects("", "", "", 1, false);
     } catch (const Response_error &error) {
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
     }
     return true;
   } else {
@@ -140,7 +141,7 @@ std::unordered_set<IDirectory::File_info> Directory::list_files(
   try {
     objects = m_bucket->list_objects(prefix, "", "", 0, false);
   } catch (const Response_error &error) {
-    throw shcore::Exception::runtime_error(error.format());
+    throw rest::to_exception(error);
   }
 
   if (prefix.empty()) {
@@ -160,7 +161,7 @@ std::unordered_set<IDirectory::File_info> Directory::list_files(
     try {
       uploads = m_bucket->list_multipart_uploads();
     } catch (const Response_error &error) {
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
     }
 
     if (prefix.empty()) {
@@ -191,7 +192,7 @@ std::unordered_set<IDirectory::File_info> Directory::filter_files(
   try {
     objects = m_bucket->list_objects(prefix, "", "", 0, false);
   } catch (const Response_error &error) {
-    throw shcore::Exception::runtime_error(error.format());
+    throw rest::to_exception(error);
   }
 
   if (prefix.empty()) {
@@ -266,7 +267,7 @@ void Object::open(mysqlshdk::storage::Mode mode) {
       try {
         uploads = m_bucket->list_multipart_uploads();
       } catch (const Response_error &error) {
-        throw shcore::Exception::runtime_error(error.format());
+        throw rest::to_exception(error);
       }
 
       auto object = std::find_if(
@@ -330,7 +331,7 @@ bool Object::exists() const {
     if (error.code() == Status_code::NOT_FOUND)
       ret_val = false;
     else
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
   }
 
   return ret_val;
@@ -393,7 +394,7 @@ void Object::rename(const std::string &new_name) {
   try {
     m_bucket->rename_object(m_prefix + m_name, m_prefix + new_name);
   } catch (const Response_error &error) {
-    throw shcore::Exception::runtime_error(error.format());
+    throw rest::to_exception(error);
   }
   m_name = new_name;
 }
@@ -410,7 +411,7 @@ Object::Writer::Writer(Object *owner, Multipart_object *object)
     try {
       m_parts = m_object->m_bucket->list_multipart_upload_parts(m_multipart);
     } catch (const Response_error &error) {
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
     }
 
     for (const auto &part : m_parts) {
@@ -435,7 +436,7 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
       m_multipart = m_object->m_bucket->create_multipart_upload(
           m_object->full_path().real());
     } catch (const Response_error &error) {
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
     }
 
     m_is_multipart = true;
@@ -471,7 +472,7 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
               m_multipart.upload_id.c_str());
         }
 
-        throw shcore::Exception::runtime_error(error.format());
+        throw rest::to_exception(error);
       }
       m_buffer.clear();
       incoming_offset += buffer_space;
@@ -500,7 +501,7 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
               m_multipart.upload_id.c_str());
         }
 
-        throw shcore::Exception::runtime_error(error.format());
+        throw rest::to_exception(error);
       }
 
       incoming_offset += MY_MAX_PART_SIZE;
@@ -545,7 +546,7 @@ void Object::Writer::close() {
             m_multipart.upload_id.c_str());
       }
 
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
     } catch (const mysqlshdk::rest::Connection_error &error) {
       throw shcore::Exception::runtime_error(error.what());
     }
@@ -556,7 +557,7 @@ void Object::Writer::close() {
       m_object->m_bucket->put_object(m_object->full_path().real(),
                                      m_buffer.data(), m_buffer.size());
     } catch (const Response_error &error) {
-      throw shcore::Exception::runtime_error(error.format());
+      throw rest::to_exception(error);
     } catch (const mysqlshdk::rest::Connection_error &error) {
       throw shcore::Exception::runtime_error(error.what());
     }
@@ -567,15 +568,16 @@ Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   try {
     m_size = m_object->m_bucket->head_object(m_object->full_path().real());
   } catch (const Response_error &error) {
+    std::string prefix;
+
     if (error.code() == Response::Status_code::NOT_FOUND) {
       // For Not Found generates a custom message as the one for the get()
       // doesn't make much sense
-      throw shcore::Exception::runtime_error(
-          "Failed opening object '" + m_object->full_path().masked() +
-          "' in READ mode: " + Response_error(error.code()).format());
-    } else {
-      throw shcore::Exception::runtime_error(error.format());
+      prefix = "Failed opening object '" + m_object->full_path().masked() +
+               "' in READ mode: ";
     }
+
+    throw rest::to_exception(error, prefix);
   } catch (const mysqlshdk::rest::Connection_error &error) {
     throw shcore::Exception::runtime_error(error.what());
   }
@@ -609,7 +611,7 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
     read = m_object->m_bucket->get_object(m_object->full_path().real(),
                                           &rbuffer, first, last);
   } catch (const Response_error &error) {
-    throw shcore::Exception::runtime_error(error.format());
+    throw rest::to_exception(error);
   }
 
   m_offset += read;

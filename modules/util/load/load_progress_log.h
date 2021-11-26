@@ -32,6 +32,8 @@
 #include <tuple>
 #include <unordered_map>
 #include <utility>
+
+#include "modules/util/load/load_errors.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/storage/backend/memory_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
@@ -127,9 +129,8 @@ class Load_progress_log final {
             },
             "\n");
       } catch (const std::exception &e) {
-        throw std::runtime_error("Error loading load progress file '" +
-                                 existing_file->full_path().masked() +
-                                 "': " + e.what());
+        THROW_ERROR(SHERR_LOAD_PROGRESS_FILE_ERROR,
+                    existing_file->full_path().masked().c_str(), e.what());
       }
     }
 
@@ -247,9 +248,8 @@ class Load_progress_log final {
       log(true, "SERVER-UUID", {}, {}, {},
           [&](Dumper *json) { json->append_string("uuid", uuid); });
     } else if (!shcore::str_caseeq(uuid, saved_uuid)) {
-      throw std::runtime_error(
-          "Progress file was created for a server with UUID " + saved_uuid +
-          ", while the target server has UUID: " + uuid);
+      THROW_ERROR(SHERR_LOAD_PROGRESS_FILE_UUID_MISMATCH, saved_uuid.c_str(),
+                  uuid.c_str());
     }
   }
 

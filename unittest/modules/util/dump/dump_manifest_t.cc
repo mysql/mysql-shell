@@ -320,7 +320,7 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   EXPECT_THROW_LIKE(
       Dump_manifest(Manifest_mode::READ, get_options(), nullptr,
                     bucket.get_rest_service()->end_point() + rw_par.access_uri),
-      std::runtime_error, "Invalid manifest PAR: ");
+      std::invalid_argument, "Invalid manifest PAR: ");
 }
 
 }  // namespace testing

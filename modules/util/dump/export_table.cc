@@ -42,7 +42,7 @@ Export_table::Export_table(const Export_table_options &options)
 
 void Export_table::summary() const {
   if (nullptr == m_cache) {
-    throw std::runtime_error("Internal error - table was not dumped!");
+    throw std::logic_error("Internal error - table was not dumped!");
   }
 
   const auto quoted_filename =

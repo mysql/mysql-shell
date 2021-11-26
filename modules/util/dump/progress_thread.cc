@@ -376,6 +376,8 @@ void Progress_thread::start() {
               break;
             }
 
+            m_current_stage = stage;
+
             stage->display();
 
             if (m_interrupt) {

@@ -140,6 +140,7 @@ TEST_F(Oci_os_tests, file_errors) {
   // Attempt to open unexisting file for read
   EXPECT_THROW_LIKE(file->open(Mode::READ), shcore::Exception,
                     "Failed opening object 'prefix/sample.txt' in READ mode: "
+                    "Failed to get summary for object 'prefix/sample.txt': "
                     "Not Found (404)");
 }
 

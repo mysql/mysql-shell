@@ -1749,11 +1749,11 @@ TEST_F(Compatibility_test, check_create_user_for_authentication_plugin) {
 
   // unsupported statements
   EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin(""),
-                    std::invalid_argument, exception);
+                    std::runtime_error, exception);
   EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("CREATE"),
-                    std::invalid_argument, exception);
+                    std::runtime_error, exception);
   EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("create Table"),
-                    std::invalid_argument, exception);
+                    std::runtime_error, exception);
 
   // statements without authentication plugin
   EXPECT_EQ("",
@@ -1837,11 +1837,11 @@ TEST_F(Compatibility_test, check_create_user_for_empty_password) {
 
   // unsupported statements
   EXPECT_THROW_LIKE(check_create_user_for_empty_password(""),
-                    std::invalid_argument, exception);
+                    std::runtime_error, exception);
   EXPECT_THROW_LIKE(check_create_user_for_empty_password("CREATE"),
-                    std::invalid_argument, exception);
+                    std::runtime_error, exception);
   EXPECT_THROW_LIKE(check_create_user_for_empty_password("create Table"),
-                    std::invalid_argument, exception);
+                    std::runtime_error, exception);
 
   // statements without authentication plugin
   EXPECT_EQ(true, check_create_user_for_empty_password("CREATE USER r@l"));
@@ -2285,9 +2285,9 @@ TEST_F(Compatibility_test, convert_grant_to_create_user) {
 
     // unsupported statements
     EXPECT_THROW_LIKE(convert_grant_to_create_user("", "", &result),
-                      std::logic_error, exception);
+                      std::runtime_error, exception);
     EXPECT_THROW_LIKE(convert_grant_to_create_user("CREATE", "", &result),
-                      std::logic_error, exception);
+                      std::runtime_error, exception);
   }
 
   const auto EXPECT = [](const std::string &statement,
@@ -2330,7 +2330,7 @@ TEST_F(Compatibility_test, convert_grant_to_create_user) {
       EXPECT("GRANT SELECT ON *.* TO u@h IDENTIFIED BY 'pwd' WITH "
              "MAX_QUERIES_PER_HOUR 10",
              "", ""),
-      std::logic_error,
+      std::runtime_error,
       "The GRANT statement contains clear-text password which is not "
       "supported");
 

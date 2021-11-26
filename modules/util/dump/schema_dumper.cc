@@ -55,6 +55,8 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/dump/dump_errors.h"
+
 namespace mysqlsh {
 namespace dump {
 
@@ -153,8 +155,9 @@ void switch_db_collation(IFile *sql_file, const std::string &db_name,
     CHARSET_INFO *db_cl =
         get_charset_by_name(required_db_cl_name.c_str(), MYF(0));
 
-    if (!db_cl)
-      throw std::runtime_error("Can't get charset: " + required_db_cl_name);
+    if (!db_cl) {
+      THROW_ERROR(SHERR_DUMP_SD_CHARSET_NOT_FOUND, required_db_cl_name.c_str());
+    }
 
     fprintf(sql_file, "ALTER DATABASE %s CHARACTER SET %s COLLATE %s %s\n",
             quoted_db_name.c_str(), (const char *)db_cl->csname,
@@ -172,9 +175,9 @@ void restore_db_collation(IFile *sql_file, const std::string &db_name,
 
   CHARSET_INFO *db_cl = get_charset_by_name(db_cl_name, MYF(0));
 
-  if (!db_cl)
-    throw std::runtime_error(std::string("Unable to find charset: ") +
-                             db_cl_name);
+  if (!db_cl) {
+    THROW_ERROR(SHERR_DUMP_SD_CHARSET_NOT_FOUND, db_cl_name);
+  }
 
   fprintf(sql_file, "ALTER DATABASE %s CHARACTER SET %s COLLATE %s %s\n",
           quoted_db_name.c_str(), (const char *)db_cl->csname,
@@ -243,9 +246,9 @@ void restore_time_zone(IFile *sql_file, const char *delimiter) {
 }
 
 void check_io(IFile *file) {
-  if (file->error() || errno == 5)
-    throw std::runtime_error(
-        shcore::str_format("Got errno %d on write", errno));
+  if (file->error() || errno == 5) {
+    THROW_ERROR(SHERR_DUMP_SD_WRITE_FAILED, errno);
+  }
 }
 
 std::string fixup_event_ddl(const std::string &create_event) {
@@ -477,7 +480,7 @@ std::shared_ptr<mysqlshdk::db::IResult> Schema_dumper::query_log_and_throw(
   } catch (const mysqlshdk::db::Error &e) {
     current_console()->print_error("Could not execute '" + s +
                                    "': " + e.format());
-    throw std::runtime_error("Could not execute '" + s + "': " + e.format());
+    THROW_ERROR(SHERR_DUMP_SD_QUERY_FAILED, s.c_str(), e.format().c_str());
   }
 }
 
@@ -523,8 +526,7 @@ void Schema_dumper::fetch_db_collation(const std::string &db,
     } while (false);
 
     if (err_status) {
-      throw std::runtime_error(
-          "Error processing select @@collation_database; results");
+      THROW_ERROR0(SHERR_DUMP_SD_COLLATION_DATABASE_ERROR);
     }
   }
 }
@@ -545,8 +547,7 @@ void Schema_dumper::switch_character_set_results(const char *cs_name) {
   try {
     m_mysql->executef("SET SESSION character_set_results = ?", cs_name);
   } catch (const mysqlshdk::db::Error &e) {
-    throw std::runtime_error(
-        std::string("Unable to set character_set_results to") + cs_name);
+    THROW_ERROR(SHERR_DUMP_SD_CHARACTER_SET_RESULTS_ERROR, cs_name);
   }
 }
 
@@ -725,8 +726,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
               nullptr) {
             fprintf(stderr, "Warning: Can't create delimiter for event '%s'\n",
                     event_name.c_str());
-            throw std::runtime_error("Can't create delimiter for event " +
-                                     event_name);
+            THROW_ERROR(SHERR_DUMP_SD_CANNOT_CREATE_DELIMITER,
+                        event_name.c_str());
           }
 
           fprintf(sql_file, "DELIMITER %s\n", delimiter);
@@ -865,10 +866,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
                         "-- does %s have permissions on mysql.proc?\n\n",
                         text.c_str());
 
-          throw std::runtime_error(shcore::str_format(
-              "%s has insufficient privileges to %s!",
-              m_mysql->get_connection_options().get_user().c_str(),
-              query_buff));
+          THROW_ERROR(SHERR_DUMP_SD_INSUFFICIENT_PRIVILEGES,
+                      m_mysql->get_connection_options().get_user().c_str(),
+                      query_buff);
         } else if (body.length() > 0) {
           Object_guard_msg guard(sql_file, routine_type, db, routine_name);
           if (opt_drop_routine || opt_reexecutable)
@@ -1039,7 +1039,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
       if (const auto row = result->fetch_one()) {
         count = row->get_uint(0);
       } else {
-        throw std::runtime_error(prefix + "not present in information_schema");
+        THROW_ERROR(SHERR_DUMP_SD_MISSING_TABLE, prefix.c_str());
       }
     }
 
@@ -1164,13 +1164,17 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
     if (!skip_ddl) {
       /* Make an sql-file, if path was given iow. option -T was given */
       if (query_with_binary_charset("show create table " + result_table,
-                                    &result, &error))
-        throw std::runtime_error("Failed running: show create table " +
-                                 result_table + " with error: " + error.what());
+                                    &result, &error)) {
+        THROW_ERROR(SHERR_DUMP_SD_SHOW_CREATE_TABLE_FAILED,
+                    result_table.c_str(), error.what());
+      }
 
       auto row = result->fetch_one();
-      if (!row)
-        throw std::runtime_error("Empty create table for table: " + table);
+      if (!row) {
+        THROW_ERROR(SHERR_DUMP_SD_SHOW_CREATE_TABLE_EMPTY,
+                    result_table.c_str());
+      }
+
       std::string create_table = row->get_string(1);
 
       std::string text = fix_identifier_with_newline(result_table);
@@ -1230,8 +1234,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
               fprintf(sql_file, "\n-- failed on view %s: %s\n\n",
                       result_table.c_str(), create_table.c_str());
 
-            throw std::runtime_error("SHOW FIELDS FROM failed on view: " +
-                                     result_table);
+            THROW_ERROR(SHERR_DUMP_SD_SHOW_FIELDS_FAILED, result_table.c_str());
           }
 
           while ((row = result->fetch_one())) {
@@ -1443,8 +1446,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
         }
         fprintf(stderr, "Can't get keys for table %s (%s)\n",
                 result_table.c_str(), err.format().c_str());
-        throw std::runtime_error("Can't get keys for table " + result_table +
-                                 ": " + err.format());
+        THROW_ERROR(SHERR_DUMP_SD_SHOW_KEYS_FAILED, result_table.c_str(),
+                    err.format().c_str());
       }
 
       /* Find first which key is primary key */
@@ -2318,8 +2321,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
   opt_quoted_table = shcore::quote_identifier_if_needed(table);
 
   if (query_with_binary_charset("SHOW CREATE TABLE " + result_table,
-                                &table_res))
-    throw std::runtime_error("Failed: SHOW CREATE TABLE " + result_table);
+                                &table_res)) {
+    THROW_ERROR(SHERR_DUMP_SD_SHOW_CREATE_VIEW_FAILED, result_table.c_str());
+  }
 
   /* Check if this is a view */
   if (table_res->get_metadata()[0].get_column_label() != "View") {
@@ -2372,7 +2376,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
 
       /* Get the result from "select ... information_schema" */
       if (!row) {
-        throw std::runtime_error("No information about view: " + table);
+        THROW_ERROR(SHERR_DUMP_SD_SHOW_CREATE_VIEW_EMPTY, result_table.c_str());
       }
 
       client_cs = row->get_string(3);
@@ -2477,8 +2481,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
     fprintf(file, "\nUSE %s;\n", qdatabase.c_str());
     return res;
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping DDL for schema '" + db +
-                             "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_SCHEMA_DDL_ERROR, db.c_str(), e.what());
   }
 }
 
@@ -2493,8 +2496,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_table_ddl(
       dump_column_statistics_for_table(file, table, db);
     return res;
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping DDL for table '" + table +
-                             "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_TABLE_DDL_ERROR, db.c_str(), table.c_str(),
+                e.what());
   }
 }
 
@@ -2508,8 +2511,8 @@ void Schema_dumper::dump_temporary_view_ddl(IFile *file, const std::string &db,
     init_dumping(file, db, nullptr);
     get_table_structure(file, view, db, &table_type, &ignore_flag);
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping temporary DDL for view '" +
-                             view + "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_VIEW_TEMPORARY_DDL_ERROR, db.c_str(),
+                view.c_str(), e.what());
   }
 }
 
@@ -2520,8 +2523,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_view_ddl(
     init_dumping(file, db, nullptr);
     return get_view_structure(file, view, db);
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping DDL for view '" + view +
-                             "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_VIEW_DDL_ERROR, db.c_str(), view.c_str(),
+                e.what());
   }
 }
 
@@ -2535,8 +2538,7 @@ int Schema_dumper::count_triggers_for_table(const std::string &db,
         "TRIGGER_SCHEMA = ? and EVENT_OBJECT_TABLE = ?;",
         db.c_str(), table.c_str());
     if (auto row = res->fetch_one()) return row->get_int(0);
-    throw std::runtime_error("Unable to check trigger count for table: " + db +
-                             "." + table);
+    THROW_ERROR(SHERR_DUMP_SD_TRIGGER_COUNT_ERROR, db.c_str(), table.c_str());
   }
 }
 
@@ -2545,8 +2547,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table_ddl(
   try {
     return dump_triggers_for_table(file, table, db);
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping triggers for table '" +
-                             table + "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_TRIGGER_DDL_ERROR, db.c_str(), table.c_str(),
+                e.what());
   }
 }
 
@@ -2577,8 +2579,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_ddl(
     log_debug("Dumping events for database %s", db.c_str());
     return dump_events_for_db(file, db);
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping events for schema '" + db +
-                             "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_EVENT_DDL_ERROR, db.c_str(), e.what());
   }
 }
 
@@ -2606,8 +2607,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_ddl(
     log_debug("Dumping routines for database %s", db.c_str());
     return dump_routines_for_db(file, db);
   } catch (const std::exception &e) {
-    throw std::runtime_error("Error while dumping routines for schema '" + db +
-                             "': " + e.what());
+    THROW_ERROR(SHERR_DUMP_SD_ROUTINE_DDL_ERROR, db.c_str(), e.what());
   }
 }
 
@@ -2800,9 +2800,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
       // we don't allow accounts with 's in them because they're incorrectly
       // escaped in the output of SHOW GRANTS, which would generate invalid
       // or dangerous SQL.
-      throw std::runtime_error(
-          "Account " + user +
-          " contains the ' character, which is not supported");
+      THROW_ERROR(SHERR_DUMP_ACCOUNT_WITH_APOSTROPHE, user.c_str());
     }
 
     auto create_user = get_create_user(user);

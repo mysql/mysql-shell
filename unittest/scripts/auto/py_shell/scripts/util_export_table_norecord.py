@@ -421,7 +421,7 @@ EXPECT_FALSE(os.path.isdir(test_output_absolute_parent))
 shutil.rmtree(test_output_absolute_parent, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute_parent))
 os.makedirs(test_output_absolute)
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False }), "RuntimeError: Util.export_table: Fatal error during dump")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False }), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': ".format(absolute_path_for_output(test_output_absolute)))
 
 #@<> WL13804-FR4.4 - If the output file exists, it must be overwritten.
@@ -730,7 +730,7 @@ EXPECT_NO_THROWS(lambda: util.import_table(test_output_absolute, { "schema": ver
 
 #@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL {has_oci_environment('OS')}
 # This error now confirms the reported issue is fixed
-EXPECT_FAIL("RuntimeError", "Failed to get object list", quote(types_schema, types_schema_tables[0]), 'out.txt', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
+EXPECT_FAIL("Error: Shell Error (54404)", "Failed to get object list", quote(types_schema, types_schema_tables[0]), 'out.txt', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "File handling for oci+os protocol is not supported.", quote(types_schema, types_schema_tables[0]), 'oci+os://sakila')
@@ -968,11 +968,11 @@ open(test_output_absolute, 'a').close()
 # change permissions to read only
 os.chmod(test_output_absolute, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 # expect failure
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute), "RuntimeError: Util.export_table: Fatal error during dump")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolute_path_for_output(test_output_absolute)))
 
 #@<> WL13804-TSFR_4_4_2 - compressed file {__os_type != "windows"}
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd" }), "RuntimeError: Util.export_table: Fatal error during dump")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd" }), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolute_path_for_output(test_output_absolute)))
 
 #@<> WL13804-TSFR_4_1_1
@@ -1037,7 +1037,7 @@ os.mkdir(tested_dir)
 # change permissions to read only
 os.chmod(tested_dir, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 # expect failure
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), os.path.join(tested_dir, "test")), "RuntimeError: Util.export_table: Fatal error during dump")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), os.path.join(tested_dir, "test")), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolute_path_for_output(os.path.join(tested_dir, "test"))))
 
 #@<> WL13804-TSFR_4_3_3

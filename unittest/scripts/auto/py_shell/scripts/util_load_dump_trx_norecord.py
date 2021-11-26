@@ -147,7 +147,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data3.tsv.zst: Records: 5  Deleted: 0  Skipped
 # EXPECT: when resuming, table is truncated, all sub-chunks are loaded again
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data0", "chunk == -1", "subchunk == 3"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -161,7 +161,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped
 # EXPECT: when resuming, all sub-chunks are loaded
 testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_START", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -174,7 +174,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipp
 # EXPECT: when resuming, all sub-chunks are loaded
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_START", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -187,7 +187,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipp
 # EXPECT: when resuming, all sub-chunks are loaded again
 testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_SUBCHUNK_START", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -200,7 +200,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipp
 # EXPECT: when resuming, all sub-chunks are loaded again
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_START", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -213,7 +213,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipp
 # EXPECT: when resuming, all sub-chunks are loaded again
 testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -227,7 +227,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipp
 for subchunk in range(13):
   print("Testing sub-chunk: " + str(subchunk))
   testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == " + str(subchunk)], {"msg": "Injected exception"})
-  EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+  EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
   EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
   testutil.clear_traps("dump_loader")
   TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
@@ -238,7 +238,7 @@ for subchunk in range(13):
 # EXPECT: when resuming, an empty sub-chunk is loaded
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 13"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -251,7 +251,7 @@ EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped
 # EXPECT: when resuming, an empty sub-chunk is loaded
 testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_END", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -274,7 +274,7 @@ hack_in_bytes_per_chunk("dump-trxlimit-none", chunk_size)
 
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 5"], {"msg": "Injected exception"})
 
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit-none", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit-none", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv: Injected exception")
 
 testutil.clear_traps("dump_loader")
@@ -500,7 +500,7 @@ EXPECT_THROWS(lambda: util.load_dump(output_path, { "maxBytesPerTransaction" : "
 #@<> WL14577-TSFR_2_1 {not __dbug_off}
 # throw exception after loading the first subchunk of table `data1`
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data1", "chunk == -1", "subchunk == 1"], {"msg": "Injected exception"})
-EXPECT_THROWS(lambda: TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, options = { "maxBytesPerTransaction" : "128k" }), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda: TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, options = { "maxBytesPerTransaction" : "128k" }), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - flushed sub-chunk 1$", re.MULTILINE))
 EXPECT_STDOUT_CONTAINS("testdb@data1.tsv.zst: Injected exception")
 testutil.clear_traps("dump_loader")

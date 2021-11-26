@@ -43,6 +43,10 @@ std::string Response::status_code(Status_code c) {
       return std::string{"Continue"};
     case Status_code::SWITCHING_PROTOCOLS:
       return std::string{"Switching Protocols"};
+    case Status_code::PROCESSING:
+      return std::string{"Processing"};
+    case Status_code::EARLY_HINTS:
+      return std::string{"Early Hints"};
     case Status_code::OK:
       return std::string{"OK"};
     case Status_code::CREATED:
@@ -57,6 +61,12 @@ std::string Response::status_code(Status_code c) {
       return std::string{"Reset Content"};
     case Status_code::PARTIAL_CONTENT:
       return std::string{"Partial Content"};
+    case Status_code::MULTI_STATUS:
+      return std::string{"Multi-Status"};
+    case Status_code::ALREADY_REPORTED:
+      return std::string{"Already Reported"};
+    case Status_code::IM_USED:
+      return std::string{"IM Used"};
     case Status_code::MULTIPLE_CHOICES:
       return std::string{"Multiple Choices"};
     case Status_code::MOVED_PERMANENTLY:
@@ -73,6 +83,8 @@ std::string Response::status_code(Status_code c) {
       return std::string{"Switch Proxy"};
     case Status_code::TEMPORARY_REDIRECT:
       return std::string{"Temporary Redirect"};
+    case Status_code::PERMANENT_REDIRECT:
+      return std::string{"Permanent Redirect"};
     case Status_code::BAD_REQUEST:
       return std::string{"Bad Request"};
     case Status_code::UNAUTHORIZED:
@@ -109,10 +121,28 @@ std::string Response::status_code(Status_code c) {
       return std::string{"Requested Range Not Satisfiable"};
     case Status_code::EXPECTATION_FAILED:
       return std::string{"Expectation Failed"};
+    case Status_code::IM_A_TEAPOT:
+      return std::string{"I'm a teapot"};
+    case Status_code::MISDIRECTED_REQUEST:
+      return std::string{"Misdirected Request"};
+    case Status_code::UNPROCESSABLE_ENTITY:
+      return std::string{"Unprocessable Entity"};
+    case Status_code::LOCKED:
+      return std::string{"Locked"};
+    case Status_code::FAILED_DEPENDENCY:
+      return std::string{"Failed Dependency"};
+    case Status_code::TOO_EARLY:
+      return std::string{"Too Early"};
     case Status_code::UPGRADE_REQUIRED:
       return std::string{"Upgrade Required"};
+    case Status_code::PRECONDITION_REQUIRED:
+      return std::string{"Precondition Required"};
     case Status_code::TOO_MANY_REQUESTS:
       return std::string{"Too Many Requests"};
+    case Status_code::REQUEST_HEADER_FIELDS_TOO_LARGE:
+      return std::string{"Request Header Fields Too Large"};
+    case Status_code::UNAVAILABLE_FOR_LEGAL_REASONS:
+      return std::string{"Unavailable For Legal Reasons"};
     case Status_code::INTERNAL_SERVER_ERROR:
       return std::string{"Internal Server Error"};
     case Status_code::NOT_IMPLEMENTED:
@@ -125,6 +155,16 @@ std::string Response::status_code(Status_code c) {
       return std::string{"Gateway Timeout"};
     case Status_code::HTTP_VERSION_NOT_SUPPORTED:
       return std::string{"HTTP Version Not Supported"};
+    case Status_code::VARIANT_ALSO_NEGOTIATES:
+      return std::string{"Variant Also Negotiates"};
+    case Status_code::INSUFFICIENT_STORAGE:
+      return std::string{"Insufficient Storage"};
+    case Status_code::LOOP_DETECTED:
+      return std::string{"Loop Detected"};
+    case Status_code::NOT_EXTENDED:
+      return std::string{"Not Extended"};
+    case Status_code::NETWORK_AUTHENTICATION_REQUIRED:
+      return std::string{"Network Authentication Required"};
   }
   return std::string{"Unknown HTTP status code"};
 }
@@ -166,7 +206,7 @@ std::optional<Response_error> Response::get_error() const {
 }
 
 void Response::throw_if_error() const {
-  if (auto error = get_error()) {
+  if (const auto error = get_error()) {
     throw error.value();
   }
 }

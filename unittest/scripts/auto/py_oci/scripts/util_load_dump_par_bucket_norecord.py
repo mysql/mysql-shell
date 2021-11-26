@@ -73,7 +73,7 @@ all_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-re
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), "Util.load_dump: Not Found")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), "Error: Shell Error (54404): Util.load_dump: Could not access '@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_7 - Failed load dump with bucket AnyObjectRead PAR without ListObjects
@@ -83,7 +83,7 @@ remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_THROWS(lambda: util.load_dump(all_read_par_no_list, {"progressFile": local_progress_file}),
-  f"Util.load_dump: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+  re.compile(f"Error: Shell Error \(54404\): Util\.load_dump: While 'Listing files': Could not access 'https://objectstorage\..+\.oraclecloud\.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it"))
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_9 - Failed load dump with bucket AnyObjectWrite PAR and ListObjects
@@ -92,7 +92,7 @@ all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite"
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), "Util.load_dump: Not Found")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), "Error: Shell Error (54404): Util.load_dump: Could not access '@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_11 - Failed load dump, missing progress file
@@ -114,8 +114,7 @@ all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObje
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}),
-  "Util.load_dump: Not Found")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), "Error: Shell Error (54404): Util.load_dump: Could not access '@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#33332080 - load a dump which is still in progress
@@ -129,7 +128,7 @@ delete_object(OS_BUCKET_NAME, "@.done.json", OS_NAMESPACE)
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": local_progress_file}), "RuntimeError: Util.load_dump: Incomplete dump")
+EXPECT_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": local_progress_file}), "Error: Shell Error (53008): Util.load_dump: Incomplete dump")
 EXPECT_PAR_IS_SECRET()
 
 # asynchronously start the load process

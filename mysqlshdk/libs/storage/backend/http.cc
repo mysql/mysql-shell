@@ -24,6 +24,8 @@
 #include "mysqlshdk/libs/storage/backend/http.h"
 
 #include <algorithm>
+
+#include "mysqlshdk/libs/rest/error_codes.h"
 #include "mysqlshdk/libs/rest/response.h"
 #include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
@@ -107,6 +109,14 @@ std::string get_uri_path(const std::string &uri) {
   }
 }
 
+void throw_if_error(const rest::String_response &response,
+                    const Masked_string &uri) {
+  if (const auto error = response.get_error()) {
+    throw rest::to_exception(error.value(),
+                             "Could not access '" + uri.masked() + "': ");
+  }
+}
+
 }  // namespace
 
 Http_request::Http_request(Masked_string path, bool use_retry,
@@ -166,7 +176,7 @@ bool Http_get::exists() const {
     auto request = Http_request(m_path, m_use_retry);
     auto response = get_rest_service(m_base)->head(&request);
 
-    response.throw_if_error();
+    throw_if_error(response, request.path());
 
     m_file_size = std::stoul(response.headers["content-length"]);
     if (response.headers["Accept-Ranges"] != "bytes") {
@@ -272,7 +282,7 @@ std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(
     auto request = Http_request(get_list_url(), m_use_retry);
     auto response = rest->get(&request);
 
-    response.throw_if_error();
+    throw_if_error(response, m_url);
 
     try {
       auto list = parse_file_list(response.buffer.raw(), pattern);

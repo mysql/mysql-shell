@@ -29,6 +29,7 @@ ENDIF()
 
 set(rest_SOURCES
   authentication.cc
+  error_codes.cc
   headers.cc
   rest_service.cc
   response.cc

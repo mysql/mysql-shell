@@ -305,7 +305,7 @@ def create_users():
             session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
             disallowed.append(privilege)
         except Exception as e:
-            # ignore exceptions on non-exisiting privileges
+            # ignore exceptions on non-existing privileges
             pass
     disallowed_privileges = disallowed
 
@@ -329,8 +329,9 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
 
 def EXPECT_FAIL(error, msg, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
-    full_msg = "{0}: Util.dump_instance: {1}".format(error, msg.pattern if is_re_instance(msg) else msg)
-    if is_re_instance(msg):
+    is_re = is_re_instance(msg)
+    full_msg = "{0}: Util.dump_instance: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
+    if is_re:
         full_msg = re.compile("^" + full_msg)
     EXPECT_THROWS(lambda: util.dump_instance(outputUrl, options), full_msg)
     EXPECT_EQ(expect_dir_created, os.path.isdir(test_output_absolute), "Output directory should" + ("" if expect_dir_created else " NOT") + " be created.")
@@ -597,6 +598,7 @@ EXPECT_SUCCESS([types_schema], "file://" + test_output_relative, { "ddlOnly": Tr
 # parent directory does not exist
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
+# WL14841-TSFR_4_1
 EXPECT_FAIL("RuntimeError", "Could not create directory ", os.path.join(test_output_absolute, "dummy"), { "showProgress": False })
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 
@@ -887,6 +889,7 @@ EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_un
 
 #@<> WL13807: WL13804-FR5.8.1 - If the value of the `defaultCharacterSet` option is not a character set supported by the MySQL server, an exception must be thrown.
 # WL13807-TSFR4_41
+# WL14841-TSFR_4_1
 EXPECT_FAIL("MySQL Error (1115)", "Unknown character set: ''", test_output_relative, { "defaultCharacterSet": "" })
 EXPECT_FAIL("MySQL Error (1115)", "Unknown character set: 'dummy'", test_output_relative, { "defaultCharacterSet": "dummy" })
 
@@ -1081,7 +1084,8 @@ EXPECT_FAIL("ValueError", "Argument #2: Malformed hostname. Cannot use \"'\" or 
 #@<> create an invalid test user with a ' character, which would be dumped wrong
 session.run_sql("CREATE USER IF NOT EXISTS 'foo''bar'@'localhost' IDENTIFIED BY 'pwd';")
 
-EXPECT_FAIL("RuntimeError", "Account 'foo\\'bar'@'localhost' contains the ' character, which is not supported", test_output_absolute, {}, True)
+# WL14841-TSFR_1_1
+EXPECT_FAIL("Error: Shell Error (52036)", "While 'Gathering information': Account 'foo\\'bar'@'localhost' contains the ' character, which is not supported", test_output_absolute, {}, True)
 
 # ok if we exclude it
 EXPECT_SUCCESS([test_schema], test_output_absolute, {"excludeUsers":["foo'bar@localhost"]})
@@ -1479,7 +1483,7 @@ for table in missing_pks[test_schema]:
     excluded_tables.append("`{0}`.`{1}`".format(test_schema, table))
 
 recreate_verification_schema()
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
 EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version_no_extra))
 
 if __version_num < 80000:
@@ -1569,7 +1573,7 @@ session.run_sql(f"CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql(f"CREATE TABLE !.! ({', '.join(f'col{i} int' for i in range(columns_count))}) ENGINE=MyISAM;", [ tested_schema, tested_table ])
 
 # test
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True })
 EXPECT_STDOUT_CONTAINS(too_many_columns(tested_schema, tested_table, columns_count).error())
 
 # cleanup
@@ -1610,7 +1614,7 @@ EXPECT_STDOUT_CONTAINS("""
 """)
 
 #@<> BUG#31403104: if users is false, errors about the users should not be included
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
 EXPECT_STDOUT_NOT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 
 for plugin in disallowed_authentication_plugins:
@@ -1676,12 +1680,12 @@ for table in missing_pks[incompatible_schema]:
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 
-EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
@@ -1690,12 +1694,12 @@ session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, 
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
@@ -1704,13 +1708,13 @@ session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table]
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -1721,13 +1725,13 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -1822,22 +1826,27 @@ class PrivilegeError:
 # if this list ever changes, online docs need to be updated
 required_privileges = {
     "EVENT": PrivilegeError(  # database-level privilege
-        re.compile(r"User {0} is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user_account))
+        re.compile(r"While 'Gathering information': User {0} is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user_account)),
+        exception_type = "Error: Shell Error (52008)"
     ),
     "RELOAD": PrivilegeError(  # global privilege; if this privilege is missing, FTWRL will fail and dump will fallback to LOCK TABLES
-        re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)),
-        "WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES..."
+        re.compile(r"While 'Initializing': Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)),
+        "WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...",
+        exception_type = "Error: Shell Error (52002)"
     ),
     "SELECT": PrivilegeError(  # table-level privilege
-        re.compile(r"User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: SELECT.".format(test_user_account))
+        re.compile(r"While 'Gathering information': User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: SELECT.".format(test_user_account)),
+        exception_type = "Error: Shell Error (52009)"
     ),
     "SHOW VIEW": PrivilegeError(  # table-level privilege
-        "Fatal error during dump",
+        re.compile(r"While 'Writing .*': Fatal error during dump"),
         f"MySQL Error 1142 (42000): SHOW VIEW command denied to user {test_user_account}",
-        output_dir_created=True
+        output_dir_created=True,
+        exception_type = "Error: Shell Error (52006)"
     ),
     "TRIGGER": PrivilegeError(  # table-level privilege
-        re.compile(r"User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user_account))
+        re.compile(r"While 'Gathering information': User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user_account)),
+        exception_type = "Error: Shell Error (52009)"
     ),
     "REPLICATION CLIENT": PrivilegeError(  # global privilege
         "NO EXCEPTION!",
@@ -1849,8 +1858,9 @@ required_privileges = {
 if __version_num >= 80000:
     # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
     required_privileges["BACKUP_ADMIN"] = PrivilegeError(  # global privilege
-        "Could not acquire the backup lock",
-        f"ERROR: User {test_user_account} is missing the BACKUP_ADMIN privilege and cannot execute 'LOCK INSTANCE FOR BACKUP'."
+        "While 'Gathering information': Could not acquire the backup lock",
+        f"ERROR: User {test_user_account} is missing the BACKUP_ADMIN privilege and cannot execute 'LOCK INSTANCE FOR BACKUP'.",
+        exception_type = "Error: Shell Error (52003)"
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
@@ -1941,7 +1951,7 @@ testutil.clear_traps("mysql")
 #@<> BUG#33173739 - user has privileges required to execute FTWRL, dumper will execute it do double check the privileges, but it throws some random error {not __dbug_off}
 testutil.set_trap("mysql", ["sql == FLUSH TABLES WITH READ LOCK;"], { "code": 1226, "msg": "User 'root' has exceeded the 'max_questions' resource (current value: 2)", "state": "42000" })
 
-EXPECT_FAIL("RuntimeError", "Unable to acquire global read lock", test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52001)", "While 'Initializing': Unable to acquire global read lock", test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("ERROR: Failed to acquire global read lock: MySQL Error 1226 (42000): User 'root' has exceeded the 'max_questions' resource (current value: 2)")
 
 testutil.clear_traps("mysql")
@@ -1995,12 +2005,12 @@ session.run_sql(f"REVOKE LOCK TABLES ON *.* FROM {test_user_account};")
 shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52002)", re.compile(r"While 'Initializing': Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 
 #@<> BUG#32695301 - dry run should fail as well
-EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52002)", re.compile(r"While 'Initializing': Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 
@@ -2174,7 +2184,7 @@ EXPECT_EQ(["existing_schema_2"], entries(dump_and_load({ "includeSchemas": [ "ex
 
 #@<> WL14244-TSFR_1_4
 # BUG#33502098
-EXPECT_FAIL("LogicError", "Filters for schemas result in an empty set.", test_output_relative, { "includeSchemas": [ "non_existing_schema" ], "users": False })
+EXPECT_FAIL("Error: Shell Error (52010)", "While 'Gathering information': Filters for schemas result in an empty set.", test_output_relative, { "includeSchemas": [ "non_existing_schema" ], "users": False })
 
 #@<> WL14244 - includeTables - invalid values
 EXPECT_FAIL("ValueError", "Argument #2: The table to be included must be in the following form: schema.table, with optional backtick quotes, wrong value: 'table'.", test_output_absolute, { "includeTables": [ "table" ] })

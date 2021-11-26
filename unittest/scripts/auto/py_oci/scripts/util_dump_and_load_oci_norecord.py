@@ -114,7 +114,7 @@ EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for ")
 EXPECT_SHELL_LOG_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 
 #@<> Bad Bucket Name Option
-EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":"bukkit"}), "RuntimeError: Util.load_dump: Failed opening object 'mydump/@.json' in READ mode: Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":"bukkit"}), "Shell Error (54404): Util.load_dump: Failed opening object 'mydump/@.json' in READ mode: Failed to get summary for object 'mydump/@.json': Not Found (404)")
 
 #@<> BUG#32734880 progress file is not removed when resetProgress is used
 dump_dir = "mydump"

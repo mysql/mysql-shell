@@ -30,6 +30,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
 #include "modules/util/dump/dump_utils.h"
+#include "modules/util/load/load_errors.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
@@ -426,7 +427,7 @@ void Load_dump_options::validate() {
       mysqlsh::current_console()->print_error(
           "The 'local_infile' global system variable must be set to ON in "
           "the target server, after the server is verified to be trusted.");
-      throw shcore::Exception::runtime_error("local_infile disabled in server");
+      THROW_ERROR0(SHERR_LOAD_LOCAL_INFILE_DISABLED);
     }
   }
 

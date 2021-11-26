@@ -225,7 +225,7 @@ std::string get_account(SQL_iterator *it) {
 std::string create_user_parse_account(SQL_iterator *it) {
   if (!shcore::str_caseeq(it->next_token().c_str(), "CREATE") ||
       !shcore::str_caseeq(it->next_token().c_str(), "USER")) {
-    throw std::invalid_argument(
+    throw std::runtime_error(
         "This check can be only performed on CREATE USER statements");
   }
 
@@ -1490,7 +1490,7 @@ std::string convert_grant_to_create_user(
   SQL_iterator it(statement, 0, false);
 
   if (!shcore::str_caseeq(it.next_token().c_str(), "GRANT")) {
-    throw std::logic_error(
+    throw std::runtime_error(
         "Only GRANT statement can be converted to CREATE USER statement");
   }
 
@@ -1526,7 +1526,7 @@ std::string convert_grant_to_create_user(
             token = it.next_token();
           } else {
             // clear-text password
-            throw std::logic_error(
+            throw std::runtime_error(
                 "The GRANT statement contains clear-text password which is not "
                 "supported");
           }
