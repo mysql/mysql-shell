@@ -289,13 +289,6 @@ EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster"); });
 //@<> validate remove cluster
 CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
 
-//@<> dissolve cluster
-shell.connect(__sandbox_uri4);
-replicacluster = dba.getCluster();
-EXPECT_NO_THROWS(function() {replicacluster.dissolve({force: true}); });
-session.runSql("SET GLOBAL super_read_only=OFF");
-dba.dropMetadataSchema({force: true});
-
 //@<> createReplicaCluster() - clone recovery
 EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
 session4 = mysql.getSession(__sandbox_uri4);

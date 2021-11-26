@@ -3027,6 +3027,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
                                          instances_to_skip_gtid_check);
 
   // 6. Set the current session instance as the seed instance of the Cluster
+  std::shared_ptr<Cluster_set_impl> cs = nullptr;
   {
     Group_replication_options gr_options(Group_replication_options::NONE);
 
@@ -3041,7 +3042,26 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
     // Acquire primary to ensure the correct primary member will be used from
     // now on when the Cluster belongs to a ClusterSet
-    cluster_impl->acquire_primary();
+    // Skip if there's pending MD update resulting from a removeCluster()
+    if (cluster_impl->is_cluster_set_member()) {
+      try {
+        // Get the clusterset object and also check for various clusterset MD
+        // consistency scenarios
+        cs = check_and_get_cluster_set_for_cluster(cluster->impl());
+      } catch (const shcore::Exception &e) {
+        if (e.code() != SHERR_DBA_METADATA_MISSING) {
+          throw;
+        }
+      }
+
+      // Acquire primary to ensure the correct primary member will be used from
+      // now on when the Cluster belongs to a ClusterSet
+      // If the ClusterSet couldn't be obtained, it means the Cluster has been
+      // forcefully removed from it
+      if (cs && !cluster->impl()->is_cluster_set_remove_pending()) {
+        cluster_impl->acquire_primary();
+      }
+    }
   }
 
   // 7. Update the Metadata Schema information
@@ -3078,14 +3098,9 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   // If this is a REPLICA Cluster of a ClusterSet, ensure SRO is enabled on all
   // members
-  if (cluster_impl->is_cluster_set_member()) {
-    // Check for various clusterset MD consistency scenarios
-    auto cs = check_and_get_cluster_set_for_cluster(cluster_impl);
-
-    if (cluster_impl->is_cluster_set_member() &&
-        !cluster_impl->is_primary_cluster()) {
-      cs->ensure_replica_settings(cluster_impl.get(), false);
-    }
+  if (cs && cluster_impl->is_cluster_set_member() &&
+      !cluster_impl->is_primary_cluster()) {
+    cs->ensure_replica_settings(cluster_impl.get(), false);
   }
 
   console->print_info("The cluster was successfully rebooted.");

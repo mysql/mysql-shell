@@ -24,6 +24,7 @@ session6 = mysql.getSession(__sandbox_uri6);
 var clusterset = cluster.createClusterSet("myClusterSet");
 
 var replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
+replicacluster.addInstance(__sandbox_uri6);
 
 //@<> Bad options (should fail)
 EXPECT_THROWS_TYPE(function(){clusterset.removeCluster()}, "Invalid number of arguments, expected 1 to 2 but got 0", "ArgumentError");
@@ -77,7 +78,7 @@ EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {timeout
 
 CHECK_ROUTER_OPTIONS_REMOVED_CLUSTER(session1);
 
-// entry in clusters table will be removed in the clusterset but not in the removed cluster
+// entry in clusters table will be removed in the clusterset and in the removed cluster
 var res = session1.runSql("select * from mysql_innodb_cluster_metadata.clusters order by cluster_name");
 row = res.fetchOne();
 EXPECT_EQ("cluster", row["cluster_name"]);
@@ -86,8 +87,6 @@ EXPECT_EQ(null, res.fetchOne());
 res = session4.runSql("select * from mysql_innodb_cluster_metadata.clusters order by cluster_name");
 row = res.fetchOne();
 EXPECT_EQ("cluster", row["cluster_name"]);
-row = res.fetchOne();
-EXPECT_EQ("replicacluster", row["cluster_name"]);
 EXPECT_EQ(null, res.fetchOne());
 
 var res = session1.runSql("select * from mysql_innodb_cluster_metadata.v2_cs_members order by cluster_name");
@@ -105,7 +104,21 @@ EXPECT_EQ("PRIMARY", row["member_role"]);
 EXPECT_EQ(0, row["invalidated"]);
 EXPECT_EQ(null, res.fetchOne());
 
-CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
+// The Cluster members should not belong to the instances table anymore
+var res = session1.runSql("select address from mysql_innodb_cluster_metadata.instances");
+row = res.fetchOne();
+EXPECT_EQ(__endpoint1, row["address"]);
+EXPECT_EQ(null, res.fetchOne());
+
+var res = session4.runSql("select address from mysql_innodb_cluster_metadata.instances");
+row = res.fetchOne();
+EXPECT_EQ(__endpoint1, row["address"]);
+EXPECT_EQ(null, res.fetchOne());
+
+// Group Replication should be stopped on the Cluster
+EXPECT_EQ("OFFLINE", session4.runSql("select member_state from performance_schema.replication_group_members").fetchOne()[0]);
+
+CHECK_REMOVED_CLUSTER([__sandbox_uri4, __sandbox_uri6], cluster, "replicacluster");
 
 //<> Remove Cluster but with limited sync timeout
 var replicacluster2 = clusterset.createReplicaCluster(__sandbox_uri5, "replicacluster2", {recoveryMethod: "clone"});
@@ -126,21 +139,18 @@ session5.runSql("unlock tables");
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster2", {timeout: 2}); });
 CHECK_REMOVED_CLUSTER([__sandbox_uri5], cluster, "replicacluster");
 
-//@<> Create a ClusterSet on the removed Cluster (should succeed)
+//@<> Create a Cluster on the removed Cluster (should succeed)
 shell.connect(__sandbox_uri4);
-removed_cluster = dba.getCluster()
-EXPECT_NO_THROWS(function() {removed_cluster.createClusterSet("newClusterSet"); });
+EXPECT_NO_THROWS(function() {newcluster = dba.createCluster("newCluster"); });
+
+//@<> Add one of the Removed Cluster members to the newly created cluster
+EXPECT_NO_THROWS(function() {newcluster.addInstance(__sandbox_uri6); });
 
 //@<> Remove a Cluster that does not belong to the ClusterSet (should fail)
 EXPECT_THROWS_TYPE(function(){clusterset.removeCluster("replicacluster")}, "The cluster with the name 'replicacluster' does not exist.", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster 'replicacluster' does not exist or does not belong to the ClusterSet.");
 
-//@<> Create a Replica Cluster from a Removed Cluster (should fail)
-EXPECT_THROWS_TYPE(function(){clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"})}, "Target instance already part of an InnoDB Cluster", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port4}' is already part of an InnoDB Cluster. A new Replica Cluster must be created on a standalone instance.`);
-
 //FR12: The operation must fail if the PRIMARY instance of the target cluster is not reachable unless the force:true option is given.
-
 wipeout_cluster(session1, replicacluster);
 
 //@<> Remove cluster where repl channel is down
@@ -174,13 +184,17 @@ clusterset.removeCluster("replicacluster", {force:1});
 
 CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
 
-//@<> Dissolve the removed cluster which still thinks it's in the clusterset
-// Bug#33166307 ClusterSet: cannot dissolve cluster that was removed from clusterset
-shell.connect(__sandbox_uri4);
-cc = dba.getCluster();
+// Check the cluster was dissolved
+EXPECT_EQ("OFFLINE", session4.runSql("select member_state from performance_schema.replication_group_members").fetchOne()[0]);
+
+// Attempting to create a Cluster on the instance must fail since its Metadata wasn't dropped
+EXPECT_THROWS(function(){dba.createCluster("newCluster");}, "Unable to create cluster. The instance '<<<__endpoint4>>>' has a populated Metadata schema and belongs to that Metadata. Use either dba.dropMetadataSchema() to drop the schema, or dba.rebootClusterFromCompleteOutage() to reboot the cluster from complete outage.", "RuntimeError");
+
+// Reboot the Cluster from Complete Outage
+EXPECT_NO_THROWS(function() {dba.rebootClusterFromCompleteOutage(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
 
-cc.dissolve();
+EXPECT_NO_THROWS(function() {c = dba.getCluster(); });
 
 reset_instance(session4);
 
@@ -200,7 +214,7 @@ rc = dba.rebootClusterFromCompleteOutage();
 // reboot should also check for bogus metadata
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
 
-//@<> getCluster() from the invalidated PC after reboot 
+//@<> getCluster() from the invalidated PC after reboot
 // (Bug#33166307)
 cc = dba.getCluster();
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
@@ -307,10 +321,8 @@ inject_errant_gtid(session4);
 
 clusterset.removeCluster("replicacluster");
 
-wipeout_cluster(session1, replicacluster);
-
 //@<> Remove invalidated cluster
-replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone"});
 
 cs_id = session1.runSql("select clusterset_id from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0];
 pc_id = session1.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name='cluster'").fetchOne()[0];
@@ -322,11 +334,10 @@ session1.runSql("call mysql_innodb_cluster_metadata.v2_cs_add_invalidated_member
 //clusterset.status();
 clusterset.removeCluster("replicacluster");
 
-wipeout_cluster(session1, replicacluster);
-
 //@<> Remove cluster when PRIMARY has purged trxs, which will be unsyncable (should fail)
 replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
 
+session4 = mysql.getSession(__sandbox_uri4);
 session4.runSql("flush tables with read lock");
 inject_purged_gtids(session1);
 session4.runSql("unlock tables");

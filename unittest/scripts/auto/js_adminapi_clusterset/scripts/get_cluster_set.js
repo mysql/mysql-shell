@@ -222,7 +222,7 @@ cs.removeCluster("replica", {force: true});
 
 //@<> dba.getCluster() on a Cluster that is no longer a ClusterSet member but its Metadata indicates that is
 shell.connect(__sandbox_uri3);
-EXPECT_NO_THROWS(function() {replica = dba.getCluster(); });
+EXPECT_NO_THROWS(function() {replica = dba.rebootClusterFromCompleteOutage(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
 EXPECT_NE(replica, null);
 EXPECT_EQ(replica.status()["groupInformationSourceMember"], __endpoint3);

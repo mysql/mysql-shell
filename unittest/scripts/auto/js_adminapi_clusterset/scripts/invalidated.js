@@ -193,7 +193,7 @@ var s = cs.status();
 EXPECT_EQ("cluster1", s["primaryCluster"]);
 EXPECT_EQ("OFFLINE", s["clusters"]["cluster1"]["status"]);
 EXPECT_EQ("UNREACHABLE", s["clusters"]["cluster2"]["status"]);
-EXPECT_EQ("OK_NO_TOLERANCE", s["clusters"]["cluster3"]["status"]);
+EXPECT_EQ("OFFLINE", s["clusters"]["cluster3"]["status"]);
 EXPECT_EQ(undefined, s["clusters"]["cluster4"]);
 
 //@<> get clusterset from cluster1 while cluster2 up

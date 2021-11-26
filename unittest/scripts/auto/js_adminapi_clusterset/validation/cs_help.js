@@ -373,16 +373,27 @@ RETURNS
 DESCRIPTION
       Removes a MySQL InnoDB Replica Cluster from the target ClusterSet.
 
-      The ClusterSet topology is updated, i.e. the Cluster no longer belongs to
-      the ClusterSet, however, the Cluster remains unchanged.
+      The Cluster is removed from the ClusterSet and implicitly dissolved, i.e.
+      each member of it becomes a standalone instance.
+
+      For the Cluster to be successfully removed from the ClusterSet the
+      PRIMARY Cluster must be available and the ClusterSet replication channel
+      healthy. If those conditions aren't met the Cluster can still be
+      forcefully removed using the 'force' option, however, its Metadata won't
+      be updated compromising the effortless usage of its members to create new
+      Clusters and/or add to existing Clusters. To re-use those instances, the
+      Metadata schema must be dropped using dba.dropMetadataSchema(), or the
+      Cluster rebooted from complete outage using
+      dba.rebootClusterFromCompleteOutage().
 
       Options
 
       The options dictionary can contain the following values:
 
       - force: boolean, indicating if the cluster must be removed (even if
-        only from metadata) in case the PRIMARY cannot be reached. By
-        default, set to false.
+        only from metadata) in case the PRIMARY cannot be reached, or
+        the ClusterSet replication channel cannot be found or is stopped.
+        By default, set to false.
       - timeout: maximum number of seconds to wait for the instance to sync up
         with the PRIMARY Cluster. Default is 0 and it means no timeout.
       - dryRun: boolean if true, all validations and steps for removing a

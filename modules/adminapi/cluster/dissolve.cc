@@ -337,6 +337,8 @@ shcore::Value Dissolve::execute() {
   std::shared_ptr<MetadataStorage> metadata = m_cluster->get_metadata_storage();
   auto console = mysqlsh::current_console();
 
+  console->print_info("* Dissolving the Cluster...");
+
   // Disable super_read_only mode if it is enabled.
   bool super_read_only = m_cluster->get_cluster_server()
                              ->get_sysvar_bool("super_read_only")
