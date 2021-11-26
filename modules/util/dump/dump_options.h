@@ -314,6 +314,8 @@ class Dump_options {
   Instance_cache_builder::Trigger_filters m_included_triggers;
   Instance_cache_builder::Trigger_filters m_excluded_triggers;
 
+  mutable bool m_filter_conflicts = false;
+
  protected:
   void on_start_unpack(const shcore::Dictionary_t &options);
   void set_oci_options(const mysqlshdk::oci::Oci_options &oci_options);
@@ -324,6 +326,16 @@ class Dump_options {
 
   void on_log_options(const char *msg) const;
 
+  void error_on_schema_filters_conflicts() const;
+
+  void error_on_table_filters_conflicts() const;
+
+  void error_on_event_filters_conflicts() const;
+
+  void error_on_routine_filters_conflicts() const;
+
+  void error_on_trigger_filters_conflicts() const;
+
  private:
   virtual void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;
@@ -333,6 +345,24 @@ class Dump_options {
   std::set<std::string> find_missing_impl(
       const std::string &subquery,
       const std::unordered_set<std::string> &objects) const;
+
+  void error_on_object_filters_conflicts(
+      const Instance_cache_builder::Object_filters &included,
+      const Instance_cache_builder::Object_filters &excluded,
+      const std::string &object_label, const std::string &option_suffix) const;
+
+  void error_on_object_filters_conflicts(
+      const Instance_cache_builder::Filter &included,
+      const Instance_cache_builder::Filter &excluded,
+      const std::string &object_label, const std::string &option_suffix,
+      const std::string &schema_name) const;
+
+  template <typename C>
+  void error_on_schema_cross_filters_conflicts(
+      const C &included, const C &excluded, const std::string &object_label,
+      const std::string &option_suffix) const;
+
+  void error_on_table_cross_filters_conflicts() const;
 
   // global session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;

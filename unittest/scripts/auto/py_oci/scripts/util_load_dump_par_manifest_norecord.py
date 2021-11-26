@@ -266,6 +266,33 @@ os.remove("par-load-progress.json")
 # delete the remove progress file
 delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
+#@<> BUG#33508311 - expired PARs should result in an exception
+# download the manifest, overwrite the expireTime value
+testutil.anycopy({"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/@.manifest.json"}, "@.manifest.json")
+
+with open("@.manifest.json", encoding="utf-8") as json_file:
+    manifest = json.load(json_file)
+
+# current time in current timezone
+current_time = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
+manifest["expireTime"] = current_time
+
+with open("@.manifest.json.expired", "w", encoding="utf-8") as json_file:
+    json.dump(manifest, json_file, indent=4)
+
+testutil.anycopy("@.manifest.json.expired", {"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/@.manifest.json"})
+
+# expired PARs should result in an exception
+remove_local_progress_file()
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": local_progress_file}), f"RuntimeError: Util.load_dump: The PARs in the manifest file have expired, the expiration time was set to: {current_time}")
+EXPECT_PAR_IS_SECRET()
+
+# cleanup
+testutil.anycopy("@.manifest.json", {"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/@.manifest.json"})
+os.remove("@.manifest.json")
+os.remove("@.manifest.json.expired")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

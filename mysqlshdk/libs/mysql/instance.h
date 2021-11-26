@@ -162,7 +162,8 @@ class IInstance {
                                  const std::string &hostname,
                                  const std::string &password) const = 0;
   virtual std::unique_ptr<User_privileges> get_user_privileges(
-      const std::string &user, const std::string &host) const = 0;
+      const std::string &user, const std::string &host,
+      bool allow_skip_grants_user = false) const = 0;
   virtual utils::nullable<bool> is_set_persist_supported() const = 0;
   virtual utils::nullable<std::string> get_persisted_value(
       const std::string &variable_name) const = 0;
@@ -313,7 +314,8 @@ class Instance : public IInstance {
     return co;
   }
   std::unique_ptr<User_privileges> get_user_privileges(
-      const std::string &user, const std::string &host) const override;
+      const std::string &user, const std::string &host,
+      bool allow_skip_grants_user = false) const override;
 
   bool is_read_only(bool super) const override;
   utils::Version get_version() const override;

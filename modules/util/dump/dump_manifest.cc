@@ -23,7 +23,9 @@
 
 #include "modules/util/dump/dump_manifest.h"
 
+#include <chrono>
 #include <ctime>
+#include <stdexcept>
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -247,6 +249,18 @@ void Manifest_reader::unserialize(const std::string &data) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   auto manifest_map = shcore::Value::parse(data).as_map();
+
+  {
+    const auto expire_time = manifest_map->get_string("expireTime");
+
+    if (std::chrono::system_clock::now() >=
+        shcore::rfc3339_to_time_point(expire_time)) {
+      throw std::runtime_error(
+          "The PARs in the manifest file have expired, the expiration time was "
+          "set to: " +
+          expire_time);
+    }
+  }
 
   m_objects.clear();
 

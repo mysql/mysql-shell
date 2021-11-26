@@ -477,8 +477,8 @@ EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "first"] }, ["'first'@'localh
 #@<> include using just the username, exclude different accounts using just the username, two accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["second"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
 
-#@<> include and exclude the same username, no accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["first"] }, [], ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+#@<> include and exclude the same username, conflicting options -> exception
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["first"] }, [], [], "Util.load_dump: Argument #2: Conflicting filtering options")
 
 #@<> include using just the username, exclude one of the accounts, one account is loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["first@10.11.12.13"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
@@ -495,8 +495,8 @@ EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["`first`@`1
 #@<> include using two usernames, four accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'second'@'localhost'", "'second'@'10.11.12.14'"], ["'firstfirst'@'localhost'"])
 
-#@<> include using two usernames, exclude one of them, two accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"], "excludeUsers": ["second"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+#@<> include using two usernames, exclude one of them, conflicting options ->exception
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"], "excludeUsers": ["second"] }, [], [], "Util.load_dump: Argument #2: Conflicting filtering options")
 
 #@<> include using two usernames, exclude one of the accounts, three accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"], "excludeUsers": ["second@localhost"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'second'@'10.11.12.14'"], ["'firstfirst'@'localhost'", "'second'@'localhost'"])
@@ -504,11 +504,11 @@ EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"], "excludeUsers": ["
 #@<> include using an username and an account, three accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'second'@'localhost'"], ["'firstfirst'@'localhost'", "'second'@'10.11.12.14'"])
 
-#@<> include using an username and an account, exclude using username, two accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "excludeUsers": ["second"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+#@<> include using an username and an account, exclude using username, conflicting options -> exception
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "excludeUsers": ["second"]  }, [], [], "Util.load_dump: Argument #2: Conflicting filtering options")
 
-#@<> include using an username and an account, exclude using an account, two accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "excludeUsers": ["second@localhost"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+#@<> include using an username and an account, exclude using an account, conflicting options -> exception
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "excludeUsers": ["second@localhost"]  }, [], [], "Util.load_dump: Argument #2: Conflicting filtering options")
 
 #@<> include using an username and non-existing username, exclude using a non-existing username, two accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "third"], "excludeUsers": ["fourth"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
@@ -1247,6 +1247,715 @@ EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables"
 snapshot = dump_and_load({ "excludeTriggers": ['existing_schema_1.existing_table', 'existing_schema_1.non_existing_table', 'non_existing_schema.table', 'existing_schema_2.existing_table.existing_trigger', 'existing_schema_1.existing_table.non_existing_trigger'] })
 EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
+
+#@<> includeX + excludeX conflicts - helpers
+def load_with_conflicts(options, throws = True):
+    WIPE_STDOUT()
+    # reuse dump from the previous test
+    dump_dir = os.path.join(outdir, "wl14244")
+    # we're only interested in errors
+    options["dryRun"] = True
+    options["showProgress"] = False
+    if throws:
+        EXPECT_THROWS(lambda: util.load_dump(dump_dir, options), "Util.load_dump: Argument #2: Conflicting filtering options")
+    else:
+        # there could be some other exceptions, we ignore them
+        try:
+            util.load_dump(dump_dir, options)
+        except Exception as e:
+            print("Exception:", e)
+
+#@<> includeSchemas + excludeSchemas conflicts
+# no conflicts
+load_with_conflicts({ "includeSchemas": [], "excludeSchemas": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeSchemas")
+EXPECT_STDOUT_NOT_CONTAINS("excludeSchemas")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeSchemas": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeSchemas")
+EXPECT_STDOUT_NOT_CONTAINS("excludeSchemas")
+
+load_with_conflicts({ "includeSchemas": [], "excludeSchemas": [ "a" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeSchemas")
+EXPECT_STDOUT_NOT_CONTAINS("excludeSchemas")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeSchemas": [ "b" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeSchemas")
+EXPECT_STDOUT_NOT_CONTAINS("excludeSchemas")
+
+# conflicts
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeSchemas": [ "a" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeSchemas and excludeSchemas options contain a schema `a`.")
+
+load_with_conflicts({ "includeSchemas": [ "a", "b" ], "excludeSchemas": [ "a" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeSchemas and excludeSchemas options contain a schema `a`.")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeSchemas": [ "a", "b" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeSchemas and excludeSchemas options contain a schema `a`.")
+
+#@<> includeTables + excludeTables conflicts
+# no conflicts
+load_with_conflicts({ "includeTables": [], "excludeTables": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTables": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeTables": [], "excludeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTables": [ "b.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTables": [ "a.t1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "includeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "excludeSchemas": [], "includeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeSchemas": [], "includeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "includeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "excludeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "excludeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "excludeSchemas": [], "excludeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeSchemas": [], "excludeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeTables": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTables")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTables")
+
+# conflicts
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTables": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTables and excludeTables options contain a table `a`.`t`.")
+
+load_with_conflicts({ "includeTables": [ "a.t", "b.t" ], "excludeTables": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTables and excludeTables options contain a table `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTables": [ "a.t", "a.t1" ], "excludeTables": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTables and excludeTables options contain a table `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTables": [ "a.t", "b.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTables and excludeTables options contain a table `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTables": [ "a.t", "a.t1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTables and excludeTables options contain a table `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "includeTables": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `a`.`t` which refers to an excluded schema.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "includeTables": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `a`.`t` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "excludeTables": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `a`.`t` which refers to a schema which was not included in the dump.")
+
+#@<> includeEvents + excludeEvents conflicts
+# no conflicts
+load_with_conflicts({ "includeEvents": [], "excludeEvents": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeEvents": [ "a.e" ], "excludeEvents": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeEvents": [], "excludeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeEvents": [ "a.e" ], "excludeEvents": [ "b.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeEvents": [ "a.e" ], "excludeEvents": [ "a.e1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "includeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "excludeSchemas": [], "includeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeSchemas": [], "includeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "includeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "excludeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "excludeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "excludeSchemas": [], "excludeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeSchemas": [], "excludeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeEvents": [ "a.e" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeEvents")
+EXPECT_STDOUT_NOT_CONTAINS("excludeEvents")
+
+# conflicts
+load_with_conflicts({ "includeEvents": [ "a.e" ], "excludeEvents": [ "a.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeEvents and excludeEvents options contain an event `a`.`e`.")
+
+load_with_conflicts({ "includeEvents": [ "a.e", "b.e" ], "excludeEvents": [ "a.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeEvents and excludeEvents options contain an event `a`.`e`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`e`")
+
+load_with_conflicts({ "includeEvents": [ "a.e", "a.e1" ], "excludeEvents": [ "a.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeEvents and excludeEvents options contain an event `a`.`e`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`e1`")
+
+load_with_conflicts({ "includeEvents": [ "a.e" ], "excludeEvents": [ "a.e", "b.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeEvents and excludeEvents options contain an event `a`.`e`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`e`")
+
+load_with_conflicts({ "includeEvents": [ "a.e" ], "excludeEvents": [ "a.e", "a.e1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeEvents and excludeEvents options contain an event `a`.`e`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`e1`")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "includeEvents": [ "a.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `a`.`e` which refers to an excluded schema.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "includeEvents": [ "a.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `a`.`e` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "excludeEvents": [ "a.e" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `a`.`e` which refers to a schema which was not included in the dump.")
+
+#@<> includeRoutines + excludeRoutines conflicts
+# no conflicts
+load_with_conflicts({ "includeRoutines": [], "excludeRoutines": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeRoutines": [ "a.r" ], "excludeRoutines": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeRoutines": [], "excludeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeRoutines": [ "a.r" ], "excludeRoutines": [ "b.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeRoutines": [ "a.r" ], "excludeRoutines": [ "a.r1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "includeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "excludeSchemas": [], "includeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeSchemas": [], "includeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "includeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "excludeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "excludeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "excludeSchemas": [], "excludeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeSchemas": [], "excludeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeRoutines": [ "a.r" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeRoutines")
+EXPECT_STDOUT_NOT_CONTAINS("excludeRoutines")
+
+# conflicts
+load_with_conflicts({ "includeRoutines": [ "a.r" ], "excludeRoutines": [ "a.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeRoutines and excludeRoutines options contain a routine `a`.`r`.")
+
+load_with_conflicts({ "includeRoutines": [ "a.r", "b.r" ], "excludeRoutines": [ "a.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeRoutines and excludeRoutines options contain a routine `a`.`r`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`r`")
+
+load_with_conflicts({ "includeRoutines": [ "a.r", "a.r1" ], "excludeRoutines": [ "a.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeRoutines and excludeRoutines options contain a routine `a`.`r`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`r1`")
+
+load_with_conflicts({ "includeRoutines": [ "a.r" ], "excludeRoutines": [ "a.r", "b.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeRoutines and excludeRoutines options contain a routine `a`.`r`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`r`")
+
+load_with_conflicts({ "includeRoutines": [ "a.r" ], "excludeRoutines": [ "a.r", "a.r1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeRoutines and excludeRoutines options contain a routine `a`.`r`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`r1`")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "includeRoutines": [ "a.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`.`r` which refers to an excluded schema.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "includeRoutines": [ "a.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`.`r` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "excludeRoutines": [ "a.r" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `a`.`r` which refers to a schema which was not included in the dump.")
+
+#@<> includeTriggers + excludeTriggers conflicts
+# no conflicts
+load_with_conflicts({ "includeTriggers": [], "excludeTriggers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "b.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "b.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "b.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "b.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t1.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t1.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "includeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeSchemas": [], "includeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeSchemas": [], "includeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "includeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeSchemas": [], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeSchemas": [], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeTriggers": [ "a.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeTables": [ "b.t" ], "includeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeTables": [], "includeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTables": [], "includeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "includeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeTables": [ "a.t" ], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeTables": [ "b.t" ], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "excludeTables": [], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTables": [], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+load_with_conflicts({ "includeTables": [ "a.t" ], "excludeTriggers": [ "a.t.t" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeTriggers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeTriggers")
+
+# conflicts
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+
+load_with_conflicts({ "includeTriggers": [ "a.t", "b.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t", "a.t1" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t", "b.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t" ], "excludeTriggers": [ "a.t", "a.t1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a filter `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t", "b.t.t" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t", "a.t1.t" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t.t", "b.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t.t", "a.t1.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeTriggers and excludeTriggers options contain a trigger `a`.`t`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which is excluded by the value of the excludeTriggers option: `a`.`t`.")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t", "b.t.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which is excluded by the value of the excludeTriggers option: `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`t`")
+
+load_with_conflicts({ "includeTriggers": [ "a.t.t", "a.t1.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which is excluded by the value of the excludeTriggers option: `a`.`t`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "includeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to an excluded schema.")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "includeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to an excluded schema.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "includeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "includeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `a`.`t` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `a`.`t`.`t` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "excludeTables": [ "a.t" ], "includeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to an excluded table.")
+
+load_with_conflicts({ "excludeTables": [ "a.t" ], "includeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to an excluded table.")
+
+load_with_conflicts({ "includeTables": [ "b.t" ], "includeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to a table which was not included in the dump.")
+
+load_with_conflicts({ "includeTables": [ "b.t" ], "includeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to a table which was not included in the dump.")
+
+load_with_conflicts({ "includeTables": [ "b.t" ], "excludeTriggers": [ "a.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `a`.`t` which refers to a table which was not included in the dump.")
+
+load_with_conflicts({ "includeTables": [ "b.t" ], "excludeTriggers": [ "a.t.t" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `a`.`t`.`t` which refers to a table which was not included in the dump.")
+
+#@<> includeUsers + excludeUsers conflicts
+# no conflicts
+load_with_conflicts({ "loadUsers": True, "includeUsers": [], "excludeUsers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u" ], "excludeUsers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [], "excludeUsers": [ "u" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [], "excludeUsers": [ "u@h" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u" ], "excludeUsers": [ "u1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u" ], "excludeUsers": [ "u1@h" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u@h1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u" ], "excludeUsers": [ "u@h" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeUsers")
+EXPECT_STDOUT_NOT_CONTAINS("excludeUsers")
+
+# conflicts
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u" ], "excludeUsers": [ "u" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@''.")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u", "u1" ], "excludeUsers": [ "u" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@''.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u" ], "excludeUsers": [ "u", "u1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@''.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u@h" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h", "u1" ], "excludeUsers": [ "u@h" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h", "u1@h" ], "excludeUsers": [ "u@h" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u@h", "u1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u@h", "u1@h" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h", "u1" ], "excludeUsers": [ "u" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h", "u1@h" ], "excludeUsers": [ "u" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
+EXPECT_STDOUT_NOT_CONTAINS("u1")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h", "u" ], "excludeUsers": [ "u" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@''.")
+
+load_with_conflicts({ "loadUsers": True, "includeUsers": [ "u@h" ], "excludeUsers": [ "u", "u@h" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+
+#@<> BUG#33414321 - table with a secondary engine {VER(>=8.0.21)}
+# setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+dump_dir = os.path.join(outdir, "bug_33414321")
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (id BIGINT PRIMARY KEY)", [ tested_schema, tested_table + "1" ])
+session.run_sql("""CREATE TABLE !.! (
+    id BIGINT AUTO_INCREMENT,
+    data BIGINT,
+    description TEXT,
+    fk_id BIGINT,
+    PRIMARY KEY (id),
+    UNIQUE KEY (data),
+    FULLTEXT KEY (description),
+    FOREIGN KEY (fk_id) REFERENCES !.! (id)
+) SECONDARY_ENGINE=tmp SECONDARY_ENGINE_ATTRIBUTE='{"name": "value"}'""", [ tested_schema, tested_table, tested_schema, tested_table + "1" ])
+
+# dump data
+util.dump_instance(dump_dir, { "showProgress": False })
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+
+# load with various values of deferTableIndexes
+for deferred in [ "off", "fulltext", "all" ]:
+    # wipe the destination server
+    wipeout_server(session2)
+    # load
+    util.load_dump(dump_dir, { "deferTableIndexes": deferred, "loadUsers": False, "resetProgress": True, "showProgress": False })
+    # verify correctness
+    compare_servers(session1, session2, check_users=False)
+
+#@<> BUG#33414321 - table with a secondary engine with resume {VER(>=8.0.21) and (not __dbug_off)}
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+# fail after some of the ALTER TABLE statements which restore indexes were successfully executed
+testutil.set_trap("mysql", ["sql == ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`);"], { "code": 1045, "msg": "Access denied for user `root`@`%` (using password: YES)", "state": "28000" })
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\] While recreating indexes for table `test_schema`.`test_table`: Access denied for user `root`@`%` \(using password: YES\)"))
+
+testutil.clear_traps("mysql")
+
+# resume the load operation, without a trap it should succeed
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "showProgress": False }), "resume should succeed")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+
+# verify correctness
+compare_servers(session1, session2, check_users=False)
+
+#@<> BUG#33592520 dump when --skip-grant-tables is active
+# prepare the server
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+session.run_sql("create database test;")
+session.run_sql("use test;")
+session.run_sql("create table t(a int primary key, b int, c int, index(b), index(c)) engine=innodb;")
+session.run_sql("set @N=0;")
+session.run_sql("insert into t select @N:=@N+1, if(@N<50 or @N=999950, 1, 2 + rand()*1000), if(@N<50 or @N=999950, 50, 49 + rand()*5) from mysql.help_topic a, mysql.help_topic b, mysql.help_topic c limit 100000;")
+session.run_sql("analyze table t;")
+
+# get the socket URI, use invalid credentials
+socket_uri = shell.unparse_uri({ **shell.parse_uri(get_socket_uri(session)), "user": "invalid", "password": "invalid" })
+
+# enable --skip-grant-tables, restart the server
+testutil.change_sandbox_conf(__mysql_sandbox_port2, "skip-grant-tables", "ON")
+testutil.restart_sandbox(__mysql_sandbox_port2)
+testutil.wait_sandbox_alive(socket_uri)
+
+# dump the instance, include users, this should be implicitly disabled, since --skip-grant-tables is in effect
+dump_dir = os.path.join(outdir, "bug_33592520")
+
+shell.connect(socket_uri)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "showProgress": False }), "Dumping should not throw")
+EXPECT_STDOUT_CONTAINS("WARNING: Server is running with the --skip-grant-tables option active, dumping users, roles and grants has been disabled.")
+
+# disable --skip-grant-tables, restart the server
+testutil.change_sandbox_conf(__mysql_sandbox_port2, "skip-grant-tables", "OFF")
+# testutil.restart_sandbox() will not work here, as ports are not active (--skip-grant-tables enables --skip-networking)
+session.run_sql("SHUTDOWN")
+testutil.wait_sandbox_dead(__mysql_sandbox_port2)
+testutil.start_sandbox(__mysql_sandbox_port2)
+testutil.wait_sandbox_alive(__mysql_sandbox_port2)
+
+# load the dump
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading should not throw")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

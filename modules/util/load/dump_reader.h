@@ -33,6 +33,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/progress_thread.h"
 
 #include "modules/util/import_table/dialect.h"
@@ -126,8 +127,13 @@ class Dump_reader {
 
   void schema_table_triggers(const std::string &schema,
                              std::list<Name_and_file> *out_table_triggers);
+
   const std::vector<std::string> &deferred_schema_fks(
       const std::string &schema) const;
+
+  const std::vector<std::string> &queries_on_schema_end(
+      const std::string &schema) const;
+
   const std::map<std::string, std::vector<std::string>> tables_without_pk()
       const;
 
@@ -185,9 +191,9 @@ class Dump_reader {
 
   void rescan(dump::Progress_thread *progress_thread = nullptr);
 
-  uint64_t add_deferred_indexes(const std::string &schema,
-                                const std::string &table,
-                                std::vector<std::string> &&indexes);
+  uint64_t add_deferred_statements(const std::string &schema,
+                                   const std::string &table,
+                                   compatibility::Deferred_statements &&stmts);
 
   void validate_options();
 
@@ -342,6 +348,7 @@ class Dump_reader {
     std::vector<std::string> procedure_names;
     std::vector<std::string> event_names;
     std::vector<std::string> fk_queries;
+    std::vector<std::string> queries_on_schema_end;
 
     volatile bool md_loaded = false;
     bool md_done = false;

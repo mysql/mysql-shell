@@ -25,6 +25,9 @@
 #define MODULES_UTIL_DUMP_DUMP_UTILS_H_
 
 #include <string>
+#include <vector>
+
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -54,6 +57,14 @@ std::string get_table_data_filename(const std::string &basename,
 std::string get_table_data_filename(const std::string &basename,
                                     const std::string &ext, size_t index,
                                     bool last_chunk);
+
+/**
+ * Writes errors to the console for each conflicting pair of values, returns
+ * true if any errors were found.
+ */
+bool error_on_user_filters_conflicts(
+    const std::vector<shcore::Account> &included,
+    const std::vector<shcore::Account> &excluded);
 
 }  // namespace dump
 }  // namespace mysqlsh

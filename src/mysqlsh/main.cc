@@ -42,12 +42,15 @@
 #include <sys/stat.h>
 #include <clocale>
 #include <cstdio>
+#include <ctime>
 #include <iostream>
 #include <sstream>
 
-#ifndef WIN32
+#ifdef _WIN32
+#define tzset _tzset
+#else  // !_WIN32
 #include <signal.h>
-#endif
+#endif  // !_WIN32
 
 #ifdef ENABLE_SESSION_RECORDING
 void handle_debug_options(int *argc, char ***argv);
@@ -597,6 +600,7 @@ int wmain(int argc, wchar_t **wargv) {
 #else
 int main(int argc, char **argv) {
 #endif
+  tzset();
   std::string mysqlsh_path = shcore::get_binary_path();
   g_mysqlsh_path = mysqlsh_path.c_str();
 

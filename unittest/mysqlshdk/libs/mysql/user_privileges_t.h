@@ -44,6 +44,7 @@ struct Setup_options {
   std::vector<std::string> mandatory_roles;
   std::vector<shcore::Account> active_roles;
   std::vector<std::string> grants;
+  bool allow_skip_grants_user = false;
 };
 
 void setup(const Setup_options &options, Mock_session *session);

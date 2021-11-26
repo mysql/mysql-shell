@@ -35,7 +35,6 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/capability.h"
-#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/import_table/load_data.h"
 #include "modules/util/load/load_progress_log.h"
@@ -103,9 +102,9 @@ bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
   return false;
 }
 
-std::vector<std::string> preprocess_table_script_for_indexes(
+compatibility::Deferred_statements preprocess_table_script_for_indexes(
     std::string *script, const std::string &key, bool fulltext_only) {
-  std::vector<std::string> indexes;
+  compatibility::Deferred_statements stmts;
   auto script_length = script->length();
   std::istringstream stream(*script);
   script->clear();
@@ -116,9 +115,11 @@ std::vector<std::string> preprocess_table_script_for_indexes(
         mysqlshdk::utils::SQL_iterator sit(sql);
         if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
             shcore::str_caseeq(sit.next_token(), "TABLE")) {
-          assert(indexes.empty());
-          indexes = compatibility::check_create_table_for_indexes(
-              sql, fulltext_only, &sql);
+          assert(stmts.rewritten.empty());
+
+          stmts = compatibility::check_create_table_for_indexes(sql, key,
+                                                                fulltext_only);
+          sql = stmts.rewritten;
         }
         script->append(sql);
         return true;
@@ -127,7 +128,7 @@ std::vector<std::string> preprocess_table_script_for_indexes(
         throw std::runtime_error("Error splitting DDL script for table " + key +
                                  ": " + err);
       });
-  return indexes;
+  return stmts;
 }
 
 void add_invisible_pk(std::string *script, const std::string &key) {
@@ -456,39 +457,58 @@ void Dump_loader::Worker::Table_ddl_task::process(
 void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     bool fulltext_only, bool check_recreated, Dump_loader *loader) {
-  m_deferred_indexes = std::make_unique<std::vector<std::string>>(
-      preprocess_table_script_for_indexes(&m_script, key(), fulltext_only));
+  const auto table_name = key();
+  m_deferred_statements = std::make_unique<compatibility::Deferred_statements>(
+      preprocess_table_script_for_indexes(&m_script, table_name,
+                                          fulltext_only));
 
-  if (check_recreated && !m_deferred_indexes->empty()) {
+  if (check_recreated && !m_deferred_statements->empty()) {
     // this handles the case where the table was already created in a previous
     // run and some indexes may already have been re-created
     try {
-      auto ct = Dump_loader::query(session, "show create table " + key())
-                    ->fetch_one()
-                    ->get_string(1);
-      auto recreated =
-          compatibility::check_create_table_for_indexes(ct, fulltext_only);
-      m_deferred_indexes->erase(
-          std::remove_if(m_deferred_indexes->begin(), m_deferred_indexes->end(),
-                         [&recreated](const std::string &i) {
-                           return std::find(recreated.begin(), recreated.end(),
-                                            i) != recreated.end();
-                         }),
-          m_deferred_indexes->end());
+      const auto ct =
+          Dump_loader::query(session, "show create table " + table_name)
+              ->fetch_one()
+              ->get_string(1);
+      const auto recreated = compatibility::check_create_table_for_indexes(
+          ct, table_name, fulltext_only);
+
+      const auto remove_duplicates = [](const std::vector<std::string> &needles,
+                                        std::vector<std::string> *haystack) {
+        for (const auto &n : needles) {
+          haystack->erase(
+              std::remove_if(haystack->begin(), haystack->end(),
+                             [&n](const std::string &i) { return n == i; }),
+              haystack->end());
+        }
+      };
+
+      remove_duplicates(recreated.indexes, &m_deferred_statements->indexes);
+      remove_duplicates(recreated.fks, &m_deferred_statements->fks);
+
+      if (!recreated.secondary_engine.empty()) {
+        if (m_deferred_statements->has_indexes()) {
+          // recreated table already has a secondary engine (possibly table was
+          // modified by the user), but not all indexes were applied, we're
+          // unable to continue, as ALTER TABLE statements will fail
+          throw std::runtime_error(
+              shcore::str_format("The table %s has a secondary engine set, but "
+                                 "not all indexes have been recreated",
+                                 table_name.c_str()));
+        } else {
+          // recreated table has all the indexes and the secondary engine in
+          // place, nothing more to do
+          m_deferred_statements->secondary_engine.clear();
+        }
+      }
     } catch (const shcore::Error &e) {
-      current_console()->print_error(
-          shcore::str_format("Unable to get status of table %s that "
-                             "according to load status "
-                             "was already created, consider resetting "
-                             "progress, error message: %s",
-                             key().c_str(), e.what()));
+      current_console()->print_error(shcore::str_format(
+          "Unable to get status of table %s that according to load status was "
+          "already created, consider resetting progress, error message: %s",
+          table_name.c_str(), e.what()));
       if (!loader->m_options.force()) throw;
     }
   }
-
-  const auto prefix = "ALTER TABLE " + key() + " ADD ";
-  for (size_t i = 0; i < m_deferred_indexes->size(); ++i)
-    (*m_deferred_indexes)[i] = prefix + (*m_deferred_indexes)[i] + ";";
 }
 
 void Dump_loader::Worker::Table_ddl_task::load_ddl(
@@ -504,10 +524,11 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
           (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
                                                       : "Executing"),
           key().c_str(),
-          (m_placeholder ? " (placeholder for view)"
-                         : (m_deferred_indexes && !m_deferred_indexes->empty()
-                                ? " (indexes removed for deferred creation)"
-                                : "")));
+          (m_placeholder
+               ? " (placeholder for view)"
+               : (m_deferred_statements && m_deferred_statements->has_indexes()
+                      ? " (indexes removed for deferred creation)"
+                      : "")));
       if (!loader->m_options.dry_run()) {
         // execute sql
         execute_script(
@@ -1317,6 +1338,28 @@ void Dump_loader::on_schema_end(const std::string &schema) {
       m_load_log->end_triggers_ddl(schema, table);
     }
   }
+
+  {
+    const auto &queries = m_dump->queries_on_schema_end(schema);
+
+    if (!queries.empty()) {
+      log_info("Executing finalization queries for schema %s",
+               shcore::quote_identifier(schema).c_str());
+
+      if (!m_options.dry_run()) {
+        for (const auto &q : queries) {
+          try {
+            execute(q);
+          } catch (const std::exception &e) {
+            current_console()->print_error(
+                "Error while executing finalization queries for schema `" +
+                schema + "` with query: " + q);
+            throw;
+          }
+        }
+      }
+    }
+  }
 }
 
 void Dump_loader::switch_schema(const std::string &schema, bool load_done) {
@@ -1579,7 +1622,7 @@ size_t Dump_loader::handle_worker_events(
             static_cast<Worker::Table_ddl_task *>(event.worker->current_task());
 
         on_table_ddl_end(task->schema(), task->table(), task->placeholder(),
-                         task->steal_deferred_indexes());
+                         task->steal_deferred_statements());
         break;
       }
 
@@ -2780,12 +2823,12 @@ void Dump_loader::on_table_ddl_start(const std::string &schema,
 
 void Dump_loader::on_table_ddl_end(
     const std::string &schema, const std::string &table, bool placeholder,
-    std::unique_ptr<std::vector<std::string>> deferred_indexes) {
+    std::unique_ptr<compatibility::Deferred_statements> deferred_indexes) {
   if (!placeholder) {
     m_load_log->end_table_ddl(schema, table);
 
     if (deferred_indexes && !deferred_indexes->empty()) {
-      m_indexes_to_recreate += m_dump->add_deferred_indexes(
+      m_indexes_to_recreate += m_dump->add_deferred_statements(
           schema, table, std::move(*deferred_indexes));
     }
   }

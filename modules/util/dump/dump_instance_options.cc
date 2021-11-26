@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include "modules/util/dump/dump_utils.h"
+
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -104,12 +106,20 @@ void Dump_instance_options::on_unpacked_options() {
           "set to false.");
     }
   }
+
+  error_on_schema_filters_conflicts();
+  error_on_user_filters_conflicts();
 }
 
 void Dump_instance_options::validate_options() const {
   // call method up the chain, Dump_schemas_options has an empty list of schemas
   // and would throw
   Ddl_dumper_options::validate_options();
+}
+
+void Dump_instance_options::error_on_user_filters_conflicts() {
+  m_filter_conflicts |= ::mysqlsh::dump::error_on_user_filters_conflicts(
+      included_users(), excluded_users());
 }
 
 }  // namespace dump

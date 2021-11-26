@@ -37,6 +37,17 @@ extern const std::set<std::string> k_mysqlaas_allowed_privileges;
 
 extern const std::set<std::string> k_mysqlaas_allowed_authentication_plugins;
 
+struct Deferred_statements {
+  std::string rewritten;
+  std::vector<std::string> indexes;
+  std::vector<std::string> fks;
+  std::string secondary_engine;
+
+  bool has_indexes() const { return !indexes.empty() || !fks.empty(); }
+
+  bool empty() const { return !has_indexes() && secondary_engine.empty(); }
+};
+
 /// Checks grant statement for presence of privileges, returns found ones.
 std::vector<std::string> check_privileges(
     const std::string &grant, std::string *out_rewritten_grant = nullptr,
@@ -80,9 +91,9 @@ std::string check_statement_for_definer_clause(
 bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten = nullptr);
 
-std::vector<std::string> check_create_table_for_indexes(
-    const std::string &statement, bool fulltext_only,
-    std::string *rewritten = nullptr, bool return_alter_table = false);
+Deferred_statements check_create_table_for_indexes(
+    const std::string &statement, const std::string &table_name,
+    bool fulltext_only);
 
 std::string check_create_user_for_authentication_plugin(
     const std::string &create_user,

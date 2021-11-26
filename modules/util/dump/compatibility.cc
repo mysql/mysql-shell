@@ -188,6 +188,12 @@ bool comment_out_option_with_string(
 
 inline bool is_quote(char c) { return '\'' == c || '"' == c || '`' == c; }
 
+void unquote_string(std::string *s) {
+  if (!s->empty() && is_quote((*s)[0])) {
+    *s = shcore::unquote_string(*s, (*s)[0]);
+  }
+}
+
 std::string get_account(SQL_iterator *it) {
   auto user = it->next_token();  // IF or user
 
@@ -926,10 +932,10 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
   return false;
 }
 
-std::vector<std::string> check_create_table_for_indexes(
-    const std::string &statement, bool fulltext_only, std::string *rewritten,
-    bool return_alter_table) {
-  std::vector<std::string> ret;
+Deferred_statements check_create_table_for_indexes(
+    const std::string &statement, const std::string &table_name,
+    bool fulltext_only) {
+  Deferred_statements ret;
   Offsets offsets;
   SQL_iterator it(statement, 0, false);
 
@@ -937,13 +943,6 @@ std::vector<std::string> check_create_table_for_indexes(
       !shcore::str_caseeq(it.next_token(), "TABLE"))
     throw std::runtime_error(
         "Index check can be only performed on create table statements");
-
-  auto table_name = it.next_token();
-  if (shcore::str_caseeq(table_name, "IF")) {
-    while (it.valid())
-      if (shcore::str_caseeq(it.next_token(), "EXISTS")) break;
-    table_name = it.next_token();
-  }
 
   while (it.valid() && it.next_token() != "(") {
   }
@@ -953,9 +952,10 @@ std::vector<std::string> check_create_table_for_indexes(
 
   while (it.valid() && brace_count > 0) {
     bool index_declaration = false;
+    bool foreign_key = false;
     bool constraint = false;
     std::string column_name;
-    auto potential_coma = it.position() - 1;
+    auto potential_comma = it.position() - 1;
     auto token = it.next_token();
     auto start = it.position() - token.length();
 
@@ -983,9 +983,11 @@ std::vector<std::string> check_create_table_for_indexes(
         break;
       else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")))
         index_declaration = true;
+      else if (constraint && (shcore::str_caseeq(token, "FOREIGN")))
+        foreign_key = true;
       else if (!fulltext_only && !column_name.empty() &&
                shcore::str_caseeq(token, "AUTO_INCREMENT"))
-        auto_increment_column = "(" + column_name + ")";
+        auto_increment_column = column_name;
     }
 
     if (!it.valid())
@@ -995,35 +997,64 @@ std::vector<std::string> check_create_table_for_indexes(
     if (!index_declaration) continue;
 
     // previous token had to be either ',' or ')'
-    auto end = it.position() - token.length();
-    if (statement[potential_coma] == ',') {
-      if (!offsets.empty() && offsets.back().second == potential_coma)
+    const auto end = it.position() - token.length();
+
+    if (statement[potential_comma] == ',') {
+      if (!offsets.empty() && offsets.back().second == potential_comma)
         offsets.back().second = end;
       else
-        offsets.emplace_back(potential_coma, end);
+        offsets.emplace_back(potential_comma, end);
     } else if (statement[end] == ',') {
       offsets.emplace_back(start, end + 1);
     } else {
       offsets.emplace_back(start, end);
     }
-    const auto index_definition =
-        shcore::str_rstrip(statement.substr(start, end - start));
 
-    // auto_increment columns cannot be foreign keys
+    const auto index_definition =
+        shcore::str_strip(statement.substr(start, end - start));
+
+    // do not remove indexes specified on AUTO_INCREMENT columns, as this will
+    // result in an invalid SQL:
+    //    there can be only one auto column and it must be defined as a key
+    // note: AUTO_INCREMENT columns cannot be foreign keys
     if (!auto_increment_column.empty() && !constraint &&
         index_definition.find(auto_increment_column) != std::string::npos) {
       offsets.pop_back();
       continue;
     }
 
-    if (return_alter_table)
-      ret.emplace_back("ALTER TABLE " + table_name + " ADD " +
-                       index_definition + ";");
-    else
-      ret.emplace_back(index_definition);
+    auto &target = foreign_key ? ret.fks : ret.indexes;
+
+    target.emplace_back("ALTER TABLE " + table_name + " ADD " +
+                        index_definition + ";");
   }
 
-  if (rewritten) *rewritten = replace_at_offsets(statement, offsets, "");
+  while (it.valid()) {
+    auto token = it.next_token();
+
+    // SECONDARY_ENGINE [=] engine_name
+    if (shcore::str_caseeq(token, "SECONDARY_ENGINE")) {
+      const auto start = it.position() - token.length();
+      auto secondary_engine = it.next_token();
+
+      if (shcore::str_caseeq(secondary_engine, "=")) {
+        secondary_engine = it.next_token();
+      }
+
+      // NULL disables the secondary engine
+      if (!shcore::str_caseeq(secondary_engine, "NULL")) {
+        offsets.emplace_back(start, it.position());
+        ret.secondary_engine = "ALTER TABLE " + table_name +
+                               " SECONDARY_ENGINE=" + secondary_engine + ";";
+      }
+
+      // no need to check the rest
+      break;
+    }
+  }
+
+  ret.rewritten = replace_at_offsets(statement, offsets, "");
+
   return ret;
 }
 
@@ -1037,9 +1068,7 @@ std::string check_create_user_for_authentication_plugin(
       shcore::str_caseeq(it.next_token().c_str(), "WITH")) {
     auto auth_plugin = it.next_token();
 
-    if (!auth_plugin.empty() && is_quote(auth_plugin[0])) {
-      auth_plugin = shcore::unquote_string(auth_plugin, auth_plugin[0]);
-    }
+    unquote_string(&auth_plugin);
 
     if (plugins.end() == plugins.find(auth_plugin)) {
       return auth_plugin;

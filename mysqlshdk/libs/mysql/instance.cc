@@ -619,12 +619,14 @@ void Instance::drop_user(const std::string &user, const std::string &host,
  *
  * @param user string with the username part for the user account to check.
  * @param host string with the host part of the user account to check.
+ * @param allow_skip_grants_user Whether a skip-grants user is a valid account.
  * @return User privileges.
  */
 std::unique_ptr<User_privileges> Instance::get_user_privileges(
-    const std::string &user, const std::string &host) const {
-  return std::unique_ptr<User_privileges>(
-      new User_privileges(*this, user, host));
+    const std::string &user, const std::string &host,
+    bool allow_skip_grants_user) const {
+  return std::make_unique<User_privileges>(*this, user, host,
+                                           allow_skip_grants_user);
 }
 
 bool Instance::is_read_only(bool super) const {
@@ -656,7 +658,7 @@ utils::Version Instance::get_version() const {
 void Instance::get_current_user(std::string *current_user,
                                 std::string *current_host) const {
   auto result = query("SELECT CURRENT_USER()");
-  auto row = result->fetch_one();
+  auto row = result->fetch_one_or_throw();
   std::string current_account = row->get_string(0);
   shcore::split_account(current_account, current_user, current_host, true);
 }

@@ -105,6 +105,8 @@ class Dumper {
   static std::string format_object_stats(uint64_t value, uint64_t total,
                                          const std::string &object);
 
+  bool dump_users() const;
+
  private:
   struct Object_info {
     std::string name;
@@ -350,6 +352,7 @@ class Dumper {
   // user privileges
   std::unique_ptr<mysqlshdk::mysql::User_privileges> m_user_privileges;
   std::string m_user_account;
+  bool m_skip_grant_tables_active = false;
 
   // input data
   const Dump_options &m_options;
