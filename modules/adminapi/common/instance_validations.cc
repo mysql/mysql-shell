@@ -599,8 +599,8 @@ size_t check_illegal_async_channels(
                   ch.channel_name) != allowed_channels.end())
       illegal_channels--;
     else
-      console->print_note("Found unexpected replication channel " +
-                          ch.channel_name + "at " + instance.descr());
+      console->print_note("Found unexpected replication channel '" +
+                          ch.channel_name + "' at " + instance.descr());
   }
 
   return illegal_channels;

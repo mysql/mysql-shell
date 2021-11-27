@@ -44,17 +44,6 @@ EXPECT_NO_THROWS(function(){ rc.options(); });
 EXPECT_NO_THROWS(function(){ cluster.checkInstanceState(__sandbox_uri4); });
 EXPECT_NO_THROWS(function(){ rc.checkInstanceState(__sandbox_uri4); });
 
-// Cluster topology-mode operations and dissolve() are NOT blocked for Clusters removed from a ClusterSet
-//  - .switchToSinglePrimaryMode()
-//  - .switchToMultiPrimaryMode()
-//  - .dissolve()
-rc2 = cs.createReplicaCluster(__sandbox_uri4, "replica2");
-cs.removeCluster("replica2");
-
-EXPECT_NO_THROWS(function(){ rc2.switchToMultiPrimaryMode(); });
-EXPECT_NO_THROWS(function(){ rc2.switchToSinglePrimaryMode(); });
-EXPECT_NO_THROWS(function(){ rc2.dissolve({force: true}); });
-
 // Cluster topology changes are allowed only if the Replication channel is healthy
 shell.connect(__sandbox_uri2);
 session.runSql("stop replica;");

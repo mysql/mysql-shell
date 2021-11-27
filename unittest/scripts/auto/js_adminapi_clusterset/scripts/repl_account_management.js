@@ -136,18 +136,20 @@ CHECK_CLUSTER_USERS(session1, ["cluster1", "cluster2"], "%", 0);
 // avoid slow wait when sb is started back
 session2.runSql("set persist group_replication_start_on_boot=0");
 
-// check account deletion for offline cluster
+// check account deletion for offline cluster: no accounts should be dropped
+// the primary cluster is unavailable so dropping the accounts directly in the
+// target cluster would result in errant transactions.
 testutil.stopSandbox(__mysql_sandbox_port2);
 cs.removeCluster("cluster2", {force:1});
 
-CHECK_RECOVERY_USERS(session1, [1111], "%");
+CHECK_RECOVERY_USERS(session1, [1111, 2222], "%");
 CHECK_CLUSTER_USERS(session1, ["cluster1"], "%", 0);
 
 testutil.startSandbox(__mysql_sandbox_port2);
 session2 = mysql.getSession(__sandbox_uri2);
 
 //@<> change the option and readd replica clusters
-reset_instance(session2); 
+reset_instance(session2);
 reset_instance(session3);
 reset_instance(session4);
 
@@ -273,18 +275,21 @@ CHECK_RECOVERY_USERS(session1, [2222], "%", 1);
 CHECK_CLUSTER_USERS(session1, ["cluster1"], hostname_ip, 1);
 CHECK_CLUSTER_USERS(session1, ["cluster2"], "%", 1);
 
-// check account deletion for offline cluster
+// check account deletion for offline cluster: no accounts should be dropped
+// the primary cluster is unavailable so dropping the accounts directly in the
+// target cluster would result in errant transactions.
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});
 cs.removeCluster("cluster2", {force:1});
 
-CHECK_RECOVERY_USERS(session1, [1111], hostname_ip);
+CHECK_RECOVERY_USERS(session1, [1111], hostname_ip, 1)
+CHECK_RECOVERY_USERS(session1, [2222], "%", 1)
 CHECK_CLUSTER_USERS(session1, ["cluster1"], hostname_ip, 0);
 
 testutil.startSandbox(__mysql_sandbox_port2);
 session2 = mysql.getSession(__sandbox_uri2);
 
 //@<> check changing via options
-reset_instance(session2); 
+reset_instance(session2);
 reset_instance(session3);
 reset_instance(session4);
 

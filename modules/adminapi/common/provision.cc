@@ -291,7 +291,7 @@ void leave_cluster(const mysqlsh::dba::Instance &instance,
   if (state != mysqlshdk::gr::Member_state::OFFLINE &&
       state != mysqlshdk::gr::Member_state::MISSING) {
     // Stop Group Replication (metadata already removed)
-    console->print_info("Instance '" + instance_address +
+    console->print_info("* Instance '" + instance_address +
                         "' is attempting to leave the cluster...");
     mysqlshdk::gr::stop_group_replication(instance);
     // Get final state and log info.

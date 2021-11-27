@@ -4,7 +4,7 @@ NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-NOTE: Found unexpected replication channel at <<<hostname>>>:<<<__mysql_sandbox_port2>>>
+NOTE: Found unexpected replication channel '' at <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 WARNING: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be added to an InnoDB cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 Checking whether existing tables comply with Group Replication requirements...
@@ -25,7 +25,7 @@ NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-NOTE: Found unexpected replication channel at <<<hostname>>>:<<<__mysql_sandbox_port2>>>
+NOTE: Found unexpected replication channel '' at <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 WARNING: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot be added to an InnoDB cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 Checking whether existing tables comply with Group Replication requirements...

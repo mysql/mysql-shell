@@ -147,8 +147,9 @@ OPTIONS
 
 --force=<bool>
             Boolean, indicating if the cluster must be removed (even if
-            only from metadata) in case the PRIMARY cannot be reached. By
-            default, set to false.
+            only from metadata) in case the PRIMARY cannot be reached, or
+            the ClusterSet replication channel cannot be found or is stopped.
+            By default, set to false.
 
 //@<OUT> CLI clusterset describe --help
 NAME
