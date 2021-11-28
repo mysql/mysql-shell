@@ -1216,5 +1216,36 @@ TEST(Uri_parser, parse_file) {
                    "Unexpected data [/] at position 6", true);
 }
 
+TEST(Uri_parser, hide_password_in_uri) {
+  auto check = [](bool devapi, const std::string &expect,
+                  const std::string &input) {
+    EXPECT_EQ(expect, mysqlshdk::db::uri::hide_password_in_uri(input, devapi));
+    EXPECT_LE(expect.size(), input.size());
+  };
+
+  {
+    bool devapi = true;
+    check(devapi, "root@abcroot123.com:3306",
+          "%72%6f%6f%74:123456@abcroot123.com:3306");
+    check(devapi, "abcroot123.com:3306", "abcroot123.com:3306");
+    check(devapi, "root@abcroot123.com:3306",
+          "%72%6f%6f%74@abcroot123.com:3306");
+    check(devapi, "mysql://ro@(/path/to/whatever/socket.sock)",
+          "mysql://ro:::ot:fd%40safdsa@(/path/to/whatever/socket.sock)");
+    check(devapi, "mysql://ro@(/path/to/whatever/socket.sock)",
+          "mysql://ro@(/path/to/whatever/socket.sock)");
+  }
+  {
+    bool devapi = false;
+    check(devapi, "ssh://mysql.com", "ssh://mysql.com");
+    check(devapi, "ssh://user.name@mysql.com", "ssh://user.name:pwd@mysql.com");
+    check(devapi, "ssh://user.name@mysql.com", "ssh://user.name@mysql.com");
+    check(devapi, "ssh://user@10.150.123.45:2845",
+          "ssh://user:pass@10.150.123.45:2845");
+    check(devapi, "ssh://user@10.150.123.45:2845",
+          "ssh://user@10.150.123.45:2845");
+  }
+}
+
 }  // namespace proj_parser_tests
 }  // namespace testing

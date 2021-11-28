@@ -1,23 +1,25 @@
-/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
-
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include <stdarg.h>
 #include <cstdio>
@@ -1315,7 +1317,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
       std::make_shared<Shell_options>(2, argv);
 
   EXPECT_EQ(0, options->get().exit_code);
-  EXPECT_STREQ(argv[1], "--uri=root:****@localhost:3301");
+  EXPECT_STREQ(argv[1], "--uri=root@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   SCOPED_TRACE("TESTING: single letter user without password in uri");
@@ -1326,7 +1328,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   options = std::make_shared<Shell_options>(2, argv1);
 
   EXPECT_EQ(0, options->get().exit_code);
-  EXPECT_STREQ(argv1[1], "--uri=r:@localhost:3301");
+  EXPECT_STREQ(argv1[1], "--uri=r@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   SCOPED_TRACE("TESTING: single letter user with password in uri");
@@ -1337,7 +1339,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   options = std::make_shared<Shell_options>(2, argv2);
 
   EXPECT_EQ(0, options->get().exit_code);
-  EXPECT_STREQ(argv2[1], "--uri=r:****@localhost:3301");
+  EXPECT_STREQ(argv2[1], "--uri=r@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   SCOPED_TRACE("TESTING: single letter user with single letter password");
@@ -1348,7 +1350,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   options = std::make_shared<Shell_options>(2, argv3);
 
   EXPECT_EQ(0, options->get().exit_code);
-  EXPECT_STREQ(argv3[1], "--uri=r:*@localhost:3301");
+  EXPECT_STREQ(argv3[1], "--uri=r@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   SCOPED_TRACE("TESTING: user with password with special sign encoded in uri");
@@ -1359,7 +1361,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   options = std::make_shared<Shell_options>(2, argv4);
 
   EXPECT_EQ(0, options->get().exit_code);
-  EXPECT_STREQ(argv4[1], "--uri=root:******@localhost:3301");
+  EXPECT_STREQ(argv4[1], "--uri=root@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   SCOPED_TRACE(
@@ -1371,7 +1373,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
   options = std::make_shared<Shell_options>(2, argv5);
 
   EXPECT_EQ(0, options->get().exit_code);
-  EXPECT_STREQ(argv5[1], "root:******@localhost:3301");
+  EXPECT_STREQ(argv5[1], "root@localhost:3301");
   EXPECT_STREQ("", cerr.str().c_str());
 
   // Restore old cerr.

@@ -31,6 +31,7 @@
 
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/uri_common.h"
+#include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
@@ -40,6 +41,21 @@
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
+
+namespace {
+// We do not want to expose password. Override argv's uri with uri string
+// without password.
+void override_uri(const std::string &nopassword_uri, const char *argv) {
+  char *value = const_cast<char *>(argv);
+  auto value_length = strlen(value);
+  assert(nopassword_uri.size() <= value_length);
+  // If password is longer than @host:port part then strncpy will leak
+  // password ending. We need to clear whole buffer first.
+  shcore::clear_buffer(value, value_length);
+  strncpy(value, nopassword_uri.c_str(), value_length + 1);
+  value[value_length] = '\0';
+}
+}  // namespace
 
 namespace mysqlsh {
 
@@ -145,13 +161,6 @@ bool Shell_options::Storage::is_mfa(bool check_values) const {
           (!check_values || !mfa_passwords[1]->empty())) ||
          (mfa_passwords[2].has_value() &&
           (!check_values || !mfa_passwords[2]->empty()));
-}
-
-static std::string hide_password_in_uri(std::string uri,
-                                        const std::string &username) {
-  std::size_t pwd_start = uri.find(username) + username.length() + 1;
-  std::size_t pwd_size = uri.find('@', pwd_start) - pwd_start;
-  return uri.replace(pwd_start, pwd_size, pwd_size, '*');
 }
 
 static std::string get_session_type_name(mysqlsh::SessionType type) {
@@ -884,8 +893,8 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
 
     if (uri_data.has_password()) {
       const auto value = iterator->value();
-      const auto nopwd_uri = hide_password_in_uri(value, uri_data.get_user());
-      strncpy(const_cast<char *>(value), nopwd_uri.c_str(), strlen(value) + 1);
+      const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value, true);
+      override_uri(nopwd, value);
     }
 
     iterator->next();
@@ -897,9 +906,8 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
         shcore::get_ssh_connection_options(storage.ssh.uri, false);
     if (storage.ssh.uri_data.has_password()) {
       const auto value = iterator->value();
-      const auto nopwd_uri =
-          hide_password_in_uri(value, storage.ssh.uri_data.get_user());
-      strncpy(const_cast<char *>(value), nopwd_uri.c_str(), strlen(value) + 1);
+      const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value, false);
+      override_uri(nopwd, value);
     }
 
     iterator->next();
