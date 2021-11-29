@@ -54,14 +54,16 @@ namespace ssh {
  * @brief General SSH connection class that performs connection and user
  * authentication.
  */
-class Ssh_session {
+class Ssh_session final {
  public:
   Ssh_session();
-  Ssh_session(const Ssh_session &ses) = delete;
-  Ssh_session(const Ssh_session &&ses) = delete;
-  Ssh_session &operator=(Ssh_session &) = delete;
-  Ssh_session &&operator=(Ssh_session &&) = delete;
-  virtual ~Ssh_session();
+  Ssh_session(const Ssh_session &other) = delete;
+  Ssh_session(Ssh_session &&other) = delete;
+
+  Ssh_session &operator=(const Ssh_session &other) = delete;
+  Ssh_session &operator=(Ssh_session &&other) = delete;
+
+  ~Ssh_session();
 
   /**
    * @brief set SSH connection settings, make connection, authentication and

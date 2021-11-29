@@ -108,7 +108,11 @@ class SHCORE_PUBLIC Uri_parser {
 
   bool input_contains(const std::string &what,
                       size_t position = std::string::npos);
+
+  friend std::string hide_password_in_uri(std::string uri, bool devapi);
 };
+
+std::string hide_password_in_uri(std::string uri, bool devapi = true);
 
 }  // namespace uri
 }  // namespace db

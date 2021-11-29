@@ -526,9 +526,17 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
 #ifdef ENABLE_SESSION_RECORDING
   handle_debug_options(argc, argv);
 #endif
+  const auto user_config_path = []() -> std::string {
+    try {
+      return shcore::get_user_config_path();
+    } catch (const std::exception &e) {
+      std::cerr << e.what() << '\n';
+      exit(1);
+    }
+  }();
+
   auto shell_options = std::make_shared<mysqlsh::Shell_options>(
-      *argc, *argv,
-      shcore::path::join_path(shcore::get_user_config_path(), "options.json"));
+      *argc, *argv, shcore::path::join_path(user_config_path, "options.json"));
   const mysqlsh::Shell_options::Storage &options = shell_options->get();
 
   detect_interactive(shell_options.get(), &stdin_is_tty, &stdout_is_tty);

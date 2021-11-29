@@ -64,7 +64,10 @@ class Ssh_tunnel_handler : public Ssh_thread {
   bool handle_new_connection(int incoming_socket);
 
   void use() { ++m_usage; }
-  int release() { return --m_usage; }
+  int release() {
+    assert(m_usage > 0);
+    return --m_usage;
+  }
   Ssh_session_info get_tunnel_info() const {
     return m_session->get_session_info();
   }

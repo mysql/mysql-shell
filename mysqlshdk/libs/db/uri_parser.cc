@@ -976,6 +976,24 @@ bool Uri_parser::input_contains(const std::string &what, size_t index) {
   return ret_val;
 }
 
+std::string hide_password_in_uri(std::string uri, bool devapi) {
+  Uri_parser parser(devapi);
+  mysqlshdk::db::Connection_options conn_opts;
+  parser._data = &conn_opts;
+  parser.preprocess(uri);
+
+  if (parser._chunks.find(URI_USER_INFO) == parser._chunks.end()) {
+    return uri;
+  }
+
+  auto [first, last] = parser._chunks[URI_USER_INFO];
+  parser.parse_userinfo();
+  const auto &username = parser._data->get_user();
+  uri.replace(first, last - first + 1, username);
+
+  return uri;
+}
+
 }  // namespace uri
 }  // namespace db
 }  // namespace mysqlshdk

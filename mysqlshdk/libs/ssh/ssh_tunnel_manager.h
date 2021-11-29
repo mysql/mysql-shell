@@ -77,20 +77,20 @@ class Ssh_tunnel_manager : public Ssh_thread {
   void poke_wakeup_socket();
   void use_tunnel(const Ssh_connection_options &config);
   void release_tunnel(const Ssh_connection_options &config);
-  void disconnect(const Ssh_connection_options &config);
   std::vector<Ssh_session_info> list_tunnels();
 
  private:
-  typedef struct {
+  struct Sock_info {
     uint16_t port;
     int socket_handle;
-  } Sock_info;
+  };
 
   Sock_info create_socket(int backlog = 1);
   std::unique_lock<std::recursive_mutex> lock_socket_list();
   void run() override;
   void local_socket_handler();
   std::vector<pollfd> get_socket_list();
+  void disconnect(mysqlshdk::ssh::Ssh_tunnel_handler *tunnel_handler);
 
   mutable std::recursive_mutex m_socket_mtx;
   uint16_t m_wakeup_socket_port;
