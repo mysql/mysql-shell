@@ -1205,9 +1205,7 @@ void Cluster_set_impl::remove_cluster(
                         { throw std::logic_error("debug"); });
 
         // Remove Cluster's recovery accounts
-        if (!options.dry_run && target_cluster->get_cluster_server() &&
-            target_cluster->cluster_availability() ==
-                Cluster_availability::ONLINE) {
+        if (!options.dry_run && target_cluster->get_cluster_server()) {
           target_cluster->drop_replication_users();
 
           undo_list.push_front([=]() {
@@ -1308,7 +1306,7 @@ void Cluster_set_impl::remove_cluster(
           target_cluster->execute_in_members(
               {mysqlshdk::gr::Member_state::ONLINE,
                mysqlshdk::gr::Member_state::RECOVERING},
-              get_primary_master().get()->get_connection_options(), {},
+              get_primary_master()->get_connection_options(), {},
               [=](const std::shared_ptr<Instance> &instance,
                   const mysqlshdk::gr::Member &) {
                 if (target_cluster->get_cluster_server()->get_uuid() !=
@@ -1334,17 +1332,15 @@ void Cluster_set_impl::remove_cluster(
         for (const auto &reachable_member : cluster_reachable_members) {
           // Check if super_read_only is enabled. If so it must be
           // disabled to reset the ClusterSet settings
-          if (reachable_member.get()
-                  ->get_sysvar_bool("super_read_only")
-                  .get_safe()) {
-            reachable_member.get()->set_sysvar("super_read_only", false);
+          if (reachable_member->get_sysvar_bool("super_read_only").get_safe()) {
+            reachable_member->set_sysvar("super_read_only", false);
           }
 
           // Reset the ClusterSet settings and replication channel
           remove_replica(reachable_member.get(), options.dry_run);
 
           // Disable skip_replica_start
-          reachable_member.get()->set_sysvar(
+          reachable_member->set_sysvar(
               "skip_replica_start", false,
               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
 
@@ -1360,7 +1356,7 @@ void Cluster_set_impl::remove_cluster(
                            ar_options, false, options.dry_run);
 
             log_info("Revert: Enabling skip_replica_start");
-            reachable_member.get()->set_sysvar(
+            reachable_member->set_sysvar(
                 "skip_replica_start", true,
                 mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
           });
@@ -1388,10 +1384,10 @@ void Cluster_set_impl::remove_cluster(
 
         // First the secondaries
         for (const auto &member : cluster_reachable_members) {
-          if (member.get()->get_uuid() != target_cluster_primary->get_uuid()) {
+          if (member->get_uuid() != target_cluster_primary->get_uuid()) {
             try {
               // Stop Group Replication and reset GR variables
-              log_debug("Stopping GR at %s", member.get()->descr().c_str());
+              log_debug("Stopping GR at %s", member->descr().c_str());
 
               if (!options.dry_run) {
                 mysqlsh::dba::leave_cluster(*member);
@@ -1416,7 +1412,7 @@ void Cluster_set_impl::remove_cluster(
             } catch (const std::exception &err) {
               console->print_error(shcore::str_format(
                   "Instance '%s' failed to leave the cluster: %s",
-                  member.get()->get_canonical_address().c_str(), err.what()));
+                  member->get_canonical_address().c_str(), err.what()));
             }
           }
         }
