@@ -98,8 +98,8 @@ print('Second Field:', metadata[1].column_name)
 print('Third Field:', metadata[2].column_name)
 
 #@<> Resultset row members
-result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
-row = result.fetch_one();
+result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"')
+row = result.fetch_one()
 
 validate_members(row, [
   'length',
@@ -127,8 +127,8 @@ print("Age with property: %s" % row.age)
 print("Unable to get length with property: %s" %  row.length)
 
 #@ Resultset row as object
-result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
-obj = result.fetch_one_object();
+result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"')
+obj = result.fetch_one_object()
 print("Name with property: %s" % obj.alias)
 print("Age with property: %s" % obj["age"])
 print(obj)
@@ -152,3 +152,20 @@ print(result.column_names)
 result = mySession.run_sql("select NULL")
 print([c.column_label for c in result.columns])
 print(result.column_names)
+
+#@ 0 dates from MySQL must be converted to None, since datetime don't like them
+# Regression test for Bug #33621406
+mySession.run_sql("set sql_mode=''")
+result = mySession.run_sql("select cast('0000-00-00' as date), cast('0000-00-00 00:00:00' as datetime), cast('00:00:00' as time)")
+row = result.fetch_one()
+print(row[0])
+print(row[1])
+print(row[2])
+
+result = mySession.run_sql("select cast('2000-01-01' as date), cast('2000-01-01 01:02:03' as datetime), cast('2000-01-01 00:00:00' as datetime), cast('01:02:03' as time)")
+row = result.fetch_one()
+print(row[0])
+print(row[1])
+print(row[2])
+print(row[3])
+

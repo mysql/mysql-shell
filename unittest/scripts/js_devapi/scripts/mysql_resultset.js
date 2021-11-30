@@ -110,4 +110,20 @@ println("Age as item: " +  object['age']);
 println()
 println(object)
 
+//@ 0 dates from MySQL must be converted to None, since datetime don't like them
+// Regression test for Bug #33621406
+var result = mySession.runSql("set sql_mode=''")
+var result = mySession.runSql("select cast('0000-00-00' as date), cast('0000-00-00 00:00:00' as datetime), cast('00:00:00' as time)")
+var row = result.fetchOne()
+println(row[0])
+println(row[1])
+println(row[2])
+
+var result = mySession.runSql("select cast('2000-01-01' as date), cast('2000-01-01 01:02:03' as datetime), cast('2000-01-01 00:00:00' as datetime), cast('01:02:03' as time)")
+var row = result.fetchOne()
+println(row[0])
+println(row[1])
+println(row[2])
+println(row[3])
+
 mySession.close()
