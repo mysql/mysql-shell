@@ -201,6 +201,12 @@ class TYPES_COMMON_PUBLIC Python_context {
                                    int minute, int second, int useconds);
   PyTypeObject *get_datetime_type() const { return _datetime_type; }
 
+  PyObject *create_date_object(int year, int month, int day);
+  PyTypeObject *get_date_type() const { return _date_type; }
+
+  PyObject *create_time_object(int hour, int minute, int second, int useconds);
+  PyTypeObject *get_time_type() const { return _time_type; }
+
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,
                                const std::string &stream);
@@ -236,6 +242,12 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   PyObject *_datetime = nullptr;
   PyTypeObject *_datetime_type = nullptr;
+
+  PyObject *_date = nullptr;
+  PyTypeObject *_date_type = nullptr;
+
+  PyObject *_time = nullptr;
+  PyTypeObject *_time_type = nullptr;
 
   PyObject *_mysqlsh_module = nullptr;
   PyObject *_mysqlsh_globals = nullptr;

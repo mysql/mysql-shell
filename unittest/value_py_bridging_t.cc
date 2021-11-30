@@ -442,8 +442,7 @@ TEST_F(Python, function_to_py) {
   */
 }
 
-TEST_F(Python, date_to_py) {
-  std::error_code error;
+TEST_F(Python, datetime_to_py) {
   std::shared_ptr<shcore::Date> date(
       new shcore::Date(2000, 1, 1, 12, 23, 35, 526));
 
@@ -470,6 +469,83 @@ TEST_F(Python, date_to_py) {
 
   ASSERT_EQ(value.as_object()->class_name(), "Date");
   ASSERT_EQ(v, value);
+
+  Value zero(std::make_shared<shcore::Date>(0, 0, 0, 0, 0, 0, 0));
+  ASSERT_EQ(py->convert(py->convert(zero)), shcore::Value::Null());
+}
+
+TEST_F(Python, date_to_py) {
+  std::shared_ptr<shcore::Date> date(new shcore::Date(2000, 1, 1));
+
+  Value v(date);
+  Input_state cont = Input_state::Ok;
+  WillEnterPython lock;
+  // this will also test conversion of a wrapped array
+  ASSERT_EQ(py->convert(py->convert(v)).repr(), v.repr());
+
+  ASSERT_EQ(py->convert(py->convert(v)), v);
+
+  py->set_global("gdate", v);
+  ASSERT_EQ(py->get_global("gdate").repr(), v.repr());
+
+  ASSERT_EQ(py->execute_interactive("gdate", cont).repr(), v.repr());
+
+  ASSERT_EQ(py->execute_interactive("str(type(gdate))", cont).repr(),
+            "\"<class \\'datetime.date\\'>\"");
+
+  py->execute_interactive("import datetime", cont);
+
+  auto value = py->execute_interactive("datetime.date(2000, 1, 1)", cont);
+
+  ASSERT_EQ(value.as_object()->class_name(), "Date");
+  ASSERT_EQ(v, value);
+
+  Value zero(std::make_shared<shcore::Date>(0, 0, 0));
+  ASSERT_EQ(py->convert(py->convert(zero)), shcore::Value::Null());
+}
+
+TEST_F(Python, time_to_py) {
+  std::shared_ptr<shcore::Date> time1(new shcore::Date(0, 0, 0, 0));
+  std::shared_ptr<shcore::Date> time2(new shcore::Date(10, 20, 30, 0));
+
+  Value v1(time1);
+  Value v2(time2);
+  Input_state cont = Input_state::Ok;
+  WillEnterPython lock;
+  // this will also test conversion of a wrapped array
+  ASSERT_EQ(py->convert(py->convert(v1)).repr(), v1.repr());
+  ASSERT_EQ(py->convert(py->convert(v2)).repr(), v2.repr());
+
+  ASSERT_EQ(py->convert(py->convert(v1)), v1);
+  ASSERT_EQ(py->convert(py->convert(v2)), v2);
+
+  py->set_global("gtime1", v1);
+  ASSERT_EQ(py->get_global("gtime1").repr(), v1.repr());
+
+  py->set_global("gtime2", v2);
+  ASSERT_EQ(py->get_global("gtime2").repr(), v2.repr());
+
+  ASSERT_EQ(py->execute_interactive("gtime1", cont).repr(), v1.repr());
+
+  ASSERT_EQ(py->execute_interactive("str(type(gtime1))", cont).repr(),
+            "\"<class \\'datetime.time\\'>\"");
+
+  py->execute_interactive("import datetime", cont);
+
+  auto value = py->execute_interactive("datetime.time(0, 0, 0)", cont);
+
+  ASSERT_EQ(value.as_object()->class_name(), "Date");
+  ASSERT_EQ(v1, value);
+
+  ASSERT_EQ(py->execute_interactive("gtime2", cont).repr(), v2.repr());
+
+  ASSERT_EQ(py->execute_interactive("str(type(gtime2))", cont).repr(),
+            "\"<class \\'datetime.time\\'>\"");
+
+  value = py->execute_interactive("datetime.time(10, 20, 30)", cont);
+
+  ASSERT_EQ(value.as_object()->class_name(), "Date");
+  ASSERT_EQ(v2, value);
 }
 
 }  // namespace tests

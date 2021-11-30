@@ -180,24 +180,37 @@ Value convert(PyObject *py, Python_context **context) {
         }
       }
 
-      if (PyObject_TypeCheck(py, (*context)->get_datetime_type())) {
-        auto get_value = [](PyObject *datetime, const char *name) {
-          auto att = PyObject_GetAttrString(datetime, name);
-          int64_t ret_val = PyLong_AsLongLong(att);
-          Py_XDECREF(att);
-          return ret_val;
-        };
+      auto get_int64 = [](PyObject *obj, const char *name) {
+        auto att = PyObject_GetAttrString(obj, name);
+        int64_t ret_val = PyLong_AsLongLong(att);
+        Py_XDECREF(att);
+        return ret_val;
+      };
 
-        auto year = get_value(py, "year");
-        auto month = get_value(py, "month");
-        auto day = get_value(py, "day");
-        auto hour = get_value(py, "hour");
-        auto min = get_value(py, "minute");
-        auto sec = get_value(py, "second");
-        auto usec = get_value(py, "microsecond");
+      if (PyObject_TypeCheck(py, (*context)->get_datetime_type())) {
+        auto year = get_int64(py, "year");
+        auto month = get_int64(py, "month");
+        auto day = get_int64(py, "day");
+        auto hour = get_int64(py, "hour");
+        auto min = get_int64(py, "minute");
+        auto sec = get_int64(py, "second");
+        auto usec = get_int64(py, "microsecond");
 
         return shcore::Value(Object_bridge_ref(
             new Date(year, month, day, hour, min, sec, usec)));
+      } else if (PyObject_TypeCheck(py, (*context)->get_date_type())) {
+        auto year = get_int64(py, "year");
+        auto month = get_int64(py, "month");
+        auto day = get_int64(py, "day");
+
+        return shcore::Value(Object_bridge_ref(new Date(year, month, day)));
+      } else if (PyObject_TypeCheck(py, (*context)->get_time_type())) {
+        auto hour = get_int64(py, "hour");
+        auto min = get_int64(py, "minute");
+        auto sec = get_int64(py, "second");
+        auto usec = get_int64(py, "microsecond");
+
+        return shcore::Value(Object_bridge_ref(new Date(hour, min, sec, usec)));
       } else {
         PyObject *obj_repr = PyObject_Repr(py);
         std::string s;
@@ -226,12 +239,12 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
   PyObject *r = nullptr;
   switch (value.type) {
     case Undefined:
-      Py_INCREF(Py_None);
       r = Py_None;
+      Py_INCREF(r);
       break;
     case Null:
-      Py_INCREF(Py_None);
       r = Py_None;
+      Py_INCREF(r);
       break;
     case Bool:
       r = PyBool_FromLong(value.value.b);
@@ -253,10 +266,26 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
         auto ctx = Python_context::get();
         std::shared_ptr<Date> date = value.as_object<Date>();
 
-        r = ctx->create_datetime_object(date->get_year(), date->get_month(),
-                                        date->get_day(), date->get_hour(),
-                                        date->get_min(), date->get_sec(),
-                                        date->get_usec());
+        // 0 dates are invalid in Python, but OK in MySQL, so we convert these
+        // to None, which is what they probably really mean
+        if (date->has_date() && date->get_year() == 0 &&
+            date->get_month() == 0 && date->get_day() == 0) {
+          r = Py_None;
+          Py_INCREF(r);
+        } else if (date->has_time()) {
+          if (!date->has_date()) {
+            r = ctx->create_time_object(date->get_hour(), date->get_min(),
+                                        date->get_sec(), date->get_usec());
+          } else {
+            r = ctx->create_datetime_object(date->get_year(), date->get_month(),
+                                            date->get_day(), date->get_hour(),
+                                            date->get_min(), date->get_sec(),
+                                            date->get_usec());
+          }
+        } else {
+          r = ctx->create_date_object(date->get_year(), date->get_month(),
+                                      date->get_day());
+        }
 
       } else {
         r = wrap(*value.value.o);
