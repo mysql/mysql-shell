@@ -44,3 +44,11 @@ Age as item: 17
     "length": 17
 }
 
+//@<OUT> 0 dates from MySQL must be converted to None, since datetime don't like them
+null
+null
+00:00:00
+2000-01-01 00:00:00
+2000-01-01 01:02:03
+2000-01-01 00:00:00
+01:02:03

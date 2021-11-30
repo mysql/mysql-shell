@@ -703,7 +703,11 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
 
         case Type::Date:
         case Type::DateTime:
-          v = Value(Date::unrepr(row.get_string(i)));
+          v = Value::wrap(new Date(Date::unrepr(row.get_string(i))));
+          break;
+
+        case Type::Time:
+          v = Value::wrap(new Date(Date::unrepr(row.get_string(i))));
           break;
 
         case Type::Bit:
@@ -713,7 +717,6 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
         case Type::Bytes:
         case Type::Geometry:
         case Type::Json:
-        case Type::Time:
         case Type::Enum:
         case Type::Set:
           v = Value(row.get_string(i));

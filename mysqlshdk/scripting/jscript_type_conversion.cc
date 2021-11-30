@@ -106,13 +106,28 @@ v8::Local<v8::Value> JScript_type_bridger::native_object_to_js(
     Object_bridge_ref object) const {
   if (object && object->class_name() == "Date") {
     std::shared_ptr<Date> date = std::static_pointer_cast<Date>(object);
-    // The only Date constructor exposed to C++ takes milliseconds, the
-    // constructor that parses a date from an string is implemented in
-    // Javascript, so it is invoked this way.
-    v8::Local<v8::String> source = owner->v8_string(shcore::str_format(
-        "new Date(%d, %d, %d, %d, %d, %d, %d)", date->get_year(),
-        date->get_month() - 1, date->get_day(), date->get_hour(),
-        date->get_min(), date->get_sec(), date->get_usec() / 1000));
+
+    v8::Local<v8::String> source;
+
+    // 0 date values can come from MySQL but they're not supported by the JS
+    // Date object, so we convert them to null
+    if (date->has_date() && date->get_year() == 0 && date->get_month() == 0 &&
+        date->get_day() == 0) {
+      return v8::Null(owner->isolate());
+    } else if (!date->has_date()) {
+      // there's no Time object in JS and we can't use Date to represent time
+      // only
+      std::string t;
+      source = owner->v8_string(date->append_repr(t));
+    } else {
+      // The only Date constructor exposed to C++ takes milliseconds, the
+      // constructor that parses a date from an string is implemented in
+      // Javascript, so it is invoked this way.
+      source = owner->v8_string(shcore::str_format(
+          "new Date(%d, %d, %d, %d, %d, %d, %d)", date->get_year(),
+          date->get_month() - 1, date->get_day(), date->get_hour(),
+          date->get_min(), date->get_sec(), date->get_usec() / 1000));
+    }
     v8::Local<v8::Context> lcontext = owner->context();
     v8::Context::Scope context_scope(lcontext);
     v8::MaybeLocal<v8::Script> script = v8::Script::Compile(lcontext, source);

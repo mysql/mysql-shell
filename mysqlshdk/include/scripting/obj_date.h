@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,9 @@ class DateTime;
 namespace shcore {
 class SHCORE_PUBLIC Date : public Cpp_object_bridge {
  public:
+  Date(const Date &date);
   Date(int year, int month, int day, int hour, int min, int sec, int usec);
+  Date(int hour, int min, int sec, int usec);
   Date(int year, int month, int day);
 
   virtual std::string class_name() const { return "Date"; }
@@ -63,16 +65,14 @@ class SHCORE_PUBLIC Date : public Cpp_object_bridge {
   int get_usec() const { return _usec; }
 
   bool has_time() const { return _has_time; }
+  bool has_date() const { return _has_date; }
 
  public:
-  static Object_bridge_ref unrepr(const std::string &s);
-  static Object_bridge_ref from_ms(int64_t ms_since_epoch);
-  static Object_bridge_ref from_mysqlx_datetime(const ::xcl::DateTime &dt);
+  static Date unrepr(const std::string &s);
+  static Date from_ms(int64_t ms_since_epoch);
+  static Date from_mysqlx_datetime(const ::xcl::DateTime &dt);
 
  private:
-  Date(int year, int month, int day, int hour, int min, int sec, int usec,
-       bool has_time);
-
   void validate();
 
   int _year;
@@ -83,6 +83,7 @@ class SHCORE_PUBLIC Date : public Cpp_object_bridge {
   int _sec;
   int _usec;
   bool _has_time;
+  bool _has_date;
 };
 }  // namespace shcore
 

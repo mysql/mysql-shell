@@ -609,6 +609,10 @@ Python_context::~Python_context() {
     Py_XDECREF(_shell_python_support_module);
     Py_XDECREF(_datetime);
     Py_XDECREF(_datetime_type);
+    Py_XDECREF(_date);
+    Py_XDECREF(_date_type);
+    Py_XDECREF(_time);
+    Py_XDECREF(_time_type);
 
     py_unregister_module("mysqlsh");
     Py_XDECREF(_mysqlsh_module);
@@ -1405,11 +1409,33 @@ void Python_context::get_datetime_constructor() {
   if (!_datetime) PyErr_Print();
   assert(_datetime);
 
-  // Creates a remporary datetime object to cache the python type
-  auto tmp_date = create_datetime_object(2000, 1, 1, 1, 1, 1, 0);
-  _datetime_type = tmp_date->ob_type;
+  _date = PyDict_GetItemString(py_datetime_dict, "date");
+  Py_XINCREF(_date);
+
+  if (!_date) PyErr_Print();
+  assert(_date);
+
+  _time = PyDict_GetItemString(py_datetime_dict, "time");
+  Py_XINCREF(_time);
+
+  if (!_time) PyErr_Print();
+  assert(_time);
+
+  // Creates a temporary datetime object to cache the python type
+  auto tmp = create_datetime_object(2000, 1, 1, 1, 1, 1, 0);
+  _datetime_type = Py_TYPE(tmp);
   Py_XINCREF(_datetime_type);
-  Py_XDECREF(tmp_date);
+  Py_XDECREF(tmp);
+
+  tmp = create_date_object(2000, 1, 1);
+  _date_type = Py_TYPE(tmp);
+  Py_XINCREF(_date_type);
+  Py_XDECREF(tmp);
+
+  tmp = create_time_object(0, 0, 0, 0);
+  _time_type = Py_TYPE(tmp);
+  Py_XINCREF(_time_type);
+  Py_XDECREF(tmp);
 }
 
 PyObject *Python_context::create_datetime_object(int year, int month, int day,
@@ -1423,6 +1449,27 @@ PyObject *Python_context::create_datetime_object(int year, int month, int day,
   Py_XDECREF(args);
 
   return new_date;
+}
+
+PyObject *Python_context::create_date_object(int year, int month, int day) {
+  PyObject *args = Py_BuildValue("(iii)", year, month, day);
+
+  PyObject *new_date = PyObject_Call(_date, args, nullptr);
+
+  Py_XDECREF(args);
+
+  return new_date;
+}
+
+PyObject *Python_context::create_time_object(int hour, int minute, int second,
+                                             int useconds) {
+  PyObject *args = Py_BuildValue("(iiii)", hour, minute, second, useconds);
+
+  PyObject *new_time = PyObject_Call(_time, args, nullptr);
+
+  Py_XDECREF(args);
+
+  return new_time;
 }
 
 void Python_context::register_shell_stderr_module() {

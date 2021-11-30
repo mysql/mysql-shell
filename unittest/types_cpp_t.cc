@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 
+#include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -452,4 +453,24 @@ TEST_F(Types_cpp, arg_check_overload_ambiguous) {
   EXPECT_EQ(obj.f_overload(11), obj.call("overload", make_args(11)).as_int());
   EXPECT_EQ(obj.f_overload(0), obj.call("overload", make_args()).as_int());
 }
+
+TEST_F(Types_cpp, time_usec_parsing) {
+  // check correct parsing of decimal seconds as usec values
+
+  EXPECT_EQ(Date::unrepr("00:00:00.0").get_usec(), 0);
+  EXPECT_EQ(Date::unrepr("00:00:00.1").get_usec(), 100000);
+  EXPECT_EQ(Date::unrepr("00:00:00.12").get_usec(), 120000);
+  EXPECT_EQ(Date::unrepr("00:00:00.123").get_usec(), 123000);
+  EXPECT_EQ(Date::unrepr("00:00:00.1234").get_usec(), 123400);
+  EXPECT_EQ(Date::unrepr("00:00:00.12345").get_usec(), 123450);
+  EXPECT_EQ(Date::unrepr("00:00:00.123456").get_usec(), 123456);
+  EXPECT_EQ(Date::unrepr("00:00:00.1234567").get_usec(), 123456);
+  EXPECT_EQ(Date::unrepr("00:00:00.1234561").get_usec(), 123456);
+  EXPECT_EQ(Date::unrepr("00:00:00.12345678").get_usec(), 123456);
+
+  EXPECT_EQ(Date::unrepr("00:00:00.100000").get_usec(), 100000);
+  EXPECT_EQ(Date::unrepr("00:00:00.000100").get_usec(), 100);
+  EXPECT_EQ(Date::unrepr("00:00:00.000001").get_usec(), 1);
+}
+
 }  // namespace shcore
