@@ -34,7 +34,8 @@
 namespace shcore {
 
 Date::Date(const Date &date)
-    : _year(date._year),
+    : Cpp_object_bridge(),
+      _year(date._year),
       _month(date._month),
       _day(date._day),
       _hour(date._hour),
