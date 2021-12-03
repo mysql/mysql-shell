@@ -2000,6 +2000,30 @@ session.run_sql("SET sql_mode = ANSI_QUOTES")
 session.run_sql(f"DROP SCHEMA IF EXISTS {tested_schema}")
 session.run_sql("SET sql_mode = @saved_sql_mode")
 
+#@<> BUG#33497745 - load a dump created by shell 8.0.21
+# prepare the server
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+# disable log_bin_trust_function_creators, some functions have none of DETERMINISTIC, NO SQL, or READS SQL DATA
+session.run_sql("SET @old_log_bin_trust_function_creators = @@global.log_bin_trust_function_creators")
+session.run_sql("SET @@global.log_bin_trust_function_creators = ON")
+
+# extract the dump
+source_archive = os.path.join(__data_path, "load", "dump_instance_8.0.21.tar.gz")
+dump_dir = os.path.join(outdir, "dump_instance_8.0.21")
+shutil.unpack_archive(source_archive, outdir)
+
+# run the test
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "'root'@'%'" ], "ignoreVersion": True, "showProgress": False }), "Loading should not throw")
+EXPECT_STDOUT_CONTAINS(f"Loading DDL, Data and Users from '{dump_dir}' using 4 threads.")
+EXPECT_STDOUT_CONTAINS("NOTE: Dump format has version 1.0.0 and was created by an older version of MySQL Shell. If you experience problems loading it, please recreate the dump using the current version of MySQL Shell and try again.")
+EXPECT_STDOUT_CONTAINS("41 chunks (5.45K rows, 199.62 KB) for 62 tables in 8 schemas were loaded")
+EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
+
+# restore log_bin_trust_function_creators
+session.run_sql("SET @@global.log_bin_trust_function_creators = @old_log_bin_trust_function_creators")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
