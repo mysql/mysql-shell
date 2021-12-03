@@ -759,9 +759,9 @@ shcore::Value Create_replica_cluster::execute() {
 
     try {
       console->print_info();
-      console->print_info(
-          "* Waiting for instance to synchronize with PRIMARY "
-          "Cluster...");
+      console->print_info("* Waiting for instance '" +
+                          m_target_instance->descr() +
+                          "' to synchronize with PRIMARY Cluster...");
       // Sync and check whether the slave started OK
       if (!m_options.dry_run) {
         m_cluster_set->sync_transactions(*m_target_instance.get(),
@@ -814,7 +814,6 @@ shcore::Value Create_replica_cluster::execute() {
                     { throw std::logic_error("debug"); });
 
     // update clusterset metadata
-    console->print_info();
     console->print_info("* Updating topology");
 
     if (!m_options.dry_run) {

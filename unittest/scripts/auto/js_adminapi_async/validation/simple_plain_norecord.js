@@ -140,6 +140,7 @@ Incremental state recovery selected through the recoveryMethod option
 ** Changing replication source of <<<__address3>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
+
 The instance '<<<__address3>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 
 //@# addInstance (clone) {VER(>=8.0.17)}
@@ -169,6 +170,7 @@ Incremental state recovery selected through the recoveryMethod option
 ** Changing replication source of <<<__address2>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
+
 The instance '<<<__address2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 
 //@<OUT> setPrimaryInstance
@@ -188,6 +190,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 ** Checking transaction state of the instance...
 
 * Synchronizing transaction backlog at 127.0.0.1:<<<__mysql_sandbox_port3>>>
+
 
 * Updating metadata
 
@@ -265,6 +268,7 @@ Incremental state recovery was selected because it seems to be safely usable.
 ** Changing replication source of <<<__address3>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Checking replication channel status...
 ** Waiting for rejoined instance to synchronize with PRIMARY...
+
 
 * Updating the Metadata...
 The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.

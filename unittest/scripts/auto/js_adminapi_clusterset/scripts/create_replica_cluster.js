@@ -122,7 +122,7 @@ EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${hostname}:${__mysql_sandbox
 EXPECT_OUTPUT_CONTAINS(`The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '${hostname}:${__mysql_sandbox_port3}' with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS(`* Configuring ClusterSet managed replication channel...`);
 EXPECT_OUTPUT_CONTAINS(`** Changing replication source of ${hostname}:${__mysql_sandbox_port3} to ${hostname}:${__mysql_sandbox_port1}`);
-EXPECT_OUTPUT_CONTAINS(`* Waiting for instance to synchronize with PRIMARY Cluster...`);
+EXPECT_OUTPUT_CONTAINS(`* Waiting for instance '${hostname}:${__mysql_sandbox_port3}' to synchronize with PRIMARY Cluster...`);
 EXPECT_OUTPUT_CONTAINS(`* Updating topology`);
 EXPECT_OUTPUT_CONTAINS(`Replica Cluster 'myReplicaCluster2' successfully created on ClusterSet 'myClusterSet'.`);
 EXPECT_OUTPUT_CONTAINS(`dryRun finished.`);

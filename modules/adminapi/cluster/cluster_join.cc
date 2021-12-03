@@ -409,6 +409,7 @@ void Cluster_join::configure_cluster_set_member() {
         "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
     m_cluster->sync_transactions(*m_primary_instance,
                                  k_clusterset_async_channel_name, 0);
+
     auto cs = m_cluster->get_cluster_set();
 
     auto ar_options = cs->get_clusterset_replication_options();
