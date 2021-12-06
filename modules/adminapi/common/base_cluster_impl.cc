@@ -139,6 +139,7 @@ void Base_cluster_impl::sync_transactions(
   }
 
   current_console()->print_info();
+  current_console()->print_info();
 }
 
 std::string Base_cluster_impl::make_replication_user_name(

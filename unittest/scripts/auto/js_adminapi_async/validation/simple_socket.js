@@ -191,6 +191,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 
 * Synchronizing transaction backlog at 127.0.0.1:<<<__mysql_sandbox_port3>>>
 
+
 * Updating metadata
 
 * Acquiring locks in replicaset instances

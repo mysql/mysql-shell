@@ -1239,6 +1239,9 @@ void Cluster_set_impl::remove_cluster(
                 Cluster_availability::ONLINE &&
             !skip_channel_check && options.timeout >= 0) {
           try {
+            console->print_info(
+                "* Waiting for the Cluster to synchronize the Metadata updates "
+                "with the PRIMARY Cluster...");
             sync_transactions(*target_cluster->get_cluster_server(),
                               {k_clusterset_async_channel_name},
                               options.timeout);

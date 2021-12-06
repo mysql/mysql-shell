@@ -56,6 +56,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 
 * Synchronizing transaction backlog at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
+
 * Updating metadata
 
 * Acquiring locks in replicaset instances

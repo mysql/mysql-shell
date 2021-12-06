@@ -67,6 +67,7 @@ Incremental state recovery selected through the recoveryMethod option
 ** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
+
 The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 
 //@# addInstance (clone) {VER(>=8.0.17)}
@@ -93,6 +94,7 @@ Incremental state recovery selected through the recoveryMethod option
 ** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
+
 The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 
 //@<OUT> setPrimaryInstance
@@ -112,6 +114,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 ** Checking transaction state of the instance...
 
 * Synchronizing transaction backlog at <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
+
 
 * Updating metadata
 

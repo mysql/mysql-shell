@@ -133,8 +133,9 @@ void Dissolve::ensure_transactions_sync() {
   // replication errors (until now).
   for (const auto &instance : m_available_instances) {
     try {
-      mysqlsh::current_console()->print_info(
-          "* Waiting for instance to synchronize with the primary...");
+      auto console = mysqlsh::current_console();
+      console->print_info("* Waiting for instance '" + instance->descr() +
+                          "' to synchronize with the primary...");
       m_cluster->sync_transactions(
           *instance, mysqlshdk::gr::k_gr_applier_channel,
           current_shell_options()->get().dba_gtid_wait_timeout);
@@ -377,8 +378,8 @@ shcore::Value Dissolve::execute() {
       try {
         // Catch-up with all cluster transaction to ensure cluster metadata is
         // removed on the instance.
-        console->print_info(
-            "* Waiting for instance to synchronize with the primary...");
+        console->print_info("* Waiting for instance '" + instance.descr() +
+                            "' to synchronize with the primary...");
 
         m_cluster->sync_transactions(
             instance, mysqlshdk::gr::k_gr_applier_channel,

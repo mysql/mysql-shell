@@ -765,6 +765,9 @@ void Replica_set_impl::add_instance(
   // Wait for the new replica to catch up metadata state
   // Errors after this point don't rollback.
   if (target_instance && !dry_run && sync_timeout >= 0) {
+    console->print_info(
+        "* Waiting for instance '" + target_instance->descr() +
+        "' to synchronize the Metadata updates with the PRIMARY...");
     sync_transactions(*target_instance, {k_replicaset_channel_name},
                       sync_timeout);
   }
@@ -1151,6 +1154,8 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
   // sync transactions before making changes (if not invalidated)
   if (target_server && repl_working && timeout >= 0) {
     try {
+      console->print_info("* Waiting for instance '" + target_server->descr() +
+                          "' to synchronize with the PRIMARY...");
       sync_transactions(*target_server, {k_replicaset_channel_name}, timeout);
     } catch (const shcore::Exception &e) {
       if (force.get_safe()) {
@@ -1179,6 +1184,9 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
       // If replication is working, sync once again so that the drop user and
       // metadata update are caught up with
       try {
+        console->print_info(
+            "* Waiting for instance '" + target_server->descr() +
+            "' to synchronize the Metadata updates with the PRIMARY...");
         sync_transactions(*target_server, {k_replicaset_channel_name}, timeout);
       } catch (const shcore::Exception &e) {
         if (force.get_safe()) {

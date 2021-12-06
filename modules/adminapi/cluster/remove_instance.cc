@@ -476,8 +476,9 @@ shcore::Value Remove_instance::execute() {
     } else {
       try {
         // JOB: Sync transactions with the cluster.
-        console->print_info(
-            "* Waiting for instance to synchronize with the primary...");
+        console->print_info("* Waiting for instance '" +
+                            m_target_instance->descr() +
+                            "' to synchronize with the primary...");
         m_cluster->sync_transactions(
             *m_target_instance, mysqlshdk::gr::k_gr_applier_channel,
             current_shell_options()->get().dba_gtid_wait_timeout);
