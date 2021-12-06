@@ -1951,11 +1951,54 @@ session.run_sql("SHUTDOWN")
 testutil.wait_sandbox_dead(__mysql_sandbox_port2)
 testutil.start_sandbox(__mysql_sandbox_port2)
 testutil.wait_sandbox_alive(__mysql_sandbox_port2)
+# server was restarted, need to recreate the session
+session2 = mysql.get_session(__sandbox_uri2)
 
 # load the dump
 shell.connect(__sandbox_uri2)
 wipeout_server(session)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading should not throw")
+
+#@<> BUG#33640887 - routine created while ANSI_QUOTES was in effect
+# setup
+tested_schema = '"test\'schema"'
+tested_procedure = '"test\'procedure"'
+tested_function = '"test\'function"'
+tested_event = '"test\'event"'
+tested_table = '"test\'table"'
+tested_view = '"test\'view"'
+tested_trigger = '"test\'trigger"'
+dump_dir = os.path.join(outdir, "bug_33640887")
+
+shell.connect(__sandbox_uri1)
+session.run_sql("SET @saved_sql_mode = @@sql_mode")
+session.run_sql("SET sql_mode = ANSI_QUOTES")
+session.run_sql(f"DROP SCHEMA IF EXISTS {tested_schema}")
+session.run_sql(f"CREATE SCHEMA IF NOT EXISTS {tested_schema}")
+session.run_sql(f"CREATE PROCEDURE {tested_schema}.{tested_procedure}() SELECT 1")
+session.run_sql(f"CREATE FUNCTION {tested_schema}.{tested_function}() RETURNS INT NO SQL RETURN 1")
+session.run_sql(f"CREATE EVENT {tested_schema}.{tested_event} ON SCHEDULE EVERY 1 year DISABLE DO BEGIN END")
+session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table} (id INT PRIMARY KEY)")
+session.run_sql(f"CREATE TRIGGER {tested_schema}.{tested_table} BEFORE UPDATE ON {tested_schema}.{tested_table} FOR EACH ROW BEGIN END")
+session.run_sql(f"CREATE VIEW {tested_schema}.{tested_view} AS SELECT 1")
+session.run_sql("SET sql_mode = @saved_sql_mode")
+
+# dump data
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dump should not fail")
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+# wipe the destination server
+wipeout_server(session2)
+# load
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": False, "resetProgress": True, "showProgress": False }), "Load should not fail")
+# verify correctness
+compare_servers(session1, session2, check_users=False)
+
+# cleanup
+session.run_sql("SET @saved_sql_mode = @@sql_mode")
+session.run_sql("SET sql_mode = ANSI_QUOTES")
+session.run_sql(f"DROP SCHEMA IF EXISTS {tested_schema}")
+session.run_sql("SET sql_mode = @saved_sql_mode")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

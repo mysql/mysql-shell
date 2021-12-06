@@ -2950,7 +2950,7 @@ void Dump_loader::Sql_transform::add_execute_conditionally(
           // schema.`object_name`, split_schema_and_table will handle all these
           // cases and unquote the object name
           std::string object_name;
-          shcore::split_schema_and_table(name, nullptr, &object_name);
+          shcore::split_schema_and_table(name, nullptr, &object_name, true);
 
           if (!f(type, object_name)) {
             out_new_sql->clear();

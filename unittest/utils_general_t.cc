@@ -244,6 +244,17 @@ TEST(utils_general, split_schema_and_table) {
   EXPECT_NO_THROW(split_schema_and_table("`schema.table`", &schema, &table));
   EXPECT_EQ("", schema);
   EXPECT_EQ("schema.table", table);
+
+  schema = table = "";
+  EXPECT_THROW_LIKE(
+      split_schema_and_table("\"schema\".\"table\"", &schema, &table, false),
+      std::runtime_error, "Invalid character in identifier");
+
+  schema = table = "";
+  EXPECT_NO_THROW(
+      split_schema_and_table("\"schema\".\"table\"", &schema, &table, true));
+  EXPECT_EQ("schema", schema);
+  EXPECT_EQ("table", table);
 }
 
 TEST(utils_general, split_schema_table_and_object) {
@@ -270,6 +281,19 @@ TEST(utils_general, split_schema_table_and_object) {
                                                   &schema, &table, &object),
                     std::runtime_error,
                     "Invalid object name, expected '.', but got: 'x'.");
+
+  schema = table = "";
+  EXPECT_THROW_LIKE(
+      split_schema_table_and_object("\"schema\".\"table\".\"object\"", &schema,
+                                    &table, &object, false),
+      std::runtime_error, "Invalid character in identifier");
+
+  schema = table = object = "";
+  EXPECT_NO_THROW(split_schema_table_and_object(
+      "\"schema\".\"table\".\"object\"", &schema, &table, &object, true));
+  EXPECT_EQ("schema", schema);
+  EXPECT_EQ("table", table);
+  EXPECT_EQ("object", object);
 
   const char *tests[][4] = {
       {"object", "", "", "object"},
