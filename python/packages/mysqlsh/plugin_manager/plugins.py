@@ -31,6 +31,7 @@ from enum import Enum
 
 from . import general
 from . import repositories
+from mysqlsh.plugin_manager import validate_shell_version
 
 
 class Filter(Enum):
@@ -572,6 +573,15 @@ def install_plugin(name=None, **kwargs):
                 f"ERROR: Version {version} not found for plugin {caption}.\n")
             return
 
+        shell_version_min = version_data.get('shellVersionMin',None)
+        shell_version_max = version_data.get('shellVersionMax',None)
+
+        try:
+            validate_shell_version(min=shell_version_min, max=shell_version_max)
+        except Exception as e:
+            print(str(e))
+            return
+
         if printouts:
             print(f"Installing {caption} ...")
 
@@ -831,11 +841,16 @@ def plugin_details(name=None, **kwargs):
     latest_v = plugin.get('latestVersion', '')
     v_data = get_plugin_version_data(plugin=plugin, version=latest_v)
     latest_v_dev_stage = v_data.get('developmentStage', '').upper()
+    shell_ver_min = v_data.get('shellVersionMin','')
+    shell_ver_max = v_data.get('shellVersionMax','')
     versions = plugin.get("versions", [])
+
     print(f"{caption}\n{'-' * len(caption)}\n"
           f"{'Plugin Name:':>20} {plugin.get('name', '')}\n"
           f"{'Latest Version:':>20} {latest_v}\n"
           f"{'Dev Stage:':>20} {latest_v_dev_stage}\n"
+          f"{'Min. Shell Version:':>20} {shell_ver_min}\n"
+          f"{'Max. Shell Version:':>20} {shell_ver_max}\n"
           f"{'Description:':>20} {description}\n"
           f"{'Available Versions:':>20} {len(versions)}")
 
