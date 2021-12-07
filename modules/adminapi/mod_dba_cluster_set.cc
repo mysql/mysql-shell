@@ -37,6 +37,7 @@ namespace dba {
 
 // Documentation of the ClusterSet Class
 REGISTER_HELP_CLASS(ClusterSet, adminapi);
+
 REGISTER_HELP_CLASS_TEXT(CLUSTERSET, R"*(
 Represents an InnoDB ClusterSet.
 
@@ -47,9 +48,8 @@ ClusterSets allow InnoDB Cluster deployments to achieve fault-tolerance at a
 whole Data Center / region or geographic location, by creating REPLICA clusters
 in different locations (Data Centers), ensuring Disaster Recovery is possible.
 
-For more help on a specific function use: clusterset.help('<functionName>')
-
-e.g. clusterset.help('createReplicaCluster')
+For more help on a specific function, use the \\help shell command, e.g.:
+\\help ClusterSet.<<<createReplicaCluster>>>"
 )*");
 
 ClusterSet::ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset)
@@ -353,11 +353,12 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
  * $(CLUSTERSET_CREATEREPLICACLUSTER)
  */
 #if DOXYGEN_JS
-Cluster create_replica_cluster(InstanceDef instance, String clusterName,
-                               dict options);
+Cluster ClusterSet::createReplicaCluster(InstanceDef instance,
+                                         String clusterName,
+                                         Dictionary options);
 #elif DOXYGEN_PY
-Cluster create_replica_cluster(InstanceDef instance, String clusterName,
-                               dict options);
+Cluster ClusterSet::create_replica_cluster(InstanceDef instance,
+                                           str clusterName, dict options);
 #endif
 shcore::Value ClusterSet::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
@@ -426,15 +427,16 @@ The options dictionary can contain the following values:
             the Cluster from the ClusterSet are executed, but no changes are
             actually made. An exception will be thrown when finished.
 )*");
+
 /**
  * $(CLUSTERSET_REMOVECLUSTER_BRIEF)
  *
  * $(CLUSTERSET_REMOVECLUSTER)
  */
 #if DOXYGEN_JS
-Undefined removeCluster(String clusterName, Dictionary options);
+Undefined ClusterSet::removeCluster(String clusterName, Dictionary options);
 #elif DOXYGEN_PY
-None remove_cluster(str cluster_name, dict options);
+None ClusterSet::remove_cluster(str cluster_name, dict options);
 #endif
 void ClusterSet::remove_cluster(
     const std::string &cluster_name,
@@ -494,9 +496,9 @@ for the ClusterSet replication channel.
  * $(CLUSTERSET_STATUS)
  */
 #if DOXYGEN_JS
-String status(Dictionary options);
+String ClusterSet::status(Dictionary options);
 #elif DOXYGEN_PY
-str status(dict options);
+str ClusterSet::status(dict options);
 #endif
 shcore::Value ClusterSet::status(
     const shcore::Option_pack_ref<clusterset::Status_options> &options) {
@@ -547,9 +549,9 @@ Each instance dictionary contains the following attributes:
  * $(CLUSTERSET_DESCRIBE)
  */
 #if DOXYGEN_JS
-String describe();
+String ClusterSet::describe();
 #elif DOXYGEN_PY
-str describe();
+str ClusterSet::describe();
 #endif
 shcore::Value ClusterSet::describe() {
   assert_valid("describe");
@@ -621,9 +623,9 @@ unreachable or unavailable that are to be invalidated during the switchover.
  * $(CLUSTERSET_SETPRIMARYCLUSTER)
  */
 #if DOXYGEN_JS
-Undefined setPrimaryCluster(String clusterName, Dictionary options);
+Undefined ClusterSet::setPrimaryCluster(String clusterName, Dictionary options);
 #elif DOXYGEN_PY
-None set_primary_cluster(str clusterName, dict options);
+None ClusterSet::set_primary_cluster(str clusterName, dict options);
 #endif
 void ClusterSet::set_primary_cluster(
     const std::string &cluster_name,
@@ -660,7 +662,7 @@ invalidated by including their name in the 'invalidateReplicaClusters' option.
 
 Additionally, if any available REPLICA Cluster has members that are not ONLINE
 and/or reachable, these members will not be in a properly configured state even
-after being restored and rejoined. To ensure failover works correctly, 
+after being restored and rejoined. To ensure failover works correctly,
 <<<rejoinCluster>>>() must be called on the Cluster once these members are
 rejoined.
 
@@ -683,8 +685,8 @@ that can only connect to the invalid Cluster will behave as if nothing changed.
 If applications can still update the database through such Router instances,
 there will be a "Split-Brain" and the database will become inconsistent. To
 avoid such scenario, fence the old primary from all traffic using
-<Cluster>.<<<fenceAllTraffic>>>(), or from write traffic only using
-<Cluster>.<<<fenceWrites>>>().
+Cluster.<<<fenceAllTraffic>>>(), or from write traffic only using
+Cluster.<<<fenceWrites>>>().
 
 @li An invalidated PRIMARY Cluster that is later restored can only be rejoined
 if its GTID set has not diverged relative to the rest of the ClusterSet.
@@ -719,9 +721,10 @@ unreachable or unavailable that are to be invalidated during the failover.
  * $(CLUSTERSET_FORCEPRIMARYCLUSTER)
  */
 #if DOXYGEN_JS
-Undefined forcePrimaryCluster(String clusterName, Dictionary options);
+Undefined ClusterSet::forcePrimaryCluster(String clusterName,
+                                          Dictionary options);
 #elif DOXYGEN_PY
-None force_primary_cluster(str clusterName, dict options);
+None ClusterSet::force_primary_cluster(str clusterName, dict options);
 #endif
 void ClusterSet::force_primary_cluster(
     const std::string &cluster_name,
@@ -783,9 +786,9 @@ The following options may be given:
  * $(CLUSTERSET_REJOINCLUSTER)
  */
 #if DOXYGEN_JS
-Undefined rejoinCluster(String clusterName, Dictionary options);
+Undefined ClusterSet::rejoinCluster(String clusterName, Dictionary options);
 #elif DOXYGEN_PY
-None rejoin_cluster(str clusterName, dict options);
+None ClusterSet::rejoin_cluster(str clusterName, dict options);
 #endif
 void ClusterSet::rejoin_cluster(
     const std::string &cluster_name,
