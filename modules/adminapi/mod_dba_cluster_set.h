@@ -69,12 +69,12 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   str name;  //!< $(CLUSTERSET_GETNAME_BRIEF)
   str get_name();
   None disconnect();
-  Cluster create_replica_cluster(InstanceDef instance, String clusterName,
+  Cluster create_replica_cluster(InstanceDef instance, str clusterName,
                                  dict options);
-  None remove_cluster(str cluster_name, dict options);
-  None rejoin_cluster(str cluster_name, dict options);
-  None set_primary_cluster(str cluster_name, dict options);
-  None force_primary_cluster(str cluster_name, dict options);
+  None remove_cluster(str clusterName, dict options);
+  None rejoin_cluster(str clusterName, dict options);
+  None set_primary_cluster(str clusterName, dict options);
+  None force_primary_cluster(str clusterName, dict options);
   str status(dict options);
   str describe();
   None set_routing_option(str option, str value);
