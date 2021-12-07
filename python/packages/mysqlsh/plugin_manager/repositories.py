@@ -35,9 +35,9 @@ DEFAULT_PLUGIN_REPOSITORIES = [{
     "The official MySQL Shell Plugin Repository maintained by "
     "the MySQL Team at Oracle.",
     "url":
-    "https://cdn.mysql.com/windows/installer/manifest.zip",
+    "https://cdn.mysql.com/mysql_shell/plugins_manifest.zip",
     "manifestPath":
-    "AdditionalPayload/mysql-shell-plugins-manifest.json"
+    "manifest/mysql-shell-plugins-manifest.json"
 }]
 
 
@@ -126,7 +126,7 @@ def set_user_repositories(user_repos, raise_exceptions=False):
         return False
 
 
-#@plugin_function('plugins.repositories.list')
+@plugin_function('plugins.repositories.list')
 def get_plugin_repositories(**kwargs):
     """Lists all registered plugin repositories
 
@@ -164,7 +164,7 @@ def get_plugin_repositories(**kwargs):
               f"{'y' if len(repos) == 1 else 'ies'}.\n")
 
 
-#@plugin_function('plugins.repositories.add')
+@plugin_function('plugins.repositories.add')
 def add_plugin_repository(url=None, **kwargs):
     """Adds a new plugin repository
 
@@ -335,7 +335,7 @@ def search_user_repo(url, user_repos):
         return None
 
 
-#@plugin_function('plugins.repositories.remove')
+@plugin_function('plugins.repositories.remove')
 def remove_plugin_repository(**kwargs):
     """Removes a registered plugin repository
 
@@ -372,7 +372,7 @@ def remove_plugin_repository(**kwargs):
               f"{format_repository_listing(user_repos)}")
 
         # Let the user choose from the list
-        while url is None:
+        while repo_index is None:
             prompt = mysqlsh.globals.shell.prompt(
                 "Please enter the index or URL of a repository: ").strip()
 

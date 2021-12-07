@@ -22,7 +22,7 @@
 
 import inspect
 import re
-from functools import wraps
+from functools import wraps, partial
 
 # Callbacks for additional handling on registered plugin
 # functions should be added here, they should be in the form
@@ -36,6 +36,37 @@ def add_registration_callback(callback):
     _registration_callbacks.append(callback)
 
 
+def validate_shell_version(min=None, max=None):
+    """
+    Validates the plugin Shell version requirements for plugin.
+    """
+    import mysqlsh
+
+    raw_version = mysqlsh.globals.shell.version
+    shell_version = tuple([int(v) for v in raw_version.split()[1].split('-')[0].split('.')])
+
+    # Ensures the plugin can be installed on the current version of the Shell
+    min_version_ok = True
+    if not min is None:
+        min_version = tuple([int(v) for v in min.split('.')])
+        min_version_ok = shell_version >= min_version
+
+    max_version_ok = True
+    if not max is None:
+        max_version = tuple([int(v) for v in max.split('.')])
+        max_version_ok = shell_version <= max_version
+
+    error = ""
+    if not min_version_ok or not max_version_ok:
+        if min is not None and max is not None:
+            error = f"This plugin requires Shell between versions {min} and {max}."
+        elif min is not None:
+            error = f"This plugin requires at least Shell version {min}."
+        elif max is not None:
+            error = f"This plugin does not work on Shell versions newer than {max}."
+
+    if len(error) != 0:
+        raise Exception(error)
 class PluginRegistrar:
     """Helper class to register a shell plugin.
 
@@ -661,8 +692,7 @@ class PluginRegistrar:
     def register_property(self, property):
         pass
 
-
-def plugin(cls):
+def plugin(cls=None, shell_version_min=None, shell_version_max=None):
     """Decorator to register a class as a Shell extension object
 
     This decorator can be used to register a class structure as a Shell
@@ -675,59 +705,64 @@ def plugin(cls):
     Returns:
 
     """
-    try:
-        plugin_manager = PluginRegistrar()
+    if cls is None:
+        return partial(plugin, shell_version_min=shell_version_min, shell_version_max=shell_version_max)
+    else:
+        try:
+            validate_shell_version(shell_version_min, shell_version_max)
 
-        # Use the class name as the plugin name and the DocString as docs and
-        # register the class as Shell plugin
-        plugin_manager.register_object(
-            cls.__name__, PluginRegistrar.FunctionData(cls).format_info()
-        )
+            plugin_manager = PluginRegistrar()
 
-        def register_inner_classes(cls):
-            """Register all inner classes as nested extension objects
-
-            Args:
-                cls (class): The class containing the subclasses to register
-            """
-            # Get all inner classes
-            inner_classes = [
-                inner_class
-                for inner_class in cls.__dict__.values()
-                if inspect.isclass(inner_class)
-            ]
-
-            # Register those as extension objects
-            for inner_class in inner_classes:
-                plugin_manager.register_object(
-                    inner_class.__qualname__,
-                    PluginRegistrar.FunctionData(inner_class).format_info(),
-                )
-
-                # Recursively also register the inner classes of this class
-                register_inner_classes(inner_class)
-
-            # Create an instance of the class to also register the plugin functions
-            # initalized in the class's constructor __init__
-            cls()
-
-        # Register the inner classes as nested extension objects
-        register_inner_classes(cls)
-
-    except Exception as e:
-        print(
-            "Could not register plugin object '{0}'.\nERROR: {1}".format(
-                cls.__name__, str(e)
+            # Use the class name as the plugin name and the DocString as docs and
+            # register the class as Shell plugin
+            plugin_manager.register_object(
+                cls.__name__, PluginRegistrar.FunctionData(cls).format_info()
             )
-        )
-        raise
 
-    @wraps(cls)
-    def wrapper(*args, **kwargs):
-        result = cls(*args, **kwargs)
-        return result
+            def register_inner_classes(cls):
+                """Register all inner classes as nested extension objects
 
-    return wrapper
+                Args:
+                    cls (class): The class containing the subclasses to register
+                """
+                # Get all inner classes
+                inner_classes = [
+                    inner_class
+                    for inner_class in cls.__dict__.values()
+                    if inspect.isclass(inner_class)
+                ]
+
+                # Register those as extension objects
+                for inner_class in inner_classes:
+                    plugin_manager.register_object(
+                        inner_class.__qualname__,
+                        PluginRegistrar.FunctionData(inner_class).format_info(),
+                    )
+
+                    # Recursively also register the inner classes of this class
+                    register_inner_classes(inner_class)
+
+                # Create an instance of the class to also register the plugin functions
+                # initalized in the class's constructor __init__
+                cls()
+
+            # Register the inner classes as nested extension objects
+            register_inner_classes(cls)
+
+        except Exception as e:
+            print(
+                "Could not register plugin object '{0}'.\nERROR: {1}".format(
+                    cls.__name__, str(e)
+                )
+            )
+            raise
+
+        @wraps(cls)
+        def wrapper(*args, **kwargs):
+            result = cls(*args, **kwargs)
+            return result
+
+        return wrapper
 
 
 def plugin_function(fully_qualified_name,

@@ -178,8 +178,10 @@ plugin_path =  os.path.join(plugin_folder_path, "init.py")
 testutil.mkdir(plugin_folder_path, True)
 testutil.create_file(plugin_path, plugin_code)
 
+shell_env = ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path]
+
 def __call_mysqlsh(cmdline_args):
-    return testutil.call_mysqlsh(["--quiet-start=2"] + cmdline_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+    return testutil.call_mysqlsh(["--quiet-start=2"] + cmdline_args, "", shell_env)
 
 def call_mysqlsh_e(e_arg, py=False):
     return __call_mysqlsh((["--py"] if py else []) + ["-ifull", "-e"] + [e_arg])
@@ -456,6 +458,81 @@ EXPECT_STDOUT_CONTAINS("My test function")
 WIPE_OUTPUT()
 call_mysqlsh_py_e("sample.my_object.test_function()")
 EXPECT_STDOUT_CONTAINS("My test function")
+
+#@<> Plugin shell incompatible, shell version out of valid range
+version = shell.version.split()[1].split('-')[0].split('.')
+base_version = f"{version[0]}.{version[1]}."
+v_plus_1 = base_version + str(int(version[2])+1)
+v_minus_1 = base_version + str(int(version[2])-1)
+v_minus_2 = base_version + str(int(version[2])-2)
+base_version = base_version + version[2]
+
+plugin_code = f'''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin(shell_version_min="{v_minus_2}", shell_version_max="{v_minus_1}")
+class sample():
+    """
+    A sample plugin
+    """
+
+@plugin_function("sample.testFunction")
+def test():
+    print("My test function")
+'''
+testutil.rmfile(sample_path)
+testutil.create_file(sample_path, plugin_code)
+
+testutil.call_mysqlsh(["-e", "shell.version"], "", shell_env)
+
+EXPECT_STDOUT_CONTAINS("Could not register plugin object 'sample'.")
+EXPECT_STDOUT_CONTAINS(f"This plugin requires Shell between versions {v_minus_2} and {v_minus_1}.")
+
+
+#@<> Plugin shell incompatible, shell version above max version
+plugin_code = f'''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin(shell_version_max="{v_minus_1}")
+class sample():
+    """
+    A sample plugin
+    """
+
+@plugin_function("sample.testFunction")
+def test():
+    print("My test function")
+'''
+testutil.rmfile(sample_path)
+testutil.create_file(sample_path, plugin_code)
+
+testutil.call_mysqlsh(["-e", "shell.version"], "", shell_env)
+
+EXPECT_STDOUT_CONTAINS("Could not register plugin object 'sample'.")
+EXPECT_STDOUT_CONTAINS(f"This plugin does not work on Shell versions newer than {v_minus_1}.")
+
+
+#@<> Plugin shell incompatible, shell version below min version
+plugin_code = f'''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin(shell_version_min="{v_plus_1}")
+class sample():
+    """
+    A sample plugin
+    """
+
+@plugin_function("sample.testFunction")
+def test():
+    print("My test function")
+'''
+testutil.rmfile(sample_path)
+testutil.create_file(sample_path, plugin_code)
+
+testutil.call_mysqlsh(["-e", "shell.version"], "", shell_env)
+
+EXPECT_STDOUT_CONTAINS("Could not register plugin object 'sample'.")
+EXPECT_STDOUT_CONTAINS(f"This plugin requires at least Shell version {v_plus_1}.")
 
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

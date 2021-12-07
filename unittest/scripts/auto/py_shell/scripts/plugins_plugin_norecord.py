@@ -143,9 +143,9 @@ base_manifest = {
 }
 PORT = find_free_port()
 
-def add_version_to_manifest(version, changes):
+def add_version_to_manifest(version, changes, shellMin=None, shellMax=None):
     base_manifest["plugins"][0]["latestVersion"]=version
-    base_manifest["plugins"][0]["versions"].insert(0, {
+    version_data = {
         "version": version,
         "developmentStage": "preview",
         "changes": changes,
@@ -153,7 +153,12 @@ def add_version_to_manifest(version, changes):
             "community": "http://127.0.0.1:" + str(PORT) + "/mysql-shell-test-plugin-" + version + ".zip",
             "commercial": "http://127.0.0.1:" + str(PORT) + "/mysql-shell-commercial-test-plugin-" + version + ".zip"
         }
-    })
+    }
+    if shellMin is not None:
+        version_data["shellVersionMin"] = shellMin
+    if shellMax is not None:
+        version_data["shellVersionMax"] = shellMax
+    base_manifest["plugins"][0]["versions"].insert(0, version_data)
 
 def create_manifest(folder, data):
     manifest_fh = open(os.path.join(folder, 'mysql-shell-plugins-manifest.json'), 'w')
@@ -171,17 +176,17 @@ def zip_folder(source_folder, target_path):
 
 def create_default_manifest():
     # Updates the manifest
-    testutil.mkdir("manifest/AdditionalPayload", True)
-    create_manifest("manifest/AdditionalPayload", default_manifest)
+    testutil.mkdir("manifest/manifest", True)
+    create_manifest("manifest/manifest", default_manifest)
     manifest_folder=os.path.join(HTTP_ROOT, "windows", "installer")
     testutil.mkdir(manifest_folder, True)
     zip_folder("manifest", os.path.join(manifest_folder, "manifest.zip"))
     testutil.rmdir("manifest", True)
 
 
-def update_plugin(version, changes):
+def update_plugin(version, changes, shellMin=None, shellMax=None):
     # Updates the manifest
-    add_version_to_manifest(version, changes)
+    add_version_to_manifest(version, changes, shellMin=shellMin, shellMax=shellMax)
     create_manifest(HTTP_ROOT, base_manifest)
     testutil.mkdir(PLUGIN_PATH)
     new_code = PLUGIN_CODE.replace("--plugin-version-placeholder--", version)
@@ -192,11 +197,15 @@ def update_plugin(version, changes):
 testutil.rmfile(os.path.join(__user_config_path, 'plugin-repositories.json'))
 testutil.mkdir(HTTP_ROOT)
 
-print("---->" + HTTP_ROOT)
-
 create_default_manifest()
 
-update_plugin("0.0.1", ["Initial Version"])
+version = shell.version.split()[1].split('-')[0].split('.')
+base_version = ".".join(version)
+v_plus_1 = f"{version[0]}.{version[1]}.{int(version[2])+1}"
+v_minus_1 = f"{version[0]}.{version[1]}.{int(version[2])-1}"
+v_minus_2 = f"{version[0]}.{version[1]}.{int(version[2])-2}"
+
+update_plugin("0.0.1", ["Initial Version"], shellMin=v_minus_2, shellMax=v_minus_1)
 
 Handler = http.server.SimpleHTTPRequestHandler
 class CustomHTTPRequestHandler(Handler):
@@ -259,7 +268,7 @@ def execute(command, prompt_answers=""):
 TEST_REPOSITORY="http://127.0.0.1:" + str(PORT) + '/mysql-shell-plugins-manifest.json'
 # Sends the answer to the following prompts as 'repo' and 'yes':
 # - Are you sure you want to add the repository 'Testing MySQL Shell Plugin Repository' [yes/NO]:
-execute("from mysqlsh.plugin_manager import repositories; repositories.add_plugin_repository('" + TEST_REPOSITORY + "')", "yes")
+execute("plugins.repositories.add('" + TEST_REPOSITORY + "')", "yes")
 
 #@<> Help on built-in plugins plugin
 execute("\\? plugins")
@@ -282,12 +291,24 @@ execute("plugins.details()", "repo")
 execute("plugins.details('repo')")
 
 #@<> Lists the plugin repositories
-execute("from mysqlsh.plugin_manager import repositories; repositories.get_plugin_repositories()")
+execute("plugins.repositories.list()")
 
 #@<> Lists the plugins
 execute("plugins.list()")
 
+#@<> Attempt installing the test plugin, shell above valid version range
+execute("plugins.install('repo')")
+
+#@<> Attempt installing the test plugin, shell above max version
+update_plugin("0.0.2", ["Initial Version"], shellMax=v_minus_1)
+execute("plugins.install('repo')")
+
+#@<> Attempt installing the test plugin, shell below min version
+update_plugin("0.0.3", ["Initial Version"], shellMin=v_plus_1)
+execute("plugins.install('repo')")
+
 #@<> Install the test plugin
+update_plugin("0.0.4", ["Initial Version"], shellMin=base_version, shellMax=base_version)
 execute("plugins.install('repo')")
 execute("print('Test Plugin Version: ' + repo.version())")
 
@@ -301,7 +322,7 @@ execute("plugins.install('repo')")
 execute("plugins.install('repo', force_install=True)")
 
 #@<> Upgrades the test plugin version in the repository
-update_plugin("0.0.2", ["Upgraded Version"])
+update_plugin("0.0.5", ["Upgraded Version"])
 execute("plugins.list()")
 
 #@<> Upgrades the test plugin locally
@@ -312,7 +333,7 @@ execute("plugins.update()", "repo\nyes")
 execute("print('Test Plugin Version: ' + repo.version())")
 
 #@<> Downgrades the test plugin to the initial version
-execute("plugins.install('repo', version='0.0.1', force_install=True)")
+execute("plugins.install('repo', version='0.0.4', force_install=True)")
 execute("print('Test Plugin Version: ' + repo.version())")
 
 #@<> Upgrades the test plugin again, using name
@@ -330,10 +351,10 @@ execute("plugins.uninstall()", "repo\nyes")
 execute("print('Test Plugin Version: ' + repo.version())")
 
 #@<> Removes the test plugin repository
-execute("repositories.remove_plugin_repository(url='" + TEST_REPOSITORY + "')", "repo\nyes")
+execute("plugins.repositories.remove(url='" + TEST_REPOSITORY + "')", "repo\nyes")
 
 #@<> Lists the plugin repositories again
-execute("from mysqlsh.plugin_manager import repositories; repositories.get_plugin_repositories()")
+execute("plugins.repositories.list()")
 
 #@<> Finalize
 print("Shutting down...")
