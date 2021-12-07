@@ -6,7 +6,7 @@ NoSQL-like Database API to use MySQL as a Document Store.
 Shell API and backward compatibility API for MySQL Servers not supporting the X DevAPI.
 
 \defgroup AdminAPI AdminAPI
-API for setting up and managing InnoDB clusters.
+API for setting up and managing InnoDB Clusters, InnoDB ReplicaSets, and InnoDB ClusterSets.
 
 */
 /*!
@@ -19,7 +19,7 @@ This document covers the Python APIs available in the MySQL Shell:
 
   - \ref XDevAPI - NoSQL Database API for MySQL and the MySQL Document Store.
   - \ref ShellAPI - Shell API and backward compatibility API for MySQL Servers not supporting the X DevAPI.
-  - \ref AdminAPI - API for setting up and managing InnoDB clusters.
+  - \ref AdminAPI - API for setting up and managing InnoDB Clusters, InnoDB ReplicaSets, and InnoDB ClusterSets.
 
 The functionality of the APIs is exposed through modules and global objects which are automatically available when the MySQL Shell starts.
 
