@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_process.h"
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #ifndef _WIN32
@@ -36,6 +37,7 @@ namespace utils {
 
 #ifndef _WIN32
 bool check_lock_file(const std::string &path, const char *pid_format) {
+  assert(pid_format);
   std::string data;
   if (!shcore::load_text_file(path, data)) {
     if (errno == ENOENT) return false;
@@ -43,7 +45,17 @@ bool check_lock_file(const std::string &path, const char *pid_format) {
   }
   size_t pid = 0;
   if (sscanf(data.c_str(), pid_format, &pid) != 1) {
-    throw std::runtime_error("Unexpected format in lock file " + path);
+    bool bad_format = true;
+    // In 8.0.29 the pid format for X plugin was normalized to match the classic
+    // protocol one, so we need to support both flavors for backwards
+    // compatibility
+    if (*pid_format == 'X') {
+      bad_format = (sscanf(data.c_str(), pid_format + 1, &pid) != 1);
+    }
+
+    if (bad_format) {
+      throw std::runtime_error("Unexpected format in lock file " + path);
+    }
   }
   if (kill(pid, 0) < 0) {
     if (errno == ESRCH) {
