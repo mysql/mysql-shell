@@ -207,7 +207,7 @@ function hasOciEnvironment(context) {
 
 
 function hasAuthEnvironment(context) {
-  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS'].indexOf(context) == -1) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO'].indexOf(context) == -1) {
     return false
   }
 
@@ -241,6 +241,8 @@ function hasAuthEnvironment(context) {
     variables = ['KERBEROS_USER',
                  'KERBEROS_PWD',
                  'MYSQL_PLUGIN_DIR'];
+  } else if (context == 'FIDO') {
+    variables = ['MYSQL_PLUGIN_DIR'];
   }
 
   let missing=[];

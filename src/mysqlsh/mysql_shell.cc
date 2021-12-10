@@ -931,8 +931,15 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     throw shcore::Exception::runtime_error(
         "Recreate schema requested, but no schema specified");
 
-  auto new_session = ShellBaseSession::wrap_session(
-      establish_session(connection_options, options().wizards));
+  std::shared_ptr<mysqlshdk::db::ISession> isession;
+  {
+    shcore::Scoped_callback go_back_print_mode([this] { toggle_print(); });
+
+    toggle_print();
+    isession = establish_session(connection_options, options().wizards);
+  }
+
+  auto new_session = ShellBaseSession::wrap_session(isession);
   if (shell_global_session) {
     auto old_session(_shell->get_dev_session());
     set_active_session(new_session);

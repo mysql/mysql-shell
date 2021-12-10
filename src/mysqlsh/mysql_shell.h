@@ -150,6 +150,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::dba::ReplicaSet> create_default_replicaset_object(
       bool for_help = false);
 
+  virtual void toggle_print() {}
+
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);
   FRIEND_TEST(Cmdline_shell, check_history_overflow_del);

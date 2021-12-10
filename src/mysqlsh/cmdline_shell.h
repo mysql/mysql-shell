@@ -159,6 +159,11 @@ class Command_line_shell : public Mysql_shell,
 
   shcore::Syslog m_syslog;
 
+  // This function should only work for connections done on shell start (from
+  // cmd line args)
+  bool m_enable_toggle_print = false;
+  void toggle_print() override;
+
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, query_variable_classic);
   FRIEND_TEST(Cmdline_shell, query_variable_x);

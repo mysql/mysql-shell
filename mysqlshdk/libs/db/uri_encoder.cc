@@ -119,14 +119,18 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
     }
 
     auto extra_options = info.get_extra_options();
-    for (auto option : extra_options) {
-      if (option.second.is_null()) {
-        attributes.push_back(encode_attribute(option.first));
-      } else {
-        // TODO(rennox) internally we store a string, but originally they are a
-        // vector
-        attributes.push_back(encode_attribute(option.first) + "=" +
-                             encode_value(*option.second));
+    for (const auto &option : extra_options) {
+      // We must ensure only the attributes supported on the query part are
+      // included (i.e. discarding internal ones)
+      if (uri_connection_attributes.find(option.first) !=
+              uri_connection_attributes.end() ||
+          uri_extra_options.find(option.first) != uri_extra_options.end()) {
+        if (option.second.is_null()) {
+          attributes.push_back(encode_attribute(option.first));
+        } else {
+          attributes.push_back(encode_attribute(option.first) + "=" +
+                               encode_value(*option.second));
+        }
       }
     }
 

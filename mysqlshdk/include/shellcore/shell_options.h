@@ -65,7 +65,6 @@
 #include <array>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -103,6 +102,7 @@ class Shell_options : public shcore::Options {
     // Individual connection parameters
     std::string user;
     std::string host;
+    std::string fido_register_factor;
     int port = 0;
     std::string schema;
     // Unix socket or Windows pipe name
@@ -284,6 +284,7 @@ class Shell_options : public shcore::Options {
    * options.
    */
   void check_import_options();
+  void check_connection_options();
 
   Storage storage;
   std::unique_ptr<shcore::cli::Shell_cli_operation> m_shell_cli_operation;

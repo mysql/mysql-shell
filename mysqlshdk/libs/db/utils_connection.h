@@ -101,6 +101,7 @@ constexpr const char kLocalInfile[] = "local-infile";
 constexpr const char kNetBufferLength[] = "net-buffer-length";
 constexpr const char kMaxAllowedPacket[] = "max-allowed-packet";
 constexpr const char kMysqlPluginDir[] = "mysql-plugin-dir";
+constexpr const char kFidoRegisterFactor[] = "fido-register-factor";
 constexpr const char kConnectionAttributes[] = "connection-attributes";
 constexpr const char kUri[] = "uri";
 constexpr const char kSsh[] = "ssh";

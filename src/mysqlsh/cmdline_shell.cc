@@ -435,6 +435,7 @@ Command_line_shell::Command_line_shell(
   // The default command line shell initializes printing in delayed mode
   // so everything printed before/during the initialization process is cached
   if (m_suppress_output) {
+    m_enable_toggle_print = true;
     current_console()->add_print_handler(&m_suppressed_handler);
   }
 
@@ -508,6 +509,28 @@ void Command_line_shell::quiet_print() {
 }
 
 /**
+ * Used to temporarily enable printing when a global session is being created
+ * from command line arguments.
+ *
+ * This is required because when using the FIDO
+ * authentication plugin, the instructions to use the FIDO device will be
+ * printed by the authentication plugin, but at the connection time the printing
+ * is disabled (or delayed), using this function it can be enabled properly so
+ * the instruction is printed with the right timing.
+ */
+void Command_line_shell::toggle_print() {
+  if (m_enable_toggle_print) {
+    if (m_suppress_output) {
+      current_console()->remove_print_handler(&m_suppressed_handler);
+      m_suppress_output = false;
+    } else {
+      current_console()->add_print_handler(&m_suppressed_handler);
+      m_suppress_output = true;
+    }
+  }
+}
+
+/**
  * Enables back information printing.
  * If info was not being suppressed with --quiet-start=2
  * Then the cached information will be printed.
@@ -536,6 +559,9 @@ void Command_line_shell::restore_print() {
       _delayed_output.clear();
     }
   }
+
+  // Once the printing is restored, the toggle function should do nothing
+  m_enable_toggle_print = false;
 }
 
 Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)

@@ -153,6 +153,11 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
 
   target_server.set_mfa_passwords(mfa_passwords);
 
+  if (!fido_register_factor.empty()) {
+    target_server.set_unchecked(mysqlshdk::db::kFidoRegisterFactor,
+                                fido_register_factor.c_str());
+  }
+
   return target_server;
 }
 
@@ -332,6 +337,10 @@ Shell_options::Shell_options(int argc, char **argv,
         " Requires a default schema on the connection options.")
     (&storage.schema, "", "schema",
         cmdline("-D", "--schema=<name>", "--database=<name>"), "Schema to use.")
+    (&storage.fido_register_factor, "",
+        cmdline("--fido-register-factor=<name>"),
+        "Specifies authentication factor, for which registration needs to be "
+        "done.")
     (&storage.recreate_database, false, "recreateDatabase",
         cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
         "Schema will be deleted if it exists!")
@@ -734,8 +743,7 @@ Shell_options::Shell_options(int argc, char **argv,
     check_ssh_conflicts();
     check_import_options();
     check_result_format();
-    // Calls connection options to validate the rest of the options
-    storage.connection_options();
+    check_connection_options();
     shcore::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -1323,6 +1331,21 @@ void Shell_options::check_import_options() {
       const auto error =
           "Error: --import requires a default schema on the active session.";
       throw std::runtime_error(error);
+    }
+  }
+}
+
+void Shell_options::check_connection_options() {
+  auto connection_data = storage.connection_options();
+  if (!storage.fido_register_factor.empty()) {
+    if (!connection_data.has_data()) {
+      std::cout << "WARNING: --fido-register-factor was specified without "
+                   "connection data, the option will be ignored.\n";
+    } else if (connection_data.has_scheme() &&
+               connection_data.get_scheme() == "mysqlx") {
+      throw std::runtime_error(
+          "Option --fido-register-factor is only available for MySQL protocol "
+          "connections.");
     }
   }
 }

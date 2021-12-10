@@ -78,6 +78,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   options.
   -D, --schema=<name>             Schema to use.
   --database=<name>               Same as --schema.
+  --fido-register-factor=<name>   Specifies authentication factor, for which
+                                  registration needs to be done.
   --recreate-schema               Drop and recreate the specified schema.
                                   Schema will be deleted if it exists!
   --mx, --mysqlx                  Uses connection data to create an X protocol

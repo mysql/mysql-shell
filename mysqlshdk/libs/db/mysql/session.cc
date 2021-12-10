@@ -22,12 +22,16 @@
  */
 
 #include "mysqlshdk/libs/db/mysql/session.h"
+
+#include <mysql_version.h>
 #include <cmath>
+#include <mutex>
 #include <regex>
 #include <sstream>
 #include <vector>
 
-#include <mysql_version.h>
+#include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/mysql_event_handler_plugin.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -40,6 +44,10 @@ typedef unsigned int uint;
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
+namespace {
+std::once_flag trace_register_flag;
+}
+
 FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
   if (args.get_int("abort", 0)) {
     abort();
@@ -80,6 +88,12 @@ void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
   long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
   _mysql = mysql_init(nullptr);
+
+  // A tracer plugin needs to be enabled as soon as the first instance of MYSQL
+  // is created in order to properly support FIDO authentication as it is the
+  // tracer who can identify when authentication_fido_plugin is being used so
+  // the print callback can be set.
+  std::call_once(trace_register_flag, register_tracer_plugin, _mysql);
 
   _connection_options = connection_options;
 
@@ -282,6 +296,12 @@ void Session_impl::connect(
                           flags)) {
     throw_on_connection_fail();
   }
+
+  if (connection_options.has(mysqlshdk::db::kFidoRegisterFactor)) {
+    auto factor = connection_options.get(mysqlshdk::db::kFidoRegisterFactor);
+    fido::register_device(_mysql, factor.c_str());
+  }
+
   DBUG_LOG("sql", get_thread_id()
                       << ": CONNECTED: " << _connection_options.uri_endpoint());
 
