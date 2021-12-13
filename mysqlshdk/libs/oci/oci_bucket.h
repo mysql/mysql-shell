@@ -27,6 +27,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "mysqlshdk/libs/oci/oci_options.h"
@@ -320,6 +321,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
 
   Oci_options m_options;
   Oci_rest_service *m_rest_service = nullptr;
+  std::thread::id m_rest_service_thread;
 
   const std::string kNamespacePath;
   const std::string kBucketPath;

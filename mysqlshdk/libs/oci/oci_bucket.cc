@@ -159,6 +159,14 @@ void Bucket::ensure_connection() {
                                          std::unique_ptr<Oci_rest_service>>
       services;
 
+  // need to detect when this instance was passed to another thread and replace
+  // the REST service, or we may end up sharing it across multiple threads
+  const auto current_thread = std::this_thread::get_id();
+
+  if (current_thread != m_rest_service_thread) {
+    m_rest_service = nullptr;
+  }
+
   if (!m_rest_service) {
     auto &service = services[m_options.get_hash()];
 
@@ -168,6 +176,7 @@ void Bucket::ensure_connection() {
     }
 
     m_rest_service = service.get();
+    m_rest_service_thread = current_thread;
   }
 }
 
