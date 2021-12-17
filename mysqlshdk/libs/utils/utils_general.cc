@@ -386,22 +386,18 @@ std::string get_system_user() {
 }
 
 std::string errno_to_string(int err) {
+  if (!err) return std::string();
+
 #ifdef _WIN32
 #define strerror_r(E, B, S) strerror_s(B, S, E)
 #endif
-#if defined(_WIN32) || defined(__sun)
+
+#if defined(_WIN32) || defined(__sun) || defined(__APPLE__) || \
+    ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) &&   \
+     !_GNU_SOURCE)  // NOLINT
   char buf[256];
   if (!strerror_r(err, buf, sizeof(buf))) return std::string(buf);
-  return "";
-#elif __APPLE__ || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && \
-                    !_GNU_SOURCE)  // NOLINT
-  std::string ret;
-  ret.resize(256);
-  auto i = strerror_r(err, &ret[0], ret.size());
-  assert(i == 0);
-  (void)i;
-  ret.resize(strlen(&ret[0]));
-  return ret;
+  return std::string();
 #else
   char buf[256];
   return strerror_r(err, buf, sizeof(buf));
