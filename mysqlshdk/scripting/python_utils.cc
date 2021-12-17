@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,20 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _PYTHON_ARRAY_WRAPPER_H_
-#define _PYTHON_ARRAY_WRAPPER_H_
+#include "mysqlshdk/include/scripting/python_utils.h"
 
-#include "scripting/python_context.h"
-#include "scripting/types.h"
+namespace shcore::py {
 
-namespace shcore {
+py::Release get_builtin(const char *name) {
+  return py::Release::incref(PyDict_GetItemString(PyEval_GetBuiltins(), name));
+}
 
-bool array_check(PyObject *value);
-
-py::Release wrap(const Array_t &array);
-
-bool unwrap(PyObject *value, Array_t *ret_array);
-
-}  // namespace shcore
-
-#endif
+}  // namespace shcore::py

@@ -24,6 +24,7 @@
 #ifndef _PYTHON_UTILS_H_
 #define _PYTHON_UTILS_H_
 
+#include <type_traits>
 #include <utility>
 
 // Include and avoid warnings from v8
@@ -130,6 +131,11 @@ class Store {
   PyObject *get() noexcept { return m_object; }
   PyObject *get() const noexcept { return m_object; }
 
+  template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0>
+  T get() const noexcept {
+    return reinterpret_cast<T>(m_object);
+  }
+
  private:
   PyObject *m_object = nullptr;
 };
@@ -181,6 +187,9 @@ class Release {
  private:
   PyObject *m_object = nullptr;
 };
+
+Release get_builtin(const char *name);
+
 }  // namespace shcore::py
 
 #endif

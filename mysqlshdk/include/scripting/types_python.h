@@ -43,6 +43,9 @@ class SHCORE_PUBLIC Python_object : public Cpp_object_bridge {
   std::string class_name() const override;
   PyObject *object();
 
+  std::string &append_descr(std::string &s_out, int indent = -1,
+                            int quote_strings = 0) const override;
+
  private:
   py::Store m_object;
   std::string m_class;

@@ -102,7 +102,8 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
   }
 
   if (array_check(py)) {
-    std::shared_ptr<Value::Array_type> array;
+    Array_t array;
+
     if (!unwrap(py, &array))
       throw std::runtime_error("Could not unwrap shell array.");
 
@@ -133,19 +134,29 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
     return Value(array);
   }
 
-  if (PyDict_Check(py)) {
-    std::shared_ptr<Value::Map_type> map(new Value::Map_type);
+  if (dict_check(py)) {
+    Dictionary_t dict;
 
-    PyObject *key, *value;
+    if (!unwrap(py, &dict)) {
+      throw std::runtime_error("Could not unwrap shell dictionary.");
+    }
+
+    return Value(std::move(dict));
+  }
+
+  if (PyDict_Check(py)) {
+    auto map = std::make_shared<Value::Map_type>();
+
+    PyObject *key = nullptr, *value = nullptr;
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(py, &pos, &key, &value)) {
-      // The key may be anything (not necessarily a string)
-      // so we get the string representation of whatever it is
-      py::Release key_repr{PyObject_Str(key)};
-      std::string key_repr_string;
-      if (Python_context::pystring_to_string(key_repr, &key_repr_string))
-        (*map)[key_repr_string] = convert(value, context);
+      std::string key_string;
+
+      // The key may be anything (not necessarily a string) so we get the string
+      // representation of whatever it is.
+      Python_context::pystring_to_string(key, &key_string, true);
+      (*map)[key_string] = convert(value, context);
     }
 
     return Value(map);
@@ -164,8 +175,6 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
     return Value(std::make_shared<Python_function>(*context, py));
   }
   // TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object
-
-  if (std::shared_ptr<Value::Map_type> map; unwrap(py, &map)) return Value(map);
 
   if (std::shared_ptr<Object_bridge> object; unwrap(py, object))
     return Value(object);
@@ -218,6 +227,23 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
 
   // Any other object gets simply wrapped
   return Value(std::make_shared<Python_object>(py));
+}
+
+void set_item(const Dictionary_t &map, PyObject *key, PyObject *value,
+              Python_context *context) {
+  set_item(map, key, value, &context);
+}
+
+void set_item(const Dictionary_t &map, PyObject *key, PyObject *value,
+              Python_context **context) {
+  assert(context);
+
+  std::string key_as_string;
+
+  // The key may be anything (not necessarily a string) so we get the string
+  // representation of whatever it is.
+  Python_context::pystring_to_string(key, &key_as_string, true);
+  map.get()->set(key_as_string, convert(value, context));
 }
 
 py::Release convert(const Value &value, Python_context * /*context*/) {

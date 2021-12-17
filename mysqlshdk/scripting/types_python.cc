@@ -42,6 +42,19 @@ std::string Python_object::class_name() const {
   return m_class.empty() ? "PythonObject" : m_class;
 }
 
+std::string &Python_object::append_descr(std::string &s_out, int indent,
+                                         int quote_strings) const {
+  WillEnterPython lock;
+  py::Release obj_repr{PyObject_Repr(m_object.get())};
+  std::string s;
+
+  if (!Python_context::pystring_to_string(obj_repr, &s)) {
+    return Cpp_object_bridge::append_descr(s_out, indent, quote_strings);
+  }
+
+  return s_out.append(s);
+}
+
 PyObject *Python_object::object() { return m_object.get(); }
 
 Python_function::Python_function(Python_context *context, PyObject *function)

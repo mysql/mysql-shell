@@ -37,6 +37,12 @@ Value convert(PyObject *value, Python_context *context = nullptr);
 
 Value convert(PyObject *value, Python_context **context, bool is_binary = true);
 
+void set_item(const Dictionary_t &map, PyObject *key, PyObject *value,
+              Python_context *context = nullptr);
+
+void set_item(const Dictionary_t &map, PyObject *key, PyObject *value,
+              Python_context **context);
+
 py::Release convert(const Value &value, Python_context *context = nullptr);
 
 }  // namespace py

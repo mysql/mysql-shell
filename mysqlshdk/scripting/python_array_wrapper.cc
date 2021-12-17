@@ -32,11 +32,10 @@ namespace shcore {
 
 namespace {
 
-const std::size_t k_magic_state = 0x12345678;
-
 ////////////////////////////////////////////////////////////////////////////////
 // Array_object
 ////////////////////////////////////////////////////////////////////////////////
+
 struct Array_object {
   PyListObject base;
   Array_t *array = nullptr;
@@ -117,9 +116,7 @@ PyDoc_STRVAR(
     sort_doc,
     "L.sort(key=None, reverse=False) -> None -- stable sort *IN PLACE*");
 
-PyObject *ao_getstate(Array_object *self);
 PyObject *ao_riter(Array_object *self);
-PyObject *ao_setstate(Array_object *self, PyObject *state);
 PyObject *ao_sizeof(Array_object *self);
 PyObject *ao_append(Array_object *self, PyObject *v);
 PyObject *ao_copy(Array_object *self);
@@ -144,9 +141,7 @@ PyObject *ao_sort(Array_object *self, PyObject *args, PyObject *kwds);
 static PyMethodDef array_object_methods[] = {
     {"__getitem__", (PyCFunction)ao_subscript, METH_O | METH_COEXIST,
      getitem_doc},
-    {"__getstate__", (PyCFunction)ao_getstate, METH_NOARGS, nullptr},
     {"__reversed__", (PyCFunction)ao_riter, METH_NOARGS, reversed_doc},
-    {"__setstate__", (PyCFunction)ao_setstate, METH_O, nullptr},
     {"__sizeof__", (PyCFunction)ao_sizeof, METH_NOARGS, sizeof_doc},
     {"append", (PyCFunction)ao_append, METH_O, append_doc},
     {"clear", (PyCFunction)ao_remove_all, METH_NOARGS, clear_doc},
@@ -286,8 +281,9 @@ static PyTypeObject Array_object_type = {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
     ,
-    0,  // tp_vectorcall
+    0  // tp_vectorcall
 #if PY_VERSION_HEX < 0x03090000
+    ,
     0  // tp_print
 #endif
 #endif
@@ -450,8 +446,9 @@ static PyTypeObject Array_object_iterator_type = {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
     ,
-    0,  // tp_vectorcall
+    0  // tp_vectorcall
 #if PY_VERSION_HEX < 0x03090000
+    ,
     0  // tp_print
 #endif
 #endif
@@ -464,24 +461,12 @@ static PyTypeObject Array_object_iterator_type = {
 #endif  // PY_VERSION_HEX
 
 ////////////////////////////////////////////////////////////////////////////////
-// Array_object_riterator
+// Array_object_reverse_iterator_type: methods
 ////////////////////////////////////////////////////////////////////////////////
 
-struct Array_object_riterator {
-  // clang-format off
-  PyObject_HEAD
-  Py_ssize_t index;
-  Array_object *o;
-  // clang-format on
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// Array_object_riterator_type: methods
-////////////////////////////////////////////////////////////////////////////////
-
-PyObject *ao_riter_length(Array_object_riterator *self);
-PyObject *ao_riter_reduce(Array_object_riterator *self);
-PyObject *ao_riter_setstate(Array_object_riterator *self, PyObject *state);
+PyObject *ao_rev_iter_length(Array_object_iterator *self);
+PyObject *ao_rev_iter_reduce(Array_object_iterator *self);
+PyObject *ao_rev_iter_setstate(Array_object_iterator *self, PyObject *state);
 
 #if __GNUC__ > 7 && !defined(__clang__)
 // -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
@@ -492,10 +477,10 @@ PyObject *ao_riter_setstate(Array_object_riterator *self, PyObject *state);
 #endif  // __GNUC__ > 7 && !defined(__clang__)
 
 static PyMethodDef ao_riter_methods[] = {
-    {"__length_hint__", (PyCFunction)ao_riter_length, METH_NOARGS,
+    {"__length_hint__", (PyCFunction)ao_rev_iter_length, METH_NOARGS,
      length_hint_doc},
-    {"__reduce__", (PyCFunction)ao_riter_reduce, METH_NOARGS, reduce_doc},
-    {"__setstate__", (PyCFunction)ao_riter_setstate, METH_O, setstate_doc},
+    {"__reduce__", (PyCFunction)ao_rev_iter_reduce, METH_NOARGS, reduce_doc},
+    {"__setstate__", (PyCFunction)ao_rev_iter_setstate, METH_O, setstate_doc},
     {nullptr, nullptr, 0, nullptr},
 };
 
@@ -504,11 +489,11 @@ static PyMethodDef ao_riter_methods[] = {
 #endif  // __GNUC__ > 7 && !defined(__clang__)
 
 ////////////////////////////////////////////////////////////////////////////////
-// Array_object_riterator_type
+// Array_object_reverse_iterator_type
 ////////////////////////////////////////////////////////////////////////////////
 
-void ao_riter_dealloc(Array_object_riterator *self);
-PyObject *ao_riter_next(Array_object_riterator *self);
+void ao_riter_dealloc(Array_object_iterator *self);
+PyObject *ao_riter_next(Array_object_iterator *self);
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
 #ifdef __clang__
@@ -520,14 +505,14 @@ PyObject *ao_riter_next(Array_object_riterator *self);
 #endif  // __clang__
 #endif  // PY_VERSION_HEX
 
-static PyTypeObject Array_object_riterator_type = {
+static PyTypeObject Array_object_reverse_iterator_type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
-    "List_riterator",                       // const char *tp_name;
+    "List_reverseiterator",                 // const char *tp_name;
 
     /* For allocation */
 
-    sizeof(Array_object_riterator),  // Py_ssize_t tp_basicsize;
-    0,                               // Py_ssize_t tp_itemsize;
+    sizeof(Array_object_iterator),  // Py_ssize_t tp_basicsize;
+    0,                              // Py_ssize_t tp_itemsize;
 
     /* Methods to implement standard operations */
 
@@ -609,8 +594,9 @@ static PyTypeObject Array_object_riterator_type = {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
     ,
-    0,  // tp_vectorcall
+    0  // tp_vectorcall
 #if PY_VERSION_HEX < 0x03090000
+    ,
     0  // tp_print
 #endif
 #endif
@@ -625,10 +611,6 @@ static PyTypeObject Array_object_riterator_type = {
 ////////////////////////////////////////////////////////////////////////////////
 // helpers
 ////////////////////////////////////////////////////////////////////////////////
-
-py::Release get_builtin(const char *name) {
-  return py::Release::incref(PyDict_GetItemString(PyEval_GetBuiltins(), name));
-}
 
 Array_t to_array(PyObject *value) {
   Array_t ret;
@@ -1142,48 +1124,6 @@ int ao_assign_subscript(Array_object *self, PyObject *item, PyObject *value) {
 // Array_object_type: methods
 ////////////////////////////////////////////////////////////////////////////////
 
-PyObject *ao_getstate(Array_object *) {
-  return PyLong_FromSize_t(k_magic_state);
-}
-
-PyObject *ao_setstate(Array_object *self, PyObject *state) {
-  // The pickling/unpickling is handled automatically by Python, it saves all
-  // the data (including the contents of our list), however when the contents is
-  // restored, it's appended to the underlying list object. Since we're not
-  // using it, we need to restore our data. This is done by adding
-  // __getstate__() and __setstate__() methods, first one returns a magic
-  // number, second - upon receiving that magic number - moves data from the
-  // base class back to us.
-  const auto magic = PyLong_AsSize_t(state);
-
-  if (PyErr_Occurred()) {
-    return nullptr;
-  }
-
-  if (k_magic_state != magic) {
-    Python_context::set_python_error(PyExc_RuntimeError,
-                                     "Wrong magic number used");
-    return nullptr;
-  }
-
-  // our base class holds all the items, copy it back to us
-  const auto array = self->array->get();
-  const auto list = (PyObject *)self;
-  const auto size = PyList_Size(list);
-
-  array->reserve(size);
-
-  for (Py_ssize_t i = 0; i < size; ++i) {
-    py::Release result{ao_append(self, PyList_GetItem(list, i))};
-    if (!result) return nullptr;
-  }
-
-  // delete the contents of the base class
-  PyList_SetSlice(list, 0, size, nullptr);
-
-  Py_RETURN_NONE;
-}
-
 PyObject *ao_sizeof(Array_object *self) {
   return PyLong_FromSsize_t(_PyObject_SIZE(Py_TYPE(self)));
 }
@@ -1554,8 +1494,9 @@ PyObject *ao_sort(Array_object *self, PyObject *args, PyObject *kwds) {
 ////////////////////////////////////////////////////////////////////////////////
 
 PyObject *ao_new(PyTypeObject *type, PyObject *args, PyObject *kw) {
-  Array_object *self = (Array_object *)PyType_GenericNew(type, args, kw);
+  auto self = (Array_object *)PyType_GenericNew(type, args, kw);
 
+  assert(!self->array);
   self->array = new Array_t(make_array());
 
   return reinterpret_cast<PyObject *>(self);
@@ -1722,8 +1663,7 @@ PyObject *ao_richcompare(Array_object *self, PyObject *right, int op) {
 ////////////////////////////////////////////////////////////////////////////////
 
 PyObject *ao_iter(Array_object *self) {
-  Array_object_iterator *it =
-      PyObject_New(Array_object_iterator, &Array_object_iterator_type);
+  auto it = PyObject_New(Array_object_iterator, &Array_object_iterator_type);
 
   it->index = 0;
   Py_INCREF(self);
@@ -1772,11 +1712,11 @@ PyObject *ao_iter_length(Array_object_iterator *self) {
 
 PyObject *ao_iter_reduce(Array_object_iterator *self) {
   if (self->o)
-    return Py_BuildValue("N(O)n", get_builtin("iter").release(), self->o,
+    return Py_BuildValue("N(O)n", py::get_builtin("iter").release(), self->o,
                          self->index);
 
   // empty iterator, create empty list
-  return Py_BuildValue("N(N)", get_builtin("iter").release(),
+  return Py_BuildValue("N(N)", py::get_builtin("iter").release(),
                        wrap(make_array()).release());
 }
 
@@ -1805,8 +1745,8 @@ PyObject *ao_iter_setstate(Array_object_iterator *self, PyObject *state) {
 ////////////////////////////////////////////////////////////////////////////////
 
 PyObject *ao_riter(Array_object *self) {
-  Array_object_riterator *it =
-      PyObject_New(Array_object_riterator, &Array_object_riterator_type);
+  auto it =
+      PyObject_New(Array_object_iterator, &Array_object_reverse_iterator_type);
 
   it->index = ao_length(self) - 1;
   Py_INCREF(self);
@@ -1815,12 +1755,12 @@ PyObject *ao_riter(Array_object *self) {
   return reinterpret_cast<PyObject *>(it);
 }
 
-void ao_riter_dealloc(Array_object_riterator *self) {
+void ao_riter_dealloc(Array_object_iterator *self) {
   Py_XDECREF(self->o);
   PyObject_Del(self);
 }
 
-PyObject *ao_riter_next(Array_object_riterator *self) {
+PyObject *ao_riter_next(Array_object_iterator *self) {
   if (!self->o) {
     return nullptr;
   }
@@ -1842,7 +1782,7 @@ PyObject *ao_riter_next(Array_object_riterator *self) {
   return nullptr;
 }
 
-PyObject *ao_riter_length(Array_object_riterator *self) {
+PyObject *ao_rev_iter_length(Array_object_iterator *self) {
   Py_ssize_t length = self->index + 1;
 
   if (!self->o || ao_length(self->o) < length) {
@@ -1852,17 +1792,17 @@ PyObject *ao_riter_length(Array_object_riterator *self) {
   return PyLong_FromSsize_t(length);
 }
 
-PyObject *ao_riter_reduce(Array_object_riterator *self) {
+PyObject *ao_rev_iter_reduce(Array_object_iterator *self) {
   if (self->o)
-    return Py_BuildValue("N(O)n", get_builtin("reversed").release(), self->o,
-                         self->index);
+    return Py_BuildValue("N(O)n", py::get_builtin("reversed").release(),
+                         self->o, self->index);
 
   // empty iterator, create empty list, iter() is used on purpose
-  return Py_BuildValue("N(N)", get_builtin("iter").release(),
+  return Py_BuildValue("N(N)", py::get_builtin("iter").release(),
                        wrap(make_array()).release());
 }
 
-PyObject *ao_riter_setstate(Array_object_riterator *self, PyObject *state) {
+PyObject *ao_rev_iter_setstate(Array_object_iterator *self, PyObject *state) {
   auto index = PyLong_AsSsize_t(state);
 
   if (-1 == index && PyErr_Occurred()) {
@@ -1890,7 +1830,7 @@ void Python_context::init_shell_list_type() {
 
   if (PyType_Ready(&Array_object_type) < 0) {
     throw Exception::runtime_error(
-        "Could not initialize Shcore Array type in python");
+        "Could not initialize Shcore Array type in Python");
   }
 
   replace_list_concat();
@@ -1910,38 +1850,25 @@ bool array_check(PyObject *value) {
   return Py_TYPE(value) == &Array_object_type;
 }
 
-py::Release wrap(const std::shared_ptr<Value::Array_type> &array) {
-  Array_object *wrapper = PyObject_New(Array_object, &Array_object_type);
+py::Release wrap(const Array_t &array) {
+  auto wrapper = (Array_object *)PyType_GenericAlloc(&Array_object_type, 0);
 
-  // tp_new is not used by PyObject_New, array needs to be allocated
+  // array needs to be allocated
+  assert(!wrapper->array);
   wrapper->array = new Array_t(array);
-
-  // PyObject_New only initializes Python's object fields, zero-initialize base
-  // list object
-  wrapper->base.ob_item = nullptr;
-#if PY_VERSION_HEX >= 0x03090000
-  Py_SET_SIZE(&wrapper->base, 0);
-#else
-  Py_SIZE(&wrapper->base) = 0;
-#endif
-  wrapper->base.allocated = 0;
 
   return py::Release{reinterpret_cast<PyObject *>(wrapper)};
 }
 
-bool unwrap(PyObject *value, std::shared_ptr<Value::Array_type> *ret_object) {
-  if (const auto ctx = Python_context::get_and_check()) {
-    const auto lclass = ctx->get_shell_list_class();
+bool unwrap(PyObject *value, Array_t *ret_object) {
+  if (array_check(value)) {
+    const auto array = ((Array_object *)value)->array;
 
-    if (PyObject_IsInstance(value, lclass.get())) {
-      const auto array = ((Array_object *)value)->array;
+    assert(array);
 
-      assert(array);
+    *ret_object = *array;
 
-      *ret_object = *array;
-
-      return true;
-    }
+    return true;
   }
 
   return false;

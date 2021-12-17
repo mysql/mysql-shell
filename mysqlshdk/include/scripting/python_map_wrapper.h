@@ -29,9 +29,11 @@
 
 namespace shcore {
 
-py::Release wrap(const std::shared_ptr<Value::Map_type> &map);
+bool dict_check(PyObject *value);
 
-bool unwrap(PyObject *value, std::shared_ptr<Value::Map_type> *ret_object);
+py::Release wrap(const Dictionary_t &map);
+
+bool unwrap(PyObject *value, Dictionary_t *ret_object);
 
 }  // namespace shcore
 
