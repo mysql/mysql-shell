@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,10 +60,13 @@ class Metadata_management_test : public Shell_core_test_wrapper {
   }
 
   void TearDown() override {
-    m_session->execute("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
-    m_session->execute(
-        "DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata_bkp");
-    m_session->close();
+    if (m_session) {
+      m_session->execute("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
+      m_session->execute(
+          "DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata_bkp");
+      m_session->close();
+    }
+
     Shell_core_test_wrapper::TearDown();
   }
 
