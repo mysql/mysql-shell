@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -195,6 +196,9 @@ std::shared_ptr<IResult> Replayer_mysql::querys(const char *sql_, size_t length,
                                                 bool) {
   std::string sql = _impl->do_query(std::string(sql_, length));
 
+  auto log_sql_handler = shcore::current_log_sql();
+  log_sql_handler->log(get_connection_id(), sql_, length);
+
   FI_TRIGGER_TRAP(
       mysql, mysqlshdk::utils::FI::Trigger_options(
                  {{"sql", std::string(sql_, length)},
@@ -289,6 +293,9 @@ void Replayer_mysqlx::do_connect(
 std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
                                                  size_t length, bool) {
   std::string sql = _impl->do_query(std::string(sql_, length));
+
+  auto log_sql_handler = shcore::current_log_sql();
+  log_sql_handler->log(get_connection_id(), sql_, length);
 
   if (g_replay_row_hook)
     return _impl->trace().expected_result_x(

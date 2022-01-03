@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,19 +31,25 @@
 #include <io.h>
 #include <windows.h>
 #else  // !_WIN32
+#include <fcntl.h>
 #include <sys/time.h>
 #include <unistd.h>
 #endif  // !_WIN32
 
 #include <algorithm>
+#include <filesystem>
+#include <ios>
 #include <map>
 #include <utility>
 
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+
+namespace fs = std::filesystem;
 
 namespace shcore {
 
@@ -93,18 +99,36 @@ Logger::LOG_LEVEL get_level_by_name(const std::string &name) {
     throw std::invalid_argument("invalid level");
 }
 
+bool check_logfile_permissions(const std::string &filepath) {
+  auto s = fs::status(filepath);
+
+  if (!fs::is_regular_file(s)) {
+    return true;
+  }
+
+  auto perms = s.permissions();
+  auto mask = perms & ~(fs::perms::owner_read | fs::perms::owner_write);
+  if (mask != fs::perms::none) {
+    std::cerr << "WARNING: Permissions 0" << std::oct << static_cast<int>(perms)
+              << " for log file \"" << filepath << "\" are too open.\n";
+    return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 std::string Logger::s_output_format;
 
 Logger::Log_entry::Log_entry()
-    : Log_entry(nullptr, nullptr, LOG_LEVEL::LOG_NONE) {}
+    : Log_entry(nullptr, nullptr, 0, LOG_LEVEL::LOG_NONE) {}
 
 Logger::Log_entry::Log_entry(const char *domain_, const char *message_,
-                             LOG_LEVEL level_)
+                             size_t length_, LOG_LEVEL level_)
     : timestamp{time(nullptr)},
       domain{domain_},
       message{message_},
+      length{length_},
       level{level_} {}
 
 void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
@@ -186,6 +210,7 @@ std::string Logger::format(const char *formats, va_list args) {
   va_copy(args_copy, args);
   vsnprintf(&mybuf[0], n + 1, formats, args_copy);
   va_end(args_copy);
+  mybuf.pop_back();  // remove '\0' appended by vsnprintf
 
   return mybuf;
 }
@@ -197,22 +222,30 @@ void Logger::log(LOG_LEVEL level, const char *formats, ...) {
     const auto msg = format(formats, args);
     va_end(args);
 
-    do_log({current_logger()->context(), msg.c_str(), level});
+    do_log({current_logger()->context(), msg.c_str(), msg.size(), level});
   }
 }
 
 void Logger::do_log(const Log_entry &entry) {
   std::lock_guard<std::recursive_mutex> lock(current_logger()->m_mutex);
+  auto logger = current_logger().get();
 
-  if (current_logger()->m_log_file.is_open() &&
-      entry.level <= current_logger()->m_log_level) {
+#ifdef _WIN32
+  if (logger->m_log_file.is_open() && entry.level <= logger->m_log_level) {
     const auto s = format_message(entry);
-    current_logger()->m_log_file.write(s.c_str(), s.length());
-    current_logger()->m_log_file.flush();
+    logger->m_log_file.write(s.c_str(), s.length());
+    logger->m_log_file.flush();
   }
+#else
+  if (logger->m_log_file && entry.level <= logger->m_log_level) {
+    const auto s = format_message(entry);
+    fwrite(s.c_str(), s.length(), 1, logger->m_log_file);
+    fflush(logger->m_log_file);
+  }
+#endif
 
-  for (const auto &f : current_logger()->m_hook_list) {
-    if (std::get<2>(f) || entry.level <= current_logger()->m_log_level)
+  for (const auto &f : logger->m_hook_list) {
+    if (std::get<2>(f) || entry.level <= logger->m_log_level)
       std::get<0>(f)(entry, std::get<1>(f));
   }
 }
@@ -254,7 +287,7 @@ void Logger::out_to_stderr(const Log_entry &entry, void *) {
     }
 
     doc.AddMember(rapidjson::StringRef("message"),
-                  rapidjson::StringRef(entry.message), allocator);
+                  rapidjson::StringRef(entry.message, entry.length), allocator);
 
     rapidjson::StringBuffer buffer;
 
@@ -306,17 +339,14 @@ std::string Logger::format_message(const Log_entry &entry) {
       result += "." + shcore::str_rjust(std::to_string(now.tv_usec), 6, '0');
     }
 #endif  // MYSQLSH_PRECISE_TIMESTAMP
-    result += ':';
-    result += ' ';
+    result.append(": ");
     result += to_string(entry.level);
-    result += ':';
-    result += ' ';
+    result.append(": ");
     if (entry.domain && *entry.domain) {
       result += entry.domain;
-      result += ':';
-      result += ' ';
+      result.append(": ");
     }
-    result += entry.message;
+    result += std::string(entry.message, entry.length);
     result += "\n";
   }
 
@@ -346,13 +376,34 @@ Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
 #ifdef _WIN32
     const auto wide_filename = shcore::utf8_to_wide(filename);
     m_log_file.open(wide_filename, std::ios_base::app);
-#else
-    m_log_file.open(filename, std::ios_base::app);
-#endif
-    if (m_log_file.fail())
+    if (m_log_file.fail()) {
       throw std::runtime_error(
           std::string("Error opening log file '") + filename +
           "' for writing: " + shcore::errno_to_string(errno));
+    }
+#else
+    bool permissions_ok = check_logfile_permissions(m_log_file_name);
+    if (!permissions_ok) {
+      int rc = shcore::set_user_only_permissions(m_log_file_name);
+      if (rc != 0) {
+        std::cerr << "Error setting permissions on log file: "
+                  << m_log_file_name << std::endl;
+      }
+    }
+
+    int fd = open(filename, O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+      throw std::runtime_error(
+          std::string("Error opening log file '") + filename +
+          "' for writing: " + shcore::errno_to_string(errno));
+    }
+    m_log_file = fdopen(fd, "at");
+    if (m_log_file == nullptr) {
+      throw std::runtime_error(
+          std::string("Error opening log file '") + filename +
+          "' for writing: " + shcore::errno_to_string(errno));
+    }
+#endif
   }
 
   if (use_stderr) {
@@ -361,7 +412,15 @@ Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
 }
 
 Logger::~Logger() {
-  if (m_log_file.is_open()) m_log_file.close();
+#ifdef _WIN32
+  if (m_log_file.is_open()) {
+    m_log_file.close();
+  }
+#else
+  if (m_log_file) {
+    fclose(m_log_file);
+  }
+#endif
 }
 
 Logger::LOG_LEVEL Logger::parse_log_level(const std::string &tag) {

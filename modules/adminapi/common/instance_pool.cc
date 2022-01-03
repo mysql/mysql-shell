@@ -182,70 +182,18 @@ void Instance::steal() {
   m_pool = nullptr;
 }
 
-/**
- * Log the input SQL statement.
- *
- * SQL is logged with the INFO level and according the value set for the
- * dba.logSql shell option:
- *   - 0: no SQL logging;
- *   - 1: log SQL statements, except SELECT and SHOW;
- *   - 2: log all SQL statements;
- * Passwords are hidden, i.e., replaced by ****, assuming that they are
- * properly identified in the SQL statement.
- *
- * @param sql string with the target SQL statement to log.
- *
- */
-void Instance::log_sql(const std::string &sql) const {
-  if (current_shell_options()->get().dba_log_sql > 1 ||
-      (current_shell_options()->get().dba_log_sql == 1 &&
-       !shcore::str_ibeginswith(sql, "select") &&
-       !shcore::str_ibeginswith(sql, "show"))) {
-    log_info(
-        "%s: %s", get_connection_options().uri_endpoint().c_str(),
-        shcore::str_subvars(
-            sql, [](const std::string &) { return "****"; }, "/*((*/", "/*))*/")
-            .c_str());
-  }
-}
-
-void Instance::log_sql_error(const shcore::Error &e) const {
-  if (current_shell_options()->get().dba_log_sql > 0) {
-    log_info("%s: -> %s", get_connection_options().uri_endpoint().c_str(),
-             e.format().c_str());
-  }
-}
-
 std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
                                                         bool buffered) const {
-  log_sql(sql);
-  try {
-    return mysqlshdk::mysql::Instance::query(sql, buffered);
-  } catch (const shcore::Error &e) {
-    log_sql_error(e);
-    throw;
-  }
+  return mysqlshdk::mysql::Instance::query(sql, buffered);
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> Instance::query_udf(
     const std::string &sql, bool buffered) const {
-  log_sql(sql);
-  try {
-    return mysqlshdk::mysql::Instance::query_udf(sql, buffered);
-  } catch (const shcore::Error &e) {
-    log_sql_error(e);
-    throw;
-  }
+  return mysqlshdk::mysql::Instance::query_udf(sql, buffered);
 }
 
 void Instance::execute(const std::string &sql) const {
-  log_sql(sql);
-  try {
-    mysqlshdk::mysql::Instance::execute(sql);
-  } catch (const shcore::Error &e) {
-    log_sql_error(e);
-    throw;
-  }
+  mysqlshdk::mysql::Instance::execute(sql);
 }
 
 /**

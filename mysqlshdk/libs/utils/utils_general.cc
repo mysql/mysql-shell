@@ -1195,7 +1195,7 @@ namespace {
 /**
  * https://research.swtch.com/glob
  */
-bool _match_glob(const std::string &pat, const std::string &str) {
+bool _match_glob(const std::string_view pat, const std::string_view str) {
   size_t pend = pat.length();
   size_t send = str.length();
   size_t px = 0;
@@ -1264,7 +1264,7 @@ bool _match_glob(const std::string &pat, const std::string &str) {
  *
  * Note: works with ASCII only, no UTF8 support
  */
-bool match_glob(const std::string &pattern, const std::string &s,
+bool match_glob(const std::string_view pattern, const std::string_view s,
                 bool case_sensitive) {
   if (!case_sensitive) {
     const std::string &str = str_lower(s);

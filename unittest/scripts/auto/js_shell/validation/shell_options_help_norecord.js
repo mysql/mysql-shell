@@ -62,7 +62,9 @@
 //@<OUT> dba.logSql option help text
  dba.logSql  Log SQL statements executed by AdminAPI operations: 0 - logging
              disabled; 1 - log statements other than SELECT and SHOW; 2 - log
-             all statements.
+             all statements. Option takes precedence over --log-sql in Dba.*
+             context if enabled.
+
 
 //@<OUT> Verify the help text when using filter
  history.autoSave           Shell's history autosave.

@@ -684,6 +684,8 @@ int main(int argc, char **argv) {
 
   if (options.exit_code != 0) return options.exit_code;
 
+  mysqlsh::Scoped_shell_options scoped_shell_options(shell_options);
+
   std::shared_ptr<shcore::Logger> logger;
   try {
     // Setup logging
@@ -698,6 +700,8 @@ int main(int argc, char **argv) {
   mysqlsh::Scoped_logger scoped_logger(logger);
 
   log_info("%s", version_string(argv[0], true).c_str());
+  mysqlsh::Scoped_log_sql log_sql(std::make_shared<shcore::Log_sql>());
+  shcore::current_log_sql()->push("main");
 
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
 #ifdef HAVE_PYTHON

@@ -171,7 +171,8 @@ std::vector<std::string> SHCORE_PUBLIC
 split_string_chars(const std::string &input, const std::string &separator_chars,
                    bool compress = false);
 
-bool SHCORE_PUBLIC match_glob(const std::string &pattern, const std::string &s,
+bool SHCORE_PUBLIC match_glob(const std::string_view pattern,
+                              const std::string_view s,
                               bool case_sensitive = false);
 
 std::string SHCORE_PUBLIC to_camel_case(const std::string &name);

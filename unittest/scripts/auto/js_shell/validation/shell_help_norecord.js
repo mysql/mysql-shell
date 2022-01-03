@@ -130,7 +130,8 @@ DESCRIPTION
         synchronized
       - dba.logSql: 0..2, log SQL statements executed by AdminAPI operations: 0
         - logging disabled; 1 - log statements other than SELECT and SHOW; 2 -
-        log all statements.
+        log all statements. Option takes precedence over --log-sql in Dba.*
+        context if enabled.
       - dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
         come back after a restart during clone recovery
       - defaultCompress: Enable compression in client/server protocol by
@@ -149,6 +150,14 @@ DESCRIPTION
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
       - logLevel: current log level
+      - logSql: Log SQL statements: off - none of SQL statements will be
+        logged; error (default) - SQL statement with error message will be
+        logged only when error occurs; on - all SQL statements will be logged
+        except these which match any of logSql.ignorePattern glob pattern;
+        unfiltered - all SQL statements will be logged.
+      - logSql.ignorePattern: Colon separated list of glob patterns to filter
+        out SQL queries to be logged when logSql is set to "filtered". Default:
+        SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*
       - mysqlPluginDir: Directory for client-side authentication plugins
       - oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
         file

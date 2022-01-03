@@ -184,7 +184,8 @@ Shell_context_wrapper::Shell_context_wrapper(
     m_logger = std::make_shared<Scoped_logger>(shcore::Logger::create_instance(
         callbacks->log_file().c_str(), opts.get()->get().log_to_stderr,
         opts.get()->get().log_level));
-
+    m_log_sql = std::make_shared<Scoped_log_sql>(
+        std::make_shared<shcore::Log_sql>(*(opts.get())));
     m_interrupt =
         std::make_shared<Scoped_interrupt>(shcore::Interrupts::create(nullptr));
   }

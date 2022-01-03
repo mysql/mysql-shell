@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,7 +67,8 @@ class Multi_storage : public Scoped_storage<mysqlsh::IConsole>,
                       public Scoped_storage<mysqlsh::Shell_options>,
                       public Scoped_storage<shcore::Interrupts>,
                       public Scoped_storage<shcore::Logger>,
-                      public Scoped_storage<mysqlshdk::ssh::Ssh_manager> {};
+                      public Scoped_storage<mysqlshdk::ssh::Ssh_manager>,
+                      public Scoped_storage<shcore::Log_sql> {};
 
 thread_local Multi_storage mstorage;
 
@@ -109,6 +110,7 @@ template class Global_scoped_object<mysqlsh::IConsole>;
 template class Global_scoped_object<mysqlsh::Shell_options>;
 template class Global_scoped_object<shcore::Logger>;
 template class Global_scoped_object<mysqlshdk::ssh::Ssh_manager>;
+template class Global_scoped_object<shcore::Log_sql>;
 
 namespace detail {
 template <typename T>
@@ -142,4 +144,8 @@ std::shared_ptr<mysqlshdk::ssh::Ssh_manager>
 mysqlshdk::ssh::current_ssh_manager(bool allow_empty) {
   return mysqlsh::detail::current_scoped_value<mysqlshdk::ssh::Ssh_manager>(
       allow_empty);
+}
+
+std::shared_ptr<shcore::Log_sql> shcore::current_log_sql(bool allow_empty) {
+  return mysqlsh::detail::current_scoped_value<shcore::Log_sql>(allow_empty);
 }

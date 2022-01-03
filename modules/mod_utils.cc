@@ -495,8 +495,7 @@ std::shared_ptr<mysqlshdk::db::ISession> create_session(
     return true;
   });
 
-  log_info("About to connect to MySQL at: %s",
-           connection_options.as_uri().c_str());
+  log_info("Connecting to MySQL at: %s", connection_options.as_uri().c_str());
 
   auto session = create_and_connect(connection_options);
 

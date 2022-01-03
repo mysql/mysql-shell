@@ -48,6 +48,7 @@ using socket_t = int;
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk/libs/utils/error.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -274,8 +275,12 @@ class SHCORE_PUBLIC ISession {
     try {
       return (this->*fun)(sql, len, args...);
     } catch (const Error &e) {
-      log_error("Error while executing: '%.*s': %s", static_cast<int>(len), sql,
-                e.format().c_str());
+      // Even if log_sql is 'off', we want to log this error.
+      auto log_sql = shcore::current_log_sql(true);
+      if (!log_sql || log_sql->is_off()) {
+        log_error("Error while executing: '%.*s': %s", static_cast<int>(len),
+                  sql, e.format().c_str());
+      }
       throw;
     }
   }

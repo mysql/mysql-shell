@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/db/mysqlx/xpl_error.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -468,6 +469,10 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (!_expired_account) load_session_info();
 
   DBUG_LOG("sql", get_thread_id() << ": CONNECTED: " << data.uri_endpoint());
+  {
+    auto log_sql_handler = shcore::current_log_sql();
+    log_sql_handler->log_connect(data.uri_endpoint(), get_thread_id());
+  }
 
   // fill in defaults
   if (!_connection_options.has_scheme())
@@ -602,10 +607,15 @@ std::shared_ptr<IResult> XSession_impl::query(const char *sql, size_t len,
     ::Mysqlx::Sql::StmtExecute stmt;
 
     stmt.set_stmt(sql, len);
+    auto log_sql_handler = shcore::current_log_sql();
+    log_sql_handler->log(get_thread_id(), sql, len);
 
     DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt.stmt());
     xresult = _mysql->get_protocol().execute_stmt(stmt, &error);
-
+    if (error) {
+      auto err = Error(error.what(), error.error());
+      log_sql_handler->log(get_thread_id(), sql, len, err);
+    }
     check_error_and_throw(error, stmt.stmt().c_str());
   }
   auto result = after_query(std::move(xresult), buffered);
@@ -632,10 +642,20 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
                                {"uri", _connection_options.uri_endpoint()}}));
 
   xcl::XError error;
-  if (ns.empty() || ns == "sql")
+  if (ns.empty() || ns == "sql") {
+    auto log_sql_handler = shcore::current_log_sql();
+    log_sql_handler->log(get_thread_id(), stmt.c_str(), stmt.length());
     DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt);
+  }
   std::unique_ptr<xcl::XQuery_result> xresult(
       _mysql->execute_stmt(ns, stmt, args, &error));
+
+  if (error) {
+    auto log_sql_handler = shcore::current_log_sql();
+    auto err = Error(error.what(), error.error());
+    log_sql_handler->log(get_thread_id(), stmt.c_str(), stmt.length(), err);
+  }
+
   check_error_and_throw(error, stmt.c_str());
   auto result = after_query(std::move(xresult));
   timer.stage_end();

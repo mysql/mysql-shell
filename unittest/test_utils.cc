@@ -1,23 +1,25 @@
-/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2.0,
-   as published by the Free Software Foundation.
-
-   This program is also distributed with certain software (including
-   but not limited to OpenSSL) that is licensed under separate terms, as
-   designated in a particular file or component or in included license
-   documentation.  The authors of MySQL hereby grant you an additional
-   permission to link the program and your derivative works with the
-   separately licensed software that they have included with MySQL.
-   This program is distributed in the hope that it will be useful,  but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
-   the GNU General Public License, version 2.0, for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation, Inc.,
-   51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "unittest/test_utils.h"
 #include <cinttypes>
@@ -79,13 +81,14 @@ void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
   // If the level of the log is different than
   // the one set, we don't want to store the message
   if (current_level == entry.level) {
-    std::string message_s(entry.message);
-    self->log.push_back(message_s);
+    std::string message_s(entry.message, entry.length);
+    self->log.emplace_back(std::move(message_s));
   }
   if (entry.domain && strcmp(entry.domain, "dba.sql") == 0) {
     if (!self->dba_sql_log) self->dba_sql_log = shcore::make_array();
     self->dba_sql_log->push_back(
-        shcore::Value(std::to_string(entry.timestamp) + " " + entry.message));
+        shcore::Value(std::to_string(entry.timestamp) + " " +
+                      std::string(entry.message, entry.length)));
   }
 }
 

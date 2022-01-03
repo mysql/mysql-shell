@@ -30,6 +30,7 @@
 #include <functional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -42,14 +43,14 @@ void clear_buffer(char *buffer, size_t size);
 void clear_buffer(std::string *buffer);
 
 /** Convert a copy of an ASCII string to uppercase and return */
-inline std::string str_upper(const std::string &s) {
+inline std::string str_upper(const std::string_view s) {
   std::string r(s);
   std::transform(r.begin(), r.end(), r.begin(), ::toupper);
   return r;
 }
 
 /** Convert a copy of an ASCII string to lowercase and return */
-inline std::string str_lower(const std::string &s) {
+inline std::string str_lower(const std::string_view s) {
   std::string r(s);
   std::transform(r.begin(), r.end(), r.begin(), ::tolower);
   return r;
@@ -124,11 +125,12 @@ inline bool str_ibeginswith(const char *s, const char *prefix) {
 #endif
 }
 
-inline bool str_ibeginswith(const std::string &s, const std::string &prefix) {
+inline bool str_ibeginswith(const std::string &s,
+                            const std::string_view &prefix) {
 #ifdef _WIN32
-  return ::_strnicmp(s.c_str(), prefix.c_str(), prefix.size()) == 0;
+  return ::_strnicmp(s.c_str(), prefix.data(), prefix.size()) == 0;
 #else
-  return strncasecmp(s.c_str(), prefix.c_str(), prefix.size()) == 0;
+  return strncasecmp(s.c_str(), prefix.data(), prefix.size()) == 0;
 #endif
 }
 

@@ -1345,6 +1345,19 @@ function EXPECT_SHELL_LOG_CONTAINS(text) {
   }
 }
 
+function EXPECT_SHELL_LOG_CONTAINS_COUNT(text, count) {
+  if (!(typeof count === 'number')) {
+    throw Error('"count" argument must be a number.');
+  }
+  var log_path = testutil.getShellLogPath();
+  var match_list = testutil.grepFile(log_path, text);
+  if (match_list.length !== count) {
+    var log_out = testutil.catFile(log_path);
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing log output:</red> " + text + "\n<yellow>Actual log output:</yellow> " + log_out;
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_SHELL_LOG_NOT_CONTAINS(text) {
   var log_path = testutil.getShellLogPath();
   var match_list = testutil.grepFile(log_path, text);

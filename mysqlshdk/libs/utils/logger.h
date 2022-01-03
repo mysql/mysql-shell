@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,10 @@
 #include <string>
 #include <tuple>
 
+#ifndef _WIN32
+#include <cstdio>
+#endif
+
 #ifdef _MSC_VER
 #include <sal.h>
 #endif  // _MSC_VER
@@ -58,11 +62,13 @@ class SHCORE_PUBLIC Logger final {
 
   struct Log_entry {
     Log_entry();
-    Log_entry(const char *domain, const char *message, LOG_LEVEL level);
+    Log_entry(const char *domain, const char *message, size_t length,
+              LOG_LEVEL level);
 
     time_t timestamp;
     const char *domain;
     const char *message;
+    size_t length;  //< message length
     LOG_LEVEL level;
   };
 
@@ -149,7 +155,11 @@ class SHCORE_PUBLIC Logger final {
 
   LOG_LEVEL m_log_level = LOG_NONE;
 
+#ifdef _WIN32
   std::ofstream m_log_file;
+#else  // !_WIN32
+  FILE *m_log_file = nullptr;
+#endif
   std::string m_log_file_name;
   std::list<std::tuple<Log_hook, void *, bool>> m_hook_list;
   std::list<std::tuple<Log_level_hook, void *>> m_level_hook_list;
@@ -161,6 +171,7 @@ class SHCORE_PUBLIC Logger final {
   std::atomic<int> m_dont_log;
 
   friend class Log_reentrant_protector;
+  friend class Log_sql;
 };
 
 // implemented in scoped_contexts.cc

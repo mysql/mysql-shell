@@ -60,6 +60,7 @@ set(utils_SOURCE
     utils_encoding.cc
     dtoa.cc
     syslog.cc
+    log_sql.cc
     syslog_level.cc
     threads.cc
     thread_pool.cc

@@ -32,6 +32,7 @@
 #include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 #ifdef WIN32
@@ -681,6 +682,7 @@ Value Cpp_object_bridge::call_advanced(const std::string &name,
 Value Cpp_object_bridge::call_function(
     const std::string &scope, const std::shared_ptr<Cpp_function> &func,
     const Argument_list &args) {
+  shcore::Log_sql_guard guard(scope.c_str());
   if (func->is_legacy) {
     return func->invoke(args);
   } else {
@@ -802,7 +804,7 @@ Value Cpp_object_bridge::call(const std::string &name,
     func = lookup_function_overload(name, args);
   }
   assert(func);
-  auto scope = get_function_name(name, true);
+  const auto scope = get_function_name(name, true);
   return call_function(scope, func, args);
 }
 

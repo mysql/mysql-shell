@@ -331,8 +331,16 @@ def EXPECT_SHELL_LOG_CONTAINS(text, note=None):
     log_file = testutil.get_shell_log_path()
     match_list = testutil.grep_file(log_file, text)
     if len(match_list) == 0:
-        if not note:
-            note = __caller_context()
+        log_out = testutil.cat_file(log_file)
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
+
+def EXPECT_SHELL_LOG_CONTAINS_COUNT(text, count):
+    if not isinstance(count, int):
+        raise TypeError('"count" argument must be a number.')
+    log_file = testutil.get_shell_log_path()
+    match_list = testutil.grep_file(log_file, text)
+
+    if len(match_list) != count:
         log_out = testutil.cat_file(log_file)
         testutil.fail(
             f"<b>Context:</b> {__test_context}\n<red>Missing log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")

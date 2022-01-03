@@ -165,9 +165,6 @@ class Instance : public mysqlshdk::mysql::Instance {
   int m_retain_count = 1;
   Instance_pool *m_pool = nullptr;
 
-  void log_sql(const std::string &sql) const;
-  void log_sql_error(const shcore::Error &e) const;
-
   int ensure_lock_service_udfs_installed(bool skip_fail_install_warn);
   int get_lock(mysqlshdk::mysql::Lock_mode mode, unsigned int timeout = 0,
                bool skip_fail_install_warn = false);

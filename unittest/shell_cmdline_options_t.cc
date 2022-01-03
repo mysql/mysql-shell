@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -168,6 +168,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->compress;
     else if (option == "mysqlPluginDir")
       return options->mysql_plugin_dir;
+    else if (option == "log-sql")
+      return options->log_sql;
 
     return "";
   }
@@ -206,6 +208,38 @@ class Shell_cmdline_options : public tests::Shell_base_test {
 
     // Restore old cerr.
     std::cerr.rdbuf(backup);
+  }
+
+  void test_option_equal_invalid_value(const std::string &option,
+                                       const std::string &value,
+                                       const std::string &error) {
+    // Redirect cerr.
+    std::streambuf *backup = std::cerr.rdbuf();
+    std::ostringstream cerr;
+    std::cerr.rdbuf(cerr.rdbuf());
+
+    // Tests --option=value
+    std::string arg;
+    arg.append("--").append(option).append("=").append(value);
+    SCOPED_TRACE("TESTING: " + arg);
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()),
+                    NULL};
+    Shell_options cmd_options(2, argv);
+    const Shell_options::Storage &options = cmd_options.get();
+    EXPECT_EQ(1, options.exit_code);
+
+    EXPECT_STREQ(error.c_str(), cerr.str().c_str());
+
+    // Restore old cerr.
+    std::cerr.rdbuf(backup);
+  }
+
+  void test_option_equal_invalid_values(const std::string &option,
+                                        const std::vector<std::string> &values,
+                                        const std::string &error) {
+    for (const auto &v : values) {
+      test_option_equal_invalid_value(option, v, error);
+    }
   }
 
   void test_option_space_value(const std::string &option,
@@ -582,6 +616,19 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     test_option_equal_no_value(option, !defval.empty() || nullable);
   }
 
+  void test_option_with_value_list(const std::string &option,
+                                   const std::string &soption,
+                                   const std::vector<std::string> &values,
+                                   const std::string &defval,
+                                   bool is_connection_data, bool nullable,
+                                   const std::string &target_option = "",
+                                   const char *target_value = NULL) {
+    for (const auto &v : values) {
+      test_option_with_value(option, soption, v, defval, is_connection_data,
+                             nullable, target_option, target_value);
+    }
+  }
+
   void test_option_with_no_value(const std::string &option,
                                  const std::string &target_option,
                                  const std::string &target_value) {
@@ -718,6 +765,8 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.default_compress);
   EXPECT_TRUE(options.compress_algorithms.empty());
   EXPECT_TRUE(options.compress_level.is_null());
+  EXPECT_EQ("error", options.log_sql);
+  EXPECT_EQ("SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*", options.log_sql_ignore);
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -861,6 +910,13 @@ TEST_F(Shell_cmdline_options, app) {
 
   test_option_with_value("mysql-plugin-dir", "", "/some/path", "",
                          !IS_CONNECTION_DATA, IS_NULLABLE, "mysqlPluginDir");
+
+  test_option_with_value_list(
+      "log-sql", "", {"off", "error", "on", "unfiltered"}, "", false, false);
+
+  test_option_equal_invalid_values("log-sql", {"filtered", "all"},
+                                   "--log-sql: The log level value must be any "
+                                   "of {off, error, on, unfiltered}.\n");
 }
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {

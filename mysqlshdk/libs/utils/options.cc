@@ -102,13 +102,6 @@ std::vector<std::string> Generic_option::get_cmdline_help(
   std::vector<std::string> result;
   if (command_line_names.empty() || help.empty()) return result;
 
-  for (const auto &n : command_line_names)
-    if (n.length() >= options_width)
-      throw std::runtime_error(
-          str_format("Command line option %s too wide for help "
-                     "options_width=%zu, %zu width required",
-                     n.c_str(), options_width, n.length() + 1));
-
   std::string line = command_line_names[0];
   for (std::size_t i = 1; i < command_line_names.size(); i++)
     if (line.length() + 2 + command_line_names[i].length() < options_width) {
@@ -118,6 +111,16 @@ std::vector<std::string> Generic_option::get_cmdline_help(
       result.push_back(line);
       line = command_line_names[i];
     }
+
+  // If command line options are too wide to fit in the requested range then
+  // rest of the help is added in a separate line
+  size_t details_offset = 0;
+  if (line.length() >= options_width) {
+    result.push_back(line);
+    line = "";
+    details_offset = 1;
+  }
+
   line.insert(line.end(), options_width - line.length(), ' ');
   result.push_back(line);
 
@@ -128,14 +131,14 @@ std::vector<std::string> Generic_option::get_cmdline_help(
     std::vector<std::string> help_lines =
         shcore::str_break_into_lines(help, help_width);
     for (std::size_t i = 0; i < help_lines.size(); ++i)
-      if (i < result.size())
-        result[i] += help_lines[i];
+      if ((i + details_offset) < result.size())
+        result[(i + details_offset)] += help_lines[i];
       else
         result.push_back(help_lines[i].insert(0, options_width, ' '));
     help_filled = help_lines.size();
   }
 
-  if (help_filled < result.size()) {
+  if ((help_filled + details_offset) < result.size()) {
     assert(command_line_names.size() > 1);
     std::string reference_name =
         command_line_names.size() > 2 &&

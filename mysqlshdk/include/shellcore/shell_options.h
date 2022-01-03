@@ -39,6 +39,8 @@
 #define SHCORE_DBA_RESTART_WAIT_TIMEOUT "dba.restartWaitTimeout"
 #define SHCORE_DBA_LOG_SQL "dba.logSql"
 #define SHCORE_LOG_FILE_NAME "logFile"
+#define SHCORE_LOG_SQL "logSql"
+#define SHCORE_LOG_SQL_IGNORE "logSql.ignorePattern"
 
 #define SHCORE_HISTORY_MAX_SIZE "history.maxSize"
 #define SHCORE_HISTIGNORE "history.sql.ignorePattern"
@@ -148,6 +150,8 @@ class Shell_options : public shcore::Options {
     int dba_gtid_wait_timeout;
     int dba_restart_wait_timeout;
     int dba_log_sql;
+    std::string log_sql;  //< Global SQL logging level
+    std::string log_sql_ignore;
     shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_INFO;
     std::string log_file;
     int verbose_level = 0;
@@ -225,7 +229,7 @@ class Shell_options : public shcore::Options {
 
   shcore::Value get(const std::string &option);
 
-  const Storage &get() { return storage; }
+  const Storage &get() const { return storage; }
 
   bool has_key(const std::string &option) const {
     return named_options.find(option) != named_options.end();
@@ -256,7 +260,7 @@ class Shell_options : public shcore::Options {
     storage.result_format = "json/raw";
   }
 
-  std::vector<std::string> get_details() { return get_cmdline_help(32, 46); }
+  std::vector<std::string> get_details() { return get_cmdline_help(33, 45); }
 
   bool action_print_help() const { return print_cmd_line_helper; }
 

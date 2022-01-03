@@ -559,6 +559,7 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
             auto sql = dynamic_cast<shcore::Shell_sql *>(
                 _shell->language_object(shcore::Shell_core::Mode::SQL));
             assert(sql != nullptr);
+            shcore::Log_sql_guard g("sql");
             sql->execute(command);
           } catch (...) {
           }

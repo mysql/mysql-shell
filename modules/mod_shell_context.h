@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022 Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,6 +148,7 @@ class SHCORE_PUBLIC Shell_context_wrapper
   std::unique_ptr<Delegate_wrapper> m_delegate_wrapper;
   std::shared_ptr<Mysql_shell> m_mysql_shell;
   std::shared_ptr<Scoped_logger> m_logger;
+  std::shared_ptr<Scoped_log_sql> m_log_sql;
   mysqlsh::Mysql_thread m_mysql_thread;
   std::shared_ptr<Scoped_interrupt> m_interrupt;
   bool m_finalized = false;

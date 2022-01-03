@@ -69,7 +69,8 @@ synchronized
 
 @li dba.logSql: 0..2, log SQL statements executed by AdminAPI operations:
 0 - logging disabled; 1 - log statements other than SELECT and SHOW; 2 - log
-all statements.
+all statements. Option takes precedence over --log-sql in Dba.* context if
+enabled.
 
 @li dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
 come back after a restart during clone recovery
@@ -97,6 +98,18 @@ log, filtering of commands depends on the value of history.sql.ignorePattern
 running in interactive mode
 
 @li logLevel: current log level
+
+@li logSql:
+Log SQL statements: off - none of SQL statements will be logged;
+error (default) - SQL statement with error message will be logged only when
+error occurs;
+on - all SQL statements will be logged except these which match any of
+logSql.ignorePattern glob pattern;
+unfiltered - all SQL statements will be logged.
+
+@li logSql.ignorePattern: Colon separated list of glob patterns to filter out
+SQL queries to be logged when logSql is set to "filtered". Default:
+SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*
 
 @li mysqlPluginDir: Directory for client-side authentication plugins
 

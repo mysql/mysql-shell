@@ -34,6 +34,7 @@
 #include "mysqlsh/history.h"
 #include "mysqlsh/mysql_shell.h"
 #include "mysqlsh/prompt_manager.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/syslog.h"
 #include "mysqlshdk/shellcore/shell_prompt_options.h"
 #include "scripting/types.h"

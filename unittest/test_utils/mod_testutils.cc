@@ -2796,10 +2796,11 @@ shcore::Array_t Testutils::grep_file(const std::string &path,
   if (!f.good())
     throw std::runtime_error("grep error: " + path + ": " + strerror(errno));
   shcore::Array_t result = shcore::make_array();
+  const std::string glob_pattern = "*" + pattern + "*";
+  std::string line;
   while (!f.eof()) {
-    std::string line;
     std::getline(f, line);
-    if (shcore::match_glob("*" + pattern + "*", line))
+    if (shcore::match_glob(glob_pattern, line))
       result->push_back(shcore::Value(line));
   }
   f.close();

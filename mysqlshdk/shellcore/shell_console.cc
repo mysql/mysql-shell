@@ -24,6 +24,7 @@
 #include "mysqlshdk/shellcore/shell_console.h"
 
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -216,16 +217,21 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
         memset(color_off, 0, sizeof(color_off));
       }
 
-      if (log.domain && *log.domain)
-        self->raw_print(shcore::str_format("%sverbose: %s: %s%s: %s%s\n",
-                                           color_on, ts.c_str(), show_prefix,
-                                           log.domain, log.message, color_off),
-                        Output_stream::STDERR);
-      else
+      const int message_len = static_cast<int>(
+          std::min<size_t>(log.length, std::numeric_limits<int>::max()));
+
+      if (log.domain && *log.domain) {
         self->raw_print(
-            shcore::str_format("%sverbose: %s: %s%s%s\n", color_on, ts.c_str(),
-                               show_prefix, log.message, color_off),
+            shcore::str_format("%sverbose: %s: %s%s: %.*s%s\n", color_on,
+                               ts.c_str(), show_prefix, log.domain, message_len,
+                               log.message, color_off),
             Output_stream::STDERR);
+      } else {
+        self->raw_print(shcore::str_format("%sverbose: %s: %s%.*s%s\n",
+                                           color_on, ts.c_str(), show_prefix,
+                                           message_len, log.message, color_off),
+                        Output_stream::STDERR);
+      }
     }
   }
 }

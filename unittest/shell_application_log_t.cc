@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,8 +87,12 @@ in print('x';
       "to your MySQL server version for the right syntax to use near '' at "
       "line 1";
   execute("session.runSql('select * from sakila.actor1 limit');");
-  // The hook was invoked
-  EXPECT_EQ(2, Shell_application_log_tests::i);
+
+  // The hook was invoked, 3 times:
+  //   1) execute print('x';
+  //   2) and 3) execute session.runSql(stmt) + stmt is erroneous,
+  //      so global sql log logs error message
+  EXPECT_EQ(3, Shell_application_log_tests::i);
 
   execute("session.close();");
 }

@@ -42,6 +42,7 @@
 #include "ext/linenoise-ng/include/linenoise.h"
 #include "modules/devapi/base_resultset.h"
 #include "modules/mod_shell_options.h"  // <---
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -1360,6 +1361,23 @@ void Command_line_shell::process_line(const std::string &line) {
     m_pending_command(line);
     m_pending_command = nullptr;
   } else {
+    auto mode = _shell->interactive_mode();
+    const char *mode_name = nullptr;
+    switch (mode) {
+      case shcore::IShell_core::Mode::None:
+        mode_name = "none";
+        break;
+      case shcore::IShell_core::Mode::SQL:
+        mode_name = "sql";
+        break;
+      case shcore::IShell_core::Mode::JavaScript:
+        mode_name = "js";
+        break;
+      case shcore::IShell_core::Mode::Python:
+        mode_name = "py";
+        break;
+    }
+    shcore::Log_sql_guard g(mode_name);
     Mysql_shell::process_line(line);
   }
 }

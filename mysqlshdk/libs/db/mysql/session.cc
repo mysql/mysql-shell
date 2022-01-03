@@ -30,10 +30,12 @@
 #include <sstream>
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/mysql_event_handler_plugin.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -304,6 +306,11 @@ void Session_impl::connect(
 
   DBUG_LOG("sql", get_thread_id()
                       << ": CONNECTED: " << _connection_options.uri_endpoint());
+  {
+    auto log_sql_handler = shcore::current_log_sql();
+    log_sql_handler->log_connect(_connection_options.uri_endpoint(),
+                                 get_thread_id());
+  }
 
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysql");
@@ -466,15 +473,21 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
     }
   });
 
+  auto log_sql_handler = shcore::current_log_sql();
+  log_sql_handler->log(get_thread_id(), sql, len);
+
   DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << std::string(sql, len));
 
   FI_TRIGGER_TRAP(mysql, mysqlshdk::utils::FI::Trigger_options(
                              {{"sql", std::string(sql, len)},
                               {"uri", _connection_options.uri_endpoint()}}));
 
-  auto process_error = [this]([[maybe_unused]] std::string_view sql_script) {
+  auto process_error = [this](std::string_view sql_script) {
     auto err =
         Error(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+
+    shcore::current_log_sql()->log(get_thread_id(), sql_script.data(),
+                                   sql_script.size(), err);
 
     if (DBUG_EVALUATE_IF("sqlall", 1, 0)) {
       DBUG_LOG("sql", get_thread_id() << ": ERROR: " << err.format());

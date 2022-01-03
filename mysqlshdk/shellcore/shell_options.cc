@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
@@ -433,7 +434,7 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.result_format, "table", "outputFormat",
         "outputFormat option has been deprecated, "
         "please use " SHCORE_RESULT_FORMAT " to set result format and --json "
-        "command line option to wrap output in JSON instead.\n",
+        "command line option to wrap output in JSON instead.",
         [this](const std::string &val, Source s) {
           std::cout << "WARNING: outputFormat option has been deprecated, "
               "please use " SHCORE_RESULT_FORMAT " to set result format and"
@@ -459,7 +460,12 @@ Shell_options::Shell_options(int argc, char **argv,
         "Enable database name caching for autocompletion.")
     (&storage.devapi_schema_object_handles, -1,
         SHCORE_DEVAPI_DB_OBJECT_HANDLES,
-        "Enable table and collection name handles for the DevAPI db object.");
+        "Enable table and collection name handles for the DevAPI db object.")
+    (&storage.log_sql_ignore, "SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*",
+        SHCORE_LOG_SQL_IGNORE,
+        "Colon separated list of glob patterns to filter out SQL queries to be "
+        "logged when logSql is set to \"filtered\". "
+        "Default: SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*");
 
   add_startup_options()
     (cmdline("--get-server-public-key"), "Request public key from the server "
@@ -534,7 +540,23 @@ Shell_options::Shell_options(int argc, char **argv,
         cmdline("--dba-log-sql[={0|1|2}]"),
         "Log SQL statements executed by AdminAPI operations: "
         "0 - logging disabled; 1 - log statements other than SELECT and SHOW; "
-        "2 - log all statements.", shcore::opts::Range<int>(0, 2))
+        "2 - log all statements. Option takes precedence over --log-sql in "
+        "Dba.* context if enabled.", shcore::opts::Range<int>(0, 2))
+    (&storage.log_sql, "error", SHCORE_LOG_SQL,
+        cmdline("--log-sql=off|error|on|unfiltered"),
+        "Log SQL statements: "
+        "off - none of SQL statements will be logged; "
+        "(default) error - SQL statement with error message will be logged "
+        "only when error occurs; "
+        "on - All SQL statements will be logged except these which match "
+        "any of logSql.ignorePattern glob pattern; "
+        "unfiltered - All SQL statements will be logged.",
+        [](const std::string &val, Source) {
+          shcore::Log_sql::parse_log_level(val);
+          // Accept |val| if |parse_log_level()| not throw
+          return val;
+        }
+    )
     (&storage.history_sql_syslog, false, SHCORE_HISTORY_SQL_SYSLOG,
         cmdline("--syslog"),
         "Log filtered interactive commands to the system log. Filtering of "
@@ -1054,6 +1076,11 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       throw std::invalid_argument(iterator->iterator()->first() +
                                   std::string(": unknown option -m"));
     }
+  } else if ("--dba-log-sql" == option) {
+    std::cout << "WARNING: The --dba-log-sql option has been deprecated, "
+                 "please use --log-sql instead."
+              << std::endl;
+    return false;
   } else {
     return false;
   }
