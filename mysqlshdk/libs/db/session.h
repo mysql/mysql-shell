@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #ifdef _WIN32
 #include <windows.h>
 #ifdef WIN32_LEAN_AND_MEAN
@@ -128,6 +129,21 @@ class SHCORE_PUBLIC ISession {
     return querys_log_error(data(sql), length(sql), buffered);
   }
 
+  /**
+   * Executes a query with a user-defined function (UDF)
+   *
+   * Due to how UDFs are implemented in the server, they behave differently than
+   * non UDFs, which means a UDF aware query method must used when dealing with
+   * them.
+   *
+   * @param sql The SQL query with an UDF to execute
+   * @param buffered True if the results should be buffered (read all at once),
+   * false if they should be read row-by-row
+   * @return std::shared_ptr<IResult> the result set of the query
+   */
+  virtual std::shared_ptr<IResult> query_udf(std::string_view sql,
+                                             bool buffered = false) = 0;
+
   virtual void executes(const char *sql, size_t len) = 0;
 
   inline void executes_log_error(const char *sql, size_t len) {
@@ -182,7 +198,7 @@ class SHCORE_PUBLIC ISession {
 
   virtual const Error *get_last_error() const = 0;
 
-  virtual ~ISession() {}
+  virtual ~ISession() = default;
 
   virtual std::string escape_string(const std::string &s) const = 0;
   virtual std::string escape_string(const char *buffer, size_t len) const = 0;

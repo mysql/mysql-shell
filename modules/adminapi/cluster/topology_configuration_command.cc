@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,8 +45,6 @@ Topology_configuration_command::Topology_configuration_command(
   assert(cluster);
   m_cluster_session_instance = m_cluster->get_cluster_server();
 }
-
-Topology_configuration_command::~Topology_configuration_command() {}
 
 void Topology_configuration_command::ensure_server_version() {
   if (m_cluster_session_instance->get_version() <

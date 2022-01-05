@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -221,6 +221,17 @@ std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
   log_sql(sql);
   try {
     return mysqlshdk::mysql::Instance::query(sql, buffered);
+  } catch (const shcore::Error &e) {
+    log_sql_error(e);
+    throw;
+  }
+}
+
+std::shared_ptr<mysqlshdk::db::IResult> Instance::query_udf(
+    const std::string &sql, bool buffered) const {
+  log_sql(sql);
+  try {
+    return mysqlshdk::mysql::Instance::query_udf(sql, buffered);
   } catch (const shcore::Error &e) {
     log_sql_error(e);
     throw;

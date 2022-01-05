@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -176,7 +176,7 @@ void Result::fetch_metadata() {
   }
 }
 
-Result::~Result() {}
+Result::~Result() = default;
 
 const IRow *Result::fetch_one() {
   if (_pre_fetched) {
@@ -196,7 +196,18 @@ const IRow *Result::fetch_one() {
         return &_pre_fetched_rows[_fetched_row_count++];
       }
     }
+    if (_pre_fetched_clear_at_end &&
+        (_fetched_row_count == _pre_fetched_rows.size()))
+      _pre_fetched = false;
+
   } else {
+    // clear state if we exited a pre_fetch scenario
+    if (_pre_fetched_clear_at_end) {
+      assert(_pre_fetched_rows.size() == 1);
+      _pre_fetched_rows.clear();
+      _pre_fetched_clear_at_end = false;
+    }
+
     if (has_resultset()) {
       // Loads the first row
       std::shared_ptr<MYSQL_RES> res = _result.lock();
@@ -295,6 +306,7 @@ void Result::reset(std::shared_ptr<MYSQL_RES> res) {
   _field_names.reset();
   _has_resultset = false;
   _pre_fetched = false;
+  _pre_fetched_clear_at_end = false;
   _fetched_row_count = 0;
   _pre_fetched_rows.clear();
   _result = res;
@@ -313,6 +325,20 @@ void Result::buffer() {
     return false;
   });
   pre_fetch_rows(true);
+}
+
+bool Result::pre_fetch_row() {
+  if (auto result = _result.lock(); result) {
+    _persistent_pre_fetch = false;
+
+    if (!has_resultset()) return false;
+
+    _pre_fetched_rows.emplace_back(*fetch_one());
+    _fetched_row_count = 0;
+    _pre_fetched = true;
+    _pre_fetched_clear_at_end = true;
+  }
+  return true;
 }
 
 bool Result::pre_fetch_rows(bool persistent) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -92,6 +92,11 @@ class Mock_session : public mysqlshdk::db::ISession,
   std::shared_ptr<mysqlshdk::db::IResult> querys(const char *sql, size_t len,
                                                  bool buffered) override {
     return Mock_session_common::do_querys(sql, len, buffered);
+  }
+
+  std::shared_ptr<mysqlshdk::db::IResult> query_udf(std::string_view sql,
+                                                    bool buffered) override {
+    return Mock_session_common::do_querys(sql.data(), sql.size(), buffered);
   }
 
   MOCK_METHOD2(executes, void(const char *, size_t));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,6 +88,9 @@ class Instance : public mysqlshdk::mysql::Instance {
   void steal();
 
   std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::string &sql, bool buffered = false) const override;
+
+  std::shared_ptr<mysqlshdk::db::IResult> query_udf(
       const std::string &sql, bool buffered = false) const override;
 
   void execute(const std::string &sql) const override;

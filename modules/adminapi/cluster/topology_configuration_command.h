@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,7 @@ class Topology_configuration_command : public Command_interface {
  public:
   explicit Topology_configuration_command(Cluster_impl *cluster);
 
-  ~Topology_configuration_command() override;
+  ~Topology_configuration_command() override = default;
 
   /**
    * Prepare the Topology_configuration_command command for execution.

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -52,11 +52,7 @@
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
 
-using Version = mysqlshdk::utils::Version;
-
 // Begin test configuration block
-
-const char *k_default_test_filter = "*";
 
 // Default execution mode for replayable tests
 mysqlshdk::db::replay::Mode g_test_recording_mode =
@@ -73,11 +69,11 @@ bool g_bp = false;
 std::set<int> g_break;
 
 // Default trace set (MySQL version) to be used for replay mode
-mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");
+mysqlshdk::utils::Version g_target_server_version{"8.0.16"};
 // Highest supported TLS version by MySQL Server
-mysqlshdk::utils::Version g_highest_server_tls_version = Version();
+mysqlshdk::utils::Version g_highest_server_tls_version{};
 // Highest common (server<->client) TLS supported version
-mysqlshdk::utils::Version g_highest_tls_version = Version();
+mysqlshdk::utils::Version g_highest_tls_version{};
 
 // End test configuration block
 
@@ -93,8 +89,17 @@ std::vector<std::pair<std::string, std::string>> g_skipped_chunks;
 std::vector<std::pair<std::string, std::string>> g_skipped_validations;
 std::vector<std::pair<std::string, std::string>> g_pending_fixes;
 
-static std::string make_socket_absolute_path(const std::string &datadir,
-                                             const std::string &socket) {
+namespace {
+
+struct Target_server {
+  std::string path;
+  mysqlshdk::utils::Version version;
+};
+
+const char *k_default_test_filter = "*";
+
+std::string make_socket_absolute_path(const std::string &datadir,
+                                      const std::string &socket) {
   if (socket.empty()) {
     return std::string{};
   }
@@ -106,7 +111,7 @@ static std::string make_socket_absolute_path(const std::string &datadir,
 #endif
 }
 
-static void detect_mysql_environment(int port, const char *pwd) {
+void detect_mysql_environment(int port, const char *pwd) {
   std::string socket, xsocket, datadir;
   std::string hostname, report_host;
   int xport = 0;
@@ -199,7 +204,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
             if (shcore::str_beginswith(tls_versions.back(), "TLSv")) {
               std::string ver((*i).begin() + 4, (*i).end());
               g_highest_server_tls_version = g_highest_tls_version =
-                  Version(ver);
+                  mysqlshdk::utils::Version(ver);
               break;
             }
           }
@@ -219,7 +224,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
           const std::string tls_version = row[1];
           if (shcore::str_beginswith(tls_version, "TLSv")) {
             std::string ver(tls_version.begin() + 4, tls_version.end());
-            auto client_tls_version = Version(ver);
+            auto client_tls_version = mysqlshdk::utils::Version(ver);
             g_highest_tls_version =
                 std::min(client_tls_version, g_highest_server_tls_version);
           }
@@ -327,10 +332,10 @@ static void detect_mysql_environment(int port, const char *pwd) {
   }
 }
 
-static std::string verify_target_server(
+std::string verify_target_server(
     const std::string &variable,
     const mysqlshdk::utils::Version &expected_version,
-    std::vector<std::string> *path_variables) {
+    std::vector<Target_server> &path_variables) {
   const char *path = getenv(variable.c_str());
 
   if (!path) {
@@ -347,7 +352,8 @@ static std::string verify_target_server(
         (expected_version.get_patch() == 0 &&
          expected_version.get_major() == actual_version.get_major() &&
          expected_version.get_minor() == actual_version.get_minor())) {
-      path_variables->push_back(variable);
+      path_variables.push_back(
+          Target_server{std::move(variable), actual_version});
     } else {
       return shcore::str_format(
           "The environment variable %s must be defined with the path to the "
@@ -363,9 +369,9 @@ static std::string verify_target_server(
  * Verifies the target servers to be used on the test session.
  * returns the base server version.
  */
-static std::string verify_target_servers(const std::string &target,
-                                         std::string *path_variables) {
-  std::vector<std::string> path_var_list;
+std::string verify_target_servers(const std::string &target,
+                                  std::string &path_variables) {
+  std::vector<Target_server> target_server_list;
   std::string new_target;
   if (target.empty()) {
     new_target = g_target_server_version.get_base();
@@ -391,14 +397,14 @@ static std::string verify_target_servers(const std::string &target,
             "MYSQLD%d%d_PATH", secondary.get_major(), secondary.get_minor());
 
         std::string error =
-            verify_target_server(variable, secondary, &path_var_list);
+            verify_target_server(variable, secondary, target_server_list);
         if (!error.empty()) errors.push_back(error);
       }
     }
 
     // If no target variables yet and server count is more than 1 then specific
     // MYSQLDMmp_PATH variables should be defined
-    if (count > 1 && path_var_list.empty() && errors.empty()) {
+    if (count > 1 && target_server_list.empty() && errors.empty()) {
       for (size_t index = 1; index < versions.size(); index++) {
         mysqlshdk::utils::Version secondary(versions[index]);
 
@@ -407,7 +413,7 @@ static std::string verify_target_servers(const std::string &target,
                                secondary.get_minor(), secondary.get_patch());
 
         std::string error =
-            verify_target_server(variable, secondary, &path_var_list);
+            verify_target_server(variable, secondary, target_server_list);
         if (!error.empty()) errors.push_back(error);
       }
     }
@@ -418,14 +424,22 @@ static std::string verify_target_servers(const std::string &target,
                 << shcore::str_join(errors, "\n").c_str() << std::endl;
       exit(1);
     } else {
-      *path_variables = shcore::str_join(path_var_list, ",");
+      for (const auto &server : target_server_list) {
+        path_variables.append(server.version.get_full())
+            .append(";")
+            .append(server.path)
+            .append(",");
+      }
+      if (!path_variables.empty()) {
+        path_variables.erase(path_variables.size() - 1);
+      }
     }
   }
 
   return new_target;
 }
 
-static bool delete_sandbox(int port) {
+bool delete_sandbox(int port) {
   MYSQL *mysql;
   mysql = mysql_init(nullptr);
 
@@ -464,7 +478,7 @@ static bool delete_sandbox(int port) {
   return true;
 }
 
-static void check_zombie_sandboxes(int sports[tests::sandbox::k_num_ports]) {
+void check_zombie_sandboxes(int sports[tests::sandbox::k_num_ports]) {
   bool have_zombies = false;
   std::string ports;
 
@@ -488,7 +502,7 @@ static void check_zombie_sandboxes(int sports[tests::sandbox::k_num_ports]) {
 }
 
 #ifndef _WIN32
-static void catch_segv(int sig) {
+void catch_segv(int sig) {
   mysqlshdk::utils::print_stacktrace();
   signal(sig, SIG_DFL);
   kill(getpid(), sig);
@@ -496,12 +510,12 @@ static void catch_segv(int sig) {
 #endif
 
 #ifdef __APPLE__
-static std::string get_test_keychain() {
+std::string get_test_keychain() {
   static constexpr auto k_keychain = "mysqlsh-test-keychain";
   return shcore::path::join_path(shcore::get_user_config_path(), k_keychain);
 }
 
-static void setup_test_keychain() {
+void setup_test_keychain() {
   const auto keychain = get_test_keychain();
 
   std::cout << "Using keychain: " << keychain << std::endl;
@@ -518,7 +532,7 @@ static void setup_test_keychain() {
   shcore::setenv("MYSQLSH_CREDENTIAL_STORE_KEYCHAIN", keychain);
 }
 
-static void remove_test_keychain() {
+void remove_test_keychain() {
   const auto keychain = get_test_keychain();
   std::cout << "Deleting test keychain: "
             << system(("security delete-keychain " + keychain).c_str())
@@ -526,6 +540,7 @@ static void remove_test_keychain() {
 }
 #endif  // __APPLE__
 
+}  // namespace
 namespace testing {
 class Fail_logger : public EmptyTestEventListener {
  public:
@@ -910,7 +925,7 @@ int main(int argc, char **argv) {
     // The call to the verify_target_servers is needed so the path to the
     // different mysqld servers gets in place for every execution mode
     if (!target.empty())
-      target = verify_target_servers(target, &mysqld_path_variables);
+      target = verify_target_servers(target, mysqld_path_variables);
     g_mysqld_path_variables = mysqld_path_variables.c_str();
 
     if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {

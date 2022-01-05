@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,9 +52,6 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_METHOD0(refresh, void());
 
   MOCK_METHOD1(register_warnings_callback, void(const Warnings_callback &));
-
-  MOCK_CONST_METHOD1(
-      query, std::shared_ptr<mysqlshdk::db::IResult>(const std::string &));
 
   MOCK_METHOD1(cache_global_sysvars, void(bool));
   MOCK_CONST_METHOD1(
@@ -136,6 +133,8 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
 
   MOCK_CONST_METHOD2(query, std::shared_ptr<mysqlshdk::db::IResult>(
                                 const std::string &, bool));
+  MOCK_CONST_METHOD2(query_udf, std::shared_ptr<mysqlshdk::db::IResult>(
+                                    const std::string &, bool));
 
   MOCK_CONST_METHOD1(execute, void(const std::string &));
 };

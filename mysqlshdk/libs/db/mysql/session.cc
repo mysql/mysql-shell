@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -401,15 +401,20 @@ void Session_impl::close() {
 
 std::shared_ptr<IResult> Session_impl::query(const char *sql, size_t len,
                                              bool buffered) {
-  return run_sql(sql, len, buffered);
+  return run_sql(sql, len, buffered, false);
+}
+
+std::shared_ptr<IResult> Session_impl::query_udf(std::string_view sql,
+                                                 bool buffered) {
+  return run_sql(sql.data(), sql.size(), buffered, true);
 }
 
 void Session_impl::execute(const char *sql, size_t len) {
-  auto result = run_sql(sql, len, true);
+  auto result = run_sql(sql, len, true, false);
 }
 
 std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
-                                               bool buffered) {
+                                               bool buffered, bool is_udf) {
   if (_mysql == nullptr) throw std::runtime_error("Not connected");
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("run_sql");
@@ -467,25 +472,52 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
                              {{"sql", std::string(sql, len)},
                               {"uri", _connection_options.uri_endpoint()}}));
 
-  if (mysql_real_query(_mysql, sql, len) != 0) {
+  auto process_error = [this]([[maybe_unused]] std::string_view sql_script) {
     auto err =
         Error(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
 
     if (DBUG_EVALUATE_IF("sqlall", 1, 0)) {
       DBUG_LOG("sql", get_thread_id() << ": ERROR: " << err.format());
     } else {
-      DBUG_LOG("sql", get_thread_id()
-                          << ": ERROR: " << err.format()
-                          << "\n\twhile executing: " << std::string(sql, len));
+      DBUG_LOG("sql", get_thread_id() << ": ERROR: " << err.format()
+                                      << "\n\twhile executing: "
+                                      << std::string(sql_script));
     }
 
-    throw err;
+    return err;
+  };
+
+  if (mysql_real_query(_mysql, sql, len) != 0) {
+    throw process_error({sql, len});
   }
 
   // warning count can only be obtained after consuming the result data
   std::shared_ptr<Result> result(
       new Result(shared_from_this(), mysql_affected_rows(_mysql),
                  mysql_insert_id(_mysql), mysql_info(_mysql), buffered));
+
+  /*
+  Because of the way UDFs are implemented in the server, they don't return
+  errors the same way "regular" functions do. In short, they have two parts: an
+  initialization part and a fecth data part, which means that we may only know
+  if the UDF returned an error when we try and read the results returned.
+
+  This also means that calling mysql_store_result (which executes both parts in
+  sequence), is completly different than calling mysql_use_result (which only
+  does the first part because the data must be read explicitly). Hence the code
+  below:
+   - if buffered (mysql_store_result) then the data was already read and so we
+  only need to check for errors (like in a non UDF) if no result was returned
+   - if not buffered (mysql_use_result), then we need to fetch the first row to
+  check for errors (this row is read but kept in result to avoid being lost)
+  */
+  if (is_udf) {
+    if (buffered && !result->has_resultset()) {
+      throw process_error({sql, len});
+    } else if (!buffered) {
+      result->pre_fetch_row();  // this will throw in case of error
+    }
+  }
 
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_elapsed());

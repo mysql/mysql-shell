@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -536,9 +536,10 @@ void add_managed_connection_failover(
   query.done();
 
   try {
-    log_debug("Executing UDF: %s", query.str().c_str());
+    log_debug("Executing UDF: %s",
+              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
     if (!dry_run) {
-      auto res = target_instance.query(query);
+      auto res = target_instance.query_udf(query);
       auto row = res->fetch_one();
       log_debug("UDF returned '%s'", row->get_string(0, "NULL").c_str());
     }
@@ -570,9 +571,10 @@ void delete_managed_connection_failover(
     query.done();
 
     try {
-      log_debug("Executing UDF: %s", query.str().c_str());
+      log_debug("Executing UDF: %s",
+                query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
       if (!dry_run) {
-        auto res = target_instance.query(query);
+        auto res = target_instance.query_udf(query);
         auto row = res->fetch_one();
         log_debug("UDF returned '%s'", row->get_string(0, "NULL").c_str());
       }

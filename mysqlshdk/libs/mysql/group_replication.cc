@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,6 @@
 #endif
 #include <mysqld_error.h>
 
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/plugin.h"
@@ -472,12 +471,13 @@ mysqlshdk::utils::Version get_group_protocol_version(
     return mysqlshdk::utils::Version(5, 7, 14);
   } else {
     try {
-      static const char *get_gr_protocol_version =
+      const char *get_gr_protocol_version =
           "SELECT group_replication_get_communication_protocol()";
 
-      log_debug("Executing UDF: %s", get_gr_protocol_version);
+      log_debug("Executing UDF: %s",
+                get_gr_protocol_version + sizeof("SELECT"));  // hide "SELECT "
 
-      auto resultset = instance.query(get_gr_protocol_version);
+      auto resultset = instance.query_udf(get_gr_protocol_version);
       auto row = resultset->fetch_one();
 
       if (row) {
@@ -514,9 +514,10 @@ void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
   query = query_fmt.str();
 
   try {
-    log_debug("Executing UDF: %s", query.c_str());
+    log_debug("Executing UDF: %s",
+              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
 
-    instance.query(query);
+    instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
@@ -911,8 +912,9 @@ void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
   query.done();
 
   try {
-    log_debug("Executing UDF: %s", query.str().c_str());
-    instance.query(query);
+    log_debug("Executing UDF: %s",
+              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+    instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
@@ -923,8 +925,9 @@ void switch_to_multi_primary_mode(const mysqlshdk::mysql::IInstance &instance) {
   std::string query = "SELECT group_replication_switch_to_multi_primary_mode()";
 
   try {
-    log_debug("Executing UDF: %s", query.c_str());
-    instance.query(query);
+    log_debug("Executing UDF: %s",
+              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+    instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
@@ -946,8 +949,9 @@ void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
   }
 
   try {
-    log_debug("Executing UDF: %s", query.c_str());
-    instance.query(query);
+    log_debug("Executing UDF: %s",
+              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+    instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
@@ -1176,8 +1180,10 @@ void execute_member_action_udf(const mysqlshdk::mysql::IInstance &instance,
   });
 
   try {
-    log_debug("Executing UDF: %s", query.c_str());
-    instance.query(query);
+    assert(shcore::str_ibeginswith(query, "select "));
+    log_debug("Executing UDF: %s",
+              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+    instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
         error.what(), error.code(), error.sqlstate());
