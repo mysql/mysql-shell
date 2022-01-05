@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,6 +72,11 @@
 //   Use for other informational text meant for users.
 
 namespace mysqlsh {
+std::string to_string(Prompt_type type);
+Prompt_type to_prompt_type(const std::string &type);
+
+char process_label(const std::string &s, std::string *out_display,
+                   std::string *out_clean_text);
 
 class Shell_console : public IConsole {
  public:
@@ -183,20 +188,27 @@ class Shell_console : public IConsole {
    */
   virtual void print_para(const std::string &text) const override;
 
-  shcore::Prompt_result prompt(const std::string &prompt, std::string *out_val,
-                               Validator validator = nullptr) const override;
-  Prompt_answer confirm(const std::string &prompt,
-                        Prompt_answer def = Prompt_answer::NO,
-                        const std::string &yes_label = "&Yes",
-                        const std::string &no_label = "&No",
-                        const std::string &alt_label = "") const override;
+  shcore::Prompt_result prompt(
+      const std::string &prompt, std::string *out_val,
+      Validator validator = nullptr, Prompt_type type = Prompt_type::TEXT,
+      const std::string &title = "",
+      const std::vector<std::string> &description = {},
+      const std::string &default_value = "") const override;
+  Prompt_answer confirm(
+      const std::string &prompt, Prompt_answer def = Prompt_answer::NO,
+      const std::string &yes_label = "&Yes",
+      const std::string &no_label = "&No", const std::string &alt_label = "",
+      const std::string &title = "",
+      const std::vector<std::string> &description = {}) const override;
   shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
-      Validator validator = nullptr) const override;
+      Validator validator = nullptr, const std::string &title = "",
+      const std::vector<std::string> &description = {}) const override;
   bool select(const std::string &prompt_text, std::string *result,
               const std::vector<std::string> &items, size_t default_option = 0,
-              bool allow_custom = false,
-              Validator validator = nullptr) const override;
+              bool allow_custom = false, Validator validator = nullptr,
+              const std::string &title = "",
+              const std::vector<std::string> &description = {}) const override;
 
   void print_value(const shcore::Value &value,
                    const std::string &tag) const override;
@@ -230,8 +242,12 @@ class Shell_console : public IConsole {
   void detach_log_hook();
 
   shcore::Prompt_result call_prompt(
-      const std::string &prompt, std::string *ret_val, Validator validator,
-      const char *tag, shcore::Interpreter_delegate::Prompt func) const;
+      const std::string &text, std::string *ret_val, Validator validator,
+      shcore::Interpreter_delegate::Prompt func,
+      const std::string &default_value = "") const;
+
+  void print_prompt_description(
+      const std::vector<std::string> &description) const;
 
   shcore::Interpreter_delegate *m_ideleg;
   std::weak_ptr<IPager> m_current_pager;

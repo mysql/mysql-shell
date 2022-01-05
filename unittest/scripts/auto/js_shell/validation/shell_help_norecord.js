@@ -812,24 +812,112 @@ WHERE
       options: Dictionary with options that change the function behavior.
 
 RETURNS
-      A string value containing the input from the user.
+      A string value containing the result based on the user input.
 
 DESCRIPTION
       This function allows creating scripts that require interaction with the
       user to gather data.
 
-      Calling this function with no options will show the given message to the
-      user and wait for the input. The information entered by the user will be
-      the returned value
-
       The options dictionary may contain the following options:
 
-      - defaultValue: a string value to be returned if the provides no data.
-      - type: a string value to define the prompt type.
+      - title: a string to identify the prompt.
+      - description: a string list with a description of the prompt, each entry
+        represents a paragraph.
+      - type: a string value to define the prompt type. Supported types
+        include: text, password, confirm, select, fileOpen, fileSave,
+        directory. Default value: text.
+      - defaultValue: defines the default value to be used in case the user
+        accepts the prompt without providing custom information. The value of
+        this option depends on the prompt type.
+      - yes: string value to overwrite the default '&Yes' option on 'confirm'
+        prompts.
+      - no: string value to overwrite the default '&No' option on 'confirm'
+        prompts.
+      - alt: string value to define an additional option for 'confirm' prompts.
+      - options: string list of options to be used in 'select' prompts.
 
-      The type option supports the following values:
+      General Behavior
 
-      - password: the user input will not be echoed on the screen.
+      The 'title' option is not used in the Shell but it might be useful for
+      better integration with external plugins handling prompts.
+
+      When the 'description' option is provided, each entry will be printed as
+      a separate paragraph.
+
+      Once the description is printed, the content of the message parameter
+      will be printed and input from the user will be required.
+
+      The value of the 'defaultValue' option and the returned value will depend
+      on the 'type' option, as explained on the following sections.
+
+      Open Prompts
+
+      These represent prompts without a pre-defined set of valid answers, the
+      prompt types on this category include: text, password, fileOpen, fileSave
+      and directory.
+
+      The 'defaultValue' on these prompts can be set to a string to be returned
+      by the function if the user replies to the prompt with an empty string,
+      if not defined then the prompt will accept and return the empty string.
+
+      The returned value on these prompts will be either the value set on
+      'defaultValue' option or the value entered by the user.
+
+      In the case of password type prompts, the data entered by the user will
+      not be displayed on the screen.
+
+      Confirm Prompts
+
+      The default behaviour of these prompts if to allow the user answering
+      Yes/No questions, however, the default '&Yes' and '&No' options can be
+      overriden through the 'yes' and 'no' options.
+
+      An additional option can be added to the prompt by defining the 'alt'
+      option.
+
+      The 'yes', 'no' and 'alt' options are used to define the valid answers
+      for the prompt. The ampersand (&) symbol can be used to define a single
+      character which acts as a shortcut for the user to select the indicated
+      answer.
+
+      i.e. using an option like: '&Yes' causes the following to be valid
+      answers (case insensitive): 'Yes', '&Yes', 'Y'.
+
+      All the valid answers must be unique within the prompt call.
+
+      If the 'defaultValue' option is defined, it must be set equal to any of
+      the valid prompt answers, i.e. if the 'yes', 'no' and 'alt' options are
+      not defined, then 'defaultValue' can be set to one of '&Yes', 'Yes', 'Y',
+      '&No', 'No' or 'N', case insensitive, otherwise, it must be set to one of
+      the valid answers based on the values defined in the 'yes', 'no' or 'alt'
+      options.
+
+      This prompt will be shown repeatedly until the user explicitly replies
+      with one of the valid answers unless a 'defaultValue' is provided, which
+      will be used in case the user replies with an empty answer.
+
+      The returned value will be the label associated to the user provided
+      answer.
+
+      i.e. if the prompt is using the default options ('&Yes' and '&No') and
+      the user response is 'n' the prompt function will return '&No'.
+
+      Select Prompts
+
+      These prompts allow the user selecting an option from a pre-defined list
+      of options.
+
+      To define the list of options to be used in the prompt the 'options'
+      option should be used.
+
+      If the 'defaultValue' option is defined, it must be a number representing
+      the 1 based index of the option to be selected by default.
+
+      This prompt will be shown repeatedly until the user explicitly replies
+      with the 1 based index of the option to be selected unless a default
+      option is pre-defined through the 'defaultValue' option.
+
+      The returned value will be the text of the selected option.
 
 //@<OUT> Help on shell.disconnect
 NAME

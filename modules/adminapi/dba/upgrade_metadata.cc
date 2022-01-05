@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -244,7 +244,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
               "Help"};
 
           if (console->select(
-                  "Please select an option: ", &answer, options, 0UL, true,
+                  "Please select an option", &answer, options, 0UL, true,
                   [&options](const std::string &a) -> std::string {
                     if (a.size() == 1) {
                       if (a.find_first_of("?aArCuUhH") == std::string::npos) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,23 +74,30 @@ class Console_with_progress final : public IConsole {
 
   void print_diag(const std::string &text) const override;
 
-  shcore::Prompt_result prompt(const std::string &prompt, std::string *out_val,
-                               Validator validator = nullptr) const override;
+  shcore::Prompt_result prompt(
+      const std::string &prompt, std::string *out_val,
+      Validator validator = nullptr, Prompt_type type = Prompt_type::TEXT,
+      const std::string &title = "",
+      const std::vector<std::string> &description = {},
+      const std::string &default_value = "") const override;
 
-  Prompt_answer confirm(const std::string &prompt,
-                        Prompt_answer def = Prompt_answer::NO,
-                        const std::string &yes_label = "&Yes",
-                        const std::string &no_label = "&No",
-                        const std::string &alt_label = "") const override;
+  Prompt_answer confirm(
+      const std::string &prompt, Prompt_answer def = Prompt_answer::NO,
+      const std::string &yes_label = "&Yes",
+      const std::string &no_label = "&No", const std::string &alt_label = "",
+      const std::string &title = "",
+      const std::vector<std::string> &description = {}) const override;
 
   shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
-      Validator validator = nullptr) const override;
+      Validator validator = nullptr, const std::string &title = "",
+      const std::vector<std::string> &description = {}) const override;
 
   bool select(const std::string &prompt_text, std::string *result,
               const std::vector<std::string> &items, size_t default_option = 0,
-              bool allow_custom = false,
-              Validator validator = nullptr) const override;
+              bool allow_custom = false, Validator validator = nullptr,
+              const std::string &title = "",
+              const std::vector<std::string> &description = {}) const override;
 
   std::shared_ptr<IPager> enable_pager() override;
 

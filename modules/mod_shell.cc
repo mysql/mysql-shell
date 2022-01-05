@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -354,86 +354,205 @@ std::string Shell::unparse_uri(const shcore::Dictionary_t &options) {
 
 // clang-format off
 REGISTER_HELP_FUNCTION(prompt, shell);
-REGISTER_HELP(SHELL_PROMPT_BRIEF, "Utility function to prompt data from the user.");
-REGISTER_HELP(SHELL_PROMPT_PARAM, "@param message a string with the message to be shown to the user.");
-REGISTER_HELP(SHELL_PROMPT_PARAM1, "@param options Optional dictionary with "\
-                                   "options that change the function behavior.");
-REGISTER_HELP(SHELL_PROMPT_RETURNS, "@returns A string value containing the input from the user.");
-REGISTER_HELP(SHELL_PROMPT_DETAIL, "This function allows creating scripts that "\
-                                   "require interaction with the user to gather data.");
-REGISTER_HELP(SHELL_PROMPT_DETAIL1, "Calling this function with no options will show the given "\
-                                    "message to the user and wait for the input. "\
-                                    "The information entered by the user will be the returned value");
-REGISTER_HELP(SHELL_PROMPT_DETAIL2, "The options dictionary may contain the following options:");
-REGISTER_HELP(SHELL_PROMPT_DETAIL3, "@li defaultValue: a string value to be returned if the provides no data.");
-REGISTER_HELP(SHELL_PROMPT_DETAIL4, "@li type: a string value to define the prompt type.");
-REGISTER_HELP(SHELL_PROMPT_DETAIL5, "The type option supports the following values:");
-REGISTER_HELP(SHELL_PROMPT_DETAIL6, "@li password: the user input will not be echoed on the screen.");
+REGISTER_HELP_FUNCTION_TEXT(SHELL_PROMPT, R"*(
+Utility function to prompt data from the user.
+
+@param message a string with the message to be shown to the user.
+@param options Optional dictionary with options that change the function
+behavior.
+
+@returns A string value containing the result based on the user input.
+
+This function allows creating scripts that require interaction with the user
+to gather data.
+
+The options dictionary may contain the following options:
+
+@li title: a string to identify the prompt.
+@li description: a string list with a description of the prompt, each entry
+represents a paragraph.
+@li type: a string value to define the prompt type. Supported types include:
+text, password, confirm, select, fileOpen, fileSave, directory. Default value:
+text.
+@li defaultValue: defines the default value to be used in case the user accepts
+the prompt without providing custom information. The value of this option
+depends on the prompt type.
+@li yes: string value to overwrite the default '&Yes' option on 'confirm'
+prompts.
+@li no: string value to overwrite the default '&No' option on 'confirm'
+prompts.
+@li alt: string value to define an additional option for 'confirm' prompts.
+@li options: string list of options to be used in 'select' prompts.
+
+<b>General Behavior</b>
+
+The 'title' option is not used in the Shell but it might be useful for better
+integration with external plugins handling prompts.
+
+When the 'description' option is provided, each entry will be printed as a
+separate paragraph.
+
+Once the description is printed, the content of the message parameter will be
+printed and input from the user will be required.
+
+The value of the 'defaultValue' option and the returned value will depend on
+the 'type' option, as explained on the following sections.
+
+<b>Open Prompts</b>
+
+These represent prompts without a pre-defined set of valid answers, the prompt
+types on this category include: text, password, fileOpen, fileSave and
+directory.
+
+The 'defaultValue' on these prompts can be set to a string to be returned by
+the function if the user replies to the prompt with an empty string, if not
+defined then the prompt will accept and return the empty string.
+
+The returned value on these prompts will be either the value set on
+'defaultValue' option or the value entered by the user.
+
+In the case of password type prompts, the data entered by the user will not be
+displayed on the screen.
+
+
+<b>Confirm Prompts</b>
+
+The default behaviour of these prompts if to allow the user answering Yes/No
+questions, however, the default '&Yes' and '&No' options can be overriden
+through the 'yes' and 'no' options.
+
+An additional option can be added to the prompt by defining the 'alt' option.
+
+The 'yes', 'no' and 'alt' options are used to define the valid answers for the
+prompt. The ampersand (&) symbol can be used to define a single character which
+acts as a shortcut for the user to select the indicated answer.
+
+i.e. using an option like: '&Yes' causes the following to be valid answers
+(case insensitive): 'Yes', '&Yes', 'Y'.
+
+All the valid answers must be unique within the prompt call.
+
+If the 'defaultValue' option is defined, it must be set equal to any of the
+valid prompt answers, i.e. if the 'yes', 'no' and 'alt' options are not
+defined, then 'defaultValue' can be set to one of '&Yes', 'Yes', 'Y', '&No',
+'No' or 'N', case insensitive, otherwise, it must be set to one of the valid
+answers based on the values defined in the 'yes', 'no' or 'alt' options.
+
+This prompt will be shown repeatedly until the user explicitly replies with one
+of the valid answers unless a 'defaultValue' is provided, which will be used in
+case the user replies with an empty answer.
+
+The returned value will be the label associated to the user provided answer.
+
+i.e. if the prompt is using the default options ('&Yes' and '&No') and the user
+response is 'n' the prompt function will return '&No'.
+
+
+<b>Select Prompts</b>
+
+These prompts allow the user selecting an option from a pre-defined list of
+options.
+
+To define the list of options to be used in the prompt the 'options' option
+should be used.
+
+If the 'defaultValue' option is defined, it must be a number representing the
+1 based index of the option to be selected by default.
+
+This prompt will be shown repeatedly until the user explicitly replies with the
+1 based index of the option to be selected unless a default option is
+pre-defined through the 'defaultValue' option.
+
+The returned value will be the text of the selected option.
+)*");
 // clang-format on
 
 /**
  * $(SHELL_PROMPT_BRIEF)
  *
- * $(SHELL_PROMPT_PARAM)
- * $(SHELL_PROMPT_PARAM1)
- *
- * $(SHELL_PROMPT_RETURNS)
- *
- * $(SHELL_PROMPT_DETAIL)
- *
- * $(SHELL_PROMPT_DETAIL1)
- *
- * $(SHELL_PROMPT_DETAIL2)
- * $(SHELL_PROMPT_DETAIL3)
- * $(SHELL_PROMPT_DETAIL4)
- * $(SHELL_PROMPT_DETAIL5)
- * $(SHELL_PROMPT_DETAIL6)
+ * $(SHELL_PROMPT)
  */
 #if DOXYGEN_JS
 String Shell::prompt(String message, Dictionary options) {}
 #elif DOXYGEN_PY
 str Shell::prompt(str message, dict options) {}
 #endif
-std::string Shell::prompt(const std::string &message,
-                          const shcore::Dictionary_t &options) {
+std::string Shell::prompt(
+    const std::string &message,
+    const shcore::Option_pack_ref<prompt::Prompt_options> &options) {
   std::string ret_val;
-  std::string default_value;
-  bool password = false;
-
-  if (options) {
-    // If there are options, reads them to determine how to proceed
-    mysqlshdk::db::nullable<std::string> type;
-
-    Unpack_options(options)
-        .optional("defaultValue", &default_value)
-        .optional("type", &type)
-        .end();
-
-    if (type) {
-      if (*type != "password")
-        throw shcore::Exception::runtime_error(
-            "Unsupported value for parameter 'type', allowed values: "
-            "password");
-      else
-        password = true;
-    }
-  }
 
   // Performs the actual prompt
   const auto console = mysqlsh::current_console();
 
-  shcore::Prompt_result result;
-  if (password)
-    result = console->prompt_password(message, &ret_val);
-  else
-    result = console->prompt(message, &ret_val);
-  if (result == shcore::Prompt_result::Cancel)
+  shcore::Prompt_result result = shcore::Prompt_result::Ok;
+
+  switch (options->type) {
+    case Prompt_type::PASSWORD:
+      result = console->prompt_password(message, &ret_val, nullptr,
+                                        options->title, options->description);
+      if (result == shcore::Prompt_result::Ok && ret_val.empty() &&
+          options->default_value) {
+        ret_val = options->default_value.as_string();
+      }
+      break;
+    case Prompt_type::CONFIRM: {
+      Prompt_answer def_val = Prompt_answer::NONE;
+      if (options->default_value) {
+        const auto &value = options->default_value.as_string();
+        if (shcore::str_caseeq(value, options->yes_label)) {
+          def_val = Prompt_answer::YES;
+        } else if (shcore::str_caseeq(value, options->no_label)) {
+          def_val = Prompt_answer::NO;
+        } else if (shcore::str_caseeq(value, options->alt_label)) {
+          def_val = Prompt_answer::ALT;
+        }
+      }
+
+      auto answer = console->confirm(message, def_val, options->yes_label,
+                                     options->no_label, options->alt_label,
+                                     options->title, options->description);
+
+      switch (answer) {
+        case Prompt_answer::YES:
+          ret_val = options->yes_label;
+          break;
+        case Prompt_answer::NO:
+          ret_val = options->no_label;
+          break;
+        case Prompt_answer::ALT:
+          ret_val = options->alt_label;
+          break;
+        default:
+          // NOOP
+          break;
+      }
+      break;
+    }
+    case Prompt_type::SELECT: {
+      uint64_t default_value = 0;
+      if (options->default_value) {
+        default_value = options->default_value.as_uint();
+      }
+      console->select(message, &ret_val, options->select_items,
+                      static_cast<size_t>(default_value), false, nullptr,
+                      options->title, options->description);
+      break;
+    }
+    default:
+      std::string default_value = "";
+      if (options->default_value) {
+        default_value = options->default_value.as_string();
+      }
+      result =
+          console->prompt(message, &ret_val, nullptr, options->type,
+                          options->title, options->description, default_value);
+      break;
+  }
+
+  if (result == shcore::Prompt_result::Cancel) {
     throw shcore::cancelled("Cancelled");
-
-  bool r = (result == shcore::Prompt_result::Ok);
-
-  // Uses the default value if needed (but not if canceled)
-  if (!default_value.empty() && (r && ret_val.empty())) ret_val = default_value;
+  }
 
   return ret_val;
 }
@@ -766,9 +885,9 @@ REGISTER_HELP(TOPIC_URI_ENCODED_VALUE2,
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE3,
               "URL encoding is done by replacing the character being encoded "
               "by the sequence: @%XX");
-REGISTER_HELP(
-    TOPIC_URI_ENCODED_VALUE4,
-    "Where XX is the hexadecimal ASCII value of the character being encoded.");
+REGISTER_HELP(TOPIC_URI_ENCODED_VALUE4,
+              "Where XX is the hexadecimal ASCII value of the character "
+              "being encoded.");
 REGISTER_HELP(TOPIC_URI_ENCODED_VALUE5,
               "If host is a literal IPv6 address it should be enclosed in "
               "\"[\" and \"]\" characters.");

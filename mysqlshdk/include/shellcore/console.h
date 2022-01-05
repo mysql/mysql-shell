@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,16 @@ namespace mysqlsh {
 enum class Prompt_answer { NONE = 0, YES = 1, NO = 2, ALT = 3 };
 enum class Output_stream { STDOUT = 0, STDERR = 1 };
 
+enum class Prompt_type {
+  CONFIRM,
+  DIRECTORY,
+  FILEOPEN,
+  FILESAVE,
+  PASSWORD,
+  SELECT,
+  TEXT
+};
+
 class IPager {
  public:
   IPager() = default;
@@ -69,9 +79,12 @@ class IConsole {
   // Throws shcore::cancelled() on ^C
   using Validator = std::function<std::string(const std::string &)>;
 
-  virtual shcore::Prompt_result prompt(const std::string &prompt,
-                                       std::string *out_val,
-                                       Validator validator = nullptr) const = 0;
+  virtual shcore::Prompt_result prompt(
+      const std::string &prompt, std::string *out_val,
+      Validator validator = nullptr, Prompt_type type = Prompt_type::TEXT,
+      const std::string &title = "",
+      const std::vector<std::string> &description = {},
+      const std::string &default_value = "") const = 0;
 
   /**
    * Show confirmation prompt with the displayed options.
@@ -87,20 +100,24 @@ class IConsole {
    *
    * Throws shcore::cancelled() on ^C
    */
-  virtual Prompt_answer confirm(const std::string &prompt,
-                                Prompt_answer def = Prompt_answer::NO,
-                                const std::string &yes_label = "&Yes",
-                                const std::string &no_label = "&No",
-                                const std::string &alt_label = "") const = 0;
+  virtual Prompt_answer confirm(
+      const std::string &prompt, Prompt_answer def = Prompt_answer::NO,
+      const std::string &yes_label = "&Yes",
+      const std::string &no_label = "&No", const std::string &alt_label = "",
+      const std::string &title = "",
+      const std::vector<std::string> &description = {}) const = 0;
 
   virtual shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
-      Validator validator = nullptr) const = 0;
+      Validator validator = nullptr, const std::string &title = "",
+      const std::vector<std::string> &description = {}) const = 0;
 
-  virtual bool select(const std::string &prompt_text, std::string *result,
-                      const std::vector<std::string> &items,
-                      size_t default_option = 0, bool allow_custom = false,
-                      Validator validator = nullptr) const = 0;
+  virtual bool select(
+      const std::string &prompt_text, std::string *result,
+      const std::vector<std::string> &items, size_t default_option = 0,
+      bool allow_custom = false, Validator validator = nullptr,
+      const std::string &title = "",
+      const std::vector<std::string> &description = {}) const = 0;
 
   /**
    * Enables the pager and returns its handle. As long IPager exists, all output

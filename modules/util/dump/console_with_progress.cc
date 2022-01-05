@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,35 +130,43 @@ void Console_with_progress::print_diag(const std::string &text) const {
   m_console->print_diag(text);
 }
 
-shcore::Prompt_result Console_with_progress::prompt(const std::string &prompt,
-                                                    std::string *out_val,
-                                                    Validator validator) const {
+shcore::Prompt_result Console_with_progress::prompt(
+    const std::string &prompt, std::string *out_val, Validator validator,
+    Prompt_type type, const std::string &title,
+    const std::vector<std::string> &description,
+    const std::string &default_value) const {
   Hide_progress(m_progress, m_mutex);
-  return m_console->prompt(prompt, out_val, validator);
+  return m_console->prompt(prompt, out_val, validator, type, title, description,
+                           default_value);
 }
 
 Prompt_answer Console_with_progress::confirm(
     const std::string &prompt, Prompt_answer def, const std::string &yes_label,
-    const std::string &no_label, const std::string &alt_label) const {
+    const std::string &no_label, const std::string &alt_label,
+    const std::string &title,
+    const std::vector<std::string> &description) const {
   Hide_progress hp(m_progress, m_mutex);
-  return m_console->confirm(prompt, def, yes_label, no_label, alt_label);
+  return m_console->confirm(prompt, def, yes_label, no_label, alt_label, title,
+                            description);
 }
 
 shcore::Prompt_result Console_with_progress::prompt_password(
-    const std::string &prompt, std::string *out_val,
-    Validator validator) const {
+    const std::string &prompt, std::string *out_val, Validator validator,
+    const std::string &title,
+    const std::vector<std::string> &description) const {
   Hide_progress hp(m_progress, m_mutex);
-  return m_console->prompt_password(prompt, out_val, validator);
+  return m_console->prompt_password(prompt, out_val, validator, title,
+                                    description);
 }
 
-bool Console_with_progress::select(const std::string &prompt_text,
-                                   std::string *result,
-                                   const std::vector<std::string> &items,
-                                   size_t default_option, bool allow_custom,
-                                   Validator validator) const {
+bool Console_with_progress::select(
+    const std::string &prompt_text, std::string *result,
+    const std::vector<std::string> &items, size_t default_option,
+    bool allow_custom, Validator validator, const std::string &title,
+    const std::vector<std::string> &description) const {
   Hide_progress hp(m_progress, m_mutex);
   return m_console->select(prompt_text, result, items, default_option,
-                           allow_custom, validator);
+                           allow_custom, validator, title, description);
 }
 
 std::shared_ptr<IPager> Console_with_progress::enable_pager() {

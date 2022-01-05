@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "modules/mod_shell_context.h"
 #include "modules/mod_shell_options.h"
 #include "modules/mod_shell_reports.h"
+#include "modules/shell_prompt_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "scripting/types_cpp.h"
@@ -64,8 +65,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   shcore::Dictionary_t parse_uri(const std::string &uri);
   std::string unparse_uri(const shcore::Dictionary_t &options);
 
-  std::string prompt(const std::string &message,
-                     const shcore::Dictionary_t &options = {});
+  std::string prompt(
+      const std::string &message,
+      const shcore::Option_pack_ref<prompt::Prompt_options> &options = {});
   std::shared_ptr<ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &connection_options,
       const char *password = {});

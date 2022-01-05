@@ -21,8 +21,8 @@ def thread_sample_print(thread_name):
                                 "passwordDelegate": password_prompt, "diagDelegate": diag_delegate})
     sh = ctx.get_shell()
     print("this will be available on the callback queue")
-    EXPECT_EQ("reply from prompt", sh.prompt("reply from prompt"))
-    EXPECT_EQ("reply from password prompt", sh.prompt("reply from password prompt", {'type':'password'}))
+    EXPECT_EQ("reply from prompt: ", sh.prompt("reply from prompt"))
+    EXPECT_EQ("reply from password prompt: ", sh.prompt("reply from password prompt", {'type':'password'}))
     prompt_return = False
     EXPECT_THROWS(lambda: sh.prompt("caption"), "Cancelled")
     prompt_pw_return = False

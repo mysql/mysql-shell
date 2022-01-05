@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -78,6 +78,7 @@ file(GLOB api_module_SOURCES
       "mod_shell_context.cc"
       "mod_shell_options.cc"
       "mod_shell_reports.cc"
+      "shell_prompt_options.cc"
       "mod_sys.cc"
       "mod_utils.cc"
       "mod_mysql_constants.cc"
