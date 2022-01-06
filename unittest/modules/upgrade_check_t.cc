@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -958,6 +958,9 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
         "This test requires running against MySQL server version 5.7 up to but "
         "not including " MYSH_VERSION);
   Util util(_interactive_shell->shell_context().get());
+
+  // clear stdout/stderr garbage
+  reset_shell();
 
   // valid mysql 5.7 superuser
   shcore::Option_pack_ref<Upgrade_check_options> options;

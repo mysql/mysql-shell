@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -297,6 +297,9 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
 
     set_defaults();
     enable_testutil();
+
+    output_handler.std_err.clear();
+    output_handler.std_out.clear();
   }
   void reset_replayable_shell(const char *sub_test_name = nullptr);
 

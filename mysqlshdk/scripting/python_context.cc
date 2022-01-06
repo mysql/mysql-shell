@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1001,9 +1001,9 @@ void Python_context::set_shell_error(const shcore::Error &e) {
     PyTuple_SET_ITEM(args, 0, PyInt_FromLong(e.code()));
     PyTuple_SET_ITEM(args, 1, PyString_FromString(e.what()));
     if (e.code() < 50000)  // MySQL server/client error codes
-      PyErr_SetObject(get()->_db_error, args);
+      PyErr_SetObject(get()->db_error(), args);
     else
-      PyErr_SetObject(get()->_error, args);
+      PyErr_SetObject(get()->error(), args);
     Py_DECREF(args);
   }
 }
@@ -1381,16 +1381,28 @@ void Python_context::register_mysqlsh_module() {
 
   PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
 
-  _db_error = PyDict_GetItemString(py_mysqlsh_dict, "DBError");
-  if (!_db_error) PyErr_Print();
-  assert(_db_error);
+  if (!PyDict_GetItemString(py_mysqlsh_dict, "DBError")) {
+    PyErr_Print();
+    assert(0);
+  }
 
-  _error = PyDict_GetItemString(py_mysqlsh_dict, "Error");
-  if (!_error) PyErr_Print();
-  assert(_error);
+  if (!PyDict_GetItemString(py_mysqlsh_dict, "Error")) {
+    PyErr_Print();
+    assert(0);
+  }
 
   _mysqlsh_globals = PyDict_GetItemString(py_mysqlsh_dict, "globals");
   assert(_mysqlsh_globals);
+}
+
+PyObject *Python_context::db_error() const {
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
+  return PyDict_GetItemString(py_mysqlsh_dict, "DBError");
+}
+
+PyObject *Python_context::error() const {
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
+  return PyDict_GetItemString(py_mysqlsh_dict, "Error");
 }
 
 void Python_context::get_datetime_constructor() {
@@ -1744,13 +1756,13 @@ void Python_context::throw_if_mysqlsh_error() {
 
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  if (PyErr_ExceptionMatches(_db_error)) {
+  if (PyErr_ExceptionMatches(db_error())) {
     int code = 0;
     std::string msg;
     if (get_code_and_msg(&code, &msg))
       throw shcore::Exception::mysql_error_with_code(msg, code);
 
-  } else if (PyErr_ExceptionMatches(_error)) {
+  } else if (PyErr_ExceptionMatches(error())) {
     int code = 0;
     std::string msg;
     if (get_code_and_msg(&code, &msg)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,8 @@
 #include "modules/util/load/load_dump_options.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+
+#include "modules/util/mod_util_debug.h"
 
 namespace shcore {
 class IShell_core;
@@ -151,6 +153,10 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 
  private:
   shcore::IShell_core &_shell_core;
+
+  std::shared_ptr<Util_debug> m_util_debug;
+
+  shcore::Value get_member(const std::string &prop) const override;
 };
 
 } /* namespace mysqlsh */

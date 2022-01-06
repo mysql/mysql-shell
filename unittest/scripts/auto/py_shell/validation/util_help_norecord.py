@@ -7,6 +7,9 @@ DESCRIPTION
       Global object that groups miscellaneous tools like upgrade checker and
       JSON import.
 
+OBJECTS
+ - debug Debugging and diagnostic utilities.
+
 FUNCTIONS
       check_for_server_upgrade([connectionData][, options])
             Performs series of tests on specified MySQL server to check if the
@@ -1817,3 +1820,102 @@ DESCRIPTION
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
+
+
+#@<OUT> util debug collect_diagnostics (full path)
+NAME
+      collect_diagnostics - Collects MySQL diagnostics information for
+                            standalone and managed topologies
+
+SYNTAX
+      util.debug.collect_diagnostics(path[, options])
+
+WHERE
+      path: String - path to write the zip file with diagnostics information.
+      options: Dictionary - Optional arguments.
+
+DESCRIPTION
+      A zip file containing diagnostics information collected from the server
+      connected to.
+
+      The following information is collected
+
+      General - Error logs from performance_schema (if available) - Shell logs,
+      configuration options and hostname where it is executed - InnoDB locks
+      and metrics - InnoDB storage engine status and metrics - Names of tables
+      without a Primary Key - Slow queries (if enabled)
+
+      Replication/InnoDB Cluster - mysql_innodb_cluster_metadata schema and
+      contents - Replication related tables in performance_schema - Replication
+      status information - InnoDB Cluster accounts and their grants - InnoDB
+      Cluster metadata schema - Output of ping for 5s
+
+      Schema Statistics - Number of schema objects (sys.schema_table_overview)
+      - Top 20 biggest tables with index, blobs and partitioning information
+
+      All members of a managed topology (e.g. InnoDB Cluster) will be scanned
+      by default. If the `allMembers` option is set to False, then only the
+      member the Shell is connected to is scanned.
+
+      The options parameter accepts the following options:
+
+      - allMembers: Bool - If true, collects information of all members of the
+        topology, plus ping stats. Default false.
+      - innodbMutex: Bool - If true, also collects output of SHOW ENGINE INNODB
+        MUTEX. Disabled by default, as this command can have some impact on
+        production performance.
+      - schemaStats: Bool - If true, collects schema size statistics. Default
+        false.
+      - slowQueries: Bool - If true, collects slow query information. Requires
+        slow_log to be enabled and configured for TABLE output. Default false.
+      - ignoreErrors: Bool - If true, ignores query errors during collection.
+        Default false.
+
+#@<OUT> util debug collect_diagnostics with util.debug.help (partial path)
+NAME
+      collect_diagnostics - Collects MySQL diagnostics information for
+                            standalone and managed topologies
+
+SYNTAX
+      util.debug.collect_diagnostics(path[, options])
+
+WHERE
+      path: String - path to write the zip file with diagnostics information.
+      options: Dictionary - Optional arguments.
+
+DESCRIPTION
+      A zip file containing diagnostics information collected from the server
+      connected to.
+
+      The following information is collected
+
+      General - Error logs from performance_schema (if available) - Shell logs,
+      configuration options and hostname where it is executed - InnoDB locks
+      and metrics - InnoDB storage engine status and metrics - Names of tables
+      without a Primary Key - Slow queries (if enabled)
+
+      Replication/InnoDB Cluster - mysql_innodb_cluster_metadata schema and
+      contents - Replication related tables in performance_schema - Replication
+      status information - InnoDB Cluster accounts and their grants - InnoDB
+      Cluster metadata schema - Output of ping for 5s
+
+      Schema Statistics - Number of schema objects (sys.schema_table_overview)
+      - Top 20 biggest tables with index, blobs and partitioning information
+
+      All members of a managed topology (e.g. InnoDB Cluster) will be scanned
+      by default. If the `allMembers` option is set to False, then only the
+      member the Shell is connected to is scanned.
+
+      The options parameter accepts the following options:
+
+      - allMembers: Bool - If true, collects information of all members of the
+        topology, plus ping stats. Default false.
+      - innodbMutex: Bool - If true, also collects output of SHOW ENGINE INNODB
+        MUTEX. Disabled by default, as this command can have some impact on
+        production performance.
+      - schemaStats: Bool - If true, collects schema size statistics. Default
+        false.
+      - slowQueries: Bool - If true, collects slow query information. Requires
+        slow_log to be enabled and configured for TABLE output. Default false.
+      - ignoreErrors: Bool - If true, ignores query errors during collection.
+        Default false.

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1018,7 +1018,12 @@ std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
     std::string stream;
 
     chunk_id = line.substr(get_chunk_token().size());
-    if (chunk_id[0] == '#') chunk_id = chunk_id.substr(1);
+    if (chunk_id[0] == '#') {
+      if (chunk_id.size() > 1 && chunk_id[1] == ' ')
+        chunk_id = chunk_id.substr(2);
+      else
+        chunk_id = chunk_id.substr(1);
+    }
 
     // Identifies the version for the chunk expectations
     // If no version is specified assigns '*'

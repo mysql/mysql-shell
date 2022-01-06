@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -184,8 +184,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   py::Store get_shell_indexed_object_class() const;
   py::Store get_shell_function_class() const;
 
-  PyObject *db_error() { return _db_error; }
-  PyObject *error() { return _error; }
+  PyObject *db_error() const;
+  PyObject *error() const;
 
   std::string fetch_and_clear_exception();
   void throw_if_mysqlsh_error();
@@ -236,9 +236,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *_locals;
   PyThreadState *_main_thread_state;
   std::string _stdin_buffer;
-
-  PyObject *_db_error;
-  PyObject *_error;
 
   PyObject *_datetime = nullptr;
   PyTypeObject *_datetime_type = nullptr;

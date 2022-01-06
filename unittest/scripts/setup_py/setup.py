@@ -7,6 +7,7 @@ import random
 import re
 import string
 import sys
+import inspect
 
 def get_members(object):
   all_exports = dir(object)
@@ -86,33 +87,67 @@ class __TextMatcher:
         else:
             return s.find(self.__o) != -1
 
+def __caller_context():
+    # 0 is here, 1 is the EXPECT_ call, 2 is the test code calling EXPECT_
+    frame = inspect.stack()[2]
+    return f"{frame}"
+    
+
+
 def EXPECT_EQ(expected, actual, note=""):
   if expected != actual:
+    if not note:
+      note = __caller_context()
     context = "Tested values don't match as expected: "+note+"\n\tActual:   " + str(actual) + "\n\tExpected: " + str(expected)
     testutil.fail(context)
 
 def EXPECT_NE(expected, actual, note=""):
   if expected == actual:
+    if not note:
+      note = __caller_context()
     context = "Tested values should not match: "+note+"\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
+    testutil.fail(context)
+
+def EXPECT_EQ_TEXT(expected, actual, note=""):
+  if expected != actual:
+    if not note:
+      note = __caller_context()
+    import difflib
+    context = "Tested values don't match as expected: "+note+"\n".join(difflib.context_diff(expected, actual, fromfile="Expected", tofile="Actual"))
+    testutil.fail(context)
+
+def EXPECT_IN(actual, expected_values, note=""):
+  if actual not in expected_values:
+    if not note:
+      note = __caller_context()
+    context = "Tested value not one of expected: "+note+"\n\tActual:   " + str(actual) + "\n\tExpected: " + str(expected_values)
     testutil.fail(context)
 
 def EXPECT_LE(expected, actual, note=""):
   if expected > actual:
+    if not note:
+      note = __caller_context()
     context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) <= "+str(actual)+" (actual)"
     testutil.fail(context)
 
 def EXPECT_LT(expected, actual, note=""):
   if expected >= actual:
+    if not note:
+      note = __caller_context()
     context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) < "+str(actual)+" (actual)"
     testutil.fail(context)
 
 def EXPECT_GE(expected, actual, note=""):
   if expected < actual:
+    if not note:
+      note = __caller_context()
     context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) >= "+str(actual)+" (actual)"
     testutil.fail(context)
 
 def EXPECT_GT(expected, actual, note=""):
   if expected <= actual:
+    if not note:
+      note = __caller_context()
     context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) > "+str(actual)+" (actual)"
     testutil.fail(context)
 
@@ -120,19 +155,27 @@ def EXPECT_BETWEEN(expected_from, expected_to, actual, note=""):
   if expected_from <= actual <= expected_to:
     pass
   else:
+    if not note:
+      note = __caller_context()
     context = "Tested value not as expected: "+note+f"\n\t{expected_from} <= {actual} <= {expected_to}"
     testutil.fail(context)
 
 def EXPECT_NOT_BETWEEN(expected_from, expected_to, actual, note=""):
   if expected_from <= actual <= expected_to:
+    if not note:
+      note = __caller_context()
     context = "Tested value not as expected: "+note+f"\n\tNOT ({expected_from} <= {actual} <= {expected_to})"
     testutil.fail(context)
 
 def EXPECT_DELTA(expected, allowed_delta, actual, note=""):
+  if not note:
+    note = __caller_context()
   EXPECT_BETWEEN(expected - allowed_delta, expected + allowed_delta, actual, note)
 
 def EXPECT_TRUE(value, note=""):
   if not value:
+    if not note:
+      note = __caller_context()
     context = f"Tested value '{value}' expected to be true but is false"
     if note:
         context += ": "+note
@@ -140,12 +183,15 @@ def EXPECT_TRUE(value, note=""):
 
 def EXPECT_FALSE(value, note=""):
   if value:
+    if not note:
+      note = __caller_context()
     context = f"Tested value '{value}' expected to be false but is true"
     if note:
         context += ": "+note
     testutil.fail(context)
 
 def EXPECT_THROWS(func, etext):
+  assert callable(func)
   m = __TextMatcher(etext)
   try:
     func()
@@ -159,6 +205,7 @@ def EXPECT_THROWS(func, etext):
     return True
 
 def EXPECT_MAY_THROW(func, etext):
+  assert callable(func)
   m = __TextMatcher(etext)
   ret = None
   try:
@@ -169,23 +216,28 @@ def EXPECT_MAY_THROW(func, etext):
       testutil.fail("<red>Exception expected:</red> " + str(m) + "\n\t<yellow>Actual:</yellow> " + exception_message)
   return ret
 
-def EXPECT_NO_THROWS(func, context):
+def EXPECT_NO_THROWS(func, context=""):
+  assert callable(func)
   try:
     func()
   except Exception as e:
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + str(e) + "</red>")
 
-def EXPECT_STDOUT_CONTAINS(text):
+def EXPECT_STDOUT_CONTAINS(text, note=None):
   out = testutil.fetch_captured_stdout(False)
   err = testutil.fetch_captured_stderr(False)
   if out.find(text) == -1:
+    if not note:
+      note = __caller_context()
     context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
     testutil.fail(context)
 
-def EXPECT_STDERR_CONTAINS(text):
+def EXPECT_STDERR_CONTAINS(text, note=None):
   out = testutil.fetch_captured_stdout(False)
   err = testutil.fetch_captured_stderr(False)
   if err.find(text) == -1:
+    if not note:
+      note = __caller_context()
     context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
     testutil.fail(context)
 
@@ -210,6 +262,8 @@ def EXPECT_SHELL_LOG_CONTAINS(text):
     log_file = testutil.get_shell_log_path()
     match_list = testutil.grep_file(log_file, text)
     if len(match_list) == 0:
+        if not note:
+            note = __caller_context()
         log_out = testutil.cat_file(log_file)
         testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
 
@@ -217,6 +271,8 @@ def EXPECT_SHELL_LOG_NOT_CONTAINS(text):
     log_file = testutil.get_shell_log_path()
     match_list = testutil.grep_file(log_file, text)
     if len(match_list) != 0:
+        if not note:
+            note = __caller_context()
         log_out = testutil.cat_file(log_file)
         testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Unexpected log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
 
@@ -225,12 +281,16 @@ def EXPECT_SHELL_LOG_MATCHES(re):
     with open(log_file, "r", encoding="utf-8") as f:
         log_out = f.read()
     if re.search(log_out) is None:
+        if not note:
+            note = __caller_context()
         testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing match for:</red> {re.pattern}\n<yellow>Actual log output:</yellow> {log_out}")
 
 def EXPECT_STDOUT_MATCHES(re):
     out = testutil.fetch_captured_stdout(False)
     err = testutil.fetch_captured_stderr(False)
     if re.search(out) is None:
+        if not note:
+            note = __caller_context()
         context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.pattern + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
         testutil.fail(context)
 
@@ -238,6 +298,8 @@ def EXPECT_STDOUT_NOT_CONTAINS(text):
     out = testutil.fetch_captured_stdout(False)
     err = testutil.fetch_captured_stderr(False)
     if out.find(text) != -1:
+        if not note:
+            note = __caller_context()
         context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
         testutil.fail(context)
 
@@ -245,6 +307,8 @@ def EXPECT_FILE_CONTAINS(expected, path):
     with open(path, encoding='utf-8') as f:
         contents = f.read()
     if contents.find(expected) == -1:
+        if not note:
+            note = __caller_context()
         context = "<b>Context:</b> " + __test_context + "\n<red>Missing contents:</red> " + expected + "\n<yellow>Actual contents:</yellow> " + contents + "\n<yellow>File:</yellow> " + path
         testutil.fail(context)
 
@@ -252,12 +316,16 @@ def EXPECT_FILE_MATCHES(re, path):
     with open(path, encoding='utf-8') as f:
         contents = f.read()
     if re.search(contents) is None:
+        if not note:
+            note = __caller_context()
         testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing match for:</red> {re.pattern}\n<yellow>Actual contents:</yellow> {contents}\n<yellow>File:</yellow> {path}")
 
 def EXPECT_FILE_NOT_CONTAINS(expected, path):
     with open(path, encoding='utf-8') as f:
         contents = f.read()
     if contents.find(expected) != -1:
+        if not note:
+            note = __caller_context()
         context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected contents:</red> " + expected + "\n<yellow>Actual contents:</yellow> " + contents + "\n<yellow>File:</yellow> " + path
         testutil.fail(context)
 
@@ -265,6 +333,8 @@ def EXPECT_FILE_NOT_MATCHES(re, path):
     with open(path, encoding='utf-8') as f:
         contents = f.read()
     if re.search(contents) is not None:
+        if not note:
+            note = __caller_context()
         testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Unexpected match for:</red> {re.pattern}\n<yellow>Actual contents:</yellow> {contents}\n<yellow>File:</yellow> {path}")
 
 def validate_crud_functions(crud, expected):

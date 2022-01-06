@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,6 +87,31 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   expose("exportTable", &Util::export_table, "table", "outputUrl", "?options")
       ->cli();
   expose("loadDump", &Util::load_dump, "url", "?options")->cli();
+
+  // util.debug sub-object, for built-in scripted or C++ features
+  add_property("debug");
+  m_util_debug = std::make_shared<Util_debug>();
+  {
+    auto def = std::make_shared<mysqlsh::Member_definition>();
+
+    def->name = "debug";
+    def->brief = "Debugging and diagnostic utilities.";
+
+    m_util_debug->set_definition(def);
+  }
+  m_util_debug->set_registered();
+}
+
+shcore::Value Util::get_member(const std::string &prop) const {
+  shcore::Value ret_val;
+
+  if (prop == "debug") {
+    ret_val = shcore::Value(m_util_debug);
+  } else {
+    ret_val = Cpp_object_bridge::get_member(prop);
+  }
+
+  return ret_val;
 }
 
 namespace {

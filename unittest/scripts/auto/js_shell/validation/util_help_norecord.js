@@ -7,6 +7,9 @@ DESCRIPTION
       Global object that groups miscellaneous tools like upgrade checker and
       JSON import.
 
+OBJECTS
+ - debug Debugging and diagnostic utilities.
+
 FUNCTIONS
       checkForServerUpgrade([connectionData][, options])
             Performs series of tests on specified MySQL server to check if the

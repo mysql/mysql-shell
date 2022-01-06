@@ -55,3 +55,12 @@ util.help('load_dump')
 
 #@ util load_dump help, \? [USE:util load_dump help]
 \? load_dump
+
+#@ util debug collect_diagnostics (full path)
+# load the plugin we're testing
+sys.path.append([p.replace("python-packages", "plugins") for p in sys.path if p.endswith("python-packages")][0])
+from debug import init
+\? util.debug.collect_diagnostics
+
+#@ util debug collect_diagnostics with util.debug.help (partial path)
+util.debug.help("collect_diagnostics")
