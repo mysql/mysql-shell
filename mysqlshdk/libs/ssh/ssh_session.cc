@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,89 @@
 namespace mysqlshdk {
 namespace ssh {
 namespace {
+
+// lists of allowed SSH related algorithms (unaccetable ones explicitly omitted)
+// according to policy
+
+static const char k_kex_algorithm_allowed[] = {
+    "curve25519-sha256,"   // recommended
+    "ecdh-sha2-nistp384,"  // recommended
+    "rsa2048-sha256,"      // recommended
+    "ecdh-sha2-nistp256,"
+    "ecdh-sha2-nistp521,"
+    "curve448-sha512,"
+    "diffie-hellman-group16-sha512,"
+    "diffie-hellman-group18-sha512,"
+    "diffie-hellman-group14-sha256,"
+    "diffie-hellman-group15-sha512,"
+    "diffie-hellman-group17-sha512,"
+    "diffie-hellman-group-exchange-sha256,"
+    "gss-group14-sha256-,"
+    "gss-group16-sha512-,"
+    "gss-nistp256-sha256-,"
+    "gss-nistp384-sha384-,"
+    "gss-curve25519-sha256-"};
+
+static const char k_mac_allowed[] = {
+    "hmac-sha2-384,"                  // recommended
+    "hmac-sha384@ssh.com,"            // recommended (alt name)
+    "hmac-sha2-512-etm@openssh.com,"  // recommended
+    "hmac-sha2-256-etm@openssh.com,"  // recommended
+    "umac-128-etm@openssh.com,"
+    "hmac-sha2-512,"
+    "hmac-sha2-256,"
+    "umac-128@openssh.com"};
+
+static const char k_host_key_allowed[] = {
+    "ssh-ed25519,"                               // recommended
+    "ssh-ed25519-cert-v01@openssh.com,"          // recommended (alt name)
+    "ecdsa-sha2-nistp384,"                       // recommended
+    "ecdsa-sha2-nistp384-cert-v01@openssh.com,"  // recommended (alt name)
+    "rsa-sha2-512,"                              // recommended
+    "rsa-sha2-512-cert-v01@openssh.com,"         // recommended (alt name)
+    "ssh-ed448,"
+    "rsa-sha2-256,"
+    "rsa-sha2-256-cert-v01@openssh.com,"  // (alt name)
+    "ecdsa-sha2-nistp256,"
+    "ecdsa-sha2-nistp256-cert-v01@openssh.com,"  // (alt name)
+    "ecdsa-sha2-nistp521,"
+    "ecdsa-sha2-nistp521-cert-v01@openssh.com,"  // (alt name)
+    "x509v3-rsa2048-sha256,"
+    "x509v3-ecdsa-sha2-nistp256,"
+    "x509v3-ecdsa-sha2-nistp384,"
+    "x509v3-ecdsa-sha2-nistp521"};
+
+static const char k_cipher_allowed[] = {
+    "chacha20-poly1305@openssh.com,"  // recommended
+    "aes256-gcm,"                     // recommended
+    "AES256-Gcm@openssh.com,"         // recommended (alt name)
+    "AEAD_AES_256_GCM,"               // recommended (alt name)
+    "aes128-gcm,"                     // recommended
+    "AES128-Gcm@openssh.com,"         // recommended (alt name)
+    "AEAD_AES_128_GCM,"               // recommended (alt name)
+    "aes256-ctr,"
+    "aes192-ctr,"
+    "aes128-ctr"};
+
+static const char k_public_key_allowed[] = {
+    "ssh-ed25519,"
+    "ssh-ed25519-cert-v01@openssh.com,"
+    "ecdsa-sha2-nistp384,"
+    "ecdsa-sha2-nistp384-cert-v01@openssh.com,"
+    "rsa-sha2-512,"
+    "rsa-sha2-512-cert-v01@openssh.com,"
+    "ssh-ed448,"
+    "rsa-sha2-256,"
+    "rsa-sha2-256-cert-v01@openssh.com,"
+    "ecdsa-sha2-nistp256,"
+    "ecdsa-sha2-nistp256-cert-v01@openssh.com,"
+    "ecdsa-sha2-nistp521,"
+    "ecdsa-sha2-nistp521-cert-v01@openssh.com,"
+    "x509v3-rsa2048-sha256,"
+    "x509v3-ecdsa-sha2-nistp256,"
+    "x509v3-ecdsa-sha2-nistp384,"
+    "x509v3-ecdsa-sha2-nistp521"};
+
 int libssh_auth_callback(const char *prompt, char *buf, size_t len, int echo,
                          int UNUSED(verify), void *userdata) {
   std::string return_value;
@@ -183,6 +266,8 @@ std::tuple<Ssh_return_type, std::string> Ssh_session::connect(
     }
   }
 
+  set_algorithm_configs();
+
   m_options.dump_config();
 
   try {
@@ -243,6 +328,35 @@ void Ssh_session::disconnect() {
 
 bool Ssh_session::is_connected() const {
   return m_is_connected && ssh_is_connected(m_session->getCSession());
+}
+
+void Ssh_session::set_algorithm_configs() {
+  auto set_option = [this](ssh_options_e option, const char *what,
+                           const char *value) {
+    try {
+      m_session->setOption(option, value);
+    } catch (::ssh::SshException &exc) {
+      // not expected to happen
+      log_error(
+          "SSH: session: Error setting allowed %s list for ssh session: %s",
+          what, exc.getError().c_str());
+      throw;
+    }
+  };
+
+  set_option(SSH_OPTIONS_CIPHERS_C_S, "ciphers", k_cipher_allowed);
+  set_option(SSH_OPTIONS_CIPHERS_S_C, "ciphers", k_cipher_allowed);
+
+  set_option(SSH_OPTIONS_KEY_EXCHANGE, "key exchange algorithm",
+             k_kex_algorithm_allowed);
+
+  set_option(SSH_OPTIONS_HMAC_C_S, "mac algorithm", k_mac_allowed);
+  set_option(SSH_OPTIONS_HMAC_S_C, "mac algorithm", k_mac_allowed);
+
+  set_option(SSH_OPTIONS_HOSTKEYS, "hostkey types", k_host_key_allowed);
+
+  set_option(SSH_OPTIONS_PUBLICKEY_ACCEPTED_TYPES, "pubkey types",
+             k_public_key_allowed);
 }
 
 const Ssh_connection_options &Ssh_session::config() const { return m_options; }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -111,6 +111,8 @@ class Ssh_session final {
   Ssh_auth_return handle_auth_return(int auth);
   bool open_channel(::ssh::Channel *chann);
   ssh_session get_csession();
+
+  void set_algorithm_configs();
 
   std::unique_ptr<::ssh::Session> m_session;
   Ssh_connection_options m_options;
