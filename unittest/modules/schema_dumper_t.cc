@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS `t1` (
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50032 DROP TRIGGER IF EXISTS trg1 */;
+/*!50032 DROP TRIGGER IF EXISTS `trg1` */;
 DELIMITER ;;
 /*!50003 CREATE DEFINER=`root`@`localhost` TRIGGER `trg1` BEFORE INSERT ON `t1` FOR EACH ROW begin
   if new.a > 10 then
@@ -254,7 +254,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50032 DROP TRIGGER IF EXISTS trg2 */;
+/*!50032 DROP TRIGGER IF EXISTS `trg2` */;
 DELIMITER ;;
 /*!50003 CREATE DEFINER=`root`@`localhost` TRIGGER `trg2` BEFORE UPDATE ON `t1` FOR EACH ROW begin
   if old.a % 2 = 0 then set new.b := 12; end if;
@@ -275,7 +275,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50032 DROP TRIGGER IF EXISTS trg3 */;
+/*!50032 DROP TRIGGER IF EXISTS `trg3` */;
 DELIMITER ;;
 /*!50003 CREATE DEFINER=`root`@`localhost` TRIGGER `trg3` AFTER UPDATE ON `t1` FOR EACH ROW begin
   if new.a = -1 then
@@ -315,7 +315,7 @@ CREATE TABLE IF NOT EXISTS `t2` (
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50032 DROP TRIGGER IF EXISTS trg4 */;
+/*!50032 DROP TRIGGER IF EXISTS `trg4` */;
 DELIMITER ;;
 /*!50003 CREATE DEFINER=`root`@`localhost` TRIGGER `trg4` BEFORE INSERT ON `t2` FOR EACH ROW begin
   if new.a > 10 then

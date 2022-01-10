@@ -225,7 +225,8 @@ std::string SHCORE_PUBLIC get_member_name(const std::string &name,
  */
 void SHCORE_PUBLIC split_schema_and_table(const std::string &str,
                                           std::string *out_schema,
-                                          std::string *out_table);
+                                          std::string *out_table,
+                                          bool allow_ansi_quotes = false);
 
 /**
  * Ensures at most 3 identifiers are found on the string:
@@ -234,10 +235,9 @@ void SHCORE_PUBLIC split_schema_and_table(const std::string &str,
  *  - if 1 identifier is found it is set to object
  * Ensures the object name is not empty.
  */
-void SHCORE_PUBLIC split_schema_table_and_object(const std::string &str,
-                                                 std::string *out_schema,
-                                                 std::string *out_table,
-                                                 std::string *out_object);
+void SHCORE_PUBLIC split_schema_table_and_object(
+    const std::string &str, std::string *out_schema, std::string *out_table,
+    std::string *out_object, bool allow_ansi_quotes = false);
 
 void SHCORE_PUBLIC split_priv_level(const std::string &str,
                                     std::string *out_schema,

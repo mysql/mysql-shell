@@ -576,71 +576,74 @@ std::string from_camel_case_to_dashes(const std::string &name) {
 }
 
 static std::size_t span_quotable_identifier(const std::string &s, std::size_t p,
-                                            std::string *out_string) {
-  bool seen_not_a_digit = false;
-  if (s.size() <= p) return p;
+                                            std::string *out_string,
+                                            bool allow_ansi_quotes = false) {
+  if (p >= s.length()) return p;
 
-  char quote = s[p];
-  if (quote !=
-      '`') {  // Ignoring \" since ANSI_QUOTES is not meant to be supported
-    // check if valid initial char
-    if (!std::isalnum(quote) && quote != '_' && quote != '$')
-      throw std::runtime_error("Invalid character in identifier");
-    if (!std::isdigit(quote)) seen_not_a_digit = true;
-    quote = 0;
-  } else {
-    seen_not_a_digit = true;
-    p++;
-  }
+  const auto copy_current_character = [&s, &p, out_string]() {
+    if (out_string) out_string->push_back(s[p]);
+  };
 
-  if (quote == 0) {
-    while (p < s.size()) {
-      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$') break;
-      if (out_string) out_string->push_back(s[p]);
-      if (!seen_not_a_digit && !isdigit(s[p])) seen_not_a_digit = true;
+  if ('`' == s[p] || (allow_ansi_quotes && '"' == s[p])) {
+    const char quote = s[p++];
+    bool esc = false;
+    bool done = false;
+
+    while (!done && p < s.size()) {
+      if (quote == s[p]) {
+        if (esc) {
+          copy_current_character();
+          esc = false;
+        } else {
+          esc = true;
+        }
+      } else {
+        if (esc) {
+          done = true;
+          break;
+        } else {
+          copy_current_character();
+        }
+      }
+
       ++p;
     }
-    if (!seen_not_a_digit)
+
+    // was the last character a quote?
+    if (!done && esc) {
+      done = true;
+    }
+
+    if (!done) {
+      throw std::runtime_error("Invalid syntax in identifier");
+    }
+  } else {
+    const auto first = p;
+    bool seen_not_a_digit = false;
+
+    while (p < s.size()) {
+      if (!std::isalnum(s[p]) && s[p] != '_' && s[p] != '$') {
+        if (first == p) {
+          throw std::runtime_error("Invalid character in identifier");
+        } else {
+          break;
+        }
+      }
+
+      copy_current_character();
+
+      if (!seen_not_a_digit && !isdigit(s[p])) seen_not_a_digit = true;
+
+      ++p;
+    }
+
+    if (!seen_not_a_digit) {
       throw std::runtime_error(
           "Invalid identifier: identifiers may begin with a digit but unless "
           "quoted may not consist solely of digits.");
-
-  } else {
-    int esc = 0;
-    bool done = false;
-    while (p < s.size() && !done) {
-      if (esc == quote && s[p] != esc) {
-        done = true;
-        break;
-      }
-      switch (s[p]) {
-        case '`':
-          if (esc == quote) {
-            if (out_string) out_string->push_back(s[p]);
-            esc = 0;
-          } else {
-            esc = s[p];
-          }
-          break;
-        default:
-          if (esc == quote) {
-            if (out_string) out_string->push_back(s[p]);
-            esc = 0;
-          } else if (esc == 0) {
-            if (out_string) out_string->push_back(s[p]);
-          } else {
-            done = true;
-          }
-          break;
-      }
-      ++p;
-    }
-    if (!done && esc == quote) {
-      done = true;
-    } else if (!done) {
-      throw std::runtime_error("Invalid syntax in identifier");
     }
   }
+
   return p;
 }
 
@@ -932,16 +935,16 @@ void ensure_eos(const std::string &str, std::size_t pos) {
 }  // namespace
 
 void split_schema_and_table(const std::string &str, std::string *out_schema,
-                            std::string *out_table) {
+                            std::string *out_table, bool allow_ansi_quotes) {
   std::string schema;
   std::string table;
 
-  auto pos = span_quotable_identifier(str, 0, &schema);
+  auto pos = span_quotable_identifier(str, 0, &schema, allow_ansi_quotes);
 
   if (pos < str.length()) {
     ensure_dot(str, pos);
 
-    pos = span_quotable_identifier(str, ++pos, &table);
+    pos = span_quotable_identifier(str, ++pos, &table, allow_ansi_quotes);
 
     ensure_eos(str, pos);
   } else {
@@ -966,22 +969,23 @@ void split_schema_and_table(const std::string &str, std::string *out_schema,
 void split_schema_table_and_object(const std::string &str,
                                    std::string *out_schema,
                                    std::string *out_table,
-                                   std::string *out_object) {
+                                   std::string *out_object,
+                                   bool allow_ansi_quotes) {
   std::string schema;
   std::string table;
   std::string object;
 
-  auto pos = span_quotable_identifier(str, 0, &schema);
+  auto pos = span_quotable_identifier(str, 0, &schema, allow_ansi_quotes);
 
   if (pos < str.length()) {
     ensure_dot(str, pos);
 
-    pos = span_quotable_identifier(str, ++pos, &table);
+    pos = span_quotable_identifier(str, ++pos, &table, allow_ansi_quotes);
 
     if (pos < str.length()) {
       ensure_dot(str, pos);
 
-      pos = span_quotable_identifier(str, ++pos, &object);
+      pos = span_quotable_identifier(str, ++pos, &object, allow_ansi_quotes);
 
       ensure_eos(str, pos);
     } else {

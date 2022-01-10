@@ -967,6 +967,12 @@ void Instance_cache_builder::fetch_table_partitions() {
   iterate_tables(info, [](const std::string &, const std::string &,
                           Instance_cache::Table *table,
                           const mysqlshdk::db::IRow *row) {
+    if (shcore::str_caseeq_mv(table->engine, "NDB", "NDBCLUSTER")) {
+      // Partition selection is disabled for tables employing a storage engine
+      // that supplies automatic partitioning, such as NDB. Ignore such tables.
+      return;
+    }
+
     Instance_cache::Partition partition;
 
     partition.name = row->get_string(2);  // PARTITION_NAME or SUBPARTITION_NAME

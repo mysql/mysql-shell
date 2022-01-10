@@ -1600,7 +1600,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
 
     if (opt_reexecutable || opt_drop_trigger)
       fprintf(sql_file, "/*!50032 DROP TRIGGER IF EXISTS %s */;\n",
-              row->get_string(0).c_str());
+              shcore::quote_identifier(row->get_string(0)).c_str());
 
     // 5.7 server adds schema name to CREATE TRIGGER statement
     const auto trigger_with_schema =
