@@ -1076,6 +1076,13 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           return cluster;
         }
       }
+    } else if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET) {
+      // we can inform to the user with an hint (the user called getCluster on a
+      // replicat set)
+      console->print_info(
+          "No InnoDB Cluster found, did you meant to call "
+          "dba.<<<getReplicaSet>>>()?");
+      throw e;
     }
 
     throw;
@@ -1786,11 +1793,11 @@ shcore::Value Dba::create_replica_set(
   auto cluster = Replica_set_impl::create(full_rs_name, topology_type,
                                           target_server, *options);
 
-  console->print_info(
-      "ReplicaSet object successfully created for " + target_server->descr() +
-      ".\nUse rs.<<<addInstance>>>()"
-      " to add more asynchronously replicated instances to this replicaset and"
-      " rs.<<<status>>>() to check its status.");
+  console->print_info("ReplicaSet object successfully created for " +
+                      target_server->descr() +
+                      ".\nUse rs.<<<addInstance>>>() to add more "
+                      "asynchronously replicated instances to this replicaset "
+                      "and rs.<<<status>>>() to check its status.");
   console->print_info();
 
   return shcore::Value(std::make_shared<ReplicaSet>(cluster));
@@ -1988,9 +1995,9 @@ affected by the provided options:
 @li password: password for the MySQL root user on the new instance.
 @li allowRootFrom: create remote root account, restricted to the given address
 pattern (default: %).
-@li ignoreSslError: Ignore errors when adding SSL support for the new instance,
+@li ignoreSslError: ignore errors when adding SSL support for the new instance,
 by default: true.
-@li mysqldOptions: List of MySQL configuration options to write to the my.cnf
+@li mysqldOptions: list of MySQL configuration options to write to the my.cnf
 file, as option=value strings.
 
 If the portx option is not specified, it will be automatically calculated as 10
@@ -2088,7 +2095,11 @@ void Dba::deploy_sandbox_instance(
 
     log_info("Creating root@%s account for sandbox %i",
              opts.allow_root_from.c_str(), port);
+
     instance->execute("SET sql_log_bin = 0");
+    shcore::Scoped_callback enableLogBin(
+        [&instance]() { instance->execute("SET sql_log_bin = 1"); });
+
     {
       std::string pwd;
       if (instance_def.has_password()) pwd = instance_def.get_password();
@@ -2106,7 +2117,6 @@ void Dba::deploy_sandbox_instance(
       grant.done();
       instance->execute(grant);
     }
-    instance->execute("SET sql_log_bin = 1");
   }
 
   log_warning(

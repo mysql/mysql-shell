@@ -130,9 +130,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
   void assert_valid(const std::string &option_name) const;
 
-  /**
-   * Mark the cluster as invalid (e.g., dissolved).
-   */
   void invalidate() { m_invalidated = true; }
 
   void add_instance(const Connection_options &instance_def,

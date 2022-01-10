@@ -3,6 +3,7 @@
 
 //@# GR functions in an AR instance {VER(>=8.0.4)}
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
+|No InnoDB Cluster found, did you meant to call dba.getReplicaSet()?|
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
