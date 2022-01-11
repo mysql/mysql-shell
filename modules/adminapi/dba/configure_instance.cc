@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -890,14 +891,22 @@ shcore::Value Configure_instance::execute() {
     if (m_can_restart && !m_options.restart.is_null() && *m_options.restart) {
       try {
         console->print_info("Restarting MySQL...");
+
+        DBUG_EXECUTE_IF("dba_abort_instance_restart",
+                        { throw shcore::Error("restart aborted (debug)", 0); });
+
         m_target_instance->query("RESTART");
         console->print_note("MySQL server at " + m_target_instance->descr() +
                             " was restarted.");
+
       } catch (const shcore::Error &err) {
         log_error("Error executing RESTART: %s", err.format().c_str());
         console->print_error("Remote restart of MySQL server failed: " +
                              err.format());
-        console->print_info("Please restart MySQL manually");
+        console->print_info(
+            "Please restart MySQL manually (check "
+            "https://dev.mysql.com/doc/refman/en/restart.html for more "
+            "details).");
         // Rethrow the exception so that the caller can know that it needs
         // a restart and the requested action (restart) failed.
         throw;
