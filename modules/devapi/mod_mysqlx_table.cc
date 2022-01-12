@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,10 +103,10 @@ The insertion is done when the execute() method is called on the handler.
  *
  * ##### Overloads
  *
- * @li insert$(TABLEINSERT_INSERT_SIGNATURE)
- * @li insert$(TABLEINSERT_INSERT_SIGNATURE1)
- * @li insert$(TABLEINSERT_INSERT_SIGNATURE2)
- * @li insert$(TABLEINSERT_INSERT_SIGNATURE3)
+ * @li insert&zwnj;$(TABLEINSERT_INSERT_SIGNATURE)
+ * @li insert&zwnj;$(TABLEINSERT_INSERT_SIGNATURE1)
+ * @li insert&zwnj;$(TABLEINSERT_INSERT_SIGNATURE2)
+ * @li insert&zwnj;$(TABLEINSERT_INSERT_SIGNATURE3)
  *
  * $(TABLEINSERT_INSERT_DETAIL)
  *
@@ -241,8 +241,8 @@ REGISTER_HELP(
  *
  * ##### Overloads
  *
- * @li orderBy$(TABLEUPDATE_ORDERBY_SIGNATURE)
- * @li orderBy$(TABLEUPDATE_ORDERBY_SIGNATURE1)
+ * @li orderBy&zwnj;$(TABLEUPDATE_ORDERBY_SIGNATURE)
+ * @li orderBy&zwnj;$(TABLEUPDATE_ORDERBY_SIGNATURE1)
  */
 #elif DOXYGEN_PY
 /**
@@ -250,8 +250,8 @@ REGISTER_HELP(
  *
  * ##### Overloads
  *
- * @li order_by$(TABLEUPDATE_ORDERBY_SIGNATURE)
- * @li order_by$(TABLEUPDATE_ORDERBY_SIGNATURE1)
+ * @li order_by&zwnj;$(TABLEUPDATE_ORDERBY_SIGNATURE)
+ * @li order_by&zwnj;$(TABLEUPDATE_ORDERBY_SIGNATURE1)
  */
 #endif
 /**
@@ -385,8 +385,8 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2,
  *
  * ##### Overloads
  *
- * @li orderBy$(TABLEDELETE_ORDERBY_SIGNATURE)
- * @li orderBy$(TABLEDELETE_ORDERBY_SIGNATURE1)
+ * @li orderBy&zwnj;$(TABLEDELETE_ORDERBY_SIGNATURE)
+ * @li orderBy&zwnj;$(TABLEDELETE_ORDERBY_SIGNATURE1)
  */
 #elif DOXYGEN_PY
 /**
@@ -394,8 +394,8 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2,
  *
  * ##### Overloads
  *
- * @li order_by$(TABLEDELETE_ORDERBY_SIGNATURE)
- * @li order_by$(TABLEDELETE_ORDERBY_SIGNATURE1)
+ * @li order_by&zwnj;$(TABLEDELETE_ORDERBY_SIGNATURE)
+ * @li order_by&zwnj;$(TABLEDELETE_ORDERBY_SIGNATURE1)
  */
 #endif
 /**
@@ -551,9 +551,9 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * ##### Overloads
  *
- * @li select$(TABLESELECT_SELECT_SIGNATURE)
- * @li select$(TABLESELECT_SELECT_SIGNATURE1)
- * @li select$(TABLESELECT_SELECT_SIGNATURE2)
+ * @li select&zwnj;$(TABLESELECT_SELECT_SIGNATURE)
+ * @li select&zwnj;$(TABLESELECT_SELECT_SIGNATURE1)
+ * @li select&zwnj;$(TABLESELECT_SELECT_SIGNATURE2)
  *
  * $(TABLESELECT_SELECT_DETAIL)
  *
@@ -574,8 +574,8 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * ##### Overloads
  *
- * @li groupBy$(TABLESELECT_GROUPBY_SIGNATURE)
- * @li groupBy$(TABLESELECT_GROUPBY_SIGNATURE1)
+ * @li groupBy&zwnj;$(TABLESELECT_GROUPBY_SIGNATURE)
+ * @li groupBy&zwnj;$(TABLESELECT_GROUPBY_SIGNATURE1)
  */
 #elif DOXYGEN_PY
 /**
@@ -583,8 +583,8 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * ##### Overloads
  *
- * @li group_by$(TABLESELECT_GROUPBY_SIGNATURE)
- * @li group_by$(TABLESELECT_GROUPBY_SIGNATURE1)
+ * @li group_by&zwnj;$(TABLESELECT_GROUPBY_SIGNATURE)
+ * @li group_by&zwnj;$(TABLESELECT_GROUPBY_SIGNATURE1)
  */
 #endif
 /**
@@ -604,8 +604,8 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * ##### Overloads
  *
- * @li orderBy$(TABLESELECT_ORDERBY_SIGNATURE)
- * @li orderBy$(TABLESELECT_ORDERBY_SIGNATURE1)
+ * @li orderBy&zwnj;$(TABLESELECT_ORDERBY_SIGNATURE)
+ * @li orderBy&zwnj;$(TABLESELECT_ORDERBY_SIGNATURE1)
  */
 #elif DOXYGEN_PY
 /**
@@ -613,8 +613,8 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * ##### Overloads
  *
- * @li order_by$(TABLESELECT_ORDERBY_SIGNATURE)
- * @li order_by$(TABLESELECT_ORDERBY_SIGNATURE1)
+ * @li order_by&zwnj;$(TABLESELECT_ORDERBY_SIGNATURE)
+ * @li order_by&zwnj;$(TABLESELECT_ORDERBY_SIGNATURE1)
  */
 #endif
 /**

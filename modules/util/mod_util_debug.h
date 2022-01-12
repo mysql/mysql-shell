@@ -33,7 +33,7 @@
 namespace mysqlsh {
 
 /**
- * \defgroup util debug
+ * \addtogroup util
  * \ingroup ShellAPI
  * $(UTIL_DEBUG_BRIEF)
  */

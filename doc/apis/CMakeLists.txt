@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -254,7 +254,10 @@ function (generate_docs type)
   configure_file("${CMAKE_SOURCE_DIR}/doxygen.cfg.in"
                  "doxygen_${type}.cfg")
 
-  execute_process(COMMAND doxygen "doxygen_${type}.cfg")
+  execute_process(COMMAND doxygen "doxygen_${type}.cfg" RESULT_VARIABLE doxygen_result)
+  if(doxygen_result)
+    message(FATAL_ERROR "Error running \"doxygen doxygen_${type}.cfg\": ${doxygen_result}")
+  endif()
 
   # search for all unparsed variables
 

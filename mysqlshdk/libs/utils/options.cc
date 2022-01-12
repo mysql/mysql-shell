@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,14 +57,14 @@ std::string to_string(Source s) {
   return "";
 }
 
-Generic_option::Generic_option(const std::string &name_,
+Generic_option::Generic_option(std::string name_,
                                const char *environment_variable_,
                                std::vector<std::string> &&command_line_names_,
-                               const std::string &help_)
-    : name(name_),
+                               std::string help_)
+    : name(std::move(name_)),
       environment_variable(environment_variable_),
       command_line_names(std::move(command_line_names_)),
-      help(help_) {}
+      help(std::move(help_)) {}
 
 void Generic_option::handle_environment_variable() {
   if (environment_variable != nullptr) {
@@ -79,6 +79,8 @@ void Generic_option::handle_persisted_value(const char *value) {
 
 std::vector<std::string> Generic_option::get_cmdline_names() {
   std::vector<std::string> res;
+  res.reserve(command_line_names.size());
+
   for (const std::string &cmd_name : command_line_names) {
     std::size_t pos = cmd_name.find('=');
     if (pos != std::string::npos) {
@@ -158,11 +160,11 @@ std::vector<std::string> Generic_option::get_cmdline_help(
 
 Proxy_option::Proxy_option(const char *environment_variable_,
                            std::vector<std::string> &&command_line_names_,
-                           const std::string &help_, Handler handler_,
-                           const std::string &name_)
-    : Generic_option(name_, environment_variable_,
-                     std::move(command_line_names_), help_),
-      handler(handler_) {
+                           std::string help_, Handler handler_,
+                           std::string name_)
+    : Generic_option(std::move(name_), environment_variable_,
+                     std::move(command_line_names_), std::move(help_)),
+      handler(std::move(handler_)) {
   assert(environment_variable == nullptr || handler != nullptr);
 }
 
@@ -258,16 +260,6 @@ Proxy_option::Handler deprecated(
       std::cout << "WARNING: " << ss.str() << std::endl;
     }
   };
-}
-
-template <>
-std::string convert(const std::string &data, Source) {
-  return data;
-}
-
-template <>
-std::string serialize(const std::string &val) {
-  return val;
 }
 
 }  // namespace opts
