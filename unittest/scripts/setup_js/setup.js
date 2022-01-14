@@ -366,7 +366,7 @@ function get_persisted_gr_sysvars(session) {
     close_session = true;
   }
 
-  var query = "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%'";
+  var query = "SELECT * from performance_schema.persisted_variables WHERE Variable_name like '%group_replication%' ORDER BY Variable_name";
 
   var ret = "";
 

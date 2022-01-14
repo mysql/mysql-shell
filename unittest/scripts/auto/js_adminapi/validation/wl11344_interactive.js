@@ -24,8 +24,8 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 |<Cluster:C>|
 
 //@<OUT> FR1-TS-01 check persisted variables {VER(>=8.0.12)}
-group_replication_consistency = EVENTUAL
 group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
+group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -186,8 +186,8 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 |<Cluster:ClusterName>|
 
 //@<OUT> FR1-TS-7 check persisted variables {VER(>=8.0.12)}
-group_replication_consistency = EVENTUAL
 group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
+group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
@@ -802,8 +802,8 @@ ONLINE
 ||
 
 //@<OUT> FR5-TS-1 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
-group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
+group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
@@ -887,8 +887,8 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
-group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
+group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
