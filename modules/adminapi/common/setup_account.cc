@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,10 +32,12 @@ namespace dba {
 Setup_account::Setup_account(const std::string &name, const std::string &host,
                              const Setup_account_options &options,
                              std::vector<std::string> grants,
-                             const mysqlshdk::mysql::IInstance &primary_server)
+                             const mysqlshdk::mysql::IInstance &primary_server,
+                             Cluster_type purpose)
     : m_name(name),
       m_host(host),
       m_options(options),
+      m_purpose(purpose),
       m_privilege_list(std::move(grants)),
       m_primary_server(primary_server) {}
 
@@ -65,7 +67,8 @@ void Setup_account::prepare() {
 
   std::string error_info;
   if (!validate_cluster_admin_user_privileges(m_primary_server, current_user,
-                                              current_host, &error_info)) {
+                                              current_host, m_purpose,
+                                              &error_info)) {
     console->print_error(error_info);
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Account currently in use (%s) does not have enough privileges to "

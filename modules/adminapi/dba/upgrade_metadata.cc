@@ -67,8 +67,9 @@ void Upgrade_metadata::prepare() {
 
   std::string error_info;
   auto console = mysqlsh::current_console();
-  if (!validate_cluster_admin_user_privileges(*m_target_instance, current_user,
-                                              current_host, &error_info)) {
+  if (!validate_cluster_admin_user_privileges(
+          *m_target_instance, current_user, current_host,
+          Cluster_type::GROUP_REPLICATION, &error_info)) {
     console->print_error(error_info);
     throw shcore::Exception::runtime_error(
         "The account " + shcore::make_account(current_user, current_host) +

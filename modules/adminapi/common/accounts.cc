@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -247,7 +247,8 @@ std::string create_grant(const std::string &username,
  */
 bool validate_cluster_admin_user_privileges(
     const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
-    const std::string &admin_host, std::string *validation_error) {
+    const std::string &admin_host, Cluster_type purpose,
+    std::string *validation_error) {
   bool is_valid = true;
 
   std::string account = shcore::make_account(admin_user, admin_host);
@@ -306,10 +307,11 @@ bool validate_cluster_admin_user_privileges(
     }
   }
 
-  *validation_error = "The account " + account +
-                      " is missing privileges required to manage an "
-                      "InnoDB cluster:" +
-                      *validation_error;
+  *validation_error = shcore::str_format(
+      "The account %s is missing privileges required to manage an %s: %s",
+      account.c_str(),
+      to_display_string(purpose, Display_form::THING_FULL).c_str(),
+      validation_error->c_str());
 
   return is_valid;
 }
@@ -414,7 +416,7 @@ void create_cluster_admin_user(mysqlshdk::mysql::IInstance &instance,
  */
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::string &host, bool interactive) {
+    const std::string &host, bool interactive, Cluster_type purpose) {
   int n_wildcard_accounts, n_non_wildcard_accounts;
   std::vector<std::string> hosts;
 
@@ -458,7 +460,7 @@ bool check_admin_account_access_restrictions(
         if (whost != host) {
           std::string error_msg;
           if (mysqlsh::dba::validate_cluster_admin_user_privileges(
-                  instance, user, whost, &error_msg)) {
+                  instance, user, whost, purpose, &error_msg)) {
             log_info(
                 "Account %s@%s has required privileges for cluster management",
                 user.c_str(), whost.c_str());
@@ -467,10 +469,13 @@ bool check_admin_account_access_restrictions(
           } else {
             console->print_error(error_msg);
             if (!interactive) {
-              throw shcore::Exception::runtime_error(
-                  "The account " + shcore::make_account(user, whost) +
-                  " is missing privileges required to manage an InnoDB "
-                  "cluster.");
+              auto msg = shcore::str_format(
+                  "The account %s is missing privileges required to manage an "
+                  "%s.",
+                  shcore::make_account(user, whost).c_str(),
+                  to_display_string(purpose, Display_form::THING_FULL).c_str());
+
+              throw shcore::Exception::runtime_error(msg);
             }
             return false;
           }

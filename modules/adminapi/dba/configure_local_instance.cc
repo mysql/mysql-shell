@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,11 +43,10 @@ namespace dba {
 
 Configure_local_instance::Configure_local_instance(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-    const Configure_instance_options &options)
-    : Configure_instance(target_instance, options, TargetType::Type::Unknown),
+    const Configure_instance_options &options, Cluster_type purpose)
+    : Configure_instance(target_instance, options, TargetType::Type::Unknown,
+                         purpose),
       m_instance_type(TargetType::Unknown) {}
-
-Configure_local_instance::~Configure_local_instance() {}
 
 /*
  * Validates the parameter and performs other validations regarding

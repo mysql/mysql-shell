@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -209,7 +209,8 @@ void Check_instance::prepare() {
     std::string current_user, current_host;
     m_target_instance->get_current_user(&current_user, &current_host);
     if (!check_admin_account_access_restrictions(
-            *m_target_instance, current_user, current_host, false)) {
+            *m_target_instance, current_user, current_host, false,
+            Cluster_type::GROUP_REPLICATION)) {
       m_is_valid = false;
     }
 

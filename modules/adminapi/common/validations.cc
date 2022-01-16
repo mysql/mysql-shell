@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,21 +120,27 @@ void ensure_ar_instance_configuration_valid(
                                Cluster_type::ASYNC_REPLICATION);
 }
 
-void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance) {
+void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance,
+                            Cluster_type purpose) {
   std::string current_user, current_host;
   log_debug("Checking user privileges");
   // Get the current user/host
   instance.get_current_user(&current_user, &current_host);
 
   std::string error_info;
-  if (!validate_cluster_admin_user_privileges(instance, current_user,
-                                              current_host, &error_info)) {
+  if (!validate_cluster_admin_user_privileges(
+          instance, current_user, current_host, purpose, &error_info)) {
     auto console = mysqlsh::current_console();
     console->print_error(error_info);
     console->print_info("For more information, see the online documentation.");
-    throw shcore::Exception::runtime_error(
-        "The account " + shcore::make_account(current_user, current_host) +
-        " is missing privileges required to manage an InnoDB cluster.");
+
+    auto msg = shcore::str_format(
+        "The account %s is missing privileges required to manage an "
+        "%s.",
+        shcore::make_account(current_user, current_host).c_str(),
+        to_display_string(purpose, Display_form::THING_FULL).c_str());
+
+    throw shcore::Exception::runtime_error(msg);
   }
 }
 

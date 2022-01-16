@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,9 +47,10 @@ class Configure_instance : public Command_interface {
  public:
   Configure_instance(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const Configure_instance_options &options,
-      TargetType::Type instance_type);
-  ~Configure_instance();
+      const Configure_instance_options &options, TargetType::Type instance_type,
+      Cluster_type purpose);
+
+  virtual ~Configure_instance() = default;
 
   void prepare() override;
   shcore::Value execute() override;
@@ -119,7 +120,8 @@ class Configure_instance : public Command_interface {
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
  private:
-  TargetType::Type m_instance_type;
+  const Cluster_type m_purpose;
+  const TargetType::Type m_instance_type;
 };
 
 }  // namespace dba
