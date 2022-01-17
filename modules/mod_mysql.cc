@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,8 +142,12 @@ static const Mysqlclient_ername k_client_error_names[] = {
     {"CR_DNS_SRV_LOOKUP_FAILED", CR_DNS_SRV_LOOKUP_FAILED},
     {"CR_MANDATORY_TRACKER_NOT_FOUND", CR_MANDATORY_TRACKER_NOT_FOUND},
     {"CR_INVALID_FACTOR_NO", CR_INVALID_FACTOR_NO},
+    {"CR_CANT_GET_SESSION_DATA", CR_CANT_GET_SESSION_DATA},
     {"CR_ERROR_LAST", CR_ERROR_LAST},
     {"CR_MAX_ERROR", CR_MAX_ERROR}};
+
+// If this assert fails, the list of client error names has to be updated
+static_assert(CR_ERROR_LAST <= 2073);
 
 static shcore::Value g_error_code;
 
@@ -200,9 +204,6 @@ shcore::Value Mysql::get_member(const std::string &prop) const {
   } else if (prop == "ErrorCode") {
     if (!g_error_code) {
       auto dict = shcore::make_dict();
-
-      // If this assert fails, the list of client error names has to be updated
-      assert(CR_ERROR_LAST <= 2072);
 
       for (const auto &e : k_client_error_names) {
         dict->set(e.name, shcore::Value(e.code));

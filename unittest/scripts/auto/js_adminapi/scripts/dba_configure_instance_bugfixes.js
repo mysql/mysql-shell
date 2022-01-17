@@ -108,4 +108,20 @@ c = dba.configureInstance(__sandbox_uri1);
 // does not contain output about binlog_checksum on the configuration table
 EXPECT_STDOUT_NOT_CONTAINS("| binlog_checksum | CRC32         | NONE           | Update the server variable and the config file |");
 session.close();
+
+//@<> improve restart message NONE BUG#29634795 {!__dbug_off && VER(>=8.0.11)}
+
+if (testutil.versionCheck(__version, "<", "8.0.21")) { //if we can reuse last sandbox...
+    testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+}
+testutil.changeSandboxConf(__mysql_sandbox_port1, "skip-log-bin", "ON");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.restartSandbox(__mysql_sandbox_port1)
+
+testutil.dbugSet("+d,dba_abort_instance_restart");
+
+EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1, {restart:true}) }, "Dba.configureInstance: restart aborted (debug)");
+EXPECT_OUTPUT_CONTAINS("Please restart MySQL manually (check https://dev.mysql.com/doc/refman/en/restart.html for more details).");
+
+testutil.dbugSet("");
 testutil.destroySandbox(__mysql_sandbox_port1);
