@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -364,7 +364,8 @@ class Extensible_object
    *
    * Otherwise this operation does nothing.
    */
-  void set_registered(const std::string &name = "");
+  void set_registered(const std::string &name = "",
+                      bool do_register_help = true);
 
   void set_definition(const std::shared_ptr<Member_definition> &definition) {
     m_definition = definition;

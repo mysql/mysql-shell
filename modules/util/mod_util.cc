@@ -99,7 +99,11 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
 
     m_util_debug->set_definition(def);
   }
-  m_util_debug->set_registered();
+  static bool with_help = true;
+
+  m_util_debug->set_registered("", with_help);
+
+  with_help = false;
 }
 
 shcore::Value Util::get_member(const std::string &prop) const {
