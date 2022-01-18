@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,6 +70,9 @@ synchronized
 @li dba.logSql: 0..2, log SQL statements executed by AdminAPI operations:
 0 - logging disabled; 1 - log statements other than SELECT and SHOW; 2 - log
 all statements.
+
+@li dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
+come back after a restart during clone recovery
 
 @li defaultCompress: Enable compression in client/server
 protocol by default in global shell sessions.

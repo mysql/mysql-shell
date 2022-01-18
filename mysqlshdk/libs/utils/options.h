@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,11 +63,13 @@ std::vector<std::string> cmdline(Ts... params) {
 /// Base class for all the options handled by Options class.
 class Generic_option {
  public:
-  Generic_option(const std::string &name, const char *environment_variable,
+  // to support rvalues (which is the main access pattern for this class), we
+  // receive strings by value and then move them to class fields.
+  Generic_option(std::string name, const char *environment_variable,
                  std::vector<std::string> &&command_line_names,
-                 const std::string &help);
+                 std::string help);
 
-  virtual ~Generic_option() {}
+  virtual ~Generic_option() = default;
 
   void set(const std::string &new_value) { set(new_value, Source::User); }
 
@@ -121,21 +123,23 @@ class Concrete_option : public Generic_option {
 
   using Serializer = typename std::function<std::string(const T &)>;
 
-  Concrete_option(T *landing_spot_, T default_value_, const std::string &name_,
+  // to support rvalues (which is the main access pattern for this class), we
+  // receive strings by value and then move them to class fields.
+  Concrete_option(T *landing_spot_, T default_value_, std::string name_,
                   const char *environment_variable_,
                   std::vector<std::string> &&command_line_names_,
-                  const std::string &help_, Validator validator_,
+                  std::string help_, Validator validator_,
                   Serializer serializer_ = nullptr)
       : Generic_option(
-            name_, environment_variable_,
+            std::move(name_), environment_variable_,
             std::forward<std::vector<std::string> &&>(command_line_names_),
-            help_),
+            std::move(help_)),
         landing_spot(landing_spot_),
         default_value(default_value_),
         validator(validator_),
         serializer(serializer_) {
     assert(validator != nullptr);
-    *landing_spot = default_value;
+    *landing_spot = std::move(default_value_);
   }
 
   void set(const std::string &new_value, Source source_) override {
@@ -210,10 +214,11 @@ class Proxy_option : public Generic_option {
   using Handler =
       std::function<void(const std::string &optname, const char *new_value)>;
 
+  // to support rvalues (which is the main access pattern for this class), we
+  // receive strings by value and then move them to class fields.
   Proxy_option(const char *environment_variable,
-               std::vector<std::string> &&command_line_names,
-               const std::string &help, Handler handler = nullptr,
-               const std::string &name = "");
+               std::vector<std::string> &&command_line_names, std::string help,
+               Handler handler = nullptr, std::string name = "");
 
   void set(const std::string &new_value, Source source) override;
 
@@ -240,37 +245,41 @@ Proxy_option::Handler assign_value(T *landing_spot, S value) {
 
 template <class T>
 T convert(const std::string &data, Source s) {
-  // assuming that option specification turns it on
-  if (data.empty() && s == Source::Command_line) return static_cast<T>(1);
-  T t;
-  std::istringstream iss(data);
-  iss >> t;
-  if (iss.fail()) {
-    if (std::is_same<T, bool>::value) {
-      iss.clear();
-      iss >> std::boolalpha >> t;
+  if constexpr (std::is_same_v<T, std::string>) {
+    return data;
+  } else {
+    // assuming that option specification turns it on
+    if (data.empty() && s == Source::Command_line) return static_cast<T>(1);
+    T t;
+    std::istringstream iss(data);
+    iss >> t;
+    if (iss.fail()) {
+      if (std::is_same<T, bool>::value) {
+        iss.clear();
+        iss >> std::boolalpha >> t;
+      }
+      if (iss.fail()) throw std::invalid_argument("Incorrect option value.");
+    } else if (!iss.eof()) {
+      throw std::invalid_argument("Malformed option value.");
     }
-    if (iss.fail()) throw std::invalid_argument("Incorrect option value.");
-  } else if (!iss.eof()) {
-    throw std::invalid_argument("Malformed option value.");
-  }
-  return t;
-}
 
-template <>
-std::string convert(const std::string &data, Source);
+    return t;
+  }
+}
 
 /// Standard serialization mechanism for options
 template <class T>
 std::string serialize(const T &val) {
-  std::ostringstream os;
-  if (std::is_same<T, bool>::value) os << std::boolalpha;
-  os << val;
-  return os.str();
+  if constexpr (std::is_same_v<T, std::string>) {
+    return val;
+  } else if constexpr (std::is_same_v<T, bool>) {
+    return val ? "true" : "false";
+  } else {
+    std::ostringstream os;
+    os << val;
+    return os.str();
+  }
 }
-
-template <>
-std::string serialize(const std::string &val);
 
 /// Validator that does some standard type conversion
 template <class T>
@@ -499,7 +508,7 @@ class Options {
   using Custom_cmdline_handler = std::function<bool(Iterator *)>;
 
   explicit Options(const std::string &config_file = "");
-  virtual ~Options() {}
+  virtual ~Options() = default;
 
   Options(const Options &) = delete;
   Options &operator=(const Options &) = delete;
