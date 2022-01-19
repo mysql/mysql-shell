@@ -356,7 +356,8 @@ void Extensible_object::register_member(
   }
 }
 
-void Extensible_object::set_registered(const std::string &name) {
+void Extensible_object::set_registered(const std::string &name,
+                                       bool do_register_help) {
   // The caller must ensure this function is not called for a registered
   // object
   assert(!m_registered);
@@ -374,14 +375,21 @@ void Extensible_object::set_registered(const std::string &name) {
     }
 
     // When parent is shellapi then it is a global object
-    register_help(m_definition, !parent);
+    if (do_register_help) {
+      register_help(m_definition, !parent);
 
-    for (const auto &mdef : m_property_definition) register_property_help(mdef);
+      for (const auto &mdef : m_property_definition)
+        register_property_help(mdef);
 
-    for (const auto &fdef : m_function_definition) register_function_help(fdef);
+      for (const auto &fdef : m_function_definition)
+        register_function_help(fdef);
+    } else {
+      // Enables help for the topic if it exists
+      enable_help();
+    }
 
     for (auto &child : m_children) {
-      child.second->set_registered();
+      child.second->set_registered("", do_register_help);
     }
   }
 }
