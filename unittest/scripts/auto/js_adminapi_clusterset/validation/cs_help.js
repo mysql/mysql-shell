@@ -12,7 +12,7 @@ DESCRIPTION
       Recovery is possible.
 
       For more help on a specific function, use the \help shell command, e.g.:
-      \help ClusterSet.createReplicaCluster"
+      \help ClusterSet.createReplicaCluster
 
 PROPERTIES
       name

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,7 +49,7 @@ whole Data Center / region or geographic location, by creating REPLICA clusters
 in different locations (Data Centers), ensuring Disaster Recovery is possible.
 
 For more help on a specific function, use the \\help shell command, e.g.:
-\\help ClusterSet.<<<createReplicaCluster>>>"
+\\help ClusterSet.<<<createReplicaCluster>>>
 )*");
 
 ClusterSet::ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset)

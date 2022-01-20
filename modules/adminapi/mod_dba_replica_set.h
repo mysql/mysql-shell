@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,8 @@ class Global_topology_manager;
 /**
  * \ingroup AdminAPI
  * $(REPLICASET_BRIEF)
+ *
+ * $(REPLICASET_DETAIL)
  */
 class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                    public shcore::Cpp_object_bridge {
