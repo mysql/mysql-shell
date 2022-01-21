@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -425,7 +425,7 @@ struct Help_register_topic_text {
     // Adds _DETAIL# entries for the whole thing
     shcore::Help_registry::get()->add_split_help(prefix, data, auto_brief,
                                                  false);
-    // Add topl-level reference to the 1st _DETAIL entry
+    // Add top-level reference to the 1st _DETAIL entry
     shcore::Help_registry::get()->add_help(prefix, "${" + prefix + "_DETAIL}");
   }
 };

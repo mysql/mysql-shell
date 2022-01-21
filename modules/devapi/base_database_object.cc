@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -105,9 +105,12 @@ REGISTER_HELP(DATABASEOBJECT_NAME_BRIEF, "The name of this database object.");
 REGISTER_HELP_FUNCTION(getName, DatabaseObject);
 REGISTER_HELP(DATABASEOBJECT_GETNAME_BRIEF,
               "Returns the name of this database object.");
+REGISTER_HELP(DATABASEOBJECT_GETNAME_RETURNS,
+              "@returns The name this database object.");
 
 /**
- * $(DATABASEOBJECT_GETNAME)
+ * $(DATABASEOBJECT_GETNAME_BRIEF)
+ * $(DATABASEOBJECT_GETNAME_RETURNS)
  */
 #if DOXYGEN_JS
 String DatabaseObject::getName() {}

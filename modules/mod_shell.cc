@@ -1019,7 +1019,7 @@ ${TOPIC_CONNECTION_DATA}
 /**
  * $(SHELL_OPENSESSION_BRIEF)
  *
- * $(SHELL_OPENSESSION_DETAIL)
+ * $(SHELL_OPENSESSION)
  *
  * Detailed description of the connection data format is available at
  * \ref connection_data

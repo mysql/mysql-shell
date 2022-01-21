@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -417,7 +417,7 @@ void Help_registry::add_split_help(const std::string &prefix,
                                    bool nosuffix) {
   std::map<std::string, int> current_index;
 
-  auto token = [prefix, &current_index](const std::string &suffix) {
+  auto token = [&prefix, &current_index](const std::string &suffix) {
     int index = current_index[suffix];
     current_index[suffix] = index + 1;
 
