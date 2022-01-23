@@ -801,9 +801,9 @@ DESCRIPTION
       - password: password for the MySQL root user on the new instance.
       - allowRootFrom: create remote root account, restricted to the given
         address pattern (default: %).
-      - ignoreSslError: Ignore errors when adding SSL support for the new
+      - ignoreSslError: ignore errors when adding SSL support for the new
         instance, by default: true.
-      - mysqldOptions: List of MySQL configuration options to write to the
+      - mysqldOptions: list of MySQL configuration options to write to the
         my.cnf file, as option=value strings.
 
       If the portx option is not specified, it will be automatically calculated

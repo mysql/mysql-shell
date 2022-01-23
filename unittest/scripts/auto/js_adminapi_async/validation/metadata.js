@@ -39,6 +39,7 @@ mysql_server_uuid: <<<uuid1>>>
 ||This function is not available through a session to an instance already in an InnoDB Cluster
 
 //@# Check sb2.getCluster() (should fail)
+|No InnoDB Cluster found, did you meant to call dba.getReplicaSet()?|
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet
 
 //@# Check sb2.getReplicaSet()
@@ -58,7 +59,8 @@ mysql_server_uuid: <<<uuid1>>>
 |<<<cluster_id1>>>	1	myrs	ar|
 
 //@# Check sb1.getCluster() (should fail)
-||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
+|No InnoDB Cluster found, did you meant to call dba.getReplicaSet()?|
+||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet
 
 //@# Check sb1.getReplicaSet()
 |<ReplicaSet:myrs>|

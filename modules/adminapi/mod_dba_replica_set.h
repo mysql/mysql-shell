@@ -104,9 +104,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   void assert_valid(const std::string &option_name) const;
 
-  /**
-   * Mark the cluster as invalid (e.g., dissolved).
-   */
   void invalidate() { m_invalidated = true; }
 
  public:
