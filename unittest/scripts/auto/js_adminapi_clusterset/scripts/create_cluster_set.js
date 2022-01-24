@@ -121,7 +121,7 @@ EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS")}, "group_replic
 EXPECT_OUTPUT_CONTAINS("ERROR: The cluster is not configured to use group_replication_view_change_uuid. Please use <Cluster>.rescan() to repair the issue.");
 
 // Use cluster.rescan() to fix the group_replication_view_change_uuid values
-EXPECT_NO_THROWS(function() { cluster.rescan(); });
+EXPECT_NO_THROWS(function() { cluster.rescan({updateViewChangeUuid: true}); });
 
 // Reboot the cluster
 disable_auto_rejoin(__mysql_sandbox_port1);

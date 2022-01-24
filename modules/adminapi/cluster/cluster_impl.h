@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -349,18 +349,6 @@ class Cluster_impl : public Base_cluster_impl,
    * to update the server_id attribute on the instances table.
    */
   void ensure_metadata_has_server_id(
-      const mysqlshdk::mysql::IInstance &target_instance);
-
-  /**
-   * Ensures group_replication_view_change_uuid is set on all Cluster members
-   * and stored in the Metadata schema.
-   *
-   * Only effective when the Cluster members are running MySQL >= 8.0.27
-   *
-   * @param target_instance The instance to be used to get the cluster members
-   * to update the group_replication_view_change_uuid option.
-   */
-  void ensure_view_change_uuid_set(
       const mysqlshdk::mysql::IInstance &target_instance);
 
   /**

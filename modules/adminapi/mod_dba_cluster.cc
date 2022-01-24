@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -799,6 +799,9 @@ not (false) to match the one being used by the cluster. By default, the
 metadata is not updated (false). Deprecated.
 @li upgradeCommProtocol: boolean. Set to true to upgrade the Group Replication
 communication protocol to the highest version possible.
+@li updateViewChangeUuid: boolean value used to indicate if the command should
+generate and set a value for Group Replication View Change UUID in the whole
+Cluster. Required for InnoDB ClusterSet usage.
 
 The value for addInstances and removeInstances is used to specify which
 instances to add or remove from the metadata, respectively. Both options accept

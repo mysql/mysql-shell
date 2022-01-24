@@ -178,47 +178,6 @@ EXPECT_NE(null, view_change_uuid);
 var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='newcluster'").fetchOne()[0];
 EXPECT_EQ(view_change_uuid_md, view_change_uuid);
 
-//@<> cluster.rescan() must detect if the target cluster does not have group_replication_view_change_uuid set
-
-// Reset the value of view_change_uuid to the default
-session.runSql("SET PERSIST group_replication_view_change_uuid=DEFAULT");
-
-// Clear up the info about view_change_uuid in the Metadata
-session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = json_remove(attributes, '$.group_replication_view_change_uuid')");
-
-// Restart the instance and reboot it from complete outage
-testutil.restartSandbox(__mysql_sandbox_port4);
-cluster = dba.rebootClusterFromCompleteOutage();
-
-EXPECT_NO_THROWS(function() { cluster.rescan(); });
-EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set");
-EXPECT_OUTPUT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
-EXPECT_OUTPUT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
-
-// Do not restart yet and confirm that cluster.rescan() detects a restart is needed for the change to be effective
-EXPECT_NO_THROWS(function() { cluster.rescan(); });
-EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is set but not yet effective");
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
-
-// Restart the instance and reboot it from complete outage after rescan() changed group_replication_view_change_uuid
-testutil.restartSandbox(__mysql_sandbox_port4);
-cluster = dba.rebootClusterFromCompleteOutage();
-
-shell.connect(__sandbox_uri4);
-var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
-EXPECT_NE(view_change_uuid, "AUTOMATIC");
-
-var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='newcluster'").fetchOne()[0];
-EXPECT_EQ(view_change_uuid, view_change_uuid_md);
-
-//@<> cluster.rescan() must not warn or act if the target cluster has group_replication_view_change_uuid set
-EXPECT_NO_THROWS(function() { cluster.rescan(); });
-EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set");
-EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
-EXPECT_OUTPUT_NOT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
-EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
-
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
