@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <utility>
 
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -191,6 +192,18 @@ void Rescan::prepare() {
     throw shcore::Exception::runtime_error(
         "The following instances are active members of the cluster: '" +
         shcore::str_join(invalid_remove_members, ", ") + "'.");
+  }
+
+  // Check if group_replication_view_change_uuid is supported
+  m_is_view_change_uuid_supported =
+      m_cluster->get_lowest_instance_version() >= k_min_cs_version;
+
+  // Validate the usage of the option 'updateViewChangeUuid'
+  if (m_options.update_view_change_uuid.get_safe() &&
+      !m_is_view_change_uuid_supported) {
+    throw shcore::Exception::argument_error(
+        "The Cluster cannot be configured to use "
+        "group_replication_view_change_uuid: unsupported version.");
   }
 }
 
@@ -548,6 +561,92 @@ void Rescan::upgrade_comm_protocol() {
   }
 }
 
+void Rescan::ensure_view_change_uuid_set() {
+  auto console = mysqlsh::current_console();
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
+  std::string view_change_uuid;
+
+  // Only generate and set the value when all Cluster members are running a
+  // version >= k_min_cs_version
+  // NOTE: group_replication_view_change_uuid must be the same on all Cluster
+  // members, otherwise the members won't join the cluster. Members that do not
+  // know about the sysvar (<= 8.0.26) will be considered as having the sysvar
+  // set to AUTOMATIC so we must ensure the sysvar is only set when all members
+  // support it
+  if (m_cluster->get_lowest_instance_version() >= k_min_cs_version) {
+    // Check if group_replication_view_change_uuid is already set on the cluster
+    view_change_uuid =
+        cluster_instance
+            ->get_sysvar_string("group_replication_view_change_uuid")
+            .get_safe();
+
+    // If not set (AUTOMATIC), generate a new value and set it on all members
+    if (view_change_uuid == "AUTOMATIC") {
+      // Check if the variable was persisted so it needs a restart
+      std::string view_change_uuid_persisted =
+          cluster_instance
+              ->get_persisted_value("group_replication_view_change_uuid")
+              .get_safe();
+
+      if (!view_change_uuid_persisted.empty() &&
+          view_change_uuid_persisted != view_change_uuid) {
+        console->print_note(
+            "The Cluster's group_replication_view_change_uuid is set but not "
+            "yet effective");
+      } else {
+        console->print_note(
+            "The Cluster's group_replication_view_change_uuid is not set");
+        console->print_info(
+            "Generating and setting a value for "
+            "group_replication_view_change_uuid...");
+
+        // Generate a value for group_replication_view_change_uuid
+        view_change_uuid = mysqlshdk::gr::generate_uuid(*cluster_instance);
+
+        // Get the Cluster Config Object
+        // This ensures the config is set on ONLINE || RECOVERING members
+        auto cfg = m_cluster->create_config_object({}, false, true);
+
+        cfg->set("group_replication_view_change_uuid", view_change_uuid);
+
+        cfg->apply();
+      }
+
+      console->print_warning(
+          "The Cluster must be completely taken OFFLINE and restarted "
+          "(<<<dba.rebootClusterFromCompleteOutage>>>()) for the settings to "
+          "be effective");
+    }
+
+    ensure_view_change_uuid_set_stored_metadata(view_change_uuid);
+  }
+}
+
+void Rescan::ensure_view_change_uuid_set_stored_metadata(
+    const std::string &view_change_uuid) {
+  auto console = mysqlsh::current_console();
+
+  // Check if view_change_uuid is stored in the Metadata
+  if (m_cluster->get_view_change_uuid().empty()) {
+    console->print_info(
+        "Updating group_replication_view_change_uuid in the Cluster's "
+        "metadata...");
+
+    if (view_change_uuid.empty()) {
+      m_cluster->get_metadata_storage()->update_cluster_attribute(
+          m_cluster->get_id(), "group_replication_view_change_uuid",
+          shcore::Value(
+              m_cluster->get_cluster_server()
+                  ->get_sysvar_string("group_replication_view_change_uuid")
+                  .get_safe()));
+    } else {
+      m_cluster->get_metadata_storage()->update_cluster_attribute(
+          m_cluster->get_id(), "group_replication_view_change_uuid",
+          shcore::Value(view_change_uuid));
+    }
+  }
+}
+
 shcore::Value Rescan::execute() {
   auto console = mysqlsh::current_console();
   console->print_info("Rescanning the cluster...");
@@ -601,9 +700,44 @@ shcore::Value Rescan::execute() {
   // instances were found
   m_cluster->ensure_metadata_has_server_id(*m_cluster->get_cluster_server());
 
-  // Ensure group_replication_view_change_uuid is set on the Cluster, and all of
-  // its members, when running MySQL >= 8.0.27
-  m_cluster->ensure_view_change_uuid_set(*m_cluster->get_cluster_server());
+  // Check if group_replication_view_change_uuid is set on the Cluster and all
+  // of its members when running MySQL >= 8.0.27
+  {
+    if (m_is_view_change_uuid_supported) {
+      std::string view_change_uuid =
+          m_cluster->get_primary_master()
+              ->get_sysvar_string("group_replication_view_change_uuid")
+              .get_safe();
+
+      if (view_change_uuid == "AUTOMATIC") {
+        if (m_options.update_view_change_uuid.is_null()) {
+          console->print_warning(
+              "The Cluster is not configured to use "
+              "'group_replication_view_change_uuid', which is required "
+              "for InnoDB ClusterSet. Configuring it requires a full Cluster "
+              "reboot.");
+          if (m_options.interactive()) {
+            // Prompt the user to update the View Change UUID
+            if (console->confirm(
+                    "Would you like 'group_replication_view_change_uuid' to be "
+                    "configured automatically?",
+                    Prompt_answer::YES) == Prompt_answer::YES) {
+              ensure_view_change_uuid_set();
+            }
+          } else {
+            console->print_info(
+                "Use the 'updateViewChangeUuid' option to generate and "
+                "configure a value for the Cluster.");
+          }
+        } else if (m_options.update_view_change_uuid.get_safe()) {
+          ensure_view_change_uuid_set();
+        }
+      } else {
+        // Ensures the value is stored in the metadata schema
+        ensure_view_change_uuid_set_stored_metadata();
+      }
+    }
+  }
 
   // Print warning about not used instances in removeInstances.
   std::vector<std::string> not_used_remove_instances;
@@ -638,7 +772,9 @@ shcore::Value Rescan::execute() {
     }
   }
 
-  if (m_options.upgrade_comm_protocol) upgrade_comm_protocol();
+  if (m_options.upgrade_comm_protocol) {
+    upgrade_comm_protocol();
+  }
 
   return shcore::Value();
 }

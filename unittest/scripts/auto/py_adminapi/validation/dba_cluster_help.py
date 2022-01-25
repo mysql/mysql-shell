@@ -993,6 +993,9 @@ DESCRIPTION
         default, the metadata is not updated (false). Deprecated.
       - upgradeCommProtocol: boolean. Set to true to upgrade the Group
         Replication communication protocol to the highest version possible.
+      - updateViewChangeUuid: boolean value used to indicate if the command
+        should generate and set a value for Group Replication View Change UUID
+        in the whole Cluster. Required for InnoDB ClusterSet usage.
 
       The value for addInstances and removeInstances is used to specify which
       instances to add or remove from the metadata, respectively. Both options

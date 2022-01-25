@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -135,7 +135,9 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
           .optional(kAddInstances, &Rescan_options::set_list_option)
           .optional(kRemoveInstances, &Rescan_options::set_list_option)
           .optional(kUpgradeCommProtocol,
-                    &Rescan_options::upgrade_comm_protocol);
+                    &Rescan_options::upgrade_comm_protocol)
+          .optional(kUpdateViewChangeUuid,
+                    &Rescan_options::update_view_change_uuid);
 
   return opts;
 }

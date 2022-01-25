@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,6 +85,7 @@ class Rescan : public Command_interface {
  private:
   Rescan_options m_options;
   Cluster_impl *m_cluster = nullptr;
+  bool m_is_view_change_uuid_supported = false;
 
   /**
    * Validate existence of duplicates for the addInstances and removeInstances
@@ -189,6 +190,19 @@ class Rescan : public Command_interface {
   void remove_instance_from_metadata(const std::string &instance_address);
 
   void upgrade_comm_protocol();
+
+  /**
+   * Ensures group_replication_view_change_uuid is set on all Cluster members
+   * and stored in the Metadata schema.
+   */
+  void ensure_view_change_uuid_set();
+
+  /**
+   * Ensures group_replication_view_change_uuid is stored in the Metadata
+   * schema.
+   */
+  void ensure_view_change_uuid_set_stored_metadata(
+      const std::string &view_change_uuid = "");
 };
 
 }  // namespace cluster

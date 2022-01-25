@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,6 +87,7 @@ struct Rescan_options : public Interactive_option {
   bool auto_add = false;
   bool auto_remove = false;
   bool upgrade_comm_protocol = false;
+  mysqlshdk::null_bool update_view_change_uuid;
 };
 
 }  // namespace cluster
