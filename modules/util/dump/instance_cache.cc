@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -445,21 +445,7 @@ Instance_cache_builder &Instance_cache_builder::triggers(
 Instance_cache_builder &Instance_cache_builder::binlog_info() {
   Profiler profiler{"fetching binlog info"};
 
-  try {
-    const auto result = query("SHOW MASTER STATUS;");
-
-    if (const auto row = result->fetch_one()) {
-      m_cache.binlog_file = row->get_string(0);    // File
-      m_cache.binlog_position = row->get_uint(1);  // Position
-    }
-  } catch (const mysqlshdk::db::Error &e) {
-    if (e.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
-      current_console()->print_warning(
-          "Could not fetch the binary log information: " + e.format());
-    } else {
-      throw;
-    }
-  }
+  m_cache.binlog = Schema_dumper{m_session}.binlog();
 
   return *this;
 }

@@ -135,6 +135,8 @@ class Schema_dumper {
 
   std::string gtid_executed(bool quiet = false);
 
+  Instance_cache::Binlog binlog(bool quiet = false);
+
  public:
   // Config options
   bool opt_force = false;

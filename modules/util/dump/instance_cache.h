@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,6 +136,19 @@ struct Instance_cache {
     uint64_t users = 0;
   };
 
+  struct Binlog {
+    std::string file;
+    uint64_t position = 0;
+
+    bool operator==(const Binlog &other) const {
+      return file == other.file && position == other.position;
+    }
+
+    std::string to_string() const {
+      return file + ':' + std::to_string(position);
+    }
+  };
+
   bool has_ndbinfo = false;
   std::string user;
   std::string hostname;
@@ -145,8 +158,7 @@ struct Instance_cache {
   bool server_is_5_7 = false;
   bool server_is_8_0 = false;
   uint32_t explain_rows_idx = 0;
-  std::string binlog_file;
-  uint64_t binlog_position;
+  Binlog binlog;
   std::string gtid_executed;
   std::unordered_map<std::string, Schema> schemas;
   std::vector<shcore::Account> users;

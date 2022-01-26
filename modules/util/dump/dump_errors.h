@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,9 +41,8 @@
 #define SHERR_DUMP_LOCK_TABLES_FAILED 52002
 #define SHERR_DUMP_LOCK_TABLES_FAILED_MSG "Unable to lock tables: %s."
 
-#define SHERR_DUMP_BACKUP_LOCK_MISSING_PRIVILEGES 52003
-#define SHERR_DUMP_BACKUP_LOCK_MISSING_PRIVILEGES_MSG \
-  "Could not acquire the backup lock"
+#define SHERR_DUMP_CONSISTENCY_CHECK_FAILED 52003
+#define SHERR_DUMP_CONSISTENCY_CHECK_FAILED_MSG "Consistency check has failed"
 
 #define SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND 52004
 #define SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND_MSG \

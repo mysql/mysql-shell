@@ -273,7 +273,7 @@ testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
     "loose_innodb_directories": filename_for_file(table_data_directory),
     "early-plugin-load": "keyring_file." + ("dll" if __os_type == "windows" else "so"),
     "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring")),
-    "server_id": 1234567890,
+    "server_id": str(random.randint(1, 4294967295)),
     "log_bin": 1,
     "enforce_gtid_consistency": "ON",
     "gtid_mode": "ON",
@@ -1398,7 +1398,7 @@ for table in missing_pks[incompatible_schema]:
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
@@ -1412,7 +1412,7 @@ session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, 
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
@@ -1426,7 +1426,7 @@ session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table]
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
@@ -1443,7 +1443,7 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
@@ -1548,6 +1548,69 @@ EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table 
 
 #@<> using the same user, run inconsistent dump
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "consistent": False, "ddlOnly": True, "showProgress": False })
+
+#@<> BUG#33697289 additional consistency checks if user is missing some of the privileges
+# setup
+setup_session()
+session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
+# user cannot execute FTWRL and LOCK INSTANCE FOR BACKUP
+session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ /*!80000 , BACKUP_ADMIN */ ON *.* FROM {test_user_account};")
+
+tested_schema = "test_schema"
+tested_table = "test_table"
+tables_to_create = 100
+reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+
+for i in range(tables_to_create):
+    session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
+
+# constantly create tables
+create_tables = f"""v = {tables_to_create}
+while True:
+    session.run_sql("CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
+    v = v + 1
+session.close()
+"""
+
+# run a process which constantly creates tables
+pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
+# wait a bit for process to start
+time.sleep(3)
+# connect
+shell.connect(test_user_uri(__mysql_sandbox_port1))
+
+# test
+EXPECT_SUCCESS(tested_schema, [ f"{tested_table}_{i}" for i in range(tables_to_create) ], test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: Backup lock is not {0} and DDL changes were not blocked. The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+
+#@<> BUG#33697289 warning if gtid is disabled and DDL changes {not __dbug_off}
+testutil.dbug_set("+d,dumper_gtid_disabled")
+
+EXPECT_SUCCESS(tested_schema, [ f"{tested_table}_{i}" for i in range(tables_to_create) ], test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: Backup lock is not {0} and DDL changes were not blocked. The binlog position has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+
+testutil.dbug_set("")
+
+#@<> BUG#33697289 terminate the process immediately, it will not stop on its own
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#33697289 warning if binlog and gtid are disabled {not __dbug_off}
+testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
+
+EXPECT_SUCCESS(tested_schema, [ f"{tested_table}_{i}" for i in range(tables_to_create) ], test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"""
+WARNING: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK.
+    Backup lock is not {reason} and DDL changes cannot be blocked.
+    The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
+    The log_bin system variable is set to OFF or the current user does not have required privileges to execute SHOW MASTER STATUS.
+The consistency of the dump cannot be guaranteed.
+""")
+
+testutil.dbug_set("")
+
+#@<> BUG#33697289 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> reconnect to the user with full privilages, restore test user account
 setup_session()

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -182,6 +182,10 @@ class Dumper {
 
   void fetch_user_privileges();
 
+  void warn_about_backup_lock() const;
+
+  std::string why_backup_lock_is_missing() const;
+
   void acquire_read_locks();
 
   void release_read_locks() const;
@@ -344,15 +348,24 @@ class Dumper {
 
   void validate_schemas_list() const;
 
+  void validate_dump_consistency(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
+
+  void fetch_server_information();
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
-
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
+  mysqlshdk::utils::Version m_server_version;
+  bool m_binlog_enabled = false;
+  bool m_gtid_enabled = false;
 
   // user privileges
   std::unique_ptr<mysqlshdk::mysql::User_privileges> m_user_privileges;
   std::string m_user_account;
   bool m_skip_grant_tables_active = false;
+  // whether user has the BACKUP_ADMIN privilege
+  bool m_user_has_backup_admin = false;
 
   // input data
   const Dump_options &m_options;
@@ -364,8 +377,8 @@ class Dumper {
 
   // status variables
   bool m_instance_locked = false;
-  // whether FLUSH TABLES WITH READ LOCK has failed
-  bool m_ftwrl_failed = false;
+  // whether FLUSH TABLES WITH READ LOCK was used
+  bool m_ftwrl_used = false;
   std::unordered_set<Capability> m_used_capabilities;
 
   // counters
