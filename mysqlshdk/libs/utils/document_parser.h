@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_UTILS_DOCUMENT_PARSER_H_
 
 #include <string>
+#include <vector>
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_buffered_input.h"
@@ -100,7 +101,7 @@ class Document_reader {
  * Loads JSON document from a Buffered_input where the content
  * is formatted as standard JSON documents
  */
-class Json_reader : public Document_reader {
+class Json_reader final : public Document_reader {
  public:
   Json_reader(Buffered_input *input,
               const shcore::Document_reader_options &options)
@@ -181,7 +182,13 @@ class Json_document_parser : public Document_parser {
 
   void parse(std::string *document);
 
-  void get_char(std::string *target = nullptr);
+  void get_char(std::string *target) {
+    assert(target);
+    (*target) += m_source->get();
+  }
+
+  void get_char() { m_source->get(); }
+
   void get_string(std::string *target, const std::string &context = "");
   void get_value(std::string *target);
   void get_whitespaces(std::string *target);
