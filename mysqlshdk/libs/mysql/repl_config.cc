@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -403,42 +403,39 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
                                  const mysqlshdk::config::Config &config,
                                  std::vector<Invalid_config> *out_invalid_vec) {
   log_debug("Checking if 'log_bin' is compatible.");
+
   // If config object has has a config handler
+  auto initial_invalid_configs = out_invalid_vec->size();
   if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
     // On MySQL 8.0.3 the binary log is enabled by default, so there is no need
     // to add the log_bin option to the config file. However on 5.7 there is.
     if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
-      Invalid_config change = Invalid_config("log_bin", k_no_value);
+      Invalid_config change("log_bin", k_no_value);
       std::vector<std::string> forbidden_values{k_value_not_set};
       check_variable_compliance(
           forbidden_values, false,
           *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-          &change, Config_type::CONFIG, false, true);
+          &change, Config_type::CONFIG, true, true);
       // if there are any changes to be made, add them to the vector of changes
       if (!change.types.empty()) {
-        log_debug(
-            "FAIL: '%s' value '%s' is not compatible. "
-            "Required value: '%s'.",
-            change.var_name.c_str(), change.current_val.c_str(),
-            change.required_val.c_str());
+        log_invalid_config(change);
         out_invalid_vec->push_back(std::move(change));
       }
     }
+
     // We must also check that neither of the skip-log-bin or disable-log-bin
     // options are set.
-    Invalid_config change_skip =
-        Invalid_config("skip_log_bin", k_value_not_set);
-    Invalid_config change_disable =
-        Invalid_config("disable_log_bin", k_value_not_set);
+    Invalid_config change_skip("skip_log_bin", k_value_not_set);
+    Invalid_config change_disable("disable_log_bin", k_value_not_set);
     std::vector<std::string> allowed_skip_dis_values{k_value_not_set};
     check_variable_compliance(
         allowed_skip_dis_values, true,
         *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-        &change_skip, Config_type::CONFIG, false, true);
+        &change_skip, Config_type::CONFIG, true, true);
     check_variable_compliance(
         allowed_skip_dis_values, true,
         *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
-        &change_disable, Config_type::CONFIG, false, true);
+        &change_disable, Config_type::CONFIG, true, true);
 
     log_invalid_config(change_disable);
     // if there are any changes to be made, add them to the vector of changes
@@ -452,29 +449,45 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
   if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
     // create invalid_config with default values for server, which are
     // different from the ones for the config file.
-    Invalid_config change = Invalid_config("log_bin", "ON");
+    Invalid_config change("log_bin", "ON");
     std::vector<std::string> valid_values{"1", "ON"};
     check_variable_compliance(
         valid_values, true,
         *config.get_handler(mysqlshdk::config::k_dft_cfg_server_handler),
-        &change, Config_type::SERVER, true, true);
+        &change, Config_type::RESTART_ONLY, true, false);
     // If the log_bin value is not on the valid values, then the configuration
     // is not valid.
     if (!change.types.empty()) {
       // If the configuration is not valid on the server, and no config file
-      // handler was provided, we must add an invalid config to fix the
-      // value on the configuration file since the value cannot cannot be
-      // persisted. If the config file handler exists, we already checked
-      // if an invalid config is required.
+      // handler was provided, we must add a config to fix the value since it
+      // cannot be persisted. We have to consider that we got here either
+      // because:
+      //  - the server is (>= 8.0.3) and has log_bin disabled (which means that
+      //  either skip_log_bin or disable_log_bin *are* in the config file)
+      //  - the server is (< 8.0.3) and log_bin isn't present or skip_log_bin or
+      //  disable_log_bin are present in the config file
+      // For the latter, the check made above takes care of that, for the
+      // former, we have to manually remove the configs causing the issue
       if (!config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-        out_invalid_vec->emplace_back("log_bin", k_value_not_set, k_no_value,
-                                      Config_types(Config_type::CONFIG), false,
-                                      shcore::Value_type::String);
+        if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
+          out_invalid_vec->emplace_back("log_bin", k_value_not_set, k_no_value,
+                                        Config_types(Config_type::CONFIG), true,
+                                        shcore::Value_type::String);
+        }
+
+        out_invalid_vec->emplace_back(
+            "skip_log_bin", k_value_not_set, k_value_not_set,
+            Config_types(Config_type::CONFIG), true, shcore::Value_type::Bool);
+        out_invalid_vec->emplace_back(
+            "disable_log_bin", k_value_not_set, k_value_not_set,
+            Config_types(Config_type::CONFIG), true, shcore::Value_type::Bool);
+      } else if (out_invalid_vec->size() == initial_invalid_configs) {
+        // if we didn't change the config (already valid), them we need to
+        // restart
+        out_invalid_vec->push_back(std::move(change));
       }
     }
     log_invalid_config(change);
-    // if there are any changes to be made, add them to the vector of changes
-    if (!change.types.empty()) out_invalid_vec->push_back(std::move(change));
   }
 }
 

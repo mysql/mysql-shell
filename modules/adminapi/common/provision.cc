@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -417,13 +417,18 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
   if (cannot_persist &&
       !config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
     for (auto &invalid_cfg : invalid_cfgs_vec) {
-      // log_bin variable is a special case and needs to be handled differently
-      // since it cannot be persisted it always requires a configuration file.
-      if (invalid_cfg.var_name != "log_bin") {
-        invalid_cfg.types.set(mysqlshdk::mysql::Config_type::CONFIG);
-      }
+      // since log_bin *cannot* be persisted, if must always be either CONFIG or
+      // RESTART_ONLY
+      using mysqlshdk::mysql::Config_types;
+      assert(invalid_cfg.var_name != "log_bin" ||
+             invalid_cfg.types.matches_any(
+                 Config_types{mysqlshdk::mysql::Config_type::CONFIG} |
+                 mysqlshdk::mysql::Config_type::RESTART_ONLY));
+
+      invalid_cfg.types.set(mysqlshdk::mysql::Config_type::CONFIG);
     }
   }
+
   return invalid_cfgs_vec;
 }
 

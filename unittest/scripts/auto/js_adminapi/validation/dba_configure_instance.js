@@ -19,22 +19,21 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 NOTE: Some configuration options need to be fixed:
 ?{VER(<8.0.11)}
-+----------------------------------+---------------+----------------+--------------------------------------------------+
-| Variable                         | Current Value | Required Value | Note                                             |
-+----------------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
-| binlog_format                    | <not set>     | ROW            | Update the config file                           |
-| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
-| gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
-| log_bin                          | <not set>     | <no value>     | Update the config file                           |
-| log_bin                          | OFF           | ON             | Update read-only variable and restart the server |
-| log_slave_updates                | OFF           | ON             | Update the config file and restart the server    |
-| master_info_repository           | FILE          | TABLE          | Update the config file and restart the server    |
-| relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server    |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                           |
-| server_id                        | 0             | <unique ID>    | Update the config file and restart the server    |
-| transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server    |
-+----------------------------------+---------------+----------------+--------------------------------------------------+
++----------------------------------+---------------+----------------+------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                           |
++----------------------------------+---------------+----------------+------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file                         |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
+| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |
+| log_slave_updates                | OFF           | ON             | Update the config file and restart the server  |
+| master_info_repository           | FILE          | TABLE          | Update the config file and restart the server  |
+| relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server  |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the server variable and the config file |
+| server_id                        | 0             | <unique ID>    | Update the config file and restart the server  |
+| transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server  |
++----------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]:
@@ -189,7 +188,7 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | enforce_gtid_consistency         | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                        | OFF           | ON             | Update read-only variable and restart the server |
-| log_bin                          | OFF           | ON             | Update read-only variable and restart the server |
+| log_bin                          | OFF           | ON             | Restart the server                               |
 | log_slave_updates                | OFF           | ON             | Update read-only variable and restart the server |
 | master_info_repository           | FILE          | TABLE          | Update read-only variable and restart the server |
 | relay_log_info_repository        | FILE          | TABLE          | Update read-only variable and restart the server |

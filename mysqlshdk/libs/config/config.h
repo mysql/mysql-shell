@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,7 +56,7 @@ static constexpr char k_dft_cfg_file_handler[] = "config_file";
  */
 class IConfig_handler {
  public:
-  virtual ~IConfig_handler() {}
+  virtual ~IConfig_handler() = default;
 
   virtual utils::nullable<bool> get_bool(const std::string &name) const = 0;
   virtual utils::nullable<std::string> get_string(
@@ -91,7 +91,7 @@ class IConfig_handler {
  * for example 'log_bin' (which can have a string with a base name value or can
  * be a boolean if it has no value for option files, but it is a read-only
  * server variable that in reality corresponds to two server variables: log_bin
- * and login_base_name).
+ * and log_bin_basename).
  */
 class Config : public IConfig_handler {
  public:

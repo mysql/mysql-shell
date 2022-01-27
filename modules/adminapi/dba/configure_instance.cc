@@ -596,8 +596,9 @@ void Configure_instance::validate_applier_worker_threads() {
       m_set_applier_worker_threads = true;
 
       console->print_info();
-      console->print_info(
-          "applierWorkerThreads will be set to the default value of 4.");
+      console->print_info(shcore::str_format(
+          "applierWorkerThreads will be set to the default value of %lld.",
+          static_cast<long long>(kReplicaParallelWorkersDefault)));
     }
   }
 }
@@ -679,12 +680,14 @@ void Configure_instance::prepare() {
   }
 
   // Check if we are dealing with a sandbox instance
-  std::string cnf_path;
-  m_is_sandbox = is_sandbox(*m_target_instance, &cnf_path);
-  // if instance is sandbox and the mycnf path is empty, fill it.
-  if (m_is_sandbox && m_options.mycnf_path.empty()) {
-    m_options.mycnf_path = std::move(cnf_path);
-    m_is_cnf_from_sandbox = true;
+  {
+    std::string cnf_path;
+    m_is_sandbox = is_sandbox(*m_target_instance, &cnf_path);
+    // if instance is sandbox and the mycnf path is empty, fill it.
+    if (m_is_sandbox && m_options.mycnf_path.empty()) {
+      m_options.mycnf_path = std::move(cnf_path);
+      m_is_cnf_from_sandbox = true;
+    }
   }
 
   // Check capabilities based on target server and user options
