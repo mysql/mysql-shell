@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,7 +110,7 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   virtual void kill_query() = 0;
 
-  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() = 0;
+  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() const = 0;
 
   std::function<void(const std::string &, bool exists)> update_schema_cache;
 

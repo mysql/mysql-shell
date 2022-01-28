@@ -1,60 +1,83 @@
 {
-  "classes" : {
-    "SQL" : {
-      "fg" : "166"
+  "classes": {
+    "SQL": {
+      "fg": "166"
     },
-    "JS" : {
-      "fg" : "221"
+    "JS": {
+      "fg": "221"
     },
-    "Py" : {
-      "fg" : "25"
+    "Py": {
+      "fg": "25"
     },
-    "schema" : {
+    "schema": {
       "text": "%schema% "
     },
-    "noschema" : {
+    "noschema": {
       "text": ""
     },
-    "disconnected": {
-    },
+    "disconnected": {},
     "sslSSL": {
       "text": "(ssl) ",
       "fg": 170
     },
-    "ssl" : {
+    "ssl": {
       "text": ""
     },
-    "hostx" : {
+    "hostx": {
       "text": "%transport%+ "
     },
-    "hostc" : {
+    "hostc": {
       "text": "%transport% "
     },
-    "production" : {
+    "ctrx": {
+      "text": "",
+      "fg": 15
+    },
+    "ctrx.": {
+      "text": "- ",
+      "fg": 7
+    },
+    "ctrx*": {
+      "text": "* ",
+      "fg": 15
+    },
+    "ctrx^": {
+      "text": "* ",
+      "fg": 15
+    },
+    "ctrx*.": {
+      "text": "* ",
+      "fg": 15
+    },
+    "ctrx^.": {
+      "text": "* ",
+      "fg": 15
+    },
+    "production": {
       "text": " PRODUCTION ",
       "bg": "red",
       "fg": "white"
     }
   },
-  "variables" : {
+  "variables": {
     "is_production": {
-        "match" : {
-            "pattern": "*;%host%;*",
-            "value": ";%env:PRODUCTION_SERVERS%;"
-        },
-        "if_true" : "production",
-        "if_false" : ""
+      "match": {
+        "pattern": "*;%host%;*",
+        "value": ";%env:PRODUCTION_SERVERS%;"
+      },
+      "if_true": "production",
+      "if_false": ""
     },
-    "target" : {
-      "match" : {
+    "target": {
+      "match": {
         "pattern": "%socket%",
         "value": ""
       },
       "if_true": "%host%:%port%",
       "if_false": "localhost"
     },
-    "transport" : {
-      "match" : {
+    "transport": {
+      "match": {
         "pattern": "%ssh_host%",
         "value": ""
       },
@@ -62,19 +85,22 @@
       "if_false": "%ssh_host% > %target%"
     }
   },
-  "symbols" : {
-    "separator" : "",
-    "separator2" : "",
-    "ellipsis" : "..."
+  "symbols": {
+    "separator": "",
+    "separator2": "",
+    "ellipsis": "..."
   },
-  "prompt" : {
-    "text" : "> ",
-    "cont_text" : "%linectx%> "
+  "prompt": {
+    "text": "> ",
+    "cont_text": "%linectx%> "
   },
   "segments": [
-	{
-	  "classes": ["disconnected%host%", "%is_production%"]
-	},
+    {
+      "classes": [
+        "disconnected%host%",
+        "%is_production%"
+      ]
+    },
     {
       "text": "My",
       "fg": 23
@@ -85,27 +111,43 @@
       "fg": 166
     },
     {
-      "classes": ["disconnected%host%", "host%session%"],
+      "classes": [
+        "disconnected%host%",
+        "host%session%"
+      ],
       "shrink": "truncate_on_dot",
       "fg": 123,
       "weight": 10,
-      "padding" : 0
-    },
-    {
-      "classes": ["ssl%ssl%"],
       "padding": 0
     },
     {
-      "classes": ["noschema%schema%", "schema"],
+      "classes": [
+        "ssl%ssl%"
+      ],
+      "padding": 0
+    },
+    {
+      "classes": [
+        "noschema%schema%",
+        "schema"
+      ],
       "fg": 197,
       "shrink": "ellipsize",
       "weight": -1,
-      "padding" : 0
+      "padding": 0
     },
     {
-      "classes": ["%Mode%"],
+      "classes": [
+        "%session%trx%trx%%autocommit%"
+      ],
+      "weight": -1
+    },
+    {
+      "classes": [
+        "%Mode%"
+      ],
       "text": "%Mode%",
-      "padding" : 0
+      "padding": 0
     }
   ]
 }
