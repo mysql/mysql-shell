@@ -52,7 +52,7 @@ EXPECT_PAR_IS_SECRET()
 
 #@<> Attempt to load using a manifest PAR as progress PAR.
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": manifest_par}), "Util.load_dump: Invalid PAR for progress file, use a PAR to a specific file different than the manifest")
+EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": manifest_par}), "Util.load_dump: Argument #2: Invalid PAR for progress file, use a PAR to a specific file different than the manifest")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14154-TSFR7_2 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.
@@ -80,22 +80,41 @@ session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
-#@<> WL14154-TSFR9_1 - When doing a load using a PAR for a manifest file with the progressFile option set to a read/write PAR object for a file that is not in the same bucket where the dump is. Validate that the load fails because the file to store the progress is not in the same bucket.
+#@<> Use the progressFile option set to a read/write PAR object for a file that is not in the same bucket where the dump is.
 prepare_empty_bucket(OS_BUCKET_NAME + '-par-test', OS_NAMESPACE)
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME + '-par-test', "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/another-bucket-progress.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "Util.load_dump: The provided PAR must be a file on the dump location:")
+EXPECT_NO_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file in another bucket")
 EXPECT_PAR_IS_SECRET()
 
+# verify if everything was OK
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME + '-par-test', "shell-test/another-bucket-progress.json", "another-bucket-progress.json")
+validate_load_progress("another-bucket-progress.json")
+
+# cleanup
+session.run_sql("drop schema if exists sample")
+os.remove("another-bucket-progress.json")
+delete_object(OS_BUCKET_NAME + '-par-test', "shell-test/another-bucket-progress.json", OS_NAMESPACE)
 delete_bucket(OS_BUCKET_NAME + '-par-test', OS_NAMESPACE)
 
-#@<> WL14154-TSFR9_2 - When doing a load using a PAR for a manifest file with the progressFile option set to a read/write PAR object for a file that is in the same bucket but in diferent location where the dump is. Validate that the load fails because the file to store the progress is not in the same location in the bucket.
+#@<> Use the progressFile option set to a read/write PAR object for a file that is in the same bucket but in different location where the dump is.
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "same-bucket-different-prefix.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "Util.load_dump: The provided PAR must be a file on the dump location:")
+EXPECT_NO_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file in the same bucket, but different prefix")
 EXPECT_PAR_IS_SECRET()
+
+# verify if everything was OK
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, "same-bucket-different-prefix.json", "same-bucket-different-prefix.json")
+validate_load_progress("same-bucket-different-prefix.json")
+
+# cleanup
+session.run_sql("drop schema if exists sample")
+os.remove("same-bucket-different-prefix.json")
+delete_object(OS_BUCKET_NAME, "same-bucket-different-prefix.json", OS_NAMESPACE)
 
 #@<> WL14154-TSFR9_4 - When doing a load using a PAR for a manifest file with the progressFile option set to a read PAR object for a file that is in the same bucket and location where the dump is. Validate that the load fails because the file to store the progress has not the right permissions.
 WIPE_SHELL_LOG()
@@ -107,7 +126,7 @@ EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}
 EXPECT_PAR_IS_SECRET()
 
 # BUG#32593125 - check if details of failed operation are logged
-EXPECT_SHELL_LOG_CONTAINS(f"Warning: Request failed: PUT /p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/read-only-progress.json (404 - Not Found)")
+EXPECT_SHELL_LOG_CONTAINS(f"Warning: Request failed: https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/ PUT read-only-progress.json (404 - Not Found)")
 EXPECT_SHELL_LOG_CONTAINS("Info: REQUEST HEADERS:")
 EXPECT_SHELL_LOG_CONTAINS("Info: RESPONSE HEADERS:")
 EXPECT_SHELL_LOG_CONTAINS("Info: RESPONSE BODY:")
@@ -163,7 +182,7 @@ delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object '/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#31606223 - read only, empty progress file
@@ -172,7 +191,7 @@ open("par-load-progress.json", "w").close()
 testutil.anycopy("par-load-progress.json", {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/par-load-progress.json"})
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object '/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
 EXPECT_PAR_IS_SECRET()
 
 os.remove("par-load-progress.json")

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,8 +33,8 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
+#include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -86,8 +86,8 @@ class Dump_options {
 
   const import_table::Dialect &dialect() const { return m_dialect; }
 
-  const mysqlshdk::oci::Oci_options &oci_options() const {
-    return m_oci_options;
+  const mysqlshdk::storage::Config_ptr &storage_config() const {
+    return m_storage_config;
   }
 
   const std::string &character_set() const { return m_character_set; }
@@ -178,6 +178,8 @@ class Dump_options {
   virtual bool use_timezone_utc() const = 0;
 
   virtual bool dump_binlog_info() const = 0;
+
+  virtual bool par_manifest() const = 0;
 
  protected:
   void set_dialect(const import_table::Dialect &dialect) {
@@ -318,7 +320,8 @@ class Dump_options {
 
  protected:
   void on_start_unpack(const shcore::Dictionary_t &options);
-  void set_oci_options(const mysqlshdk::oci::Oci_options &oci_options);
+  void set_storage_config(
+      const std::shared_ptr<mysqlshdk::storage::Config> &storage_config);
 
   // This function should be implemented when the validation process requires
   // data NOT coming on the user options, i.e. a session
@@ -379,7 +382,7 @@ class Dump_options {
   bool m_show_progress;
   mysqlshdk::storage::Compression m_compression =
       mysqlshdk::storage::Compression::ZSTD;
-  mysqlshdk::oci::Oci_options m_oci_options;
+  mysqlshdk::storage::Config_ptr m_storage_config;
 
   std::string m_character_set = "utf8mb4";
 

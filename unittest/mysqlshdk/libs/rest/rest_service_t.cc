@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -694,7 +694,8 @@ TEST_F(Rest_service_test, retry_strategy_generic_errors) {
   // Even with retry logic the same error is generated at the end
   EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
                             "Connection refused|couldn't connect to host");
-  EXPECT_EQ(2, retry_strategy.get_retry_count());
+  // retry strategy is not used in case of non-recoverable error
+  EXPECT_EQ(0, retry_strategy.get_retry_count());
 }
 
 TEST_F(Rest_service_test, retry_strategy_server_errors) {

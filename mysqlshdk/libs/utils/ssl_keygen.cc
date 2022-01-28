@@ -99,12 +99,7 @@ std::string get_fingerprint(EVP_PKEY *key_ptr) {
 
   std::string decoded_key;
   if (decode_base64(public_key, &decoded_key)) {
-    unsigned char digest[17];
-    digest[16] = '\0';
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, decoded_key.c_str(), decoded_key.size());
-    MD5_Final(digest, &ctx);
+    const auto digest = md5(decoded_key.c_str(), decoded_key.size());
 
     std::vector<std::string> fp;
     for (size_t index = 0; index < 16; index++) {
@@ -210,5 +205,53 @@ std::string create_key_pair(const std::string &path,
 
   return get_fingerprint(pkey.get());
 }
+
+std::vector<unsigned char> sha256(const char *data, size_t size) {
+// EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
+// and EVP_MD_CTX_free() in OpenSSL 1.1.
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L /* 1.1.x */
+  std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_free)> mctx(
+      EVP_MD_CTX_new(), ::EVP_MD_CTX_free);
+#else
+  std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_destroy)> mctx(
+      EVP_MD_CTX_create(), ::EVP_MD_CTX_destroy);
+#endif
+  const EVP_MD *md = EVP_sha256();
+  int r = EVP_DigestInit_ex(mctx.get(), md, nullptr);
+  if (r != 1) {
+    throw std::runtime_error("SHA256: error initializing encoder.");
+  }
+
+  r = EVP_DigestUpdate(mctx.get(), data, size);
+  if (r != 1) {
+    throw std::runtime_error("SHA256: error while encoding data.");
+  }
+
+  std::vector<unsigned char> md_value;
+  unsigned int md_len = EVP_MAX_MD_SIZE;
+  md_value.resize(md_len);
+
+  r = EVP_DigestFinal_ex(mctx.get(), md_value.data(), &md_len);
+  if (r != 1) {
+    throw std::runtime_error("SHA256: error completing encode operation.");
+  }
+
+  md_value.resize(md_len);
+
+  return md_value;
+}
+
+std::vector<unsigned char> md5(const char *data, size_t size) {
+  std::vector<unsigned char> md_value;
+  md_value.resize(16);
+
+  MD5_CTX ctx;
+  MD5_Init(&ctx);
+  MD5_Update(&ctx, data, size);
+  MD5_Final(md_value.data(), &ctx);
+
+  return md_value;
+}
+
 }  // namespace ssl
 }  // namespace shcore

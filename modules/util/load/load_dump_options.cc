@@ -28,13 +28,15 @@
 #include <algorithm>
 
 #include "modules/mod_utils.h"
-#include "modules/util/dump/dump_manifest.h"
+#include "modules/util/dump/dump_manifest_config.h"
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -123,10 +125,30 @@ void parse_triggers(const std::vector<std::string> &opt_triggers,
   }
 }
 
+std::shared_ptr<mysqlshdk::oci::IPAR_config> par_config(
+    const std::string &url) {
+  mysqlshdk::oci::PAR_structure par;
+
+  switch (mysqlshdk::oci::parse_par(url, &par)) {
+    case mysqlshdk::oci::PAR_type::MANIFEST:
+      return std::make_shared<dump::Dump_manifest_read_config>(par);
+
+    case mysqlshdk::oci::PAR_type::PREFIX:
+      return std::make_shared<
+          mysqlshdk::storage::backend::oci::Oci_par_directory_config>(par);
+
+    case mysqlshdk::oci::PAR_type::GENERAL:
+      return std::make_shared<mysqlshdk::oci::General_par_config>(par);
+
+    case mysqlshdk::oci::PAR_type::NONE:
+      break;
+  }
+
+  return {};
+}
+
 }  // namespace
 
-using mysqlsh::dump::Dump_manifest;
-using mysqlsh::dump::Manifest_mode;
 Load_dump_options::Load_dump_options() : Load_dump_options("") {}
 Load_dump_options::Load_dump_options(const std::string &url) : m_url(url) {
   // some users are always excluded
@@ -146,7 +168,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("loadUsers", &Load_dump_options::m_load_users)
           .optional("dryRun", &Load_dump_options::m_dry_run)
           .optional("resetProgress", &Load_dump_options::m_reset_progress)
-          .optional("progressFile", &Load_dump_options::m_progress_file)
+          .optional("progressFile", &Load_dump_options::set_progress_file)
           .optional("includeEvents", &Load_dump_options::set_str_vector_option)
           .optional("includeRoutines",
                     &Load_dump_options::set_str_vector_option)
@@ -191,7 +213,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("maxBytesPerTransaction",
                     &Load_dump_options::set_max_bytes_per_transaction)
           .optional("sessionInitSql", &Load_dump_options::m_session_init_sql)
-          .include(&Load_dump_options::m_oci_option_pack)
+          .include(&Load_dump_options::m_oci_bucket_options)
+          .include(&Load_dump_options::m_s3_bucket_options)
           .on_done(&Load_dump_options::on_unpacked_options)
           .on_log(&Load_dump_options::on_log_options);
 
@@ -298,6 +321,22 @@ void Load_dump_options::set_max_bytes_per_transaction(
   }
 }
 
+void Load_dump_options::set_progress_file(const std::string &value) {
+  m_progress_file = value;
+
+  auto config = par_config(value);
+
+  if (config && config->valid()) {
+    if (mysqlshdk::oci::PAR_type::GENERAL != config->par().type()) {
+      throw shcore::Exception::argument_error(
+          "Invalid PAR for progress file, use a PAR to a specific file "
+          "different than the manifest");
+    }
+
+    m_progress_file_config = std::move(config);
+  }
+}
+
 void Load_dump_options::set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
     const std::string &current_schema) {
@@ -361,68 +400,26 @@ void Load_dump_options::set_session(
 }
 
 void Load_dump_options::validate() {
-  using mysqlshdk::storage::backend::oci::Par_structure;
-  using mysqlshdk::storage::backend::oci::Par_type;
-  using mysqlshdk::storage::backend::oci::parse_par;
-  Par_structure url_par_data;
-  m_par_type = parse_par(m_url, &url_par_data);
+  if (!m_storage_config || !m_storage_config->valid()) {
+    auto config = par_config(m_url);
 
-  if (m_par_type == Par_type::MANIFEST || m_par_type == Par_type::PREFIX) {
-    if (m_progress_file.is_null()) {
-      throw shcore::Exception::argument_error(
-          "When using a PAR to load a dump, the progressFile option must "
-          "be defined");
-    } else {
-      m_progress_file = shcore::str_strip(*m_progress_file);
-
-      const auto scheme =
-          mysqlshdk::storage::utils::get_scheme(*m_progress_file);
-
-      bool is_remote_progress = false;
-      Par_type progress_par_type = Par_type::NONE;
-
-      if (!scheme.empty()) {
-        if (mysqlshdk::storage::utils::scheme_matches(scheme, "http")) {
-          is_remote_progress = true;
-        } else if (mysqlshdk::storage::utils::scheme_matches(scheme, "https")) {
-          is_remote_progress = true;
-          Par_structure progress_par_data;
-          progress_par_type = parse_par(*m_progress_file, &progress_par_data);
+    if (config && config->valid()) {
+      if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type() ||
+          mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
+        if (m_progress_file.is_null()) {
+          throw shcore::Exception::argument_error(
+              "When using a PAR to load a dump, the progressFile option must "
+              "be defined");
         }
+      } else {
+        current_console()->print_warning(
+            "The given URL is not a prefix PAR or a PAR to the @.manifest.json "
+            "file.");
       }
 
-      if (m_par_type == Par_type::PREFIX && is_remote_progress) {
-        throw shcore::Exception::argument_error(
-            "When using a prefix PAR to load a dump, the progressFile option "
-            "must be a local file");
-      } else if (progress_par_type != Par_type::NONE &&
-                 progress_par_type != Par_type::GENERAL) {
-        throw shcore::Exception::argument_error(
-            "Invalid PAR for progress file, use a PAR to a specific file "
-            "different than the manifest");
-      }
-
-      m_use_par_progress = (progress_par_type == Par_type::GENERAL);
+      m_storage_config = std::move(config);
     }
-
-    // TODO(rennox): this should NOT be needed!!
-    if (m_par_type == Par_type::MANIFEST) {
-      m_oci_options.set_par(m_url);
-    }
-  } else if (m_par_type == Par_type::GENERAL) {
-    current_console()->print_warning(
-        "The given URL is not a prefix PAR or a PAR to the @.manifest.json "
-        "file.");
   }
-
-  if (Par_type::NONE != m_par_type) {
-    // always get the data, we will display it to the user, this will help to
-    // figure out what's wrong in case of an error
-    m_prefix = url_par_data.object_prefix;
-    m_par_object = url_par_data.get_object_path();
-  }
-
-  m_oci_options.check_option_values();
 
   {
     const auto result = query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
@@ -451,18 +448,10 @@ std::string Load_dump_options::target_import_info() const {
   if (load_data()) what_to_load.push_back("Data");
   if (load_users()) what_to_load.push_back("Users");
 
-  using mysqlshdk::storage::backend::oci::Par_type;
   std::string where;
 
-  // Par_type::GENERAL is not a valid type for loader, but we check it here to
-  // potentially hide the secret information
-  if (m_par_type == Par_type::MANIFEST || m_par_type == Par_type::PREFIX ||
-      m_par_type == Par_type::GENERAL) {
-    where = "OCI PAR=" + mysqlshdk::oci::anonymize_par(m_par_object).masked() +
-            ", prefix='" + m_prefix + "'";
-  } else if (m_oci_options) {
-    where = "OCI ObjectStorage bucket=" + *m_oci_options.os_bucket_name +
-            ", prefix='" + m_url + "'";
+  if (m_storage_config && m_storage_config->valid()) {
+    where = m_storage_config->describe(m_url);
   } else {
     where = "'" + m_url + "'";
   }
@@ -507,7 +496,15 @@ std::string Load_dump_options::target_import_info() const {
 }
 
 void Load_dump_options::on_unpacked_options() {
-  m_oci_options = m_oci_option_pack;
+  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
+
+  if (m_oci_bucket_options) {
+    m_storage_config = m_oci_bucket_options.config();
+  }
+
+  if (m_s3_bucket_options) {
+    m_storage_config = m_s3_bucket_options.config();
+  }
 
   if (!m_load_data && !m_load_ddl && !m_load_users &&
       m_analyze_tables == Analyze_table_mode::OFF &&
@@ -555,15 +552,7 @@ void Load_dump_options::on_log_options(const char *msg) const {
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>
 Load_dump_options::create_dump_handle() const {
-  using mysqlshdk::storage::backend::oci::Par_type;
-  if (m_par_type == Par_type::MANIFEST) {
-    return std::make_unique<Dump_manifest>(Manifest_mode::READ, m_oci_options,
-                                           nullptr, m_url);
-  } else if (!m_oci_options.os_bucket_name.get_safe().empty()) {
-    return mysqlshdk::storage::make_directory(m_url, m_oci_options);
-  } else {
-    return mysqlshdk::storage::make_directory(m_url);
-  }
+  return mysqlshdk::storage::make_directory(m_url, storage_config());
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>
@@ -571,7 +560,8 @@ Load_dump_options::create_progress_file_handle() const {
   if (m_progress_file.get_safe().empty())
     return create_dump_handle()->file(m_default_progress_file);
   else
-    return mysqlshdk::storage::make_file(*m_progress_file);
+    return mysqlshdk::storage::make_file(*m_progress_file,
+                                         m_progress_file_config);
 }
 
 // Filtering works as:

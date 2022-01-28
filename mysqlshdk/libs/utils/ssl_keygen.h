@@ -26,6 +26,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace shcore {
 namespace ssl {
@@ -88,6 +89,17 @@ std::string create_key_pair(const std::string &path,
 std::string load_private_key(const std::string &path,
                              Password_callback callback = nullptr,
                              void *user_data = nullptr);
+
+/**
+ * Computes SHA256 hash of the given data.
+ */
+std::vector<unsigned char> sha256(const char *data, size_t size);
+
+/**
+ * Computes MD5 hash of the given data.
+ */
+std::vector<unsigned char> md5(const char *data, size_t size);
+
 }  // namespace ssl
 }  // namespace shcore
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -22,16 +22,35 @@
 #include "unittest/mysqlshdk/libs/oci/oci_tests.h"
 
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
+#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace testing {
+
+using mysqlshdk::oci::Oci_bucket;
+using mysqlshdk::oci::Oci_bucket_config_ptr;
+using mysqlshdk::oci::PAR;
+using mysqlshdk::storage::backend::oci::Oci_par_directory;
+using mysqlshdk::storage::backend::oci::Oci_par_directory_config;
+using mysqlshdk::storage::backend::oci::Oci_par_directory_config_ptr;
+
+namespace {
+
+Oci_par_directory_config_ptr create_config(const Oci_bucket_config_ptr &cfg,
+                                           const PAR &par) {
+  return std::make_shared<Oci_par_directory_config>(
+      cfg->service_endpoint() + par.access_uri + par.object_name);
+}
+
+}  // namespace
 
 class Oci_par_directory_tests : public Oci_os_tests {};
 
 TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options());
+  const auto config = get_config();
+  Oci_bucket bucket(config);
   std::vector<std::string> prefixes;
   std::string next_start;
 
@@ -66,8 +85,7 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
         mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ, time.c_str(),
         "sample-par", prefix, mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
 
-    Oci_par_directory par_dir(bucket.get_rest_service()->end_point() +
-                              par.access_uri + par.object_name);
+    Oci_par_directory par_dir(create_config(config, par));
 
     const auto objects = par_dir.list_files();
 
@@ -92,7 +110,8 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
 TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options());
+  const auto config = get_config();
+  Oci_bucket bucket(config);
   std::vector<std::string> prefixes;
   std::string next_start;
 
@@ -129,8 +148,7 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
         mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ, time.c_str(),
         "sample-par", prefix, mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
 
-    Oci_par_directory par_dir(bucket.get_rest_service()->end_point() +
-                              par.access_uri + par.object_name);
+    Oci_par_directory par_dir(create_config(config, par));
 
     const auto objects = par_dir.filter_files(filter);
 
@@ -155,7 +173,8 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
 TEST_F(Oci_par_directory_tests, oci_par_directory_file) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options());
+  const auto config = get_config();
+  Oci_bucket bucket(config);
 
   auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
 
@@ -166,8 +185,7 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_file) {
       mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ, time.c_str(),
       "sample-par", "", mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
 
-  Oci_par_directory par_dir(bucket.get_rest_service()->end_point() +
-                            par.access_uri + par.object_name);
+  Oci_par_directory par_dir(create_config(config, par));
 
   // GET Using different byte ranges
   {

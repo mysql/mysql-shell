@@ -205,6 +205,21 @@ function hasOciEnvironment(context) {
   return true;
 }
 
+function hasAwsEnvironment() {
+  const variables = ['MYSQLSH_S3_BUCKET_NAME'];
+  const missing = [];
+  for (const variable of variables) {
+    if (!defined(function(){eval(variable)})) {
+      missing.push(variable);
+    }
+  }
+  if (missing.length) {
+    println(`Missing AWS Variables: ${missing}`);
+    return false;
+  }
+  return true;
+}
+
 
 function hasAuthEnvironment(context) {
   if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO'].indexOf(context) == -1) {

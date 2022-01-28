@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -826,6 +826,19 @@ TEST(utils_string, truncate) {
   EXPECT_EQ("zß水𝄋zß", truncate("zß水𝄋zß水𝄋", 6));
   EXPECT_EQ("zß水𝄋zß水", truncate("zß水𝄋zß水𝄋", 7));
   EXPECT_EQ("zß水𝄋zß水𝄋", truncate("zß水𝄋zß水𝄋", 8));
+}
+
+TEST(utils_string, pctencode_path) {
+  EXPECT_EQ("", pctencode_path(""));
+  EXPECT_EQ("out", pctencode_path("out"));
+  EXPECT_EQ("/out", pctencode_path("/out"));
+  EXPECT_EQ("out/", pctencode_path("out/"));
+  EXPECT_EQ("/out/", pctencode_path("/out/"));
+  EXPECT_EQ("out/%40.json", pctencode_path("out/@.json"));
+  EXPECT_EQ("/out/%40.json", pctencode_path("/out/@.json"));
+  EXPECT_EQ("tmp/out/%40.json", pctencode_path("tmp/out/@.json"));
+  EXPECT_EQ("/tmp/out/%40.json", pctencode_path("/tmp/out/@.json"));
+  EXPECT_EQ("/tmp//out/%40.json", pctencode_path("/tmp//out/@.json"));
 }
 
 }  // namespace shcore

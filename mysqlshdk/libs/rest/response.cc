@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/rest/response.h"
 
 #include <curl/curl.h>
+#include <tinyxml2.h>
 #include <string>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -35,6 +36,7 @@ namespace rest {
 namespace {
 static constexpr auto k_content_type = "Content-Type";
 static constexpr auto k_application_json = "application/json";
+static constexpr auto k_application_xml = "application/xml";
 }  // namespace
 
 std::string Response::status_code(Status_code c) {
@@ -175,6 +177,16 @@ bool Response::is_json(const Headers &hdrs) {
          shcore::str_ibeginswith(content_type->second, k_application_json);
 }
 
+bool Response::is_xml(const Headers &hdrs) {
+  const auto content_type = hdrs.find(k_content_type);
+  return content_type != hdrs.end() &&
+         shcore::str_ibeginswith(content_type->second, k_application_xml);
+}
+
+bool Response::is_error(Status_code c) {
+  return c < Status_code::OK || c >= Status_code::MULTIPLE_CHOICES;
+}
+
 shcore::Value Response::json() const {
   if (is_json(headers) && body && body->size()) {
     return shcore::Value::parse(body->data(), body->size());
@@ -185,17 +197,29 @@ shcore::Value Response::json() const {
 }
 
 std::optional<Response_error> Response::get_error() const {
-  if (status < Response::Status_code::OK ||
-      status >= Response::Status_code::MULTIPLE_CHOICES) {
-    if (Response::is_json(headers) && body && body->size()) {
-      try {
-        auto json = shcore::Value::parse(body->data(), body->size()).as_map();
-        if (json->get_type("message") == shcore::Value_type::String) {
-          return Response_error(status, json->get_string("message"));
+  if (is_error(status)) {
+    if (body && body->size()) {
+      if (Response::is_json(headers)) {
+        try {
+          auto json = shcore::Value::parse(body->data(), body->size()).as_map();
+          if (json->get_type("message") == shcore::Value_type::String) {
+            return Response_error(status, json->get_string("message"));
+          }
+        } catch (const shcore::Exception &error) {
+          // This handles the case where the content/type indicates it's JSON
+          // but parsing failed. The default error message is used on this case.
         }
-      } catch (const shcore::Exception &error) {
-        // This handles the case where the content/type indicates it's JSON but
-        // parsing failed. The default error message is used on this case.
+      } else if (Response::is_xml(headers)) {
+        tinyxml2::XMLDocument xml;
+
+        if (tinyxml2::XMLError::XML_SUCCESS ==
+            xml.Parse(body->data(), body->size())) {
+          if (const auto root = xml.FirstChildElement("Error")) {
+            if (const auto msg = root->FirstChildElement("Message")) {
+              return Response_error(status, msg->GetText());
+            }
+          }
+        }
       }
     }
 

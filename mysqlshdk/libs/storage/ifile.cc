@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,13 @@
 #include "mysqlshdk/libs/storage/ifile.h"
 
 #include <cstdarg>
+#include <cstring>
 #include <vector>
 
-#include "mysqlshdk/libs/oci/oci_options.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+
 #include "mysqlshdk/libs/storage/backend/file.h"
 #include "mysqlshdk/libs/storage/backend/http.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/utils.h"
 
 namespace mysqlshdk {
@@ -37,16 +38,6 @@ namespace storage {
 
 std::unique_ptr<IFile> make_file(const std::string &filepath,
                                  const File_options &options) {
-  if (!options.empty()) {
-    mysqlshdk::oci::Oci_options oci_options;
-    bool is_oci =
-        mysqlshdk::oci::parse_oci_options(filepath, options, &oci_options);
-
-    if (is_oci) {
-      return make_file(filepath, oci_options);
-    }
-  }
-
   const auto scheme = utils::get_scheme(filepath);
   if (scheme.empty() || utils::scheme_matches(scheme, "file")) {
     backend::File::Options file_options;
@@ -63,7 +54,7 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
     return std::make_unique<backend::File>(filepath, file_options);
   } else if (utils::scheme_matches(scheme, "http") ||
              utils::scheme_matches(scheme, "https")) {
-    return std::make_unique<backend::Http_get>(filepath);
+    return std::make_unique<backend::Http_object>(filepath);
   }
 
   throw std::invalid_argument("File handling for " + scheme +
@@ -71,9 +62,9 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
 }
 
 std::unique_ptr<IFile> make_file(const std::string &filepath,
-                                 const mysqlshdk::oci::Oci_options &options) {
-  if (options) {
-    return std::make_unique<backend::oci::Object>(options, filepath);
+                                 const Config_ptr &config) {
+  if (config && config->valid()) {
+    return config->make_file(filepath);
   } else {
     return make_file(filepath);
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,8 @@
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/libs/oci/oci_bucket.h"
+#include "mysqlshdk/libs/storage/backend/http.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -46,35 +48,217 @@ static constexpr auto k_at_done_json = "@.done.json";
 namespace mysqlsh {
 namespace dump {
 
-namespace {
-std::shared_ptr<Manifest_reader> manifest_reader(
-    const std::shared_ptr<Manifest_base> &manifest) {
-  if (manifest->get_mode() == Manifest_mode::READ) {
-    auto reader = std::dynamic_pointer_cast<Manifest_reader>(manifest);
-    if (reader) return reader;
-  }
-  throw std::logic_error("Invalid manifest reader object");
-}
-
-std::shared_ptr<Manifest_writer> manifest_writer(
-    const std::shared_ptr<Manifest_base> &manifest) {
-  if (manifest->get_mode() == Manifest_mode::WRITE) {
-    auto writer = std::dynamic_pointer_cast<Manifest_writer>(manifest);
-    if (writer) return writer;
-  }
-  throw std::logic_error("Invalid manifest writer object");
-}
-}  // namespace
-
 FI_DEFINE(par_manifest, ([](const mysqlshdk::utils::FI::Args &args) {
-            throw mysqlshdk::oci::Response_error(
-                static_cast<mysqlshdk::oci::Response::Status_code>(
+            throw mysqlshdk::rest::Response_error(
+                static_cast<mysqlshdk::rest::Response::Status_code>(
                     args.get_int("code")),
                 args.get_string("msg"));
           }));
 
 using mysqlshdk::storage::IDirectory;
 using mysqlshdk::storage::Mode;
+
+namespace {
+
+class Dump_manifest_object
+    : public mysqlshdk::storage::backend::object_storage::Object {
+ public:
+  Dump_manifest_object(const std::shared_ptr<Manifest_writer> &writer,
+                       const Dump_manifest_write_config_ptr &config,
+                       const std::string &name, const std::string &prefix);
+
+  ~Dump_manifest_object() override = default;
+
+  /**
+   * Opens the object for data operations:
+   *
+   * @param mode indicates the mode in which the object will be used.
+   *
+   * Valid modes include:
+   *
+   * - WRITE: Used to create or overwrite an object.
+   * - APPEND: used to continue writing the parts of a multipart object that has
+   * not been completed.
+   * - READ: Used to read the content of the object.
+   */
+  void open(mysqlshdk::storage::Mode mode) override;
+
+  /**
+   * Finishes the operation being done on the object.
+   *
+   * If the object was opened in WRITE or APPEND mode this will flush the object
+   * data and complete the object.
+   */
+  void close() override;
+
+  std::unique_ptr<mysqlshdk::storage::IDirectory> parent() const override;
+
+ private:
+  void create_par();
+  std::string object_name() const;
+
+  std::shared_ptr<Manifest_writer> m_writer;
+  mysqlshdk::utils::nullable<size_t> m_size;
+  std::unique_ptr<std::thread> m_par_thread;
+  std::unique_ptr<mysqlshdk::oci::PAR> m_par;
+  std::string m_par_thread_error;
+  Dump_manifest_write_config_ptr m_config;
+};
+
+Dump_manifest_object::Dump_manifest_object(
+    const std::shared_ptr<Manifest_writer> &writer,
+    const Dump_manifest_write_config_ptr &config, const std::string &name,
+    const std::string &prefix)
+    : Object(config, name, prefix), m_writer(writer), m_config(config) {}
+
+void Dump_manifest_object::open(mysqlshdk::storage::Mode mode) {
+  // The PAR creation is done in parallel
+  m_par_thread = std::make_unique<std::thread>(
+      mysqlsh::spawn_scoped_thread([this]() { create_par(); }));
+
+  Object::open(mode);
+}
+
+void Dump_manifest_object::close() {
+  if (m_par_thread) {
+    m_par_thread->join();
+    m_par_thread.reset();
+
+    // Getting the file size when a writer is open takes the value from the
+    // writer rather than sending another request to the server
+    if (m_par) {
+      m_par->size = file_size();
+    }
+  }
+
+  {
+    if (m_par) {
+      m_writer->add_par(std::move(*m_par));
+    } else {
+      try {
+        this->remove();
+      } catch (const mysqlshdk::rest::Response_error &error) {
+        log_error("Failed removing object '%s' after PAR creation failed: %s",
+                  Object::full_path().masked().c_str(), error.what());
+      } catch (const mysqlshdk::rest::Connection_error &error) {
+        log_error("Failed removing object '%s' after PAR creation failed: %s",
+                  Object::full_path().masked().c_str(), error.what());
+      }
+    }
+  }
+
+  Object::close();
+
+  // throw only after everything is cleaned up
+  if (!m_par) {
+    THROW_ERROR(SHERR_DUMP_MANIFEST_PAR_CREATION_FAILED, object_name().c_str(),
+                m_par_thread_error.c_str());
+  }
+}
+
+void Dump_manifest_object::create_par() {
+  const auto name = object_name();
+
+  try {
+    FI_TRIGGER_TRAP(par_manifest,
+                    mysqlshdk::utils::FI::Trigger_options({{"name", name}}));
+
+    const auto bucket = m_config->oci_bucket();
+    const auto par_name = k_par_prefix + name;
+
+    auto par = bucket->create_pre_authenticated_request(
+        mysqlshdk::oci::PAR_access_type::OBJECT_READ,
+        m_config->par_expire_time(), par_name, name);
+    m_par = std::make_unique<mysqlshdk::oci::PAR>(std::move(par));
+  } catch (const mysqlshdk::rest::Response_error &error) {
+    m_par_thread_error = error.what();
+    log_error("Error creating PAR for object '%s': %s", name.c_str(),
+              error.what());
+  } catch (const mysqlshdk::rest::Connection_error &error) {
+    m_par_thread_error = error.what();
+    log_error("Error creating PAR for object '%s': %s", name.c_str(),
+              error.what());
+  }
+}
+
+std::string Dump_manifest_object::object_name() const {
+  auto name = Object::full_path().real();
+
+  if (shcore::str_endswith(name, k_dumping_suffix)) {
+    name = name.substr(0, name.length() - std::strlen(k_dumping_suffix));
+  }
+
+  return name;
+}
+
+std::unique_ptr<mysqlshdk::storage::IDirectory> Dump_manifest_object::parent()
+    const {
+  // if the full path does not contain a backslash then the parent directory is
+  // the root directory
+  return std::make_unique<Dump_manifest_writer>(m_config, m_writer->base_name(),
+                                                m_writer);
+}
+
+class Http_manifest_object : public mysqlshdk::storage::backend::Http_object {
+ public:
+  Http_manifest_object(const std::shared_ptr<Manifest_reader> &reader,
+                       const Dump_manifest_read_config_ptr &config,
+                       const std::string &full_name);
+
+  ~Http_manifest_object() override = default;
+
+  /**
+   * Returns the total size of the object.
+   */
+  size_t file_size() const override;
+
+  /**
+   * Indicates whether the object already exists in the bucket or not.
+   */
+  bool exists() const override;
+
+  std::unique_ptr<mysqlshdk::storage::IDirectory> parent() const override;
+
+ private:
+  std::shared_ptr<Manifest_reader> m_reader;
+  Dump_manifest_read_config_ptr m_config;
+  std::string m_full_name;
+};
+
+Http_manifest_object::Http_manifest_object(
+    const std::shared_ptr<Manifest_reader> &reader,
+    const Dump_manifest_read_config_ptr &config, const std::string &full_name)
+    : Http_object(
+          mysqlshdk::oci::anonymize_par(config->par().endpoint() +
+                                        reader->get_object(full_name).name()),
+          true),
+      m_reader(reader),
+      m_config(config),
+      m_full_name(full_name) {}
+
+size_t Http_manifest_object::file_size() const {
+  return m_reader->get_object(m_full_name).size();
+}
+
+bool Http_manifest_object::exists() const {
+  bool exists = m_reader->has_object(m_full_name);
+
+  if (!exists && !m_reader->is_complete()) {
+    m_reader->reload();
+    exists = m_reader->has_object(m_full_name);
+  }
+
+  return exists;
+}
+
+std::unique_ptr<mysqlshdk::storage::IDirectory> Http_manifest_object::parent()
+    const {
+  // if the full path does not contain a backslash then the parent directory is
+  // the root directory
+  return std::make_unique<Dump_manifest_reader>(m_config, m_reader);
+}
+
+}  // namespace
 
 bool Manifest_base::has_object(const std::string &name) const {
   std::lock_guard<std::mutex> lock(m_mutex);
@@ -95,10 +279,9 @@ const IDirectory::File_info &Manifest_base::get_object(
 }
 
 Manifest_writer::Manifest_writer(
-    const std::string &base_name, const std::string &par_expire_time,
-    std::unique_ptr<mysqlshdk::storage::IFile> file_handle)
-    : Manifest_base(Manifest_mode::WRITE, std::move(file_handle)),
-      m_base_name(base_name),
+    std::unique_ptr<mysqlshdk::storage::IFile> file_handle,
+    const std::string &base_name, const std::string &par_expire_time)
+    : Manifest_base(std::move(file_handle), base_name),
       m_par_expire_time(par_expire_time) {
   m_par_thread =
       std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread([this]() {
@@ -264,10 +447,7 @@ void Manifest_reader::unserialize(const std::string &data) {
   m_objects.clear();
 
   const auto contents = manifest_map->get_array("contents");
-
-  const auto done_path = m_meta.object_prefix.empty()
-                             ? k_at_done_json
-                             : m_meta.object_prefix + "/" + k_at_done_json;
+  const auto done_path = base_name() + k_at_done_json;
 
   for (const auto &val : (*contents)) {
     const auto entry = val.as_map();
@@ -314,316 +494,120 @@ std::unordered_set<IDirectory::File_info> Manifest_base::list_objects() {
   return ret_val;
 }
 
-Dump_manifest::Dump_manifest(Manifest_mode mode,
-                             const mysqlshdk::oci::Oci_options &options,
-                             const std::shared_ptr<Manifest_base> &manifest,
-                             const std::string &name)
-    : Directory(options, name), m_manifest(manifest) {
-  if (m_manifest == nullptr) {
-    using mysqlshdk::storage::backend::oci::parse_par;
-
+Dump_manifest_writer::Dump_manifest_writer(
+    const Dump_manifest_write_config_ptr &config, const std::string &name,
+    const std::shared_ptr<Manifest_writer> &writer)
+    : Directory(config, name), m_writer(writer), m_config(config) {
+  if (!m_writer) {
     // This class is a Directory interface to handle dump and load operations
     // using Pre-authenticated requests (PARs), it works dual mode as follows:
-    //
-    // READ Mode: Expects the name to be a PAR to be to a manifest file, the
-    // directory will read data from the manifest and cause the returned files
-    // to read their data using the associated PAR in the manifest.
     //
     // WRITE Mode: acts as a normal OCI Directory excepts that will
     // automatically create a PAR for each object created and a manifest file
     // containing the relation between files and PARs.
-    if (mode == Manifest_mode::READ) {
-      Par_structure data;
-      Par_type par_type = parse_par(name, &data);
-
-      if (par_type == Par_type::MANIFEST) {
-        // The directory name (removes the trailing / from the prefix)
-        m_name = "";
-        if (!data.object_prefix.empty()) {
-          m_name = data.object_prefix.substr(0, data.object_prefix.size() - 1);
-        }
-        m_manifest = std::make_shared<Manifest_reader>(
-            data,
-            std::make_unique<mysqlshdk::storage::backend::oci::Object>(name));
-      } else {
-        // Any other name is not supported.
-        throw std::invalid_argument(
-            shcore::str_format("Invalid manifest PAR: %s", name.c_str()));
-      }
-    } else {
-      m_manifest = std::make_shared<Manifest_writer>(
-          name, *options.oci_par_expire_time,
-          Directory::file(k_at_manifest_json));
-    }
+    m_writer = std::make_shared<Manifest_writer>(
+        Directory::file(k_at_manifest_json), name, config->par_expire_time());
   }
 }
 
-Dump_manifest::~Dump_manifest() {
+Dump_manifest_writer::~Dump_manifest_writer() {
   try {
-    if (m_manifest->get_mode() == Manifest_mode::WRITE) {
-      manifest_writer(m_manifest)->finalize();
-    }
+    m_writer->finalize();
   } catch (const std::runtime_error &error) {
     log_error("%s", error.what());
   }
 }
 
-std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
+std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest_writer::file(
     const std::string &name, const mysqlshdk::storage::File_options &) const {
-  std::string object_name(name);
+  std::string prefix = m_name;
 
-  std::string prefix;
-  if (!m_name.empty()) prefix = m_name + "/";
-
-  if (m_manifest->get_mode() == Manifest_mode::READ) {
-    // On read mode, the first file to be created is the handle for the manifest
-    // file, if it has not been created then we skip the validation below for
-    // additional files
-    auto reader = manifest_reader(m_manifest);
-
-    // In READ mode, if a PAR is provided (i.e. a PAR to the progress file),
-    // then the file is "created" and it is kept on a different registry (i.e.
-    // not part of the manifest)
-    Par_structure data;
-    Par_type par_type = parse_par(name, &data);
-    if (par_type != Par_type::NONE) {
-      if (data.region == reader->region() && data.domain == reader->domain() &&
-          data.ns_name == *m_bucket->get_options().os_namespace &&
-          data.bucket == *m_bucket->get_options().os_bucket_name &&
-          data.object_prefix == prefix) {
-        object_name = data.object_name;
-        m_created_objects.emplace(std::move(data.object_name),
-                                  File_info{data.get_object_path(), 0});
-        // prefix = "";
-        return std::make_unique<mysqlshdk::storage::backend::oci::Object>(name);
-      } else {
-        THROW_ERROR(SHERR_LOAD_MANIFEST_PAR_MISMATCH, name.c_str());
-      }
-    }
+  if (!prefix.empty() && '/' != prefix.back()) {
+    prefix += '/';
   }
 
-  return std::make_unique<Dump_manifest_object>(
-      m_manifest, m_bucket->get_options(), object_name, prefix);
+  return std::make_unique<Dump_manifest_object>(m_writer, m_config, name,
+                                                prefix);
 }
 
-const IDirectory::File_info &Dump_manifest::get_object(const std::string &name,
-                                                       bool fetch_size) const {
-  auto created_object = m_created_objects.find(name);
-
-  if (created_object != m_created_objects.end()) {
-    auto &info = created_object->second;
-
-    if (fetch_size) {
-      info.set_size(m_bucket->head_object(info.name()));
-    }
-
-    return info;
-  }
-
-  // Returns the object if exists on the manifest
-  return m_manifest->get_object(name);
-}
-
-bool Dump_manifest::has_object(const std::string &name) const {
-  auto created_object = m_created_objects.find(name);
-
-  return created_object != m_created_objects.end() ||
-         m_manifest->has_object(name);
-}
-
-/**
- * Returns true if the file with the given name exists either on the manifest
- * or on the files created with this class and actually exists on the bucket.
- * (i.e. a progress file for a resuming load)
- */
-bool Dump_manifest::file_exists(const std::string &name) const {
+void Dump_manifest_writer::close() {
   try {
-    bool exists = m_manifest->has_object(name);
-    if (!exists && m_manifest->get_mode() == Manifest_mode::READ &&
-        !m_manifest->is_complete()) {
-      manifest_reader(m_manifest)->reload();
-      exists = m_manifest->has_object(name);
-    }
-    return exists;
-  } catch (const mysqlshdk::rest::Response_error &error) {
-    if (error.code() == mysqlshdk::rest::Response::Status_code::NOT_FOUND) {
-      return false;
-    } else {
-      throw;
-    }
-  }
-}
-
-void Dump_manifest::close() {
-  try {
-    if (m_manifest->get_mode() == Manifest_mode::WRITE) {
-      manifest_writer(m_manifest)->finalize();
-    }
+    m_writer->finalize();
   } catch (const std::runtime_error &error) {
     log_error("%s", error.what());
   }
 }
 
-std::unordered_set<IDirectory::File_info> Dump_manifest::list_files(
-    bool hidden_files) const {
-  if (m_manifest->get_mode() == Manifest_mode::READ) {
-    if (!m_manifest->is_complete()) {
-      manifest_reader(m_manifest)->reload();
-    }
-
-    auto objects = m_manifest->list_objects();
-
-    // File list must exclude the PAR portion
-    size_t prefix_length = m_name.empty() ? 0 : m_name.size() + 1;
-    std::unordered_set<IDirectory::File_info> files;
-
-    for (const auto &object : objects) {
-      files.emplace(object.name().substr(prefix_length), object.size());
-    }
-    return files;
-  } else {
-    return Directory::list_files(hidden_files);
+Dump_manifest_reader::Dump_manifest_reader(
+    const Dump_manifest_read_config_ptr &config,
+    const std::shared_ptr<Manifest_reader> &reader)
+    : m_reader(reader), m_config(config) {
+  if (!m_reader) {
+    // This class is a Directory interface to handle dump and load operations
+    // using Pre-authenticated requests (PARs), it works dual mode as follows:
+    //
+    // READ mode: Expects the name to be a PAR to be to a manifest file, the
+    // directory will read data from the manifest and cause the returned files
+    // to read their data using the associated PAR in the manifest.
+    m_reader = std::make_shared<Manifest_reader>(
+        std::make_unique<mysqlshdk::storage::backend::Http_object>(
+            mysqlshdk::oci::anonymize_par(config->par().full_url), true),
+        m_config->par().object_prefix);
   }
 }
 
-Dump_manifest_object::Dump_manifest_object(
-    const std::shared_ptr<Manifest_base> &manifest,
-    const mysqlshdk::oci::Oci_options &options, const std::string &name,
-    const std::string &prefix)
-    : Object(options, name, prefix), m_manifest(manifest) {}
-
-mysqlshdk::Masked_string Dump_manifest_object::full_path() const {
-  auto full_path = Object::full_path();
-
-  if (m_manifest->get_mode() == Manifest_mode::READ) {
-    return mysqlshdk::oci::anonymize_par(
-        manifest_reader(m_manifest)->get_object(full_path.real()).name());
-  } else {
-    return full_path;
-  }
+std::string Dump_manifest_reader::join_path(const std::string &a,
+                                            const std::string &b) const {
+  return a.empty() ? b : a + "/" + b;
 }
 
-void Dump_manifest_object::open(mysqlshdk::storage::Mode mode) {
-  if (m_manifest->get_mode() == Manifest_mode::WRITE) {
-    // The PAR creation is done in parallel
-    const auto &options = m_bucket->get_options();
-    m_par_thread = std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread(
-        [this, &options]() { create_par(options); }));
-  }
+std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest_reader::file(
+    const std::string &name, const mysqlshdk::storage::File_options &) const {
+  using mysqlshdk::oci::PAR_structure;
+  using mysqlshdk::oci::PAR_type;
+  // On read mode, the first file to be created is the handle for the manifest
+  // file, if it has not been created then we skip the validation below for
+  // additional files
+  //
+  // In READ mode, if a PAR is provided (i.e. a PAR to the progress file),
+  // then the file is "created" and it is kept on a different registry (i.e.
+  // not part of the manifest)
+  PAR_structure data;
 
-  Object::open(mode);
-}
+  if (parse_par(name, &data) != PAR_type::NONE) {
+    if (data.region == m_config->par().region &&
+        data.domain == m_config->par().domain &&
+        data.ns_name == m_config->par().ns_name &&
+        data.bucket == m_config->par().bucket &&
+        data.object_prefix == m_config->par().object_prefix) {
+      m_created_objects.emplace(std::move(data.object_name),
+                                File_info{data.object_path(), 0});
 
-size_t Dump_manifest_object::file_size() const {
-  if (m_manifest->get_mode() == Manifest_mode::READ) {
-    return manifest_reader(m_manifest)
-        ->get_object(Object::full_path().real())
-        .size();
-  } else {
-    return Object::file_size();
-  }
-}
-
-void Dump_manifest_object::close() {
-  if (m_par_thread) {
-    m_par_thread->join();
-    m_par_thread.reset();
-
-    // Getting the file size when a writer is open takes the value from the
-    // writer rather than sending another request to the server
-    if (m_par) {
-      m_par->size = file_size();
-    }
-  }
-
-  if (m_manifest->get_mode() == Manifest_mode::WRITE) {
-    auto writer = manifest_writer(m_manifest);
-
-    if (m_par) {
-      writer->add_par(std::move(*m_par));
+      return std::make_unique<mysqlshdk::storage::backend::Http_object>(
+          mysqlshdk::oci::anonymize_par(name), true);
     } else {
-      try {
-        this->remove();
-      } catch (const mysqlshdk::oci::Response_error &error) {
-        log_error("Failed removing object '%s' after PAR creation failed: %s",
-                  Object::full_path().masked().c_str(), error.what());
-      } catch (const mysqlshdk::rest::Connection_error &error) {
-        log_error("Failed removing object '%s' after PAR creation failed: %s",
-                  Object::full_path().masked().c_str(), error.what());
-      }
+      THROW_ERROR(SHERR_LOAD_MANIFEST_PAR_MISMATCH, name.c_str());
     }
-  }
-
-  Object::close();
-
-  // throw only after everything is cleaned up
-  if (m_manifest->get_mode() == Manifest_mode::WRITE && !m_par) {
-    THROW_ERROR(SHERR_DUMP_MANIFEST_PAR_CREATION_FAILED, object_name().c_str(),
-                m_par_thread_error.c_str());
-  }
-}
-
-bool Dump_manifest_object::exists() const {
-  if (m_manifest->get_mode() == Manifest_mode::READ) {
-    bool exists = m_manifest->has_object(m_name);
-    if (!exists && !m_manifest->is_complete()) {
-      manifest_reader(m_manifest)->reload();
-      exists = m_manifest->has_object(m_name);
-    }
-
-    return exists;
   } else {
-    return Object::exists();
+    return std::make_unique<Http_manifest_object>(
+        m_reader, m_config, m_config->par().object_prefix + name);
   }
 }
 
-void Dump_manifest_object::create_par(
-    const mysqlshdk::oci::Oci_options &options) {
-  const auto name = object_name();
-
-  try {
-    FI_TRIGGER_TRAP(par_manifest,
-                    mysqlshdk::utils::FI::Trigger_options({{"name", name}}));
-
-    mysqlshdk::oci::Bucket bucket(options);
-
-    std::string expire_time = *bucket.get_options().oci_par_expire_time;
-
-    std::string par_name(k_par_prefix);
-    par_name += name;
-
-    auto par = bucket.create_pre_authenticated_request(
-        mysqlshdk::oci::PAR_access_type::OBJECT_READ, expire_time.c_str(),
-        par_name, name);
-    m_par = std::make_unique<mysqlshdk::oci::PAR>(std::move(par));
-  } catch (const mysqlshdk::oci::Response_error &error) {
-    m_par_thread_error = error.what();
-    log_error("Error creating PAR for object '%s': %s", name.c_str(),
-              error.what());
-  } catch (const mysqlshdk::rest::Connection_error &error) {
-    m_par_thread_error = error.what();
-    log_error("Error creating PAR for object '%s': %s", name.c_str(),
-              error.what());
-  }
-}
-
-std::string Dump_manifest_object::object_name() const {
-  auto name = Object::full_path().real();
-
-  if (shcore::str_endswith(name, k_dumping_suffix)) {
-    name = shcore::str_replace(name, k_dumping_suffix, "");
+std::unordered_set<File_info> Dump_manifest_reader::list_files(bool) const {
+  if (!m_reader->is_complete()) {
+    m_reader->reload();
   }
 
-  return name;
-}
+  // File list must exclude the PAR portion
+  const auto prefix_length = m_config->par().object_prefix.length();
+  std::unordered_set<IDirectory::File_info> files;
 
-std::unique_ptr<mysqlshdk::storage::IDirectory> Dump_manifest_object::parent()
-    const {
-  // if the full path does not contain a backslash then the parent directory is
-  // the root directory
-  return std::make_unique<Dump_manifest>(m_manifest->get_mode(),
-                                         m_bucket->get_options(), m_manifest,
-                                         m_manifest->get_base_name());
+  for (const auto &object : m_reader->list_objects()) {
+    files.emplace(object.name().substr(prefix_length), object.size());
+  }
+
+  return files;
 }
 
 }  // namespace dump

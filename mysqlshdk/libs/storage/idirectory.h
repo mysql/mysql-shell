@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,12 +35,10 @@
 
 #include "mysqlshdk/libs/utils/masked_value.h"
 
+#include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlshdk {
-namespace oci {
-struct Oci_options;
-}
 namespace storage {
 
 class IDirectory {
@@ -166,12 +164,10 @@ class IDirectory {
                                 const std::string &b) const = 0;
 };
 
-std::unique_ptr<IDirectory> make_directory(
-    const std::string &path,
-    const std::unordered_map<std::string, std::string> &options = {});
+std::unique_ptr<IDirectory> make_directory(const std::string &path);
 
-std::unique_ptr<IDirectory> make_directory(
-    const std::string &path, const mysqlshdk::oci::Oci_options &options);
+std::unique_ptr<IDirectory> make_directory(const std::string &path,
+                                           const Config_ptr &config);
 
 }  // namespace storage
 }  // namespace mysqlshdk

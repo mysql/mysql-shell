@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, 2022 Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -20,14 +20,16 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 IF(OPENSSL_INCLUDE_DIR)
-	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
 ENDIF()
 
 set(oci_SOURCES
   oci_bucket.cc
-  oci_options.cc
-  oci_rest_service.cc
+  oci_bucket_config.cc
+  oci_bucket_options.cc
+  oci_par.cc
   oci_setup.cc
+  oci_signer.cc
 )
 
 add_convenience_library(oci ${oci_SOURCES})

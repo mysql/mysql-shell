@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -31,23 +31,23 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
+#include "modules/util/dump/dump_manifest_config.h"
+#include "modules/util/dump/dump_manifest_options.h"
 #include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
-#include "mysqlshdk/libs/oci/oci_options.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/oci/oci_bucket.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 extern "C" const char *g_oci_config_path;
+
 namespace testing {
 
-using namespace mysqlshdk::storage::backend::oci;
-using mysqlshdk::oci::Oci_options;
-using mysqlshdk::oci::Response_error;
-using mysqlshdk::storage::Mode;
+using mysqlsh::dump::Dump_manifest_options;
 
 #define SKIP_IF_NO_OCI_CONFIGURATION \
   do {                               \
@@ -109,26 +109,36 @@ class Oci_os_tests : public Shell_core_test_wrapper {
   std::string m_os_bucket_name;
   std::string m_oci_compartment_id;
 
-  void create_objects(Bucket &bucket) {
+  void create_objects(mysqlshdk::oci::Oci_bucket &bucket) {
     for (const auto &name : m_objects) {
       bucket.put_object(name, "0", 1);
     }
   }
 
-  Oci_options get_options(const std::string &bucket = {}) {
-    Oci_options options;
-    options.os_bucket_name = bucket.empty() ? m_os_bucket_name : bucket;
+  // NOTE: this returns Dump_manifest_write_config, so it can be used in the
+  // Dump_manifest tests, but can be upcast to Oci_bucket_config, and used to
+  // initialize an OCI bucket
+  std::shared_ptr<mysqlsh::dump::Dump_manifest_write_config> get_config(
+      const std::string &bucket = {}) {
+    const auto options =
+        shcore::make_dict(Dump_manifest_options::bucket_name_option(),
+                          bucket.empty() ? m_os_bucket_name : bucket,
+                          Dump_manifest_options::par_manifest_option(), true);
 
     if (!m_os_namespace.empty()) {
-      options.os_namespace = m_os_namespace;
+      options->set(Dump_manifest_options::namespace_option(),
+                   shcore::Value{m_os_namespace});
     }
 
-    options.check_option_values();
-    return options;
+    Dump_manifest_options parsed_options;
+    Dump_manifest_options::options().unpack(options, &parsed_options);
+
+    return std::make_shared<mysqlsh::dump::Dump_manifest_write_config>(
+        parsed_options);
   }
 
-  void clean_bucket(Bucket &bucket, bool clean_uploads = true,
-                    bool clean_pars = true) {
+  void clean_bucket(mysqlshdk::oci::Oci_bucket &bucket,
+                    bool clean_uploads = true, bool clean_pars = true) {
     auto objects = bucket.list_objects();
 
     if (!objects.empty()) {
@@ -176,7 +186,7 @@ class Oci_os_tests : public Shell_core_test_wrapper {
  private:
   void create_bucket() {
     if (!should_skip()) {
-      Bucket bucket(get_options());
+      mysqlshdk::oci::Oci_bucket bucket(get_config());
 
       if (bucket.exists()) {
         clean_bucket(bucket);
@@ -188,7 +198,7 @@ class Oci_os_tests : public Shell_core_test_wrapper {
 
   void delete_bucket() {
     if (!should_skip()) {
-      Bucket bucket(get_options());
+      mysqlshdk::oci::Oci_bucket bucket(get_config());
 
       clean_bucket(bucket);
       bucket.delete_();

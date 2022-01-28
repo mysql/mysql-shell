@@ -256,18 +256,29 @@ DESCRIPTION
         the bucket is located, if not given it will be obtained using the
         tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
-        configuration file instead of the one in the default location.
+        configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
       - ociParManifest: bool (default: not set) - Enables the generation of the
         PAR manifest while the dump operation is being executed.
       - ociParExpireTime: string (default: not set) - Allows defining the
         expiration time for the PARs generated when ociParManifest is enabled.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file instead of the one at the default location.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file instead of the one at the default location.
+      - s3Profile: string (default: not set) - Use the specified AWS profile
+        instead of the default one.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
 
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
+        1.2 TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -497,6 +508,43 @@ DESCRIPTION
       The ociParExpireTime option cannot be used if the ociParManifest option
       is not enabled.
 
+      Dumping to a Bucket in the AWS S3 Object Storage
+
+      If the s3BucketName option is used, the dump is stored in the specified
+      AWS S3 bucket. Connection is established using default local AWS
+      configuration paths and profiles, unless overridden. The directory
+      structure is simulated within the object name.
+
+      The s3CredentialsFile, s3ConfigFile, s3Profile and s3EndpointOverride
+      options cannot be used if the s3BucketName option is not set or set to an
+      empty string.
+
+      Handling of the AWS settings
+
+      1. The following settings are read from the config file for the specified
+         profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+      - region
+
+      2. The following settings are read from the credentials file for the
+         specified profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+
+      3. If there are credentials in both credentials and config files for the
+         specified profile, the keys in the credentials file take precedence.
+      4. If either aws_access_key_id or aws_secret_access_key is missing, an
+         exception is thrown.
+      5. If aws_session_token is missing, or is empty, it is not used to
+         authenticate the user.
+      6. If region is missing, or is empty, a default value of us-east-1 is
+         used instead.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -597,18 +645,29 @@ DESCRIPTION
         the bucket is located, if not given it will be obtained using the
         tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
-        configuration file instead of the one in the default location.
+        configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
       - ociParManifest: bool (default: not set) - Enables the generation of the
         PAR manifest while the dump operation is being executed.
       - ociParExpireTime: string (default: not set) - Allows defining the
         expiration time for the PARs generated when ociParManifest is enabled.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file instead of the one at the default location.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file instead of the one at the default location.
+      - s3Profile: string (default: not set) - Use the specified AWS profile
+        instead of the default one.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
 
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
+        1.2 TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -827,6 +886,43 @@ DESCRIPTION
       The ociParExpireTime option cannot be used if the ociParManifest option
       is not enabled.
 
+      Dumping to a Bucket in the AWS S3 Object Storage
+
+      If the s3BucketName option is used, the dump is stored in the specified
+      AWS S3 bucket. Connection is established using default local AWS
+      configuration paths and profiles, unless overridden. The directory
+      structure is simulated within the object name.
+
+      The s3CredentialsFile, s3ConfigFile, s3Profile and s3EndpointOverride
+      options cannot be used if the s3BucketName option is not set or set to an
+      empty string.
+
+      Handling of the AWS settings
+
+      1. The following settings are read from the config file for the specified
+         profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+      - region
+
+      2. The following settings are read from the credentials file for the
+         specified profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+
+      3. If there are credentials in both credentials and config files for the
+         specified profile, the keys in the credentials file take precedence.
+      4. If either aws_access_key_id or aws_secret_access_key is missing, an
+         exception is thrown.
+      5. If aws_session_token is missing, or is empty, it is not used to
+         authenticate the user.
+      6. If region is missing, or is empty, a default value of us-east-1 is
+         used instead.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -915,18 +1011,29 @@ DESCRIPTION
         the bucket is located, if not given it will be obtained using the
         tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
-        configuration file instead of the one in the default location.
+        configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
       - ociParManifest: bool (default: not set) - Enables the generation of the
         PAR manifest while the dump operation is being executed.
       - ociParExpireTime: string (default: not set) - Allows defining the
         expiration time for the PARs generated when ociParManifest is enabled.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file instead of the one at the default location.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file instead of the one at the default location.
+      - s3Profile: string (default: not set) - Use the specified AWS profile
+        instead of the default one.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
 
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
+        1.2 TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -1151,6 +1258,43 @@ DESCRIPTION
       The ociParExpireTime option cannot be used if the ociParManifest option
       is not enabled.
 
+      Dumping to a Bucket in the AWS S3 Object Storage
+
+      If the s3BucketName option is used, the dump is stored in the specified
+      AWS S3 bucket. Connection is established using default local AWS
+      configuration paths and profiles, unless overridden. The directory
+      structure is simulated within the object name.
+
+      The s3CredentialsFile, s3ConfigFile, s3Profile and s3EndpointOverride
+      options cannot be used if the s3BucketName option is not set or set to an
+      empty string.
+
+      Handling of the AWS settings
+
+      1. The following settings are read from the config file for the specified
+         profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+      - region
+
+      2. The following settings are read from the credentials file for the
+         specified profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+
+      3. If there are credentials in both credentials and config files for the
+         specified profile, the keys in the credentials file take precedence.
+      4. If either aws_access_key_id or aws_secret_access_key is missing, an
+         exception is thrown.
+      5. If aws_session_token is missing, or is empty, it is not used to
+         authenticate the user.
+      6. If region is missing, or is empty, a default value of us-east-1 is
+         used instead.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -1221,14 +1365,25 @@ DESCRIPTION
         the bucket is located, if not given it will be obtained using the
         tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
-        configuration file instead of the one in the default location.
+        configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file instead of the one at the default location.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file instead of the one at the default location.
+      - s3Profile: string (default: not set) - Use the specified AWS profile
+        instead of the default one.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
 
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
+        1.2 TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -1275,6 +1430,43 @@ DESCRIPTION
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Dumping to a Bucket in the AWS S3 Object Storage
+
+      If the s3BucketName option is used, the dump is stored in the specified
+      AWS S3 bucket. Connection is established using default local AWS
+      configuration paths and profiles, unless overridden. The directory
+      structure is simulated within the object name.
+
+      The s3CredentialsFile, s3ConfigFile, s3Profile and s3EndpointOverride
+      options cannot be used if the s3BucketName option is not set or set to an
+      empty string.
+
+      Handling of the AWS settings
+
+      1. The following settings are read from the config file for the specified
+         profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+      - region
+
+      2. The following settings are read from the credentials file for the
+         specified profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+
+      3. If there are credentials in both credentials and config files for the
+         specified profile, the keys in the credentials file take precedence.
+      4. If either aws_access_key_id or aws_secret_access_key is missing, an
+         exception is thrown.
+      5. If aws_session_token is missing, or is empty, it is not used to
+         authenticate the user.
+      6. If region is missing, or is empty, a default value of us-east-1 is
+         used instead.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:
@@ -1425,6 +1617,9 @@ DESCRIPTION
       oci.configFile global shell options and can be overridden with ociProfile
       and ociConfigFile, respectively.
 
+      If the s3BucketName option is given, the path argument must specify a
+      plain path in that AWS S3 bucket.
+
       Options dictionary:
 
       - schema: string (default: current shell active schema) - Name of target
@@ -1516,6 +1711,54 @@ DESCRIPTION
       - ociProfile: string (default: not set) - Override oci.profile shell
         option, to specify the name of the OCI profile to use.
 
+      AWS S3 Object Storage Options
+
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file instead of the one at the default location.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file instead of the one at the default location.
+      - s3Profile: string (default: not set) - Use the specified AWS profile
+        instead of the default one.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
+
+      If the s3BucketName option is used, the dump is stored in the specified
+      AWS S3 bucket. Connection is established using default local AWS
+      configuration paths and profiles, unless overridden. The directory
+      structure is simulated within the object name.
+
+      The s3CredentialsFile, s3ConfigFile, s3Profile and s3EndpointOverride
+      options cannot be used if the s3BucketName option is not set or set to an
+      empty string.
+
+      Handling of the AWS settings
+
+      1. The following settings are read from the config file for the specified
+         profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+      - region
+
+      2. The following settings are read from the credentials file for the
+         specified profile:
+
+      - aws_access_key_id
+      - aws_secret_access_key
+      - aws_session_token
+
+      3. If there are credentials in both credentials and config files for the
+         specified profile, the keys in the credentials file take precedence.
+      4. If either aws_access_key_id or aws_secret_access_key is missing, an
+         exception is thrown.
+      5. If aws_session_token is missing, or is empty, it is not used to
+         authenticate the user.
+      6. If region is missing, or is empty, a default value of us-east-1 is
+         used instead.
+
       dialect predefines following set of options fieldsTerminatedBy (FT),
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
       (FESC) and linesTerminatedBy (LT) in following manner:
@@ -1570,6 +1813,8 @@ DESCRIPTION
       - /path/to/folder - to load a dump from local storage
       - /oci/bucket/path - to load a dump from OCI Object Storage using an OCI
         profile
+      - /aws/bucket/path - to load a dump from AWS S3 Object Storage using the
+        AWS settings stored in the credentials and config files
       - PAR to the dump manifest - to load a dump from OCI Object Storage
         created with the ociParManifest option
       - PAR to the dump location - to load a dump from OCI Object Storage using
@@ -1577,9 +1822,9 @@ DESCRIPTION
 
       load_dump() will load a dump from the specified path. It transparently
       handles compressed files and directly streams data when loading from
-      remote storage (currently HTTP and OCI Object Storage). If the
-      'waitDumpTimeout' option is set, it will load a dump on-the-fly, loading
-      table data chunks as the dumper produces them.
+      remote storage (currently HTTP, OCI Object Storage and AWS S3 Object
+      Storage). If the 'waitDumpTimeout' option is set, it will load a dump
+      on-the-fly, loading table data chunks as the dumper produces them.
 
       Table data will be loaded in parallel using the configured number of
       threads (4 by default). Multiple threads per table can be used if the
@@ -1612,9 +1857,10 @@ DESCRIPTION
 
       The progress state file has a default name of
       load-progress.<server_uuid>.json and is written to the same location as
-      the dump. If 'progressFile' is specified, progress will be written to a
-      local file at the given path. Setting it to '' will disable progress
-      tracking and resuming.
+      the dump. If 'progressFile' is specified, progress will be written to
+      either a local file at the given path, or, if the HTTP(S) scheme is used,
+      to a remote file using HTTP PUT requests. Setting it to '' will disable
+      progress tracking and resuming.
 
       If the 'resetProgress' option is enabled, progress information from
       previous load attempts of the dump to the destination server is discarded
@@ -1745,9 +1991,19 @@ DESCRIPTION
         the bucket is located, if not given it will be obtained using the
         tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
-        configuration file instead of the one in the default location.
+        configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file instead of the one at the default location.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file instead of the one at the default location.
+      - s3Profile: string (default: not set) - Use the specified AWS profile
+        instead of the default one.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
 
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
@@ -1798,9 +2054,8 @@ DESCRIPTION
         }
       )
 
-      In both of the above cases the load is done using pure HTTP GET requests,
-      for that reason the progressFile option is mandatory and should be the
-      path to a local file.
+      In both of the above cases the load is done using pure HTTP GET requests
+      and the progressFile option is mandatory.
 
       A legacy method to create a dump loadable through PAR is still supported,
       this is done by using the ociParManifest option when creating the dump.
@@ -1809,8 +2064,7 @@ DESCRIPTION
       this file.
 
       When using a Manifest PAR to load a dump, the progressFile option is
-      mandatory, and it is possible to store the load progress either on the
-      local file system, or on the dump location.
+      mandatory.
 
       To store the progress on dump location, create an ObjectReadWrite PAR to
       the desired progress file (it does not need to exist), it should be
@@ -1826,7 +2080,6 @@ DESCRIPTION
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
-
 
 #@<OUT> util debug collect_diagnostics (full path)
 NAME

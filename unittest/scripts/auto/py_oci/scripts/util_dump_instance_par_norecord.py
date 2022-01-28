@@ -110,12 +110,12 @@ testutil.clear_traps("par_manifest")
 
 #@<> WL14841-TSFR_3_1 - @.json file {not __dbug_off}
 # WL14841-TSFR_3_3
-testutil.set_trap("oci_put_object", [f"name == {prefix}/@.json"], {"code": 404, "msg": "Injected exception"})
+testutil.set_trap("os_put_object", [f"name == {prefix}/@.json"], {"code": 404, "msg": "Injected exception"})
 
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True}),
     f"Error: Shell Error (54404): Util.dump_instance: While 'Gathering information': Failed to put object '{prefix}/@.json': Injected exception (404)")
 
-testutil.clear_traps("oci_put_object")
+testutil.clear_traps("os_put_object")
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

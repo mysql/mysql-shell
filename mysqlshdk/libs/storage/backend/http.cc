@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -99,6 +99,10 @@ std::string get_uri_base(const std::string &uri) {
   return base;
 }
 
+Masked_string get_uri_base(const Masked_string &uri) {
+  return {get_uri_base(uri.real()), get_uri_base(uri.masked())};
+}
+
 std::string get_uri_path(const std::string &uri) {
   const auto pos = span_uri_base(uri);
 
@@ -107,6 +111,10 @@ std::string get_uri_path(const std::string &uri) {
   } else {
     return uri.substr(pos + 1);
   }
+}
+
+std::string get_uri_path(const Masked_string &uri) {
+  return get_uri_path(uri.real());
 }
 
 void throw_if_error(const rest::String_response &response,
@@ -128,27 +136,34 @@ Http_request::Http_request(Masked_string path, bool use_retry,
   }
 }
 
-Http_get::Http_get(const std::string &full_path, bool use_retry)
-    : Http_get(get_uri_base(full_path), get_uri_path(full_path), use_retry) {}
-
-Http_get::Http_get(const Masked_string &base, const std::string &path,
-                   bool use_retry)
-    : m_base(base), m_path(path), m_use_retry(use_retry) {}
-
-void Http_get::open(Mode m) {
-  if (Mode::READ != m) {
-    throw std::logic_error("Http_get::open(): only read mode is supported");
-  }
-
-  exists();
-
-  m_offset = 0;
-  m_open = true;
+Http_object::Http_object(const std::string &full_path, bool use_retry)
+    : Http_object(get_uri_base(full_path), get_uri_path(full_path), use_retry) {
 }
 
-bool Http_get::is_open() const { return m_open; }
+Http_object::Http_object(const Masked_string &full_path, bool use_retry)
+    : Http_object(get_uri_base(full_path), get_uri_path(full_path), use_retry) {
+}
 
-std::string Http_get::filename() const {
+Http_object::Http_object(const Masked_string &base, const std::string &path,
+                         bool use_retry)
+    : m_base(base), m_path(path), m_use_retry(use_retry) {}
+
+void Http_object::open(Mode m) {
+  if (Mode::APPEND == m) {
+    throw std::logic_error("Http_object::open(): append mode is not supported");
+  }
+
+  if (Mode::READ == m) {
+    exists();
+  }
+
+  m_offset = 0;
+  m_open_mode = m;
+}
+
+bool Http_object::is_open() const { return m_open_mode.has_value(); }
+
+std::string Http_object::filename() const {
   std::string fname = full_path().real();
   {
     auto p = fname.find("#");
@@ -171,52 +186,63 @@ std::string Http_get::filename() const {
   return fname;
 }
 
-bool Http_get::exists() const {
-  if (!m_exists.has_value()) {
-    auto request = Http_request(m_path, m_use_retry);
-    auto response = get_rest_service(m_base)->head(&request);
+bool Http_object::exists() const {
+  bool result = true;
 
-    throw_if_error(response, request.path());
-
-    m_file_size = std::stoul(response.headers["content-length"]);
-    if (response.headers["Accept-Ranges"] != "bytes") {
-      throw std::runtime_error(
-          "Target server does not support partial requests.");
+  if (const auto error = fetch_file_size()) {
+    if (rest::Response::Status_code::NOT_FOUND == error->code()) {
+      result = false;
+    } else {
+      throw_if_error(error, "Failed to access object");
     }
-
-    m_exists = true;
   }
 
-  return m_exists.value();
+  return result;
 }
 
-std::unique_ptr<IDirectory> Http_get::parent() const {
-  return make_directory(m_base.real());
+std::unique_ptr<IDirectory> Http_object::parent() const {
+  return make_directory(m_base.real(), m_parent_config);
 }
 
-void Http_get::close() { m_open = false; }
+void Http_object::close() {
+  if (Mode::WRITE == *m_open_mode) {
+    auto request = Http_request(m_path, m_use_retry,
+                                {{"content-type", "application/octet-stream"}});
 
-size_t Http_get::file_size() const {
-  // Makes sure the file exists
-  exists();
+    request.body = m_buffer.data();
+    request.size = m_buffer.size();
+
+    throw_if_error(get_rest_service(m_base)->put(&request).get_error(),
+                   "Failed to put object");
+    m_buffer.clear();
+  }
+
+  m_open_mode.reset();
+  m_exists = false;
+}
+
+size_t Http_object::file_size() const {
+  throw_if_error(fetch_file_size(), "Failed to fetch size of object");
 
   return m_file_size;
 }
 
-Masked_string Http_get::full_path() const {
+Masked_string Http_object::full_path() const {
   return {m_base.real() + m_path, m_base.masked() + m_path};
 }
 
-off64_t Http_get::seek(off64_t offset) {
+off64_t Http_object::seek(off64_t offset) {
   assert(is_open());
 
-  const off64_t fsize = file_size();
-  m_offset = std::min(offset, fsize);
+  if (Mode::READ == *m_open_mode) {
+    m_offset = std::min<off64_t>(offset, file_size());
+  }
+
   return m_offset;
 }
 
-ssize_t Http_get::read(void *buffer, size_t length) {
-  assert(is_open());
+ssize_t Http_object::read(void *buffer, size_t length) {
+  assert(is_open() && Mode::READ == *m_open_mode);
 
   if (!(length > 0)) return 0;
   const off64_t fsize = file_size();
@@ -251,9 +277,62 @@ ssize_t Http_get::read(void *buffer, size_t length) {
   return 0;
 }
 
-Http_directory::Http_directory(const std::string &url, bool use_retry)
-    : Http_directory(use_retry) {
-  init_rest(url);
+ssize_t Http_object::write(const void *buffer, size_t length) {
+  assert(is_open() && Mode::WRITE == *m_open_mode);
+
+  const auto incoming = reinterpret_cast<char *>(const_cast<void *>(buffer));
+  m_buffer.append(incoming, length);
+  m_file_size += length;
+
+  return length;
+}
+
+void Http_object::remove() {
+  auto request = Http_request(m_path, m_use_retry,
+                              {{"content-type", "application/octet-stream"}});
+
+  // truncate the file
+  char body = 0;
+  request.body = &body;
+  request.size = 0;
+
+  throw_if_error(get_rest_service(m_base)->put(&request).get_error(),
+                 "Failed to truncate object");
+
+  m_exists = false;
+  m_file_size = 0;
+}
+
+void Http_object::throw_if_error(
+    const std::optional<rest::Response_error> &error,
+    const std::string &context) const {
+  if (error) {
+    throw rest::to_exception(error.value(),
+                             context + " '" + full_path().masked() + "': ");
+  }
+}
+
+std::optional<rest::Response_error> Http_object::fetch_file_size() const {
+  if (!m_exists) {
+    auto request = Http_request(m_path, m_use_retry);
+    auto response = get_rest_service(m_base)->head(&request);
+    auto error = response.get_error();
+
+    if (error) {
+      return error;
+    } else {
+      m_file_size = std::stoul(response.headers["content-length"]);
+
+      if (response.headers["Accept-Ranges"] != "bytes") {
+        throw std::runtime_error(
+            "Target server does not support partial requests.");
+      }
+
+      m_exists = true;
+    }
+  }
+
+  return {};
 }
 
 void Http_directory::init_rest(const Masked_string &url) { m_url = url; }
@@ -319,7 +398,9 @@ std::unique_ptr<IFile> Http_directory::file(
   auto real = full.real();
   auto masked = full.masked();
   Masked_string copy = {std::move(real), std::move(masked)};
-  return std::make_unique<Http_get>(copy, name, m_use_retry);
+  auto file = std::make_unique<Http_object>(copy, name, m_use_retry);
+  file->set_parent_config(m_config);
+  return file;
 }
 
 bool Http_directory::is_local() const { return false; }

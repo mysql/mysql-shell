@@ -75,6 +75,18 @@ def has_oci_environment(context):
     return True
 
 
+def has_aws_environment():
+    variables = ['MYSQLSH_S3_BUCKET_NAME']
+    missing = []
+    g = globals()
+    for variable in variables:
+        if variable not in g:
+            missing.append(variable)
+    if len(missing):
+        sys.stderr.write("Missing AWS Variables: {}".format(", ".join(missing)))
+        return False
+    return True
+
 def is_re_instance(o):
     return isinstance(o, is_re_instance.__re_type)
 

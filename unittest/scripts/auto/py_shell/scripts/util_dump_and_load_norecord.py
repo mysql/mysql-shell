@@ -2063,6 +2063,74 @@ shell.connect(__sandbox_uri1)
 session.run_sql(f"DROP USER IF EXISTS {first_user}")
 session.run_sql(f"DROP USER IF EXISTS {second_user}")
 
+#@<> TEST_STRING_OPTION + setup
+shell.connect(__sandbox_uri2)
+dump_dir = os.path.join(outdir, "ddlonly")
+
+def TEST_STRING_OPTION(option):
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: None }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type String, but is Null")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: 5 }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: -5 }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [] }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type String, but is Array")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: {} }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type String, but is Map")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: False }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type String, but is Bool")
+
+#@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
+TEST_STRING_OPTION("s3BucketName")
+
+#@<> WL14387-TSFR_1_2_1 - s3BucketName and osBucketName cannot be used at the same time
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "one", "osBucketName": "two" }), "ValueError: Util.load_dump: Argument #2: The option 's3BucketName' cannot be used when the value of 'osBucketName' option is set")
+
+#@<> WL14387-TSFR_1_1_3 - s3BucketName set to an empty string loads from a local directory
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "", "resetProgress": True }), "should not fail")
+
+#@<> s3CredentialsFile - string option
+TEST_STRING_OPTION("s3CredentialsFile")
+
+#@<> WL14387-TSFR_3_1_1_1 - s3CredentialsFile cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3CredentialsFile": "file" }), "ValueError: Util.load_dump: Argument #2: The option 's3CredentialsFile' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> s3BucketName and s3CredentialsFile both set to an empty string loads from a local directory
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "", "s3CredentialsFile": "", "resetProgress": True }), "should not fail")
+
+#@<> s3ConfigFile - string option
+TEST_STRING_OPTION("s3ConfigFile")
+
+#@<> WL14387-TSFR_4_1_1_1 - s3ConfigFile cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3ConfigFile": "file" }), "ValueError: Util.load_dump: Argument #2: The option 's3ConfigFile' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> s3BucketName and s3ConfigFile both set to an empty string loads from a local directory
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "", "s3ConfigFile": "", "resetProgress": True }), "should not fail")
+
+#@<> WL14387-TSFR_2_1_1 - s3Profile - string option
+TEST_STRING_OPTION("s3Profile")
+
+#@<> WL14387-TSFR_2_1_1_2 - s3Profile cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3Profile": "profile" }), "ValueError: Util.load_dump: Argument #2: The option 's3Profile' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string loads from a local directory
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "", "s3Profile": "", "resetProgress": True }), "should not fail")
+
+#@<> s3EndpointOverride - string option
+TEST_STRING_OPTION("s3EndpointOverride")
+
+#@<> WL14387-TSFR_6_1_1 - s3EndpointOverride cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3EndpointOverride": "http://example.org" }), "ValueError: Util.load_dump: Argument #2: The option 's3EndpointOverride' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> s3BucketName and s3EndpointOverride both set to an empty string loads from a local directory
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "", "s3EndpointOverride": "", "resetProgress": True }), "should not fail")
+
+#@<> s3EndpointOverride is missing a scheme
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "bucket", "s3EndpointOverride": "endpoint" }), "ValueError: Util.load_dump: Argument #2: The value of the option 's3EndpointOverride' is missing a scheme, expected: http:// or https://.")
+
+#@<> s3EndpointOverride is using wrong scheme
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint" }), "ValueError: Util.load_dump: Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

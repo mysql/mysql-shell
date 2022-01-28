@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -26,8 +26,12 @@
 
 namespace testing {
 
-using mysqlsh::dump::Dump_manifest;
-using mysqlsh::dump::Manifest_mode;
+using mysqlsh::dump::Dump_manifest_read_config;
+using mysqlsh::dump::Dump_manifest_reader;
+using mysqlsh::dump::Dump_manifest_write_config;
+using mysqlsh::dump::Dump_manifest_writer;
+using mysqlshdk::oci::Oci_bucket;
+using mysqlshdk::storage::Mode;
 
 struct Object {
   std::string name;
@@ -39,7 +43,7 @@ const std::vector<Object> k_objects = {
 
 enum Obj_index { FIRST, SECOND, DONE };
 
-void write_object(Dump_manifest *manifest, Obj_index index) {
+void write_object(Dump_manifest_writer *manifest, Obj_index index) {
   const auto &obj = k_objects[index];
 
   auto file = manifest->file(obj.name);
@@ -65,7 +69,7 @@ bool bucket_object_exists(
                               k_objects[index].content.size(), objects);
 }
 
-shcore::Array_t get_manifest_content(mysqlshdk::oci::Bucket *bucket) {
+shcore::Array_t get_manifest_content(mysqlshdk::oci::Oci_bucket *bucket) {
   mysqlshdk::rest::String_buffer manifest_data;
   bucket->get_object("@.manifest.json", &manifest_data);
   auto manifest_map = shcore::Value::parse(manifest_data.data()).as_map();
@@ -100,7 +104,7 @@ bool manifest_object_exists(
 }
 
 ::testing::AssertionResult wait_for_manifest(
-    Bucket *bucket, mysqlshdk::oci::Object_details *manifest) {
+    Oci_bucket *bucket, mysqlshdk::oci::Object_details *manifest) {
   int retries = 0;
   const int max_retries = 10;
 
@@ -121,8 +125,9 @@ TEST_F(Oci_os_tests, dump_manifest_write_complete) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest manifest(Manifest_mode::WRITE, get_options());
-  Bucket bucket(get_options());
+  const auto config = get_config();
+  Dump_manifest_writer manifest(config);
+  Oci_bucket bucket(config);
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
 
@@ -177,8 +182,9 @@ TEST_F(Oci_os_tests, dump_manifest_write_incomplete) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest manifest(Manifest_mode::WRITE, get_options());
-  Bucket bucket(get_options());
+  const auto config = get_config();
+  Dump_manifest_writer manifest(config);
+  Oci_bucket bucket(config);
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
 
@@ -221,8 +227,9 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest write_manifest(Manifest_mode::WRITE, get_options());
-  Bucket bucket(get_options());
+  const auto write_config = get_config();
+  Dump_manifest_writer write_manifest(write_config);
+  Oci_bucket bucket(write_config);
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
 
@@ -238,9 +245,9 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
       mysqlshdk::oci::PAR_access_type::OBJECT_READ, time, "par-manifest",
       "@.manifest.json");
 
-  Dump_manifest read_manifest(
-      Manifest_mode::READ, get_options(), nullptr,
-      bucket.get_rest_service()->end_point() + manifest_par.access_uri);
+  Dump_manifest_reader read_manifest(
+      std::make_shared<Dump_manifest_read_config>(
+          write_config->service_endpoint() + manifest_par.access_uri));
 
   auto manifest_files = read_manifest.list_files();
   EXPECT_EQ(3, manifest_files.size());
@@ -292,20 +299,20 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   auto rw_par = bucket.create_pre_authenticated_request(
       mysqlshdk::oci::PAR_access_type::OBJECT_READ_WRITE, time, "par-progress",
       "@.load.progress.json");
-  auto new_progress_file = read_manifest.file(
-      bucket.get_rest_service()->end_point() + rw_par.access_uri);
+  const auto progress_file_uri =
+      write_config->service_endpoint() + rw_par.access_uri;
+  auto new_progress_file = read_manifest.file(progress_file_uri);
 
   // Being a new file created with PAR it should NOT exist
   EXPECT_FALSE(new_progress_file->exists());
-  EXPECT_THROW_LIKE(new_progress_file->file_size(),
-                    mysqlshdk::rest::Response_error, "Not Found");
+  EXPECT_THROW_LIKE(new_progress_file->file_size(), shcore::Exception,
+                    "Not Found");
 
   new_progress_file->open(mysqlshdk::storage::Mode::WRITE);
   new_progress_file->write("MY PROGRESS DATA", 16);
   new_progress_file->close();
 
-  auto existing_progress_file = read_manifest.file(
-      bucket.get_rest_service()->end_point() + rw_par.access_uri);
+  auto existing_progress_file = read_manifest.file(progress_file_uri);
 
   // Being an existing file created with PAR it should exist
   EXPECT_TRUE(existing_progress_file->exists());
@@ -316,11 +323,6 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   std::string progress_data(buffer, read);
   existing_progress_file->close();
   EXPECT_STREQ("MY PROGRESS DATA", progress_data.c_str());
-
-  EXPECT_THROW_LIKE(
-      Dump_manifest(Manifest_mode::READ, get_options(), nullptr,
-                    bucket.get_rest_service()->end_point() + rw_par.access_uri),
-      std::invalid_argument, "Invalid manifest PAR: ");
 }
 
 }  // namespace testing

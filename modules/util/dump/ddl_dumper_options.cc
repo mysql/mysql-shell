@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,8 @@
 
 #include <vector>
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -74,7 +76,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
                     &Ddl_dumper_options::set_exclude_triggers)
           .optional("includeTriggers",
                     &Ddl_dumper_options::set_include_triggers)
-          .include(&Ddl_dumper_options::m_oci_option_unpacker)
+          .include(&Ddl_dumper_options::m_dump_manifest_options)
+          .include(&Ddl_dumper_options::m_s3_bucket_options)
           .on_done(&Ddl_dumper_options::on_unpacked_options)
           .on_log(&Ddl_dumper_options::on_log_options);
 
@@ -95,7 +98,15 @@ void Ddl_dumper_options::set_compatibility_options(
 }
 
 void Ddl_dumper_options::on_unpacked_options() {
-  set_oci_options(m_oci_option_unpacker);
+  m_s3_bucket_options.throw_on_conflict(m_dump_manifest_options);
+
+  if (m_dump_manifest_options) {
+    set_storage_config(m_dump_manifest_options.config());
+  }
+
+  if (m_s3_bucket_options) {
+    set_storage_config(m_s3_bucket_options.config());
+  }
 
   if (m_bytes_per_chunk < expand_to_bytes(k_minimum_chunk_size)) {
     throw std::invalid_argument(

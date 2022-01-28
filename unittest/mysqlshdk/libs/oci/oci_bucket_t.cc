@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -26,18 +26,23 @@
 
 namespace testing {
 
+using mysqlshdk::oci::Multipart_object;
+using mysqlshdk::oci::Multipart_object_part;
+using mysqlshdk::oci::Object_details;
+using mysqlshdk::oci::Oci_bucket;
+using mysqlshdk::rest::Response_error;
+
 TEST_F(Oci_os_tests, bucket_create_and_delete) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Bucket bucket(get_options());
+  Oci_bucket bucket(get_config());
   auto objects = bucket.list_objects();
   EXPECT_TRUE(objects.empty());
 
   // Adds an object
   bucket.put_object("sample.txt", "Sample Content", 14);
-  objects = bucket.list_objects("", "", "", 0, true,
-                                mysqlshdk::oci::object_fields::kName);
+  objects = bucket.list_objects("", 0, true, Object_details::NAME);
   EXPECT_EQ(1, objects.size());
   EXPECT_STREQ("sample.txt", objects[0].name.c_str());
 
@@ -49,9 +54,8 @@ TEST_F(Oci_os_tests, bucket_create_and_delete) {
 TEST_F(Oci_os_tests, bucket_list_objects) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options());
-  std::vector<std::string> prefixes;
-  std::string next_start;
+  Oci_bucket bucket(get_config());
+  std::unordered_set<std::string> prefixes;
 
   create_objects(bucket);
 
@@ -63,40 +67,34 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
     EXPECT_EQ(1, objects[index].size);
     EXPECT_TRUE(objects[index].etag.empty());
-    EXPECT_TRUE(objects[index].md5.empty());
     EXPECT_TRUE(objects[index].time_created.empty());
   }
 
   // FIELD FILTER: just names
-  objects = bucket.list_objects("", "", "", 0, true,
-                                mysqlshdk::oci::object_fields::kName);
+  objects = bucket.list_objects("", 0, true, Object_details::NAME);
   EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
     EXPECT_EQ(0, objects[index].size);
     EXPECT_TRUE(objects[index].etag.empty());
-    EXPECT_TRUE(objects[index].md5.empty());
     EXPECT_TRUE(objects[index].time_created.empty());
   }
 
   // FIELD FILTER: all fields
-  objects = bucket.list_objects("", "", "", 0, true,
-                                mysqlshdk::oci::Object_fields_mask::all());
+  objects = bucket.list_objects("", 0, true, Object_details::ALL_FIELDS);
   EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
     EXPECT_EQ(1, objects[index].size);
     EXPECT_FALSE(objects[index].etag.empty());
-    EXPECT_FALSE(objects[index].md5.empty());
     EXPECT_FALSE(objects[index].time_created.empty());
   }
 
   // NOT RECURSIVE: Gets only objects in the current "folder", i.e. nothing
   // after next /
-  objects = bucket.list_objects(
-      "", "", "", 0, false, mysqlshdk::oci::object_fields::kName, &prefixes);
+  objects = bucket.list_objects("", 0, false, Object_details::NAME, &prefixes);
 
   // Validates the returned files
   EXPECT_EQ(5, objects.size());
@@ -108,37 +106,17 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
 
   // Validates the returned prefixes (i.e. 'subdirectories')
   EXPECT_EQ(1, prefixes.size());
-  EXPECT_STREQ("sakila/", prefixes[0].c_str());
+  EXPECT_STREQ("sakila/", prefixes.begin()->c_str());
   prefixes.clear();
-  next_start.clear();
 
   // PREFIX FILTER: Gets files starting with....
-  objects = bucket.list_objects("sakila/actor", "", "", 0, true,
-                                mysqlshdk::oci::object_fields::kName, &prefixes,
-                                &next_start);
+  objects = bucket.list_objects("sakila/actor", 0, true, Object_details::NAME,
+                                &prefixes);
   EXPECT_EQ(2, objects.size());
   EXPECT_STREQ("sakila/actor.csv", objects[0].name.c_str());
   EXPECT_STREQ("sakila/actor_metadata.txt", objects[1].name.c_str());
-  EXPECT_TRUE(next_start.empty());
   EXPECT_TRUE(prefixes.empty());
   prefixes.clear();
-  next_start.clear();
-
-  // START FILTER: Gets files starting with one named...
-  for (size_t index = 0; index < objects.size(); index++) {
-    objects = bucket.list_objects("", next_start, "", 1, true,
-                                  mysqlshdk::oci::object_fields::kName,
-                                  &prefixes, &next_start);
-
-    EXPECT_EQ(1, objects.size());
-    EXPECT_STREQ(m_objects[index].c_str(), objects[0].name.c_str());
-    EXPECT_TRUE(prefixes.empty());
-
-    if (index == (m_objects.size() - 1))
-      EXPECT_TRUE(next_start.empty());
-    else
-      EXPECT_STREQ(m_objects[index + 1].c_str(), next_start.c_str());
-  }
 
   clean_bucket(bucket);
 }
@@ -146,7 +124,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
 TEST_F(Oci_os_tests, bucket_multipart_uploads) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options());
+  Oci_bucket bucket(get_config());
 
   // ACTIVE MULTIPART UPLOADS
   auto first = bucket.create_multipart_upload("sakila.sql");
@@ -184,8 +162,7 @@ TEST_F(Oci_os_tests, bucket_multipart_uploads) {
   parts.push_back(bucket.upload_part(mp_object, 1, "Testing Content", 15));
   parts.push_back(bucket.upload_part(mp_object, 2, "Even More", 9));
   bucket.commit_multipart_upload(mp_object, parts);
-  auto objects = bucket.list_objects("", "", "", 0, true,
-                                     mysqlshdk::oci::object_fields::kName);
+  auto objects = bucket.list_objects("", 0, true, Object_details::NAME);
   EXPECT_EQ(1, objects.size());
   EXPECT_STREQ("sakila.sql", objects[0].name.c_str());
 
@@ -198,7 +175,7 @@ TEST_F(Oci_os_tests, bucket_multipart_uploads) {
 TEST_F(Oci_os_tests, bucket_object_operations) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options());
+  Oci_bucket bucket(get_config());
 
   // PUT
   bucket.put_object("sakila.txt", "0123456789", 10);
@@ -281,8 +258,7 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
   {
     mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila.txt", &buffer,
-                                  mysqlshdk::utils::nullable<size_t>{},
-                                  mysqlshdk::utils::nullable<size_t>{4});
+                                  std::optional<size_t>{}, std::optional{4});
     EXPECT_EQ(4, read);
     EXPECT_STREQ("6789", buffer.data());
   }
@@ -300,31 +276,25 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
 
 TEST_F(Oci_os_tests, bucket_error_conditions) {
   SKIP_IF_NO_OCI_CONFIGURATION;
-  Bucket unexisting(get_options("unexisting"));
-  EXPECT_THROW_LIKE(unexisting.put_object("sample.txt", "data", 4, false),
-                    Response_error,
-                    "Failed to put object 'sample.txt': Either the bucket "
-                    "named 'unexisting' does not exist in the namespace");
 
-  Bucket bucket(get_options());
+  {
+    Oci_bucket unexisting(get_config("unexisting"));
 
-  // PUT_OBJECT: Override disabled
-  bucket.put_object("sample.txt", "data", 4);
-  auto list = bucket.list_objects();
-  EXPECT_EQ(1, list.size());
-  EXPECT_STREQ("sample.txt", list[0].name.c_str());
-  EXPECT_THROW_LIKE(bucket.put_object("sample.txt", "data", 4, false),
-                    Response_error,
-                    "Failed to put object 'sample.txt': The If-None-Match "
-                    "header is '*' but there is an existing entity");
-  bucket.delete_object("sample.txt");
+    EXPECT_THROW_LIKE(unexisting.put_object("sample.txt", "data", 4),
+                      Response_error,
+                      "Failed to put object 'sample.txt': Either the bucket "
+                      "named 'unexisting' does not exist in the namespace");
+  }
+
+  const auto config = get_config();
+  Oci_bucket bucket(config);
 
   // DELETE: Unexisting Object
   EXPECT_THROW_LIKE(bucket.delete_object("sample.txt"), Response_error,
                     "Failed to delete object 'sample.txt': The object "
                     "'sample.txt' does not exist in bucket '" +
                         m_os_bucket_name + "' with namespace '" +
-                        bucket.get_namespace() + "'");
+                        config->oci_namespace() + "'");
 
   // HEAD: Unexisnting Object
   EXPECT_THROW_LIKE(bucket.head_object("sample.txt"), Response_error,
@@ -345,7 +315,7 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
   object.name = "Sample.txt";
   object.upload_id = "SOME-WEIRD-UPLOAD-ID";
   EXPECT_THROW_LIKE(
-      bucket.list_multipart_upload_parts(object), Response_error,
+      bucket.list_multipart_uploaded_parts(object), Response_error,
       "Failed to list uploaded parts for object 'Sample.txt': No such upload");
 
   EXPECT_THROW_LIKE(
@@ -363,7 +333,7 @@ TEST_F(Oci_os_tests, bucket_par) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Bucket bucket(get_options());
+  Oci_bucket bucket(get_config());
 
   // Adds an object
   bucket.put_object("sample.txt", "Sample Content", 14);
@@ -417,14 +387,14 @@ TEST_F(Oci_os_tests, exists) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   {
-    Bucket bucket(get_options());
+    Oci_bucket bucket(get_config());
 
     EXPECT_TRUE(bucket.exists());
     EXPECT_TRUE(bucket.exists());
   }
 
   {
-    Bucket bucket(get_options("invalid-bucket-name"));
+    Oci_bucket bucket(get_config("invalid-bucket-name"));
 
     EXPECT_FALSE(bucket.exists());
     EXPECT_FALSE(bucket.exists());

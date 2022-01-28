@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,14 +23,22 @@
 
 #include "unittest/mysqlshdk/libs/oci/oci_tests.h"
 
+#include "mysqlshdk/libs/storage/backend/object_storage.h"
+
+using mysqlshdk::oci::Oci_bucket;
+using mysqlshdk::rest::Response_error;
+using mysqlshdk::storage::Mode;
+using mysqlshdk::storage::backend::object_storage::Directory;
+
 namespace testing {
+
 TEST_F(Oci_os_tests, directory_list_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root_directory(options);
-  Directory sakila(options, "sakila");
+  const auto config = get_config();
+  Oci_bucket bucket(config);
+  Directory root_directory(config);
+  Directory sakila(config, "sakila");
 
   // The root directory exists for sure
   EXPECT_TRUE(root_directory.exists());
@@ -115,7 +123,7 @@ TEST_F(Oci_os_tests, directory_list_files) {
     EXPECT_EQ(expected_files, filtered);
   }
 
-  Directory unexisting(options, "unexisting");
+  Directory unexisting(config, "unexisting");
   EXPECT_FALSE(unexisting.exists());
   unexisting.create();
   EXPECT_TRUE(unexisting.exists());
@@ -126,9 +134,9 @@ TEST_F(Oci_os_tests, directory_list_files) {
 TEST_F(Oci_os_tests, file_errors) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "prefix");
+  const auto config = get_config();
+  Oci_bucket bucket(config);
+  Directory root(config, "prefix");
 
   auto file = root.file("sample.txt");
 
@@ -147,10 +155,10 @@ TEST_F(Oci_os_tests, file_errors) {
 TEST_F(Oci_os_tests, file_write_simple_upload) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
+  const auto config = get_config();
+  Oci_bucket bucket(config);
   clean_bucket(bucket);
-  Directory root(options, "");
+  Directory root(config);
 
   auto file = root.file("sample.txt");
   file->open(Mode::WRITE);
@@ -176,14 +184,12 @@ TEST_F(Oci_os_tests, file_write_simple_upload) {
 TEST_F(Oci_os_tests, file_write_multipart_upload) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "test");
+  auto config = get_config();
+  config->set_part_size(3);
+  Oci_bucket bucket(config);
+  Directory root(config, "test");
 
   auto file = root.file("sample\".txt");
-  auto oci_file =
-      dynamic_cast<mysqlshdk::storage::backend::oci::Object *>(file.get());
-  oci_file->set_max_part_size(3);
 
   std::string data = "0123456789ABCDE";
   size_t offset = 0;
@@ -196,11 +202,11 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
   auto uploads = bucket.list_multipart_uploads();
   EXPECT_EQ(1, uploads.size());
   EXPECT_STREQ("test/sample\".txt", uploads[0].name.c_str());
-  auto parts = bucket.list_multipart_upload_parts(uploads[0]);
+  auto parts = bucket.list_multipart_uploaded_parts(uploads[0]);
   EXPECT_EQ(4, parts.size());  // Last part is still on the buffer
 
   file->close();
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]),
+  EXPECT_THROW_LIKE(bucket.list_multipart_uploaded_parts(uploads[0]),
                     Response_error,
                     "Failed to list uploaded parts for object "
                     "'test/sample\".txt': No such upload");
@@ -221,9 +227,9 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
 TEST_F(Oci_os_tests, file_append_new_file) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "");
+  const auto config = get_config();
+  Oci_bucket bucket(config);
+  Directory root(config);
 
   auto file = root.file("sample.txt");
   file->open(Mode::APPEND);
@@ -249,14 +255,12 @@ TEST_F(Oci_os_tests, file_append_new_file) {
 TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "");
+  auto config = get_config();
+  config->set_part_size(3);
+  Oci_bucket bucket(config);
+  Directory root(config);
 
   auto initial_file = root.file("sample.txt");
-  auto oci_file = dynamic_cast<mysqlshdk::storage::backend::oci::Object *>(
-      initial_file.get());
-  oci_file->set_max_part_size(3);
 
   std::string data = "0123456789ABCDE";
   size_t offset = 0;
@@ -272,9 +276,6 @@ TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
 
   // RESUME THE UPLOAD
   auto final_file = root.file("sample.txt");
-  oci_file = dynamic_cast<mysqlshdk::storage::backend::oci::Object *>(
-      final_file.get());
-  oci_file->set_max_part_size(3);
 
   final_file->open(Mode::APPEND);
   offset = final_file->file_size();
@@ -282,14 +283,14 @@ TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
   auto uploads = bucket.list_multipart_uploads();
   EXPECT_EQ(1, uploads.size());
   EXPECT_STREQ("sample.txt", uploads[0].name.c_str());
-  auto parts = bucket.list_multipart_upload_parts(uploads[0]);
+  auto parts = bucket.list_multipart_uploaded_parts(uploads[0]);
   EXPECT_EQ(4, parts.size());
 
   offset += final_file->write(data.data() + offset, data.size() - offset);
 
   final_file->close();
   EXPECT_THROW_LIKE(
-      bucket.list_multipart_upload_parts(uploads[0]), Response_error,
+      bucket.list_multipart_uploaded_parts(uploads[0]), Response_error,
       "Failed to list uploaded parts for object 'sample.txt': No such upload");
   uploads = bucket.list_multipart_uploads();
   EXPECT_TRUE(uploads.empty());
@@ -308,9 +309,9 @@ TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
 TEST_F(Oci_os_tests, file_append_existing_file) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "");
+  const auto config = get_config();
+  Oci_bucket bucket(config);
+  Directory root(config);
 
   auto file = root.file("sample.txt");
   file->open(Mode::WRITE);
@@ -319,10 +320,9 @@ TEST_F(Oci_os_tests, file_append_existing_file) {
 
   // APPEND is forbidden here as the file exist and there' no active multipart
   // upload
-  EXPECT_THROW_LIKE(
-      file->open(Mode::APPEND), std::invalid_argument,
-      "OCI Object Storage only supports APPEND mode for in-progress "
-      "multipart uploads or new files.");
+  EXPECT_THROW_LIKE(file->open(Mode::APPEND), std::invalid_argument,
+                    "Object Storage only supports APPEND mode for in-progress "
+                    "multipart uploads or new files.");
 
   // Now APPEND should be allowed
   bucket.create_multipart_upload("sample.txt");
@@ -346,16 +346,13 @@ TEST_F(Oci_os_tests, file_write_multipart_errors) {
 
   output_handler.set_log_level(shcore::Logger::LOG_LEVEL::LOG_DEBUG2);
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "");
+  auto config = get_config();
+  config->set_part_size(3);
+  Oci_bucket bucket(config);
+  Directory root(config);
   // Now APPEND should be allowed
   auto mpo1 = bucket.create_multipart_upload("sample.txt");
   auto file = root.file("sample.txt");
-
-  auto oci_file =
-      dynamic_cast<mysqlshdk::storage::backend::oci::Object *>(file.get());
-  oci_file->set_max_part_size(3);
 
   file->open(Mode::APPEND);
 
@@ -373,9 +370,9 @@ TEST_F(Oci_os_tests, file_write_multipart_errors) {
 TEST_F(Oci_os_tests, file_writing) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
+  const auto config = get_config();
 
-  Directory root(options);
+  Directory root(config);
 
   auto file = root.file("sample.txt");
 
@@ -423,16 +420,16 @@ TEST_F(Oci_os_tests, file_writing) {
   read = another->read(&buffer, 30);
   EXPECT_EQ(0, read);
 
-  Bucket bucket(options);
+  Oci_bucket bucket(config);
   bucket.delete_object("sample.txt");
 }
 
 TEST_F(Oci_os_tests, file_rename) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options()};
-  Bucket bucket(options);
-  Directory root(options, "");
+  const auto config = get_config();
+  Oci_bucket bucket(config);
+  Directory root(config);
 
   auto file = root.file("sample.txt");
 
@@ -466,7 +463,7 @@ TEST_F(Oci_os_tests, file_rename) {
 
   bucket.delete_object("\"ois\"");
 
-  Directory other(options, "other");
+  Directory other(config, "other");
   file = other.file("sample.txt");
   file->open(Mode::WRITE);
   file->write("SOME CONTENT", 12);

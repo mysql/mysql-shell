@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,6 +70,8 @@ class Memory_file : public IFile {
 
   void rename(const std::string &new_name) override;
   void remove() override;
+
+  bool is_local() const override { return true; }
 
   void set_content(const std::string &s);
   const std::string &content() const { return m_content; }

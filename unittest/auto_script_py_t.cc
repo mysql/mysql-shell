@@ -252,6 +252,11 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
     return {};
   }
 
+  if (!getenv("MYSQLSH_S3_BUCKET_NAME") && subdir == "py_aws") {
+    std::cout << "Skipping AWS Tests" << std::endl;
+    return {};
+  }
+
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
@@ -287,6 +292,10 @@ INSTANTIATE_TEST_SUITE_P(Shell_scripted, Auto_script_py,
 
 INSTANTIATE_TEST_SUITE_P(Oci_scripted, Auto_script_py,
                          testing::ValuesIn(find_py_tests("py_oci", ".py")),
+                         fmt_param);
+
+INSTANTIATE_TEST_SUITE_P(Aws_scripted, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_aws", ".py")),
                          fmt_param);
 
 INSTANTIATE_TEST_SUITE_P(Dev_api_scripted, Auto_script_py,

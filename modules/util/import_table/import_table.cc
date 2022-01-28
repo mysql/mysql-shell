@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,16 +120,16 @@ void Import_table::chunk_file() {
 void Import_table::build_queue() {
   m_total_bytes = 0;
   for (const auto &glob_item : m_opt.filelist_from_user()) {
-    const auto &oci_opts = m_opt.get_oci_options();
+    const auto &storage_config = m_opt.storage_config();
     if (glob_item.find('*') != std::string::npos ||
         glob_item.find('?') != std::string::npos) {
-      auto glob_fh = mysqlshdk::storage::make_file(glob_item, oci_opts);
+      auto glob_fh = mysqlshdk::storage::make_file(glob_item, storage_config);
       auto glob_full_path = glob_fh->full_path();
       auto dir = mysqlshdk::storage::make_directory(
-          glob_fh->parent()->full_path().real(), oci_opts);
+          glob_fh->parent()->full_path().real(), storage_config);
       if (!dir->exists()) {
         std::string errmsg{"Directory " + dir->full_path().masked() +
-                           " does not exists."};
+                           " does not exist."};
         current_console()->print_error(errmsg);
         noncritical_errors.emplace_back(std::move(errmsg));
         continue;
@@ -153,10 +153,10 @@ void Import_table::build_queue() {
         m_range_queue.push(std::move(task));
       }
     } else {
-      auto glob_fh = mysqlshdk::storage::make_file(glob_item, oci_opts);
+      auto glob_fh = mysqlshdk::storage::make_file(glob_item, storage_config);
       if (!glob_fh->exists()) {
         std::string errmsg{"File " + glob_fh->full_path().masked() +
-                           " does not exists."};
+                           " does not exist."};
         current_console()->print_error(errmsg);
         noncritical_errors.emplace_back(std::move(errmsg));
         continue;

@@ -670,6 +670,57 @@ session.run_sql("DROP TABLE !.!;", [ test_schema, custom_dialect_table ])
 #@<> WL13804-FR5.9 - fixed-row format is not supported yet
 EXPECT_FAIL("ValueError", "Argument #3: The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting in a fixed-row format. This is currently not supported.", quote(types_schema, types_schema_tables[0]), test_output_absolute, { "fieldsTerminatedBy": "", "fieldsEnclosedBy": "" })
 
+#@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
+TEST_STRING_OPTION("s3BucketName")
+
+#@<> WL14387-TSFR_1_2_1 - s3BucketName and osBucketName cannot be used at the same time
+EXPECT_FAIL("ValueError", "Argument #3: The option 's3BucketName' cannot be used when the value of 'osBucketName' option is set", quote(types_schema, types_schema_tables[0]), test_output_relative, { "s3BucketName": "one", "osBucketName": "two" })
+
+#@<> WL14387-TSFR_1_1_3 - s3BucketName set to an empty string dumps to a local directory
+EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "", "showProgress": False })
+
+#@<> s3CredentialsFile - string option
+TEST_STRING_OPTION("s3CredentialsFile")
+
+#@<> WL14387-TSFR_3_1_1_1 - s3CredentialsFile cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #3: The option 's3CredentialsFile' cannot be used when the value of 's3BucketName' option is not set", quote(types_schema, types_schema_tables[0]), test_output_relative, { "s3CredentialsFile": "file" })
+
+#@<> s3BucketName and s3CredentialsFile both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "", "s3CredentialsFile": "", "showProgress": False })
+
+#@<> s3ConfigFile - string option
+TEST_STRING_OPTION("s3ConfigFile")
+
+#@<> WL14387-TSFR_4_1_1_1 - s3ConfigFile cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #3: The option 's3ConfigFile' cannot be used when the value of 's3BucketName' option is not set", quote(types_schema, types_schema_tables[0]), test_output_relative, { "s3ConfigFile": "file" })
+
+#@<> s3BucketName and s3ConfigFile both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "", "s3ConfigFile": "", "showProgress": False })
+
+#@<> WL14387-TSFR_2_1_1 - s3Profile - string option
+TEST_STRING_OPTION("s3Profile")
+
+#@<> WL14387-TSFR_2_1_1_2 - s3Profile cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #3: The option 's3Profile' cannot be used when the value of 's3BucketName' option is not set", quote(types_schema, types_schema_tables[0]), test_output_relative, { "s3Profile": "profile" })
+
+#@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "", "s3Profile": "", "showProgress": False })
+
+#@<> s3EndpointOverride - string option
+TEST_STRING_OPTION("s3EndpointOverride")
+
+#@<> WL14387-TSFR_6_1_1 - s3EndpointOverride cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #3: The option 's3EndpointOverride' cannot be used when the value of 's3BucketName' option is not set", quote(types_schema, types_schema_tables[0]), test_output_relative, { "s3EndpointOverride": "http://example.org" })
+
+#@<> s3BucketName and s3EndpointOverride both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "", "s3EndpointOverride": "", "showProgress": False })
+
+#@<> s3EndpointOverride is missing a scheme
+EXPECT_FAIL("ValueError", "Argument #3: The value of the option 's3EndpointOverride' is missing a scheme, expected: http:// or https://.", quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "bucket", "s3EndpointOverride": "endpoint", "showProgress": False })
+
+#@<> s3EndpointOverride is using wrong scheme
+EXPECT_FAIL("ValueError", "Argument #3: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.", quote(types_schema, types_schema_tables[0]), test_output_absolute, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "showProgress": False })
+
 #@<> options param being a dictionary that contains an unknown key
 for param in { "dummy", "indexColumn", "consistent", "triggers", "events", "routines", "users", "excludeUsers", "includeUsers", "ddlOnly", "dataOnly", "dryRun", "chunking", "bytesPerChunk", "threads", "excludeTables", "includeTables", "excludeSchemas", "includeSchemas", "excludeEvents", "includeEvents", "excludeRoutines", "includeRoutines", "excludeTriggers", "includeTriggers", "ociParManifest", "ociParExpireTime" }:
     EXPECT_FAIL("ValueError", f"Argument #3: Invalid options: {param}", quote(types_schema, types_schema_tables[0]), test_output_relative, { param: "fails" })
@@ -727,10 +778,6 @@ session.run_sql("SET GLOBAL SQL_MODE='';")
 recreate_verification_schema()
 session.run_sql("CREATE TABLE !.! LIKE !.!;", [verification_schema, world_x_table, world_x_schema, world_x_table])
 EXPECT_NO_THROWS(lambda: util.import_table(test_output_absolute, { "schema": verification_schema, "table": world_x_table, "characterSet": "latin1", "showProgress": False }), "importing latin1 data")
-
-#@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL {has_oci_environment('OS')}
-# This error now confirms the reported issue is fixed
-EXPECT_FAIL("Error: Shell Error (54404)", "Failed to get object list", quote(types_schema, types_schema_tables[0]), 'out.txt', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "File handling for oci+os protocol is not supported.", quote(types_schema, types_schema_tables[0]), 'oci+os://sakila')

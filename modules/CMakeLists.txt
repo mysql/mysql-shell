@@ -44,6 +44,8 @@ file(GLOB api_module_SOURCES
       "util/dump/dialect_dump_writer.cc"
       "util/dump/dump_instance_options.cc"
       "util/dump/dump_manifest.cc"
+      "util/dump/dump_manifest_config.cc"
+      "util/dump/dump_manifest_options.cc"
       "util/dump/dump_options.cc"
       "util/dump/dump_schemas_options.cc"
       "util/dump/dump_tables_options.cc"

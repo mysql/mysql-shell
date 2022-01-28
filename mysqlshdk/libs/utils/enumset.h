@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,13 +35,13 @@ namespace utils {
 template <typename Enum, Enum last_value>
 class Enum_set {
  public:
-  Enum_set() : _value(0) {}
+  constexpr Enum_set() : _value(0) {}
 
-  explicit Enum_set(Enum value) : _value(ord(value)) {}
+  constexpr explicit Enum_set(Enum value) : _value(ord(value)) {}
 
-  static Enum_set any() { return all(); }
+  constexpr static Enum_set any() { return all(); }
 
-  static Enum_set all() {
+  constexpr static Enum_set all() {
     Enum_set tmp;
     tmp._value = (1 << (static_cast<uint32_t>(last_value) + 1)) - 1;
     return tmp;
@@ -67,26 +67,32 @@ class Enum_set {
     return *this;
   }
 
-  bool is_set(Enum value) const { return _value & ord(value); }
+  constexpr bool is_set(Enum value) const { return _value & ord(value); }
 
-  bool empty() const { return _value == 0; }
+  constexpr bool empty() const { return _value == 0; }
 
-  bool matches_any(Enum_set set) const { return (_value & set._value) != 0; }
+  constexpr bool matches_any(Enum_set set) const {
+    return (_value & set._value) != 0;
+  }
 
   Enum_set &operator|=(Enum value) { return set(value); }
   Enum_set &operator=(Enum value) { return clear().set(value); }
 
-  operator bool() const { return !empty(); }
+  constexpr operator bool() const { return !empty(); }
 
-  Enum_set operator&(Enum value) const { return Enum_set(_value & ord(value)); }
+  constexpr Enum_set operator&(Enum value) const {
+    return Enum_set(_value & ord(value));
+  }
 
-  Enum_set operator|(Enum value) const { return Enum_set(_value | ord(value)); }
+  constexpr Enum_set operator|(Enum value) const {
+    return Enum_set(_value | ord(value));
+  }
 
-  bool operator==(Enum_set set) const { return _value == set._value; }
+  constexpr bool operator==(Enum_set set) const { return _value == set._value; }
 
-  bool operator==(Enum value) const { return _value == ord(value); }
+  constexpr bool operator==(Enum value) const { return _value == ord(value); }
 
-  bool operator!=(Enum_set set) const { return _value != set._value; }
+  constexpr bool operator!=(Enum_set set) const { return _value != set._value; }
 
   std::set<Enum> values() const {
     std::set<Enum> enums;
@@ -110,9 +116,9 @@ class Enum_set {
       static_cast<int>(last_value) <= std::numeric_limits<uint32_t>::digits,
       "The last enum value should not exceed the number of available bits");
 
-  explicit Enum_set(uint32_t v) : _value(v) {}
+  constexpr explicit Enum_set(uint32_t v) : _value(v) {}
 
-  inline uint32_t ord(Enum value) const {
+  constexpr inline uint32_t ord(Enum value) const {
     return 1 << static_cast<uint32_t>(value);
   }
 

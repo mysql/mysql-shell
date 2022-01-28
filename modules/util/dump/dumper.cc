@@ -1322,7 +1322,8 @@ Dumper::Dumper(const Dump_options &options)
       }
     }
 
-    m_output_file = make_file(m_options.output_url(), m_options.oci_options());
+    m_output_file =
+        make_file(m_options.output_url(), m_options.storage_config());
     m_output_dir = m_output_file->parent();
 
     if (!m_output_dir->exists()) {
@@ -1333,14 +1334,8 @@ Dumper::Dumper(const Dump_options &options)
     }
   } else {
     using mysqlshdk::storage::make_directory;
-    if (m_options.oci_options().oci_par_manifest.get_safe()) {
-      m_output_dir = std::make_unique<Dump_manifest>(
-          Manifest_mode::WRITE, m_options.oci_options(), nullptr,
-          m_options.output_url());
-    } else {
-      m_output_dir =
-          make_directory(m_options.output_url(), m_options.oci_options());
-    }
+    m_output_dir =
+        make_directory(m_options.output_url(), m_options.storage_config());
 
     if (m_output_dir->exists()) {
       const auto files = m_output_dir->list_files_sorted(true);
@@ -1362,11 +1357,11 @@ Dumper::Dumper(const Dump_options &options)
             full_path.masked().c_str(),
             shcore::str_join(file_data, "\n  ").c_str());
 
-        if (m_options.oci_options()) {
+        if (m_options.storage_config() && m_options.storage_config()->valid()) {
           throw std::invalid_argument(
-              "Cannot proceed with the dump, bucket '" +
-              *m_options.oci_options().os_bucket_name +
-              "' already contains files with the specified prefix '" +
+              "Cannot proceed with the dump, " +
+              m_options.storage_config()->description() +
+              " already contains files with the specified prefix '" +
               m_options.output_url() + "'.");
         } else {
           throw std::invalid_argument(
@@ -2320,7 +2315,7 @@ void Dumper::close_output_directory() {
     }
   });
 
-  if (m_options.oci_options().oci_par_manifest.get_safe()) {
+  if (m_options.par_manifest()) {
     stage = m_current_stage = m_progress_thread.start_stage("Writing manifest");
   }
 
@@ -2727,7 +2722,7 @@ Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
     // if we're writing to a single file, simply use the provided name
     auto file = m_options.use_single_file()
                     ? std::move(m_output_file)
-                    : make_file(filename + k_dump_in_progress_ext, true);
+                    : make_file(filename_for_data_dump(filename), true);
     auto compressed_file =
         mysqlshdk::storage::make_file(std::move(file), m_options.compression());
     std::unique_ptr<Dump_writer> writer;
@@ -3785,6 +3780,20 @@ void Dumper::fetch_server_information() {
 
   DBUG_EXECUTE_IF("dumper_binlog_disabled", { m_binlog_enabled = false; });
   DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });
+}
+
+std::string Dumper::filename_for_data_dump(const std::string &filename) const {
+  auto result = filename;
+
+  // We only use the .dumping extension in case of the local files. In case of
+  // the remote ones, file is not actually created until the whole data is
+  // uploaded, so it's not visible to the loader. This allows to avoid renaming
+  // the file, which in some cases is costly.
+  if (directory()->is_local()) {
+    result += k_dump_in_progress_ext;
+  }
+
+  return result;
 }
 
 }  // namespace dump

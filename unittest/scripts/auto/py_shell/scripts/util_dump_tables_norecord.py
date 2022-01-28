@@ -446,7 +446,7 @@ EXPECT_SUCCESS(types_schema, types_schema_tables, "file://" + test_output_absolu
 
 #@<> WL13804-TSFR_10_1_5
 EXPECT_FAIL("ValueError", "Directory handling for http protocol is not supported.", types_schema, types_schema_tables, "http://example.com", { "showProgress": False })
-EXPECT_FAIL("ValueError", "Invalid PAR, expected: https://objectstorage.<region>.oraclecloud.com/p/<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]", types_schema, types_schema_tables, "HTTPS://www.example.com", { "showProgress": False })
+EXPECT_FAIL("ValueError", "Directory handling for HTTPS protocol is not supported.", types_schema, types_schema_tables, "HTTPS://www.example.com", { "showProgress": False })
 
 #@<> WL13804: WL13807-FR1.1.2 - If the dump is going to be stored on the local filesystem and the `outputUrl` parameter holds a relative path, its absolute value is computed as relative to the current working directory.
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_relative, { "ddlOnly": True, "showProgress": False })
@@ -641,6 +641,7 @@ EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be 
 #@<> WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 TEST_STRING_OPTION("defaultCharacterSet")
 
+#@<> WL13807-TSFR4_40
 EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "defaultCharacterSet": "utf8mb4", "ddlOnly": True, "showProgress": False })
 # name should be correctly encoded using UTF-8
 EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_unique), os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".sql"))
@@ -913,6 +914,57 @@ for table in test_schema_tables[1:]:
 
 for view in test_schema_views:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, view) + ".sql")))
+
+#@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
+TEST_STRING_OPTION("s3BucketName")
+
+#@<> WL14387-TSFR_1_2_1 - s3BucketName and osBucketName cannot be used at the same time
+EXPECT_FAIL("ValueError", "Argument #4: The option 's3BucketName' cannot be used when the value of 'osBucketName' option is set", types_schema, types_schema_tables, test_output_relative, { "s3BucketName": "one", "osBucketName": "two" })
+
+#@<> WL14387-TSFR_1_1_3 - s3BucketName set to an empty string dumps to a local directory
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "s3BucketName": "", "showProgress": False })
+
+#@<> s3CredentialsFile - string option
+TEST_STRING_OPTION("s3CredentialsFile")
+
+#@<> WL14387-TSFR_3_1_1_1 - s3CredentialsFile cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #4: The option 's3CredentialsFile' cannot be used when the value of 's3BucketName' option is not set", types_schema, types_schema_tables, test_output_relative, { "s3CredentialsFile": "file" })
+
+#@<> s3BucketName and s3CredentialsFile both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "s3BucketName": "", "s3CredentialsFile": "", "showProgress": False })
+
+#@<> s3ConfigFile - string option
+TEST_STRING_OPTION("s3ConfigFile")
+
+#@<> WL14387-TSFR_4_1_1_1 - s3ConfigFile cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #4: The option 's3ConfigFile' cannot be used when the value of 's3BucketName' option is not set", types_schema, types_schema_tables, test_output_relative, { "s3ConfigFile": "file" })
+
+#@<> s3BucketName and s3ConfigFile both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "s3BucketName": "", "s3ConfigFile": "", "showProgress": False })
+
+#@<> WL14387-TSFR_2_1_1 - s3Profile - string option
+TEST_STRING_OPTION("s3Profile")
+
+#@<> WL14387-TSFR_2_1_1_2 - s3Profile cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #4: The option 's3Profile' cannot be used when the value of 's3BucketName' option is not set", types_schema, types_schema_tables, test_output_relative, { "s3Profile": "profile" })
+
+#@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "s3BucketName": "", "s3Profile": "", "showProgress": False })
+
+#@<> s3EndpointOverride - string option
+TEST_STRING_OPTION("s3EndpointOverride")
+
+#@<> WL14387-TSFR_6_1_1 - s3EndpointOverride cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #4: The option 's3EndpointOverride' cannot be used when the value of 's3BucketName' option is not set", types_schema, types_schema_tables, test_output_relative, { "s3EndpointOverride": "http://example.org" })
+
+#@<> s3BucketName and s3EndpointOverride both set to an empty string dumps to a local directory
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "s3BucketName": "", "s3EndpointOverride": "", "showProgress": False })
+
+#@<> s3EndpointOverride is missing a scheme
+EXPECT_FAIL("ValueError", "Argument #4: The value of the option 's3EndpointOverride' is missing a scheme, expected: http:// or https://.", types_schema, types_schema_tables, test_output_absolute, { "s3BucketName": "bucket", "s3EndpointOverride": "endpoint", "showProgress": False })
+
+#@<> s3EndpointOverride is using wrong scheme
+EXPECT_FAIL("ValueError", "Argument #4: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.", types_schema, types_schema_tables, test_output_absolute, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "showProgress": False })
 
 #@<> options param being a dictionary that contains an unknown key
 # WL13804-TSFR_11_1_2

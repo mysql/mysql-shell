@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -114,12 +114,25 @@ struct Response {
 
   virtual ~Response() = default;
 
+  /**
+   * Converts the status code to a string.
+   */
   static std::string status_code(Status_code c);
 
   /**
    * Indicates if Content-Type of the response is set to 'application/json'.
    */
   static bool is_json(const Headers &hdrs);
+
+  /**
+   * Indicates if Content-Type of the response is set to 'application/xml'.
+   */
+  static bool is_xml(const Headers &hdrs);
+
+  /**
+   * Checks if the status code is an error.
+   */
+  static bool is_error(Status_code c);
 
   /**
    * Decode body as JSON object if Content-Type of the response is set to

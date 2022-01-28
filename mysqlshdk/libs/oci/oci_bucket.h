@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,271 +25,47 @@
 #define MYSQLSHDK_LIBS_OCI_OCI_BUCKET_H_
 
 #include <memory>
-#include <optional>
 #include <string>
-#include <thread>
+#include <unordered_set>
 #include <vector>
 
-#include "mysqlshdk/libs/oci/oci_options.h"
-#include "mysqlshdk/libs/oci/oci_rest_service.h"
-#include "mysqlshdk/libs/utils/enumset.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/storage/backend/object_storage_bucket.h"
+
+#include "mysqlshdk/libs/oci/oci_bucket_config.h"
 
 namespace mysqlshdk {
 namespace oci {
-enum class Object_fields { NAME, SIZE, ETAG, MD5, TIME_CREATED };
 
-using Object_fields_mask =
-    mysqlshdk::utils::Enum_set<Object_fields, Object_fields::TIME_CREATED>;
+using storage::backend::object_storage::Multipart_object;
+using storage::backend::object_storage::Multipart_object_part;
+using storage::backend::object_storage::Object_details;
 
-namespace object_fields {
-const Object_fields_mask kNameSize =
-    Object_fields_mask(Object_fields::NAME).set(Object_fields::SIZE);
-
-const Object_fields_mask kName = Object_fields_mask(Object_fields::NAME);
-
-const Object_fields_mask kAll = Object_fields_mask::all();
-}  // namespace object_fields
-
-struct Multipart_object {
-  std::string name;
-  std::string upload_id;
-};
-
-struct Multipart_object_part {
-  size_t part_num = 0;
-  std::string etag;
-  size_t size = 0;
-};
-
-struct Object_details {
-  std::string name;
-  size_t size = 0;
-  std::string etag;
-  std::string md5;
-  std::string time_created;
-};
-
-enum class PAR_access_type {
-  OBJECT_READ,
-  OBJECT_WRITE,
-  OBJECT_READ_WRITE,
-  ANY_OBJECT_READ,
-  ANY_OBJECT_WRITE,
-  ANY_OBJECT_READ_WRITE
-};
-
-std::string to_string(PAR_access_type access_type);
-
-enum class PAR_list_action { DENY, LIST_OBJECTS };
-
-std::string to_string(PAR_list_action list_action);
-
-struct PAR {
-  std::string id;
-  std::string name;
-  std::string access_uri;
-  std::string access_type;
-  std::string object_name;
-  std::string time_created;
-  std::string time_expires;
-  std::string list_action;
-  size_t size;
-};
-
-std::string hide_par_secret(const std::string &par, std::size_t start_at = 0);
-
-template <typename T>
-Masked_string anonymize_par(T &&par) {
-  return {std::forward<T>(par), hide_par_secret(par)};
-}
-
-class Object;
 /**
  * C++ Implementation for Bucket operations through the OCI Object Store REST
  * API.
- *
- * This object would create an instance of the Oci_rest_service in the context
- * of the OCI configuration path and OCI profile available on the shell options.
  */
-class Bucket : public std::enable_shared_from_this<Bucket> {
+class Oci_bucket : public storage::backend::object_storage::Bucket {
  public:
-  Bucket() = delete;
+  Oci_bucket() = delete;
 
   /**
    * The Bucket class represents an bucket accessible through the OCI
    * configuration for the user.
    *
-   * @param bucketName: the name of the bucket to be represented through the
-   * created instance.
+   * @param config: the configuration for the bucket.
    *
-   * @throw Response_error in case the indicated bucket does not exist on the
+   * @throws Response_error in case the indicated bucket does not exist on the
    * indicated tenancy.
    */
-  explicit Bucket(const Oci_options &options);
-  Bucket(const Bucket &other) = delete;
-  Bucket(Bucket &&other) = delete;
-  Bucket &operator=(const Bucket &other) = delete;
-  Bucket &operator=(Bucket &&other) = delete;
-  /**
-   * Accessor functions for the information retrieved throgh the GetBucket REST
-   * API.
-   *
-   * NOTE: Only part of the information returned was made available, additional
-   * information should be added as needed.
-   */
-  const std::string &get_namespace() const { return *m_options.os_namespace; }
-  const std::string &get_name() const { return *m_options.os_bucket_name; }
+  explicit Oci_bucket(const Oci_bucket_config_ptr &config);
 
-  /**
-   * Retrieves information for the objects available on the bucket.
-   *
-   * For additional information regarding the parameters look at the ListObjects
-   * REST API documentation.
-   *
-   * NOTE: The ListObjects REST API limits the number of returned records to
-   * 1000, note that such limitation is removed on this implementation which
-   * will only limit the returned data if it is indicated specifying a limit
-   * greather than 0.
-   */
-  std::vector<Object_details> list_objects(
-      const std::string &prefix = "", const std::string &start = "",
-      const std::string &end = "", size_t limit = 0, bool recursive = true,
-      const Object_fields_mask &fields = object_fields::kNameSize,
-      std::vector<std::string> *out_prefixes = nullptr,
-      std::string *out_nextStart = nullptr);
+  Oci_bucket(const Oci_bucket &other) = delete;
+  Oci_bucket(Oci_bucket &&other) = delete;
 
-  /**
-   * Creates an object on the bucket.
-   *
-   * @param object_name: The name of the object to be created.
-   * @param data: Buffer containing the information to be stored on the object.
-   * @param size: The length of the data contained on the buffer.
-   * @param override: Flag to indicate the object should be overwritten if
-   * already exists.
-   */
-  void put_object(const std::string &object_name, const char *data, size_t size,
-                  bool override = true);
-
-  /**
-   * Deletes an object from the bucket.
-   *
-   * @param: object_name: the name of the object to be deleted.
-   *
-   * @throw Response_error if the given object does not exist.
-   */
-  void delete_object(const std::string &object_name);
-
-  /**
-   * Retrieves basic information from an object in the bucket.
-   *
-   * @param object_name: the name of the object for which to retrieve the
-   * information.
-   *
-   * NOTE: This function is returning just the size, additional information is
-   * available but should be added only if needed. For additional information
-   * look at the HeadObject REST API.
-   *
-   * @throw Response_error if the object does not exist.
-   */
-  size_t head_object(const std::string &object_name);
-
-  /**
-   * Retrieves content data from an object.
-   *
-   * @param object_name: The object from which the data is to be retrieved.
-   * @param buffer: A buffer where the data will be stored.
-   * @param from_byte: First byte to be retrieved from the object.
-   * @param to_byte: Last byte to be retrieved from the object.
-   *
-   * @returns The number of retrieved bytes.
-   *
-   * The from_byte and to_byte parameters are used to create a range of data to
-   * be retrieved. The range definition has different meanings depending on the
-   * presense of the two parameters:
-   *
-   * from-to: Retrieves the indicated range of data (inclusive-inclusive).
-   * from-: Retrieves all the data starting at from.
-   * -to: Retrieves the last 'to' bytes. Use nullable<> overload.
-   */
-  size_t get_object(const std::string &object_name,
-                    mysqlshdk::rest::Base_response_buffer *buffer,
-                    const mysqlshdk::utils::nullable<size_t> &from_byte,
-                    const mysqlshdk::utils::nullable<size_t> &to_byte);
-  size_t get_object(const std::string &object_name,
-                    mysqlshdk::rest::Base_response_buffer *buffer,
-                    size_t from_byte, size_t to_byte);
-  size_t get_object(const std::string &object_name,
-                    mysqlshdk::rest::Base_response_buffer *buffer,
-                    size_t from_byte);
-  size_t get_object(const std::string &object_name,
-                    mysqlshdk::rest::Base_response_buffer *buffer);
-
-  void rename_object(const std::string &src_name, const std::string &new_name);
-
-  // Multipart Handling
-  /**
-   * Retrieves information about multipart objects being uploaded.
-   *
-   * A multipart object is considered in uploading state after it is created and
-   * before commit/abort is called.
-   *
-   * @param limit: Used to limit the number of object data retrieved.
-   *
-   * @returns A list with the name and etag for the objects being uoloaded.
-   */
-  std::vector<Multipart_object> list_multipart_uploads(size_t limit = 0);
-
-  /**
-   * Retrieves information about the parts of a multipart object being uploaded.
-   *
-   * @param object: The object for which the part information is to be
-   * retrieved.
-   * @param limit: To limit the number of parts retrieved, if not specified will
-   * retrieve the information for all the uploaded parts.
-   *
-   * @returns the list of uploaded parts for the given object.
-   */
-  std::vector<Multipart_object_part> list_multipart_upload_parts(
-      const Multipart_object &object, size_t limit = 0);
-
-  /**
-   * Initiates a multipart object upload.
-   *
-   * @param object_name: the name of the object to be uploaded.
-   *
-   * @returns a Multipart_object with the information of the object being
-   * uploaded.
-   */
-  Multipart_object create_multipart_upload(const std::string &object_name);
-
-  /**
-   * Uploads a part for an object being uploaded.
-   *    *
-   * @param object: the multipart object data for which this part belongs.
-   * @param partNum: an incremental identifier for the part, the object will be
-   * assembled joining the parts in ascending order based on this identifier.
-   *
-   * @returns the part summary of the uploaded part.
-   */
-  Multipart_object_part upload_part(const Multipart_object &object,
-                                    size_t partNum, const char *body,
-                                    size_t size);
-
-  /**
-   * Finishes a multipart object upload.
-   *
-   * @param object: the multipart object to be completed
-   * @param parts: the summary of the parts to be included on the object.
-   */
-  void commit_multipart_upload(const Multipart_object &object,
-                               const std::vector<Multipart_object_part> &parts);
-
-  /**
-   * Aborts a multipart object upload.
-   *
-   * @param object_name: the name of the multipart object to be discarded.
-   */
-  void abort_multipart_upload(const Multipart_object &object);
+  Oci_bucket &operator=(const Oci_bucket &other) = delete;
+  Oci_bucket &operator=(Oci_bucket &&other) = delete;
 
   PAR create_pre_authenticated_request(
       PAR_access_type access_type, const std::string &expiration_time,
@@ -302,11 +78,6 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
       const std::string &prefix = "", size_t limit = 0,
       const std::string &page = "");
 
-  // Only used for testing purposes
-  Oci_rest_service *get_rest_service() { return m_rest_service; }
-
-  const Oci_options &get_options() { return m_options; }
-
   bool exists();
 
   void create(const std::string &compartment_id);
@@ -314,14 +85,63 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   void delete_();
 
  private:
-  void ensure_connection();
+  rest::Signed_request create_request(const std::string &object_name,
+                                      rest::Headers headers = {}) const;
 
-  Oci_request create_request(const std::string &object_name,
-                             Headers headers = {}) const;
+  rest::Signed_request list_objects_request(
+      const std::string &prefix, size_t limit, bool recursive,
+      const Object_details::Fields_mask &fields,
+      const std::string &start_from) override;
 
-  Oci_options m_options;
-  Oci_rest_service *m_rest_service = nullptr;
-  std::thread::id m_rest_service_thread;
+  std::vector<Object_details> parse_list_objects(
+      const rest::Base_response_buffer &buffer, std::string *next_start_from,
+      std::unordered_set<std::string> *out_prefixes) override;
+
+  rest::Signed_request head_object_request(
+      const std::string &object_name) override;
+
+  rest::Signed_request delete_object_request(
+      const std::string &object_name) override;
+
+  rest::Signed_request put_object_request(const std::string &object_name,
+                                          rest::Headers headers) override;
+
+  rest::Signed_request get_object_request(const std::string &object_name,
+                                          rest::Headers headers) override;
+
+  void execute_rename_object(rest::Signed_rest_service *service,
+                             const std::string &src_name,
+                             const std::string &new_name) override;
+
+  rest::Signed_request list_multipart_uploads_request(size_t limit) override;
+
+  std::vector<Multipart_object> parse_list_multipart_uploads(
+      const rest::Base_response_buffer &buffer) override;
+
+  rest::Signed_request list_multipart_uploaded_parts_request(
+      const Multipart_object &object, size_t limit) override;
+
+  std::vector<Multipart_object_part> parse_list_multipart_uploaded_parts(
+      const rest::Base_response_buffer &buffer) override;
+
+  rest::Signed_request create_multipart_upload_request(
+      const std::string &object_name, std::string *request_body) override;
+
+  std::string parse_create_multipart_upload(
+      const rest::Base_response_buffer &buffer) override;
+
+  rest::Signed_request upload_part_request(const Multipart_object &object,
+                                           size_t part_num) override;
+
+  rest::Signed_request commit_multipart_upload_request(
+      const Multipart_object &object,
+      const std::vector<Multipart_object_part> &parts,
+      std::string *request_body) override;
+
+  rest::Signed_request abort_multipart_upload_request(
+      const Multipart_object &object) override;
+
+  Oci_bucket_config_ptr m_config;
 
   const std::string kNamespacePath;
   const std::string kBucketPath;

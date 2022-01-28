@@ -2261,7 +2261,7 @@ void Dump_loader::setup_progress_file(bool *out_is_resuming) {
       !m_options.progress_file()->empty()) {
     auto progress_file = m_dump->create_progress_file_handle();
     const auto path = progress_file->full_path().masked();
-    bool rewrite_on_flush = m_options.oci_options() ? true : false;
+    bool rewrite_on_flush = !progress_file->is_local();
 
     auto progress = m_load_log->init(std::move(progress_file),
                                      m_options.dry_run(), rewrite_on_flush);

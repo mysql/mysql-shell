@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,8 @@
 
 #include "mysqlshdk/libs/utils/masked_value.h"
 
+#include "mysqlshdk/libs/storage/config.h"
+
 #if defined(_WIN32)
 using off64_t = __int64;
 using ssize_t = __int64;
@@ -38,13 +40,6 @@ using off64_t = off_t;
 #endif
 
 namespace mysqlshdk {
-
-namespace oci {
-
-struct Oci_options;
-
-}  // namespace oci
-
 namespace storage {
 
 class IDirectory;
@@ -81,6 +76,7 @@ class IFile {
   virtual ssize_t write(const void *buffer, size_t length) = 0;
   virtual bool flush() = 0;
   virtual bool is_compressed() const { return false; }
+  virtual bool is_local() const = 0;
 
   /**
    * Changes name of this file. File cannot be moved to another directory.
@@ -99,7 +95,7 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
                                  const File_options &options = {});
 
 std::unique_ptr<IFile> make_file(const std::string &filepath,
-                                 const mysqlshdk::oci::Oci_options &options);
+                                 const Config_ptr &config);
 
 int fprintf(IFile *, const char *format, ...);
 int fputs(const char *s, IFile *file);

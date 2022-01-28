@@ -509,6 +509,14 @@ class Testutils : public mysqlsh::Extensible_object {
   void delete_oci_object(const std::string &bucket, const std::string &name);
 
   void anycopy(const shcore::Value &from, const shcore::Value &to);
+
+  bool clean_s3_bucket(const shcore::Dictionary_t &opts);
+
+  void delete_s3_object(const std::string &name,
+                        const shcore::Dictionary_t &opts);
+
+  void delete_s3_objects(const std::vector<std::string> &names,
+                         const shcore::Dictionary_t &opts);
 };
 
 }  // namespace tests

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,16 +47,9 @@ void translate_current_exception(const Progress_thread &progress) {
     const auto context = "While '" + stage->description() + "': ";
 
     try {
-      std::rethrow_exception(exception);
-    } catch (const mysqlshdk::rest::Response_error &e) {
-      throw mysqlshdk::rest::to_exception(e, context);
+      mysqlshdk::rest::translate_current_exception(context);
     } catch (const mysqlshdk::rest::Connection_error &e) {
       THROW_ERROR(SHERR_DL_COMMON_CONNECTION_ERROR, context.c_str(), e.what());
-    } catch (const shcore::Exception &e) {
-      const auto error = e.error();
-      const auto msg = context + error->get_string("message", "Unknown error");
-      error->set("message", shcore::Value{msg});
-      throw shcore::Exception(msg, e.code(), error);
     } catch (...) {
       throw;
     }

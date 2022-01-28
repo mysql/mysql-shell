@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,44 +25,52 @@
 #define MODULES_UTIL_DUMP_DUMP_MANIFEST_H_
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/storage/backend/object_storage.h"
+#include "mysqlshdk/libs/storage/idirectory.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
+
+#include "modules/util/dump/dump_manifest_config.h"
 
 namespace mysqlsh {
 namespace dump {
 
-using mysqlshdk::storage::backend::oci::Par_structure;
-using mysqlshdk::storage::backend::oci::Par_type;
 using File_info = mysqlshdk::storage::IDirectory::File_info;
-
-enum class Manifest_mode { READ, WRITE };
 
 /**
  * Base class for Dump manifest handling
  */
 class Manifest_base {
  public:
-  Manifest_base(Manifest_mode mode,
-                std::unique_ptr<mysqlshdk::storage::IFile> file_handle)
-      : m_mode(mode), m_file{std::move(file_handle)} {}
+  Manifest_base(std::unique_ptr<mysqlshdk::storage::IFile> file_handle,
+                const std::string &base_name)
+      : m_file{std::move(file_handle)}, m_base_name(base_name) {}
+
   virtual bool has_object(const std::string &name) const;
-  bool is_complete() const { return m_complete; }
+
   virtual const File_info &get_object(const std::string &name);
+
   std::unordered_set<File_info> list_objects();
-  virtual const std::string &get_base_name() const = 0;
-  Manifest_mode get_mode() const { return m_mode; }
+
+  bool is_complete() const { return m_complete; }
+
+  const std::string &base_name() const { return m_base_name; }
 
  protected:
-  Manifest_mode m_mode;
   std::unique_ptr<mysqlshdk::storage::IFile> m_file;
   mutable std::mutex m_mutex;
   std::unordered_map<std::string, File_info> m_objects;
   bool m_complete = false;
+
+ private:
+  std::string m_base_name;
 };
 
 /**
@@ -70,18 +78,21 @@ class Manifest_base {
  */
 class Manifest_writer final : public Manifest_base {
  public:
-  Manifest_writer(const std::string &base_name,
-                  const std::string &par_expire_time,
-                  std::unique_ptr<mysqlshdk::storage::IFile> file_handle);
+  Manifest_writer(std::unique_ptr<mysqlshdk::storage::IFile> file_handle,
+                  const std::string &base_name,
+                  const std::string &par_expire_time);
+
   void cache_par(mysqlshdk::oci::PAR &&par);
+
   void add_par(mysqlshdk::oci::PAR &&par) { m_pars_queue.push(std::move(par)); }
+
   std::string serialize() const;
+
   void flush();
+
   void finalize();
-  const std::string &get_base_name() const override { return m_base_name; }
 
  private:
-  std::string m_base_name;
   std::string m_par_expire_time;
   std::vector<mysqlshdk::oci::PAR> m_par_cache;
   std::unique_ptr<std::thread> m_par_thread;
@@ -95,25 +106,21 @@ class Manifest_writer final : public Manifest_base {
  */
 class Manifest_reader final : public Manifest_base {
  public:
-  Manifest_reader(const Par_structure &par_data,
-                  std::unique_ptr<mysqlshdk::storage::IFile> file_handle)
-      : Manifest_base(Manifest_mode::READ, std::move(file_handle)),
-        m_meta(par_data) {}
-
-  const std::string &get_base_name() const override {
-    return m_meta.object_prefix;
-  }
+  Manifest_reader(std::unique_ptr<mysqlshdk::storage::IFile> file_handle,
+                  const std::string &base_name)
+      : Manifest_base(std::move(file_handle), base_name) {}
 
   const File_info &get_object(const std::string &name) override;
+
   void unserialize(const std::string &data);
-  const std::string &get_object_prefix() const { return m_meta.object_prefix; }
-  const std::string &url() const { return m_meta.full_url; }
-  const std::string &region() const { return m_meta.region; }
-  const std::string &domain() const { return m_meta.domain; }
+
   void reload();
 
+  bool exists() const { return m_file->exists(); }
+
+  mysqlshdk::Masked_string full_path() const { return m_file->full_path(); }
+
  private:
-  Par_structure m_meta;
   size_t m_last_manifest_size = 0;
 };
 
@@ -139,12 +146,15 @@ class Manifest_reader final : public Manifest_base {
  * - Supports external file read/write operations as long as the files are
  *   created using a PAR with the required permissions.
  */
-class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
+class Dump_manifest_writer
+    : public mysqlshdk::storage::backend::object_storage::Directory {
  public:
-  Dump_manifest(Manifest_mode mode, const mysqlshdk::oci::Oci_options &options,
-                const std::shared_ptr<Manifest_base> &manifest = nullptr,
-                const std::string &name = "");
-  ~Dump_manifest() override;
+  explicit Dump_manifest_writer(
+      const Dump_manifest_write_config_ptr &config,
+      const std::string &name = {},
+      const std::shared_ptr<Manifest_writer> &writer = {});
+
+  ~Dump_manifest_writer() override;
 
   /**
    * Creates a file handle either for a file contained on the manifest or
@@ -156,89 +166,56 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
 
   void close() override;
 
-  /**
-   * Retrieves the list of files on the manifest.
-   */
-  std::unordered_set<File_info> list_files(
-      bool hidden_files = false) const override;
+  bool is_local() const override { return false; }
+
+ private:
+  void finalize();
+
+  std::shared_ptr<Manifest_writer> m_writer;
+  Dump_manifest_write_config_ptr m_config;
+};
+
+class Dump_manifest_reader : public mysqlshdk::storage::IDirectory {
+ public:
+  Dump_manifest_reader(const Dump_manifest_read_config_ptr &config,
+                       const std::shared_ptr<Manifest_reader> &reader = {});
+
+  ~Dump_manifest_reader() override = default;
+
+  void close() override {}
 
   bool is_local() const override { return false; }
 
-  bool has_object(const std::string &name) const;
+  bool exists() const override { return m_reader->exists(); }
 
-  const File_info &get_object(const std::string &name,
-                              bool fetch_size = false) const;
+  mysqlshdk::Masked_string full_path() const override {
+    return m_reader->full_path();
+  }
+
+  std::string join_path(const std::string &a,
+                        const std::string &b) const override;
+
+  std::unique_ptr<mysqlshdk::storage::IFile> file(
+      const std::string &name,
+      const mysqlshdk::storage::File_options &options = {}) const override;
+
+  std::unordered_set<File_info> list_files(
+      bool hidden_files = false) const override;
+
+  void create() override {
+    throw std::logic_error("Dump_manifest_reader::create() - not implemented");
+  }
+
+  std::unordered_set<File_info> filter_files(
+      const std::string &) const override {
+    throw std::logic_error(
+        "Dump_manifest_reader::filter_files() - not implemented");
+  }
 
  private:
-  friend class Dump_manifest_object;
-
-  // Members for WRITE mode
-  void finalize();
-
-  // Members for READ mode
-  bool file_exists(const std::string &name) const;
-
-  // Global Members
-  std::shared_ptr<Manifest_base> m_manifest;
+  std::shared_ptr<Manifest_reader> m_reader;
+  Dump_manifest_read_config_ptr m_config;
   mutable std::unordered_map<std::string, File_info> m_created_objects;
-};
-
-class Dump_manifest_object : public mysqlshdk::storage::backend::oci::Object {
- public:
-  Dump_manifest_object(const std::shared_ptr<Manifest_base> &manifest,
-                       const mysqlshdk::oci::Oci_options &options,
-                       const std::string &name, const std::string &prefix = "");
-
-  ~Dump_manifest_object() override = default;
-
-  mysqlshdk::Masked_string full_path() const override;
-
-  /**
-   * Opens the object for data operations:
-   *
-   * @param mode indicates the mode in which the object will be used.
-   *
-   * Valid modes include:
-   *
-   * - WRITE: Used to create or overwrite an object.
-   * - APPEND: used to continue writing the parts of a multipart object that has
-   * not been completed.
-   * - READ: Used to read the content of the object.
-   */
-  void open(mysqlshdk::storage::Mode mode) override;
-
-  /**
-   * Returns the size of the object.
-   *
-   * If the object was opened in READ mode it returns the total size of the
-   * object, otherwize returns the number of bytes written so far.
-   */
-  size_t file_size() const override;
-
-  /**
-   * Indicates whether the object already exists in the bucket or not.
-   */
-  bool exists() const override;
-
-  /**
-   * Finishes the operation being done on the object.
-   *
-   * If the object was opened in WRITE or APPEND mode this will flush the object
-   * data and complete the object.
-   */
-  void close() override;
-
-  std::unique_ptr<mysqlshdk::storage::IDirectory> parent() const override;
-
- private:
-  void create_par(const mysqlshdk::oci::Oci_options &options);
-  std::string object_name() const;
-
-  std::shared_ptr<Manifest_base> m_manifest;
-  mysqlshdk::utils::nullable<size_t> m_size;
-  std::unique_ptr<std::thread> m_par_thread;
-  std::unique_ptr<mysqlshdk::oci::PAR> m_par;
-  std::string m_par_thread_error;
 };
 
 }  // namespace dump

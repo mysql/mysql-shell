@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,22 +31,23 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 
-TEST(Http_get_test, full_path_constructor) {
+TEST(Http_object_test, full_path_constructor) {
   const auto EXPECT_BASE_AND_PATH = [](const std::string &base,
                                        const std::string &path) {
     SCOPED_TRACE("base: '" + base + "', path: '" + path + "'");
 
     const auto expected_base = base + ('/' == base.back() ? "" : "/");
     const auto expected_url = expected_base + path;
-    const auto get = Http_get(expected_url);
+    const auto get = Http_object(expected_url);
 
     EXPECT_EQ(expected_base, get.m_base.real());
     EXPECT_EQ(path, get.m_path);
     EXPECT_EQ(expected_url, get.full_path().real());
   };
 
-  EXPECT_THROW_LIKE(Http_get(""), std::logic_error, "URI is empty");
-  EXPECT_THROW_LIKE(Http_get("no scheme"), std::logic_error,
+  EXPECT_THROW_LIKE(Http_object(std::string{""}), std::logic_error,
+                    "URI is empty");
+  EXPECT_THROW_LIKE(Http_object(std::string{"no scheme"}), std::logic_error,
                     "URI does not have a scheme");
 
   EXPECT_BASE_AND_PATH("https://example.com", "");

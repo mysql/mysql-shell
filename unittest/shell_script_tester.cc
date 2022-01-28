@@ -1754,6 +1754,13 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("KERBEROS_USER");
   def_string_var_from_env("KERBEROS_PWD");
 
+  // Variables for AWS Tests
+  def_string_var_from_env("MYSQLSH_S3_BUCKET_NAME");
+  def_string_var_from_env("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE");
+  def_string_var_from_env("MYSQLSH_AWS_CONFIG_FILE");
+  def_string_var_from_env("MYSQLSH_AWS_PROFILE");
+  def_string_var_from_env("MYSQLSH_S3_ENDPOINT_OVERRIDE");
+
   def_var("__libmysql_version_id",
           shcore::str_format("'%d'", LIBMYSQL_VERSION_ID));
   const char *oci_config_home = getenv("OCI_CONFIG_HOME");

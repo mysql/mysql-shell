@@ -38,9 +38,11 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/oci/oci_options.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
+#include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlsh {
@@ -107,7 +109,9 @@ class Import_table_option_pack {
 
   size_t max_transaction_size() const;
 
-  mysqlshdk::oci::Oci_options get_oci_options() const { return m_oci_options; }
+  const mysqlshdk::storage::Config_ptr &storage_config() const {
+    return m_storage_config;
+  }
 
   /**
    * Creates a new file handle using the provided options.
@@ -127,12 +131,10 @@ class Import_table_option_pack {
   }
 
  private:
-  void on_start_unpack(const shcore::Dictionary_t &options);
-  void unpack(const shcore::Dictionary_t &options);
-
   void set_max_transaction_size(const std::string &value);
   void set_bytes_per_chunk(const std::string &value);
   void set_max_rate(const std::string &value);
+  void on_unpacked_options();
 
  protected:
   size_t calc_thread_size();
@@ -153,9 +155,9 @@ class Import_table_option_pack {
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
   uint64_t m_skip_rows_count = 0;
   Dialect m_dialect;
-  mysqlshdk::oci::Oci_option_unpacker<
-      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_OPTIONS>
-      m_oci_options;
+  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
+  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
+  mysqlshdk::storage::Config_ptr m_storage_config;
   bool m_verbose = true;
 
   std::vector<std::string> m_session_init_sql;

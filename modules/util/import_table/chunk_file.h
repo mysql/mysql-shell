@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,6 @@
 
 #include "modules/util/import_table/dialect.h"
 #include "modules/util/import_table/helpers.h"
-#include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 

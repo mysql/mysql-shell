@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,9 @@
 #include <memory>
 #include <string>
 
+#include "mysqlshdk/libs/aws/s3_bucket_options.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
+
 #include "modules/util/dump/dump_options.h"
 
 namespace mysqlsh {
@@ -35,6 +38,7 @@ namespace dump {
 class Export_table_options : public Dump_options {
  public:
   Export_table_options();
+
   Export_table_options(const Export_table_options &) = default;
   Export_table_options(Export_table_options &&) = default;
 
@@ -81,6 +85,8 @@ class Export_table_options : public Dump_options {
 
   bool dump_binlog_info() const override { return false; }
 
+  bool par_manifest() const override { return false; }
+
  private:
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
@@ -94,9 +100,8 @@ class Export_table_options : public Dump_options {
   std::string m_schema;
   std::string m_table;
   import_table::Dialect m_dialect_unpacker;
-  mysqlshdk::oci::Oci_option_unpacker<
-      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_SUPPORT>
-      m_oci_option_unpacker;
+  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
+  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
 };
 
 }  // namespace dump

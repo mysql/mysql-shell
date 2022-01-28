@@ -31,9 +31,10 @@
 #include "modules/mod_utils.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/oci/oci_options.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
+#include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -111,8 +112,8 @@ class Load_dump_options {
     return m_default_progress_file;
   }
 
-  const mysqlshdk::oci::Oci_options &oci_options() const {
-    return m_oci_options;
+  const mysqlshdk::storage::Config_ptr &storage_config() const {
+    return m_storage_config;
   }
 
   bool show_progress() const { return m_show_progress; }
@@ -167,12 +168,6 @@ class Load_dump_options {
 
   const std::string &current_schema() const { return m_current_schema; }
 
-  mysqlshdk::storage::backend::oci::Par_type par_type() const {
-    return m_par_type;
-  }
-
-  bool use_par_progress() const { return m_use_par_progress; }
-
   const mysqlshdk::utils::Version &target_server_version() const {
     return m_target_server_version;
   }
@@ -209,6 +204,8 @@ class Load_dump_options {
 
   void set_max_bytes_per_transaction(const std::string &value);
 
+  void set_progress_file(const std::string &file);
+
   template <typename T>
   inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
     return m_base_session->query_log_error(sql);
@@ -228,18 +225,14 @@ class Load_dump_options {
   bool error_on_trigger_filters_conflicts() const;
 
   std::string m_url;
-  std::string m_prefix;
-  mysqlshdk::storage::backend::oci::Par_type m_par_type;
-  std::string m_par_object;
-  bool m_use_par_progress = false;
   uint64_t m_threads_count = 4;
   mysqlshdk::utils::nullable<uint64_t> m_background_threads_count;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
 
-  mysqlshdk::oci::Oci_option_unpacker<
-      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_OPTIONS>
-      m_oci_option_pack;
-  mysqlshdk::oci::Oci_options m_oci_options;
+  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
+  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
+  mysqlshdk::storage::Config_ptr m_storage_config;
+  mysqlshdk::storage::Config_ptr m_progress_file_config;
   Connection_options m_target;
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
 

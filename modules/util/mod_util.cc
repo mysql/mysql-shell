@@ -891,6 +891,56 @@ void Util::import_json(
   importer.print_stats();
 }
 
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AWS_COMMON_OPTIONS, R"*(
+@li <b>s3BucketName</b>: string (default: not set) - Name of the AWS S3 bucket
+to use. The bucket must already exist.
+@li <b>s3CredentialsFile</b>: string (default: not set) - Use the specified AWS
+<b>credentials</b> file instead of the one at the default location.
+@li <b>s3ConfigFile</b>: string (default: not set) - Use the specified AWS
+<b>config</b> file instead of the one at the default location.
+@li <b>s3Profile</b>: string (default: not set) - Use the specified AWS profile
+instead of the <b>default</b> one.
+@li <b>s3EndpointOverride</b>: string (default: not set) - Use the specified AWS
+S3 API endpoint instead of the default one.)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS, R"*(
+If the <b>s3BucketName</b> option is used, the dump is stored in the specified
+AWS S3 bucket. Connection is established using default local AWS configuration
+paths and profiles, unless overridden. The directory structure is simulated
+within the object name.
+
+The <b>s3CredentialsFile</b>, <b>s3ConfigFile</b>, <b>s3Profile</b> and
+<b>s3EndpointOverride</b> options cannot be used if the <b>s3BucketName</b>
+option is not set or set to an empty string.
+
+<b>Handling of the AWS settings</b>
+
+-# The following settings are read from the <b>config</b> file for the
+specified profile:
+@li <b>aws_access_key_id</b>
+@li <b>aws_secret_access_key</b>
+@li <b>aws_session_token</b>
+@li <b>region</b>
+-# The following settings are read from the <b>credentials</b> file for the
+specified profile:
+@li <b>aws_access_key_id</b>
+@li <b>aws_secret_access_key</b>
+@li <b>aws_session_token</b>
+-# If there are credentials in both <b>credentials</b> and <b>config</b> files
+for the specified profile, the keys in the <b>credentials</b> file take
+precedence.
+-# If either <b>aws_access_key_id</b> or <b>aws_secret_access_key</b> is
+missing, an exception is thrown.
+-# If <b>aws_session_token</b> is missing, or is empty, it is not used to
+authenticate the user.
+-# If <b>region</b> is missing, or is empty, a default value of <b>us-east-1</b>
+is used instead.)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS, R"*(
+<b>Dumping to a Bucket in the AWS S3 Object Storage</b>
+
+${TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS})*");
+
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_URL_DETAIL, R"*(
 @li <b>/path/to/file</b> - Path to a locally or remotely (e.g. in OCI Object
 Storage) accessible file or directory
@@ -903,7 +953,10 @@ plain path in that OCI (Oracle Cloud Infrastructure) Object Storage bucket.
 
 The OCI configuration profile is located through the oci.profile and
 oci.configFile global shell options and can be overridden with ociProfile and
-ociConfigFile, respectively.)*");
+ociConfigFile, respectively.
+
+If the <b>s3BucketName</b> option is given, the path argument must specify a
+plain path in that AWS S3 bucket.)*");
 
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_OCI_OPTIONS_DETAIL, R"*(
 <b>OCI Object Storage Options</b>
@@ -1013,6 +1066,12 @@ system variable to interpret the information in the file.
 list of SQL statements in each session about to load data.
 
 ${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
+
+<b>AWS S3 Object Storage Options</b>
+
+${TOPIC_UTIL_AWS_COMMON_OPTIONS}
+
+${TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS}
 
 <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
 fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
@@ -1211,6 +1270,8 @@ pre-authenticated requests (PAR). Allowed values:
 @li <b>/path/to/folder</b> - to load a dump from local storage
 @li <b>/oci/bucket/path</b> - to load a dump from OCI Object Storage using an
 OCI profile
+@li <b>/aws/bucket/path</b> - to load a dump from AWS S3 Object Storage using
+the AWS settings stored in the <b>credentials</b> and <b>config</b> files
 @li <b>PAR to the dump manifest</b> - to load a dump from OCI Object Storage
 created with the ociParManifest option
 @li <b>PAR to the dump location</b> - to load a dump from OCI Object Storage
@@ -1218,9 +1279,9 @@ using a single PAR
 
 <<<loadDump>>>() will load a dump from the specified path. It transparently
 handles compressed files and directly streams data when loading from remote
-storage (currently HTTP and OCI Object Storage). If the 'waitDumpTimeout'
-option is set, it will load a dump on-the-fly, loading table data chunks as the
-dumper produces them.
+storage (currently HTTP, OCI Object Storage and AWS S3 Object Storage). If the
+'waitDumpTimeout' option is set, it will load a dump on-the-fly, loading table
+data chunks as the dumper produces them.
 
 Table data will be loaded in parallel using the configured number of threads
 (4 by default). Multiple threads per table can be used if the dump was created
@@ -1251,8 +1312,9 @@ has undefined behavior and may lead to data loss.
 
 The progress state file has a default name of load-progress.@<server_uuid@>.json
 and is written to the same location as the dump. If 'progressFile' is specified,
-progress will be written to a local file at the given path. Setting it to ''
-will disable progress tracking and resuming.
+progress will be written to either a local file at the given path, or, if the
+HTTP(S) scheme is used, to a remote file using HTTP PUT requests. Setting it to
+'' will disable progress tracking and resuming.
 
 If the 'resetProgress' option is enabled, progress information from previous
 load attempts of the dump to the destination server is discarded and the load
@@ -1374,6 +1436,7 @@ seconds) passes.
 @li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
 list of SQL statements in each session about to load data.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 
 Connection options set in the global session, such as compression, ssl-mode, etc.
 are inherited by load sessions.
@@ -1431,18 +1494,15 @@ util.<<<loadDump>>>(
 )
 @endcode
 
-In both of the above cases the load is done using pure HTTP GET requests, for
-that reason the progressFile option is mandatory and should be the path to a
-local file.
+In both of the above cases the load is done using pure HTTP GET requests and the
+progressFile option is mandatory.
 
 A legacy method to create a dump loadable through PAR is still supported, this
 is done by using the ociParManifest option when creating the dump. When this is
 enabled, a manifest file "@.manifest.json" will be generated, to be used as the
 entry point to load the dump using a PAR to this file.
 
-When using a Manifest PAR to load a dump, the progressFile option is mandatory,
-and it is possible to store the load progress either on the local file system,
-or on the dump location.
+When using a Manifest PAR to load a dump, the progressFile option is mandatory.
 
 To store the progress on dump location, create an ObjectReadWrite PAR to the
 desired progress file (it does not need to exist), it should be located on
@@ -1619,10 +1679,9 @@ for the location of the dump.
 where the bucket is located, if not given it will be obtained
 using the tenancy id on the OCI configuration.
 @li <b>ociConfigFile</b>: string (default: not set) - Use the specified OCI
-configuration file instead of the one in the default location.
+configuration file instead of the one at the default location.
 @li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile
-instead of the default one.
-)*");
+instead of the default one.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS, R"*(
 @li <b>ociParManifest</b>: bool (default: not set) - Enables the generation of
@@ -1705,7 +1764,7 @@ compression, ssl-mode, etc., to establish additional connections.
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS, R"*(
 <b>Requirements</b>
 @li MySQL Server 5.7 or newer is required.
-@li File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+@li Size limit for individual files uploaded to the OCI or AWS S3 bucket is 1.2 TiB.
 @li Columns with data types which are not safe to be stored in text form (i.e.
 BLOB) are converted to Base64, hence the size of such columns cannot exceed
 approximately 0.74 * <b>max_allowed_packet</b> bytes, as configured through that
@@ -1882,6 +1941,8 @@ the data dump files, one of: "none", "gzip", "zstd".
 
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AWS_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS}
 
 <b>Details</b>
@@ -1912,6 +1973,8 @@ The <b>maxRate</b> option supports unit suffixes:
 i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
 
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -1979,6 +2042,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AWS_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS}
 @li Views and triggers to be dumped must not use qualified names to reference
 other views or tables.
@@ -2010,6 +2075,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -2075,6 +2142,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AWS_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
 <b>Options</b>
@@ -2083,6 +2152,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -2156,6 +2227,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AWS_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
 Dumps cannot be created for the following schemas:
@@ -2174,6 +2247,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.

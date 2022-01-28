@@ -109,18 +109,18 @@ EXPECT_THROWS(lambda: util.import_table([chunked_dir + os.path.sep + 'lorem_xxx_
 
 #@<> Import multiple non-existing files
 EXPECT_THROWS(lambda: util.import_table([chunked_dir + os.path.sep + 'lorem_xxx_xxx.tsv', 'lorem_xxx_ccc.tsv'], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
-    "File " + filename_for_output(chunked_dir + os.path.sep + 'lorem_xxx_xxx.tsv') + " does not exists."
+    "File " + filename_for_output(chunked_dir + os.path.sep + 'lorem_xxx_xxx.tsv') + " does not exist."
 )
-EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(chunked_dir + os.path.sep + 'lorem_xxx_xxx.tsv') + " does not exists.")
-EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(os.path.abspath(os.path.curdir), "lorem_xxx_ccc.tsv")) + " does not exists.")
+EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(chunked_dir + os.path.sep + 'lorem_xxx_xxx.tsv') + " does not exist.")
+EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(os.path.abspath(os.path.curdir), "lorem_xxx_ccc.tsv")) + " does not exist.")
 EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Wildcard files from non-existing directory
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting", 'lorem_*.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
-    "Util.import_table: Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exists."
+    "Util.import_table: Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exist."
 )
-EXPECT_STDOUT_CONTAINS("ERROR: Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exists.")
+EXPECT_STDOUT_CONTAINS("ERROR: Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exist.")
 
 #@<> Select single file from non-existing directory
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
@@ -129,10 +129,10 @@ EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting"
 
 #@<> Select multiple files from non-existing directory
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv'), os.path.join(chunked_dir, "nonexisting", 'lorem_abq.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
-    "File " + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')) + " does not exists."
+    "File " + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')) + " does not exist."
 )
-EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')) + " does not exists.")
-EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abq.tsv')) + " does not exists.")
+EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')) + " does not exist.")
+EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abq.tsv')) + " does not exist.")
 
 #@<> Select multiple files with single wildcard from directory
 util.import_table([os.path.join(chunked_dir, 'lorem_a*.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
@@ -164,9 +164,9 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Reco
 
 #@<> Mixed file list input
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting_a.csv"), os.path.join(chunked_dir, "lorem_a*"), os.path.join(chunked_dir, "lorem_b*"), '', os.path.join(chunked_dir, zst_files[0]), os.path.join(chunked_dir, zst_files[1]), os.path.join(chunked_dir, gz_files[0])], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
-    "File " + filename_for_output(os.path.join(chunked_dir, "nonexisting_a.csv")) + " does not exists."
+    "File " + filename_for_output(os.path.join(chunked_dir, "nonexisting_a.csv")) + " does not exist."
 )
-EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked_dir, "nonexisting_a.csv")) + " does not exists.")
+EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked_dir, "nonexisting_a.csv")) + " does not exist.")
 EXPECT_STDOUT_CONTAINS(zst_files[0] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 EXPECT_STDOUT_CONTAINS(zst_files[1] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 EXPECT_STDOUT_CONTAINS(gz_files[0] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")

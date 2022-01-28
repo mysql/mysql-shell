@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,9 @@
 
 #include <string>
 
+#include "mysqlshdk/libs/aws/s3_bucket_options.h"
+
+#include "modules/util/dump/dump_manifest_options.h"
 #include "modules/util/dump/dump_options.h"
 
 namespace mysqlsh {
@@ -67,6 +70,10 @@ class Ddl_dumper_options : public Dump_options {
 
   bool dump_binlog_info() const override { return true; }
 
+  bool par_manifest() const override {
+    return m_dump_manifest_options.par_manifest();
+  }
+
  protected:
   Ddl_dumper_options();
 
@@ -84,9 +91,10 @@ class Ddl_dumper_options : public Dump_options {
 
   void set_include_triggers(const std::vector<std::string> &data);
 
-  mysqlshdk::oci::Oci_option_unpacker<
-      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE>
-      m_oci_option_unpacker;
+  Dump_manifest_options m_dump_manifest_options;
+  // this should be in the Dump_options class, but storing it at the same level
+  // as OCI options helps in handling both option groups at the same time
+  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
 
   bool m_split = true;
   uint64_t m_bytes_per_chunk;

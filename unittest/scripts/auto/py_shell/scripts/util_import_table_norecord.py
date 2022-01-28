@@ -304,6 +304,71 @@ EXPECT_THROWS(lambda:
         }
     }), "Util.import_table: Argument #2: The 'columns' option must be a non-empty list.");
 
+#@<> TEST_STRING_OPTION
+def TEST_STRING_OPTION(option):
+    EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { option: None, "schema": target_schema, "table": 'cities' }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Null")
+    EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { option: 5, "schema": target_schema, "table": 'cities' }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
+    EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { option: -5, "schema": target_schema, "table": 'cities' }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
+    EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { option: [], "schema": target_schema, "table": 'cities' }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Array")
+    EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { option: {}, "schema": target_schema, "table": 'cities' }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Map")
+    EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { option: False, "schema": target_schema, "table": 'cities' }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Bool")
+
+#@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
+TEST_STRING_OPTION("s3BucketName")
+
+#@<> WL14387-TSFR_1_2_1 - s3BucketName and osBucketName cannot be used at the same time
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "one", "osBucketName": "two", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The option 's3BucketName' cannot be used when the value of 'osBucketName' option is set")
+
+#@<> WL14387-TSFR_1_1_3 - s3BucketName set to an empty string loads from a local directory
+session.run_sql('TRUNCATE TABLE !.cities', [target_schema])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "", "schema": target_schema, "table": 'cities' }), "should not fail")
+
+#@<> s3CredentialsFile - string option
+TEST_STRING_OPTION("s3CredentialsFile")
+
+#@<> WL14387-TSFR_3_1_1_1 - s3CredentialsFile cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3CredentialsFile": "file", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The option 's3CredentialsFile' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> s3BucketName and s3CredentialsFile both set to an empty string loads from a local directory
+session.run_sql('TRUNCATE TABLE !.cities', [target_schema])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "", "s3CredentialsFile": "", "schema": target_schema, "table": 'cities' }), "should not fail")
+
+#@<> s3ConfigFile - string option
+TEST_STRING_OPTION("s3ConfigFile")
+
+#@<> WL14387-TSFR_4_1_1_1 - s3ConfigFile cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3ConfigFile": "file", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The option 's3ConfigFile' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> s3BucketName and s3ConfigFile both set to an empty string loads from a local directory
+session.run_sql('TRUNCATE TABLE !.cities', [target_schema])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "", "s3ConfigFile": "", "schema": target_schema, "table": 'cities' }), "should not fail")
+
+#@<> WL14387-TSFR_2_1_1 - s3Profile - string option
+TEST_STRING_OPTION("s3Profile")
+
+#@<> WL14387-TSFR_2_1_1_2 - s3Profile cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3Profile": "profile", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The option 's3Profile' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string loads from a local directory
+session.run_sql('TRUNCATE TABLE !.cities', [target_schema])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "", "s3Profile": "", "schema": target_schema, "table": 'cities' }), "should not fail")
+
+#@<> s3EndpointOverride - string option
+TEST_STRING_OPTION("s3EndpointOverride")
+
+#@<> WL14387-TSFR_6_1_1 - s3EndpointOverride cannot be used without s3BucketName
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3EndpointOverride": "http://example.org", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The option 's3EndpointOverride' cannot be used when the value of 's3BucketName' option is not set")
+
+#@<> s3BucketName and s3EndpointOverride both set to an empty string loads from a local directory
+session.run_sql('TRUNCATE TABLE !.cities', [target_schema])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "", "s3EndpointOverride": "", "schema": target_schema, "table": 'cities' }), "should not fail")
+
+#@<> s3EndpointOverride is missing a scheme
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "bucket", "s3EndpointOverride": "endpoint", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The value of the option 's3EndpointOverride' is missing a scheme, expected: http:// or https://.")
+
+#@<> s3EndpointOverride is using wrong scheme
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "schema": target_schema, "table": 'cities' }), "ValueError: Util.import_table: Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.")
+
 #@<> Teardown
 session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)
 session.close()

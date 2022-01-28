@@ -36,8 +36,6 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/oci/oci_options.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -139,7 +137,9 @@ const shcore::Option_pack_def<Import_table_option_pack>
           .optional("sessionInitSql",
                     &Import_table_option_pack::m_session_init_sql)
           .include(&Import_table_option_pack::m_dialect)
-          .include(&Import_table_option_pack::m_oci_options);
+          .include(&Import_table_option_pack::m_oci_bucket_options)
+          .include(&Import_table_option_pack::m_s3_bucket_options)
+          .on_done(&Import_table_option_pack::on_unpacked_options);
 
   return opts;
 }
@@ -266,10 +266,6 @@ void Import_table_options::validate() {
     }
   }
 
-  if (m_oci_options) {
-    m_oci_options.check_option_values();
-  }
-
   if (is_multifile()) {
     if (!m_bytes_per_chunk.is_null()) {
       throw std::runtime_error(
@@ -278,12 +274,6 @@ void Import_table_options::validate() {
     }
   } else {
     if (!m_filelist_from_user[0].empty()) {
-      if (m_oci_options) {
-        // this call is here to verify if filename does not have a scheme
-        mysqlshdk::oci::parse_oci_options(m_filelist_from_user[0], {},
-                                          &m_oci_options);
-      }
-
       m_file_handle = create_file_handle(m_filelist_from_user[0]);
       m_file_handle->open(mysqlshdk::storage::Mode::READ);
       m_file_size = m_file_handle->file_size();
@@ -296,14 +286,8 @@ void Import_table_options::validate() {
 std::unique_ptr<mysqlshdk::storage::IFile>
 Import_table_option_pack::create_file_handle(
     const std::string &filepath) const {
-  std::unique_ptr<mysqlshdk::storage::IFile> file;
-
-  if (!m_oci_options.os_bucket_name.is_null()) {
-    file = mysqlshdk::storage::make_file(filepath, m_oci_options);
-  } else {
-    file = mysqlshdk::storage::make_file(filepath);
-  }
-  return create_file_handle(std::move(file));
+  return create_file_handle(
+      mysqlshdk::storage::make_file(filepath, storage_config()));
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>
@@ -340,6 +324,18 @@ uint64_t Import_table_option_pack::max_rate() const { return m_max_rate; }
 void Import_table_option_pack::set_max_rate(const std::string &value) {
   if (!value.empty()) {
     m_max_rate = std::max<size_t>(0, mysqlshdk::utils::expand_to_bytes(value));
+  }
+}
+
+void Import_table_option_pack::on_unpacked_options() {
+  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
+
+  if (m_oci_bucket_options) {
+    m_storage_config = m_oci_bucket_options.config();
+  }
+
+  if (m_s3_bucket_options) {
+    m_storage_config = m_s3_bucket_options.config();
   }
 }
 

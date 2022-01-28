@@ -86,8 +86,13 @@
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
+#include "mysqlshdk/libs/oci/oci_bucket_config.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
+#include "mysqlshdk/libs/storage/backend/object_storage.h"
+#include "mysqlshdk/libs/oci/oci_bucket.h"
+#include "mysqlshdk/libs/aws/s3_bucket_options.h"
+#include "mysqlshdk/libs/aws/s3_bucket.h"
 
 // clang-format off
 #ifndef _WIN32
@@ -128,6 +133,36 @@ void syslog_hook(shcore::syslog::Level level, const char *msg, void *data) {
 
   syslog_trace->write(entry.c_str(), entry.length());
   syslog_trace->flush();
+}
+
+mysqlshdk::oci::Oci_bucket_config_ptr oci_config(const std::string &bucket,
+                                                 const std::string &ns = {}) {
+  using mysqlshdk::oci::Oci_bucket_config;
+  using mysqlshdk::oci::Oci_bucket_options;
+
+  const auto options =
+      shcore::make_dict(Oci_bucket_options::bucket_name_option(), bucket);
+
+  if (!ns.empty()) {
+    options->set(Oci_bucket_options::namespace_option(), shcore::Value{ns});
+  }
+
+  Oci_bucket_options parsed_options;
+  Oci_bucket_options::options().unpack(options, &parsed_options);
+
+  return std::make_shared<Oci_bucket_config>(parsed_options);
+}
+
+std::unique_ptr<mysqlshdk::aws::S3_bucket> s3_bucket(
+    const shcore::Dictionary_t &opts) {
+  mysqlshdk::aws::S3_bucket_options options;
+  mysqlshdk::aws::S3_bucket_options::options().unpack(opts, &options);
+
+  if (options) {
+    return options.s3_config()->s3_bucket();
+  } else {
+    throw std::runtime_error("Missing AWS S3 options");
+  }
 }
 
 }  // namespace
@@ -274,6 +309,11 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "content");
   expose("deleteOciObject", &Testutils::delete_oci_object, "bucket", "name");
   expose("anycopy", &Testutils::anycopy, "from", "to");
+
+  expose("cleanS3Bucket", &Testutils::clean_s3_bucket, "aws_options");
+  expose("deleteS3Object", &Testutils::delete_s3_object, "name", "aws_options");
+  expose("deleteS3Objects", &Testutils::delete_s3_objects, "names",
+         "aws_options");
 
   expose("traceSyslog", &Testutils::trace_syslog, "file");
   expose("stopTracingSyslog", &Testutils::stop_tracing_syslog);
@@ -4088,10 +4128,8 @@ void Testutils::upload_oci_object(const std::string &bucket,
                              "': " + shcore::errno_to_string(errno));
   }
 
-  mysqlshdk::oci::Oci_options options;
-  options.os_bucket_name = bucket;
-  options.check_option_values();
-  mysqlshdk::storage::backend::oci::Object object(options, name);
+  mysqlshdk::storage::backend::object_storage::Object object(oci_config(bucket),
+                                                             name);
   object.open(mysqlshdk::storage::Mode::WRITE);
 
   std::string buffer;
@@ -4124,11 +4162,8 @@ void Testutils::download_oci_object(const std::string &ns,
                              "': " + shcore::errno_to_string(errno));
   }
 
-  mysqlshdk::oci::Oci_options options;
-  options.os_namespace = ns;
-  options.os_bucket_name = bucket;
-  options.check_option_values();
-  mysqlshdk::storage::backend::oci::Object object(options, name);
+  mysqlshdk::storage::backend::object_storage::Object object(
+      oci_config(bucket, ns), name);
   object.open(mysqlshdk::storage::Mode::READ);
 
   const size_t buffer_size = 10485760;
@@ -4152,10 +4187,8 @@ void Testutils::create_oci_object(const std::string &bucket,
         "This function is ONLY available when the OCI configuration is in "
         "place");
 
-  mysqlshdk::oci::Oci_options options;
-  options.os_bucket_name = bucket;
-  options.check_option_values();
-  mysqlshdk::storage::backend::oci::Object object(options, name);
+  mysqlshdk::storage::backend::object_storage::Object object(oci_config(bucket),
+                                                             name);
   object.open(mysqlshdk::storage::Mode::WRITE);
   object.write(content.c_str(), content.size());
   object.close();
@@ -4168,10 +4201,7 @@ void Testutils::delete_oci_object(const std::string &bucket_name,
         "This function is ONLY available when the OCI configuration is in "
         "place");
 
-  mysqlshdk::oci::Oci_options options;
-  options.os_bucket_name = bucket_name;
-  options.check_option_values();
-  mysqlshdk::storage::backend::oci::Bucket bucket(options);
+  mysqlshdk::oci::Oci_bucket bucket(oci_config(bucket_name));
   bucket.delete_object(name);
 }
 
@@ -4181,26 +4211,37 @@ std::unique_ptr<mysqlshdk::storage::IFile> file(const shcore::Value &location) {
   if (location.type == shcore::String) {
     return mysqlshdk::storage::make_file(location.as_string());
   } else if (location.type == shcore::Map) {
-    mysqlshdk::oci::Oci_option_unpacker<
-        mysqlshdk::oci::Oci_options::OBJECT_STORAGE>
-        oci_option_pack;
+    mysqlshdk::storage::Config_ptr config;
     std::string name;
-    mysqlshdk::oci::Oci_options oci_options;
-
-    auto options = location.as_map();
 
     shcore::Option_unpacker unpacker;
-    unpacker.set_options(options);
+    unpacker.set_options(location.as_map());
     unpacker.required("name", &name);
-    oci_option_pack.options().unpack(&unpacker, &oci_option_pack);
+
+    {
+      mysqlshdk::oci::Oci_bucket_options options;
+      mysqlshdk::oci::Oci_bucket_options::options().unpack(&unpacker, &options);
+
+      if (options) {
+        config = options.config();
+      }
+    }
+
+    {
+      mysqlshdk::aws::S3_bucket_options options;
+      mysqlshdk::aws::S3_bucket_options::options().unpack(&unpacker, &options);
+
+      if (options) {
+        config = options.config();
+      }
+    }
+
     unpacker.end();
 
-    oci_options = oci_option_pack;
-    if (oci_options) {
-      oci_options.check_option_values();
-      return mysqlshdk::storage::make_file(name, oci_options);
+    if (config && config->valid()) {
+      return mysqlshdk::storage::make_file(name, config);
     } else {
-      throw std::runtime_error("map arg must be a OCI-OS object");
+      throw std::runtime_error("map arg must be an OCI-OS or AWS-OS object");
     }
   } else {
     throw std::runtime_error("arg must be a string or map");
@@ -4322,5 +4363,83 @@ str Testutils::yaml(any value);
 #endif
 ///@}
 std::string Testutils::yaml(const shcore::Value &v) const { return v.yaml(); }
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Cleans an AWS S3 bucket.
+ *
+ * @param options S3 bucket options: s3BucketName, s3CredentialsFile,
+ *                s3ConfigFile, s3Profile, s3EndpointOverride.
+ *
+ * @returns true if bucket exists
+ */
+#if DOXYGEN_JS
+Boolean Testutils::cleanS3Bucket(Dictionary options);
+#elif DOXYGEN_PY
+bool Testutils::clean_s3_bucket(dict options);
+#endif
+///@}
+bool Testutils::clean_s3_bucket(const shcore::Dictionary_t &opts) {
+  const auto bucket = s3_bucket(opts);
+
+  if (bucket->exists()) {
+    const auto objects = bucket->list_objects();
+
+    if (!objects.empty()) {
+      bucket->delete_objects(objects);
+    }
+
+    for (const auto &upload : bucket->list_multipart_uploads()) {
+      bucket->abort_multipart_upload(upload);
+    }
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Delete an AWS S3 object.
+ *
+ * @param name name of the object to delete
+ * @param options S3 bucket options: s3BucketName, s3CredentialsFile,
+ *                s3ConfigFile, s3Profile, s3EndpointOverride.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::deleteS3Object(String name, Dictionary options);
+#elif DOXYGEN_PY
+None Testutils::delete_s3_object(str name, dict options);
+#endif
+///@}
+void Testutils::delete_s3_object(const std::string &name,
+                                 const shcore::Dictionary_t &opts) {
+  const auto bucket = s3_bucket(opts);
+  bucket->delete_object(name);
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Delete the AWS S3 objects.
+ *
+ * @param names names of the objects to delete
+ * @param options S3 bucket options: s3BucketName, s3CredentialsFile,
+ *                s3ConfigFile, s3Profile, s3EndpointOverride.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::deleteS3Objects(Array names, Dictionary options);
+#elif DOXYGEN_PY
+None Testutils::delete_s3_objects(list names, dict options);
+#endif
+///@}
+void Testutils::delete_s3_objects(const std::vector<std::string> &names,
+                                  const shcore::Dictionary_t &opts) {
+  const auto bucket = s3_bucket(opts);
+  bucket->delete_objects(names);
+}
 
 }  // namespace tests

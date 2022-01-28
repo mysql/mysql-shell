@@ -44,7 +44,7 @@ testutil.createFile(`${table}.dump`, "john");
 rc = callMysqlsh([`--schema=${schema}`, "--", "util", "import-table", `${table}.dump`, `--table=${table}`, "--columns:str=column_1", ":int=1"]);
 EXPECT_EQ(1, rc);
 EXPECT_OUTPUT_CONTAINS('ERROR: File');
-EXPECT_OUTPUT_CONTAINS(':int=1 does not exists.');
+EXPECT_OUTPUT_CONTAINS(':int=1 does not exist.');
 validate_and_cleanup(schema, table, '{"column_1":"john"}');
 
 //@<> CLI import table - TSFR_3_3_1 - 3

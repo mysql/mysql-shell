@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -39,22 +40,13 @@ std::string encode_query(const std::string &data) {
 
 }  // namespace
 
-Oci_par_directory::Oci_par_directory(const std::string &url)
-    : Http_directory(true) {
-  if (parse_par(url, &m_par_data) != Par_type::PREFIX) {
-    throw std::runtime_error("Invalid prefix PAR");
-  }
-
-  init_rest();
-}
-
-Oci_par_directory::Oci_par_directory(const Par_structure &par)
-    : Http_directory(true), m_par_data(par) {
+Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
+    : Http_directory(config, true), m_config(config) {
   init_rest();
 }
 
 Masked_string Oci_par_directory::full_path() const {
-  return ::mysqlshdk::oci::anonymize_par(m_par_data.full_url);
+  return ::mysqlshdk::oci::anonymize_par(m_config->par().full_url);
 }
 
 std::string Oci_par_directory::get_list_url() const {
@@ -62,8 +54,8 @@ std::string Oci_par_directory::get_list_url() const {
   // files in the current directory
   std::string url = "?fields=name,size&delimiter=/";
 
-  if (!m_par_data.object_prefix.empty()) {
-    url += "&prefix=" + encode_query(m_par_data.object_prefix);
+  if (!m_config->par().object_prefix.empty()) {
+    url += "&prefix=" + encode_query(m_config->par().object_prefix);
   }
 
   if (!m_next_start_with.empty()) {
@@ -80,7 +72,7 @@ std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
   const auto response = shcore::Value::parse(data.data(), data.size()).as_map();
   const auto objects = response->get_array("objects");
   m_next_start_with = response->get_string("nextStartWith", "");
-  const auto prefix_length = m_par_data.object_prefix.length();
+  const auto prefix_length = m_config->par().object_prefix.length();
 
   list.reserve(objects->size());
 
@@ -103,7 +95,7 @@ bool Oci_par_directory::is_list_files_complete() const {
 
 void Oci_par_directory::init_rest() {
   Http_directory::init_rest(
-      ::mysqlshdk::oci::anonymize_par(m_par_data.get_par_url()));
+      ::mysqlshdk::oci::anonymize_par(m_config->par().par_url()));
 }
 
 }  // namespace oci

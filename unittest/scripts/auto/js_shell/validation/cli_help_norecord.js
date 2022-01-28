@@ -275,30 +275,50 @@ OPTIONS
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
 
+--osBucketName=<str>
+            Use specified OCI bucket for the location of the dump. Default: not
+            set.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
             Default: not set.
 
---osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
-
 --ociConfigFile=<str>
-            Use the specified OCI configuration file instead of the one in the
+            Use the specified OCI configuration file instead of the one at the
             default location. Default: not set.
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
+--ociParManifest=<bool>
+            Enables the generation of the PAR manifest while the dump operation
+            is being executed. Default: not set.
+
 --ociParExpireTime=<str>
             Allows defining the expiration time for the PARs generated when
             ociParManifest is enabled. Default: not set.
 
---ociParManifest=<bool>
-            Enables the generation of the PAR manifest while the dump operation
-            is being executed. Default: not set.
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file instead of the one at the
+            default location. Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file instead of the one at the default
+            location. Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile instead of the default one. Default:
+            not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
 
 --excludeTables=<str list>
             List of tables or views to be excluded from the dump in the format
@@ -432,30 +452,50 @@ OPTIONS
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
 
+--osBucketName=<str>
+            Use specified OCI bucket for the location of the dump. Default: not
+            set.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
             Default: not set.
 
---osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
-
 --ociConfigFile=<str>
-            Use the specified OCI configuration file instead of the one in the
+            Use the specified OCI configuration file instead of the one at the
             default location. Default: not set.
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
+--ociParManifest=<bool>
+            Enables the generation of the PAR manifest while the dump operation
+            is being executed. Default: not set.
+
 --ociParExpireTime=<str>
             Allows defining the expiration time for the PARs generated when
             ociParManifest is enabled. Default: not set.
 
---ociParManifest=<bool>
-            Enables the generation of the PAR manifest while the dump operation
-            is being executed. Default: not set.
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file instead of the one at the
+            default location. Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file instead of the one at the default
+            location. Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile instead of the default one. Default:
+            not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
 
 --excludeTables=<str list>
             List of tables or views to be excluded from the dump in the format
@@ -570,30 +610,50 @@ OPTIONS
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
 
+--osBucketName=<str>
+            Use specified OCI bucket for the location of the dump. Default: not
+            set.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
             Default: not set.
 
---osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
-
 --ociConfigFile=<str>
-            Use the specified OCI configuration file instead of the one in the
+            Use the specified OCI configuration file instead of the one at the
             default location. Default: not set.
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
+--ociParManifest=<bool>
+            Enables the generation of the PAR manifest while the dump operation
+            is being executed. Default: not set.
+
 --ociParExpireTime=<str>
             Allows defining the expiration time for the PARs generated when
             ociParManifest is enabled. Default: not set.
 
---ociParManifest=<bool>
-            Enables the generation of the PAR manifest while the dump operation
-            is being executed. Default: not set.
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file instead of the one at the
+            default location. Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file instead of the one at the default
+            location. Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile instead of the default one. Default:
+            not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
 
 --all=<bool>
             Dump all views and tables from the specified schema. Default:
@@ -653,22 +713,42 @@ OPTIONS
 
 --linesTerminatedBy=<str>
 
+--osBucketName=<str>
+            Use specified OCI bucket for the location of the dump. Default: not
+            set.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
             Default: not set.
 
---osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
-
 --ociConfigFile=<str>
-            Use the specified OCI configuration file instead of the one in the
+            Use the specified OCI configuration file instead of the one at the
             default location. Default: not set.
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
+
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file instead of the one at the
+            default location. Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file instead of the one at the default
+            location. Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile instead of the default one. Default:
+            not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
 
 //@<OUT> CLI util import-json --help
 NAME
@@ -850,14 +930,14 @@ OPTIONS
             interpreter.) See Section 13.2.7, "LOAD DATA INFILE Syntax".
             Default: "\n".
 
+--osBucketName=<str>
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
             Default: not set.
-
---osBucketName=<str>
-            Name of the OCI Object Storage bucket to use. The bucket must
-            already exist. Default: not set.
 
 --ociConfigFile=<str>
             Override oci.configFile shell option, to specify the path to the
@@ -866,6 +946,26 @@ OPTIONS
 --ociProfile=<str>
             Override oci.profile shell option, to specify the name of the OCI
             profile to use. Default: not set.
+
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file instead of the one at the
+            default location. Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file instead of the one at the default
+            location. Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile instead of the default one. Default:
+            not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
 
 //@<OUT> CLI util load-dump --help
 NAME
@@ -1052,19 +1152,39 @@ OPTIONS
             Execute the given list of SQL statements in each session about to
             load data. Default: [].
 
+--osBucketName=<str>
+            Use specified OCI bucket for the location of the dump. Default: not
+            set.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
             Default: not set.
 
---osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
-
 --ociConfigFile=<str>
-            Use the specified OCI configuration file instead of the one in the
+            Use the specified OCI configuration file instead of the one at the
             default location. Default: not set.
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
+
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file instead of the one at the
+            default location. Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file instead of the one at the default
+            location. Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile instead of the default one. Default:
+            not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -134,11 +135,9 @@ void Dump_options::set_string_option(const std::string &option,
   }
 }
 
-void Dump_options::set_oci_options(
-    const mysqlshdk::oci::Oci_options &oci_options) {
-  m_oci_options = oci_options;
-
-  m_oci_options.check_option_values();
+void Dump_options::set_storage_config(
+    const std::shared_ptr<mysqlshdk::storage::Config> &storage_config) {
+  m_storage_config = storage_config;
 }
 
 void Dump_options::on_log_options(const char *msg) const {

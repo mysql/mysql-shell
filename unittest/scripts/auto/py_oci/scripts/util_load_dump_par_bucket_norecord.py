@@ -73,7 +73,7 @@ all_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-re
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), "Error: Shell Error (54404): Util.load_dump: Could not access '@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_7 - Failed load dump with bucket AnyObjectRead PAR without ListObjects
@@ -83,7 +83,7 @@ remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_THROWS(lambda: util.load_dump(all_read_par_no_list, {"progressFile": local_progress_file}),
-  re.compile(f"Error: Shell Error \(54404\): Util\.load_dump: While 'Listing files': Could not access 'https://objectstorage\..+\.oraclecloud\.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it"))
+  f"Error: Shell Error (54404): Util.load_dump: While 'Listing files': Could not access 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_9 - Failed load dump with bucket AnyObjectWrite PAR and ListObjects
@@ -92,7 +92,7 @@ all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite"
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), "Error: Shell Error (54404): Util.load_dump: Could not access '@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_11 - Failed load dump, missing progress file
@@ -103,10 +103,22 @@ EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list),
   "Util.load_dump: When using a PAR to load a dump, the progressFile option must be defined")
 EXPECT_PAR_IS_SECRET()
 
+#@<> using remote progress file
+progress_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "random-folder/par-load-progress.json")
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": "http://whatever-file_starting-with-http"}),
-  "Util.load_dump: When using a prefix PAR to load a dump, the progressFile option must be a local file")
+EXPECT_NO_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": progress_par}), "load_dump() using remote progress file")
 EXPECT_PAR_IS_SECRET()
+
+# verify if everything was OK
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, "random-folder/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+
+# cleanup
+session.run_sql("drop schema if exists sample")
+os.remove("par-load-progress.json")
+delete_object(OS_BUCKET_NAME, "random-folder/par-load-progress.json", OS_NAMESPACE)
 
 #@<> WL14645-TSFR_1_13 - Failed load dump, missing dump
 all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), "random-folder/", "ListObjects")
@@ -114,7 +126,7 @@ all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObje
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), "Error: Shell Error (54404): Util.load_dump: Could not access '@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#33332080 - load a dump which is still in progress

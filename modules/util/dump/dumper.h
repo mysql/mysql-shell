@@ -353,6 +353,8 @@ class Dumper {
 
   void fetch_server_information();
 
+  std::string filename_for_data_dump(const std::string &filename) const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;

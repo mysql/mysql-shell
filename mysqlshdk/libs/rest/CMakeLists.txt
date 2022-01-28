@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2021 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2019, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,7 @@ IF(NOT BUILD_SOURCE_PACKAGE AND NOT CURL_LIBRARY)
 ENDIF()
 
 IF(OPENSSL_INCLUDE_DIR)
-	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
 ENDIF()
 
 set(rest_SOURCES
@@ -34,9 +34,14 @@ set(rest_SOURCES
   rest_service.cc
   response.cc
   retry_strategy.cc
+  signed_rest_service.cc
 )
 
-add_convenience_library(rest ${rest_SOURCES} COMPILE_DEFINITIONS "${CURL_DEFINITIONS}")
+add_convenience_library(rest
+  ${rest_SOURCES}
+  COMPILE_DEFINITIONS "${CURL_DEFINITIONS}"
+  INCLUDE_DIRECTORIES ${TINYXML2_INCLUDE_DIRECTORIES}
+)
 
 include_directories(SYSTEM ${CURL_INCLUDE_DIR})
 target_link_libraries(rest ssh ${CURL_LIBRARY})

@@ -612,6 +612,24 @@ std::string pctencode(const std::string &s) {
   return enc;
 }
 
+std::string pctencode_path(const std::string &s) {
+  std::size_t pos = 0;
+  std::string path;
+
+  do {
+    auto next_pos = s.find('/', pos);
+    path += shcore::pctencode(s.substr(pos, next_pos - pos));
+    pos = next_pos;
+
+    if (std::string::npos != pos) {
+      ++pos;
+      path += '/';
+    }
+  } while (std::string::npos != pos);
+
+  return path;
+}
+
 std::string pctdecode(const std::string &s) {
   std::string dec;
 
@@ -635,6 +653,7 @@ std::string pctdecode(const std::string &s) {
 std::string get_random_string(size_t size, const char *source) {
   std::random_device rd;
   std::string data;
+  data.reserve(size);
 
   std::uniform_int_distribution<int> dist_num(0, strlen(source) - 1);
 

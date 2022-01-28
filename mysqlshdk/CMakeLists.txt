@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2017, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@ include_directories(BEFORE
     ${CMAKE_SOURCE_DIR}/mysqlshdk/include
     ${CMAKE_BINARY_DIR}/mysqlshdk/include)
 
+ADD_SUBDIRECTORY(libs/tinyxml2)
 ADD_SUBDIRECTORY(libs/utils)
 ADD_SUBDIRECTORY(libs/db)
 ADD_SUBDIRECTORY(libs/mysql)
@@ -40,6 +41,7 @@ ADD_SUBDIRECTORY(libs/rest)
 ADD_SUBDIRECTORY(libs/storage)
 ADD_SUBDIRECTORY(libs/oci)
 ADD_SUBDIRECTORY(libs/ssh)
+ADD_SUBDIRECTORY(libs/aws)
 ADD_SUBDIRECTORY(scripting)
 ADD_SUBDIRECTORY(shellcore)
 
@@ -63,7 +65,9 @@ merge_convenience_libraries(mysqlshdk-static
     scripting
     shellcore
     storage
-    oci SKIP_INSTALL)
+    oci
+    aws
+    tinyxml2 SKIP_INSTALL)
 
   #target_link_libraries(mysqlshdk
   #        ${V8_LINK_LIST}

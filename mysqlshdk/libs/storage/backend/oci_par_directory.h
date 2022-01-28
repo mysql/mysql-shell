@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,9 +27,10 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/oci/oci_par.h"
+
 #include "mysqlshdk/libs/storage/backend/http.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
-#include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
+#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -38,14 +39,13 @@ namespace oci {
 
 class Oci_par_directory : public Http_directory {
  public:
-  explicit Oci_par_directory(const std::string &url);
-  explicit Oci_par_directory(const Par_structure &par);
+  explicit Oci_par_directory(const Oci_par_directory_config_ptr &config);
 
   Oci_par_directory(const Oci_par_directory &other) = delete;
   Oci_par_directory(Oci_par_directory &&other) = default;
 
   Oci_par_directory &operator=(const Oci_par_directory &other) = delete;
-  Oci_par_directory &operator=(Oci_par_directory &&other) = default;
+  Oci_par_directory &operator=(Oci_par_directory &&other) = delete;
 
   ~Oci_par_directory() override {}
 
@@ -61,7 +61,7 @@ class Oci_par_directory : public Http_directory {
   std::unordered_set<IDirectory::File_info> parse_file_list(
       const std::string &data, const std::string &pattern = "") const override;
 
-  Par_structure m_par_data;
+  Oci_par_directory_config_ptr m_config;
 
   mutable std::string m_next_start_with;
 };

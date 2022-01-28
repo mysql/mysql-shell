@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #include "modules/util/dump/export_table_options.h"
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
@@ -40,7 +42,8 @@ const shcore::Option_pack_def<Export_table_options>
       shcore::Option_pack_def<Export_table_options>()
           .include<Dump_options>()
           .include(&Export_table_options::m_dialect_unpacker)
-          .include(&Export_table_options::m_oci_option_unpacker)
+          .include(&Export_table_options::m_oci_bucket_options)
+          .include(&Export_table_options::m_s3_bucket_options)
           .on_done(&Export_table_options::on_unpacked_options)
           .on_log(&Export_table_options::on_log_options);
 
@@ -54,7 +57,15 @@ void Export_table_options::on_unpacked_options() {
     throw std::invalid_argument("The 'json' dialect is not supported.");
   }
 
-  set_oci_options(m_oci_option_unpacker);
+  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
+
+  if (m_oci_bucket_options) {
+    set_storage_config(m_oci_bucket_options.config());
+  }
+
+  if (m_s3_bucket_options) {
+    set_storage_config(m_s3_bucket_options.config());
+  }
 }
 
 void Export_table_options::set_table(const std::string &schema_table) {

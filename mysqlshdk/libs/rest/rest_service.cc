@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,6 +131,51 @@ static CURLcode sslctx_function(CURL *curl, void *sslctx, void *parm) {
 }
 
 #endif  // _WIN32
+
+std::string format_headers(const Headers &headers) {
+  std::string result;
+
+  if (headers.empty()) {
+    result = "<EMPTY>";
+  } else {
+    result = "  " + shcore::str_join(headers, "\n  ", [](const auto &header) {
+               return "'" + header.first + "' : '" + header.second + "'";
+             });
+  }
+
+  return result;
+}
+
+std::string format_code(Response::Status_code code) {
+  return std::to_string(static_cast<int>(code)) + " - " +
+         Response::status_code(code);
+}
+
+std::string format_exception(const std::exception &e) {
+  return std::string{"Exception: "} + e.what();
+}
+
+void log_failed_request(const std::string &base_url, const Request &request,
+                        const std::string &context = {}) {
+  std::string full_context;
+
+  if (!context.empty()) {
+    full_context = " (" + context + ")";
+  }
+
+  log_warning("Request failed: %s %s %s%s", base_url.c_str(),
+              shcore::str_upper(type_name(request.type)).c_str(),
+              request.path().masked().c_str(), full_context.c_str());
+  log_info("REQUEST HEADERS:\n%s", format_headers(request.headers()).c_str());
+}
+
+void log_failed_response(const Response &response) {
+  log_info("RESPONSE HEADERS:\n%s", format_headers(response.headers).c_str());
+  log_info("RESPONSE BODY:\n%s", response.body && response.body->size()
+                                     ? response.body->data()
+                                     : "<EMPTY>");
+}
+
 }  // namespace
 
 std::string type_name(Type method) {
@@ -220,17 +265,11 @@ class Rest_service::Impl {
                 shcore::str_upper(type_name(request.type)).c_str(),
                 request.path().masked().c_str());
 
-      if (!request.headers().empty() &&
-          shcore::current_logger()->get_log_level() >=
-              shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
-        std::vector<std::string> header_data;
-        for (const auto &header : request.headers()) {
-          header_data.push_back("'" + header.first + "' : '" + header.second +
-                                "'");
-        }
+      if (shcore::current_logger()->get_log_level() >=
+          shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
         log_debug2("%s-%d: REQUEST HEADERS:\n  %s", m_id.c_str(),
                    m_request_sequence,
-                   shcore::str_join(header_data, "\n  ").c_str());
+                   format_headers(request.headers()).c_str());
       }
     }
   }
@@ -324,6 +363,8 @@ class Rest_service::Impl {
   std::string get_last_request_id() const {
     return m_id + "-" + std::to_string(m_request_sequence);
   }
+
+  const Masked_string &base_url() const { return m_base_url; }
 
  private:
   void verify_ssl(bool verify) {
@@ -523,6 +564,8 @@ Response::Status_code Rest_service::execute(Request *request,
     log_info("RETRYING %s: %s", m_impl->get_last_request_id().c_str(), msg);
   };
 
+  const auto &base_url = m_impl->base_url().masked();
+
   while (true) {
     try {
       const auto code = m_impl->execute(true, request, response);
@@ -539,14 +582,29 @@ Response::Status_code Rest_service::execute(Request *request,
                                  Response::status_code(code).c_str())
                   .c_str());
       } else {
+        if (Response::is_error(code)) {
+          // response was an error, log it as well
+          log_failed_request(base_url, *request, format_code(code));
+          if (response) log_failed_response(*response);
+        }
+
         return code;
       }
+    } catch (const rest::Connection_error &error) {
+      // exception was thrown when connection was being established, there is
+      // no response; this is not a recoverable error, we do not retry here
+      log_failed_request(base_url, *request, format_exception(error));
+      throw;
     } catch (const std::exception &error) {
       if (retry_strategy && retry_strategy->should_retry()) {
         // A unexpected error occurred but the retry strategy indicates we
         // should retry
         retry(error.what());
       } else {
+        // we don't know when the exception was thrown, log response just in
+        // case
+        log_failed_request(base_url, *request, format_exception(error));
+        if (response) log_failed_response(*response);
         throw;
       }
     }
