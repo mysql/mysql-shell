@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,7 +73,7 @@ class Mock_shell_base_session : public ShellBaseSession {
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());
   MOCK_METHOD0(kill_query, void());
-  MOCK_METHOD0(get_core_session, std::shared_ptr<ISession>());
+  MOCK_CONST_METHOD0(get_core_session, std::shared_ptr<ISession>());
 };
 
 shcore::Dictionary_t make_report() {

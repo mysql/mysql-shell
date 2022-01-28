@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -108,7 +108,7 @@ class SHCORE_PUBLIC ClassicSession
   static std::shared_ptr<shcore::Object_bridge> create(
       const mysqlshdk::db::Connection_options &co);
 
-  std::shared_ptr<mysqlshdk::db::ISession> get_core_session() override {
+  std::shared_ptr<mysqlshdk::db::ISession> get_core_session() const override {
     return _session;
   }
 

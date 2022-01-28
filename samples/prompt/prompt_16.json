@@ -48,7 +48,7 @@
 	  "classes": ["nohost%host%", "%is_production%"]
 	},
     {
-	  "separator": "",
+      "separator": "",
       "text": "MySQL"
     },
     {

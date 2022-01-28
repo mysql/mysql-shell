@@ -139,6 +139,10 @@ Supported variables are:
         Variables queried from MySQL are cached when the shell is connected.
     %linectx% - context for continued multi-line statements
 
+    %trx% - set to '*' if in a trx, '^' if in a R/O transaction
+    %autocommit% - set to '' (blank) if autocommit is enabled, '.' if disabled
+    %slow_query% - set to '&' if the last query was flagged as slow
+
 prompt
 ------
 

@@ -1,64 +1,92 @@
 {
-  "desc" : "256/24bit color terminal theme with MySQL prefix, default schema, host:port, ssl, + indicator for X protocol, active mode.",
-  "classes" : {
-    "SQL" : {
-      "fg" : "15",
-      "bg" : "166"
+  "desc": "256/24bit color terminal theme with MySQL prefix, default schema, host:port, ssl, + indicator for X protocol, active mode.",
+  "classes": {
+    "SQL": {
+      "fg": "15",
+      "bg": "166"
     },
-    "JS" : {
-      "fg" : "0",
-      "bg" : "221"
+    "JS": {
+      "fg": "0",
+      "bg": "221"
     },
-    "Py" : {
-      "fg" : "15",
-      "bg" : "25"
+    "Py": {
+      "fg": "15",
+      "bg": "25"
     },
-    "schema" : {
+    "schema": {
       "text": "%schema%"
     },
-    "noschema" : {
+    "noschema": {
       "text": ""
     },
-    "disconnected": {
-    },
-    "hostx" : {
+    "disconnected": {},
+    "hostx": {
       "text": "%transport%+"
     },
-    "hostc" : {
+    "hostc": {
       "text": "%transport%"
     },
-    "SSLhostx" : {
+    "SSLhostx": {
       "text": "%transport%+ ssl"
     },
-    "SSLhostc" : {
+    "SSLhostc": {
       "text": "%transport% ssl"
     },
-
-    "production" : {
+    "ctrx": {
+      "text": "",
+      "bg": 38,
+      "fg": 15
+    },
+    "ctrx.": {
+      "text": " - ",
+      "bg": 242,
+      "fg": 15
+    },
+    "ctrx*": {
+      "text": " \u2605 ",
+      "bg": 38,
+      "fg": 15
+    },
+    "ctrx^": {
+      "text": " \u2606 ",
+      "bg": 38,
+      "fg": 15
+    },
+    "ctrx*.": {
+      "text": " \u2605 ",
+      "bg": 38,
+      "fg": 15
+    },
+    "ctrx^.": {
+      "text": " \u2606 ",
+      "bg": 38,
+      "fg": 15
+    },
+    "production": {
       "text": " PRODUCTION ",
       "bg": "red",
       "fg": "white"
     }
   },
-  "variables" : {
+  "variables": {
     "is_production": {
-        "match" : {
-            "pattern": "*;%host%;*",
-            "value": ";%env:PRODUCTION_SERVERS%;"
-        },
-        "if_true" : "production",
-        "if_false" : ""
+      "match": {
+        "pattern": "*;%host%;*",
+        "value": ";%env:PRODUCTION_SERVERS%;"
+      },
+      "if_true": "production",
+      "if_false": ""
     },
-    "target" : {
-      "match" : {
+    "target": {
+      "match": {
         "pattern": "%socket%",
         "value": ""
       },
       "if_true": "%host%:%port%",
       "if_false": "localhost"
     },
-    "transport" : {
-      "match" : {
+    "transport": {
+      "match": {
         "pattern": "%ssh_host%",
         "value": ""
       },
@@ -66,20 +94,23 @@
       "if_false": "%ssh_host% > %target%"
     }
   },
-  "symbols" : {
-    "separator" : "",
-    "separator2" : "",
-    "ellipsis" : "..."
+  "symbols": {
+    "separator": "",
+    "separator2": "",
+    "ellipsis": "..."
   },
-  "prompt" : {
-    "text" : "> ",
-    "cont_text" : "%linectx%> ",
+  "prompt": {
+    "text": "> ",
+    "cont_text": "%linectx%> ",
     "bg": "0"
   },
   "segments": [
-	{
-	  "classes": ["disconnected%host%", "%is_production%"]
-	},
+    {
+      "classes": [
+        "disconnected%host%",
+        "%is_production%"
+      ]
+    },
     {
       "text": " My",
       "bg": 254,
@@ -92,25 +123,39 @@
       "fg": 166
     },
     {
-      "classes": ["disconnected%host%", "%ssl%host%session%"],
+      "classes": [
+        "disconnected%host%",
+        "%ssl%host%session%"
+      ],
       "shrink": "truncate_on_dot",
       "bg": 237,
       "fg": 15,
       "weight": 10,
-      "padding" : 1
+      "padding": 1
     },
     {
-      "classes": ["noschema%schema%", "schema"],
+      "classes": [
+        "noschema%schema%",
+        "schema"
+      ],
       "bg": 242,
       "fg": 15,
       "shrink": "ellipsize",
       "weight": -1,
-      "padding" : 1
+      "padding": 1
     },
     {
-      "classes": ["%Mode%"],
+      "classes": [
+        "%session%trx%trx%%autocommit%"
+      ],
+      "weight": -1
+    },
+    {
+      "classes": [
+        "%Mode%"
+      ],
       "text": "%Mode%",
-      "padding" : 1
+      "padding": 1
     }
   ]
 }

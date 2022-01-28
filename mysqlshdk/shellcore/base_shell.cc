@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 
 #include <tuple>
 
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/threads.h"
@@ -248,9 +249,7 @@ std::string Base_shell::prompt() {
 }
 
 std::map<std::string, std::string> *Base_shell::prompt_variables() {
-  if (m_pending_update != Prompt_variables_update_type::NO_UPDATE) {
-    update_prompt_variables();
-  }
+  update_prompt_variables();
 
   return &_prompt_variables;
 }
@@ -329,14 +328,33 @@ void Base_shell::update_prompt_variables() {
       _prompt_variables["connection_id"] = "";
     }
   }
+
+  _prompt_variables["trx"] = "";
+  _prompt_variables["autocommit"] = "";
+  _prompt_variables["slow_query"] = "";
   if (session && session->is_open()) {
-    try {
-      _prompt_variables["schema"] = session->get_current_schema();
-    } catch (...) {
-      _prompt_variables["schema"] = "";
+    if (m_pending_update != Prompt_variables_update_type::NO_UPDATE) {
+      try {
+        _prompt_variables["schema"] = session->get_current_schema();
+      } catch (...) {
+        _prompt_variables["schema"] = "";
+      }
+    }
+
+    if (auto s = std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
+            session->get_core_session())) {
+      auto status = s->get_server_status();
+      if (status & SERVER_STATUS_IN_TRANS) _prompt_variables["trx"] = "*";
+      if (status & SERVER_STATUS_IN_TRANS_READONLY)
+        _prompt_variables["trx"] = "^";
+      if ((status & SERVER_STATUS_AUTOCOMMIT) == 0)
+        _prompt_variables["autocommit"] = ".";
+      if (status & SERVER_QUERY_WAS_SLOW) _prompt_variables["slow_query"] = "&";
     }
   } else {
-    _prompt_variables["schema"] = "";
+    if (m_pending_update != Prompt_variables_update_type::NO_UPDATE) {
+      _prompt_variables["schema"] = "";
+    }
   }
   switch (_shell->interactive_mode()) {
     case shcore::IShell_core::Mode::None:
