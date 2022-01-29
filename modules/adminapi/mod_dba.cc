@@ -2340,7 +2340,7 @@ void Dba::start_sandbox_instance(
 
 void Dba::do_configure_instance(
     const mysqlshdk::db::Connection_options &instance_def_,
-    const Configure_instance_options &options) {
+    const Configure_instance_options &options, Cluster_type purpose) {
   shcore::Value ret_val;
   auto instance_def = instance_def_;
 
@@ -2406,10 +2406,10 @@ void Dba::do_configure_instance(
     std::unique_ptr<Configure_instance> op_configure_instance;
     if (options.local) {
       op_configure_instance.reset(
-          new Configure_local_instance(target_instance, options));
+          new Configure_local_instance(target_instance, options, purpose));
     } else {
-      op_configure_instance.reset(
-          new Configure_instance(target_instance, options, state.source_type));
+      op_configure_instance.reset(new Configure_instance(
+          target_instance, options, state.source_type, purpose));
     }
 
     // Prepare and execute the operation.
@@ -2461,7 +2461,8 @@ void Dba::configure_local_instance(
     const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
         &options) {
   return do_configure_instance(
-      instance_def ? *instance_def : Connection_options{}, *options);
+      instance_def ? *instance_def : Connection_options{}, *options,
+      Cluster_type::GROUP_REPLICATION);
 }
 
 REGISTER_HELP_FUNCTION(configureInstance, dba);
@@ -2546,7 +2547,7 @@ void Dba::configure_instance(
     const shcore::Option_pack_ref<Configure_cluster_instance_options>
         &options) {
   do_configure_instance(instance_def ? *instance_def : Connection_options{},
-                        *options);
+                        *options, Cluster_type::GROUP_REPLICATION);
 }
 
 REGISTER_HELP_FUNCTION(configureReplicaSetInstance, dba);
@@ -2616,7 +2617,8 @@ void Dba::configure_replica_set_instance(
     const shcore::Option_pack_ref<Configure_replicaset_instance_options>
         &options) {
   return do_configure_instance(
-      instance_def ? *instance_def : Connection_options{}, *options);
+      instance_def ? *instance_def : Connection_options{}, *options,
+      Cluster_type::ASYNC_REPLICATION);
 }
 
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);

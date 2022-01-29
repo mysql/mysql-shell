@@ -54,12 +54,12 @@ namespace dba {
 
 Configure_instance::Configure_instance(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-    const Configure_instance_options &options, TargetType::Type instance_type)
+    const Configure_instance_options &options, TargetType::Type instance_type,
+    Cluster_type purpose)
     : m_target_instance(target_instance),
       m_options(options),
+      m_purpose(purpose),
       m_instance_type(instance_type) {}
-
-Configure_instance::~Configure_instance() {}
 
 /*
  * Validates the .cnf file path. If interactive is enabled and the file path
@@ -299,9 +299,9 @@ void Configure_instance::check_create_admin_user() {
 
   if (m_options.cluster_admin.empty()) {
     // Check that the account in use isn't too restricted (like localhost only)
-    if (!check_admin_account_access_restrictions(*m_target_instance,
-                                                 m_current_user, m_current_host,
-                                                 m_options.interactive())) {
+    if (!check_admin_account_access_restrictions(
+            *m_target_instance, m_current_user, m_current_host,
+            m_options.interactive(), m_purpose)) {
       // If interaction is enabled use the console_handler admin-user
       // handling function
       if (m_options.interactive()) {
@@ -345,18 +345,22 @@ void Configure_instance::check_create_admin_user() {
       // cluster admin account exists, so we will validate its privileges
       // and log a warning to inform that the user won't be created
 
-      if (!validate_cluster_admin_user_privileges(
-              *m_target_instance, admin_user, admin_user_host, &error_info)) {
+      if (!validate_cluster_admin_user_privileges(*m_target_instance,
+                                                  admin_user, admin_user_host,
+                                                  m_purpose, &error_info)) {
         console->print_warning(
             "User " + m_options.cluster_admin +
             " already exists and will not be created. However, it is missing "
             "privileges.");
         console->print_info(error_info);
 
-        throw shcore::Exception::runtime_error(
-            "The account " +
-            shcore::make_account(m_current_user, m_current_host) +
-            " is missing privileges required to manage an InnoDB cluster.");
+        auto msg = shcore::str_format(
+            "The account %s is missing privileges required to manage an "
+            "%s.",
+            shcore::make_account(m_current_user, m_current_host).c_str(),
+            to_display_string(m_purpose, Display_form::THING_FULL).c_str());
+
+        throw shcore::Exception::runtime_error(msg);
       } else {
         console->print_info("User " + m_options.cluster_admin +
                             " already exists and will not be created.");
@@ -695,7 +699,7 @@ void Configure_instance::prepare() {
   m_can_set_persist = m_target_instance->is_set_persist_supported();
 
   // Ensure the user has privs to do all these checks
-  ensure_user_privileges(*m_target_instance);
+  ensure_user_privileges(*m_target_instance, m_purpose);
 
   // Check lock service UDFs availability (after checking privileges).
   //

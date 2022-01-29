@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_ACCOUNTS_H_
 #define MODULES_ADMINAPI_COMMON_ACCOUNTS_H_
 
+#include "modules/adminapi/common/cluster_types.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -36,7 +37,8 @@ std::pair<int, int> find_cluster_admin_accounts(
 
 bool validate_cluster_admin_user_privileges(
     const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
-    const std::string &admin_host, std::string *validation_error);
+    const std::string &admin_host, Cluster_type purpose,
+    std::string *validation_error);
 
 std::vector<std::string> create_admin_grants(
     const std::string &username,
@@ -51,7 +53,7 @@ void create_cluster_admin_user(mysqlshdk::mysql::IInstance &instance,
                                const std::string &password);
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
-    const std::string &host, bool interactive);
+    const std::string &host, bool interactive, Cluster_type purpose);
 
 std::string prompt_new_account_password();
 

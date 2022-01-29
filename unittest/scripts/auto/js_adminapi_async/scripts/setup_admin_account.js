@@ -227,3 +227,44 @@ session1.close();
 session2.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+//@<> BUG#31864547 Check missing privileges and correct ouput context
+testutil.deploySandbox(__mysql_sandbox_port1, 'root');
+
+shell.connect({user: 'root', password: 'root', host: 'localhost', port: __mysql_sandbox_port1});
+// create user which doesn't have enough privileges to be a replica set admin
+session.runSql("CREATE USER irsA@localhost IDENTIFIED BY 'irspass'");
+session.runSql("GRANT SELECT, RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'irsA'@'localhost' WITH GRANT OPTION");
+session.runSql("GRANT SELECT, INSERT, UPDATE, DELETE ON `mysql`.* TO 'irsA'@'localhost' WITH GRANT OPTION");
+// create user which doesn't have enough privileges to call setupAdminAccount in a replica set
+session.runSql("CREATE USER irsB@localhost IDENTIFIED BY 'irspass'");
+session.runSql("GRANT SELECT, RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'irsB'@'localhost' WITH GRANT OPTION");
+session.runSql("GRANT SELECT, INSERT, UPDATE, DELETE ON `mysql`.* TO 'irsB'@'localhost' WITH GRANT OPTION");
+session.close();
+
+// configure instance for replica set
+shell.connect({user: 'irsA', password: 'irspass', host: 'localhost', port: __mysql_sandbox_port1});
+EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},
+    "Dba.configureReplicaSetInstance: The account 'irsA'@'localhost' is missing privileges required to manage an InnoDB ReplicaSet.");
+session.close();
+
+// try to setup an admin account in the replica set
+
+// connect as root and create a replica set
+shell.connect({user: 'root', password: 'root', host: 'localhost', port: __mysql_sandbox_port1});
+dba.createReplicaSet("rset");
+session.close();
+
+// connect as user B and get the replica set
+shell.connect({user: 'irsB', password: 'irspass', host: 'localhost', port: __mysql_sandbox_port1});
+rset = dba.getReplicaSet();
+
+// try to setup admin account
+EXPECT_THROWS(function(){rset.setupAdminAccount("irsC")},
+    "ReplicaSet.setupAdminAccount: Account currently in use ('irsB'@'localhost') does not have enough privileges to execute the operation.");
+EXPECT_OUTPUT_CONTAINS("The account 'irsB'@'localhost' is missing privileges required to manage an InnoDB ReplicaSet:");
+
+session.close();
+
+// cleanup
+testutil.destroySandbox(__mysql_sandbox_port1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,8 +58,11 @@ void ensure_ar_instance_configuration_valid(
  * the current user is missing privileges, so the check must always be done.
  *
  * @param instance the target instance to verify used user privileges.
+ * @param purpose the purpose / context with which this method is being called.
  */
-void ensure_user_privileges(const mysqlshdk::mysql::IInstance &instance);
+void ensure_user_privileges(
+    const mysqlshdk::mysql::IInstance &instance,
+    Cluster_type purpose = Cluster_type::GROUP_REPLICATION);
 
 /**
  * Throw exception (or show warning if fatal is false) if instance needs any

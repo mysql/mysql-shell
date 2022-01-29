@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,11 +52,14 @@ class Setup_account : public Command_interface {
    * @param grants the list of grants that will be given to the account
    * @param m_primary_server An instance object pointing to the primary_server
    * of the cluster/replicaset object where the command will execute.
+   * @param purpose the purpose / context with which this account is being
+   * setup.
    */
   Setup_account(const std::string &name, const std::string &host,
                 const Setup_account_options &options,
                 std::vector<std::string> grants,
-                const mysqlshdk::mysql::IInstance &m_primary_server);
+                const mysqlshdk::mysql::IInstance &m_primary_server,
+                Cluster_type purpose);
 
   ~Setup_account() override = default;
 
@@ -97,6 +100,7 @@ class Setup_account : public Command_interface {
   const std::string m_name;
   const std::string m_host;
   Setup_account_options m_options;
+  const Cluster_type m_purpose;
   const std::vector<std::string> m_privilege_list;
   const mysqlshdk::mysql::IInstance &m_primary_server;
   bool m_user_exists;

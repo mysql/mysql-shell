@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -364,7 +364,7 @@ void Base_cluster_impl::setup_account_common(
     }
 
     Setup_account op_setup(username, host, options, grant_list,
-                           *primary_instance);
+                           *primary_instance, get_type());
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
     // Prepare the setup_account execution

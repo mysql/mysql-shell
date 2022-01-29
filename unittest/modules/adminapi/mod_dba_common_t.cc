@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -655,8 +655,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {"grantee"},
                      {Type::String},
                      {{"'admin'@'myhost'"}, {"'admin'@'otherhost'"}}}});
-  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
-                                                      "myhost", true));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "myhost", true,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   mock_session
       ->expect_query(
@@ -667,8 +668,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {"grantee"},
                      {Type::String},
                      {{"'admin'@'myhost'"}, {"'admin'@'otherhost'"}}}});
-  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
-                                                      "myhost", false));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "myhost", false,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   // TEST: Only one account not using wildcards (%) available for the user:
   // - Interactive 'true': return false;
@@ -679,8 +681,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
           "FROM information_schema.user_privileges "
           "WHERE grantee like '\\'admin\\'@%'")
       .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'myhost'"}}}});
-  EXPECT_FALSE(check_admin_account_access_restrictions(instance, "admin",
-                                                       "myhost", true));
+  EXPECT_FALSE(check_admin_account_access_restrictions(
+      instance, "admin", "myhost", true,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   mock_session
       ->expect_query(
@@ -688,8 +691,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
           "FROM information_schema.user_privileges "
           "WHERE grantee like '\\'admin\\'@%'")
       .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'myhost'"}}}});
-  EXPECT_THROW_LIKE(check_admin_account_access_restrictions(instance, "admin",
-                                                            "myhost", false),
+  EXPECT_THROW_LIKE(check_admin_account_access_restrictions(
+                        instance, "admin", "myhost", false,
+                        mysqlsh::dba::Cluster_type::GROUP_REPLICATION),
                     std::runtime_error,
                     "User 'admin' can only connect from 'myhost'.");
 
@@ -702,8 +706,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
           "FROM information_schema.user_privileges "
           "WHERE grantee like '\\'admin\\'@%'")
       .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'%'"}}}});
-  EXPECT_TRUE(
-      check_admin_account_access_restrictions(instance, "admin", "%", true));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "%", true,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   mock_session
       ->expect_query(
@@ -711,8 +716,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
           "FROM information_schema.user_privileges "
           "WHERE grantee like '\\'admin\\'@%'")
       .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'%'"}}}});
-  EXPECT_TRUE(
-      check_admin_account_access_restrictions(instance, "admin", "%", false));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "%", false,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   // TEST: Only one account with netmask which is the same
   // currently used (passed as parameter):
@@ -726,8 +732,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {"grantee"},
                      {Type::String},
                      {{"'admin'@'192.168.1.0/255.255.255.0'"}}}});
-  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
-                                                      "192.168.1.20", true));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "192.168.1.20", true,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   mock_session
       ->expect_query(
@@ -738,8 +745,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {"grantee"},
                      {Type::String},
                      {{"'admin'@'192.168.1.0/255.255.255.0'"}}}});
-  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
-                                                      "192.168.1.20", false));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "192.168.1.20", false,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   // TEST: Only one account with IPv6 which is the same
   // currently used (passed as parameter):
@@ -755,7 +763,8 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {Type::String},
                      {{"'admin'@'2001:0db8:85a3:0000:0000:8a2e:0370'"}}}});
   EXPECT_FALSE(check_admin_account_access_restrictions(
-      instance, "admin", "2001:0db8:85a3:0000:0000:8a2e:0370", true));
+      instance, "admin", "2001:0db8:85a3:0000:0000:8a2e:0370", true,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   mock_session
       ->expect_query(
@@ -766,12 +775,12 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {"grantee"},
                      {Type::String},
                      {{"'admin'@'2001:0db8:85a3:0000:0000:8a2e:0370'"}}}});
-  EXPECT_THROW_LIKE(
-      check_admin_account_access_restrictions(
-          instance, "admin", "2001:0db8:85a3:0000:0000:8a2e:0370", false),
-      std::runtime_error,
-      "User 'admin' can only connect from "
-      "'2001:0db8:85a3:0000:0000:8a2e:0370'.");
+  EXPECT_THROW_LIKE(check_admin_account_access_restrictions(
+                        instance, "admin", "2001:0db8:85a3:0000:0000:8a2e:0370",
+                        false, mysqlsh::dba::Cluster_type::GROUP_REPLICATION),
+                    std::runtime_error,
+                    "User 'admin' can only connect from "
+                    "'2001:0db8:85a3:0000:0000:8a2e:0370'.");
 
   // TEST: Multiple accounts and one with wildcard (%) with the needed
   // privileges, which is not the one currently used (passed as parameter):
@@ -809,8 +818,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {Type::String},
                      {{"'admin'@'localhost'"}, {"'admin'@'%'"}}}});
   expect_all_privileges(mock_session);
-  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
-                                                      "localhost", true));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "localhost", true,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   mock_session
       ->expect_query(
@@ -822,8 +832,9 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
                      {Type::String},
                      {{"'admin'@'localhost'"}, {"'admin'@'%'"}}}});
   expect_all_privileges(mock_session);
-  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
-                                                      "localhost", false));
+  EXPECT_TRUE(check_admin_account_access_restrictions(
+      instance, "admin", "localhost", false,
+      mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 }
 
 class Dba_common_cluster_functions : public Dba_common_test {
