@@ -38,7 +38,8 @@ namespace mysqlsh {
 namespace dba {
 
 void ensure_gr_instance_configuration_valid(
-    mysqlshdk::mysql::IInstance *target_instance, bool full) {
+    mysqlshdk::mysql::IInstance *target_instance, bool full,
+    bool skip_check_tables_pk) {
   auto console = mysqlsh::current_console();
 
   shcore::Value result;
@@ -48,7 +49,8 @@ void ensure_gr_instance_configuration_valid(
         "Validating instance configuration at " +
         target_instance->get_connection_options().uri_endpoint() + "...");
 
-    Check_instance check(target_instance->get_connection_options(), "", true);
+    Check_instance check(target_instance->get_connection_options(), "", true,
+                         skip_check_tables_pk);
     check.prepare();
     result = check.execute();
     check.finish();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,8 @@ namespace checks {
 void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
                            int verbose);
 
-bool validate_schemas(const mysqlshdk::mysql::IInstance &instance);
+bool validate_schemas(const mysqlshdk::mysql::IInstance &instance,
+                      bool skip_check_tables_pk);
 
 void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 

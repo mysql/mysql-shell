@@ -49,10 +49,12 @@ namespace dba {
 // parameters if there's any need.
 Check_instance::Check_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const std::string &verify_mycnf_path, bool silent)
+    const std::string &verify_mycnf_path, bool silent,
+    bool skip_check_tables_pk)
     : m_instance_cnx_opts(instance_cnx_opts),
       m_mycnf_path(verify_mycnf_path),
-      m_silent(silent) {}
+      m_silent(silent),
+      m_skip_check_tables_pk{skip_check_tables_pk} {}
 
 Check_instance::~Check_instance() {}
 
@@ -77,7 +79,7 @@ bool Check_instance::check_schema_compatibility() {
         "Checking whether existing tables comply with Group Replication "
         "requirements...");
   }
-  if (checks::validate_schemas(*m_target_instance)) {
+  if (checks::validate_schemas(*m_target_instance, m_skip_check_tables_pk)) {
     if (!m_silent) console->print_info("No incompatible tables detected");
     return true;
   }

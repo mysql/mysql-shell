@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,9 +71,11 @@ namespace checks {
  *
  * @param  instance target instance for the validation. Must be authenticated
  *         with an account with SELECT access to all schemas.
+ * @param  skip_check_tables_pk true to skip checking tables without PKs
  * @return true if no issues found.
  */
-bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
+bool validate_schemas(const mysqlshdk::mysql::IInstance &instance,
+                      bool skip_check_tables_pk) {
   bool ok = true;
   std::string k_gr_compliance_skip_schemas =
       "('mysql', 'sys', 'performance_schema', 'information_schema')";
@@ -107,7 +109,8 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
       console->print_info(tables);
     }
   }
-  {
+
+  if (!skip_check_tables_pk) {
     std::shared_ptr<mysqlshdk::db::IResult> result = instance.query(
         "SELECT t.table_schema, t.table_name "
         "FROM information_schema.tables t "
@@ -143,6 +146,7 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
       console->print_info(tables);
     }
   }
+
   if (!ok) {
     console->print_info(
         "Group Replication requires tables to use InnoDB and "
