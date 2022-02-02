@@ -90,7 +90,9 @@ static const char k_host_key_allowed[] = {
     "x509v3-rsa2048-sha256,"
     "x509v3-ecdsa-sha2-nistp256,"
     "x509v3-ecdsa-sha2-nistp384,"
-    "x509v3-ecdsa-sha2-nistp521"};
+    "x509v3-ecdsa-sha2-nistp521,"
+    "ssh-rsa"  // (ssh2 version of ssh-rsa, not the one from ssh1)
+};
 
 static const char k_cipher_allowed[] = {
     "chacha20-poly1305@openssh.com,"  // recommended
@@ -121,7 +123,9 @@ static const char k_public_key_allowed[] = {
     "x509v3-rsa2048-sha256,"
     "x509v3-ecdsa-sha2-nistp256,"
     "x509v3-ecdsa-sha2-nistp384,"
-    "x509v3-ecdsa-sha2-nistp521"};
+    "x509v3-ecdsa-sha2-nistp521,"
+    "ssh-rsa"  // (ssh2 version of ssh-rsa, not the one from ssh1)
+};
 
 int libssh_auth_callback(const char *prompt, char *buf, size_t len, int echo,
                          int UNUSED(verify), void *userdata) {
