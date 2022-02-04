@@ -46,6 +46,8 @@ Set_primary_instance::Set_primary_instance(
   assert(m_instance_cnx_opts.has_data());
 }
 
+Set_primary_instance::~Set_primary_instance() {}
+
 void Set_primary_instance::ensure_single_primary_mode() {
   // First ensure that the topology mode match the one registered in the
   // metadata and if not, throw immediately
@@ -87,7 +89,7 @@ void Set_primary_instance::prepare() {
   m_instance_cnx_opts.set_login_options_from(
       m_cluster->get_cluster_server()->get_connection_options());
 
-  // - Ensure instance belongs to cluster;
+  // - Ensure instance belong to cluster;
   std::string target_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
@@ -118,19 +120,6 @@ shcore::Value Set_primary_instance::execute() {
                       m_cluster->get_name() + "'...");
   console->print_info();
 
-  auto change_primary = [this, &console, &target_instance_address]() {
-    try {
-      // elect the new primary
-      mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
-    } catch (const std::exception &e) {
-      console->print_info(
-          shcore::str_format("Failed to set '%s' as primary instance: %s",
-                             target_instance_address.c_str(), e.what()));
-      throw shcore::Exception::runtime_error(
-          "Instance cannot be set as primary");
-    }
-  };
-
   // Restore the replication channel if the cluster belongs to a ClusterSet and
   // is a replica cluster
   if (m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster()) {
@@ -143,12 +132,14 @@ shcore::Value Set_primary_instance::execute() {
     stop_channel(m_cluster->get_cluster_server().get(),
                  k_clusterset_async_channel_name, true, false);
 
-    change_primary();
+    // Elect the new primary before starting the replication channel
+    mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
 
     start_channel(m_target_instance.get(), k_clusterset_async_channel_name,
                   false);
   } else {
-    change_primary();
+    // Just elect the new primary
+    mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
   }
 
   // Print information about the instances role changes
@@ -159,6 +150,10 @@ shcore::Value Set_primary_instance::execute() {
 
   return shcore::Value();
 }
+
+void Set_primary_instance::rollback() {}
+
+void Set_primary_instance::finish() {}
 
 }  // namespace cluster
 }  // namespace dba

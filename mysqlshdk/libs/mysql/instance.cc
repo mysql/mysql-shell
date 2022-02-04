@@ -797,15 +797,30 @@ void Instance::suppress_binary_log(bool flag) {
 std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
                                                         bool buffered) const {
   auto res = get_session()->query(sql, buffered);
-  process_result_warnings(sql, *res);
 
-  return res;
-}
+  // Call the Warnings_callback if registered
+  if (m_warnings_callback) {
+    // Get all the Warnings
+    while (auto warning = res->fetch_one_warning()) {
+      std::string warning_level;
 
-std::shared_ptr<mysqlshdk::db::IResult> Instance::query_udf(
-    const std::string &sql, bool buffered) const {
-  auto res = get_session()->query_udf(sql, buffered);
-  process_result_warnings(sql, *res);
+      switch (warning->level) {
+        case db::Warning::Level::Note:
+          warning_level = "NOTE";
+          break;
+        case db::Warning::Level::Warn:
+          warning_level = "WARNING";
+          break;
+        case db::Warning::Level::Error:
+          warning_level = "ERROR";
+          break;
+      }
+
+      m_warnings_callback(sql, warning->code, warning_level, warning->msg);
+
+      warning = res->fetch_one_warning();
+    }
+  }
 
   return res;
 }
@@ -816,33 +831,6 @@ void Instance::execute(const std::string &sql) const {
   } catch (const mysqlshdk::db::Error &e) {
     throw mysqlshdk::db::Error((descr() + ": " + e.what()).c_str(), e.code(),
                                e.sqlstate());
-  }
-}
-
-void Instance::process_result_warnings(const std::string &sql,
-                                       mysqlshdk::db::IResult &result) const {
-  // Call the Warnings_callback if registered
-  if (!m_warnings_callback) return;
-
-  // Get all the Warnings
-  while (auto warning = result.fetch_one_warning()) {
-    std::string warning_level;
-
-    switch (warning->level) {
-      case db::Warning::Level::Note:
-        warning_level = "NOTE";
-        break;
-      case db::Warning::Level::Warn:
-        warning_level = "WARNING";
-        break;
-      case db::Warning::Level::Error:
-        warning_level = "ERROR";
-        break;
-    }
-
-    m_warnings_callback(sql, warning->code, warning_level, warning->msg);
-
-    warning = result.fetch_one_warning();
   }
 }
 

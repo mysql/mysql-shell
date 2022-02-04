@@ -111,30 +111,6 @@ cluster.setPrimaryInstance(hostname_ip+":"+__mysql_sandbox_port3);
 //@<> setPrimary using hostname {VER(>=8.0.13)}
 cluster.setPrimaryInstance(hostname+":"+__mysql_sandbox_port2);
 
-//@<> Check if the primary version fails if there's an async channels running {VER(>=8.0.13)}
-shell.connect(__sandbox_uri1);
-session.runSql("SET GLOBAL super_read_only = 0");
-session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
-session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
-session.runSql("SET GLOBAL super_read_only = 1");
-session.close();
-
-shell.connect(__sandbox_uri2);
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + localhost + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
-session.runSql("START SLAVE");
-
-do {
-    r = session.runSql("SHOW SLAVE STATUS").fetchOne();
-} while (r.Slave_IO_Running == 'Connecting')
-
-cluster = dba.getCluster()
-EXPECT_THROWS(function() {
-    cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port1);
-}, "Instance cannot be set as primary");
-EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port1 + "' as primary instance: The function 'group_replication_set_as_primary' failed. There is a slave channel running in the group's current primary member.");
-
-session.close();
-
 //@ Finalization
 scene.destroy();
 

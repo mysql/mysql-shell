@@ -84,9 +84,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   bool _stop_pre_fetch = false;
   bool _pre_fetched = false;
   bool _persistent_pre_fetch = false;
-  bool _pre_fetched_clear_at_end = false;
 
-  bool pre_fetch_row();
   bool pre_fetch_rows(bool persistent);
   void stop_pre_fetch();
 

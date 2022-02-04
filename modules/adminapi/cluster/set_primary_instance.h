@@ -33,13 +33,13 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-class Set_primary_instance final : public Topology_configuration_command {
+class Set_primary_instance : public Topology_configuration_command {
  public:
   Set_primary_instance(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
       Cluster_impl *cluster);
 
-  ~Set_primary_instance() override = default;
+  ~Set_primary_instance() override;
 
   /**
    * Prepare the Set_primary_instance command for execution.
@@ -68,12 +68,12 @@ class Set_primary_instance final : public Topology_configuration_command {
    *
    * NOTE: Not currently used.
    */
-  void rollback() override {}
+  void rollback() override;
 
   /**
    * Finalize the command execution.
    */
-  void finish() override {}
+  void finish() override;
 
  private:
   mysqlshdk::db::Connection_options m_instance_cnx_opts;

@@ -42,7 +42,7 @@ class Topology_configuration_command : public Command_interface {
  public:
   explicit Topology_configuration_command(Cluster_impl *cluster);
 
-  ~Topology_configuration_command() override = default;
+  ~Topology_configuration_command() override;
 
   /**
    * Prepare the Topology_configuration_command command for execution.

@@ -536,10 +536,9 @@ void add_managed_connection_failover(
   query.done();
 
   try {
-    log_debug("Executing UDF: %s",
-              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+    log_debug("Executing UDF: %s", query.str().c_str());
     if (!dry_run) {
-      auto res = target_instance.query_udf(query);
+      auto res = target_instance.query(query);
       auto row = res->fetch_one();
       log_debug("UDF returned '%s'", row->get_string(0, "NULL").c_str());
     }
@@ -571,10 +570,9 @@ void delete_managed_connection_failover(
     query.done();
 
     try {
-      log_debug("Executing UDF: %s",
-                query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+      log_debug("Executing UDF: %s", query.str().c_str());
       if (!dry_run) {
-        auto res = target_instance.query_udf(query);
+        auto res = target_instance.query(query);
         auto row = res->fetch_one();
         log_debug("UDF returned '%s'", row->get_string(0, "NULL").c_str());
       }

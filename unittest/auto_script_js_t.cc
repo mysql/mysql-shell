@@ -220,32 +220,10 @@ class Auto_script_js : public Shell_js_script_tester,
 
     if (g_mysqld_path_variables && folder == "js_mixed_versions") {
       auto variables = shcore::str_split(g_mysqld_path_variables, ",");
-
-      std::string secondary_var_name{"MYSQLD_SECONDARY_SERVER_A"};
-
       for (const auto &variable : variables) {
-        auto serverParts = shcore::str_split(variable, ";");
-        assert(serverParts.size() == 2);
-
-        auto &serverVersion = serverParts[0];
-        auto &serverPath = serverParts[1];
-
-        {
-          auto code =
-              shcore::str_format("var %s = os.getenv('%s')", serverPath.c_str(),
-                                 serverPath.c_str());
-          execute(code);
-        }
-
-        if (secondary_var_name.back() <= 'Z') {
-          auto code = shcore::str_format(
-              "var %s = { path: os.getenv('%s'), version: \"%s\" }",
-              secondary_var_name.c_str(), serverPath.c_str(),
-              serverVersion.c_str());
-          execute(code);
-
-          secondary_var_name.back()++;
-        }
+        std::string code = shcore::str_format(
+            "var %s = os.getenv('%s')", variable.c_str(), variable.c_str());
+        execute(code);
       }
     }
 
