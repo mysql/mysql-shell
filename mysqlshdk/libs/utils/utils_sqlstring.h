@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,7 +89,7 @@ class SHCORE_PUBLIC sqlstring {
 
   sqlstring();
   sqlstring(const char *format_string, const sqlstringformat format);
-  sqlstring(const std::string &format_string, const sqlstringformat format);
+  sqlstring(std::string format_string, const sqlstringformat format);
   sqlstring(const char *format_string, const int format)
       : sqlstring(format_string, sqlstringformat(format)) {}
   sqlstring(const std::string &format_string, const int format)
@@ -159,5 +159,9 @@ inline std::string sqlformat(const std::string &s, const Args &... args) {
 }
 
 }  // namespace shcore
+
+inline shcore::sqlstring operator"" _sql(const char *str, std::size_t length) {
+  return shcore::sqlstring(std::string(str, length), 0);
+}
 
 #endif

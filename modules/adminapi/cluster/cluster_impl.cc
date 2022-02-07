@@ -2237,13 +2237,15 @@ void Cluster_impl::switch_to_multi_primary_mode() {
 }
 
 void Cluster_impl::set_primary_instance(
-    const Connection_options &instance_def) {
+    const Connection_options &instance_def,
+    const cluster::Set_primary_instance_options &options) {
   check_preconditions("setPrimaryInstance");
 
   // Set primary instance
 
   // Create the Set_primary_instance object and execute it.
-  cluster::Set_primary_instance op_set_primary_instance(instance_def, this);
+  cluster::Set_primary_instance op_set_primary_instance(instance_def, this,
+                                                        options);
 
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope(

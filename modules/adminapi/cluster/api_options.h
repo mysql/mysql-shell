@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_API_OPTIONS_H_
 #define MODULES_ADMINAPI_CLUSTER_API_OPTIONS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -88,6 +89,12 @@ struct Rescan_options : public Interactive_option {
   bool auto_remove = false;
   bool upgrade_comm_protocol = false;
   mysqlshdk::null_bool update_view_change_uuid;
+};
+
+struct Set_primary_instance_options {
+  static const shcore::Option_pack_def<Set_primary_instance_options> &options();
+
+  std::optional<uint32_t> running_transactions_timeout;
 };
 
 }  // namespace cluster

@@ -70,7 +70,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   String status(Dictionary options);
   Undefined switchToSinglePrimaryMode(InstanceDef instance);
   Undefined switchToMultiPrimaryMode();
-  Undefined setPrimaryInstance(InstanceDef instance);
+  Undefined setPrimaryInstance(InstanceDef instance, Dictionary options);
   String options(Dictionary options);
   Undefined setOption(String option, String value);
   Undefined setInstanceOption(InstanceDef instance, String option,
@@ -100,7 +100,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   str status(dict options);
   None switch_to_single_primary_mode(InstanceDef instance);
   None switch_to_multi_primary_mode();
-  None set_primary_instance(InstanceDef instance);
+  None set_primary_instance(InstanceDef instance, dict options);
   str options(dict options);
   None set_option(str option, str value);
   None set_instance_option(InstanceDef instance, str option, str value);
@@ -173,7 +173,10 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
       const Connection_options &instance_def = Connection_options());
 
   void switch_to_multi_primary_mode(void);
-  void set_primary_instance(const Connection_options &instance_def);
+  void set_primary_instance(
+      const Connection_options &instance_def,
+      const shcore::Option_pack_ref<cluster::Set_primary_instance_options>
+          &options = {});
 
   shcore::Value options(
       const shcore::Option_pack_ref<cluster::Options_options> &options);

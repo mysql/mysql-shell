@@ -31,13 +31,12 @@ function CHECK_REPL_USERS(session, server_ids, host, ensure_format) {
 
 function CHECK_RECOVERY_USER(session) {
   var uuid = session.runSql("select @@server_uuid").fetchOne()[0];
-
-  row = session.runSql("select i.attributes->>'$.recoveryAccountUser', i.attributes->>'$.recoveryAccountHost' from mysql_innodb_cluster_metadata.instances i where i.mysql_server_uuid=?", [uuid]).fetchOne();
+  var meta_user = session.runSql("select i.attributes->>'$.recoveryAccountUser' from mysql_innodb_cluster_metadata.instances i where i.mysql_server_uuid=?", [uuid]).fetchOne()[0];
 
   var user = session.runSql("select user_name from mysql.slave_master_info where channel_name='group_replication_recovery'").fetchOne()[0];
-  EXPECT_EQ(row[0], user);
+  
+  EXPECT_EQ(meta_user, user);
 }
-
 
 function get_global_option(options, name) {
   for (var i in options["defaultReplicaSet"]["globalOptions"]) {
@@ -47,7 +46,6 @@ function get_global_option(options, name) {
   }
   return undefined;
 }
-
 
 //@<> Test accounts created by default
 
@@ -212,6 +210,9 @@ session3 = mysql.getSession(__sandbox_uri3);
 c.addInstance(__sandbox_uri3, {recoveryMethod:"incremental"});
 
 //@<> continue after clone
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
 session1.runSql("select user,host from mysql.user");
 session1.runSql("select * from mysql_innodb_cluster_metadata.instances");
 

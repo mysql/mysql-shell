@@ -470,9 +470,8 @@ sqlstring::sqlstring(const char *format_string, const sqlstringformat format)
   append(consume_until_next_escape());
 }
 
-sqlstring::sqlstring(const std::string &format_string,
-                     const sqlstringformat format)
-    : _format_string_left(format_string), _format(format) {
+sqlstring::sqlstring(std::string format_string, const sqlstringformat format)
+    : _format_string_left(std::move(format_string)), _format(format) {
   append(consume_until_next_escape());
 }
 

@@ -129,7 +129,8 @@ void Cluster::init() {
          "?instance")
       ->cli();
   expose("switchToMultiPrimaryMode", &Cluster::switch_to_multi_primary_mode);
-  expose("setPrimaryInstance", &Cluster::set_primary_instance, "instance")
+  expose("setPrimaryInstance", &Cluster::set_primary_instance, "instance",
+         "?options")
       ->cli();
   expose("options", &Cluster::options, "?options")->cli();
   expose("setOption", &Cluster::set_option, "option", "value")->cli();
@@ -1047,6 +1048,7 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETPRIMARYINSTANCE, R"*(
 Elects a specific cluster member as the new primary.
 
 @param instance An instance definition.
+@param options Optional dictionary with options for the operation.
 
 @returns Nothing.
 
@@ -1059,6 +1061,14 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The instance definition is mandatory and is the identifier of the cluster
 member that shall become the new primary.
+
+The options dictionary may contain the following attributes:
+
+@li runningTransactionsTimeout: integer value to define the time period, in
+seconds, that the primary election waits for ongoing transactions to complete.
+After the timeout is reached, any ongoing transaction is rolled back allowing
+the operation to complete.
+
 )*");
 
 /**
@@ -1067,15 +1077,19 @@ member that shall become the new primary.
  * $(CLUSTER_SETPRIMARYINSTANCE)
  */
 #if DOXYGEN_JS
-Undefined Cluster::setPrimaryInstance(InstanceDef instance) {}
+Undefined Cluster::setPrimaryInstance(InstanceDef instance,
+                                      Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::set_primary_instance(InstanceDef instance) {}
+None Cluster::set_primary_instance(InstanceDef instance, dict options) {}
 #endif
 
-void Cluster::set_primary_instance(const Connection_options &instance_def) {
+void Cluster::set_primary_instance(
+    const Connection_options &instance_def,
+    const shcore::Option_pack_ref<cluster::Set_primary_instance_options>
+        &options) {
   assert_valid("setPrimaryInstance");
 
-  m_impl->set_primary_instance(instance_def);
+  m_impl->set_primary_instance(instance_def, *options);
 }
 
 REGISTER_HELP_FUNCTION(setOption, Cluster);

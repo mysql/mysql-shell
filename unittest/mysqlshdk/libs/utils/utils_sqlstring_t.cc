@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,6 +51,10 @@ TEST(utils_sqlstring, double_values) {
 TEST(utils_sqlstring, boolean) {
   EXPECT_EQ("1", (sqlstring("?", 0) << true).str());
   EXPECT_EQ("0", (sqlstring("?", 0) << false).str());
+}
+
+TEST(utils_sqlstring, user_defined_literal) {
+  EXPECT_EQ(("sql ?"_sql << 10).str(), (sqlstring("sql ?", 0) << 10).str());
 }
 
 }  // namespace shcore
