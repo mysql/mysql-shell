@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -557,8 +557,11 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
 
   // Check instance configuration and state, like dba.checkInstance
   // But don't do it if it was already done by the caller
-  ensure_gr_instance_configuration_valid(m_target_instance.get(),
-                                         type == checks::Check_type::JOIN);
+  ensure_gr_instance_configuration_valid(
+      m_target_instance.get(), type == checks::Check_type::JOIN,
+      !m_clone_opts.recovery_method ? false
+                                    : m_clone_opts.recovery_method.get_safe() ==
+                                          Member_recovery_method::CLONE);
 
   // Validate the lower_case_table_names and default_table_encryption
   // variables. Their values must be the same on the target instance as they

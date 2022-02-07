@@ -42,11 +42,13 @@ namespace dba {
  *
  * @param target_instance the target to check (sysvars must be cached)
  * @param full if false, executes a reduced set of tests.
+ * @param skip_check_tables_pk true to skip checking tables without PKs
  *
  * Throws an exception if checks fail.
  */
 void ensure_gr_instance_configuration_valid(
-    mysqlshdk::mysql::IInstance *target_instance, bool full = true);
+    mysqlshdk::mysql::IInstance *target_instance, bool full = true,
+    bool skip_check_tables_pk = false);
 
 void ensure_ar_instance_configuration_valid(
     mysqlshdk::mysql::IInstance *target_instance);

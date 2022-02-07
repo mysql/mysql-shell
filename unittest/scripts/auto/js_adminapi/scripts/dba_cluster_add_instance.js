@@ -143,13 +143,21 @@ single.addInstance(add_instance_options);
 add_instance_options['port'] = __mysql_sandbox_port2;
 single.addInstance(add_instance_options);
 
+//@<> don't check for tables with PK BUG#32992693 {VER(>=8.0.17)}
+reset_instance(session); //reset instance 3
+session.runSql("CREATE SCHEMA test;");
+session.runSql("CREATE TABLE test.t1 (id int);");
+session.runSql("INSERT INTO test.t1 VALUES (42);");
+
+EXPECT_NO_THROWS(function() { single.addInstance(__sandbox_uri3, {recoveryMethod: "clone"}); });
+EXPECT_STDOUT_NOT_CONTAINS("The following tables do not have a Primary Key or equivalent column:");
+
 //@<> cleanup old clusters and sessions
 multiSession.close();
 multi.disconnect();
 singleSession.close();
 singleSession2.close();
-session.close()
-
+session.close();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

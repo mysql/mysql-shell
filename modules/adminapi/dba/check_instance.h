@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,8 @@ namespace dba {
 class Check_instance : public Command_interface {
  public:
   Check_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
-                 const std::string &verify_mycnf_path, bool silent = false);
+                 const std::string &verify_mycnf_path, bool silent = false,
+                 bool skip_check_tables_pk = false);
   ~Check_instance();
 
   void prepare() override;
@@ -71,6 +72,7 @@ class Check_instance : public Command_interface {
   shcore::Value m_ret_val;
 
   const bool m_silent;
+  const bool m_skip_check_tables_pk{false};
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
