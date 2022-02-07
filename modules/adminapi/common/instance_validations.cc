@@ -364,7 +364,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
   *restart_needed = false;
   *mycnf_change_needed = false;
   *sysvar_change_needed = false;
-  bool log_bin_wrong = false;
+  bool log_bin_present = false;
 
   if (invalid_cfs_vec.empty()) {
     (*map_val)["status"] = shcore::Value("ok");
@@ -375,13 +375,16 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     for (mysqlshdk::mysql::Invalid_config &cfg : invalid_cfs_vec) {
       shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
       std::string action;
-      if (!log_bin_wrong && cfg.var_name == "log_bin" &&
+      if (!log_bin_present &&
+          (cfg.var_name == "log_bin" || cfg.var_name == "skip_log_bin" ||
+           cfg.var_name == "disable_log_bin") &&
           cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG)) {
-        log_bin_wrong = true;
+        log_bin_present = true;
       }
 
-      if (cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG) &&
-          cfg.types.is_set(mysqlshdk::mysql::Config_type::SERVER)) {
+      if (log_bin_present ||
+          (cfg.types.is_set(mysqlshdk::mysql::Config_type::CONFIG) &&
+           cfg.types.is_set(mysqlshdk::mysql::Config_type::SERVER))) {
         *mycnf_change_needed = true;
         if (cfg.restart) {
           *restart_needed = true;
@@ -435,7 +438,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
       std::string base_msg =
           "Some variables need to be changed, but cannot be done dynamically "
           "on the server";
-      if (log_bin_wrong && *mycnf_change_needed) {
+      if (log_bin_present && *mycnf_change_needed) {
         base_msg += ": an option file is required";
       } else {
         if (*mycnf_change_needed) {
