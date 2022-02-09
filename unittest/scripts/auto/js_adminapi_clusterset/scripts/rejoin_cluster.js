@@ -293,13 +293,18 @@ session6.runSql("change replication source to source_password='bogus' for channe
 
 cs.rejoinCluster("cluster2");
 
-c2.setPrimaryInstance(__sandbox_uri6);
+EXPECT_NO_THROWS(function(){c2.setPrimaryInstance(__sandbox_uri6);});
 wait_channel_ready(session6, __mysql_sandbox_port1, "clusterset_replication");
 
-cs.status({extended:1});
+status = cs.status({extended:1});
+EXPECT_EQ("PRIMARY", status["clusters"]["cluster2"]["topology"][`${hostname}:${__mysql_sandbox_port6}`]["memberRole"])
 
-c2.setPrimaryInstance(__sandbox_uri4);
+c2 = dba.getCluster();
+EXPECT_NO_THROWS(function(){c2.setPrimaryInstance(__sandbox_uri4);});
 wait_channel_ready(session4, __mysql_sandbox_port1, "clusterset_replication");
+
+status = c2.status({extended:1});
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["memberRole"])
 
 //@<> rejoinCluster primary cluster after rebooting it
 // see Bug #33166390 CLUSTERSET: when doing rejoincluster, a member is kicked out of GR

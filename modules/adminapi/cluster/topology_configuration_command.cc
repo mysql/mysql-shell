@@ -46,8 +46,6 @@ Topology_configuration_command::Topology_configuration_command(
   m_cluster_session_instance = m_cluster->get_cluster_server();
 }
 
-Topology_configuration_command::~Topology_configuration_command() {}
-
 void Topology_configuration_command::ensure_server_version() {
   if (m_cluster_session_instance->get_version() <
       mysqlshdk::utils::Version(8, 0, 13)) {

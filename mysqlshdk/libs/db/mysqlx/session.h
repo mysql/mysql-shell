@@ -31,6 +31,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include "mysqlshdk/libs/db/mysqlx/mysqlxclient_clean.h"
 
@@ -201,6 +202,11 @@ class SHCORE_PUBLIC Session : public ISession,
   std::shared_ptr<IResult> querys(const char *sql, size_t len,
                                   bool buffered = false) override {
     return _impl->query(sql, len, buffered);
+  }
+
+  std::shared_ptr<IResult> query_udf(std::string_view sql,
+                                     bool buffered = false) override {
+    return _impl->query(sql.data(), sql.size(), buffered);
   }
 
   void executes(const char *sql, size_t len) override {

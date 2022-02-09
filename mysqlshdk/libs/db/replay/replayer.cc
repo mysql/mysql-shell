@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -114,8 +114,7 @@ class Replayer_impl {
   }
 
   std::string do_query(const std::string &sql_) {
-    std::string sql = sql_;
-    if (g_replay_query_hook) sql = g_replay_query_hook(sql_);
+    auto sql = g_replay_query_hook ? g_replay_query_hook(sql_) : sql_;
 
     std::string expected = _trace->expected_query(sql_);
     if (shcore::str_ibeginswith(sql, "grant ") ||
@@ -179,7 +178,7 @@ class Replayer_impl {
 
 Replayer_mysql::Replayer_mysql() { _impl.reset(new Replayer_impl()); }
 
-Replayer_mysql::~Replayer_mysql() {}
+Replayer_mysql::~Replayer_mysql() = default;
 
 void Replayer_mysql::do_connect(
     const mysqlshdk::db::Connection_options &data_) {
@@ -207,6 +206,11 @@ std::shared_ptr<IResult> Replayer_mysql::querys(const char *sql_, size_t length,
                   std::placeholders::_1));
   else
     return _impl->trace().expected_result({});
+}
+
+std::shared_ptr<IResult> Replayer_mysql::query_udf(std::string_view sql_,
+                                                   bool buffered) {
+  return querys(sql_.data(), sql_.size(), buffered);
 }
 
 void Replayer_mysql::executes(const char *sql, size_t length) {
@@ -261,7 +265,7 @@ Result_mysql::Result_mysql(uint64_t affected_rows, unsigned int warning_count,
 
 Replayer_mysqlx::Replayer_mysqlx() { _impl.reset(new Replayer_impl()); }
 
-Replayer_mysqlx::~Replayer_mysqlx() {}
+Replayer_mysqlx::~Replayer_mysqlx() = default;
 
 void Replayer_mysqlx::do_connect(
     const mysqlshdk::db::Connection_options &data_) {

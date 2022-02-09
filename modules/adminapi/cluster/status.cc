@@ -1575,8 +1575,7 @@ shcore::Value Status::execute() {
         shcore::Value(m_cluster.is_primary_cluster() ? "PRIMARY" : "REPLICA");
 
     // Get the ClusterSet replication channel status
-    std::shared_ptr<Cluster_impl> cluster_cpy =
-        std::make_unique<Cluster_impl>(m_cluster);
+    auto cluster_cpy = std::make_unique<Cluster_impl>(m_cluster);
 
     Cluster_channel_status ch_status =
         cluster_cpy->get_cluster_set()->get_replication_channel_status(

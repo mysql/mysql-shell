@@ -30,7 +30,6 @@ session3 = mysql.getSession(__sandbox_uri3);
 session4 = mysql.getSession(__sandbox_uri4);
 session5 = mysql.getSession(__sandbox_uri5);
 
-
 //@<> failover to cluster2
 testutil.stopSandbox(__mysql_sandbox_port1);
 
@@ -65,8 +64,11 @@ cs = dba.getClusterSet();
 cs.rejoinCluster("cluster1");
 cs.setPrimaryCluster("cluster1");
 
+shell.connect(__sandbox_uri3);
 c2 = dba.getCluster("cluster2");
-c2.setPrimaryInstance(__sandbox_uri2);
+EXPECT_NO_THROWS(function(){c2.setPrimaryInstance(__sandbox_uri2);});
+status = c2.status({extended:1});
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["memberRole"])
 
 //@<> failover while primary is no_quorum (should fail)
 cs.setPrimaryCluster("cluster2");

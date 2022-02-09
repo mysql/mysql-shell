@@ -84,7 +84,7 @@ class User_privileges;
  */
 class IInstance {
  public:
-  virtual ~IInstance() {}
+  virtual ~IInstance() = default;
 
   virtual void register_warnings_callback(
       const Warnings_callback &callback) = 0;
@@ -179,6 +179,9 @@ class IInstance {
   virtual std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::string &sql, bool buffered = false) const = 0;
 
+  virtual std::shared_ptr<mysqlshdk::db::IResult> query_udf(
+      const std::string &sql, bool buffered = false) const = 0;
+
   virtual void execute(const std::string &sql) const = 0;
 
   template <typename... Args>
@@ -236,7 +239,7 @@ struct Suppress_binary_log {
  */
 class Instance : public IInstance {
  public:
-  Instance() {}
+  Instance() = default;
   explicit Instance(const std::shared_ptr<db::ISession> &session);
 
   void register_warnings_callback(const Warnings_callback &callback) override;
@@ -365,7 +368,14 @@ class Instance : public IInstance {
   std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::string &sql, bool buffered = false) const override;
 
+  std::shared_ptr<mysqlshdk::db::IResult> query_udf(
+      const std::string &sql, bool buffered = false) const override;
+
   void execute(const std::string &sql) const override;
+
+ private:
+  void process_result_warnings(const std::string &sql,
+                               mysqlshdk::db::IResult &result) const;
 
  private:
   std::shared_ptr<db::ISession> _session;

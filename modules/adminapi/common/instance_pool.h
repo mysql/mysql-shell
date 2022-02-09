@@ -90,6 +90,9 @@ class Instance : public mysqlshdk::mysql::Instance {
   std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::string &sql, bool buffered = false) const override;
 
+  std::shared_ptr<mysqlshdk::db::IResult> query_udf(
+      const std::string &sql, bool buffered = false) const override;
+
   void execute(const std::string &sql) const override;
 
   void prepare_session();
