@@ -149,7 +149,7 @@ void switch_db_collation(IFile *sql_file, const std::string &db_name,
                          const std::string &required_db_cl_name,
                          int *db_cl_altered) {
   if (current_db_cl_name != required_db_cl_name) {
-    std::string quoted_db_name = shcore::quote_identifier_if_needed(db_name);
+    std::string quoted_db_name = shcore::quote_identifier(db_name);
 
     CHARSET_INFO *db_cl =
         get_charset_by_name(required_db_cl_name.c_str(), MYF(0));
@@ -170,7 +170,7 @@ void switch_db_collation(IFile *sql_file, const std::string &db_name,
 
 void restore_db_collation(IFile *sql_file, const std::string &db_name,
                           const char *delimiter, const char *db_cl_name) {
-  std::string quoted_db_name = shcore::quote_identifier_if_needed(db_name);
+  std::string quoted_db_name = shcore::quote_identifier(db_name);
 
   CHARSET_INFO *db_cl = get_charset_by_name(db_cl_name, MYF(0));
 
@@ -302,9 +302,9 @@ class Object_guard_msg {
   Object_guard_msg(IFile *file, const std::string &object_type,
                    const std::string &db, const std::string &obj_name)
       : m_file(file),
-        m_msg(fix_identifier_with_newline(
-            shcore::str_lower(object_type) + " " +
-            shcore::quote_identifier_if_needed(db) + "." + obj_name)) {
+        m_msg(fix_identifier_with_newline(shcore::str_lower(object_type) + " " +
+                                          shcore::quote_identifier(db) + "." +
+                                          obj_name)) {
     fputs("-- begin " + m_msg + "\n", m_file);
   }
   ~Object_guard_msg() { fputs("-- end " + m_msg + "\n\n", m_file); }
@@ -313,6 +313,11 @@ class Object_guard_msg {
   IFile *m_file;
   const std::string m_msg;
 };
+
+std::string quote(const std::string &db, const std::string &object) {
+  return shcore::quote_identifier(db) + "." + shcore::quote_identifier(object);
+}
+
 }  // namespace
 
 void Schema_dumper::write_header(IFile *sql_file) {
@@ -701,11 +706,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
     switch_character_set_results("binary");
 
     for (const auto &event : events) {
-      const auto event_name = shcore::quote_identifier_if_needed(event);
+      const auto event_name = shcore::quote_identifier(event);
       log_debug("retrieving CREATE EVENT for %s", event_name.c_str());
       snprintf(query_buff, sizeof(query_buff), "SHOW CREATE EVENT %s.%s",
-               shcore::quote_identifier_if_needed(db).c_str(),
-               event_name.c_str());
+               shcore::quote_identifier(db).c_str(), event_name.c_str());
 
       auto event_res = query_log_and_throw(query_buff);
 
@@ -767,7 +771,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
           auto ces = opt_reexecutable ? fixup_event_ddl(row->get_string(3))
                                       : row->get_string(3);
 
-          check_object_for_definer(db, "Event", event_name, &ces, &res);
+          check_object_for_definer(db, "Event", event, &ces, &res);
 
           fprintf(sql_file, "/*!50106 %s */ %s\n", ces.c_str(),
                   (const char *)delimiter);
@@ -837,12 +841,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
   for (const auto &routine_type : routine_types) {
     const auto routine_list = get_routines(db, routine_type);
     for (const auto &routine : routine_list) {
-      const auto routine_name = shcore::quote_identifier_if_needed(routine);
+      const auto routine_name = shcore::quote_identifier(routine);
       log_debug("retrieving CREATE %s for %s", routine_type.c_str(),
                 routine_name.c_str());
       snprintf(query_buff, sizeof(query_buff), "SHOW CREATE %s %s.%s",
-               routine_type.c_str(),
-               shcore::quote_identifier_if_needed(db).c_str(),
+               routine_type.c_str(), shcore::quote_identifier(db).c_str(),
                routine_name.c_str());
 
       auto routine_res = query_log_and_throw(query_buff);
@@ -905,7 +908,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
           switch_sql_mode(sql_file, ";", row->get_string(1).c_str());
 
-          check_object_for_definer(db, routine_type, routine_name, &body, &res);
+          check_object_for_definer(db, routine_type, routine, &body, &res);
 
           fprintf(sql_file,
                   "DELIMITER ;;\n"
@@ -946,7 +949,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
     const std::string &db, const std::string &table,
     std::string *create_table) {
   std::vector<Schema_dumper::Issue> res;
-  const auto prefix = "Table '" + db + "'.'" + table + "' ";
+  const auto prefix = "Table " + quote(db, table) + " ";
 
   if (opt_pk_mandatory_check) {
     try {
@@ -1059,9 +1062,7 @@ std::string get_object_err_prefix(const std::string &db,
                                   const std::string &object,
                                   const std::string &name) {
   return static_cast<char>(std::toupper(object[0])) +
-         shcore::str_lower(object.substr(1)) + " " +
-         shcore::quote_identifier_if_needed(db) + "." +
-         shcore::quote_identifier_if_needed(name) + " ";
+         shcore::str_lower(object.substr(1)) + " " + quote(db, name) + " ";
 }
 }  // namespace
 
@@ -1123,7 +1124,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
     std::string *out_table_type, char *ignore_flag) {
   std::vector<Issue> res;
   bool init = false, skip_ddl;
-  std::string result_table, opt_quoted_table;
+  std::string result_table;
   const char *show_fields_stmt =
       "SELECT `COLUMN_NAME` AS `Field`, "
       "`COLUMN_TYPE` AS `Type`, "
@@ -1156,7 +1157,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
   log_debug("-- Retrieving table structure for table %s...", table.c_str());
 
   result_table = shcore::quote_identifier(table);
-  opt_quoted_table = shcore::quote_identifier_if_needed(table);
 
   if (!execute_no_throw("SET SQL_QUOTE_SHOW_CREATE=1")) {
     /* using SHOW CREATE statement */
@@ -1197,8 +1197,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
          */
         if (!(general_log_or_slow_log_tables(db, table) ||
               replication_metadata_tables(db, table)))
-          fprintf(sql_file, "DROP TABLE IF EXISTS %s;\n",
-                  opt_quoted_table.c_str());
+          fprintf(sql_file, "DROP TABLE IF EXISTS %s;\n", result_table.c_str());
         check_io(sql_file);
       }
 
@@ -1253,7 +1252,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
             */
 
             fprintf(sql_file, "/*!50001 DROP VIEW IF EXISTS %s*/;\n",
-                    opt_quoted_table.c_str());
+                    result_table.c_str());
             check_io(sql_file);
           }
 
@@ -1276,11 +1275,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           auto column = all_columns.begin();
 
           fprintf(sql_file, " 1 AS %s",
-                  shcore::quote_identifier_if_needed(*column).c_str());
+                  shcore::quote_identifier(*column).c_str());
 
           while (++column != all_columns.end()) {
             fprintf(sql_file, ",\n 1 AS %s",
-                    shcore::quote_identifier_if_needed(*column).c_str());
+                    shcore::quote_identifier(*column).c_str());
           }
 
           fprintf(sql_file,
@@ -1409,7 +1408,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
         }
 
         fprintf(sql_file, "  %s.%s %s", result_table.c_str(),
-                shcore::quote_identifier_if_needed(fieldname).c_str(),
+                shcore::quote_identifier(fieldname).c_str(),
                 row->get_string(SHOW_TYPE).c_str());
 
         if (!row->is_null(SHOW_DEFAULT)) {
@@ -1471,20 +1470,17 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           if (keynr++) fputs(")", sql_file);
           if (row->get_int(1)) /* Test if duplicate key */
             /* Duplicate allowed */
-            fprintf(
-                sql_file, ",\n  KEY %s (",
-                shcore::quote_identifier_if_needed(row->get_string(2)).c_str());
+            fprintf(sql_file, ",\n  KEY %s (",
+                    shcore::quote_identifier(row->get_string(2)).c_str());
           else if (keynr == primary_key)
             fputs(",\n  PRIMARY KEY (", sql_file); /* First UNIQUE is primary */
           else
-            fprintf(
-                sql_file, ",\n  UNIQUE %s (",
-                shcore::quote_identifier_if_needed(row->get_string(2)).c_str());
+            fprintf(sql_file, ",\n  UNIQUE %s (",
+                    shcore::quote_identifier(row->get_string(2)).c_str());
         } else {
           fputs(",", sql_file);
         }
-        fputs(shcore::quote_identifier_if_needed(row->get_string(4)).c_str(),
-              sql_file);
+        fputs(shcore::quote_identifier(row->get_string(4)).c_str(), sql_file);
         if (!row->is_null(7))
           fprintf(sql_file, " (%s)", row->get_string(7).c_str()); /* Sub key */
         check_io(sql_file);
@@ -1540,7 +1536,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
   if (!has_pk) {
     const auto prefix =
-        "Table '" + db + "'.'" + table + "' does not have a Primary Key, ";
+        "Table " + quote(db, table) + " does not have a Primary Key, ";
 
     if (opt_create_invisible_pks) {
       if (has_my_row_id || has_auto_increment) {
@@ -1580,7 +1576,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
     IFile *sql_file,
     const std::shared_ptr<mysqlshdk::db::IResult> &show_create_trigger_rs,
     const std::string &db_name, const std::string &db_cl_name,
-    const std::string &trigger_name) {
+    const std::string &trigger) {
   int db_cl_altered = false;
   std::vector<Issue> res;
 
@@ -1607,7 +1603,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
 
     std::string body = shcore::str_replace(row->get_string(2),
                                            trigger_with_schema, " TRIGGER ");
-    check_object_for_definer(db_name, "Trigger", trigger_name, &body, &res);
+    check_object_for_definer(db_name, "Trigger", trigger, &body, &res);
 
     fprintf(sql_file,
             "DELIMITER ;;\n"
@@ -1664,15 +1660,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
                   db.c_str(), table.c_str());
 
   for (const auto &trigger : triggers) {
-    const auto trigger_name = shcore::quote_identifier_if_needed(trigger);
+    const auto trigger_name = shcore::quote_identifier(trigger);
     std::shared_ptr<mysqlshdk::db::IResult> show_create_trigger_rs;
-    if (query_no_throw("SHOW CREATE TRIGGER " +
-                           shcore::quote_identifier_if_needed(db) + "." +
-                           trigger_name,
+    if (query_no_throw("SHOW CREATE TRIGGER " + shcore::quote_identifier(db) +
+                           "." + trigger_name,
                        &show_create_trigger_rs) == 0) {
       Object_guard_msg guard(sql_file, "trigger", db, trigger_name);
       const auto out = dump_trigger(sql_file, show_create_trigger_rs, db,
-                                    db_cl_name, trigger_name);
+                                    db_cl_name, trigger);
       if (!out.empty()) res.insert(res.end(), out.begin(), out.end());
     }
   }
@@ -1737,14 +1732,14 @@ std::vector<Instance_cache::Histogram> Schema_dumper::get_histograms(
 void Schema_dumper::dump_column_statistics_for_table(
     IFile *sql_file, const std::string &table_name,
     const std::string &db_name) {
-  const auto quoted_table = shcore::quote_identifier_if_needed(table_name);
+  const auto quoted_table = shcore::quote_identifier(table_name);
 
   for (const auto &histogram : get_histograms(db_name, table_name)) {
     fprintf(sql_file,
             "/*!80002 ANALYZE TABLE %s UPDATE HISTOGRAM ON %s "
             "WITH %zu BUCKETS */;\n",
             quoted_table.c_str(),
-            shcore::quote_identifier_if_needed(histogram.column).c_str(),
+            shcore::quote_identifier(histogram.column).c_str(),
             histogram.buckets);
   }
 }
@@ -2028,9 +2023,7 @@ int Schema_dumper::init_dumping(
   use(database);
 
   if (opt_databases || opt_alldbs) {
-    std::string qdatabase = opt_quoted
-                                ? shcore::quote_identifier_if_needed(database)
-                                : shcore::quote_identifier_if_needed(database);
+    std::string qdatabase = shcore::quote_identifier(database);
 
     std::string text = fix_identifier_with_newline(qdatabase.c_str());
     print_comment(file, false, "\n--\n-- Current Database: %s\n--\n",
@@ -2312,12 +2305,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
     IFile *sql_file, const std::string &table, const std::string &db) {
   std::vector<Issue> res;
   std::shared_ptr<mysqlshdk::db::IResult> table_res, infoschema_res;
-  std::string result_table, opt_quoted_table;
+  std::string result_table;
 
   log_debug("-- Retrieving view structure for table %s...", table.c_str());
 
   result_table = shcore::quote_identifier(table);
-  opt_quoted_table = shcore::quote_identifier_if_needed(table);
 
   if (query_with_binary_charset("SHOW CREATE TABLE " + result_table,
                                 &table_res)) {
@@ -2337,7 +2329,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
 
   log_debug("-- Dropping the temporary view structure created");
   fprintf(sql_file, "/*!50001 DROP VIEW IF EXISTS %s*/;\n",
-          opt_quoted_table.c_str());
+          result_table.c_str());
 
   if (!m_cache &&
       query_with_binary_charset(
@@ -2441,7 +2433,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
     IFile *file, const std::string &db) {
   try {
     std::vector<Issue> res;
-    auto qdatabase = shcore::quote_identifier_if_needed(db);
+    auto qdatabase = shcore::quote_identifier(db);
 
     print_comment(file, false, "\n--\n-- Current Database: %s\n--\n",
                   fix_identifier_with_newline(db).c_str());

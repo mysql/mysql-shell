@@ -252,37 +252,37 @@ def strip_restricted_grants(user, privileges):
 
 def comment_data_index_directory(schema, table):
     error = ""
-    fixed = f"Table '{schema}'.'{table}' had {{DATA|INDEX}} DIRECTORY table option commented out"
+    fixed = f"Table `{schema}`.`{table}` had {{DATA|INDEX}} DIRECTORY table option commented out"
     return Compatibility_issue(error, fixed)
 
 def comment_encryption(schema, table):
     error = ""
-    fixed = f"Table '{schema}'.'{table}' had ENCRYPTION table option commented out"
+    fixed = f"Table `{schema}`.`{table}` had ENCRYPTION table option commented out"
     return Compatibility_issue(error, fixed)
 
 def force_innodb_unsupported_storage(schema, table, engine = "MyISAM"):
-    error = f"Table '{schema}'.'{table}' uses unsupported storage engine {engine} (fix this with 'force_innodb' compatibility option)"
-    fixed = f"Table '{schema}'.'{table}' had unsupported engine {engine} changed to InnoDB"
+    error = f"Table `{schema}`.`{table}` uses unsupported storage engine {engine} (fix this with 'force_innodb' compatibility option)"
+    fixed = f"Table `{schema}`.`{table}` had unsupported engine {engine} changed to InnoDB"
     return Compatibility_issue(error, fixed)
 
 def force_innodb_row_format_fixed(schema, table):
-    error = f"Table '{schema}'.'{table}' uses unsupported ROW_FORMAT=FIXED option (fix this with 'force_innodb' compatibility option)"
-    fixed = f"Table '{schema}'.'{table}' had unsupported ROW_FORMAT=FIXED option removed"
+    error = f"Table `{schema}`.`{table}` uses unsupported ROW_FORMAT=FIXED option (fix this with 'force_innodb' compatibility option)"
+    fixed = f"Table `{schema}`.`{table}` had unsupported ROW_FORMAT=FIXED option removed"
     return Compatibility_issue(error, fixed)
 
 def strip_tablespaces(schema, table):
-    error = f"Table '{schema}'.'{table}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)"
-    fixed = f"Table '{schema}'.'{table}' had unsupported tablespace option removed"
+    error = f"Table `{schema}`.`{table}` uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)"
+    fixed = f"Table `{schema}`.`{table}` had unsupported tablespace option removed"
     return Compatibility_issue(error, fixed)
 
 def strip_definers_definer_clause(schema, name, label = "View"):
-    error = f"{label} {schema}.{name} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"
-    fixed = f"{label} {schema}.{name} had definer clause removed"
+    error = f"{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"
+    fixed = f"{label} `{schema}`.`{name}` had definer clause removed"
     return Compatibility_issue(error, fixed)
 
 def strip_definers_security_clause(schema, name, label = "View"):
-    error = f"{label} {schema}.{name} - definition does not use SQL SECURITY INVOKER characteristic, which is required (fix this with 'strip_definers' compatibility option)"
-    fixed = f"{label} {schema}.{name} had SQL SECURITY characteristic set to INVOKER"
+    error = f"{label} `{schema}`.`{name}` - definition does not use SQL SECURITY INVOKER characteristic, which is required (fix this with 'strip_definers' compatibility option)"
+    fixed = f"{label} `{schema}`.`{name}` had SQL SECURITY characteristic set to INVOKER"
     return Compatibility_issue(error, fixed)
 
 def skip_invalid_accounts_plugin(user, plugin):
@@ -296,27 +296,27 @@ def skip_invalid_accounts_no_password(user):
     return Compatibility_issue(error, fixed)
 
 def create_invisible_pks(schema, table):
-    error = f"Table '{schema}'.'{table}' does not have a Primary Key, which is required for High Availability in MDS"
-    fixed = f"Table '{schema}'.'{table}' does not have a Primary Key, this will be fixed when the dump is loaded"
+    error = f"Table `{schema}`.`{table}` does not have a Primary Key, which is required for High Availability in MDS"
+    fixed = f"Table `{schema}`.`{table}` does not have a Primary Key, this will be fixed when the dump is loaded"
     return Compatibility_issue(error, fixed)
 
 def create_invisible_pks_name_conflict(schema, table):
-    error = f"Table '{schema}'.'{table}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)"
+    error = f"Table `{schema}`.`{table}` does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)"
     fixed = ""
     return Compatibility_issue(error, fixed)
 
 def create_invisible_pks_auto_increment_conflict(schema, table):
-    error = f"Table '{schema}'.'{table}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)"
+    error = f"Table `{schema}`.`{table}` does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)"
     fixed = ""
     return Compatibility_issue(error, fixed)
 
 def ignore_missing_pks(schema, table):
-    error = f"Table '{schema}'.'{table}' does not have a Primary Key, which is required for High Availability in MDS"
-    fixed = f"Table '{schema}'.'{table}' does not have a Primary Key, this is ignored"
+    error = f"Table `{schema}`.`{table}` does not have a Primary Key, which is required for High Availability in MDS"
+    fixed = f"Table `{schema}`.`{table}` does not have a Primary Key, this is ignored"
     return Compatibility_issue(error, fixed)
 
 def too_many_columns(schema, table, columns):
-    error = f"Table '{schema}'.'{table}' has {columns} columns, while the limit for the InnoDB engine is 1017 columns (this issue needs to be fixed manually)"
+    error = f"Table `{schema}`.`{table}` has {columns} columns, while the limit for the InnoDB engine is 1017 columns (this issue needs to be fixed manually)"
     fixed = ""
     return Compatibility_issue(error, fixed)
 

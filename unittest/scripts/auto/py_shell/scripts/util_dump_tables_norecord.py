@@ -2571,6 +2571,17 @@ test_bug_33400387(decreasing_gaps())
 #@<> BUG#33400387 cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
+#@<> BUG#33744583
+tested_schema = "virtual"
+tested_table = "virtual"
+
+session.run_sql(f"CREATE SCHEMA `{tested_schema}`")
+session.run_sql(f"CREATE TABLE `{tested_schema}`.`{tested_table}` (a int)")
+
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
