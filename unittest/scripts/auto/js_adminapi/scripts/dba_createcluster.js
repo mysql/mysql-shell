@@ -504,19 +504,16 @@ shell.connect(__sandbox_uri1);
 //@ WL#12050: TSF1_5 Unsupported server version {VER(<8.0.13)}
 var c = dba.createCluster('test', {expelTimeout: 100});
 
-//@ WL#12050: Create cluster errors using expelTimeout option {VER(>=8.0.13)}
+//@<> WL#12050: Create cluster errors using expelTimeout option {VER(>=8.0.13)}
 // TSF1_3, TSF1_4, TSF1_6
-var c = dba.createCluster('test', {expelTimeout:""});
+EXPECT_THROWS(function(){dba.createCluster('test', {expelTimeout:""});}, "Option 'expelTimeout' Integer expected, but value is String");
+EXPECT_THROWS(function(){dba.createCluster('test', {expelTimeout: "10a"});}, "Option 'expelTimeout' Integer expected, but value is String");
+EXPECT_THROWS(function(){dba.createCluster('test', {expelTimeout: 10.5});}, "Option 'expelTimeout' is expected to be of type Integer, but is Float");
+EXPECT_THROWS(function(){dba.createCluster('test', {expelTimeout: true});}, "Option 'expelTimeout' is expected to be of type Integer, but is Bool");
+EXPECT_THROWS(function(){dba.createCluster('test', {expelTimeout: -1});}, "Invalid value for 'expelTimeout': integer value must be >= 0");
 
-var c = dba.createCluster('test', {expelTimeout: "10a"});
-
-var c = dba.createCluster('test', {expelTimeout: 10.5});
-
-var c = dba.createCluster('test', {expelTimeout: true});
-
-var c = dba.createCluster('test', {expelTimeout: -1});
-
-var c = dba.createCluster('test', {expelTimeout: 3601});
+//@<> WL#12050: Create cluster errors using expelTimeout option (v8.0.13) {VER(==8.0.13)}
+EXPECT_THROWS(function(){dba.createCluster('test', {expelTimeout: 3601});}, "Invalid value for 'expelTimeout': integer value must be in the range [0, 3600]");
 
 //@ WL#12050: TSF1_1 Create cluster using 12 as value for expelTimeout {VER(>=8.0.13)}
 var c = dba.createCluster('test', {expelTimeout: 12});

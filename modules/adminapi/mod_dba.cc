@@ -391,9 +391,8 @@ configure how long Group Replication will wait before expelling
 from the group any members suspected of having failed. On slow
 networks, or when there are expected machine slowdowns,
 increase the value of this option. The expelTimeout option
-accepts positive integer values in the range [0, 3600].
-
-The default value is 0.
+accepts positive integer values and, since 8.0.21, defaults to 5
+seconds.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA, R"*(
@@ -403,9 +402,7 @@ times an instance will try to rejoin a Group Replication group after
 being expelled. In scenarios where network glitches happen but recover
 quickly, setting this option prevents users from having to manually add
 the expelled node back to the group. The autoRejoinTries option accepts
-positive integer values in the range [0, 2016].
-
-The default value is 0.
+positive integer values and, since 8.0.21, defaults to 3.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_IP_ALLOWLIST_EXTRA, R"*(
