@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_DBA_API_OPTIONS_H_
 #define MODULES_ADMINAPI_DBA_API_OPTIONS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -116,11 +117,15 @@ struct Create_cluster_options : public Force_interactive_options {
   void set_multi_primary(const std::string &option, bool value);
   void set_clear_read_only(bool value);
 
+  bool get_adopt_from_gr(bool default_value = false) const noexcept {
+    return adopt_from_gr.value_or(default_value);
+  }
+
   Create_group_replication_options gr_options;
   Create_cluster_clone_options clone_options;
-  bool adopt_from_gr = false;
-  mysqlshdk::null_bool multi_primary;
-  mysqlshdk::null_bool clear_read_only;
+  std::optional<bool> adopt_from_gr;
+  std::optional<bool> multi_primary;
+  std::optional<bool> clear_read_only;
   bool dry_run = false;
 
   std::string replication_allowed_host;

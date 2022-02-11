@@ -1260,9 +1260,8 @@ void Cluster_join::reboot() {
            m_target_instance->get_connection_options().get_user().c_str());
 
   // Determine the topology mode to use.
-  mysqlshdk::utils::nullable<bool> multi_primary =
-      m_cluster->get_cluster_topology_type() ==
-      mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+  auto multi_primary = m_cluster->get_cluster_topology_type() ==
+                       mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
 
   // Start the cluster to bootstrap Group Replication.
   mysqlsh::dba::start_cluster(*m_target_instance, m_gr_opts, multi_primary,

@@ -32,6 +32,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -744,6 +745,15 @@ struct value_type_for_native<Value> {
 
 template <typename T>
 struct value_type_for_native<mysqlshdk::utils::nullable<T>> {
+  static const Value_type type = value_type_for_native<T>::type;
+
+  static T extract(const Value &value) {
+    return value_type_for_native<T>::extract(value);
+  }
+};
+
+template <typename T>
+struct value_type_for_native<std::optional<T>> {
   static const Value_type type = value_type_for_native<T>::type;
 
   static T extract(const Value &value) {
