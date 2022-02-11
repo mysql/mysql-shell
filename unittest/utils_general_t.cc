@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -124,7 +124,8 @@ TEST(utils_general, split_account) {
     a.clear();
     b.clear();
     SCOPED_TRACE(t.account);
-    EXPECT_NO_THROW(split_account(t.account, &a, &b, true));
+    EXPECT_NO_THROW(
+        split_account(t.account, &a, &b, shcore::Account::Auto_quote::HOST));
     EXPECT_EQ(t.user, a);
     EXPECT_EQ(t.host, b);
   }
@@ -169,7 +170,33 @@ TEST(utils_general, split_account) {
   for (auto &t : bad_cases) {
     SCOPED_TRACE(t);
     EXPECT_THROW(split_account(t, nullptr, nullptr), std::runtime_error);
-    EXPECT_THROW(split_account(t, nullptr, nullptr, true), std::runtime_error);
+    EXPECT_THROW(
+        split_account(t, nullptr, nullptr, shcore::Account::Auto_quote::HOST),
+        std::runtime_error);
+  }
+
+  static std::vector<Case> accounts_with_at{
+      {"admin@domain.com@%", "admin@domain.com", "%"},
+      {"admin@domain.com@localhost", "admin@domain.com", "localhost"},
+      {"@dmin@domain.com@example.com", "@dmin@domain.com", "example.com"},
+  };
+
+  for (const auto &test : accounts_with_at) {
+    a.clear();
+    b.clear();
+    SCOPED_TRACE(test.account);
+    EXPECT_THROW(split_account(test.account, nullptr, nullptr),
+                 std::runtime_error);
+    EXPECT_THROW(
+        split_account(test.account, nullptr, nullptr, Account::Auto_quote::NO),
+        std::runtime_error);
+    EXPECT_THROW(split_account(test.account, nullptr, nullptr,
+                               Account::Auto_quote::HOST),
+                 std::runtime_error);
+    EXPECT_NO_THROW(split_account(test.account, &a, &b,
+                                  Account::Auto_quote::USER_AND_HOST));
+    EXPECT_EQ(test.user, a);
+    EXPECT_EQ(test.host, b);
   }
 }
 

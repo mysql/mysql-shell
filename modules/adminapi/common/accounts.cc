@@ -62,7 +62,8 @@ std::pair<int, int> find_cluster_admin_accounts(
     while (row) {
       std::string account = row->get_string(0);
       std::string user, host;
-      shcore::split_account(account, &user, &host, true);
+      shcore::split_account(account, &user, &host,
+                            shcore::Account::Auto_quote::HOST);
       assert(user == admin_user);
 
       if (out_hosts) out_hosts->push_back(host);
@@ -534,7 +535,8 @@ std::pair<std::string, std::string> validate_account_name(
   // split user into user/host
   std::string username, host;
   try {
-    shcore::split_account(account, &username, &host, true);
+    shcore::split_account(account, &username, &host,
+                          shcore::Account::Auto_quote::HOST);
   } catch (const std::exception &err) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid user syntax: %s", err.what()));

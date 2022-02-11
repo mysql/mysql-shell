@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -349,8 +350,12 @@ void Load_dump_options::set_session(
       add_excluded_users(shcore::to_accounts(k_oci_excluded_users));
     }
 
-    m_excluded_users.emplace_back(shcore::split_account(
-        query("SELECT current_user()")->fetch_one()->get_string(0), true));
+    const auto instance = mysqlshdk::mysql::Instance(m_base_session);
+    shcore::Account account;
+
+    instance.get_current_user(&account.user, &account.host);
+
+    m_excluded_users.emplace_back(std::move(account));
   }
 }
 

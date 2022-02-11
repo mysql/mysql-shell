@@ -203,7 +203,7 @@ bool prompt_full_account(std::string *out_account) {
           }
         }
         // validate
-        shcore::split_account(create_user, nullptr, nullptr, false);
+        shcore::split_account(create_user, nullptr, nullptr);
 
         if (out_account) *out_account = create_user;
         break;
@@ -320,7 +320,7 @@ void Configure_instance::check_create_admin_user() {
   if (!m_options.cluster_admin.empty()) {
     std::string admin_user, admin_user_host;
     shcore::split_account(m_options.cluster_admin, &admin_user,
-                          &admin_user_host, false);
+                          &admin_user_host);
     // Check if the clusterAdmin account exists
     bool cluster_admin_user_exists =
         m_target_instance->user_exists(admin_user, admin_user_host);
@@ -396,7 +396,7 @@ void Configure_instance::create_admin_user() {
   if (m_create_cluster_admin) {
     std::string admin_user, admin_user_host;
     shcore::split_account(m_options.cluster_admin, &admin_user,
-                          &admin_user_host, false);
+                          &admin_user_host);
     try {
       assert(!m_current_user.empty());
 
