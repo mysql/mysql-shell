@@ -115,18 +115,6 @@ c = dba.configureInstance(__sandbox_uri1);
 EXPECT_STDOUT_NOT_CONTAINS("| binlog_checksum | CRC32         | NONE           | Update the server variable and the config file |");
 session.close();
 
-//@<> improve restart message NONE BUG#29634795 {!__dbug_off && VER(>=8.0.11)}
-testutil.changeSandboxConf(__mysql_sandbox_port1, "skip_log_bin", "ON");
-testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.restartSandbox(__mysql_sandbox_port1);
-
-testutil.dbugSet("+d,dba_abort_instance_restart");
-
-EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1, {restart:true, mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) }, "Dba.configureInstance: restart aborted (debug)");
-EXPECT_OUTPUT_CONTAINS("Please restart MySQL manually (check https://dev.mysql.com/doc/refman/en/restart.html for more details).");
-
-testutil.dbugSet("");
-
 //@<> dba.configureInstance (and also dba.checkInstanceConfiguration) cannot print "log_bin" twice BUG#31964706 {VER(< 8.0.3)}
 shell.options.useWizards=0;
 
@@ -223,23 +211,23 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
 EXPECT_OUTPUT_NOT_CONTAINS("| disable_log_bin ");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not set>      | Update the config file and restart the server    |");
 
 dba.configureInstance(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
 EXPECT_OUTPUT_NOT_CONTAINS("| disable_log_bin ");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not set>      | Update the config file and restart the server    |");
 
 //@<> dba.configureInstance (and also dba.checkInstanceConfiguration) must output "skip_log_bin" and "disable_log_bin" - no config BUG#31964706 {VER(>= 8.0.3)}
 dba.checkInstanceConfiguration(__sandbox_uri1);
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
-EXPECT_OUTPUT_CONTAINS("| disable_log_bin | <not set>     | <not set>      | Update the config file and restart the server |");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin    | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <not set>     | <not set>      | Update the config file and restart the server |");
 
 EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Dba.configureInstance: Unable to update configuration");
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
-EXPECT_OUTPUT_CONTAINS("| disable_log_bin | <not set>     | <not set>      | Update the config file and restart the server |");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin    | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <not set>     | <not set>      | Update the config file and restart the server |");
 
 //@<> dba.configureInstance must output "log_bin" for restart only {VER(>= 8.0.3)}
 EXPECT_NO_THROWS(function () { dba.configureInstance(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) });
@@ -249,6 +237,19 @@ EXPECT_OUTPUT_CONTAINS("| log_bin             | OFF           | ON             |
 EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port1 + "' was configured to be used in an InnoDB cluster.");
 
 shell.options.useWizards=1;
+
+//@<> improve restart message NONE BUG#29634795 {!__dbug_off && VER(>=8.0.11)}
+testutil.changeSandboxConf(__mysql_sandbox_port1, "skip_log_bin", "ON");
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.restartSandbox(__mysql_sandbox_port1);
+
+testutil.dbugSet("+d,dba_abort_instance_restart");
+
+testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "y");
+EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1, {restart:true, mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) }, "Dba.configureInstance: restart aborted (debug)");
+EXPECT_OUTPUT_CONTAINS("Please restart MySQL manually (check https://dev.mysql.com/doc/refman/en/restart.html for more details).");
+
+testutil.dbugSet("");
 
 //@<> cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
