@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,7 @@
 # default locations will be searched.
 #
 
-SET(PROTOBUF_VERSION "3.11.4")
+SET(PROTOBUF_VERSION "3.19.4")
 SET(WITH_PROTOBUF $ENV{WITH_PROTOBUF} CACHE PATH "Protobuf location")
 
 IF(WITH_PROTOBUF)
