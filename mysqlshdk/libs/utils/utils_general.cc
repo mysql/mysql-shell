@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -810,9 +810,11 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
   if (s[p] == '`') {
     res = span_quotable_identifier(s, p, out_string);
   } else {
+    bool quoted = false;
     // Do not allow quote characters unless they are surrounded by quotes
     if (s[p] == s[s.size() - 1] && (s[p] == '\'' || s[p] == '"')) {
       // hostname surrounded by quotes.
+      quoted = true;
     } else {
       if ((s.find('\'', p) != std::string::npos) ||
           (s.find('"', p) != std::string::npos)) {
@@ -828,9 +830,6 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
       // If the complete string was not consumed could be a hostname that
       // requires quotes, they should be enabled only if not quoted already
       if (res < s.size() && auto_quote_hosts) {
-        bool quoted = ((s[p] == '\'' && s.at(s.size() - 1) == '\'') ||
-                       (s[p] == '"' && s.at(s.size() - 1) == '"'));
-
         try_quoting = !quoted;
       }
     } catch (const std::runtime_error &) {
@@ -857,7 +856,7 @@ static std::size_t span_account_hostname_relaxed(const std::string &s,
  * literals for username and hostname.
  */
 void split_account(const std::string &account, std::string *out_user,
-                   std::string *out_host, bool auto_quote_hosts) {
+                   std::string *out_host, Account::Auto_quote auto_quote) {
   std::size_t pos = 0;
   if (out_user) *out_user = "";
   if (out_host) *out_host = "";
@@ -872,11 +871,15 @@ void split_account(const std::string &account, std::string *out_user,
     } else {
       pos = account.rfind('@');
       if (pos == 0) throw std::runtime_error("User name must not be empty.");
-      // dont allow @ on the username unless it is quoted
-      if (account.rfind('@', pos - 1) != std::string::npos) {
-        throw std::runtime_error("Invalid user name: " +
-                                 account.substr(0, pos));
+
+      if (Account::Auto_quote::USER_AND_HOST != auto_quote) {
+        // don't allow @ on the username unless it is quoted
+        if (account.rfind('@', pos - 1) != std::string::npos) {
+          throw std::runtime_error("Invalid user name: " +
+                                   account.substr(0, pos));
+        }
       }
+
       if (out_user != nullptr) out_user->assign(account, 0, pos);
     }
   } else {
@@ -889,8 +892,8 @@ void split_account(const std::string &account, std::string *out_user,
       pos = account.length();
       if (out_host != nullptr) *out_host = "skip-grants host";
     } else {
-      pos = span_account_hostname_relaxed(account, pos, out_host,
-                                          auto_quote_hosts);
+      pos = span_account_hostname_relaxed(
+          account, pos, out_host, Account::Auto_quote::NO != auto_quote);
     }
   }
   if (pos < account.size())
@@ -898,9 +901,10 @@ void split_account(const std::string &account, std::string *out_user,
                              "'");
 }
 
-Account split_account(const std::string &account, bool auto_quote_hosts) {
+Account split_account(const std::string &account,
+                      Account::Auto_quote auto_quote) {
   Account result;
-  split_account(account, &result.user, &result.host, auto_quote_hosts);
+  split_account(account, &result.user, &result.host, auto_quote);
   return result;
 }
 

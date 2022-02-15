@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1429,6 +1429,40 @@ TEST_F(Instance_test, get_fence_sysvars) {
           {}  // No records.
       }});
   EXPECT_THROW(instance.get_fence_sysvars(), std::logic_error);
+}
+
+TEST_F(Instance_test, get_current_user) {
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  const auto EXPECT_USER_HOST = [&](const std::string &account,
+                                    const std::string &user,
+                                    const std::string &host) {
+    session.expect_query("SELECT CURRENT_USER()")
+        .then_return({{
+            "",
+            {"CURRENT_USER()"},
+            {Type::String},
+            {{account}},
+        }});
+
+    std::string u, h;
+    instance.get_current_user(&u, &h);
+
+    EXPECT_EQ(user, u);
+    EXPECT_EQ(host, h);
+  };
+
+  EXPECT_USER_HOST("admin@domain.com@%", "admin@domain.com", "%");
+  EXPECT_USER_HOST("admin@domain.com@localhost", "admin@domain.com",
+                   "localhost");
+  EXPECT_USER_HOST("admin@domain.com@example.com", "admin@domain.com",
+                   "example.com");
+  EXPECT_USER_HOST("@dmin@domain.com@example.com", "@dmin@domain.com",
+                   "example.com");
 }
 
 }  // namespace testing

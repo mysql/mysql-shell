@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,11 +39,14 @@ extern const std::set<std::string> k_mysqlaas_allowed_authentication_plugins;
 
 struct Deferred_statements {
   std::string rewritten;
+  std::vector<std::string> fulltext_indexes;
   std::vector<std::string> indexes;
   std::vector<std::string> fks;
   std::string secondary_engine;
 
-  bool has_indexes() const { return !indexes.empty() || !fks.empty(); }
+  bool has_indexes() const {
+    return !fulltext_indexes.empty() || !indexes.empty() || !fks.empty();
+  }
 
   bool empty() const { return !has_indexes() && secondary_engine.empty(); }
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1030,6 +1030,13 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
     EXPECT_EQ(expected.rewritten.empty() ? sql : expected.rewritten,
               actual.rewritten);
 
+    ASSERT_EQ(expected.fulltext_indexes.size(), actual.fulltext_indexes.size());
+
+    for (std::size_t i = 0; i < expected.fulltext_indexes.size(); ++i) {
+      SCOPED_TRACE("index: " + std::to_string(i));
+      EXPECT_EQ(expected.fulltext_indexes[i], actual.fulltext_indexes[i]);
+    }
+
     ASSERT_EQ(expected.indexes.size(), actual.indexes.size());
 
     for (std::size_t i = 0; i < expected.indexes.size(); ++i) {
@@ -1059,6 +1066,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `age` int DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
        {R"(ALTER TABLE `author` ADD FULLTEXT KEY `author` (`author`);)"},
        {},
+       {},
        ""});
 
   EXPECT_STMTS(
@@ -1080,6 +1088,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
        {R"(ALTER TABLE `opening_lines` ADD FULLTEXT INDEX `idx` (`opening_line`);)",
         R"(ALTER TABLE `opening_lines` ADD FULLTEXT key `idx2` (`author`,`title`);)"},
+       {},
        {},
        ""});
 
@@ -1103,6 +1112,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
        {R"(ALTER TABLE `opening_lines` ADD FULLTEXT INDEX `idx` (`opening_line`);)",
         R"(ALTER TABLE `opening_lines` ADD FULLTEXT key `idx2` (`author`,`title`);)"},
        {},
+       {},
        ""});
 
   EXPECT_STMTS(
@@ -1125,8 +1135,8 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `title` varchar(200) DEFAULT NULL,
   `oli` int unsigned NOT NULL,
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-       {R"(ALTER TABLE `films` ADD KEY `oli` (`oli`);)",
-        R"(ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);)"},
+       {R"(ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);)"},
+       {R"(ALTER TABLE `films` ADD KEY `oli` (`oli`);)"},
        {R"(ALTER TABLE `films` ADD CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`);)"},
        ""});
 
@@ -1153,6 +1163,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
                 {R"(ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);)"},
+                {},
                 {},
                 ""});
 
@@ -1214,6 +1225,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `pr_id` int unsigned NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`pr_page`,`pr_type`),
   UNIQUE KEY `pr_id` (`pr_id`)) ENGINE=InnoDB AUTO_INCREMENT=854046 DEFAULT CHARSET=binary;)",
+       {},
        {R"(ALTER TABLE `page_restrictions` ADD KEY `pr_page` (`pr_page`);)",
         R"(ALTER TABLE `page_restrictions` ADD KEY `pr_typelevel` (`pr_type`,`pr_level`);)",
         R"(ALTER TABLE `page_restrictions` ADD KEY `pr_level` (`pr_level`);)",
@@ -1244,8 +1256,8 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `data` int,
   `description` text,
   PRIMARY KEY (`id`)) ;)",
-       {R"(ALTER TABLE `se` ADD KEY `idx1` (`data`);)",
-        R"(ALTER TABLE `se` ADD FULLTEXT KEY (`description`);)"},
+       {R"(ALTER TABLE `se` ADD FULLTEXT KEY (`description`);)"},
+       {R"(ALTER TABLE `se` ADD KEY `idx1` (`data`);)"},
        {R"(ALTER TABLE `se` ADD CONSTRAINT `fk1` FOREIGN KEY (`fk`) REFERENCES `se2` (`id`);)"},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
 
@@ -1270,6 +1282,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
 ) ;)",
        {R"(ALTER TABLE `se` ADD FULLTEXT KEY (`description`);)"},
        {},
+       {},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
 
   EXPECT_STMTS(
@@ -1284,6 +1297,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
 ) ENGINE=InnoDB ;)",
        {},
        {},
+       {},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
 
   EXPECT_STMTS(
@@ -1296,6 +1310,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `id` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  CHARSET=binary;)",
+       {},
        {},
        {},
        "ALTER TABLE `se` SECONDARY_ENGINE=`tmp`;"});
@@ -1320,10 +1335,14 @@ TEST_F(Compatibility_test, indexes_recreation) {
     Deferred_statements stmts;
     EXPECT_NO_THROW(stmts = compatibility::check_create_table_for_indexes(
                         create_table, table_name, fulltext_only));
-    ASSERT_EQ(index_count, stmts.indexes.size());
+    ASSERT_EQ(index_count,
+              stmts.fulltext_indexes.size() + stmts.indexes.size());
     ASSERT_EQ(fk_count, stmts.fks.size());
     ASSERT_NO_THROW(session->execute("drop table " + table_name));
     ASSERT_NO_THROW(session->execute(stmts.rewritten));
+    for (const auto &q : stmts.fulltext_indexes) {
+      ASSERT_NO_THROW(session->execute(q));
+    }
     for (const auto &q : stmts.indexes) {
       ASSERT_NO_THROW(session->execute(q));
     }

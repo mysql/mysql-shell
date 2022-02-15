@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -477,6 +477,8 @@ void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
         }
       };
 
+      remove_duplicates(recreated.fulltext_indexes,
+                        &m_deferred_statements->fulltext_indexes);
       remove_duplicates(recreated.indexes, &m_deferred_statements->indexes);
       remove_duplicates(recreated.fks, &m_deferred_statements->fks);
 

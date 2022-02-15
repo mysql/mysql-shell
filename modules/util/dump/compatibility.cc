@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -952,6 +952,7 @@ Deferred_statements check_create_table_for_indexes(
 
   while (it.valid() && brace_count > 0) {
     bool index_declaration = false;
+    bool fulltext_index = false;
     bool foreign_key = false;
     bool constraint = false;
     std::string column_name;
@@ -962,15 +963,22 @@ Deferred_statements check_create_table_for_indexes(
     if (token[0] == '`') {
       column_name = token;
     } else if (fulltext_only) {
-      if (shcore::str_caseeq(token, "FULLTEXT")) index_declaration = true;
+      if (shcore::str_caseeq(token, "FULLTEXT")) {
+        fulltext_index = index_declaration = true;
+      }
     } else {
       if (shcore::str_caseeq_mv(token, "FULLTEXT", "UNIQUE", "KEY", "INDEX",
-                                "SPATIAL"))
+                                "SPATIAL")) {
         index_declaration = true;
-      else
+
+        if (shcore::str_caseeq(token, "FULLTEXT")) {
+          fulltext_index = true;
+        }
+      } else {
         // Note: FKs on FULLTEXT indexes are not supported, so if we're doing
         // FULLTEXT only we can ignore FKs
         constraint = shcore::str_caseeq(token, "CONSTRAINT");
+      }
     }
 
     while (it.valid() && brace_count > 0) {
@@ -1023,7 +1031,9 @@ Deferred_statements check_create_table_for_indexes(
       continue;
     }
 
-    auto &target = foreign_key ? ret.fks : ret.indexes;
+    auto &target = foreign_key
+                       ? ret.fks
+                       : (fulltext_index ? ret.fulltext_indexes : ret.indexes);
 
     target.emplace_back("ALTER TABLE " + table_name + " ADD " +
                         index_definition + ";");

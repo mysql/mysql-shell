@@ -11,6 +11,7 @@ import random
 import shutil
 import threading
 import time
+import urllib.parse
 
 outdir = __tmp_dir+"/ldtest"
 try:
@@ -2024,6 +2025,43 @@ EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
 
 # restore log_bin_trust_function_creators
 session.run_sql("SET @@global.log_bin_trust_function_creators = @old_log_bin_trust_function_creators")
+
+#@<> BUG#33743612 - issues when dumping/loading data using an account with user name containing '@' character
+# constants
+dump_dir = os.path.join(outdir, "bug_33743612")
+first_user = "'admin@domain.com'"
+second_user = "'user@domain.com'"
+
+# setup source server
+shell.connect(__sandbox_uri1)
+
+session.run_sql(f"DROP USER IF EXISTS {first_user}")
+session.run_sql(f"CREATE USER {first_user} IDENTIFIED BY 'pwd'")
+session.run_sql(f"GRANT ALL ON *.* TO {first_user}")
+
+session.run_sql(f"DROP USER IF EXISTS {second_user}")
+session.run_sql(f"CREATE USER {second_user} IDENTIFIED BY 'pwd'")
+session.run_sql(f"GRANT SELECT ON *.* TO {second_user}")
+
+# setup destination server
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+session.run_sql(f"CREATE USER {first_user} IDENTIFIED BY 'pwd'")
+session.run_sql(f"GRANT ALL ON *.* TO {first_user} WITH GRANT OPTION")
+
+# dump data
+shell.connect(f"{urllib.parse.quote(first_user[1:-1])}:pwd@{__host}:{__mysql_sandbox_port1}")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "showProgress": False }), "Dump should not fail")
+
+# load data
+shell.connect(f"{urllib.parse.quote(first_user[1:-1])}:pwd@{__host}:{__mysql_sandbox_port2}")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root" ], "showProgress": False }), "Load should not fail")
+
+# cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql(f"DROP USER IF EXISTS {first_user}")
+session.run_sql(f"DROP USER IF EXISTS {second_user}")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

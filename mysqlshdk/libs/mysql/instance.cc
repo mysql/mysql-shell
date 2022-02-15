@@ -660,7 +660,8 @@ void Instance::get_current_user(std::string *current_user,
   auto result = query("SELECT CURRENT_USER()");
   auto row = result->fetch_one_or_throw();
   std::string current_account = row->get_string(0);
-  shcore::split_account(current_account, current_user, current_host, true);
+  shcore::split_account(current_account, current_user, current_host,
+                        shcore::Account::Auto_quote::USER_AND_HOST);
 }
 
 /**
