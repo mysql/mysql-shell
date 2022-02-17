@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -182,7 +182,8 @@ class Server final : public Node {
     return &m_members.front();
   }
 
-  void scan(mysqlsh::dba::Instance *conn, const std::string &channel_name);
+  void scan(const mysqlshdk::mysql::IInstance *conn,
+            const std::string &channel_name);
 
  private:
   Instance *primary_member() { return &m_members.front(); }
@@ -252,7 +253,7 @@ class Server_global_topology : public Global_topology {
   void check_servers(bool deep);
   void check_server(Instance_id id, bool deep);
 
-  void discover_from_unmanaged(dba::Instance *instance);
+  void discover_from_unmanaged(const mysqlshdk::mysql::IInstance *instance);
 
  public:
   const std::list<Node *> &nodes() const override { return m_nodes; }
@@ -276,7 +277,7 @@ class Server_global_topology : public Global_topology {
 
   void remove_server(const Server &server);
 
-  Server *scan_instance_recursive(dba::Instance *instance);
+  Server *scan_instance_recursive(const mysqlshdk::mysql::IInstance *instance);
 
   Server *server(Instance_id id);
 

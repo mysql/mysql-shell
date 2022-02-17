@@ -246,7 +246,7 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 1 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
+|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
@@ -260,7 +260,7 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 2 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
+|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
@@ -274,7 +274,7 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 3 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
-|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
+|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
@@ -468,7 +468,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in
 
 //@# Check if all missing privileges are reported for user with no privileges {VER(<8.0.0)}
 |ERROR: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster:|
-|GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER ON *.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
+|GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN, SUPER ON *.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'no_privileges'@'%' WITH GRANT OPTION;|

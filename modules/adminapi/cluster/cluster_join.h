@@ -53,7 +53,7 @@ class Cluster_join {
    * - Validate target instance address;
    * - Validate replication filters;
    * - Resolve the SSL Mode (use same as cluster);
-   * - Ensure target instance does not belong to cluster;
+   * - Ensure target instance does not belong to cluster or replica set;
    * - Validate target instance UUID;
    * - Get the report host value (to be used by GR and Metadata);
    * - Resolve the GR local address;

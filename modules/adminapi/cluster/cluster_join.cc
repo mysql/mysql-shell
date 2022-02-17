@@ -863,8 +863,16 @@ void Cluster_join::prepare_reboot() {
 
   // Make sure the target instance does not already belong to a different
   // cluster.
-  mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-      *m_target_instance, m_cluster->get_cluster_server(), &m_already_member);
+  try {
+    mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
+        m_target_instance, m_cluster->get_cluster_server(),
+        m_cluster->get_id());
+  } catch (const shcore::Exception &exp) {
+    m_already_member =
+        (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
+        (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+    if (!m_already_member) throw;
+  }
 
   check_instance_configuration(checks::Check_type::BOOTSTRAP);
 }
@@ -884,12 +892,21 @@ void Cluster_join::prepare_join(
   // Make sure the target instance does not already belong to a cluster.
   // Unless it's our cluster, in that case we keep adding it since it
   // may be a retry.
-  if (mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-          *m_target_instance, m_cluster->get_cluster_server(),
-          &m_already_member) == TargetType::InnoDBCluster) {
-    throw shcore::Exception::runtime_error(
-        "The instance '" + m_target_instance->descr() +
-        "' is already part of this InnoDB cluster");
+  try {
+    mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
+        m_target_instance, m_cluster->get_cluster_server(),
+        m_cluster->get_id());
+  } catch (const shcore::Exception &exp) {
+    m_already_member =
+        (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
+        (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+
+    if (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER)
+      throw shcore::Exception::runtime_error(
+          "The instance '" + m_target_instance->descr() +
+          "' is already part of this InnoDB Cluster");
+
+    if (!m_already_member) throw;
   }
 
   // Verify whether the instance supports the communication stack in use in the

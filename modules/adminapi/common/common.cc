@@ -35,6 +35,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/star_global_topology_manager.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -1903,26 +1904,24 @@ void handle_deprecated_option(const std::string &deprecated_name,
   console->print_info();
 }
 
-TargetType::Type get_instance_type(const MetadataStorage &metadata,
-                                   Instance *target_instance) {
-  mysqlshdk::utils::Version md_version;
+TargetType::Type get_instance_type(
+    const MetadataStorage &metadata,
+    const mysqlshdk::mysql::IInstance &target_instance) {
   Cluster_type cluster_type;
   bool has_metadata = false;
   bool gr_active;
 
-  auto target_server =
-      target_instance ? target_instance : metadata.get_md_server().get();
-
   try {
+    mysqlshdk::utils::Version md_version;
     has_metadata = metadata.check_metadata(&md_version, &cluster_type);
 
-    gr_active = mysqlshdk::gr::is_active_member(*target_server);
+    gr_active = mysqlshdk::gr::is_active_member(target_instance);
   } catch (const shcore::Error &error) {
     auto e =
         shcore::Exception::mysql_error_with_code(error.what(), error.code());
 
     log_warning("Error querying GR member state: %s: %i %s",
-                target_server->descr().c_str(), error.code(), error.what());
+                target_instance.descr().c_str(), error.code(), error.what());
 
     if (error.code() == ER_NO_SUCH_TABLE) {
       gr_active = false;
@@ -1930,7 +1929,7 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
       throw std::runtime_error(shcore::str_format(
           "Unable to detect state for instance '%s'. Please check account "
           "privileges.",
-          target_instance->get_canonical_address().c_str()));
+          target_instance.get_canonical_address().c_str()));
     } else {
       throw shcore::Exception::mysql_error_with_code(error.what(),
                                                      error.code());
@@ -1938,15 +1937,17 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
   }
 
   if (has_metadata) {
-    if (cluster_type == Cluster_type::GROUP_REPLICATION && gr_active) {
+    if (cluster_type == Cluster_type::GROUP_REPLICATION && gr_active)
       return TargetType::InnoDBCluster;
-    } else if (cluster_type == Cluster_type::GROUP_REPLICATION && !gr_active) {
+
+    if (cluster_type == Cluster_type::GROUP_REPLICATION && !gr_active) {
       // InnoDB cluster but with GR stopped
-      if (metadata.check_cluster_set(target_server)) {
+      if (metadata.check_cluster_set(&target_instance))
         return TargetType::InnoDBClusterSetOffline;
-      }
       return TargetType::StandaloneInMetadata;
-    } else if (gr_active) {
+    }
+
+    if (gr_active) {
       // GR running but instance is not in the metadata, could be:
       // - member was added to the cluster by hand
       // - UUID of member changed
@@ -1956,18 +1957,38 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
         log_warning(
             "Instance %s is running Group Replication, but does not belong to "
             "a InnoDB cluster",
-            target_server->descr().c_str());
+            target_instance.descr().c_str());
       }
 
       return TargetType::GroupReplication;
-    } else {
-      if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
-        return TargetType::AsyncReplicaSet;
-      }
-      return TargetType::StandaloneWithMetadata;
     }
-  } else {
-    if (gr_active) return TargetType::GroupReplication;
+
+    if (cluster_type == Cluster_type::ASYNC_REPLICATION)
+      return TargetType::AsyncReplicaSet;
+
+    return TargetType::StandaloneWithMetadata;
+  }
+
+  if (gr_active) return TargetType::GroupReplication;
+
+  try {
+    auto channels = mysqlshdk::mysql::get_incoming_channels(target_instance);
+    if (!channels.empty()) return TargetType::AsyncReplication;
+
+    auto slaves = mysqlshdk::mysql::get_slaves(target_instance);
+    if (!slaves.empty()) return TargetType::AsyncReplication;
+  } catch (const shcore::Error &error) {
+    switch (error.code()) {
+      case ER_TABLEACCESS_DENIED_ERROR:
+      case ER_SPECIFIC_ACCESS_DENIED_ERROR:
+        throw std::runtime_error(shcore::str_format(
+            "Unable to detect state for instance '%s'. Please check account "
+            "privileges.",
+            target_instance.get_canonical_address().c_str()));
+      default:
+        throw shcore::Exception::mysql_error_with_code(error.what(),
+                                                       error.code());
+    }
   }
 
   return TargetType::Standalone;
@@ -1984,7 +2005,7 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
   // Retrieves the instance configuration type from the perspective of the
   // active session
   try {
-    state.source_type = get_instance_type(metadata, group_instance);
+    state.source_type = get_instance_type(metadata, *group_instance);
   } catch (const shcore::Exception &e) {
     if (mysqlshdk::db::is_server_connection_error(e.code())) {
       throw shcore::Exception::mysql_error_with_code(

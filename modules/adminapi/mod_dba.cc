@@ -3041,11 +3041,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         }
         // If the instance is part of the remove_instances list we skip this
         // instance
-        auto it = std::find_if(remove_instances_list.begin(),
-                               remove_instances_list.end(),
-                               [&instance_address](std::string val) {
-                                 return val == instance_address;
-                               });
+        auto it = std::find(remove_instances_list.begin(),
+                            remove_instances_list.end(), instance_address);
         if (it != remove_instances_list.end()) continue;
 
         // When rebooting old version there's no option to modify, instances are
@@ -3307,6 +3304,12 @@ static void validate_instance_belongs_to_cluster(
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
           "' belongs to an InnoDB ReplicaSet. ");
+
+    case TargetType::AsyncReplication:
+      throw shcore::Exception::runtime_error(
+          "The MySQL instance '" + member_session_address +
+          "' belongs to a AR topology that is not managed as an "
+          "InnoDB ReplicaSet. ");
 
     case TargetType::InnoDBClusterSet:
     case TargetType::InnoDBClusterSetOffline:

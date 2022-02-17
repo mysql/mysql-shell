@@ -26,6 +26,4 @@
 //@# From a secondary {VER(>=8.0.11)}
 ||
 
-//@# Delete metadata for the instance (should fail) {VER(>=8.0.11)}
-||This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata) (RuntimeError)
 

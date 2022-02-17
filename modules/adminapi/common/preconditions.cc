@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,7 +170,7 @@ const std::map<std::string, Function_availability>
         {"Dba.createCluster",
          {k_min_gr_version,
           TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::GroupReplication,
+              TargetType::GroupReplication | TargetType::AsyncReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
@@ -226,7 +226,8 @@ const std::map<std::string, Function_availability>
               TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
               TargetType::InnoDBClusterSet |
               TargetType::InnoDBClusterSetOffline |
-              TargetType::GroupReplication | TargetType::Unknown,
+              TargetType::GroupReplication | TargetType::AsyncReplication |
+              TargetType::Unknown,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {},
@@ -261,7 +262,8 @@ const std::map<std::string, Function_availability>
           {}}},
         {"Dba.createReplicaSet",
          {k_min_ar_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata,
+          TargetType::Standalone | TargetType::StandaloneWithMetadata |
+              TargetType::AsyncReplication,
           na_quorum,
           ManagedInstance::State::Any,
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
@@ -881,6 +883,11 @@ void Precondition_checker::check_instance_configuration_preconditions(
       break;
     case TargetType::GroupReplication:
       error += " to an instance belonging to an unmanaged replication group";
+      break;
+    case TargetType::AsyncReplication:
+      error +=
+          " to an instance belonging to an unmanaged asynchronous replication "
+          "topology";
       break;
     case TargetType::InnoDBCluster:
       if (((allowed_types | TargetType::InnoDBClusterSet |

@@ -2713,7 +2713,7 @@ bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,
 }
 
 bool MetadataStorage::check_cluster_set(
-    Instance *target_instance, uint64_t *out_view_id,
+    const mysqlshdk::mysql::IInstance *target_instance, uint64_t *out_view_id,
     std::string *out_cs_domain_name, Cluster_set_id *out_cluster_set_id) const {
   bool ret_val = false;
 

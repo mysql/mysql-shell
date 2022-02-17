@@ -17,7 +17,7 @@ cs = pc.createClusterSet("mydomain");
 rc = cs.createReplicaCluster(__sandbox_uri4, "cluster2", {recoveryMethod:"clone"});
 
 //@<> addInstance (fail)
-EXPECT_THROWS(function(){pc.addInstance(__sandbox_uri4);}, "Cluster.addInstance: The instance '127.0.0.1:"+__mysql_sandbox_port4+"' is already part of another InnoDB cluster");
+EXPECT_THROWS(function(){pc.addInstance(__sandbox_uri4);}, "Cluster.addInstance: The instance '127.0.0.1:"+__mysql_sandbox_port4+"' is already part of another InnoDB Cluster");
 
 //@<> addInstance (success)
 pc.addInstance(__sandbox_uri2);

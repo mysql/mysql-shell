@@ -42,10 +42,10 @@ mysql_innodb_cluster_111
 ||
 
 //@ Failure adding instance from multi cluster into single
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB Cluster
 
 //@ Failure adding instance from an unmanaged replication group into single
 ||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another Replication Group
 
 //@ Failure adding instance already in the InnoDB cluster
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already part of this InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already part of this InnoDB Cluster

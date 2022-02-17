@@ -479,79 +479,126 @@ void validate_performance_schema_enabled(
   }
 }
 
-TargetType::Type ensure_instance_not_belong_to_cluster(
-    const mysqlshdk::mysql::IInstance &instance,
+void ensure_instance_not_belong_to_cluster(
+    const std::shared_ptr<Instance> &instance,
     const std::shared_ptr<Instance> &cluster_instance,
-    bool *out_already_member) {
-  TargetType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
+    const std::string &cluster_id) {
+  auto metadata = std::make_shared<MetadataStorage>(instance);
+  auto type = mysqlsh::dba::get_instance_type(*metadata, *instance);
 
-  if (out_already_member) *out_already_member = false;
+  switch (type) {
+    // these types don't need any more checks
+    case TargetType::Standalone:
+    case TargetType::StandaloneWithMetadata:
+    case TargetType::StandaloneInMetadata:
+    case TargetType::AsyncReplication:
+      return;
+    default:
+      break;
+  }
 
-  if (type != TargetType::Standalone &&
-      type != TargetType::StandaloneWithMetadata &&
-      type != TargetType::StandaloneInMetadata) {
+  if (type != TargetType::InnoDBClusterSetOffline) {
     // Retrieves the new instance UUID
-    std::string uuid = instance.get_uuid();
+    std::string uuid = instance->get_uuid();
 
     // Verifies if this UUID is part of the current replication group
-    std::vector<mysqlshdk::gr::Member> members(
-        mysqlshdk::gr::get_members(*cluster_instance));
+    std::vector<mysqlshdk::gr::Member> members =
+        mysqlshdk::gr::get_members(*cluster_instance);
 
     if (std::find_if(members.begin(), members.end(),
-                     [&uuid](const mysqlshdk::gr::Member &member) {
+                     [&uuid](const auto &member) {
                        return member.uuid == uuid;
                      }) != members.end()) {
       if (type == TargetType::InnoDBCluster ||
           type == TargetType::InnoDBClusterSet) {
-        log_debug("Instance '%s' already managed by InnoDB cluster",
-                  instance.descr().c_str());
-        if (out_already_member) {
-          // don't throw exception if out_already_member is given
-          *out_already_member = true;
-        } else {
-          throw shcore::Exception(
-              "The instance '" + instance.descr() +
-                  "' is already part of this InnoDB cluster",
-              SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
-        }
-      } else {
-        if (out_already_member) {
-          *out_already_member = true;
-        } else {
-          current_console()->print_error(
-              "Instance '" + instance.descr() +
-              "' is part of the Group Replication group but is not in the "
-              "metadata. Please use <Cluster>.rescan() to update the "
-              "metadata.");
-          throw shcore::Exception(
-              "Metadata inconsistent: " + instance.descr() +
-                  " is a group member but is not in the metadata.",
-              SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
-        }
+        log_debug("Instance '%s' already managed by InnoDB Cluster",
+                  instance->descr().c_str());
+
+        throw shcore::Exception("The instance '" + instance->descr() +
+                                    "' is already part of this InnoDB Cluster",
+                                SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
       }
-    } else {
-      if (type == TargetType::InnoDBCluster ||
-          type == TargetType::InnoDBClusterSet) {
-        // Check if instance is running auto-rejoin and warn user.
-        if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance)) {
-          throw shcore::Exception::runtime_error(
-              "The instance '" + instance.descr() +
-              "' is currently attempting to rejoin the cluster. Use <cluster>."
-              "rejoinInstance() if you want to to override the auto-rejoin "
-              "process.");
-        } else {
-          throw shcore::Exception::runtime_error(
-              "The instance '" + instance.descr() +
-              "' is already part of another InnoDB cluster");
+      current_console()->print_error(
+          "Instance '" + instance->descr() +
+          "' is part of the Group Replication group but is not in the "
+          "metadata. Please use <Cluster>.rescan() to update the "
+          "metadata.");
+      throw shcore::Exception(
+          "Metadata inconsistent: " + instance->descr() +
+              " is a group member but is not in the metadata.",
+          SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
+    }
+  } else {
+    auto metadata_cluster = std::make_shared<MetadataStorage>(cluster_instance);
+
+    try {
+      // if instance is in the clusters metadata, it's valid
+      metadata_cluster->get_instance_by_uuid(instance->get_uuid());
+      return;
+    } catch (const shcore::Exception &exp) {
+      if (exp.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+    }
+
+    // check if the instance cluster belongs to the target's cluster set
+
+    Cluster_metadata instance_cluster_meta;
+    if (metadata->get_cluster_for_server_uuid(instance->get_uuid(),
+                                              &instance_cluster_meta)) {
+      if (instance_cluster_meta.cluster_id == cluster_id) return;
+
+      if (std::string cs_id; metadata_cluster->check_cluster_set(
+              nullptr, nullptr, nullptr, &cs_id)) {
+        std::vector<Cluster_set_member_metadata> cs_members;
+        if (metadata_cluster->get_cluster_set(cs_id, false, nullptr,
+                                              &cs_members)) {
+          auto it = std::find_if(
+              cs_members.begin(), cs_members.end(),
+              [&cs_id = instance_cluster_meta.cluster_id](const auto &member) {
+                return (cs_id == member.cluster.cluster_id);
+              });
+          if (it != cs_members.end()) return;
         }
-      } else {
-        throw shcore::Exception::runtime_error(
-            "The instance '" + instance.descr() +
-            "' is already part of another Replication Group");
       }
     }
+
+    // reaching this point, we have a cluster set that doesn't belong to the
+    // target cluster or its cluster doesn't belong to the target's cluster set,
+    // so treat it as if it was an (unknown) cluster set
+    type = TargetType::InnoDBClusterSet;
   }
-  return type;
+
+  switch (type) {
+    case TargetType::InnoDBCluster:
+    case TargetType::InnoDBClusterSet:
+      // Check if instance is running auto-rejoin and warn user.
+      if (mysqlshdk::gr::is_running_gr_auto_rejoin(*instance)) {
+        throw shcore::Exception::runtime_error(
+            "The instance '" + instance->descr() +
+            "' is currently attempting to rejoin the cluster. Use <cluster>."
+            "rejoinInstance() if you want to to override the auto-rejoin "
+            "process.");
+      } else {
+        throw shcore::Exception::runtime_error(
+            "The instance '" + instance->descr() +
+            "' is already part of another InnoDB Cluster");
+      }
+      break;
+    case TargetType::AsyncReplicaSet:
+      throw shcore::Exception::runtime_error(
+          "The instance '" + instance->descr() +
+          "' is already part of an InnoDB ReplicaSet");
+      break;
+    case TargetType::AsyncReplication:
+      throw shcore::Exception::runtime_error(
+          "The instance '" + instance->descr() +
+          "' is already part of another Asynchronous Replication Topology");
+      break;
+    default:
+      throw shcore::Exception::runtime_error(
+          "The instance '" + instance->descr() +
+          "' is already part of another Replication Group");
+      break;
+  }
 }
 
 void ensure_instance_not_belong_to_metadata(
@@ -621,7 +668,8 @@ size_t check_illegal_async_channels(
  * or an error message and terminates with an exception.
  *
  * @param instance The instance to validate.
- * @param allowed_channels List of channel names that can appear at the instance
+ * @param allowed_channels List of channel names that can appear at the
+ * instance
  * @param type     The type of check (Check_type)
  */
 void validate_async_channels(

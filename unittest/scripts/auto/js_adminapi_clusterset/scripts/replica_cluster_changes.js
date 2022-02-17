@@ -20,7 +20,7 @@ rc = cs.createReplicaCluster(__sandbox_uri3, "cluster2", {recoveryMethod:"increm
 //--------------------------------------
 
 //@<> addInstance (fail)
-EXPECT_THROWS(function(){rc.addInstance(__sandbox_uri1);}, "Cluster.addInstance: The instance '127.0.0.1:"+__mysql_sandbox_port1+"' is already part of another InnoDB cluster");
+EXPECT_THROWS(function(){rc.addInstance(__sandbox_uri1);}, "Cluster.addInstance: The instance '127.0.0.1:"+__mysql_sandbox_port1+"' is already part of another InnoDB Cluster");
 
 //@<> addInstance (success)
 rc.addInstance(__sandbox_uri4);

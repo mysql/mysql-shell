@@ -5,7 +5,7 @@
 ||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 1- Add on active member from a different group
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB Cluster
 
 //@ Stop GR
 |Query OK|
