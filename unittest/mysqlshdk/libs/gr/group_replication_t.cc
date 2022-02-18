@@ -710,7 +710,7 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
                  mysqlshdk::mysql::k_value_not_set);
     EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::mysql::k_no_value);
     EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(0).restart, false);
+    EXPECT_EQ(res.at(0).restart, true);
   }
 
   // Set incompatible values on file, issues found.
@@ -743,19 +743,19 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
                  mysqlshdk::mysql::k_value_not_set);
     EXPECT_STREQ(res.at(0).required_val.c_str(), mysqlshdk::mysql::k_no_value);
     EXPECT_EQ(res.at(0).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(0).restart, false);
+    EXPECT_EQ(res.at(0).restart, true);
     EXPECT_STREQ(res.at(1).var_name.c_str(), "disable_log_bin");
     EXPECT_STREQ(res.at(1).current_val.c_str(), mysqlshdk::mysql::k_no_value);
     EXPECT_STREQ(res.at(1).required_val.c_str(),
                  mysqlshdk::mysql::k_value_not_set);
     EXPECT_EQ(res.at(1).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(1).restart, false);
+    EXPECT_EQ(res.at(1).restart, true);
     EXPECT_STREQ(res.at(2).var_name.c_str(), "skip_log_bin");
     EXPECT_STREQ(res.at(2).current_val.c_str(), mysqlshdk::mysql::k_no_value);
     EXPECT_STREQ(res.at(2).required_val.c_str(),
                  mysqlshdk::mysql::k_value_not_set);
     EXPECT_EQ(res.at(2).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(2).restart, false);
+    EXPECT_EQ(res.at(2).restart, true);
   }
 
   // Set compatible values on file, no issues found.
