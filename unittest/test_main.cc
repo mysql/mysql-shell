@@ -50,6 +50,7 @@
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mod_testutils.h"
 #include "utils/utils_path.h"
+#include "utils/utils_process.h"
 #include "utils/utils_string.h"
 
 using Version = mysqlshdk::utils::Version;
@@ -57,6 +58,7 @@ using Version = mysqlshdk::utils::Version;
 // Begin test configuration block
 
 const char *k_default_test_filter = "*";
+constexpr int k_wait_sandbox_shutdown = 60;
 
 // Default execution mode for replayable tests
 mysqlshdk::db::replay::Mode g_test_recording_mode =
@@ -436,7 +438,75 @@ static bool delete_sandbox(int port) {
                          0)) {
     std::cout << "Sandbox server running at " << port
               << ", shutting down and deleting\n";
-    mysql_real_query(mysql, "shutdown", strlen("shutdown"));
+
+    if (mysql_real_query(mysql, "shutdown", strlen("shutdown"))) {
+      auto e = mysqlshdk::db::Error(mysql_error(mysql), mysql_errno(mysql),
+                                    mysql_sqlstate(mysql));
+
+      std::cout << "Error shutting down sandbox running on port " << port
+                << ": " << e.what() << ": " << e.code() << "\n";
+
+      mysql_close(mysql);
+      return false;
+    } else {
+      int retries = k_wait_sandbox_shutdown;
+
+      const auto is_port_listening = [](const std::string &host, int tcp_port) {
+        int ret = false;
+        try {
+          ret = mysqlshdk::utils::Net::is_port_listening(host, tcp_port);
+        } catch (...) {
+          // Ignore errors
+        }
+        return ret;
+      };
+
+      // Wait for the port to be freed
+      while (is_port_listening("127.0.0.1", port)) {
+        if (--retries < 0) {
+          std::cout << "Timeout waiting for port " << port << " to be free";
+          mysql_close(mysql);
+          return false;
+        }
+        shcore::sleep_ms(500);
+      }
+
+      // Wait for the pid file to be deleted, meaning shutdown is complete
+      retries = k_wait_sandbox_shutdown;
+
+      const char *tmpdir = getenv("TMPDIR");
+      if (tmpdir == nullptr || strlen(tmpdir) == 0) {
+        tmpdir = getenv("TEMP");  // TEMP usually used on Windows.
+      }
+
+      // In Windows, wait for the lock file to be deleted too
+#ifndef _WIN32
+      std::string lock_file = shcore::path::join_path(
+          tmpdir, std::to_string(port) + "/mysqld.sock.lock");
+      while (mysqlshdk::utils::check_lock_file(lock_file)) {
+        if (--retries < 0) {
+          std::cout << "Timeout waiting for sandbox lock file " << lock_file
+                    << " to be deleted after shutdown ";
+          mysql_close(mysql);
+          return false;
+        }
+        shcore::sleep_ms(500);
+      }
+
+#endif
+      std::string pidfile = shcore::path::join_path(
+          tmpdir, std::to_string(port), std::to_string(port) + ".pid");
+
+      while (shcore::path::exists(pidfile)) {
+        if (--retries < 0) {
+          std::cout << "Timeout waiting for sandbox pid file " << pidfile
+                    << " to be deleted after shutdown ";
+          mysql_close(mysql);
+          return false;
+        }
+        shcore::sleep_ms(500);
+      }
+    }
   } else if (mysql_errno(mysql) < 2000 || mysql_errno(mysql) >= 3000) {
     std::cout << mysql_error(mysql) << "  " << mysql_errno(mysql) << "\n";
     std::cout << "Server already running on port " << port
