@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"  // base64 encoding utilities
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "shellcore/interrupt_handler.h"
 #include "utils/utils_general.h"
@@ -278,10 +279,9 @@ class Field_formatter {
       auto str = shcore::lexical_cast<std::string>(value);
       dlength = blength = str.length();
     } else if (m_type == mysqlshdk::db::Type::Bytes) {
+      // TODO (anyone): Implement support for --skip-binary-as-hex
       auto data = row->get_string_data(index);
-      auto fsizes = get_utf8_sizes(data.first, data.second, m_flags);
-      dlength = std::get<0>(fsizes);
-      blength = std::get<1>(fsizes);
+      dlength = blength = 2 + data.second * 2;
     } else {
       auto data = row->get_as_string(index);
       auto fsizes = get_utf8_sizes(data.c_str(), data.length(), m_flags);
@@ -338,6 +338,10 @@ class Field_formatter {
       display_size = buffer_size = length = tmp.length();
     } else if (m_type == mysqlshdk::db::Type::Bytes) {
       std::tie(data, length) = row->get_string_data(index);
+
+      tmp = shcore::string_to_hex(data, length);
+      data = tmp.data();
+      length = tmp.size();
 
       std::tie(display_size, buffer_size) =
           get_utf8_sizes(data, length, m_flags);
@@ -607,7 +611,22 @@ void dump_json_row(shcore::JSON_dumper *dumper,
         dumper->append_json(row->get_string(col_index));
       } else if (type == mysqlshdk::db::Type::Bytes) {
         auto data = row->get_string_data(col_index);
-        dumper->append_string(data.first, data.second);
+        std::string encoded;
+        size_t binary_limit = data.second;
+        if (mysqlsh::current_shell_options()->get().binary_limit > 0) {
+          binary_limit = std::min(
+              data.second,
+              mysqlsh::current_shell_options()->get().binary_limit + 1);
+        }
+
+        shcore::encode_base64(
+            static_cast<const unsigned char *>(
+                static_cast<const void *>(data.first)),
+            // At most binary-limit + 1 bytes shuold be sent, when the extra
+            // byte is sent, it will be an indicator for the consumer of the
+            // data that a truncation happened
+            binary_limit, &encoded);
+        dumper->append_string(encoded);
       } else {
         auto data = row->get_as_string(col_index);
         dumper->append_string(data.c_str(), data.length());
@@ -644,7 +663,8 @@ size_t Resultset_dumper_base::dump_documents(bool is_doc_result) {
 
   if (as_array) m_printer->raw_print("[\n");
   while (row) {
-    shcore::JSON_dumper dumper(pretty);
+    shcore::JSON_dumper dumper(
+        pretty, mysqlsh::current_shell_options()->get().binary_limit);
 
     if (row_count > 0) {
       if (as_array)
@@ -782,7 +802,9 @@ size_t Resultset_dumper_base::format_vertical(bool has_header, bool align_right,
  */
 size_t Resultset_dumper_base::dump_json(const std::string &item_label,
                                         bool is_doc_result) {
-  shcore::JSON_dumper dumper(m_wrap_json == "json");
+  shcore::JSON_dumper dumper(
+      m_wrap_json == "json",
+      mysqlsh::current_shell_options()->get().binary_limit);
 
   dumper.start_object();
   dumper.append_string("hasData");
@@ -928,7 +950,14 @@ size_t Resultset_dumper_base::dump_table() {
         m_printer->print(fmt[field_index].str());
       } else {
         assert(mysqlshdk::db::is_string_type(metadata[field_index].get_type()));
-        m_printer->print(row.get_as_string(field_index));
+        if (row.get_type(field_index) == mysqlshdk::db::Type::Bytes) {
+          const char *data;
+          size_t length;
+          std::tie(data, length) = row.get_string_data(field_index);
+          m_printer->print(shcore::string_to_hex(data, length));
+        } else {
+          m_printer->print(row.get_as_string(field_index));
+        }
       }
       if (field_index < field_count - 1) m_printer->print(" | ");
     }

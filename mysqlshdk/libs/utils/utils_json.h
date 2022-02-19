@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,7 +172,7 @@ class SHCORE_PUBLIC Pretty_writer : public Writer_base {
 
 class SHCORE_PUBLIC JSON_dumper {
  public:
-  JSON_dumper(bool pprint = false);
+  JSON_dumper(bool pprint = false, size_t binary_limit = 0);
   virtual ~JSON_dumper();
 
   void start_array() {
@@ -261,6 +261,7 @@ class SHCORE_PUBLIC JSON_dumper {
 
  private:
   int _deep_level;
+  size_t _binary_limit;
 
   Writer_base *_writer;
 };

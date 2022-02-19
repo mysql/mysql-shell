@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cwchar>
+#include <iomanip>
 #include <random>
+#include <sstream>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -239,6 +241,29 @@ std::pair<uint64_t, int> string_to_bits(const std::string &s) {
     throw std::invalid_argument("bit string length must be <= 64");
   std::bitset<64> bits(s);
   return {bits.to_ullong(), nbits};
+}
+
+std::string string_to_hex(const std::string &s) {
+  return string_to_hex(s.data(), s.size());
+}
+
+std::string SHCORE_PUBLIC string_to_hex(const char *data, size_t length) {
+  std::string encoded(2 + length * 2, 0);
+  auto encoded_position = encoded.data();
+
+  sprintf(encoded_position, "0x");
+  encoded_position += 2;
+
+  for (auto a_char = data; a_char < data + length; a_char++) {
+    auto byte = *(
+        static_cast<const unsigned char *>(static_cast<const void *>(a_char)));
+
+    sprintf(encoded_position, "%02X", byte);
+
+    encoded_position += 2;
+  }
+
+  return encoded;
 }
 
 std::string quote_string(const std::string &s, char quote) {

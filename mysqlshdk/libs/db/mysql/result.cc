@@ -27,6 +27,7 @@
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/db/mysql/row.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "shellcore/interrupt_handler.h"
@@ -165,7 +166,8 @@ void Result::fetch_metadata() {
           fields[index].catalog, fields[index].db, fields[index].org_table,
           fields[index].table, fields[index].org_name, fields[index].name,
           fields[index].length, fields[index].decimals,
-          map_data_type(fields[index].type, fields[index].flags),
+          map_data_type(fields[index].type, fields[index].flags,
+                        fields[index].charsetnr),
           fields[index].charsetnr,
           static_cast<bool>(fields[index].flags & UNSIGNED_FLAG),
           static_cast<bool>(fields[index].flags & ZEROFILL_FLAG),
@@ -369,7 +371,7 @@ std::shared_ptr<Field_names> Result::field_names() const {
   return _field_names;
 }
 
-Type Result::map_data_type(int raw_type, int flags) {
+Type Result::map_data_type(int raw_type, int flags, int collation_id) {
   switch (raw_type) {
     case MYSQL_TYPE_NULL:
       return Type::Null;
@@ -386,16 +388,29 @@ Type Result::map_data_type(int raw_type, int flags) {
     case MYSQL_TYPE_VARCHAR:
     case MYSQL_TYPE_VAR_STRING:
       if (flags & ENUM_FLAG)
+        // ENUM STRING TYPE
         return Type::Enum;
       else if (flags & SET_FLAG)
+        // SET STRING TYPE
         return Type::Set;
-      else
+      else if (collation_id == charset::k_binary_collation_id) {
+        // BINARY/VARBINARY STRING TYPES
+        return Type::Bytes;
+      } else {
+        // CHAR/VARCHAR STRING TYPES
         return Type::String;
+      }
     case MYSQL_TYPE_TINY_BLOB:
     case MYSQL_TYPE_MEDIUM_BLOB:
     case MYSQL_TYPE_LONG_BLOB:
     case MYSQL_TYPE_BLOB:
-      return Type::Bytes;
+      if (collation_id == charset::k_binary_collation_id) {
+        // BLOB STRING TYPE
+        return Type::Bytes;
+      } else {
+        // TEXT STRING TYPE
+        return Type::String;
+      }
     case MYSQL_TYPE_GEOMETRY:
       return Type::Geometry;
     case MYSQL_TYPE_JSON:

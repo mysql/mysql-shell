@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,6 +84,10 @@ class SHCORE_PUBLIC JScript_context {
 
   v8::Local<v8::String> v8_string(const std::string &data);
 
+  v8::Local<v8::ArrayBuffer> v8_array_buffer(const std::string &data);
+
+  v8::Local<v8::ArrayBuffer> v8_array_buffer(const char *data, size_t length);
+
   std::string to_string(v8::Local<v8::Value> obj);
 
   std::string translate_exception(const v8::TryCatch &exc, bool interactive);
@@ -105,6 +109,9 @@ class SHCORE_PUBLIC JScript_context {
   std::unique_ptr<Impl> m_impl;
   std::unique_ptr<JScript_type_bridger> m_types;
 };
+
+v8::Local<v8::ArrayBuffer> v8_array_buffer(v8::Isolate *isolate,
+                                           const char *data, size_t length);
 
 v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -357,9 +357,11 @@ TEST_F(Mysqlsh_fieldtypes_all, Binary_types_X) {
       "SELECT * FROM t_lob;",
       multiline({"c1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\t"
                  "c9\tc10\tc11\tc12",
-                 "\t\t\t\t\t\t\t\t\t\t\t",
-                 "tinyblob-text readable\tblob-text readable\t"
-                 "mediumblob-text readable\tlongblob-text readable\t"
+                 "0x\t0x\t0x\t0x\t\t\t\t\t\t\t\t",
+                 "0x74696E79626C6F622D74657874207265616461626C65\t0x626C6F622D7"
+                 "4657874207265616461626C65\t"
+                 "0x6D656469756D626C6F622D74657874207265616461626C65\t0x6C6F6E6"
+                 "7626C6F622D74657874207265616461626C65\t"
                  "tinytext\ttext\tmediumtext\tlongtext\t"
                  "tinytext-binary\\nnext line\t"
                  "text-binary\\nnext line\t"
@@ -375,9 +377,11 @@ TEST_F(Mysqlsh_fieldtypes_all, Binary_types_classic) {
       "SELECT * FROM t_lob;",
       multiline({"c1\tc2\tc3\tc4\tc5\tc6\tc7\tc8\t"
                  "c9\tc10\tc11\tc12",
-                 "\t\t\t\t\t\t\t\t\t\t\t",
-                 "tinyblob-text readable\tblob-text readable\t"
-                 "mediumblob-text readable\tlongblob-text readable\t"
+                 "0x\t0x\t0x\t0x\t\t\t\t\t\t\t\t",
+                 "0x74696E79626C6F622D74657874207265616461626C65\t0x626C6F622D7"
+                 "4657874207265616461626C65\t"
+                 "0x6D656469756D626C6F622D74657874207265616461626C65\t0x6C6F6E6"
+                 "7626C6F622D74657874207265616461626C65\t"
                  "tinytext\ttext\tmediumtext\tlongtext\t"
                  "tinytext-binary\\nnext line\t"
                  "text-binary\\nnext line\t"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -715,6 +715,8 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
           break;
 
         case Type::Bytes:
+          v = Value(row.get_string(i), true);
+          break;
         case Type::Geometry:
         case Type::Json:
         case Type::Enum:

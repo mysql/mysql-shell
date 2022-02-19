@@ -143,7 +143,7 @@ collection.add({_id:1, name:'John Doe'});
 shell.connect(__mysqluripwd);
 shell.dumpRows(session.runSql("select * from MYS_496.sample"));
 if (testutil.versionCheck(__version, ">=", "8.0.19")) {
-    EXPECT_OUTPUT_CONTAINS('| {"_id": 1, "name": "John Doe"} | 1   | {"type": "object"} |');
+    EXPECT_OUTPUT_CONTAINS('| {"_id": 1, "name": "John Doe"} | 0x31 | {"type": "object"} |');
 } else {
     EXPECT_OUTPUT_CONTAINS('| {"_id": 1, "name": "John Doe"} | 1   |');
 }

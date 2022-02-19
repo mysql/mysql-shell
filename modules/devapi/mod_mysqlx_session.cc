@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -964,6 +964,10 @@ static ::xcl::Argument_value convert(const shcore::Value &value) {
       return xcl::Argument_value(convert_array(value.as_array()));
     case shcore::Null:
       return xcl::Argument_value();
+    case shcore::Binary:
+      return xcl::Argument_value(value.get_string(),
+                                 xcl::Argument_value::String_type::k_octets);
+      break;
     case shcore::Object:
     case shcore::MapRef:
     case shcore::Function:

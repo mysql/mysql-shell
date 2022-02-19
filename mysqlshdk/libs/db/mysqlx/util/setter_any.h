@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,11 +70,16 @@ inline void set_scalar(::Mysqlx::Datatypes::Scalar &scalar, const char *value) {
 }
 
 inline void set_scalar(::Mysqlx::Datatypes::Scalar &scalar,
-                       const std::string &value) {
-  scalar.set_type(::Mysqlx::Datatypes::Scalar::V_STRING);
-  scalar.set_allocated_v_string(new ::Mysqlx::Datatypes::Scalar_String());
-
-  scalar.mutable_v_string()->set_value(value);
+                       const std::string &value, bool binary = false) {
+  if (binary) {
+    scalar.set_type(::Mysqlx::Datatypes::Scalar::V_OCTETS);
+    scalar.set_allocated_v_octets(new ::Mysqlx::Datatypes::Scalar_Octets());
+    scalar.mutable_v_octets()->set_value(value);
+  } else {
+    scalar.set_type(::Mysqlx::Datatypes::Scalar::V_STRING);
+    scalar.set_allocated_v_string(new ::Mysqlx::Datatypes::Scalar_String());
+    scalar.mutable_v_string()->set_value(value);
+  }
 }
 
 template <typename ValueType>

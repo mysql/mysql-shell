@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -699,6 +699,10 @@ int main(int argc, char **argv) {
     // The Json_shell mode is enabled when this env variable is defined
     char *json_shell = getenv("MYSQLSH_JSON_SHELL");
     if (json_shell) {
+      // When shell is running as MYSQL_JSON_SHELL binary data is truncated at
+      // 257 bytes, eventually this should be determined by a shell command ilne
+      // argument, i.e. --binary-limit
+      shell_options.get()->set_binary_limit(256);
       shell.reset(new mysqlsh::Json_shell(shell_options), finalize_shell);
     } else {
       shell.reset(new mysqlsh::Command_line_shell(shell_options),

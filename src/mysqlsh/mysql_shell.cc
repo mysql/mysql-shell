@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1852,7 +1852,8 @@ void Mysql_shell::process_sql_result(
       auto cols = result->get_metadata();
       auto console = mysqlsh::current_console();
       if (options().wrap_json != "off") {
-        shcore::JSON_dumper dumper(options().wrap_json == "json");
+        shcore::JSON_dumper dumper(options().wrap_json == "json",
+                                   options().binary_limit);
         dumper.start_object();
         for (std::size_t i = 0; i < cols.size(); i++) {
           dumper.append_string(shcore::str_format("Field %zu", i + 1));

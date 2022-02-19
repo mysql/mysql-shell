@@ -72,8 +72,8 @@ std::string json_obj(
     const std::vector<std::string> &description = {},
     const std::unordered_map<std::string, std::string> &additional = {},
     const std::function<void(shcore::JSON_dumper *)> &callback = {}) {
-  shcore::JSON_dumper dumper(
-      mysqlsh::current_shell_options()->get().wrap_json == "json");
+  const auto &options = mysqlsh::current_shell_options()->get();
+  shcore::JSON_dumper dumper(options.wrap_json == "json", options.binary_limit);
   dumper.start_object();
   dumper.append_string(key);
   dumper.append_string(value);
@@ -106,8 +106,8 @@ std::string json_obj(
 }
 
 std::string json_obj(const char *key, const shcore::Value &info) {
-  shcore::JSON_dumper dumper(
-      mysqlsh::current_shell_options()->get().wrap_json == "json");
+  const auto &options = mysqlsh::current_shell_options()->get();
+  shcore::JSON_dumper dumper(options.wrap_json == "json", options.binary_limit);
   dumper.start_object();
   dumper.append_value(key, info);
   dumper.end_object();

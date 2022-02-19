@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/dtoa.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"
 
 namespace shcore {
 
@@ -34,7 +35,8 @@ size_t fmt_double(double d, char *buffer, size_t buffer_len) {
   return my_gcvt(d, MY_GCVT_ARG_DOUBLE, buffer_len, buffer, NULL);
 }
 
-JSON_dumper::JSON_dumper(bool pprint) {
+JSON_dumper::JSON_dumper(bool pprint, size_t binary_limit)
+    : _binary_limit(binary_limit) {
   _deep_level = 0;
 
   if (pprint)
@@ -116,6 +118,22 @@ void JSON_dumper::append_value(const Value &value) {
     case Function:
       value.as_function()->append_json(this);
       break;
+    case Binary: {
+      std::string encoded;
+      auto raw_value = value.get_string();
+      size_t max_length = raw_value.size();
+      if (_binary_limit >= 0) {
+        // At most binary-limit + 1 bytes should be sent, when the extra byte
+        // is sent, it will be an indicator for the consumer of the data that
+        // a truncation happened
+        max_length = std::min(raw_value.size(), _binary_limit + 1);
+      }
+      shcore::encode_base64(static_cast<const unsigned char *>(
+                                static_cast<const void *>(raw_value.c_str())),
+                            max_length, &encoded);
+      _writer->append_string(encoded);
+      break;
+    }
   }
 }
 

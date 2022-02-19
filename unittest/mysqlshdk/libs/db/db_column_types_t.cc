@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,8 +148,8 @@ TEST_F(Db_tests, metadata_columns_alltypes) {
       if (is_classic) {
         CHECK(0, Type::String, 128, false, false, false);
         CHECK(1, Type::String, 128, false, false, false);
-        CHECK(2, Type::String, 32, false, false, true);
-        CHECK(3, Type::String, 32, false, false, true);
+        CHECK(2, Type::Bytes, 32, false, false, true);
+        CHECK(3, Type::Bytes, 32, false, false, true);
       } else {
         CHECK(0, Type::String, 128, false, false, false);
         CHECK(1, Type::String, 128, false, false, false);
