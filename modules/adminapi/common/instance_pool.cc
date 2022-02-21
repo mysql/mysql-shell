@@ -227,6 +227,17 @@ std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
   }
 }
 
+std::shared_ptr<mysqlshdk::db::IResult> Instance::query_udf(
+    const std::string &sql, bool buffered) const {
+  log_sql(sql);
+  try {
+    return mysqlshdk::mysql::Instance::query_udf(sql, buffered);
+  } catch (const shcore::Error &e) {
+    log_sql_error(e);
+    throw;
+  }
+}
+
 void Instance::execute(const std::string &sql) const {
   log_sql(sql);
   try {

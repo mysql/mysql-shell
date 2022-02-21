@@ -35,6 +35,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -63,6 +64,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   void connect(const mysqlshdk::db::Connection_options &connection_info);
 
   std::shared_ptr<IResult> query(const char *sql, size_t len, bool buffered);
+  std::shared_ptr<IResult> query_udf(std::string_view sql, bool buffered);
   void execute(const char *sql, size_t len);
 
   inline void execute(const char *sql) { execute(sql, ::strlen(sql)); }
@@ -156,8 +158,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return _connection_options;
   }
 
-  std::shared_ptr<IResult> run_sql(const char *sql, size_t len,
-                                   bool lazy_fetch = true);
+  std::shared_ptr<IResult> run_sql(const char *sql, size_t len, bool lazy_fetch,
+                                   bool is_udf);
   // Will return the SSL mode set in the connection, if any
   mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> setup_ssl(
       const mysqlshdk::db::Ssl_options &ssl_options) const;
@@ -197,6 +199,11 @@ class SHCORE_PUBLIC Session : public ISession,
   std::shared_ptr<IResult> querys(const char *sql, size_t len,
                                   bool buffered = false) override {
     return _impl->query(sql, len, buffered);
+  }
+
+  std::shared_ptr<IResult> query_udf(std::string_view sql,
+                                     bool buffered = false) override {
+    return _impl->query_udf(sql, buffered);
   }
 
   void executes(const char *sql, size_t len) override {

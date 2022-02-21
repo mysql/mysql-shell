@@ -19,5 +19,5 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox
 //@<> BUG#29255212 cleanup
 cluster.disconnect();
 session.close();
-cleanup_sandbox(__mysql_sandbox_port1);
-cleanup_sandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

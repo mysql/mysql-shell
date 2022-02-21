@@ -51,6 +51,9 @@ class Replayer_mysql : public mysql::Session {
   std::shared_ptr<IResult> querys(const char *sql, size_t length,
                                   bool buffered) override;
 
+  std::shared_ptr<IResult> query_udf(std::string_view sql,
+                                     bool buffered) override;
+
   void executes(const char *sql, size_t length) override;
 
   bool is_open() const override;

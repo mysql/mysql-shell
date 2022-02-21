@@ -41,8 +41,8 @@ var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllo
 EXPECT_STDERR_EMPTY();
 
 //@<> Clean-up deployed instances.
-cleanup_sandbox(__mysql_sandbox_port1);
-cleanup_sandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
 
 // -----------------------------------------------------------------------------------------
 // BUG#28531271 - CREATECLUSTER FAILS WHEN INNODB_DEFAULT_ROW_FORMAT IS COMPACT OR REDUNDANT

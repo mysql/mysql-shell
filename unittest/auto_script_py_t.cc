@@ -199,11 +199,32 @@ TEST_P(Auto_script_py, run_and_check) {
 
   if (g_mysqld_path_variables) {
     auto variables = shcore::str_split(g_mysqld_path_variables, ",");
+
+    std::string secondary_var_name{"MYSQLD_SECONDARY_SERVER_A"};
+
     exec_and_out_equals("import os");
     for (const auto &variable : variables) {
-      std::string code = shcore::str_format("%s = os.getenv('%s')",
-                                            variable.c_str(), variable.c_str());
-      exec_and_out_equals(code);
+      auto serverParts = shcore::str_split(variable, ";");
+      assert(serverParts.size() == 2);
+
+      auto &serverVersion = serverParts[0];
+      auto &serverPath = serverParts[1];
+
+      {
+        std::string code = shcore::str_format(
+            "%s = os.getenv('%s')", serverPath.c_str(), serverPath.c_str());
+        exec_and_out_equals(code);
+      }
+
+      if (secondary_var_name.back() <= 'Z') {
+        auto code = shcore::str_format(
+            "%s = { \"path\": os.getenv('%s'), \"version\": \"%s\" }",
+            secondary_var_name.c_str(), serverPath.c_str(),
+            serverVersion.c_str());
+        execute(code);
+
+        secondary_var_name.back()++;
+      }
     }
   }
 

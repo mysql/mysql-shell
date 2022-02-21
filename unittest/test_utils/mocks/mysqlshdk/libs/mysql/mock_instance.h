@@ -53,9 +53,6 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
 
   MOCK_METHOD1(register_warnings_callback, void(const Warnings_callback &));
 
-  MOCK_CONST_METHOD1(
-      query, std::shared_ptr<mysqlshdk::db::IResult>(const std::string &));
-
   MOCK_METHOD1(cache_global_sysvars, void(bool));
   MOCK_CONST_METHOD1(
       get_cached_global_sysvar,
@@ -136,6 +133,8 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
 
   MOCK_CONST_METHOD2(query, std::shared_ptr<mysqlshdk::db::IResult>(
                                 const std::string &, bool));
+  MOCK_CONST_METHOD2(query_udf, std::shared_ptr<mysqlshdk::db::IResult>(
+                                    const std::string &, bool));
 
   MOCK_CONST_METHOD1(execute, void(const std::string &));
 };

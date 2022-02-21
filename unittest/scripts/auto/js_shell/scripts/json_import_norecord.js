@@ -460,7 +460,7 @@ EXPECT_THROWS(
 
 //@ Import document with size greater than mysqlx_max_allowed_packet
 session.close()
-testutil.stopSandbox(target_port);
+testutil.stopSandbox(target_port, {wait:1});
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "1M");
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "1M");
 testutil.startSandbox(target_port);
@@ -480,7 +480,7 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 0 ");
 
 //@ Import document with size equal to mysqlx_max_allowed_packet
 session.close()
-testutil.stopSandbox(target_port);
+testutil.stopSandbox(target_port, {wait:1});
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "2M"); // 2M == 2097152 bytes
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "2M");
 testutil.startSandbox(target_port);
@@ -500,7 +500,7 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 0 ");
 
 //@ Import 2 megabyte document with recommended mysqlx_max_allowed_packet value
 session.close()
-testutil.stopSandbox(target_port);
+testutil.stopSandbox(target_port, {wait:1});
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "2049K"); // max_allowed_packet must be rounded to kilobytes.
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "2097228");
 testutil.startSandbox(target_port);
@@ -518,7 +518,7 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 1 ");
 
 //@ Import document with size less than mysqlx_max_allowed_packet
 session.close()
-testutil.stopSandbox(target_port);
+testutil.stopSandbox(target_port, {wait:1});
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "4M");
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "4M");
 testutil.startSandbox(target_port);

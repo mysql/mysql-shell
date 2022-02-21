@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -1263,6 +1263,30 @@ def stop_sandbox(**kwargs):
             "You might need to terminate it manually "
             "or use the '{1} {2}' command.".format(port, SANDBOX,
                                                     SANDBOX_KILL))
+
+    # Wait for the pid file to be deleted
+    i = 0
+    pidf_path = os.path.join(sandbox_dir, "{0}.pid".format(port))
+    enc_pidf_path = tools.fs_encode(pidf_path)
+    _LOGGER.debug("Waiting for MySQL Server pid file '%s' to de deleted.",
+                    pidf_path)
+    while i < timeout:
+        if os.path.exists(enc_pidf_path):
+            time.sleep(1)
+            i += 1
+        else:
+            # pid was deleted, break out of loop
+            _LOGGER.debug(
+                "MySQL Server pid file '%s' deleted.", pidf_path)
+            break
+    else:
+        # Timeout occurred, issue an error
+        raise exceptions.GadgetError(
+            "Timeout waiting for sandbox at localhost:{0} to stop. "
+            "You might need to terminate it manually "
+            "or use the '{1} {2}' command.".format(port, SANDBOX,
+                                                    SANDBOX_KILL))
+
     # Server was stopped
     _LOGGER.info("MySQL sandbox was stopped on port '%i'.", port)
 
