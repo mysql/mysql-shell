@@ -54,6 +54,7 @@ dba.deploy_sandbox_instance(__mysql_sandbox_port1, {"password": "root", "sandbox
 dba.stop_sandbox_instance(__mysql_sandbox_port1, {"password": "root", "sandboxDir": test_dir})
 dba.start_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": test_dir})
 dba.kill_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": test_dir})
+testutil.wait_sandbox_dead(__mysql_sandbox_port1)
 dba.delete_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": test_dir})
 
 session.close()

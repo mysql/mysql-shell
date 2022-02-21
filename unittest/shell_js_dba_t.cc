@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -404,61 +404,6 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   // error conditions.
   validate_interactive("dba_cluster_multimaster_interactive.js");
 }
-
-#if 0
-TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
-  _options->wizards = false;
-  reset_shell();
-  output_handler.set_log_level(shcore::Logger::LOG_INFO);
-
-  // Execute setup script to be able to use smart deployment functions.
-  execute_setup();
-
-  // Clean and delete all sandboxes.
-  execute("cleanup_sandboxes(true)");
-
-  // Deploy new sandbox instances (required for this test).
-  execute("deployed_here = reset_or_deploy_sandboxes()");
-
-  // Ensures the three sandboxes contain no group group_replication
-  // configuration
-  remove_from_cfg_file(_sandbox_cnf_1, "group_replication");
-  remove_from_cfg_file(_sandbox_cnf_2, "group_replication");
-  remove_from_cfg_file(_sandbox_cnf_3, "group_replication");
-
-  // Restart sandbox instances.
-  std::string stop_options = "{password: 'root', sandboxDir: __sandbox_dir}";
-  execute("dba.stopSandboxInstance(__mysql_sandbox_port1, " + stop_options +
-          ");");
-  execute("try_restart_sandbox(__mysql_sandbox_port1);");
-  execute("dba.stopSandboxInstance(__mysql_sandbox_port2, " + stop_options +
-          ");");
-  execute("try_restart_sandbox(__mysql_sandbox_port2);");
-  execute("dba.stopSandboxInstance(__mysql_sandbox_port3, " + stop_options +
-          ");");
-  execute("try_restart_sandbox(__mysql_sandbox_port3);");
-
-  // Run the tests
-  validate_interactive("dba_configure_local_instance.js");
-  // MP should have been called with the cluster admin account that was created
-  // (BUG#26979375)
-#ifndef _WIN32
-  MY_EXPECT_LOG_CONTAINS("mysqlprovision check --instance=gr_user2@", false);
-#else
-  MY_EXPECT_LOG_CONTAINS("mysqlprovision.zip check --instance=gr_user2@",
-                         false);
-#endif
-  // MP should have been called with the cluster admin account that already
-  // existed (BUG#26979375)
-#ifndef _WIN32
-  MY_EXPECT_LOG_CONTAINS("mysqlprovision check --instance=gr_user@", true);
-#else
-  MY_EXPECT_LOG_CONTAINS("mysqlprovision.zip check --instance=gr_user@", true);
-#endif
-  // Clean up sandboxes.
-  execute("cleanup_sandboxes(true)");
-}
-#endif
 
 TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
   _options->wizards = false;

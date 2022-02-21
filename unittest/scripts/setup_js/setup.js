@@ -1607,44 +1607,6 @@ function wait(timeout, wait_interval, condition){
   return res;
 }
 
-function cleanup_sandbox(port) {
-    println ('Stopping the sandbox at ' + port + ' to delete it...');
-    try {
-      stop_options = {}
-      stop_options['password'] = 'root';
-      if (__sandbox_dir != '')
-        stop_options['sandboxDir'] = __sandbox_dir;
-
-      dba.stopSandboxInstance(port, stop_options);
-    } catch (err) {
-      println(err.message);
-    }
-
-    options = {}
-    if (__sandbox_dir != '')
-      options['sandboxDir'] = __sandbox_dir;
-
-    var deleted = false;
-
-    print('Try deleting sandbox at: ' + port);
-    deleted = wait(10, 1, function() {
-      try {
-        dba.deleteSandboxInstance(port, options);
-
-        println(' succeeded');
-        return true;
-      } catch (err) {
-        println(' failed: ' + err.message);
-        return false;
-      }
-    });
-    if (deleted) {
-      println('Delete succeeded at: ' + port);
-    } else {
-      println('Delete failed at: ' + port);
-    }
-}
-
 // Starting 8.0.24 the client lib started reporting connection error using
 // host:port format, previous versions used just the host.
 //
