@@ -578,6 +578,32 @@ shell.connect(__sandbox_uri1);
 cluster = dba.createCluster("sample", {gtidSetIsComplete: true});
 cluster.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY();
+
+//@<> Check if fails when GR local address isn't properly read {!__dbug_off}
+if (testutil.versionCheck(__version, "<", "8.0.21")) {
+    testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+    testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+    shell.connect(__sandbox_uri1);
+    cluster = dba.createCluster("sample", {gtidSetIsComplete: true});
+    EXPECT_STDERR_EMPTY();
+}
+else {
+    EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri2); });
+
+    shell.connect(__sandbox_uri1);
+    cluster = dba.getCluster();
+}
+
+testutil.dbugSet("+d,dba_instance_query_gr_local_address");
+EXPECT_THROWS(function(){ cluster.addInstance(__sandbox_uri2); }, "Cluster.addInstance: group_replication_local_address is empty");
+EXPECT_OUTPUT_CONTAINS("Unable to read Group Replication local address setting for instance '" + hostname + ":" + __mysql_sandbox_port2 + "', probably due to connectivity issues. Please retry the operation.");
+testutil.dbugSet("");
+
+EXPECT_NO_THROWS(function(){ cluster.addInstance(__sandbox_uri2); });
+EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port2 + "' was successfully added to the cluster.");
+
+//@<> Cleanup 
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

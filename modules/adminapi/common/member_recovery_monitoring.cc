@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -244,6 +244,7 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
     stop = true;
     return true;
   });
+
   while (timeout_sec > 0 && !stop) {
     if (reconnect) {
       try {
@@ -267,6 +268,7 @@ mysqlshdk::gr::Group_member_recovery_status wait_recovery_start(
         reconnect = false;
       } catch (const shcore::Error &err) {
         log_warning("During recovery start check: %s", err.what());
+
         if (mysqlshdk::db::is_mysql_client_error(err.code()) ||
             err.code() == ER_SERVER_SHUTDOWN) {
           // client errors are probably a lost connection, which may mean the
@@ -657,7 +659,40 @@ void monitor_gr_recovery_status(
             wait_recovery_start(connection_options, begin_time,
                                 startup_timeout_sec);
 
-        auto instance = mysqlsh::dba::Instance::connect(instance_def);
+        // there's a possibility that mysqlsh::dba::Instance::connect throws an
+        // exception while trying to connect, which would then propagate and
+        // exit the method without actually being connected. To prevent this,
+        // we'll try and call wait_server_startup (just once) and then retry
+        // again
+        std::shared_ptr<Instance> instance;
+        for (int numRetries = 1; numRetries >= 0; --numRetries) {
+          try {
+            instance = mysqlsh::dba::Instance::connect(instance_def);
+            break;
+          } catch (const shcore::Error &exp_connect) {
+            log_error("Could not open connection to %s: %s",
+                      instance_def.uri_endpoint().c_str(), exp_connect.what());
+
+            if ((numRetries > 0) &&
+                mysqlshdk::db::is_mysql_client_error(exp_connect.code())) {
+              try {
+                wait_server_startup(instance_def, startup_timeout_sec,
+                                    Recovery_progress_style::NOWAIT);
+              } catch (const shcore::Exception &exp_server) {
+                if (exp_server.code() != SHERR_DBA_SERVER_RESTART_TIMEOUT)
+                  throw;
+
+                log_error("Error waiting for server startup: %d - %s",
+                          exp_server.code(), exp_server.what());
+              }
+              continue;
+            }
+
+            // retries exausted or unkown error, so just rethrow and let the
+            // error propagate
+            throw;
+          }
+        }
 
         do_monitor_gr_recovery_status(instance.get(), post_clone_coptions,
                                       method, begin_time, progress_style,

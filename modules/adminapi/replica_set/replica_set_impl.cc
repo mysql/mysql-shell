@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2410,7 +2410,7 @@ Member_recovery_method Replica_set_impl::validate_instance_recovery(
 Instance_id Replica_set_impl::manage_instance(
     Instance *instance, const std::pair<std::string, std::string> &repl_user,
     const std::string &instance_label, Instance_id master_id, bool is_primary) {
-  Instance_metadata inst = query_instance_info(*instance);
+  Instance_metadata inst = query_instance_info(*instance, false);
 
   if (!instance_label.empty()) inst.label = instance_label;
   inst.cluster_id = get_id();
