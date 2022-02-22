@@ -471,6 +471,9 @@ bool delete_sandbox(int port) {
               << " but can't shut it down\n";
     mysql_close(mysql);
     return false;
+  } else {
+    std::cout << "Failed to connect to server running on port " << port << ": "
+              << mysql_error(mysql) << "  " << mysql_errno(mysql) << "\n";
   }
 
   mysql_close(mysql);
@@ -544,9 +547,9 @@ bool delete_sandbox(int port) {
     if (shcore::is_folder(d)) {
       try {
         shcore::remove_directory(d, true);
-        std::cerr << "Deleted leftover sandbox dir " << d << "\n";
+        std::cout << "Deleted leftover sandbox dir " << d << "\n";
       } catch (std::exception &e) {
-        std::cerr << "Error deleting sandbox dir " << d << ": " << e.what()
+        std::cout << "Error deleting sandbox dir " << d << ": " << e.what()
                   << "\n";
         return false;
       }
