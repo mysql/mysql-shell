@@ -481,49 +481,80 @@ bool delete_sandbox(int port) {
   }
 
   // Wait for the running server to complete the shutdown sequence
-  {
-    std::cout << "Waiting for server running at " << port << " to shut down\n";
 
-    int retries = k_wait_sandbox_shutdown;
+  std::cout << "Waiting for server running at " << port << " to shut down\n";
 
-    const auto is_port_listening = [](const std::string &host, int tcp_port) {
-      int ret = false;
-      try {
-        ret = mysqlshdk::utils::Net::is_port_listening(host, tcp_port);
-      } catch (...) {
-        // Ignore errors
-      }
-      return ret;
-    };
+  int retries = k_wait_sandbox_shutdown;
 
-    // Wait for the port to be freed
-    while (is_port_listening("127.0.0.1", port)) {
-      if (--retries < 0) {
-        std::cout << "Timeout waiting for port " << port << " to be free";
-        mysql_close(mysql);
-        return false;
-      }
-      shcore::sleep_ms(500);
+  const auto is_port_listening = [](const std::string &host, int tcp_port) {
+    int ret = false;
+    try {
+      ret = mysqlshdk::utils::Net::is_port_listening(host, tcp_port);
+    } catch (...) {
+      // Ignore errors
     }
+    return ret;
+  };
 
-    // Wait for the pid file to be deleted, meaning shutdown is complete
-    retries = k_wait_sandbox_shutdown;
+  // Wait for the ports (classic, x and xcom) to be freed
+  while (is_port_listening("127.0.0.1", port)) {
+    if (--retries < 0) {
+      std::cout << "Timeout waiting for port " << port << " to be free";
+      return false;
+    }
+    shcore::sleep_ms(1000);
+  }
 
-    // In Windows, wait for the lock file to be deleted too
+  int x_port = port * 10;
+  retries = k_wait_sandbox_shutdown;
+  while (is_port_listening("127.0.0.1", x_port)) {
+    if (--retries < 0) {
+      std::cout << "Timeout waiting for port " << x_port << " to be free";
+      return false;
+    }
+    shcore::sleep_ms(1000);
+  }
+
+  int xcom_port = port * 10 + 1;
+  retries = k_wait_sandbox_shutdown;
+  while (is_port_listening("127.0.0.1", xcom_port)) {
+    if (--retries < 0) {
+      std::cout << "Timeout waiting for port " << xcom_port << " to be free";
+      return false;
+    }
+    shcore::sleep_ms(1000);
+  }
+
+  // Wait for the pid file to be deleted, meaning shutdown is complete
+  if (tmpdir) {
 #ifndef _WIN32
+    // Wait for the lock files to be deleted too when not running in Windows
+    retries = k_wait_sandbox_shutdown;
     std::string lock_file = shcore::path::join_path(
-        tmpdir, std::to_string(port) + "/mysqld.sock.lock");
+        tmpdir, std::to_string(port), "data", "mysqld.sock.lock");
     while (mysqlshdk::utils::check_lock_file(lock_file)) {
       if (--retries < 0) {
         std::cout << "Timeout waiting for sandbox lock file " << lock_file
                   << " to be deleted after shutdown ";
-        mysql_close(mysql);
         return false;
       }
-      shcore::sleep_ms(500);
+      shcore::sleep_ms(1000);
+    }
+
+    retries = k_wait_sandbox_shutdown;
+    std::string xlock_file = shcore::path::join_path(
+        tmpdir, std::to_string(port), "data", "mysqlx.sock.lock");
+    while (mysqlshdk::utils::check_lock_file(xlock_file, "X%zd")) {
+      if (--retries < 0) {
+        std::cout << "Timeout waiting for sandbox lock file " << xlock_file
+                  << " to be deleted after shutdown ";
+        return false;
+      }
+      shcore::sleep_ms(1000);
     }
 
 #endif
+    retries = k_wait_sandbox_shutdown;
     std::string pidfile = shcore::path::join_path(
         tmpdir, std::to_string(port), std::to_string(port) + ".pid");
 
@@ -531,27 +562,37 @@ bool delete_sandbox(int port) {
       if (--retries < 0) {
         std::cout << "Timeout waiting for sandbox pid file " << pidfile
                   << " to be deleted after shutdown ";
-        mysql_close(mysql);
         return false;
       }
-      shcore::sleep_ms(500);
+      shcore::sleep_ms(1000);
     }
-  }
 
-  if (tmpdir) {
     std::string d;
     d = shcore::path::join_path(tmpdir, std::to_string(port));
     if (shcore::is_folder(d)) {
       try {
         shcore::remove_directory(d, true);
-        std::cerr << "Deleted leftover sandbox dir " << d << "\n";
+        std::cout << "Deleted leftover sandbox dir " << d << "\n";
       } catch (std::exception &e) {
-        std::cerr << "Error deleting sandbox dir " << d << ": " << e.what()
+        std::cout << "Error deleting sandbox dir " << d << ": " << e.what()
                   << "\n";
         return false;
       }
     }
   }
+#ifndef _WIN32
+  else {
+    // If the tmpdir does not exist, it means it was removed before so we must
+    // kill the process
+    std::string s =
+        "pkill -9 -f " +
+        shcore::path::join_path(tmpdir, std::to_string(port), "bin", "mysqld");
+
+    std::cout << "Terminating sandbox process\n";
+    system(s.c_str());
+  }
+#endif
+
   return true;
 }
 
