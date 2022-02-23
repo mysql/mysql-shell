@@ -589,7 +589,10 @@ bool delete_sandbox(int port) {
         shcore::path::join_path(tmpdir, std::to_string(port), "bin", "mysqld");
 
     std::cout << "Terminating sandbox process\n";
-    system(s.c_str());
+
+    if (system(s.c_str()) != 0) {
+      std::cout << "Error: unable to terminate sandbox process\n";
+    }
   }
 #endif
 
