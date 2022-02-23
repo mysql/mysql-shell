@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -171,7 +171,7 @@ TEST_F(Schema_dumper_test, dump_table) {
 -- Table structure for table `at1`
 --
 
-DROP TABLE IF EXISTS at1;
+DROP TABLE IF EXISTS `at1`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `at1` (
@@ -208,7 +208,7 @@ TEST_F(Schema_dumper_test, dump_table_with_trigger) {
 -- Table structure for table `t1`
 --
 
-DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS `t1`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `t1` (
@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `t1` (
 -- Dumping triggers for table 'mysqldump_test_db'.'t1'
 --
 
--- begin trigger mysqldump_test_db.trg1
+-- begin trigger `mysqldump_test_db`.`trg1`
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -243,9 +243,9 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end trigger mysqldump_test_db.trg1
+-- end trigger `mysqldump_test_db`.`trg1`
 
--- begin trigger mysqldump_test_db.trg2
+-- begin trigger `mysqldump_test_db`.`trg2`
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -264,9 +264,9 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end trigger mysqldump_test_db.trg2
+-- end trigger `mysqldump_test_db`.`trg2`
 
--- begin trigger mysqldump_test_db.trg3
+-- begin trigger `mysqldump_test_db`.`trg3`
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -287,14 +287,14 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end trigger mysqldump_test_db.trg3
+-- end trigger `mysqldump_test_db`.`trg3`
 
 
 --
 -- Table structure for table `t2`
 --
 
-DROP TABLE IF EXISTS t2;
+DROP TABLE IF EXISTS `t2`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `t2` (
@@ -306,7 +306,7 @@ CREATE TABLE IF NOT EXISTS `t2` (
 -- Dumping triggers for table 'mysqldump_test_db'.'t2'
 --
 
--- begin trigger mysqldump_test_db.trg4
+-- begin trigger `mysqldump_test_db`.`trg4`
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -327,7 +327,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end trigger mysqldump_test_db.trg4
+-- end trigger `mysqldump_test_db`.`trg4`
 
 )";
 
@@ -364,7 +364,7 @@ TEST_F(Schema_dumper_test, dump_schema) {
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mysqldump_test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 -- DEFAULT ENCRYPTION='N'
  */;
 
-USE mysqldump_test_db;
+USE `mysqldump_test_db`;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -395,47 +395,47 @@ TEST_F(Schema_dumper_test, dump_view) {
 -- Temporary view structure for view `v1`
 --
 
-DROP TABLE IF EXISTS v1;
-/*!50001 DROP VIEW IF EXISTS v1*/;
+DROP TABLE IF EXISTS `v1`;
+/*!50001 DROP VIEW IF EXISTS `v1`*/;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
 /*!50001 CREATE VIEW `v1` AS SELECT 
- 1 AS a,
- 1 AS b,
- 1 AS c */;
+ 1 AS `a`,
+ 1 AS `b`,
+ 1 AS `c` */;
 SET character_set_client = @saved_cs_client;
 
 --
 -- Temporary view structure for view `v2`
 --
 
-DROP TABLE IF EXISTS v2;
-/*!50001 DROP VIEW IF EXISTS v2*/;
+DROP TABLE IF EXISTS `v2`;
+/*!50001 DROP VIEW IF EXISTS `v2`*/;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
 /*!50001 CREATE VIEW `v2` AS SELECT 
- 1 AS a */;
+ 1 AS `a` */;
 SET character_set_client = @saved_cs_client;
 
 --
 -- Temporary view structure for view `v3`
 --
 
-DROP TABLE IF EXISTS v3;
-/*!50001 DROP VIEW IF EXISTS v3*/;
+DROP TABLE IF EXISTS `v3`;
+/*!50001 DROP VIEW IF EXISTS `v3`*/;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
 /*!50001 CREATE VIEW `v3` AS SELECT 
- 1 AS a,
- 1 AS b,
- 1 AS c */;
+ 1 AS `a`,
+ 1 AS `b`,
+ 1 AS `c` */;
 SET character_set_client = @saved_cs_client;
 
 --
 -- Final view structure for view `v1`
 --
 
-/*!50001 DROP VIEW IF EXISTS v1*/;
+/*!50001 DROP VIEW IF EXISTS `v1`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
 /*!50001 SET @saved_col_connection     = @@collation_connection */;
@@ -451,7 +451,7 @@ SET character_set_client = @saved_cs_client;
 -- Final view structure for view `v2`
 --
 
-/*!50001 DROP VIEW IF EXISTS v2*/;
+/*!50001 DROP VIEW IF EXISTS `v2`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
 /*!50001 SET @saved_col_connection     = @@collation_connection */;
@@ -467,7 +467,7 @@ SET character_set_client = @saved_cs_client;
 -- Final view structure for view `v3`
 --
 
-/*!50001 DROP VIEW IF EXISTS v3*/;
+/*!50001 DROP VIEW IF EXISTS `v3`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
 /*!50001 SET @saved_col_connection     = @@collation_connection */;
@@ -495,8 +495,8 @@ TEST_F(Schema_dumper_test, dump_events) {
 --
 /*!50106 SET @save_time_zone= @@TIME_ZONE */ ;
 
--- begin event mysqldump_test_db.ee1
-/*!50106 DROP EVENT IF EXISTS ee1 */;
+-- begin event `mysqldump_test_db`.`ee1`
+/*!50106 DROP EVENT IF EXISTS `ee1` */;
 DELIMITER ;;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;;
@@ -514,10 +514,10 @@ DELIMITER ;;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;;
 /*!50003 SET character_set_results = @saved_cs_results */ ;;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;;
--- end event mysqldump_test_db.ee1
+-- end event `mysqldump_test_db`.`ee1`
 
--- begin event mysqldump_test_db.ee2
-/*!50106 DROP EVENT IF EXISTS ee2 */;;
+-- begin event `mysqldump_test_db`.`ee2`
+/*!50106 DROP EVENT IF EXISTS `ee2` */;;
 DELIMITER ;;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;;
@@ -535,7 +535,7 @@ DELIMITER ;;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;;
 /*!50003 SET character_set_results = @saved_cs_results */ ;;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;;
--- end event mysqldump_test_db.ee2
+-- end event `mysqldump_test_db`.`ee2`
 
 DELIMITER ;
 /*!50106 SET TIME_ZONE= @save_time_zone */ ;
@@ -556,8 +556,8 @@ TEST_F(Schema_dumper_test, dump_routines) {
 -- Dumping routines for database 'mysqldump_test_db'
 --
 
--- begin function mysqldump_test_db.bug9056_func1
-/*!50003 DROP FUNCTION IF EXISTS bug9056_func1 */;
+-- begin function `mysqldump_test_db`.`bug9056_func1`
+/*!50003 DROP FUNCTION IF EXISTS `bug9056_func1` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -574,10 +574,10 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end function mysqldump_test_db.bug9056_func1
+-- end function `mysqldump_test_db`.`bug9056_func1`
 
--- begin function mysqldump_test_db.bug9056_func2
-/*!50003 DROP FUNCTION IF EXISTS bug9056_func2 */;
+-- begin function `mysqldump_test_db`.`bug9056_func2`
+/*!50003 DROP FUNCTION IF EXISTS `bug9056_func2` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -597,9 +597,9 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end function mysqldump_test_db.bug9056_func2
+-- end function `mysqldump_test_db`.`bug9056_func2`
 
--- begin procedure mysqldump_test_db.`a'b`
+-- begin procedure `mysqldump_test_db`.`a'b`
 /*!50003 DROP PROCEDURE IF EXISTS `a'b` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -617,10 +617,10 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end procedure mysqldump_test_db.`a'b`
+-- end procedure `mysqldump_test_db`.`a'b`
 
--- begin procedure mysqldump_test_db.bug9056_proc1
-/*!50003 DROP PROCEDURE IF EXISTS bug9056_proc1 */;
+-- begin procedure `mysqldump_test_db`.`bug9056_proc1`
+/*!50003 DROP PROCEDURE IF EXISTS `bug9056_proc1` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -637,10 +637,10 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end procedure mysqldump_test_db.bug9056_proc1
+-- end procedure `mysqldump_test_db`.`bug9056_proc1`
 
--- begin procedure mysqldump_test_db.bug9056_proc2
-/*!50003 DROP PROCEDURE IF EXISTS bug9056_proc2 */;
+-- begin procedure `mysqldump_test_db`.`bug9056_proc2`
+/*!50003 DROP PROCEDURE IF EXISTS `bug9056_proc2` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -659,7 +659,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
--- end procedure mysqldump_test_db.bug9056_proc2
+-- end procedure `mysqldump_test_db`.`bug9056_proc2`
 
 )";
   expect_output_eq(res);
@@ -929,24 +929,24 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
 
   // Engines
   EXPECT_TABLE("myisam_tbl1",
-               {"Table 'mysqlaas_compat'.'myisam_tbl1' uses unsupported "
+               {"Table `mysqlaas_compat`.`myisam_tbl1` uses unsupported "
                 "storage engine MyISAM"});
 
   EXPECT_TABLE(
       "blackhole_tbl1",
-      {"Table 'mysqlaas_compat'.'blackhole_tbl1' does not have primary or "
+      {"Table `mysqlaas_compat`.`blackhole_tbl1` does not have primary or "
        "unique non null key defined",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' uses unsupported storage "
+       "Table `mysqlaas_compat`.`blackhole_tbl1` uses unsupported storage "
        "engine BLACKHOLE",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "Table `mysqlaas_compat`.`blackhole_tbl1` does not have a Primary Key, "
        "which is required for High Availability in MDS"});
 
   EXPECT_TABLE("myisam_tbl2",
-               {"Table 'mysqlaas_compat'.'myisam_tbl2' uses unsupported "
+               {"Table `mysqlaas_compat`.`myisam_tbl2` uses unsupported "
                 "storage engine MyISAM"});
 
   // TABLESPACE
-  EXPECT_TABLE("ts1_tbl1", {"Table 'mysqlaas_compat'.'ts1_tbl1' uses "
+  EXPECT_TABLE("ts1_tbl1", {"Table `mysqlaas_compat`.`ts1_tbl1` uses "
                             "unsupported tablespace option"});
 
   // DEFINERS
@@ -955,16 +955,16 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
                       file.get(), compat_db_name, "myisam_tbl1"));
   ASSERT_EQ(1, iss.size());
   EXPECT_EQ(
-      "Trigger mysqlaas_compat.ins_sum - definition uses DEFINER clause set "
-      "to user `root`@`localhost` which can only be executed by this user or a "
-      "user with SET_USER_ID or SUPER privileges",
+      "Trigger `mysqlaas_compat`.`ins_sum` - definition uses DEFINER clause "
+      "set to user `root`@`localhost` which can only be executed by this user "
+      "or a user with SET_USER_ID or SUPER privileges",
       iss.front().description);
 
   EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
   ASSERT_EQ(1, iss.size());
   EXPECT_EQ(
-      "Event mysqlaas_compat.event2 - definition uses DEFINER clause set to "
-      "user `root`@`localhost` which can only be executed by this user or a "
+      "Event `mysqlaas_compat`.`event2` - definition uses DEFINER clause set "
+      "to user `root`@`localhost` which can only be executed by this user or a "
       "user with SET_USER_ID or SUPER privileges",
       iss.front().description);
 
@@ -972,48 +972,48 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
   ASSERT_EQ(8, iss.size());
   EXPECT_EQ(
-      "Function mysqlaas_compat.func1 - definition uses DEFINER clause set to "
-      "user " +
+      "Function `mysqlaas_compat`.`func1` - definition uses DEFINER clause set "
+      "to user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
       iss[0].description);
   EXPECT_EQ(
-      "Function mysqlaas_compat.func1 - definition does not use SQL SECURITY "
-      "INVOKER characteristic, which is required",
+      "Function `mysqlaas_compat`.`func1` - definition does not use SQL "
+      "SECURITY INVOKER characteristic, which is required",
       iss[1].description);
   EXPECT_EQ(
-      "Function mysqlaas_compat.func2 - definition uses DEFINER clause set to "
-      "user " +
+      "Function `mysqlaas_compat`.`func2` - definition uses DEFINER clause set "
+      "to user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
       iss[2].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.labeled - definition uses DEFINER clause set "
-      "to user " +
+      "Procedure `mysqlaas_compat`.`labeled` - definition uses DEFINER clause "
+      "set to user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
       iss[3].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.labeled - definition does not use SQL "
+      "Procedure `mysqlaas_compat`.`labeled` - definition does not use SQL "
       "SECURITY INVOKER characteristic, which is required",
       iss[4].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.proc1 - definition uses DEFINER clause set to "
-      "user " +
+      "Procedure `mysqlaas_compat`.`proc1` - definition uses DEFINER clause "
+      "set to user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
       iss[5].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.proc1 - definition does not use SQL SECURITY "
-      "INVOKER characteristic, which is required",
+      "Procedure `mysqlaas_compat`.`proc1` - definition does not use SQL "
+      "SECURITY INVOKER characteristic, which is required",
       iss[6].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.proc2 - definition uses DEFINER clause set to "
-      "user " +
+      "Procedure `mysqlaas_compat`.`proc2` - definition uses DEFINER clause "
+      "set to user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
@@ -1022,21 +1022,21 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
   ASSERT_EQ(2, iss.size());
   EXPECT_EQ(
-      "View mysqlaas_compat.view1 - definition uses DEFINER clause set to "
+      "View `mysqlaas_compat`.`view1` - definition uses DEFINER clause set to "
       "user " +
           user +
           " which can only be executed by this user or a user "
           "with SET_USER_ID or SUPER privileges",
       iss[0].description);
   EXPECT_EQ(
-      "View mysqlaas_compat.view1 - definition does not use SQL SECURITY "
+      "View `mysqlaas_compat`.`view1` - definition does not use SQL SECURITY "
       "INVOKER characteristic, which is required",
       iss[1].description);
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
   ASSERT_EQ(1, iss.size());
   EXPECT_EQ(
-      "View mysqlaas_compat.view3 - definition uses DEFINER clause set to "
+      "View `mysqlaas_compat`.`view3` - definition uses DEFINER clause set to "
       "user " +
           user +
           " which can only be executed by this user or a user "
@@ -1128,7 +1128,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   // Engines
   EXPECT_TABLE(
       "myisam_tbl1",
-      {"Table 'mysqlaas_compat'.'myisam_tbl1' had unsupported engine MyISAM "
+      {"Table `mysqlaas_compat`.`myisam_tbl1` had unsupported engine MyISAM "
        "changed to InnoDB"},
       "CREATE TABLE IF NOT EXISTS `myisam_tbl1` (\n"
       "  `id` int(11) NOT NULL AUTO_INCREMENT,\n"
@@ -1140,9 +1140,9 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_TABLE(
       "blackhole_tbl1",
-      {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
+      {"Table `mysqlaas_compat`.`blackhole_tbl1` had unsupported engine "
        "BLACKHOLE changed to InnoDB",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "Table `mysqlaas_compat`.`blackhole_tbl1` does not have a Primary Key, "
        "this will be fixed when the dump is loaded"},
       "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
       "  `id` int(11) DEFAULT NULL,\n"
@@ -1154,9 +1154,9 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_TABLE(
       "blackhole_tbl1",
-      {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
+      {"Table `mysqlaas_compat`.`blackhole_tbl1` had unsupported engine "
        "BLACKHOLE changed to InnoDB",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "Table `mysqlaas_compat`.`blackhole_tbl1` does not have a Primary Key, "
        "this is ignored"},
       "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
       "  `id` int(11) DEFAULT NULL,\n"
@@ -1168,9 +1168,9 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_TABLE(
       "blackhole_tbl1",
-      {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
+      {"Table `mysqlaas_compat`.`blackhole_tbl1` had unsupported engine "
        "BLACKHOLE changed to InnoDB",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "Table `mysqlaas_compat`.`blackhole_tbl1` does not have a Primary Key, "
        "this will be fixed when the dump is loaded"},
       "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
       "  `id` int(11) DEFAULT NULL,\n"
@@ -1182,7 +1182,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_TABLE(
       "myisam_tbl2",
-      {"Table 'mysqlaas_compat'.'myisam_tbl2' had unsupported engine MyISAM "
+      {"Table `mysqlaas_compat`.`myisam_tbl2` had unsupported engine MyISAM "
        "changed to InnoDB"},
       "CREATE TABLE IF NOT EXISTS `myisam_tbl2` (\n"
       "  `id` int(11) NOT NULL AUTO_INCREMENT,\n"
@@ -1192,7 +1192,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   // TABLESPACE
   EXPECT_TABLE("ts1_tbl1",
-               {"Table 'mysqlaas_compat'.'ts1_tbl1' had unsupported tablespace "
+               {"Table `mysqlaas_compat`.`ts1_tbl1` had unsupported tablespace "
                 "option removed"},
                "CREATE TABLE IF NOT EXISTS `ts1_tbl1` (\n"
                "  `pk` int(11) NOT NULL,\n"
@@ -1211,7 +1211,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   // DATA/INDEX DIRECTORY
   if (run_directory_tests) {
     EXPECT_TABLE("path_tbl1",
-                 {"Table 'mysqlaas_compat'.'path_tbl1' had {DATA|INDEX} "
+                 {"Table `mysqlaas_compat`.`path_tbl1` had {DATA|INDEX} "
                   "DIRECTORY table option commented out"},
                  "CREATE TABLE IF NOT EXISTS `path_tbl1` (\n"
                  "  `pk` int(11) NOT NULL,\n"
@@ -1221,9 +1221,9 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      shcore::path::tmpdir() + "/'*/ ;");
 
     EXPECT_TABLE("path_tbl2",
-                 {"Table 'mysqlaas_compat'.'path_tbl2' had {DATA|INDEX} "
+                 {"Table `mysqlaas_compat`.`path_tbl2` had {DATA|INDEX} "
                   "DIRECTORY table option commented out",
-                  "Table 'mysqlaas_compat'.'path_tbl2' had unsupported engine "
+                  "Table `mysqlaas_compat`.`path_tbl2` had unsupported engine "
                   "MyISAM changed to InnoDB"},
                  "CREATE TABLE IF NOT EXISTS `path_tbl2` (\n"
                  "  `pk` int(11) NOT NULL,\n"
@@ -1234,9 +1234,9 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      shcore::path::tmpdir() + "/'*/ ;");
 
     EXPECT_TABLE("path_tbl3",
-                 {"Table 'mysqlaas_compat'.'path_tbl3' had {DATA|INDEX} "
+                 {"Table `mysqlaas_compat`.`path_tbl3` had {DATA|INDEX} "
                   "DIRECTORY table option commented out",
-                  "Table 'mysqlaas_compat'.'path_tbl3' had unsupported engine "
+                  "Table `mysqlaas_compat`.`path_tbl3` had unsupported engine "
                   "MyISAM changed to InnoDB"},
                  "CREATE TABLE IF NOT EXISTS `path_tbl3` (\n"
                  "  `pk` int(11) NOT NULL,\n  PRIMARY KEY (`pk`)\n"
@@ -1245,7 +1245,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      shcore::path::tmpdir() + "/'*/ ;");
 
     EXPECT_TABLE("part_tbl2",
-                 {"Table 'mysqlaas_compat'.'part_tbl2' had {DATA|INDEX} "
+                 {"Table `mysqlaas_compat`.`part_tbl2` had {DATA|INDEX} "
                   "DIRECTORY table option commented out"},
                  "CREATE TABLE IF NOT EXISTS `part_tbl2` (\n"
                  "  `pk` int(11) NOT NULL,\n"
@@ -1262,7 +1262,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      " ENGINE = InnoDB) */;");
 
     EXPECT_TABLE("part_tbl3",
-                 {"Table 'mysqlaas_compat'.'part_tbl3' had {DATA|INDEX} "
+                 {"Table `mysqlaas_compat`.`part_tbl3` had {DATA|INDEX} "
                   "DIRECTORY table option commented out"},
                  "CREATE TABLE IF NOT EXISTS `part_tbl3` (\n"
                  "  `pk` int(11) NOT NULL,\n"
@@ -1297,40 +1297,40 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
                       file.get(), compat_db_name, "myisam_tbl1"));
   ASSERT_EQ(1, iss.size());
-  EXPECT_EQ("Trigger mysqlaas_compat.ins_sum had definer clause removed",
+  EXPECT_EQ("Trigger `mysqlaas_compat`.`ins_sum` had definer clause removed",
             iss.front().description);
   EXPECT_DUMP_CONTAINS(
       {"/*!50003 CREATE TRIGGER ins_sum BEFORE INSERT ON myisam_tbl1"});
 
   EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
   ASSERT_EQ(1, iss.size());
-  EXPECT_EQ("Event mysqlaas_compat.event2 had definer clause removed",
+  EXPECT_EQ("Event `mysqlaas_compat`.`event2` had definer clause removed",
             iss.front().description);
   EXPECT_DUMP_CONTAINS({"/*!50106 CREATE EVENT IF NOT EXISTS `event2`"});
 
   EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
   ASSERT_EQ(8, iss.size());
-  EXPECT_EQ("Function mysqlaas_compat.func1 had definer clause removed",
+  EXPECT_EQ("Function `mysqlaas_compat`.`func1` had definer clause removed",
             iss[0].description);
   EXPECT_EQ(
-      "Function mysqlaas_compat.func1 had SQL SECURITY characteristic set to "
-      "INVOKER",
+      "Function `mysqlaas_compat`.`func1` had SQL SECURITY characteristic set "
+      "to INVOKER",
       iss[1].description);
-  EXPECT_EQ("Function mysqlaas_compat.func2 had definer clause removed",
+  EXPECT_EQ("Function `mysqlaas_compat`.`func2` had definer clause removed",
             iss[2].description);
-  EXPECT_EQ("Procedure mysqlaas_compat.labeled had definer clause removed",
+  EXPECT_EQ("Procedure `mysqlaas_compat`.`labeled` had definer clause removed",
             iss[3].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.labeled had SQL SECURITY characteristic set "
-      "to INVOKER",
+      "Procedure `mysqlaas_compat`.`labeled` had SQL SECURITY characteristic "
+      "set to INVOKER",
       iss[4].description);
-  EXPECT_EQ("Procedure mysqlaas_compat.proc1 had definer clause removed",
+  EXPECT_EQ("Procedure `mysqlaas_compat`.`proc1` had definer clause removed",
             iss[5].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.proc1 had SQL SECURITY characteristic set to "
-      "INVOKER",
+      "Procedure `mysqlaas_compat`.`proc1` had SQL SECURITY characteristic set "
+      "to INVOKER",
       iss[6].description);
-  EXPECT_EQ("Procedure mysqlaas_compat.proc2 had definer clause removed",
+  EXPECT_EQ("Procedure `mysqlaas_compat`.`proc2` had definer clause removed",
             iss[7].description);
 
   EXPECT_DUMP_CONTAINS(
@@ -1369,10 +1369,10 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
   ASSERT_EQ(2, iss.size());
-  EXPECT_EQ("View mysqlaas_compat.view1 had definer clause removed",
+  EXPECT_EQ("View `mysqlaas_compat`.`view1` had definer clause removed",
             iss[0].description);
   EXPECT_EQ(
-      "View mysqlaas_compat.view1 had SQL SECURITY characteristic set to "
+      "View `mysqlaas_compat`.`view1` had SQL SECURITY characteristic set to "
       "INVOKER",
       iss[1].description);
   EXPECT_DUMP_CONTAINS(
@@ -1381,7 +1381,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
   ASSERT_EQ(1, iss.size());
-  EXPECT_EQ("View mysqlaas_compat.view3 had definer clause removed",
+  EXPECT_EQ("View `mysqlaas_compat`.`view3` had definer clause removed",
             iss[0].description);
   EXPECT_DUMP_CONTAINS(
       {"/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view3 AS "

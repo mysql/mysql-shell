@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -147,7 +147,6 @@ class Schema_dumper {
   bool opt_drop_trigger = true;
   bool opt_reexecutable = true;
   bool opt_create_options = true;
-  bool opt_quoted = false;
   bool opt_databases = false;
   bool opt_alldbs = false;
   bool opt_create_db = false;
