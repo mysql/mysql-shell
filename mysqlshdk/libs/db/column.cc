@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -165,9 +165,11 @@ Type dbstring_to_type(const std::string &data_type,
     return mysqlshdk::db::Type::DateTime;
   } else if (shcore::str_caseeq(data_type.c_str(), "year")) {
     return mysqlshdk::db::Type::UInteger;
-  } else if (shcore::str_iendswith(data_type.c_str(), "blob", "text")) {
+  } else if (shcore::str_iendswith(data_type.c_str(), "blob",
+                                   "binary")) {  // Includes varbinary data type
     return mysqlshdk::db::Type::Bytes;
-  } else if (shcore::str_iendswith(data_type.c_str(), "binary", "char")) {
+  } else if (shcore::str_iendswith(data_type.c_str(), "char",
+                                   "text")) {  // Includes varchar data type
     return mysqlshdk::db::Type::String;
   } else if (shcore::str_caseeq(data_type.c_str(), "bit")) {
     return mysqlshdk::db::Type::Bit;

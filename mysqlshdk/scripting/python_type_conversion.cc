@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,7 @@ Value convert(PyObject *py, Python_context *context) {
   return convert(py, &context);
 }
 
-Value convert(PyObject *py, Python_context **context) {
+Value convert(PyObject *py, Python_context **context, bool is_binary) {
   assert(context);
 
   // Some numeric conversions yield errors, in that case the string
@@ -96,14 +96,17 @@ Value convert(PyObject *py, Python_context **context) {
       retval = Value(value);
     }
   } else if (PyByteArray_Check(py)) {
-    return Value(PyByteArray_AsString(py), PyByteArray_Size(py));
+    return Value(PyByteArray_AsString(py), PyByteArray_Size(py), true);
   } else if (PyBytes_Check(py)) {
-    return Value(PyBytes_AsString(py), PyBytes_Size(py));
+    return Value(PyBytes_AsString(py), PyBytes_Size(py), is_binary);
   } else if (PyUnicode_Check(py)) {
     // TODO: In case of error calls ourself using NULL, either handle here
     // before calling recursively or always allow NULL
     Release ref{PyUnicode_AsUTF8String(py)};
-    retval = convert(ref, context);
+
+    // After unicode check, the value will match the Bytes check but the content
+    // should be treated as string
+    retval = convert(ref, context, false);
   } else if (array_check(py)) {
     std::shared_ptr<Value::Array_type> array;
 
@@ -313,6 +316,10 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
       break;
     case shcore::Function:
       r = wrap(*value.value.func);
+      break;
+    case shcore::Binary:
+      r = PyBytes_FromStringAndSize(value.value.s->c_str(),
+                                    value.value.s->size());
       break;
   }
   return r;

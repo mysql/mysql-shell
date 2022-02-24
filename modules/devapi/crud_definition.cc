@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -285,7 +285,8 @@ void Crud_definition::encode_expression_value(Mysqlx::Expr::Expr *expr,
     case shcore::UInteger:
     case shcore::Integer:
     case shcore::String:
-    case shcore::Float: {
+    case shcore::Float:
+    case shcore::Binary: {
       std::unique_ptr<Mysqlx::Datatypes::Scalar> scalar(convert_value(value));
       expr->set_type(Mysqlx::Expr::Expr::Expr::LITERAL);
       expr->set_allocated_literal(scalar.release());

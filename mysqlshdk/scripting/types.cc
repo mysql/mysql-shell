@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,20 +58,21 @@ namespace {
 // from_type = row, to_type = column
 #define T true
 #define F false
-const bool kTypeConvertible[12][12] = {
-    // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun
-    {T, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
-    {T, T, F, F, F, F, F, T, T, T, T, T},  // Null
-    {T, F, T, F, T, T, T, F, F, F, F, F},  // Bool
-    {T, F, T, T, T, T, T, F, F, F, F, F},  // String
-    {T, F, T, F, T, T, T, F, F, F, F, F},  // Integer
-    {T, F, T, F, T, T, T, F, F, F, F, F},  // UInteger
-    {T, F, T, F, T, T, T, F, F, F, F, F},  // Float
-    {T, F, F, F, F, F, F, T, F, F, F, F},  // Object
-    {T, F, F, F, F, F, F, F, T, F, F, F},  // Array
-    {T, F, F, F, F, F, F, F, F, T, T, F},  // Map
-    {T, F, F, F, F, F, F, F, F, T, T, F},  // MapRef
-    {T, F, F, F, F, F, F, F, F, F, F, T},  // Function
+const bool kTypeConvertible[13][13] = {
+    // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun, Binary
+    {T, F, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
+    {T, T, F, F, F, F, F, T, T, T, T, T, F},  // Null
+    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // Bool
+    {T, F, T, T, T, T, T, F, F, F, F, F, T},  // String
+    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // Integer
+    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // UInteger
+    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // Float
+    {T, F, F, F, F, F, F, T, F, F, F, F, F},  // Object
+    {T, F, F, F, F, F, F, F, T, F, F, F, F},  // Array
+    {T, F, F, F, F, F, F, F, F, T, T, F, F},  // Map
+    {T, F, F, F, F, F, F, F, F, T, T, F, F},  // MapRef
+    {T, F, F, F, F, F, F, F, F, F, F, T, F},  // Function
+    {T, F, F, T, F, F, F, F, F, F, F, F, T},  // Binary
 };
 #undef T
 #undef F
@@ -312,6 +313,8 @@ std::string type_name(Value_type type) {
       return "MapRef";
     case Function:
       return "Function";
+    case Binary:
+      return "Binary";
     default:
       return "";
   }
@@ -343,6 +346,8 @@ std::string type_description(Value_type type) {
       return "a map";
     case Function:
       return "a function";
+    case Binary:
+      return "a binary string";
     default:
       return "";
   }
@@ -427,11 +432,12 @@ Value::Value(Value &&other) : type(shcore::Null) {
   operator=(std::move(other));
 }
 
-Value::Value(const std::string &s) : type(String) {
+Value::Value(const std::string &s, bool binary)
+    : type(binary ? Binary : String) {
   value.s = new std::string(s);
 }
 
-Value::Value(std::string &&s) : type(String) {
+Value::Value(std::string &&s, bool binary) : type(binary ? Binary : String) {
   value.s = new std::string(std::move(s));
 }
 
@@ -444,9 +450,9 @@ Value::Value(const char *s) {
   }
 }
 
-Value::Value(const char *s, size_t n) {
+Value::Value(const char *s, size_t n, bool binary) {
   if (s) {
-    type = String;
+    type = binary ? Binary : String;
     value.s = new std::string(s, n);
   } else {
     type = shcore::Null;
@@ -563,6 +569,7 @@ Value &Value::operator=(const Value &other) {
       case Float:
         value.d = other.value.d;
         break;
+      case Binary:
       case String:
         *value.s = *other.value.s;
         break;
@@ -591,6 +598,7 @@ Value &Value::operator=(const Value &other) {
       case UInteger:
       case Float:
         break;
+      case Binary:
       case String:
         delete value.s;
         break;
@@ -627,6 +635,7 @@ Value &Value::operator=(const Value &other) {
       case Float:
         value.d = other.value.d;
         break;
+      case Binary:
       case String:
         value.s = new std::string(*other.value.s);
         break;
@@ -659,6 +668,7 @@ Value &Value::operator=(Value &&other) {
     case UInteger:
     case Float:
       break;
+    case Binary:
     case String:
       delete value.s;
       value.s = nullptr;
@@ -705,6 +715,7 @@ Value &Value::operator=(Value &&other) {
     case Float:
       std::swap(value.d, other.value.d);
       break;
+    case Binary:
     case String:
       std::swap(value.s, other.value.s);
       break;
@@ -1145,6 +1156,7 @@ bool Value::operator==(const Value &other) const {
         return value.ui == other.value.ui;
       case Float:
         return value.d == other.value.d;
+      case Binary:
       case String:
         return *value.s == *other.value.s;
       case Object:
@@ -1240,6 +1252,7 @@ bool Value::operator<(const Value &other) const {
         return value.ui < other.value.ui;
       case Float:
         return value.d < other.value.d;
+      case Binary:
       case String:
         return *value.s < *other.value.s;
       case Object:
@@ -1338,6 +1351,7 @@ bool Value::operator<=(const Value &other) const {
         return value.ui <= other.value.ui;
       case Float:
         return value.d <= other.value.d;
+      case Binary:
       case String:
         return *value.s <= *other.value.s;
       case Object:
@@ -1528,6 +1542,9 @@ std::string &Value::append_descr(std::string &s_out, int indent,
     case Function:
       value.func->get()->append_descr(&s_out, indent, quote_strings);
       break;
+    case Binary:
+      s_out += shcore::string_to_hex(*value.s);
+      break;
   }
   return s_out;
 }
@@ -1641,6 +1658,9 @@ std::string &Value::append_repr(std::string &s_out) const {
     case Function:
       value.func->get()->append_repr(&s_out);
       break;
+    case Binary:
+      s_out += shcore::string_to_hex(*value.s);
+      break;
   }
   return s_out;
 }
@@ -1654,6 +1674,7 @@ Value::~Value() {
     case UInteger:
     case Float:
       break;
+    case Binary:
     case String:
       delete value.s;
       break;
@@ -2015,6 +2036,9 @@ std::string Value::yaml(int init_indent) const {
 
     case Value_type::MapRef:
       return map2yaml(value.mapref->lock(), init_indent);
+    case Value_type::Binary:
+      // TODO(rennox): implement binary
+      return string2yaml(*value.s, init_indent);
   }
 
   throw std::logic_error("Type '" + type_name(type) + "' was not handled.");

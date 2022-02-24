@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,8 +62,10 @@ std::unique_ptr<Mysqlx::Datatypes::Scalar> convert_value(
       mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.as_int());
       return my_scalar;
 
+    case shcore::Binary:
     case shcore::String:
-      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.get_string());
+      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.get_string(),
+                                              value.type == shcore::Binary);
       return my_scalar;
 
     case shcore::Float:

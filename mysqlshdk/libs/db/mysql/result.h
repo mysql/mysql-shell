@@ -91,7 +91,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   void stop_pre_fetch();
 
   void fetch_metadata();
-  Type map_data_type(int raw_type, int flags);
+  Type map_data_type(int raw_type, int flags, int collation_id);
 
   virtual std::shared_ptr<Field_names> field_names() const;
 

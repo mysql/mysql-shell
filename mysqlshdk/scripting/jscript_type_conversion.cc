@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -178,6 +178,11 @@ Value JScript_type_bridger::v8_value_to_shcore_value(
     return Value(true);
   } else if (value->IsFalse()) {
     return Value(false);
+  } else if (value->IsArrayBuffer()) {
+    v8::ArrayBuffer *buffer = v8::ArrayBuffer::Cast(*value);
+    return shcore::Value(
+        static_cast<const char *>(buffer->GetBackingStore()->Data()),
+        buffer->ByteLength(), true);
   } else if (value->IsArray()) {
     v8::Array *jsarray = v8::Array::Cast(*value);
     std::shared_ptr<Value::Array_type> array(
@@ -293,6 +298,9 @@ v8::Local<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
     } break;
     case shcore::Function:
       r = function_wrapper->wrap(*value.value.func);
+      break;
+    case shcore::Binary:
+      r = owner->v8_array_buffer(*value.value.s);
       break;
   }
   return r;

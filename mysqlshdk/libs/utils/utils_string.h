@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -411,6 +411,8 @@ std::string SHCORE_PUBLIC str_replace(const std::string &s,
 
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
 std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);
+std::string SHCORE_PUBLIC string_to_hex(const std::string &s);
+std::string SHCORE_PUBLIC string_to_hex(const char *data, size_t length);
 
 /**
  * Escape `quote` and `\` chars.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,24 +21,22 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _MYSQLX_CHARSET_H_
-#define _MYSQLX_CHARSET_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_ENCODING_H_
+#define MYSQLSHDK_LIBS_UTILS_ENCODING_H_
 
-#include <stdint.h>
 #include <string>
 
-namespace mysqlshdk {
-namespace db {
-namespace charset {
+namespace shcore {
+/**
+ * Decodes a base64 encoded string.
+ *
+ * @param source the base64 string to be decoded
+ * @param target a string pointer where the decoded string will be stored.
+ * @returns true on success decode
+ */
+bool decode_base64(const std::string &source, std::string *target);
+bool encode_base64(const unsigned char *source, int source_length,
+                   std::string *encoded);
+}  // namespace shcore
 
-constexpr const int k_binary_collation_id = 63;
-
-std::string charset_name_from_collation_id(uint32_t id);
-std::string collation_name_from_collation_id(uint32_t id);
-uint32_t collation_id_from_collation_name(const std::string &collation_name);
-
-}  // namespace charset
-}  // namespace db
-}  // namespace mysqlshdk
-
-#endif  // _MYSQLX_CHARSET_H_
+#endif  // MYSQLSHDK_LIBS_UTILS_ENCODING_H_

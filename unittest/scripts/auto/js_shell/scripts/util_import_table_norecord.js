@@ -384,11 +384,11 @@ shell.options.resultFormat = original_output_format
 EXPECT_STDOUT_CONTAINS_MULTILINE(`
 vertical
 *************************** 1. row ***************************
-c1:
-c2:
+c1: 0x
+c2: 0x
 *************************** 2. row ***************************
-c1: tinyblob-text readable
-c2: blob-text readable
+c1: 0x74696E79626C6F622D74657874207265616461626C65
+c2: 0x626C6F622D74657874207265616461626C65
 *************************** 3. row ***************************
 c1: NULL
 c2: NULL

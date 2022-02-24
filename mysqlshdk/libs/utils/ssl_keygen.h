@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,17 +88,6 @@ std::string create_key_pair(const std::string &path,
 std::string load_private_key(const std::string &path,
                              Password_callback callback = nullptr,
                              void *user_data = nullptr);
-
-/**
- * Decodes a base64 encoded string.
- *
- * @param source the base64 string to be decoded
- * @param target a string pointer where the decoded string will be stored.
- * @returns true on success decode
- */
-bool decode_base64(const std::string &source, std::string *target);
-bool encode_base64(const unsigned char *source, int source_length,
-                   std::string *encoded);
 }  // namespace ssl
 }  // namespace shcore
 

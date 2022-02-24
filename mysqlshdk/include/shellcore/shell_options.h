@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -201,6 +201,12 @@ class Shell_options : public shcore::Options {
     bool is_mfa(bool check_values = false) const;
 
     mysqlshdk::db::Connection_options connection_options() const;
+
+    // This should probably a command line option that determines how much bytes
+    // should be included when returning binary data, 0 means no limits
+    // Eventually this should be turned as a command line argument, i.e.
+    // --binary-limit
+    size_t binary_limit = 0;
   };
 
   explicit Shell_options(int argc = 0, char **argv = nullptr,
@@ -238,6 +244,8 @@ class Shell_options : public shcore::Options {
   void set_result_format(const std::string &format) {
     storage.result_format = format;
   }
+
+  void set_binary_limit(size_t value) { storage.binary_limit = value; }
 
   void set_oci_config_file(const std::string &path) {
     storage.oci_config_file = path;

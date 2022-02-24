@@ -1290,7 +1290,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_0900_ai_ci (255)
 Length:    1020
@@ -1318,7 +1318,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_0900_ai_ci (255)
 Length:    262140
@@ -1346,7 +1346,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_0900_ai_ci (255)
 Length:    67108860
@@ -1374,7 +1374,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_0900_ai_ci (255)
 Length:    4294967295
@@ -1486,7 +1486,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      String
+Type:      Bytes
 DbType:    STRING
 Collation: binary (63)
 Length:    20
@@ -1500,7 +1500,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      String
+Type:      Bytes
 DbType:    VAR_STRING
 Collation: binary (63)
 Length:    20
@@ -2278,7 +2278,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_general_ci (45)
 Length:    1020
@@ -2306,7 +2306,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_general_ci (45)
 Length:    262140
@@ -2334,7 +2334,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_general_ci (45)
 Length:    67108860
@@ -2362,7 +2362,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      Bytes
+Type:      String
 DbType:    BLOB
 Collation: utf8mb4_general_ci (45)
 Length:    4294967295
@@ -2474,7 +2474,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      String
+Type:      Bytes
 DbType:    STRING
 Collation: binary (63)
 Length:    20
@@ -2488,7 +2488,7 @@ Catalog:   `def`
 Database:  `scti_test`
 Table:     `t`
 Org_table: `t`
-Type:      String
+Type:      Bytes
 DbType:    VAR_STRING
 Collation: binary (63)
 Length:    20

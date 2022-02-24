@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -232,6 +232,9 @@ class JScript_context::Impl {
   v8::Local<v8::String> v8_string(const char *data) const;
   v8::Local<v8::String> v8_string(const std::string &data) const;
   std::string to_string(v8::Local<v8::Value> obj) const;
+
+  v8::Local<v8::ArrayBuffer> v8_array_buffer(const std::string &data);
+  v8::Local<v8::ArrayBuffer> v8_array_buffer(const char *data, size_t length);
 
   v8::Isolate *isolate() const;
   v8::Local<v8::Context> context() const;
@@ -723,6 +726,16 @@ v8::Local<v8::String> JScript_context::Impl::v8_string(const char *data) const {
 v8::Local<v8::String> JScript_context::Impl::v8_string(
     const std::string &data) const {
   return v8_string(data.c_str());
+}
+
+v8::Local<v8::ArrayBuffer> JScript_context::Impl::v8_array_buffer(
+    const std::string &data) {
+  return v8_array_buffer(data.c_str(), data.size());
+}
+
+v8::Local<v8::ArrayBuffer> JScript_context::Impl::v8_array_buffer(
+    const char *data, size_t length) {
+  return shcore::v8_array_buffer(m_isolate, data, length);
 }
 
 std::string JScript_context::Impl::to_string(v8::Isolate *isolate,
@@ -1459,6 +1472,16 @@ std::string JScript_context::to_string(v8::Local<v8::Value> obj) {
   return m_impl->to_string(obj);
 }
 
+v8::Local<v8::ArrayBuffer> JScript_context::v8_array_buffer(
+    const std::string &data) {
+  return m_impl->v8_array_buffer(data);
+}
+
+v8::Local<v8::ArrayBuffer> JScript_context::v8_array_buffer(const char *data,
+                                                            size_t length) {
+  return m_impl->v8_array_buffer(data, length);
+}
+
 std::string JScript_context::translate_exception(const v8::TryCatch &exc,
                                                  bool interactive) {
   return format_exception(get_v8_exception_data(exc, interactive));
@@ -1521,6 +1544,15 @@ v8::Local<v8::String> v8_string(v8::Isolate *isolate, const char *data) {
 
 v8::Local<v8::String> v8_string(v8::Isolate *isolate, const std::string &data) {
   return v8_string(isolate, data.c_str());
+}
+
+v8::Local<v8::ArrayBuffer> v8_array_buffer(v8::Isolate *isolate,
+                                           const char *data, size_t length) {
+  auto buffer = v8::ArrayBuffer::New(isolate, length);
+
+  memcpy(buffer->GetBackingStore()->Data(), data, length);
+
+  return buffer;
 }
 
 std::string to_string(v8::Isolate *isolate, v8::Local<v8::Value> obj) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,7 +66,8 @@ enum Value_type {
   Map,     //! Dictionary/Map/Object container
   MapRef,  //! A weak reference to a Map
 
-  Function  //! A function reference, not serializable.
+  Function,  //! A function reference, not serializable.
+  Binary     //! Binary data
 };
 
 bool is_compatible_type(Value_type source_type, Value_type target_type);
@@ -223,10 +224,10 @@ struct SHCORE_PUBLIC Value {
   Value(const Value &copy);
   Value(Value &&other);
 
-  explicit Value(const std::string &s);
-  explicit Value(std::string &&s);
+  explicit Value(const std::string &s, bool binary = false);
+  explicit Value(std::string &&s, bool binary = false);
   explicit Value(const char *);
-  explicit Value(const char *, size_t n);
+  explicit Value(const char *, size_t n, bool binary = false);
   explicit Value(int i);
   explicit Value(unsigned int ui);
   explicit Value(int64_t i);

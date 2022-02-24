@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,8 @@
 #include "mysqlshdk/libs/oci/oci_rest_service.h"
 #include "mysqlshdk/libs/oci/oci_setup.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"
 #include "mysqlshdk/shellcore/private_key_manager.h"
 
 namespace mysqlshdk {
@@ -77,7 +77,7 @@ std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
   }
 
   std::string signature_b64;
-  shcore::ssl::encode_base64(md_value.get(), md_len, &signature_b64);
+  shcore::encode_base64(md_value.get(), md_len, &signature_b64);
   return signature_b64;
 }
 
@@ -111,7 +111,7 @@ std::string encode_sha256(const char *data, size_t size) {
   }
 
   std::string encoded;
-  shcore::ssl::encode_base64(md_value.get(), md_len, &encoded);
+  shcore::encode_base64(md_value.get(), md_len, &encoded);
 
   return encoded;
 }

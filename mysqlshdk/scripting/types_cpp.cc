@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -921,6 +921,9 @@ std::string get_param_codes(
         break;
       case Value_type::Undefined:
         codes.append("V");
+        break;
+      case Value_type::Binary:
+        codes.append("B");
         break;
     }
   }
