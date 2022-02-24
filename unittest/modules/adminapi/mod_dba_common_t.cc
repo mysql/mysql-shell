@@ -1462,30 +1462,30 @@ TEST(mod_dba_common, validate_expel_timeout_supported) {
   using mysqlsh::dba::Group_replication_options;
 
   Group_replication_options options;
-  Version version(8, 0, 13);
 
   auto null_timeout = mysqlshdk::utils::nullable<int64_t>();
   auto valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3600);
-  auto invalid_timeout1 = mysqlshdk::utils::nullable<std::int64_t>(3601);
-  auto invalid_timeout2 = mysqlshdk::utils::nullable<std::int64_t>(-1);
+  auto maybe_valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3601);
+  auto invalid_timeout = mysqlshdk::utils::nullable<std::int64_t>(-1);
+
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
   options.expel_timeout = null_timeout;
-  options.check_option_values(version);
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 13)));
 
-  // if a value non in the allowed range value was provided, an error should be
-  // thrown independently of the server version
-  options.expel_timeout = invalid_timeout1;
-  EXPECT_THROW_LIKE(
-      options.check_option_values(version), shcore::Exception,
-      "Invalid value for expelTimeout, integer value must be in the range: "
-      "[0, 3600]");
+  // this value is "valid" only for versions > 8.0.13
+  options.expel_timeout = maybe_valid_timeout;
+  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 13)),
+                    std::runtime_error,
+                    "Invalid value for 'expelTimeout': integer value must be "
+                    "in the range [0, 3600]");
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
+  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 15)));
 
-  options.expel_timeout = invalid_timeout2;
+  options.expel_timeout = invalid_timeout;
   EXPECT_THROW_LIKE(
-      options.check_option_values(version), shcore::Exception,
-      "Invalid value for expelTimeout, integer value must be in the range: "
-      "[0, 3600]");
+      options.check_option_values(Version(8, 0, 13)), shcore::Exception,
+      "Invalid value for 'expelTimeout': integer value must be >= 0");
 
   // if a valid value was provided, an error should only be thrown
   // in case the option is not supported by the server version.

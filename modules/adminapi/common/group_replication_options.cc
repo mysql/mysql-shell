@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -125,19 +125,25 @@ void validate_consistency_supported(const mysqlshdk::utils::Version &version,
 void validate_expel_timeout_supported(
     const mysqlshdk::utils::Version &version,
     const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout) {
-  if (!expel_timeout.is_null()) {
-    if ((*expel_timeout) < 0 || (*expel_timeout) > 3600) {
-      throw shcore::Exception::argument_error(shcore::str_format(
-          "Invalid value for %s, integer value must be in the range: "
-          "[0, 3600]",
-          kExpelTimeout));
-    }
-    if (!is_option_supported(version, kExpelTimeout,
-                             k_global_cluster_supported_options)) {
-      throw std::runtime_error(shcore::str_format(
-          "Option '%s' not supported on target server version: '%s'",
-          kExpelTimeout, version.get_full().c_str()));
-    }
+  if (expel_timeout.is_null()) return;
+
+  if ((*expel_timeout) < 0) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s': integer value must be >= 0", kExpelTimeout));
+  }
+
+  if (!is_option_supported(version, kExpelTimeout,
+                           k_global_cluster_supported_options)) {
+    throw std::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kExpelTimeout, version.get_full().c_str()));
+  }
+
+  if ((version < mysqlshdk::utils::Version(8, 0, 14)) &&
+      (*expel_timeout > 3600)) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s': integer value must be in the range [0, 3600]",
+        kExpelTimeout));
   }
 }
 
@@ -464,12 +470,10 @@ void Group_replication_options::set_auto_rejoin_tries(int64_t value) {
 }
 
 void Group_replication_options::set_expel_timeout(int64_t value) {
-  if (value < 0 || value > 3600) {
+  if (value < 0) {
     throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, integer value must be in the range: [0, 3600]",
-        kExpelTimeout));
+        "Invalid value for '%s': integer value must be >= 0", kExpelTimeout));
   }
-
   expel_timeout = value;
 }
 
