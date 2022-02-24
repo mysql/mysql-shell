@@ -122,7 +122,7 @@ void JSON_dumper::append_value(const Value &value) {
       std::string encoded;
       auto raw_value = value.get_string();
       size_t max_length = raw_value.size();
-      if (_binary_limit >= 0) {
+      if (_binary_limit > 0) {
         // At most binary-limit + 1 bytes should be sent, when the extra byte
         // is sent, it will be an indicator for the consumer of the data that
         // a truncation happened
