@@ -138,7 +138,7 @@ Incremental state recovery was selected because it seems to be safely usable.
 The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.
 
 //@ Try to rejoin instance with errant transaction (fail).
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ Try to rejoin instance with unsolved replication error (fail). {VER(<8.0.23)}
 ||<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Error found in replication applier thread (MYSQLSH 51145)
@@ -170,8 +170,8 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
-||'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+|empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 
 //@ Try to rejoin instance with purged transactions on PRIMARY (should work with clone) {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|

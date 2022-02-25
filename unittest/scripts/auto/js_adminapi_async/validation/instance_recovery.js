@@ -77,7 +77,7 @@
 ||debug (LogicError)
 
 //@ rejoinInstance: recoveryMethod:incremental, interactive, error {VER(>=8.0.0)}
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ addInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr {VER(>= 8.0.0)}
 |Adding instance to the replicaset...|
@@ -123,13 +123,13 @@
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ rejoinInstance: recoveryMethod:incremental, errant GTIDs -> error {VER(>= 8.0.0)}
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 
 //@ addInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> prompt i/a {VER(>= 8.0.0) && VER(< 8.0.17)}
@@ -342,10 +342,10 @@
 |instance contains the same GTID set as the replicaset or a subset of it. To use|
 |this method by default, set the 'recoveryMethod' option to 'incremental'.|
 
-||'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 
 //@ rejoinInstance: recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>= 8.0.19)}
-||'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 
 //@ addInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
 |WARNING: It should be safe to rely on replication to incrementally recover the state of|
@@ -354,7 +354,7 @@
 |instance contains the same GTID set as the replicaset or a subset of it. To use|
 |this method by default, set the 'recoveryMethod' option to 'incremental'.|
 
-||'recoveryMethod' option must be set to 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'incremental' (MYSQLSH 51168)
 
 //@ rejoinInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
 ||Instance provisioning required (MYSQLSH 51153)
@@ -443,7 +443,7 @@
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+|empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 ||Cancelled (RuntimeError)
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}
@@ -453,7 +453,7 @@
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+|empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
 ||Instance provisioning required
 
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
@@ -519,18 +519,18 @@
 //@ addInstance: recoveryMethod:incremental, purged GTID -> error
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ rejoinInstance: recoveryMethod:incremental, purged GTID -> error
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ addInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error {VER(>= 8.0.0)}
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ rejoinInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error {VER(>= 8.0.0)}
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ addInstance: recoveryMethod:clone, purged GTID -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|

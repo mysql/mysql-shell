@@ -97,10 +97,10 @@
 ||Instance provisioning required
 
 //@# recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>=8.0.17)}
-||'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 
 //@# recoveryMethod:auto, non-interactive, cloneDisabled, empty GTID -> error
-||'recoveryMethod' option must be set to 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'incremental' (MYSQLSH 51168)
 
 //@# recoveryMethod:auto, non-interactive, empty GTIDs + gtidSetIsComplete -> incr
 |Incremental state recovery was selected because it seems to be safely usable.|
@@ -176,10 +176,10 @@
 |WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@# recoveryMethod:incremental, cloneDisabled, errant GTIDs -> error
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@# recoveryMethod:clone, interactive, make sure no prompts {VER(>=8.0.17)}
 ||debug (LogicError)
@@ -189,7 +189,7 @@
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, empty GTID -> err {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
 
 //@# recoveryMethod:clone, empty GTIDs + gtidSetIsComplete -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
@@ -204,7 +204,7 @@
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, errant GTIDs -> error {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
 
 //@# purge GTIDs from cluster
 ||
@@ -213,7 +213,7 @@
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+|empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
 //@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(>=8.0.17)}
 ||Cancelled (RuntimeError)
 //@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(<8.0.17)}
@@ -223,7 +223,7 @@
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+|empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
 //@ recoveryMethod:auto, no-interactive, purged GTID, new -> error {VER(>=8.0.17)}
 ||Instance provisioning required
 
@@ -270,30 +270,30 @@
 //@# recoveryMethod:incremental, purged GTID -> error
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@# recoveryMethod:incremental, cloneDisabled, purged GTID -> error
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@# recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@# recoveryMethod:incremental, cloneDisabled, errant GTIDs + purged GTIDs -> error
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@# recoveryMethod:clone, purged GTID -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, purged GTID -> err {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
 
 //@# recoveryMethod:clone, errant GTIDs + purged GTIDs -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, errant GTIDs + purged GTIDs -> error {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
 
 //@# Cleanup
 ||
