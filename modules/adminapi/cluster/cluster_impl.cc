@@ -838,6 +838,19 @@ struct Option_info {
   bool found_not_supported = false;
   T non_default_value;
 };
+
+void check_gr_empty_local_address_exception(
+    std::shared_ptr<IConsole> console, const shcore::Exception &exp,
+    const mysqlshdk::mysql::IInstance &instance) {
+  if ((exp.code() != SHERR_DBA_EMPTY_LOCAL_ADDRESS)) return;
+  if (!console) console = mysqlsh::current_console();
+  mysqlsh::current_console()->print_error(shcore::str_format(
+      "Unable to read Group Replication local address setting for instance "
+      "'%s', probably due to connectivity issues. Please "
+      "retry the operation.",
+      instance.get_canonical_address().c_str()));
+}
+
 }  // namespace
 
 void Cluster_impl::query_group_wide_option_values(
@@ -1175,14 +1188,19 @@ void Cluster_impl::add_metadata_for_instance(
 void Cluster_impl::add_metadata_for_instance(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &label) const {
-  Instance_metadata instance_md(query_instance_info(instance));
+  try {
+    Instance_metadata instance_md(query_instance_info(instance, true));
 
-  if (!label.empty()) instance_md.label = label;
+    if (!label.empty()) instance_md.label = label;
 
-  instance_md.cluster_id = get_id();
+    instance_md.cluster_id = get_id();
 
-  // Add the instance to the metadata.
-  get_metadata_storage()->insert_instance(instance_md);
+    // Add the instance to the metadata.
+    get_metadata_storage()->insert_instance(instance_md);
+  } catch (const shcore::Exception &exp) {
+    check_gr_empty_local_address_exception(nullptr, exp, instance);
+    throw;
+  }
 }
 
 void Cluster_impl::update_metadata_for_instance(
@@ -1199,17 +1217,22 @@ void Cluster_impl::update_metadata_for_instance(
   auto console = mysqlsh::current_console();
   console->print_info("Updating instance metadata...");
 
-  Instance_metadata instance_md(query_instance_info(instance));
+  try {
+    Instance_metadata instance_md(query_instance_info(instance, true));
 
-  instance_md.cluster_id = get_id();
+    instance_md.cluster_id = get_id();
 
-  // Updates the instance metadata.
-  get_metadata_storage()->update_instance(instance_md);
+    // Updates the instance metadata.
+    get_metadata_storage()->update_instance(instance_md);
 
-  console->print_info("The instance metadata for '" +
-                      instance.get_canonical_address() +
-                      "' was successfully updated.");
-  console->print_info();
+    console->print_info("The instance metadata for '" +
+                        instance.get_canonical_address() +
+                        "' was successfully updated.");
+    console->print_info();
+  } catch (const shcore::Exception &exp) {
+    check_gr_empty_local_address_exception(console, exp, instance);
+    throw;
+  }
 }
 
 void Cluster_impl::remove_instance_metadata(

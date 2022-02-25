@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -106,6 +106,7 @@
 #define SHERR_DBA_FAILOVER_ERROR 51162
 #define SHERR_DBA_SWITCHOVER_ERROR 51163
 #define SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION 51164
+#define SHERR_DBA_EMPTY_LOCAL_ADDRESS 51165
 
 // Global topology consistency errors
 #define SHERR_DBA_GTCE_GROUP_HAS_MULTIPLE_SLAVES 51200

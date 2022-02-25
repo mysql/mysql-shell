@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,9 +27,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqld_error.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -261,7 +263,7 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
 }
 
 Instance_metadata query_instance_info(
-    const mysqlshdk::mysql::IInstance &instance) {
+    const mysqlshdk::mysql::IInstance &instance, bool validate_gr_endpoint) {
   int xport = -1;
   std::string local_gr_address;
 
@@ -282,7 +284,24 @@ Instance_metadata query_instance_info(
     local_gr_address =
         instance.get_sysvar_string("group_replication_local_address")
             .get_safe("");
+
+    if (validate_gr_endpoint && local_gr_address.empty())
+      throw shcore::Exception::error_with_code(
+          "", "group_replication_local_address is empty",
+          SHERR_DBA_EMPTY_LOCAL_ADDRESS);
+
+    // Set debug trap to simulate exception / not be able to read string
+    DBUG_EXECUTE_IF("dba_instance_query_gr_local_address", {
+      throw shcore::Exception::error_with_code(
+          "", "group_replication_local_address is empty",
+          SHERR_DBA_EMPTY_LOCAL_ADDRESS);
+    });
+
   } catch (const std::exception &e) {
+    log_error(
+        "Unable to read Group Replication local address on instance '%s': %s",
+        instance.descr().c_str(), e.what());
+    throw;
   }
 
   Instance_metadata instance_def;
