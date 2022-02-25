@@ -2004,8 +2004,8 @@ TEST_F(Compatibility_test, add_invisible_pk) {
     EXPECT_NO_THROW(add_pk_to_create_table(statement, &result));
 
     const std::string pk =
-        ",`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY";
-    const auto pos = statement.find_last_of(')');
+        "`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY,";
+    const auto pos = statement.find_first_of('(') + 1;
     const auto expected = statement.substr(0, pos) + pk + statement.substr(pos);
     EXPECT_EQ(expected, result) << "PK should be added";
   };
@@ -2099,8 +2099,8 @@ TEST_F(Compatibility_test, add_invisible_pk_if_missing) {
 
     if (pk_added) {
       const std::string pk =
-          ",`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY";
-      const auto pos = statement.find_last_of(')');
+          "`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY,";
+      const auto pos = statement.find_first_of('(') + 1;
       const auto expected =
           statement.substr(0, pos) + pk + statement.substr(pos);
       EXPECT_EQ(expected, result) << "PK should be added";
