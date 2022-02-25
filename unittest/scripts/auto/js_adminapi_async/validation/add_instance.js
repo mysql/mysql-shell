@@ -330,7 +330,7 @@
 |WARNING: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that|
 |it contains transactions that do not originate from the replicaset, which must|
 |be discarded before it can join the replicaset.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ instance has a subset of the master GTID set
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
@@ -345,7 +345,7 @@
 //@# master has purged GTIDs (should fail)
 |NOTE: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
-||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ master has purged GTIDs (should work with clone) {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
@@ -362,9 +362,9 @@
 |is empty). The Shell is unable to decide whether replication can completely|
 |recover its state.|
 //@# instance has empty GTID set + gtidSetIsComplete:0 + not interactive (should fail) {VER(>=8.0.17)}
-||'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 //@# instance has empty GTID set + gtidSetIsComplete:0 + not interactive (should fail) {VER(<8.0.17)}
-||'recoveryMethod' option must be set to 'incremental'
+||'recoveryMethod' option must be set to 'incremental' (MYSQLSH 51168)
 
 //@# instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail)
 |NOTE: The target instance '<<<__endpoint_uri2>>>' has not been pre-provisioned (GTID set|

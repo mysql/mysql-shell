@@ -160,7 +160,7 @@ EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recovery
 //@<> createReplicaCluster: recoveryMethod:incremental, errant GTIDs -> error
 session4.runSql("RESET MASTER");
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it contains transactions that do not originate from the clusterset, which must be discarded before it can join the clusterset.`);
 
@@ -221,7 +221,7 @@ EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is reco
 session4.runSql("RESET MASTER");
 mark_gtid_set_complete(false);
 
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "'recoveryMethod' option must be set to 'clone' or 'incremental'", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "'recoveryMethod' option must be set to 'clone' or 'incremental'", "MYSQLSH");
 
 EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluster' at instance '${__endpoint4}'.`);
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
@@ -277,7 +277,7 @@ mark_gtid_set_complete(false);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true})}, "Cancelled", "RuntimeError");
 
 EXPECT_OUTPUT_CONTAINS(`NOTE: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it is missing transactions that were purged from all clusterset members.`);
-EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether clone based recovery is safe to use.`);
+EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.`);
 
 //@<> createReplicaCluster: recoveryMethod:auto, no-interactive, purged GTID -> error
 mark_gtid_set_complete(false);
@@ -285,7 +285,7 @@ mark_gtid_set_complete(false);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "Instance provisioning required", "MYSQLSH");
 
 EXPECT_OUTPUT_CONTAINS(`NOTE: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it is missing transactions that were purged from all clusterset members.`);
-EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether clone based recovery is safe to use.`);
+EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.`);
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt
 mark_gtid_set_complete(false);
@@ -323,14 +323,14 @@ EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is reco
 session4.runSql("RESET MASTER");
 mark_gtid_set_complete(false);
 
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS(`NOTE: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it is missing transactions that were purged from all clusterset members.`);
 
 //@<> createReplicaCluster: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
 session4.runSql("RESET MASTER");
 session4.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do not exist in the clusterset:`);
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 

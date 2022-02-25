@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,7 +117,7 @@ void validate_clone_recovery(bool clone_disabled) {
   }
 
   if (!error.empty()) {
-    throw shcore::Exception::runtime_error(error);
+    throw shcore::Exception(error, SHERR_DBA_PROVISIONING_CLONE_DISABLED);
   }
 }
 
@@ -133,7 +133,8 @@ void validate_incremental_recovery(Member_op_action op_action,
   }
 
   if (!error.empty()) {
-    throw shcore::Exception::runtime_error(error);
+    throw shcore::Exception(error,
+                            SHERR_DBA_PROVISIONING_INCREMENTAL_NOT_POSSIBLE);
   }
 }
 
@@ -231,11 +232,13 @@ Prompt_type validate_auto_recovery(Cluster_type cluster_type,
   if (prompt != None) {
     if (!interactive) {
       if (clone_supported && !clone_disabled) {
-        throw shcore::Exception::runtime_error(
-            "'recoveryMethod' option must be set to 'clone' or 'incremental'");
+        throw shcore::Exception(
+            "'recoveryMethod' option must be set to 'clone' or 'incremental'",
+            SHERR_DBA_PROVISIONING_EXPLICIT_METHOD_REQUIRED);
       } else {
-        throw shcore::Exception::runtime_error(
-            "'recoveryMethod' option must be set to 'incremental'");
+        throw shcore::Exception(
+            "'recoveryMethod' option must be set to 'incremental'",
+            SHERR_DBA_PROVISIONING_EXPLICIT_INCREMENTAL_METHOD_REQUIRED);
       }
     }
   }
@@ -368,8 +371,9 @@ void check_gtid_consistency_and_recoverability(
           if (slave_gtid_set.empty()) {
             msg = "The target instance '" + target_instance->descr() +
                   "' has not been pre-provisioned (GTID set is empty). The "
-                  "Shell is unable to decide whether clone based recovery is "
-                  "safe to use.";
+                  "Shell is unable to determine whether the instance has "
+                  "pre-existing data that would be overwritten with clone "
+                  "based recovery.";
 
             console->print_note(msg);
 
