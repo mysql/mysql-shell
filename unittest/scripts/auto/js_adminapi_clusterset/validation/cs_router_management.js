@@ -211,10 +211,10 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         "routerhost1::system": {
             "hostname": "routerhost1",
             "lastCheckIn": "2021-01-01 11:22:33",
-            "roPort": null,
-            "roXPort": null,
-            "rwPort": null,
-            "rwXPort": null,
+            "roPort": "6481",
+            "roXPort": "6483",
+            "rwPort": "6480",
+            "rwXPort": "6482",
             "targetCluster": "cluster",
             "version": "8.0.27"
         },
@@ -241,10 +241,10 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         "routerhost2::system": {
             "hostname": "routerhost2",
             "lastCheckIn": "2021-01-01 11:22:33",
-            "roPort": null,
-            "roXPort": null,
-            "rwPort": null,
-            "rwXPort": null,
+            "roPort": "mysqlro.sock",
+            "roXPort": "mysqlxro.sock",
+            "rwPort": "mysql.sock",
+            "rwXPort": "mysqlx.sock",
             "targetCluster": "replicacluster",
             "version": "8.0.27"
         }
@@ -254,10 +254,10 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
     "routerhost1::system": {
         "hostname": "routerhost1",
         "lastCheckIn": "2021-01-01 11:22:33",
-        "roPort": null,
-        "roXPort": null,
-        "rwPort": null,
-        "rwXPort": null,
+        "roPort": "6481",
+        "roXPort": "6483",
+        "rwPort": "6480",
+        "rwXPort": "6482",
         "targetCluster": "cluster",
         "version": "8.0.27"
     }
@@ -266,10 +266,10 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
     "routerhost2::system": {
         "hostname": "routerhost2",
         "lastCheckIn": "2021-01-01 11:22:33",
-        "roPort": null,
-        "roXPort": null,
-        "rwPort": null,
-        "rwXPort": null,
+        "roPort": "mysqlro.sock",
+        "roXPort": "mysqlxro.sock",
+        "rwPort": "mysql.sock",
+        "rwXPort": "mysqlx.sock",
         "targetCluster": "replicacluster",
         "version": "8.0.27"
     }
@@ -282,10 +282,10 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         "routerhost1::system": {
             "hostname": "routerhost1",
             "lastCheckIn": "2021-01-01 11:22:33",
-            "roPort": null,
-            "roXPort": null,
-            "rwPort": null,
-            "rwXPort": null,
+            "roPort": "6481",
+            "roXPort": "6483",
+            "rwPort": "6480",
+            "rwXPort": "6482",
             "targetCluster": "cluster",
             "version": "8.0.27"
         },
@@ -315,13 +315,13 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         "routerhost2::system": {
             "hostname": "routerhost2",
             "lastCheckIn": "2021-01-01 11:22:33",
-            "roPort": null,
-            "roXPort": null,
+            "roPort": "mysqlro.sock",
+            "roXPort": "mysqlxro.sock",
             "routerErrors": [
                 "WARNING: Router needs to be re-bootstraped."
             ],
-            "rwPort": null,
-            "rwXPort": null,
+            "rwPort": "mysql.sock",
+            "rwXPort": "mysqlx.sock",
             "targetCluster": "replicacluster",
             "version": "8.0.27"
         }
