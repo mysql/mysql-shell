@@ -693,16 +693,36 @@ shell.connect(__sandbox_uri1);
 var users_in_use = get_all_recovery_accounts(session);
 
 // Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
-EXPECT_TRUE(users_in_use.includes(recovery_account));
-
-// The recovery instance of instance1 is not dropped
 //
 // removeInstance() attempts to clean-up the accounts of the instance being
 // removed in case its unused, by doing a lookup in the metadata. We are
 // removing instance2 (mysql_innodb_cluster_2222) so the account is not removed and the account from instance 1 is still in the cluster even though unused.
-//
-// TODO: BUG#33235502 to handle the cleanup in cluster.rescan()
-EXPECT_TRUE(users_in_use.includes(recovery_account_generated));
+
+if (comm_stack == "XCOM") {
+
+    EXPECT_EQ(users_in_use.length, 2);
+    EXPECT_TRUE(users_in_use.includes(recovery_account));
+
+    var status = c.status();
+    EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+    EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"].length, 1);
+    EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0], `WARNING: Incorrect recovery account (mysql_innodb_cluster_${server_id2}) being used. Use Cluster.rescan() to repair.`)
+
+    WIPE_STDOUT();
+    EXPECT_NO_THROWS(function() {c.rescan(); });
+    EXPECT_OUTPUT_CONTAINS(`Fixing incorrect recovery account 'mysql_innodb_cluster_${server_id2}' in instance '${hostname}:${__mysql_sandbox_port2}'`)
+
+    users_in_use = get_all_recovery_accounts(session);
+    EXPECT_EQ(users_in_use.length, 1);
+    EXPECT_TRUE(users_in_use.includes(recovery_account_generated));
+
+} else {
+    EXPECT_EQ(users_in_use.length, 1);
+    EXPECT_TRUE(users_in_use.includes(recovery_account));
+}
+
+status = c.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
 
 //@<> WL#13208: Finalization {VER(>=8.0.17)}
 session.close();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS async_cluster_members (
 
 /*
   A "view" of the topology of a clusterset at a given point in time.
-  Every time the topology of the replicaset changes (added and removed clusters
+  Every time the topology of the clusterset changes (added and removed clusters
   and failovers), a new record is added here (and in clusterset_members).
 
   The most current view will be the one with the highest view_id.

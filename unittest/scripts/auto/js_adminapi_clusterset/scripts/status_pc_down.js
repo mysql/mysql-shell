@@ -119,14 +119,6 @@ shell.connect(__sandbox_uri1);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 
-// disable connect retries
-session4.runSql("stop replica for channel 'clusterset_replication'");
-session4.runSql("change replication source to source_connect_retry=1 for channel 'clusterset_replication'");
-session4.runSql("start replica for channel 'clusterset_replication'");
-session6.runSql("stop replica for channel 'clusterset_replication'");
-session6.runSql("change replication source to source_connect_retry=1 for channel 'clusterset_replication'");
-session6.runSql("start replica for channel 'clusterset_replication'");
-
 testutil.waitForReplConnectionError(__mysql_sandbox_port4, "clusterset_replication");
 testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
 
@@ -214,9 +206,11 @@ EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"
 
 testutil.waitForReplConnectionError(__mysql_sandbox_port4, "clusterset_replication");
 testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
-s = cs.status({extended:1});
-s2 = c2.status({extended:1});
-s3 = c3.status({extended:1});
+
+EXPECT_NO_THROWS(function(){ s = cs.status({extended:1}); });
+EXPECT_NO_THROWS(function(){ s2 = c2.status({extended:1}); });
+EXPECT_NO_THROWS(function(){ s3 = c3.status({extended:1}); });
+
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 
@@ -332,16 +326,13 @@ EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 //@<> PC OFFLINE with 1 UNREACHABLE member -> UNKNOWN
 testutil.startSandbox(__mysql_sandbox_port1);
 
-session6.runSql("stop replica for channel 'clusterset_replication'");
-session6.runSql("change replication source to source_connect_retry=1 for channel 'clusterset_replication'");
-session6.runSql("start replica for channel 'clusterset_replication'");
-
 testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
 
 shell.connect(__sandbox_uri1);
 cs = dba.getClusterSet();
 
-s = cs.status();
+EXPECT_NO_THROWS(function(){ s = cs.status(); });
+
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 

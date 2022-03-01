@@ -111,7 +111,7 @@ Status::Status(const Cluster_impl &cluster,
                const mysqlshdk::utils::nullable<uint64_t> &extended)
     : m_cluster(cluster), m_extended(extended) {}
 
-Status::~Status() {}
+Status::~Status() = default;
 
 void Status::connect_to_members() {
   auto ipool = current_ipool();
@@ -1150,55 +1150,51 @@ shcore::Array_t validate_instance_recovery_user(
       state != mysqlshdk::gr::Member_state::RECOVERING)
     return issues;
 
-  if (instance && !endpoints.empty()) {
-    auto it = endpoints.find(actual_server_uuid);
-    if (it != endpoints.end()) {
-      std::string recovery_user = mysqlshdk::mysql::get_replication_user(
-          *instance, mysqlshdk::gr::k_gr_recovery_channel);
+  if (!instance || endpoints.empty()) return issues;
 
-      // it->second is recovery user from MD
-      if (!recovery_user.empty()) {
-        bool recovery_is_valid =
-            shcore::str_beginswith(
-                recovery_user,
-                mysqlshdk::gr::k_group_recovery_old_user_prefix) ||
-            shcore::str_beginswith(recovery_user,
-                                   mysqlshdk::gr::k_group_recovery_user_prefix);
+  auto it = endpoints.find(actual_server_uuid);
+  if (it == endpoints.end()) return issues;
 
-        if (it->second.empty() && recovery_is_valid) {
-          issues->push_back(
-              shcore::Value("WARNING: The replication recovery account in use "
-                            "by the instance is not stored in the metadata. "
-                            "Use Cluster.rescan() to update the metadata."));
-        } else if (it->second != recovery_user) {
-          if (recovery_is_valid) {
-            issues->push_back(shcore::Value(
-                "WARNING: The replication recovery account in use "
-                "by the instance is not stored in the metadata. "
-                "Use Cluster.rescan() to update the metadata."));
-          } else {
-            issues->push_back(shcore::Value(
-                "WARNING: Unsupported recovery account '" + recovery_user +
-                "' has been found for instance '" + instance->descr() +
-                "'. Operations such as "
-                "Cluster.resetRecoveryAccountsPassword() and "
-                "Cluster.addInstance() may fail. Please remove and add "
-                "the instance back to the Cluster to ensure a supported "
-                "recovery "
-                "account is used."));
-          }
-        }
+  std::string recovery_user = mysqlshdk::mysql::get_replication_user(
+      *instance, mysqlshdk::gr::k_gr_recovery_channel);
+
+  // it->second is recovery user from MD
+  if (!recovery_user.empty()) {
+    bool recovery_is_valid =
+        shcore::str_beginswith(
+            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix) ||
+        shcore::str_beginswith(recovery_user,
+                               mysqlshdk::gr::k_group_recovery_user_prefix);
+
+    if (it->second.empty() && recovery_is_valid) {
+      issues->push_back(
+          shcore::Value("WARNING: The replication recovery account in use "
+                        "by the instance is not stored in the metadata. "
+                        "Use Cluster.rescan() to update the metadata."));
+    } else if (it->second != recovery_user) {
+      if (recovery_is_valid) {
+        issues->push_back(
+            shcore::Value("WARNING: The replication recovery account in use "
+                          "by the instance is not stored in the metadata. "
+                          "Use Cluster.rescan() to update the metadata."));
       } else {
         issues->push_back(shcore::Value(
-            "WARNING: Recovery user account not found for server address: " +
-            instance->descr() + " with UUID " + instance->get_uuid()));
+            "WARNING: Unsupported recovery account '" + recovery_user +
+            "' has been found for instance '" + instance->descr() +
+            "'. Operations such as Cluster.resetRecoveryAccountsPassword() and "
+            "Cluster.addInstance() may fail. Please remove and add "
+            "the instance back to the Cluster to ensure a supported recovery "
+            "account is used."));
       }
     }
+  } else {
+    issues->push_back(shcore::Value(
+        "WARNING: Recovery user account not found for server address: " +
+        instance->descr() + " with UUID " + instance->get_uuid()));
   }
 
   return issues;
 }
-
 }  // namespace
 
 shcore::Dictionary_t Status::get_topology(
@@ -1317,6 +1313,9 @@ shcore::Dictionary_t Status::get_topology(
         m_cluster.get_metadata_storage()->get_instances_with_recovery_accounts(
             m_cluster.get_id());
   }
+
+  auto mismatched_recovery_accounts =
+      m_cluster.get_mismatched_recovery_accounts();
 
   for (const auto &inst : instances) {
     shcore::Dictionary_t member = shcore::make_dict();
@@ -1445,23 +1444,49 @@ shcore::Dictionary_t Status::get_topology(
     feed_member_info(member, minfo, offline_mode, super_read_only,
                      fence_sysvars, self_state, auto_rejoin);
 
-    shcore::Array_t issues = instance_diagnostics(
-        instance.get(), &m_cluster, inst, recovery_channel, applier_channel,
-        super_read_only, minfo, self_state, parallel_applier_options,
-        *m_cluster_transaction_size_limit);
+    {
+      shcore::Array_t issues = instance_diagnostics(
+          instance.get(), &m_cluster, inst, recovery_channel, applier_channel,
+          super_read_only, minfo, self_state, parallel_applier_options,
+          *m_cluster_transaction_size_limit);
 
-    if (offline_mode.get_safe(false))
-      issues->push_back(
-          shcore::Value("WARNING: Instance has offline_mode enabled."));
+      if (offline_mode.get_safe(false))
+        issues->push_back(
+            shcore::Value("WARNING: Instance has offline_mode enabled."));
 
-    auto ret_val = validate_instance_recovery_user(
-        instance, endpoints, inst.actual_server_uuid, self_state);
+      if (instance) {
+        auto ret_val = validate_instance_recovery_user(
+            instance, endpoints, inst.actual_server_uuid, self_state);
 
-    issues->insert(issues->end(), std::make_move_iterator(ret_val->begin()),
-                   std::make_move_iterator(ret_val->end()));
+        // if the last check returned an error, the next check will too, so
+        // there's no need to show the user two different msgs that kind of
+        // point to the same thing (although for different reasons)
+        if (ret_val->empty()) {
+          auto it = mismatched_recovery_accounts.find(instance->get_id());
+          if (it != mismatched_recovery_accounts.end()) {
+            auto msg = shcore::str_format(
+                "WARNING: Incorrect recovery account (%s) being used. Use "
+                "Cluster.rescan() to repair.",
+                it->second.c_str());
+            ret_val->push_back(shcore::Value(std::move(msg)));
+          }
+        }
 
-    if (issues && !issues->empty()) {
-      (*member)["instanceErrors"] = shcore::Value(issues);
+        issues->insert(issues->end(), std::make_move_iterator(ret_val->begin()),
+                       std::make_move_iterator(ret_val->end()));
+      }
+
+      // check if primary has unused recovery accounts
+      if (minfo.role == Member_role::PRIMARY) {
+        auto ret_val =
+            validate_recovery_accounts_unused(mismatched_recovery_accounts);
+        issues->insert(issues->end(), std::make_move_iterator(ret_val->begin()),
+                       std::make_move_iterator(ret_val->end()));
+      }
+
+      if (issues && !issues->empty()) {
+        (*member)["instanceErrors"] = shcore::Value(std::move(issues));
+      }
     }
 
     if ((!m_extended.is_null() && *m_extended >= 2) &&
@@ -1650,6 +1675,29 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   return ret;
 }
 
+shcore::Array_t Status::validate_recovery_accounts_unused(
+    const std::unordered_map<uint32_t, std::string>
+        &mismatched_recovery_accounts) const {
+  auto issues = shcore::make_array();
+
+  auto accounts =
+      m_cluster.get_unused_recovery_accounts(mismatched_recovery_accounts);
+  if (accounts.empty()) return issues;
+
+  std::string msg{accounts.size() == 1
+                      ? "WARNING: Detected an unused recovery account: "
+                      : "WARNING: Detected unused recovery accounts: "};
+
+  for (const auto &account : accounts)
+    msg.append(std::get<0>(account)).append(", ");
+  msg.erase(msg.size() - 2);  // remove last ", "
+
+  msg.append(". Use Cluster.rescan() to clean up.");
+
+  issues->push_back(shcore::Value(std::move(msg)));
+  return issues;
+}
+
 void Status::prepare() {
   // Sanity check: Verify if the topology type changed and issue an error if
   // needed.
@@ -1728,10 +1776,8 @@ shcore::Value Status::execute() {
         shcore::Value(m_cluster.is_primary_cluster() ? "PRIMARY" : "REPLICA");
 
     // Get the ClusterSet replication channel status
-    auto cluster_cpy = std::make_unique<Cluster_impl>(m_cluster);
-
     Cluster_channel_status ch_status =
-        cluster_cpy->get_cluster_set_object()->get_replication_channel_status(
+        m_cluster.get_cluster_set_object()->get_replication_channel_status(
             m_cluster);
 
     // If the Cluster is a Replica, add the status right away

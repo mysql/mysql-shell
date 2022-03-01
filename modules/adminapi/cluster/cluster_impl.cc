@@ -28,6 +28,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -79,6 +80,34 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+template <typename T>
+struct Option_info {
+  bool found_non_default = false;
+  bool found_not_supported = false;
+  T non_default_value = T{};
+};
+
+void check_gr_empty_local_address_exception(
+    const shcore::Exception &exp, const mysqlshdk::mysql::IInstance &instance) {
+  if ((exp.code() != SHERR_DBA_EMPTY_LOCAL_ADDRESS)) return;
+
+  mysqlsh::current_console()->print_error(shcore::str_format(
+      "Unable to read Group Replication local address setting for instance "
+      "'%s', probably due to connectivity issues. Please retry the operation.",
+      instance.get_canonical_address().c_str()));
+}
+
+int64_t extract_server_id(std::string_view account_user) {
+  auto pos = account_user.find_last_of('_');
+  if (pos == std::string_view::npos) return -1;
+
+  account_user = account_user.substr(pos + 1);
+
+  return shcore::lexical_cast<int64_t>(account_user, -1);
+}
+}  // namespace
+
 Cluster_impl::Cluster_impl(
     const std::shared_ptr<Cluster_set_impl> &cluster_set,
     const Cluster_metadata &metadata,
@@ -87,8 +116,8 @@ Cluster_impl::Cluster_impl(
     Cluster_availability availability)
     : Cluster_impl(metadata, group_server, metadata_storage, availability) {
   m_cluster_set = cluster_set;
-  if (cluster_set->get_primary_master())
-    m_primary_master = cluster_set->get_primary_master();
+  if (auto primary = cluster_set->get_primary_master(); primary)
+    m_primary_master = primary;
 }
 
 Cluster_impl::Cluster_impl(
@@ -126,11 +155,25 @@ Cluster_impl::Cluster_impl(
   observe_notification(kNotifyClusterSetPrimaryChanged);
 }
 
-Cluster_impl::~Cluster_impl() {}
+Cluster_impl::~Cluster_impl() = default;
 
 void Cluster_impl::sanity_check() const {
   if (m_availability == Cluster_availability::ONLINE)
     verify_topology_type_change();
+}
+
+std::string Cluster_impl::get_replication_user_host() const {
+  auto md = get_metadata_storage();
+
+  shcore::Value allowed_host;
+  if (md->query_cluster_attribute(get_id(),
+                                  k_cluster_attribute_replication_allowed_host,
+                                  &allowed_host) &&
+      allowed_host.type == shcore::String) {
+    if (auto host = allowed_host.as_string(); !host.empty()) return host;
+  }
+
+  return "%";
 }
 
 void Cluster_impl::find_real_cluster_set_primary(Cluster_set_impl *cs) const {
@@ -528,63 +571,64 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
   auto endpoints =
       get_metadata_storage()->get_instances_with_recovery_accounts(get_id());
 
-  if (!endpoints.empty()) {
-    log_info("Fixing instances missing the replication recovery account...");
+  if (endpoints.empty()) return;
 
-    auto console = mysqlsh::current_console();
+  log_info("Fixing instances missing the replication recovery account...");
 
-    execute_in_members(
-        {}, get_cluster_server()->get_connection_options(), {},
-        [this, &console, &endpoints](const std::shared_ptr<Instance> &instance,
-                                     const mysqlshdk::gr::Member &gr_member) {
-          std::string recovery_user = mysqlshdk::mysql::get_replication_user(
-              *instance, mysqlshdk::gr::k_gr_recovery_channel);
+  auto console = mysqlsh::current_console();
 
-          bool recovery_is_valid = false;
-          if (!recovery_user.empty()) {
-            recovery_is_valid =
-                shcore::str_beginswith(
-                    recovery_user,
-                    mysqlshdk::gr::k_group_recovery_old_user_prefix) ||
-                shcore::str_beginswith(
-                    recovery_user, mysqlshdk::gr::k_group_recovery_user_prefix);
+  execute_in_members(
+      {}, get_cluster_server()->get_connection_options(), {},
+      [this, &console, &endpoints](const std::shared_ptr<Instance> &instance,
+                                   const mysqlshdk::gr::Member &gr_member) {
+        std::string recovery_user = mysqlshdk::mysql::get_replication_user(
+            *instance, mysqlshdk::gr::k_gr_recovery_channel);
+
+        log_debug("Fixing recovering account '%s' in instance '%s'",
+                  recovery_user.c_str(), instance->descr().c_str());
+
+        bool recovery_is_valid = false;
+        if (!recovery_user.empty()) {
+          recovery_is_valid =
+              shcore::str_beginswith(
+                  recovery_user,
+                  mysqlshdk::gr::k_group_recovery_old_user_prefix) ||
+              shcore::str_beginswith(
+                  recovery_user, mysqlshdk::gr::k_group_recovery_user_prefix);
+        }
+
+        if (!recovery_user.empty()) {
+          if (!recovery_is_valid) {
+            console->print_error(shcore::str_format(
+                "Unsupported recovery account '%s' has been found for instance "
+                "'%s'. Operations such as "
+                "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
+                "<Cluster>.<<<addInstance>>>() may fail. Please remove and add "
+                "the instance back to the Cluster to ensure a supported "
+                "recovery account is used.",
+                recovery_user.c_str(), instance->descr().c_str()));
+            return true;
           }
 
-          if (!recovery_user.empty()) {
-            if (!recovery_is_valid) {
-              console->print_error(
-                  "Unsupported recovery account '" + recovery_user +
-                  "' has been found for instance '" + instance->descr() +
-                  "'. Operations such as "
-                  "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
-                  "<Cluster>.<<<addInstance>>>() may fail. Please remove and "
-                  "add the instance back to the Cluster to ensure a supported "
-                  "recovery account is used.");
-              return true;
-            }
-
-            auto it = endpoints.find(instance->get_uuid());
-            if (it != endpoints.end()) {
-              if (it->second != recovery_user) {
-                get_metadata_storage()->update_instance_repl_account(
-                    gr_member.uuid, Cluster_type::GROUP_REPLICATION,
-                    recovery_user, "%");
-              }
-            }
-
-          } else {
-            throw std::logic_error(
-                "Recovery user account not found for server address: " +
-                instance->descr() + " with UUID " + instance->get_uuid());
+          auto it = endpoints.find(instance->get_uuid());
+          if ((it != endpoints.end()) && (it->second != recovery_user)) {
+            get_metadata_storage()->update_instance_repl_account(
+                gr_member.uuid, Cluster_type::GROUP_REPLICATION, recovery_user,
+                get_replication_user_host());
           }
 
-          return true;
-        },
-        [](const Instance_md_and_gr_member &md) {
-          return (md.second.state == mysqlshdk::gr::Member_state::ONLINE ||
-                  md.second.state == mysqlshdk::gr::Member_state::RECOVERING);
-        });
-  }
+        } else {
+          throw std::logic_error(
+              "Recovery user account not found for server address: " +
+              instance->descr() + " with UUID " + instance->get_uuid());
+        }
+
+        return true;
+      },
+      [](const Instance_md_and_gr_member &md) {
+        return (md.second.state == mysqlshdk::gr::Member_state::ONLINE ||
+                md.second.state == mysqlshdk::gr::Member_state::RECOVERING);
+      });
 }
 
 std::vector<Instance_metadata> Cluster_impl::get_active_instances(
@@ -853,28 +897,6 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
 
   return cfg;
 }
-
-namespace {
-template <typename T>
-struct Option_info {
-  bool found_non_default = false;
-  bool found_not_supported = false;
-  T non_default_value;
-};
-
-void check_gr_empty_local_address_exception(
-    std::shared_ptr<IConsole> console, const shcore::Exception &exp,
-    const mysqlshdk::mysql::IInstance &instance) {
-  if ((exp.code() != SHERR_DBA_EMPTY_LOCAL_ADDRESS)) return;
-  if (!console) console = mysqlsh::current_console();
-  mysqlsh::current_console()->print_error(shcore::str_format(
-      "Unable to read Group Replication local address setting for instance "
-      "'%s', probably due to connectivity issues. Please "
-      "retry the operation.",
-      instance.get_canonical_address().c_str()));
-}
-
-}  // namespace
 
 void Cluster_impl::query_group_wide_option_values(
     mysqlshdk::mysql::IInstance *target_instance,
@@ -1211,7 +1233,7 @@ void Cluster_impl::add_metadata_for_instance(
     // Add the instance to the metadata.
     get_metadata_storage()->insert_instance(instance_md);
   } catch (const shcore::Exception &exp) {
-    check_gr_empty_local_address_exception(nullptr, exp, instance);
+    check_gr_empty_local_address_exception(exp, instance);
     throw;
   }
 }
@@ -1248,7 +1270,7 @@ void Cluster_impl::update_metadata_for_instance(
                         "' was successfully updated.");
     console->print_info();
   } catch (const shcore::Exception &exp) {
-    check_gr_empty_local_address_exception(console, exp, instance);
+    check_gr_empty_local_address_exception(exp, instance);
     throw;
   }
 }
@@ -1855,7 +1877,7 @@ void Cluster_impl::check_cluster_online() {
 }
 
 std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
-    bool print_warnings) {
+    bool print_warnings) const {
   if (m_cs_md_remove_pending) {
     throw shcore::Exception("Cluster is not part of a ClusterSet",
                             SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
@@ -2407,16 +2429,7 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
 
   auto primary = target;
 
-  std::string host = "%";
-
-  shcore::Value allowed_host;
-  if (get_metadata_storage()->query_cluster_attribute(
-          get_id(), k_cluster_attribute_replication_allowed_host,
-          &allowed_host) &&
-      allowed_host.type == shcore::String &&
-      !allowed_host.as_string().empty()) {
-    host = allowed_host.as_string();
-  }
+  auto host = get_replication_user_host();
 
   if (creds.user.empty()) {
     creds.user = make_replication_user_name(
@@ -3054,6 +3067,58 @@ Cluster_impl::get_replication_user(
     recovery_user_hosts.push_back(recovery_user_host);
   }
   return std::make_tuple(recovery_user, recovery_user_hosts, from_metadata);
+}
+
+std::unordered_map<uint32_t, std::string>
+Cluster_impl::get_mismatched_recovery_accounts() const {
+  std::unordered_map<uint32_t, std::string> accounts;
+
+  // don't run the test if the metadata needs an upgrade
+  if (m_metadata_storage->installed_version() !=
+      mysqlsh::dba::metadata::current_version())
+    return accounts;
+
+  m_metadata_storage->iterate_recovery_account_mismatch(
+      [&accounts](uint32_t server_id, std::string user) {
+        accounts[server_id] = std::move(user);
+        return true;
+      });
+
+  return accounts;
+}
+
+std::vector<std::tuple<std::string, std::string>>
+Cluster_impl::get_unused_recovery_accounts(
+    const std::unordered_map<uint32_t, std::string>
+        &mismatched_recovery_accounts) const {
+  // don't run the test if the metadata needs an upgrade
+  if (m_metadata_storage->installed_version() !=
+      mysqlsh::dba::metadata::current_version())
+    return {};
+
+  auto recovery_users = m_metadata_storage->get_recovery_account_users();
+
+  std::vector<std::tuple<std::string, std::string>> accounts;
+  mysqlshdk::mysql::iterate_users(
+      *m_cluster_server, "mysql\\_innodb\\_cluster\\_%",
+      [&accounts, &mismatched_recovery_accounts, &recovery_users](
+          std::string user, std::string host) {
+        if (std::find(recovery_users.begin(), recovery_users.end(), user) !=
+            recovery_users.end())
+          return true;
+
+        auto server_id = extract_server_id(user);
+        if (server_id < 0) return true;
+
+        if (mismatched_recovery_accounts.find(server_id) ==
+            mismatched_recovery_accounts.end()) {
+          accounts.push_back({std::move(user), std::move(host)});
+        }
+
+        return true;
+      });
+
+  return accounts;
 }
 
 std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(

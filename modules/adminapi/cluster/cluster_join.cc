@@ -509,14 +509,10 @@ void Cluster_join::configure_cluster_set_member() {
 }
 
 void Cluster_join::change_recovery_credentials_all_members(
-    const mysqlshdk::mysql::Auth_options &repl_account,
-    const std::string &repl_account_host) const {
-  auto console = mysqlsh::current_console();
-
+    const mysqlshdk::mysql::Auth_options &repl_account) const {
   m_cluster->execute_in_members(
-      [console, repl_account, repl_account_host](
-          const std::shared_ptr<Instance> &instance,
-          const Instance_md_and_gr_member &info) {
+      [&repl_account](const std::shared_ptr<Instance> &instance,
+                      const Instance_md_and_gr_member &info) {
         if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
           try {
             mysqlshdk::mysql::change_replication_credentials(
@@ -1068,13 +1064,11 @@ void Cluster_join::create_local_replication_user() {
     m_target_instance->set_sysvar("super_read_only", false);
   }
 
-  std::string repl_account_host;
   mysqlshdk::mysql::Auth_options repl_account;
 
-  std::tie(repl_account, repl_account_host) =
-      m_cluster->create_replication_user(
-          m_target_instance.get(), true,
-          m_gr_opts.recovery_credentials.get_safe(), false);
+  std::tie(repl_account, std::ignore) = m_cluster->create_replication_user(
+      m_target_instance.get(), true, m_gr_opts.recovery_credentials.get_safe(),
+      false);
 
   // Change GR's recovery replication credentials in all possible
   // donors so they are able to connect to the joining member. GR will pick a
@@ -1082,7 +1076,7 @@ void Cluster_join::create_local_replication_user() {
   // connect and authenticate to the joining member.
   // NOTE: Instances in RECOVERING must be skipped since won't be used as donor
   // and the change source command would fail anyway
-  change_recovery_credentials_all_members(repl_account, repl_account_host);
+  change_recovery_credentials_all_members(repl_account);
 
   DBUG_EXECUTE_IF("fail_recovery_mysql_stack", {
     // Revoke the REPLICATION_SLAVE to make the distributed recovery fail
@@ -1307,7 +1301,7 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
   bool restore_recovery_accounts = false;
 
   if (clone_supported) {
-    // Clone must e uninstalled only when disableClone is enabled on the
+    // Clone must be uninstalled only when disableClone is enabled on the
     // Cluster
     bool enable_clone = !clone_disabled;
 

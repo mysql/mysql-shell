@@ -162,6 +162,10 @@ class Status : public Command_interface {
       const std::vector<mysqlshdk::gr::Member> &member_info);
 
   shcore::Dictionary_t collect_replicaset_status();
+
+  shcore::Array_t validate_recovery_accounts_unused(
+      const std::unordered_map<uint32_t, std::string>
+          &mismatched_recovery_accounts) const;
 };
 
 }  // namespace cluster

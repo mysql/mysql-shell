@@ -180,8 +180,9 @@ c2.addInstance(__sandbox_uri5);
 // Instance 6 was never part of the Cluster so it's missing all the transactions that were purged before, clone required
 c2.addInstance(__sandbox_uri6, {recoveryMethod: "clone"});
 
-testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port1);
-testutil.waitMemberTransactions(__mysql_sandbox_port6, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port4);
+testutil.waitMemberTransactions(__mysql_sandbox_port6, __mysql_sandbox_port4);
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], c1, c2);

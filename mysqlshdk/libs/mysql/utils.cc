@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -226,6 +226,20 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
       instance.execute(grant);
     }
   }
+}
+
+size_t iterate_users(const IInstance &instance, const std::string &user_filter,
+                     const std::function<bool(std::string, std::string)> &cb) {
+  auto res = instance.queryf(
+      "SELECT user, host FROM mysql.user WHERE (user LIKE ?)", user_filter);
+
+  size_t num_users{0};
+  while (const auto row = res->fetch_one()) {
+    num_users++;
+    if (!cb(row->get_string(0), row->get_string(1))) break;
+  }
+
+  return num_users;
 }
 
 Privilege_list get_global_grants(const IInstance &instance,

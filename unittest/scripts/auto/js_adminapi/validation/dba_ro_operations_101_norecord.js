@@ -31,6 +31,7 @@
                 "applierWorkerThreads": 4,
 ?{}
                 "fenceSysVars": [],
+${*}
                 "memberId": "<<<uuid1>>>",
                 "memberRole": "PRIMARY",
                 "memberState": "ONLINE",
@@ -135,6 +136,7 @@ ${*}
                     "read_only",
                     "super_read_only"
                 ],
+${*}
                 "memberId": "<<<uuid2>>>",
                 "memberRole": "SECONDARY",
                 "memberState": "ONLINE",

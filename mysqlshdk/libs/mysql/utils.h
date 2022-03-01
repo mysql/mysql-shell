@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,7 @@ std::set<std::string> get_views(const mysql::IInstance &instance,
 
 enum class Account_attribute { Grants };
 
-static constexpr size_t kPASSWORD_LENGTH = 32;
+inline constexpr size_t kPASSWORD_LENGTH = 32;
 
 using Account_attribute_set =
     utils::Enum_set<Account_attribute, Account_attribute::Grants>;
@@ -60,6 +60,9 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
                 const std::string &new_host, const std::string &password,
                 Account_attribute_set flags =
                     Account_attribute_set(Account_attribute::Grants));
+
+size_t iterate_users(const IInstance &instance, const std::string &user_filter,
+                     const std::function<bool(std::string, std::string)> &cb);
 
 using Privilege_list = std::vector<std::string>;
 

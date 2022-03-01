@@ -854,6 +854,10 @@ void Rescan::ensure_recovery_accounts_match() {
               return true;
             }
 
+            mysqlsh::current_console()->print_info(shcore::str_format(
+                "Fixing incorrect recovery account '%s' in instance '%s'",
+                recovery_user.c_str(), instance->descr().c_str()));
+
             // Generate and set a new password and update the replication
             // credentials
             m_cluster->reset_recovery_password(
@@ -933,40 +937,38 @@ shcore::Value Rescan::execute() {
 
   // Check if group_replication_view_change_uuid is set on the Cluster and all
   // of its members when running MySQL >= 8.0.27
-  {
-    if (m_is_view_change_uuid_supported) {
-      std::string view_change_uuid =
-          m_cluster->get_primary_master()
-              ->get_sysvar_string("group_replication_view_change_uuid")
-              .get_safe();
+  if (m_is_view_change_uuid_supported) {
+    std::string view_change_uuid =
+        m_cluster->get_primary_master()
+            ->get_sysvar_string("group_replication_view_change_uuid")
+            .get_safe();
 
-      if (view_change_uuid == "AUTOMATIC") {
-        if (m_options.update_view_change_uuid.is_null()) {
-          console->print_warning(
-              "The Cluster is not configured to use "
-              "'group_replication_view_change_uuid', which is required "
-              "for InnoDB ClusterSet. Configuring it requires a full Cluster "
-              "reboot.");
-          if (m_options.interactive()) {
-            // Prompt the user to update the View Change UUID
-            if (console->confirm(
-                    "Would you like 'group_replication_view_change_uuid' to be "
-                    "configured automatically?",
-                    Prompt_answer::YES) == Prompt_answer::YES) {
-              ensure_view_change_uuid_set();
-            }
-          } else {
-            console->print_info(
-                "Use the 'updateViewChangeUuid' option to generate and "
-                "configure a value for the Cluster.");
+    if (view_change_uuid == "AUTOMATIC") {
+      if (m_options.update_view_change_uuid.is_null()) {
+        console->print_warning(
+            "The Cluster is not configured to use "
+            "'group_replication_view_change_uuid', which is required "
+            "for InnoDB ClusterSet. Configuring it requires a full Cluster "
+            "reboot.");
+        if (m_options.interactive()) {
+          // Prompt the user to update the View Change UUID
+          if (console->confirm(
+                  "Would you like 'group_replication_view_change_uuid' to be "
+                  "configured automatically?",
+                  Prompt_answer::YES) == Prompt_answer::YES) {
+            ensure_view_change_uuid_set();
           }
-        } else if (m_options.update_view_change_uuid.get_safe()) {
-          ensure_view_change_uuid_set();
+        } else {
+          console->print_info(
+              "Use the 'updateViewChangeUuid' option to generate and "
+              "configure a value for the Cluster.");
         }
-      } else {
-        // Ensures the value is stored in the metadata schema
-        ensure_view_change_uuid_set_stored_metadata();
+      } else if (m_options.update_view_change_uuid.get_safe()) {
+        ensure_view_change_uuid_set();
       }
+    } else {
+      // Ensures the value is stored in the metadata schema
+      ensure_view_change_uuid_set_stored_metadata();
     }
   }
 
@@ -1019,15 +1021,30 @@ shcore::Value Rescan::execute() {
     upgrade_comm_protocol();
   }
 
-  // Check for instances using a different account than its own for the recovery
-  // channel and do a reset+update of the credentials to ensure the right
-  // account is used. Finally, update the MD schema to store the right account
-  // in use.
+  // Check for instances using a different account than its own for the
+  // recovery channel and do a reset+update of the credentials to ensure the
+  // right account is used. Finally, update the MD schema to store the right
+  // account in use.
   //
-  // A member rejoining needs to be able to connect to itself and to all cluster
-  // members, as well as all cluster members need to be able to connect to the
-  // joining member.
+  // A member rejoining needs to be able to connect to itself and to all
+  // cluster members, as well as all cluster members need to be able to
+  // connect to the joining member.
   ensure_recovery_accounts_match();
+
+  // removes unused recovery accounts
+  for (const auto &[user, host] : m_cluster->get_unused_recovery_accounts(
+           m_cluster->get_mismatched_recovery_accounts())) {
+    try {
+      console->print_info(
+          shcore::str_format("Dropping unused recovery account: '%s'@'%s'",
+                             user.c_str(), host.c_str()));
+      m_cluster->get_primary_master()->drop_user(user, host, true);
+    } catch (...) {
+      console->print_warning(shcore::str_format(
+          "Error dropping recovery account '%s'@'%s': %s", user.c_str(),
+          host.c_str(), format_active_exception().c_str()));
+    }
+  }
 
   return shcore::Value();
 }
