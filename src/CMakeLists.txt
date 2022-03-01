@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -213,20 +213,6 @@ IF(HAVE_PYTHON)
         FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
         SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
       ENDIF()
-    ELSE()
-      # Scans the python deps to re-create the easy-install.pth, so the modules are
-      # automatically loaded on the target python
-      FILE(GLOB PYTHON_DEP_LIST "${PYTHON_DEPS_PATH}/*")
-      SET(PTH_PYTHON_DEP_LIST "")
-      FOREACH(PYTHON_DEP ${PYTHON_DEP_LIST})
-        GET_FILENAME_COMPONENT(PTH_DEP_NAME ${PYTHON_DEP} NAME)
-        IF (NOT PTH_DEP_NAME STREQUAL "easy-install.pth")
-          LIST(APPEND PTH_PYTHON_DEP_LIST "./${PTH_DEP_NAME}")
-        ENDIF()
-      ENDFOREACH(PYTHON_DEP)
-
-      STRING(REPLACE ";" "\n" PTH_FILE_CONTENT "${PTH_PYTHON_DEP_LIST}")
-      FILE(WRITE ${PYTHON_DEPS_PATH}/easy-install.pth "${PTH_FILE_CONTENT}")
     ENDIF()
   ENDIF()
 
