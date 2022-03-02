@@ -652,7 +652,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
 
 void start_cluster(const mysqlshdk::mysql::IInstance &instance,
                    const Group_replication_options &gr_opts,
-                   const mysqlshdk::utils::nullable<bool> &multi_primary,
+                   std::optional<bool> multi_primary,
                    mysqlshdk::config::Config *config) {
   assert(config);
 
@@ -669,7 +669,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   }
 
   mysqlshdk::utils::nullable<bool> single_primary_mode;
-  if (!multi_primary.is_null()) single_primary_mode = !*multi_primary;
+  if (multi_primary) single_primary_mode = !*multi_primary;
 
   // Set GR replication options:
   // - primary mode (topology mode) set by the user or using default (resolved
@@ -690,7 +690,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - Enable GR start on boot;
   set_gr_options(instance, gr_opts, config, single_primary_mode);
 
-  if (!multi_primary.is_null()) {
+  if (multi_primary) {
     // Set auto-increment settings (depending on the topology type) on the seed
     // instance (assuming it will be successfully start the group; size = 1).
     mysqlshdk::gr::Topology_mode topology_mode =

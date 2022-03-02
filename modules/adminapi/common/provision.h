@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,7 +148,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
  */
 void start_cluster(const mysqlshdk::mysql::IInstance &instance,
                    const Group_replication_options &gr_opts,
-                   const mysqlshdk::utils::nullable<bool> &multi_primary,
+                   std::optional<bool> multi_primary,
                    mysqlshdk::config::Config *config);
 
 /**

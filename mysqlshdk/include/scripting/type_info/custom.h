@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,10 +130,32 @@ struct Type_info<mysqlshdk::utils::nullable<T>> {
   static std::string desc() { return Type_info<T>::desc(); }
 };
 
+template <typename T>
+struct Type_info<std::optional<T>> {
+  static std::optional<T> to_native(const shcore::Value &in) {
+    if (Value_type::Null == in.type) {
+      return {};
+    } else {
+      return {Type_info<T>::to_native(in)};
+    }
+  }
+  static Value_type vtype() { return Type_info<T>::vtype(); }
+  static const char *code() { return Type_info<T>::code(); }
+  static std::optional<T> default_value() { return {}; }
+  static std::string desc() { return Type_info<T>::desc(); }
+};
+
 std::unique_ptr<Parameter_validator> get_nullable_validator();
 
 template <typename T>
 struct Validator_for<mysqlshdk::utils::nullable<T>> {
+  static std::unique_ptr<Parameter_validator> get() {
+    return get_nullable_validator();
+  }
+};
+
+template <typename T>
+struct Validator_for<std::optional<T>> {
   static std::unique_ptr<Parameter_validator> get() {
     return get_nullable_validator();
   }

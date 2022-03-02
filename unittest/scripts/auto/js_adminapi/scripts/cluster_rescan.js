@@ -676,6 +676,31 @@ EXPECT_NE(view_change_uuid, "AUTOMATIC");
 var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='c'").fetchOne()[0];
 EXPECT_EQ(view_change_uuid, view_change_uuid_md);
 
+// Shutdown the cluster and reboot it from complete outage after rescan() changed group_replication_view_change_uuid
+// BUG#33850528: shutting down the cluster can be done by just stopping group replication and not by restarting the instances. Since the persisted settings are only applied when a restart of the server happens, rebootClusterFromCompleteOutage() must consider that and query performance_schema.persisted_variables to obtain the right value of view_change_uuid to be used
+
+// Reboot the cluster to use back AUTOMATIC
+reboot_with_view_change_uuid_default(cluster);
+
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster()
+EXPECT_NO_THROWS(function() { cluster.rescan({updateViewChangeUuid: true}); });
+WIPE_STDOUT();
+
+shell.connect(__sandbox_uri2);
+session.runSql("stop group_replication");
+
+shell.connect(__sandbox_uri1);
+session.runSql("stop group_replication");
+
+cluster = dba.rebootClusterFromCompleteOutage("c", {rejoinInstances: [__endpoint2]});
+
+var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
+EXPECT_NE(view_change_uuid, "AUTOMATIC");
+
+var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='c'").fetchOne()[0];
+EXPECT_EQ(view_change_uuid, view_change_uuid_md);
+
 // cluster.rescan() must not warn or act if the target cluster has group_replication_view_change_uuid set
 EXPECT_NO_THROWS(function() { cluster.rescan(); });
 EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set");

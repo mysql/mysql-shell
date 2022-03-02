@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -207,7 +207,7 @@ void Create_cluster_options::set_multi_primary(const std::string &option,
                                                bool value) {
   if (option == kMultiMaster) {
     handle_deprecated_option(kMultiMaster, kMultiPrimary,
-                             !multi_primary.is_null(), false);
+                             multi_primary.has_value(), false);
   }
 
   multi_primary = value;

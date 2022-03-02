@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-#include "adminapi/common/async_topology.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -39,6 +39,7 @@
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
@@ -548,6 +549,21 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
     // if instances are rejoined later the operation may fail because
     // a new group_name started being used.
     m_gr_opts.group_name = m_cluster->get_group_name();
+
+    // group_replication_view_change_uuid might have been persisted by
+    // Cluster.rescan() and the target instance wasn't restarted so the value is
+    // not effective yet. Attempt to read it and if not empty, set it right away
+    // in the GR options to be used
+    if (m_target_instance->get_version() >= k_min_cs_version) {
+      std::string view_change_uuid_persisted =
+          m_target_instance
+              ->get_persisted_value("group_replication_view_change_uuid")
+              .get_safe();
+
+      if (!view_change_uuid_persisted.empty()) {
+        m_gr_opts.view_change_uuid = view_change_uuid_persisted;
+      }
+    }
   }
   if (type != checks::Check_type::JOIN) {
     // Read actual GR configurations to preserve them when rejoining the
@@ -1244,9 +1260,8 @@ void Cluster_join::reboot() {
            m_target_instance->get_connection_options().get_user().c_str());
 
   // Determine the topology mode to use.
-  mysqlshdk::utils::nullable<bool> multi_primary =
-      m_cluster->get_cluster_topology_type() ==
-      mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+  auto multi_primary = m_cluster->get_cluster_topology_type() ==
+                       mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
 
   // Start the cluster to bootstrap Group Replication.
   mysqlsh::dba::start_cluster(*m_target_instance, m_gr_opts, multi_primary,
