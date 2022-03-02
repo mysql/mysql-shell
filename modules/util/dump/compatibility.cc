@@ -1220,6 +1220,8 @@ void add_pk_to_create_table(const std::string &statement,
     throw std::runtime_error("Unsupported CREATE TABLE statement");
   }
 
+  // we're going to insert the PK as the first column
+  const auto position = it.position();
   int brace_count = 1;
   std::string token;
 
@@ -1233,8 +1235,6 @@ void add_pk_to_create_table(const std::string &statement,
     }
   }
 
-  const auto position = it.position() - 1;
-
   while (it.valid()) {
     if (shcore::str_caseeq(it.next_token().c_str(), "SELECT")) {
       // CREATE TABLE ... SELECT
@@ -1244,7 +1244,7 @@ void add_pk_to_create_table(const std::string &statement,
 
   *rewritten =
       statement.substr(0, position) +
-      ",`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY" +
+      "`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY," +
       statement.substr(position);
 }
 
@@ -1270,6 +1270,8 @@ bool add_pk_to_create_table_if_missing(const std::string &statement,
     throw std::runtime_error("Unsupported CREATE TABLE statement");
   }
 
+  // we're going to insert the PK as the first column
+  const auto position = it.position();
   int brace_count = 1;
 
   const auto skip_create_definition = [&brace_count, &it]() {
@@ -1475,8 +1477,6 @@ bool add_pk_to_create_table_if_missing(const std::string &statement,
     }
   }
 
-  const auto position = it.position() - 1;
-
   while (it.valid()) {
     if (shcore::str_caseeq(it.next_token().c_str(), "SELECT")) {
       // CREATE TABLE ... SELECT
@@ -1486,7 +1486,7 @@ bool add_pk_to_create_table_if_missing(const std::string &statement,
 
   *rewritten =
       statement.substr(0, position) +
-      ",`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY" +
+      "`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY," +
       statement.substr(position);
 
   return true;

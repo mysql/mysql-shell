@@ -211,7 +211,7 @@ dba.upgradeMetadata({interactive:true})
 //@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.1.0, Data Verification
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 // Marks the router as up to date, we are interested in all data migration verification
-test_session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes=JSON_OBJECT('version','8.0.19')");
+test_session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes=JSON_OBJECT('version','8.0.19', 'ROEndpoint', 'mysqlro.sock', 'RWEndpoint', '6446', 'ROXEndpoint', 'mysqlrox.sock', 'RWXEndpoint', '')");
 test_session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes=JSON_INSERT(attributes, '$.adminType','whatever')");
 
 // Fake one of the instances to ensure the calculated X port falls out of range to test it is removed

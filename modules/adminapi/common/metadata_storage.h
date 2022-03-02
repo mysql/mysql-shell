@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,10 +112,10 @@ struct Router_metadata {
   std::string name;
   uint64_t id;
   std::string hostname;
-  mysqlshdk::utils::nullable<uint64_t> rw_port;
-  mysqlshdk::utils::nullable<uint64_t> ro_port;
-  mysqlshdk::utils::nullable<uint64_t> rw_x_port;
-  mysqlshdk::utils::nullable<uint64_t> ro_x_port;
+  mysqlshdk::utils::nullable<std::string> rw_port;
+  mysqlshdk::utils::nullable<std::string> ro_port;
+  mysqlshdk::utils::nullable<std::string> rw_x_port;
+  mysqlshdk::utils::nullable<std::string> ro_x_port;
   mysqlshdk::utils::nullable<std::string> bootstrap_target_type;
   mysqlshdk::utils::nullable<std::string> last_checkin;
   mysqlshdk::utils::nullable<std::string> version;

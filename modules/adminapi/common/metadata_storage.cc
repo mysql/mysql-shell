@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,20 +48,29 @@ Router_metadata unserialize_router(const mysqlshdk::db::Row_ref_by_name &row) {
   router.id = row.get_uint("router_id");
   router.hostname = row.get_string("host_name");
   router.name = row.get_string("router_name");
-  if (!row.is_null("ro_port"))
-    router.ro_port = std::stoi(row.get_string("ro_port"));
-  if (!row.is_null("rw_port"))
-    router.rw_port = std::stoi(row.get_string("rw_port"));
-  if (!row.is_null("ro_x_port"))
-    router.ro_x_port = std::stoi(row.get_string("ro_x_port"));
-  if (!row.is_null("rw_x_port"))
-    router.rw_x_port = std::stoi(row.get_string("rw_x_port"));
+
+  if (!row.is_null("ro_port")) {
+    router.ro_port = row.get_string("ro_port");
+  }
+  if (!row.is_null("rw_port")) {
+    router.rw_port = row.get_string("rw_port");
+  }
+  if (!row.is_null("ro_x_port")) {
+    router.ro_x_port = row.get_string("ro_x_port");
+  }
+  if (!row.is_null("rw_x_port")) {
+    router.rw_x_port = row.get_string("rw_x_port");
+  }
   if (row.has_field("bootstrap_target_type") &&
-      !row.is_null("bootstrap_target_type"))
+      !row.is_null("bootstrap_target_type")) {
     router.bootstrap_target_type = row.get_string("bootstrap_target_type");
-  if (!row.is_null("last_check_in"))
+  }
+  if (!row.is_null("last_check_in")) {
     router.last_checkin = row.get_string("last_check_in");
-  if (!row.is_null("version")) router.version = row.get_string("version");
+  }
+  if (!row.is_null("version")) {
+    router.version = row.get_string("version");
+  }
 
   return router;
 }
