@@ -1,8 +1,27 @@
-function get_all_users() {
+function get_all_users(session) {
   var result = session.runSql(
     "SELECT concat(user,'@',host) FROM mysql.user " +
     "WHERE user NOT REGEXP 'mysql_innodb_cluster_r[0-9]{10}.*'");
   return result.fetchAll();
+}
+
+function get_recovery_account(session) {
+  var server_uuid = session.runSql("SELECT @@server_uuid").fetchOne()[0];
+
+  var recovery_account = session.runSql("select user from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name='group_replication_recovery'").fetchOne()[0];
+
+  var md_recovery_account = session.runSql("select (attributes->>'$.recoveryAccountUser') FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '" + server_uuid + "'").fetchOne()[0];
+
+  return recovery_account;
+}
+
+function get_all_recovery_accounts(session) {
+  var all_users = session.runSql("select user, host from mysql.user where user like 'mysql_innodb_cluster_%' order by user").fetchAll();
+
+  var just_users = [];
+  for (row of all_users) just_users.push(row[0]);
+
+  return just_users;
 }
 
 // BUG#29617572: DBA.REMOVEINSTANCE() WITH EMPTY MYSQL.SLAVE_MASTER_INFO DROPS ALL USERS
@@ -20,7 +39,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
-var all_users_instance1 = get_all_users();
+var all_users_instance1 = get_all_users(session);
 
 //@<> Add instance to the cluster
 c.addInstance(__sandbox_uri2);
@@ -86,27 +105,27 @@ EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata
 //@<> BUG#29617572: Verify that no extra users were removed from instance 1
 session.close();
 shell.connect(__sandbox_uri1);
-EXPECT_EQ(all_users_instance1, get_all_users());
+EXPECT_EQ(all_users_instance1, get_all_users(session));
 
 // ------------------------
 
-//@ removeInstance() while instance is up through hostname (same as in MD and report_host)
+//@<> removeInstance() while instance is up through hostname (same as in MD and report_host)
 c = dba.getCluster();
 c.addInstance(__sandbox_uri2);
 
-c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+EXPECT_NO_THROWS(function() {c.removeInstance(hostname+":"+__mysql_sandbox_port2); });
 EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while instance is up through hostname_ip
+//@<> removeInstance() while instance is up through hostname_ip
 c.addInstance(__sandbox_uri2);
 
-c.removeInstance(hostname_ip+":"+__mysql_sandbox_port2);
+EXPECT_NO_THROWS(function() {c.removeInstance(hostname_ip+":"+__mysql_sandbox_port2); });
 EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while instance is up through localhost
+//@<> removeInstance() while instance is up through localhost
 c.addInstance(__sandbox_uri2);
 
-c.removeInstance("localhost:"+__mysql_sandbox_port2);
+EXPECT_NO_THROWS(function() {c.removeInstance("localhost:"+__mysql_sandbox_port2); });
 EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
 // ------------------------
@@ -125,16 +144,26 @@ EXPECT_THROWS(function() { c.removeInstance(__sandbox_uri2); }, "Metadata for in
 EXPECT_OUTPUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'","WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error:"]);
 EXPECT_OUTPUT_CONTAINS("ERROR: The instance <<<__sandbox2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.");
 
-//@ removeInstance() while the instance is down - force and wrong address (should fail)
-c.removeInstance(__sandbox_uri2, {force:1});
+//@<> removeInstance() while the instance is down - force and wrong address (should fail)
+EXPECT_THROWS(function() { c.removeInstance(__sandbox_uri2, {force:1}); }, "Metadata for instance <<<__sandbox2>>> not found", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("NOTE: MySQL Error 20");
+EXPECT_OUTPUT_CONTAINS("ERROR: The instance localhost:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.");
+
 EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while the instance is down - no force and correct address (should fail)
-c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+//@<> removeInstance() while the instance is down - no force and correct address (should fail)
+EXPECT_THROWS(function(){ c.removeInstance(hostname+":"+__mysql_sandbox_port2); }, `Can't connect to MySQL server on '${libmysql_host_description(hostname, __mysql_sandbox_port2)}'`);
+EXPECT_OUTPUT_CONTAINS("ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.");
+EXPECT_OUTPUT_CONTAINS("To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.");
+
 EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while the instance is down - force and correct address
-c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1});
+//@<> removeInstance() while the instance is down - force and correct address
+EXPECT_NO_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1});});
+EXPECT_OUTPUT_CONTAINS("NOTE: MySQL Error 20");
+EXPECT_OUTPUT_CONTAINS("NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.");
+EXPECT_OUTPUT_CONTAINS("The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
+
 EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
 //@<> bring back the stopped instance for the remaining tests
@@ -145,42 +174,59 @@ session2.runSql("STOP GROUP_REPLICATION");
 
 // ------------------------
 
-//@ removeInstance() while the instance is up but OFFLINE - no force and wrong address (should fail)
+//@<> removeInstance() while the instance is up but OFFLINE - no force and wrong address (should fail)
 // covers Bug #30625424	REMOVEINSTANCE() FORCE:TRUE SAYS INSTANCE REMOVED, BUT NOT REALLY (should fail)
 c.addInstance(__sandbox_uri2);
 session2.runSql("STOP GROUP_REPLICATION");
 
-c.removeInstance(__sandbox_uri2);
+EXPECT_THROWS(function(){ c.removeInstance(__sandbox_uri2); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
+EXPECT_OUTPUT_CONTAINS("To safely remove it from the cluster, it must be brought back ONLINE. If not possible, use the 'force' option to remove it anyway.");
+
 EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while the instance is up but OFFLINE - no force and correct address (should fail)
-c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+//@<> removeInstance() while the instance is up but OFFLINE - no force and correct address (should fail)
+EXPECT_THROWS(function(){ c.removeInstance(hostname+":"+__mysql_sandbox_port2); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
+EXPECT_OUTPUT_CONTAINS("To safely remove it from the cluster, it must be brought back ONLINE. If not possible, use the 'force' option to remove it anyway.");
+
 EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while the instance is up but OFFLINE - force and wrong address
-c.removeInstance(__sandbox_uri2, {force:1});
+//@<> removeInstance() while the instance is up but OFFLINE - force and wrong address
+EXPECT_NO_THROWS(function() { c.removeInstance(__sandbox_uri2, {force:1}); });
+EXPECT_OUTPUT_CONTAINS("NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
+EXPECT_OUTPUT_CONTAINS("The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
+
 EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() while the instance is up but OFFLINE - force and correct address
+//@<> removeInstance() while the instance is up but OFFLINE - force and correct address
 c.addInstance(__sandbox_uri2);
 session2.runSql("STOP GROUP_REPLICATION");
 
-c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1});
+EXPECT_NO_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1}); });
+EXPECT_OUTPUT_CONTAINS("NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
+EXPECT_OUTPUT_CONTAINS("The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
+
 EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
-//@ removeInstance() - OFFLINE, no force, interactive
+//@<> removeInstance() - OFFLINE, no force, interactive
 c.addInstance(__sandbox_uri2);
 session2.runSql("STOP GROUP_REPLICATION");
 
 // prompt whether to remove without sync should appear
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
-c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1});
 
-//@ removeInstance() - OFFLINE, force:false, interactive
-c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:false});
+EXPECT_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1}); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
 
-//@ removeInstance() - OFFLINE, force:true, interactive
-c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:true});
+//@<> removeInstance() - OFFLINE, force:false, interactive
+EXPECT_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:false}); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
+
+//@<> removeInstance() - OFFLINE, force:true, interactive
+EXPECT_NO_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:true}); });
+EXPECT_OUTPUT_CONTAINS("NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
+EXPECT_OUTPUT_CONTAINS("The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
 
 // ------------------------
 
@@ -212,20 +258,23 @@ shell.dumpRows(session2.runSql("SELECT @@report_host"));
 
 c.status();
 
-//@ removeInstance() using hostname - hostname is not in MD, but uuid is
-c.removeInstance(hostname+":"+__mysql_sandbox_port2);
+//@<> removeInstance() using hostname - hostname is not in MD, but uuid is
+EXPECT_NO_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2); });
+EXPECT_OUTPUT_CONTAINS("The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
 
 // add back for next test
 c.addInstance(__sandbox_uri2);
 
-//@ removeInstance() using localhost - localhost is not in MD, but uuid is
-c.removeInstance("localhost:"+__mysql_sandbox_port2);
+//@<> removeInstance() using localhost - localhost is not in MD, but uuid is
+EXPECT_NO_THROWS(function() { c.removeInstance("localhost:"+__mysql_sandbox_port2); });
+EXPECT_OUTPUT_CONTAINS("The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
 
 // add back for next test
 c.addInstance(__sandbox_uri2);
 
-//@ removeInstance() using hostname_ip - MD has hostname_ip (and UUID), although report_host is different
-c.removeInstance(hostname_ip+":"+__mysql_sandbox_port2);
+//@<> removeInstance() using hostname_ip - MD has hostname_ip (and UUID), although report_host is different
+EXPECT_NO_THROWS(function() { c.removeInstance(hostname_ip+":"+__mysql_sandbox_port2); });
+EXPECT_OUTPUT_CONTAINS("The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
 
 //@<> Finalization
 session.close();
@@ -263,11 +312,11 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // 7 - Dissolve cluster
 
 //@<> WL#13208: Initialization {VER(>=8.0.17)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id:"1111"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id:"2222"});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id:"3333"});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test');
+var c = dba.createCluster('test', {expelTimeout: 0});
 
 //@<> WL#13208: Add instance 2 using clone {VER(>=8.0.17)}
 c.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
@@ -284,17 +333,349 @@ shell.connect(__sandbox_uri2);
 var c = dba.getCluster();
 c.addInstance(__sandbox_uri1, {recoveryMethod: "incremental"});
 
-//@ WL#13208: Cluster status {VER(>=8.0.17)}
+//@<> WL#13208: Cluster status {VER(>=8.0.17)}
 c.status();
+if (__version_num >= 80011) {
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "${hostname}:${__mysql_sandbox_port2}",
+        "ssl": "REQUIRED",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
+        "topology": {
+            "${hostname}:${__mysql_sandbox_port1}": {
+                "address": "${hostname}:${__mysql_sandbox_port1}",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
+                "readReplicas": {},
+                "replicationLag": [[*]],
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            },
+            "${hostname}:${__mysql_sandbox_port2}": {
+                "address": "${hostname}:${__mysql_sandbox_port2}",
+                "memberRole": "PRIMARY",
+                "mode": "R/W",
+                "readReplicas": {},
+                "replicationLag": [[*]],
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            },
+            "${hostname}:${__mysql_sandbox_port3}": {
+                "address": "${hostname}:${__mysql_sandbox_port3}",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
+                "readReplicas": {},
+                "replicationLag": [[*]],
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "${hostname}:${__mysql_sandbox_port2}"
+}
+`);
+} else {
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "${hostname}:${__mysql_sandbox_port2}",
+        "ssl": "REQUIRED",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
+        "topology": {
+            "${hostname}:${__mysql_sandbox_port1}": {
+                "address": "${hostname}:${__mysql_sandbox_port1}",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            },
+            "${hostname}:${__mysql_sandbox_port2}": {
+                "address": "${hostname}:${__mysql_sandbox_port2}",
+                "memberRole": "PRIMARY",
+                "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            },
+            "${hostname}:${__mysql_sandbox_port3}": {
+                "address": "${hostname}:${__mysql_sandbox_port3}",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "${hostname}:${__mysql_sandbox_port2}"
+}
+`);
+}
 
 //@<> WL#13208: Re-remove seed instance {VER(>=8.0.17)}
 c.removeInstance(__sandbox_uri1);
 
-//@ WL#13208: Cluster status 2 {VER(>=8.0.17)}
+//@<> WL#13208: Cluster status 2 {VER(>=8.0.17)}
 c.status();
 
-//@<> WL#13208: Dissolve cluster {VER(>=8.0.17)}
-c.dissolve({force: true});
+if (__version_num >= 80011) {
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "${hostname}:${__mysql_sandbox_port2}",
+        "ssl": "REQUIRED",
+        "status": "OK_NO_TOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
+        "topology": {
+            "${hostname}:${__mysql_sandbox_port2}": {
+                "address": "${hostname}:${__mysql_sandbox_port2}",
+                "memberRole": "PRIMARY",
+                "mode": "R/W",
+                "readReplicas": {},
+                "replicationLag": [[*]],
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            },
+            "${hostname}:${__mysql_sandbox_port3}": {
+                "address": "${hostname}:${__mysql_sandbox_port3}",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
+                "readReplicas": {},
+                "replicationLag": [[*]],
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "${hostname}:${__mysql_sandbox_port2}"
+}
+`);
+} else {
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "${hostname}:${__mysql_sandbox_port2}",
+        "ssl": "REQUIRED",
+        "status": "OK_NO_TOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
+        "topology": {
+            "${hostname}:${__mysql_sandbox_port2}": {
+                "address": "${hostname}:${__mysql_sandbox_port2}",
+                "memberRole": "PRIMARY",
+                "mode": "R/W",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            },
+            "${hostname}:${__mysql_sandbox_port3}": {
+                "address": "${hostname}:${__mysql_sandbox_port3}",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
+                "readReplicas": {},
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "${__version}"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "${hostname}:${__mysql_sandbox_port2}"
+}
+`);
+}
+
+// Verify that recovery accounts of forcefully removed instances are dropped from the cluster {VER(>=8.0.17)}
+
+// BUG#33630808 Instances that are removed using the 'force' option, because
+// are either offline or unreachable, won't have its recovery account removed
+// from the cluster. The reason is that the AdminAPI couldn't know which was
+// the account to be dropped, however, that changed in 8.0.17 since the
+// accounts are now stored in the metadata schema
+
+var server_id1 = "1111";
+var server_id2 = "2222";
+var server_id3 = "3333"
+
+// Add back instance1 to the cluster
+shell.connect(__sandbox_uri2);
+c = dba.getCluster();
+c.addInstance(__sandbox_uri1, {recoveryMethod: "incremental"});
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+//   Recovery Accounts
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+// RO| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
+// RO| instance 3 | mysql_innodb_cluster_3333 | mysql_innodb_cluster_3333 |
+//   |------------|---------------------------|---------------------------|
+
+// Get the recovery user of instance 3
+shell.connect(__sandbox_uri3);
+
+var recovery_account_in_use = get_recovery_account(session);
+var recovery_account_generated = "mysql_innodb_cluster_" + server_id3;
+
+// Kill instance 3
+testutil.killSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
+
+// Force remove instance 3
+EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint3, {force: true}); });
+testutil.waitMemberTransactions(__mysql_sandbox_port1, __mysql_sandbox_port2);
+
+// Validate that the recovery account (mysql_innodb_cluster_3333) was dropped from the cluster
+
+// Get all users
+var users_in_use = get_all_recovery_accounts(session);
+var all_users = get_all_users(session);
+
+EXPECT_FALSE(users_in_use.includes(recovery_account_in_use));
+EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+
+testutil.waitMemberTransactions(__mysql_sandbox_port1, __mysql_sandbox_port2);
+
+// Validate that if an account is still in use, it's not dropped
+
+// use clone and waitRecovery:0 so that the recovery account is not updated and
+// the one from the seed is used by the target instance
+c.removeInstance(__sandbox_uri1);
+c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+//   Recovery Accounts
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+// RO| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+//   |------------|---------------------------|---------------------------|
+
+// Get the recovery user created for instance 1 (mysql_innodb_cluster_1111)
+shell.connect(__sandbox_uri1);
+var recovery_account = get_recovery_account(session, true);
+var recovery_account_generated = "mysql_innodb_cluster_" + server_id1;
+session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
+
+// Kill instance 1
+shell.connect(__sandbox_uri2);
+testutil.killSandbox(__mysql_sandbox_port1);
+testutil.waitMemberState(__mysql_sandbox_port1, "UNREACHABLE");
+
+// Quorum is lost, restore it
+c.forceQuorumUsingPartitionOf(__sandbox_uri2);
+
+// Force remove instance 1
+EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint1, {force: true}); });
+
+// Get all users
+var users_in_use = get_all_recovery_accounts(session);
+var all_users = get_all_users(session);
+
+// Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
+EXPECT_TRUE(users_in_use.includes(recovery_account));
+
+// Validate that the recovery account generated for the instance was dropped from the cluster
+EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+
+// Add instance 1 back with clone and waitRecovery:0 so that the recovery
+// account is not updated and the one from the seed is used by the target instance
+testutil.startSandbox(__mysql_sandbox_port1);
+c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+//   Recovery Accounts
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+// RO| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+//   |------------|---------------------------|---------------------------|
+
+// Stop GR on instance 1, leaving it reachable
+shell.connect(__sandbox_uri1);
+
+var recovery_account = get_recovery_account(session, false);
+var recovery_account_generated = "mysql_innodb_cluster_" + server_id1;
+
+session.runSql("STOP group_replication");
+shell.connect(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING)");
+
+// Force remove instance 1
+EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint1, {force: true}); });
+
+// Get all users
+var users_in_use = get_all_recovery_accounts(session);
+
+// Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
+EXPECT_TRUE(users_in_use.includes(recovery_account));
+
+// Validate that the recovery account generated for the instance was dropped from the cluster
+EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+
+// Add instance 1 back to the cluster
+c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+// Change the primary to instance 1
+c.setPrimaryInstance(__sandbox_uri1);
+
+//   Recovery Accounts
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+// RO| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+//   |------------|---------------------------|---------------------------|
+
+// Remove instance 2 from the cluster
+EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint2, {force: true}); });
+
+// instance's 2 recovery account must be kept since it's in use by instance 1
+
+// Get all users
+shell.connect(__sandbox_uri1);
+var users_in_use = get_all_recovery_accounts(session);
+
+// Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
+EXPECT_TRUE(users_in_use.includes(recovery_account));
+
+// The recovery instance of instance1 is not dropped
+//
+// removeInstance() attempts to clean-up the accounts of the instance being
+// removed in case its unused, by doing a lookup in the metadata. We are
+// removing instance2 (mysql_innodb_cluster_2222) so the account is not removed and the account from instance 1 is still in the cluster even though unused.
+//
+// TODO: BUG#33235502 to handle the cleanup in cluster.rescan()
+EXPECT_TRUE(users_in_use.includes(recovery_account_generated));
 
 //@<> WL#13208: Finalization {VER(>=8.0.17)}
 session.close();

@@ -1124,8 +1124,8 @@ MetadataStorage::get_instances_with_recovery_accounts(
   return ret_val;
 }
 
-bool MetadataStorage::is_recovery_account_unique(
-    const std::string &recovery_account_user, bool clusterset_account) {
+int MetadataStorage::count_recovery_account_uses(
+    const std::string &recovery_account_user, bool clusterset_account) const {
   shcore::sqlstring query;
 
   if (!recovery_account_user.empty()) {
@@ -1154,10 +1154,10 @@ bool MetadataStorage::is_recovery_account_unique(
       count = row->get_int(0);
     }
 
-    return count == 1;
+    return count;
   }
 
-  return false;
+  return 0;
 }
 
 void MetadataStorage::remove_instance(const std::string &instance_address) {

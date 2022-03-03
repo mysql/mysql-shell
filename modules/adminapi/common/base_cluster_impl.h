@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,6 +180,9 @@ class Base_cluster_impl {
       const mysqlshdk::db::Connection_options &instance_def,
       bool print_error = true, bool allow_account_override = false);
 
+  std::string make_replication_user_name(uint32_t server_id,
+                                         const std::string &user_prefix) const;
+
  protected:
   Cluster_id m_id;
   std::string m_cluster_name;
@@ -233,9 +236,6 @@ class Base_cluster_impl {
   std::tuple<std::string, std::string, shcore::Value>
   validate_set_option_namespace(const std::string &option,
                                 const shcore::Value &value) const;
-
-  std::string make_replication_user_name(uint32_t server_id,
-                                         const std::string &user_prefix) const;
 };
 
 }  // namespace dba

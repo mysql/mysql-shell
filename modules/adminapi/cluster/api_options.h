@@ -60,7 +60,11 @@ struct Rejoin_instance_options : public Password_interactive_options {
 struct Remove_instance_options : public Password_interactive_options {
   static const shcore::Option_pack_def<Remove_instance_options> &options();
 
-  mysqlshdk::null_bool force;
+  bool get_force(bool default_value = false) const noexcept {
+    return force.value_or(default_value);
+  }
+
+  std::optional<bool> force;
 };
 
 struct Status_options {

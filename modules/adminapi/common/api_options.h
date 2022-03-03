@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ struct Interactive_option {
   bool interactive() const;
 
  private:
-  mysqlshdk::null_bool m_interactive;
+  std::optional<bool> m_interactive;
 };
 
 struct Password_interactive_options : public Interactive_option {

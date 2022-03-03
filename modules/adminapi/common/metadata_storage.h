@@ -321,8 +321,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::map<std::string, std::string> get_instances_with_recovery_accounts(
       const Cluster_id &cluster_id) const;
 
-  bool is_recovery_account_unique(const std::string &recovery_account_user,
-                                  bool clusterset_account = false);
+  int count_recovery_account_uses(const std::string &recovery_account_user,
+                                  bool clusterset_account = false) const;
 
   virtual bool is_instance_on_cluster(const Cluster_id &cluster_id,
                                       const std::string &address);

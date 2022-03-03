@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,7 @@ const shcore::Option_pack_def<Interactive_option>
 }
 
 bool Interactive_option::interactive() const {
-  return m_interactive.get_safe(current_shell_options()->get().wizards);
+  return m_interactive.value_or(current_shell_options()->get().wizards);
 }
 
 const shcore::Option_pack_def<Password_interactive_options>

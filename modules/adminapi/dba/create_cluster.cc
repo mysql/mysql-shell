@@ -472,7 +472,7 @@ void Create_cluster::setup_recovery(Cluster_impl *cluster,
         shcore::str_format("Error updating recovery credentials for %s: %s",
                            target->descr().c_str(), e.what()));
 
-    cluster->drop_replication_user_old(target);
+    cluster->drop_replication_user(target);
   }
 }
 
