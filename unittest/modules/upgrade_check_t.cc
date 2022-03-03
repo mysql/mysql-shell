@@ -1172,4 +1172,69 @@ TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
   testutil->destroy_sandbox(sb_port, true);
 }
 
+TEST_F(MySQL_upgrade_check_test, convert_usage) {
+  {
+    // upgrade to < 8.0.28 needs no check
+    ASSERT_THROW(
+        Sql_upgrade_check::get_changed_functions_generated_columns_check(
+            Upgrade_check_options(Version(8, 0, 26), Version(8, 0, 27))),
+        Upgrade_check::Check_not_needed);
+
+    // upgrade between >= 8.0.28 needs no check
+    ASSERT_THROW(
+        Sql_upgrade_check::get_changed_functions_generated_columns_check(
+            Upgrade_check_options(Version(8, 0, 28), Version(8, 0, 29))),
+        Upgrade_check::Check_not_needed);
+
+    ASSERT_NO_THROW(
+        Sql_upgrade_check::get_changed_functions_generated_columns_check(
+            Upgrade_check_options(Version(5, 7, 28), Version(8, 0, 28))));
+
+    ASSERT_NO_THROW(
+        Sql_upgrade_check::get_changed_functions_generated_columns_check(
+            Upgrade_check_options(Version(8, 0, 27), Version(8, 0, 29))));
+  }
+
+  auto options = Upgrade_check_options(Version(8, 0, 11), Version(8, 0, 28));
+
+  std::unique_ptr<Sql_upgrade_check> check =
+      Sql_upgrade_check::get_changed_functions_generated_columns_check(options);
+
+  EXPECT_NE(nullptr, check->get_doc_link());
+
+  PrepareTestDatabase("testdb");
+  ASSERT_NO_THROW(session->execute(
+      "create table if not exists testdb.genindexcast (a varchar(40), b "
+      "varchar(40) generated always "
+      "as (cast(a as char character set latin2)) stored key,"
+      "`cast` int generated always as (1+1) stored);"));
+  ASSERT_NO_THROW(session->execute(
+      "create table if not exists testdb.genindexconv (a varchar(40), b "
+      "varchar(40) generated always "
+      "as (convert(a using 'latin1')) stored key,"
+      "`convert` int generated always as (32+a) stored);"));
+
+  ASSERT_NO_THROW(session->execute(
+      "create table if not exists testdb.plainconv (a varchar(40), b "
+      "varchar(40) generated always "
+      "as (convert(a using 'latin1')) stored,"
+      "x varchar(1) generated always as (4) virtual);"));
+  ASSERT_NO_THROW(session->execute(
+      "create table if not exists testdb.plaincast (a varchar(40), b "
+      "varchar(40) generated always "
+      "as (cast(a as char character set latin2)) stored,"
+      "y int generated always as (42) virtual);"));
+
+  EXPECT_ISSUES(check.get(), 2);
+  EXPECT_EQ("testdb", issues[0].schema);
+  EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
+  EXPECT_STRCASEEQ("genindexcast", issues[0].table.c_str());
+  EXPECT_EQ("b", issues[0].column);
+
+  EXPECT_EQ("testdb", issues[1].schema);
+  EXPECT_EQ(Upgrade_issue::WARNING, issues[1].level);
+  EXPECT_STRCASEEQ("genindexconv", issues[1].table.c_str());
+  EXPECT_EQ("b", issues[1].column);
+}
+
 }  // namespace mysqlsh
