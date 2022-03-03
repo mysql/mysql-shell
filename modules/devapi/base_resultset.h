@@ -104,6 +104,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   collationName;     //!< Same as getCollationName()
   characterSetName;  //!< Same as getCharacterSetName()
   zeroFill;          //!< Same as isZeroFill()
+  flags;             //!< Same as getFlags()
 #elif DOXYGEN_PY
   schema_name;         //!< Same as get_schema_name()
   table_name;          //!< Same as get_table_name()
@@ -117,6 +118,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   collation_name;      //!< Same as get_collation_name()
   character_set_name;  //!< Same as get_character_set_name()
   zero_fill;           //!< Same as is_zero_fill()
+  flags;               //!< Same as getFlags()
 #endif
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -161,6 +161,7 @@ Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
   add_property("collationName", "getCollationName");
   add_property("characterSetName", "getCharacterSetName");
   add_property("zeroFill", "isZeroFill");
+  add_property("flags", "getFlags");
 }
 
 bool Column::operator==(const Object_bridge &other) const {
@@ -223,7 +224,8 @@ REGISTER_HELP_FUNCTION(getZeroFill, Column);
  * Column.
  * \li characterSetName: returns a String object with the collation name of the
  * Column.
-
+ * \li flags: returns a space separated list of database flags set for the
+ * Column.
  */
 #endif
 shcore::Value Column::get_member(const std::string &prop) const {
@@ -252,6 +254,8 @@ shcore::Value Column::get_member(const std::string &prop) const {
     ret_val = shcore::Value(_c.get_charset_name());
   else if (prop == "zeroFill")
     ret_val = shcore::Value(_c.is_zerofill());
+  else if (prop == "flags")
+    ret_val = shcore::Value(_c.get_flags());
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
 
