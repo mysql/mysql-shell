@@ -460,7 +460,9 @@ testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
     "early-plugin-load": "keyring_file." + ("dll" if __os_type == "windows" else "so"),
     "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring")),
     "log-bin": "binlog",
-    "server-id": str(random.randint(1, 4294967295))
+    "server-id": str(random.randint(1, 4294967295)),
+    "enforce_gtid_consistency": "ON",
+    "gtid_mode": "ON",
 })
 
 #@<> wait for server
@@ -1680,7 +1682,7 @@ for table in missing_pks[incompatible_schema]:
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
@@ -1694,7 +1696,7 @@ session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, 
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
@@ -1708,7 +1710,7 @@ session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table]
 table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
@@ -1725,7 +1727,7 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While 'Writing .*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
@@ -1857,10 +1859,11 @@ required_privileges = {
 
 if __version_num >= 80000:
     # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
+    # BUG#33697289 - this is no longer an error, consistency is checked instead
     required_privileges["BACKUP_ADMIN"] = PrivilegeError(  # global privilege
-        "While 'Gathering information': Could not acquire the backup lock",
-        f"ERROR: User {test_user_account} is missing the BACKUP_ADMIN privilege and cannot execute 'LOCK INSTANCE FOR BACKUP'.",
-        exception_type = "Error: Shell Error (52003)"
+        "NO EXCEPTION!",
+        f"NOTE: Backup lock is not available to the account {test_user_account} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.",
+        fatal=False
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
@@ -2016,6 +2019,87 @@ EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table 
 
 #@<> using the same user, run inconsistent dump
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "ddlOnly": True, "showProgress": False })
+
+#@<> BUG#33697289 additional consistency checks if user is missing some of the privileges
+# setup
+setup_session()
+session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
+# user cannot execute FTWRL and LOCK INSTANCE FOR BACKUP
+session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ /*!80000 , BACKUP_ADMIN */ ON *.* FROM {test_user_account};")
+
+tested_schema = "test_schema"
+tested_table = "test_table"
+tables_to_create = 100
+reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+
+for i in range(tables_to_create):
+    session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
+
+# constantly create tables
+create_tables = f"""v = {tables_to_create}
+while True:
+    session.run_sql("CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
+    v = v + 1
+session.close()
+"""
+
+# run a process which constantly creates tables
+pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
+# wait a bit for process to start
+time.sleep(3)
+# connect
+shell.connect(test_user_uri(__mysql_sandbox_port1))
+
+# test
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "consistent": True, "showProgress": False }, expect_dir_created = True)
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: Backup lock is not {0} and DDL changes were not blocked. The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Error while writing .+ of `.+`\.`.+`: Consistency check has failed"))
+
+#@<> BUG#33697289 fail if gtid is disabled and DDL changes {not __dbug_off}
+testutil.dbug_set("+d,dumper_gtid_disabled")
+
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "consistent": True, "showProgress": False }, expect_dir_created = True)
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: Backup lock is not {0} and DDL changes were not blocked. The binlog position has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Error while writing .+ of `.+`\.`.+`: Consistency check has failed"))
+
+testutil.dbug_set("")
+
+#@<> BUG#33697289 terminate the process immediately, it will not stop on its own
+testutil.wait_mysqlsh_async(pid, 0)
+
+# without the process, the dump should succeed
+WIPE_STDOUT()
+shutil.rmtree(test_output_absolute, True)
+EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False }), "Dump should not throw")
+
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS("NOTE: Backup lock was not acquired, but DDL is consistent, the world may resume now.")
+
+#@<> BUG#33697289 fail if binlog and gtid are disabled {not __dbug_off}
+testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
+
+EXPECT_FAIL("Error: Shell Error (52002)", "While 'Initializing': Unable to lock tables: Consistency check has failed.", test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS(f"""
+ERROR: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK.
+    Backup lock is not {reason} and DDL changes cannot be blocked.
+    The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
+    The log_bin system variable is set to OFF or the current user does not have required privileges to execute SHOW MASTER STATUS.
+The consistency of the dump cannot be guaranteed.
+""")
+
+testutil.dbug_set("")
+
+#@<> BUG#33697289 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> reconnect to the user with full privilages, restore test user account
 setup_session()

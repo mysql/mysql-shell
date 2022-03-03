@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -562,6 +562,8 @@ class Dumper::Table_worker final {
     m_dumper->write_schema_metadata(schema);
 
     ++m_dumper->m_schema_metadata_written;
+
+    m_dumper->validate_dump_consistency(m_session);
   }
 
   void write_table_metadata(const Table_task &table) {
@@ -570,6 +572,8 @@ class Dumper::Table_worker final {
     m_dumper->write_table_metadata(table, m_session);
 
     ++m_dumper->m_table_metadata_written;
+
+    m_dumper->validate_dump_consistency(m_session);
   }
 
   void create_table_data_tasks(const Table_task &table) {
@@ -1144,6 +1148,8 @@ class Dumper::Table_worker final {
                         get_schema_filename(schema.basename));
 
     ++m_dumper->m_ddl_written;
+
+    m_dumper->validate_dump_consistency(m_session);
   }
 
   void dump_table_ddl(const Schema_info &schema,
@@ -1164,6 +1170,8 @@ class Dumper::Table_worker final {
     }
 
     ++m_dumper->m_ddl_written;
+
+    m_dumper->validate_dump_consistency(m_session);
   }
 
   void dump_view_ddl(const Schema_info &schema, const View_info &view) const {
@@ -1182,6 +1190,8 @@ class Dumper::Table_worker final {
         get_table_filename(view.basename));
 
     ++m_dumper->m_ddl_written;
+
+    m_dumper->validate_dump_consistency(m_session);
   }
 
   std::string get_query_comment(const Table_task &table,
@@ -1371,6 +1381,53 @@ void Dumper::run() {
 }
 
 void Dumper::do_run() {
+  // helper:
+  // lock_instance():
+  //   1. if LIFB is available to the user
+  //     1.1. LOCK INSTANCE FOR BACKUP
+  //   2. if LIFB is not available to the user
+  //     2.1. if user was able to execute FTWRL:
+  //       2.1.1. continue
+  //     2.2. if user was not able to execute FTWRL:
+  //       2.2.1. if (gtid_mode is ON or ON_PERMISSIVE) or (log_bin is ON):
+  //         2.2.1.1. continue
+  //       2.2.2. else
+  //         2.2.2.1. error and abort
+  // start up sequence (consistent dump):
+  // 1. acquire read locks:
+  //   1.1. if user is able to execute FTWRL:
+  //     1.1.1. FLUSH TABLES WITH READ LOCK
+  //   1.2. if user is not able to execute FTWRL:
+  //     1.2.1. execute lock_instance()
+  //     1.2.2. create a new session and LOCK mysql TABLES using that session
+  //     1.2.3. fetch schemas, tables and views to be dumped
+  //     1.2.4. create one or more new sessions and LOCK dumped TABLES
+  //     1.2.5. if there are any errors, abort
+  // 2. start a transaction
+  // 3. create worker threads, each thread:
+  //   3.1. creates a new session
+  //   3.2. starts a transaction
+  // 4. gather information about objects to be dumped:
+  //   4.1. if 1.2.3. was not executed, do this now
+  //   4.2. fetch server metadata (i.e. gtid_executed, binlog file and position)
+  //   4.3. fetch information about tables, views, routines, users, etc.
+  // 5. wait for all worker threads to finish their initialization
+  // 6. execute lock_instance()
+  // 7. release read locks:
+  //   7.1. if user was able to execute FTWRL:
+  //     7.1.1 UNLOCK TABLES
+  //   7.2. if user was not able to execute FTWRL:
+  //     7.2.1 close all sessions which executed LOCK TABLES
+  // 8. workers start to execute their tasks
+  // 9. once all DDL-related files are written (metadata, SQL, etc.):
+  //   9.1. if both FTWRL and LIFB were not available to the user:
+  //     9.1.1. if GTID: fetch gtid_executed, if different from the 4.2. value:
+  //       9.1.1.1. if dumpInstance(): error and abort
+  //       9.1.1.2. else: warning and continue
+  //     9.1.2. else SHOW MASTER STATUS, if different from the 4.2. value:
+  //       9.1.2.1. if dumpInstance(): error and abort
+  //       9.1.2.2. else: warning and continue
+
   m_worker_interrupt = false;
   m_progress_thread.start();
   m_current_stage = m_progress_thread.start_stage("Initializing");
@@ -1460,10 +1517,8 @@ void Dumper::do_run() {
   rethrow();
 
 #ifndef NDEBUG
-  const auto server_version = Version(m_cache.server_version);
-
-  if (server_version < Version(8, 0, 21) ||
-      server_version > Version(8, 0, 23) || !dump_users()) {
+  if (m_server_version < Version(8, 0, 21) ||
+      m_server_version > Version(8, 0, 23) || !dump_users()) {
     // SHOW CREATE USER auto-commits transaction in some 8.0 versions, we don't
     // check if transaction is still open in such case if users were dumped
     assert_transaction_is_open(session());
@@ -1534,8 +1589,9 @@ void Dumper::open_session() {
   }
 
   m_session = establish_session(co, false);
-
   on_init_thread_session(m_session);
+
+  fetch_server_information();
 
   log_server_version();
 }
@@ -1560,6 +1616,32 @@ void Dumper::fetch_user_privileges() {
   m_user_account = shcore::make_account(user, host);
   m_skip_grant_tables_active =
       "'skip-grants user'@'skip-grants host'" == m_user_account;
+
+  if (m_server_version >= Version(8, 0, 0)) {
+    m_user_has_backup_admin =
+        !m_user_privileges->validate({"BACKUP_ADMIN"}).has_missing_privileges();
+  }
+
+  warn_about_backup_lock();
+}
+
+void Dumper::warn_about_backup_lock() const {
+  if (!m_options.consistent_dump()) {
+    return;
+  }
+
+  if (!m_user_has_backup_admin) {
+    current_console()->print_note(
+        "Backup lock is not " + why_backup_lock_is_missing() +
+        " and DDL changes will not be blocked. The dump may fail with an error "
+        "if schema changes are made while dumping.");
+  }
+}
+
+std::string Dumper::why_backup_lock_is_missing() const {
+  return m_server_version >= Version(8, 0, 0)
+             ? "available to the account " + m_user_account
+             : "supported in MySQL " + m_server_version.get_short();
 }
 
 void Dumper::lock_all_tables() {
@@ -1598,11 +1680,27 @@ void Dumper::lock_all_tables() {
     }
   };
 
+  const auto lock_tables = [this](std::string *lock_statement) {
+    if (',' == lock_statement->back()) {
+      // remove last comma
+      lock_statement->pop_back();
+    }
+
+    log_info("Locking tables: %s", lock_statement->c_str());
+
+    if (!m_options.is_dry_run()) {
+      // initialize session
+      auto s = establish_session(session()->get_connection_options(), false);
+      on_init_thread_session(s);
+      execute(s, *lock_statement);
+      m_lock_sessions.emplace_back(std::move(s));
+    }
+  };
+
   // lock relevant tables in mysql so that grants, views, routines etc. are
   // consistent too, use the main thread to lock these tables, as it is going to
   // read from them
   try {
-    std::string stmt = k_lock_tables;
     const std::string mysql = "mysql";
 
     // if user doesn't have the SELECT privilege on mysql.*, it's not going to
@@ -1615,6 +1713,8 @@ void Dumper::lock_all_tables() {
         "'proc', 'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', "
         "'user')");
 
+    auto stmt = k_lock_tables;
+
     while (auto row = result->fetch_one()) {
       const auto table = row->get_string(0);
 
@@ -1623,14 +1723,7 @@ void Dumper::lock_all_tables() {
       stmt.append("mysql." + shcore::quote_identifier(table) + " READ,");
     }
 
-    // remove last comma
-    stmt.pop_back();
-
-    log_info("Locking tables: %s", stmt.c_str());
-
-    if (!m_options.is_dry_run()) {
-      execute(stmt);
-    }
+    lock_tables(&stmt);
   } catch (const mysqlshdk::db::Error &e) {
     console->print_error("Could not lock mysql system tables: " + e.format());
     throw;
@@ -1659,25 +1752,9 @@ void Dumper::lock_all_tables() {
   // separate sessions to run the queries as executing LOCK TABLES implicitly
   // unlocks tables locked before
   try {
-    std::string stmt = k_lock_tables;
-
-    const auto lock_tables = [this, &stmt]() {
-      // remove last comma
-      stmt.pop_back();
-
-      log_info("Locking tables: %s", stmt.c_str());
-
-      if (!m_options.is_dry_run()) {
-        // initialize session
-        auto s = establish_session(session()->get_connection_options(), false);
-        on_init_thread_session(s);
-        execute(s, stmt);
-        m_lock_sessions.emplace_back(std::move(s));
-      }
-    };
-
     const auto k_lock_tables_size = k_lock_tables.size();
     auto size = std::string::npos;
+    auto stmt = k_lock_tables;
 
     for (const auto &table : tables) {
       size = stmt.size();
@@ -1686,7 +1763,7 @@ void Dumper::lock_all_tables() {
       // enough)
       if (size + table.size() >= max_packet_size - 256 &&
           size > k_lock_tables_size) {
-        lock_tables();
+        lock_tables(&stmt);
 
         stmt = k_lock_tables;
       }
@@ -1696,7 +1773,7 @@ void Dumper::lock_all_tables() {
 
     if (stmt.size() > k_lock_tables_size) {
       // flush the rest
-      lock_tables();
+      lock_tables(&stmt);
     }
   } catch (const mysqlshdk::db::Error &e) {
     console->print_error("Error locking tables: " + e.format());
@@ -1705,138 +1782,135 @@ void Dumper::lock_all_tables() {
 }
 
 void Dumper::acquire_read_locks() {
-  if (m_options.consistent_dump()) {
-    // This will block until lock_wait_timeout if there are any
-    // sessions with open transactions/locks.
-    current_console()->print_info("Acquiring global read lock");
+  if (!m_options.consistent_dump()) {
+    return;
+  }
 
-    // user can execute FLUSH statements if has RELOAD privilege or, starting
-    // with 8.0.23, FLUSH_TABLES privilege
-    const auto execute_ftwrl =
-        !m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
-        (session()->get_server_version() >= Version(8, 0, 23) &&
-         !m_user_privileges->validate({"FLUSH_TABLES"})
-              .has_missing_privileges());
-    m_ftwrl_failed = !execute_ftwrl;
+  // This will block until lock_wait_timeout if there are any sessions with open
+  // transactions/locks.
+  current_console()->print_info("Acquiring global read lock");
 
-    if (execute_ftwrl) {
-      if (m_options.is_dry_run()) {
-        // in case of a dry run we need to attempt to acquire FTWRL, because
-        // it may require some other privileges, set the lock_wait_timeout to
-        // smallest possible value to avoid waiting for long periods of time
-        execute("SET @current_lock_wait_timeout = @@session.lock_wait_timeout");
-        execute("SET @@session.lock_wait_timeout = 1");
+  // user can execute FLUSH statements if has RELOAD privilege or, starting with
+  // 8.0.23, FLUSH_TABLES privilege
+  const auto execute_ftwrl =
+      !m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
+      (m_server_version >= Version(8, 0, 23) &&
+       !m_user_privileges->validate({"FLUSH_TABLES"}).has_missing_privileges());
+  m_ftwrl_used = execute_ftwrl;
+
+  if (execute_ftwrl) {
+    if (m_options.is_dry_run()) {
+      // in case of a dry run we need to attempt to acquire FTWRL, because it
+      // may require some other privileges, set the lock_wait_timeout to
+      // smallest possible value to avoid waiting for long periods of time
+      execute("SET @current_lock_wait_timeout = @@session.lock_wait_timeout");
+      execute("SET @@session.lock_wait_timeout = 1");
+    }
+
+    bool timeout = false;
+
+    try {
+      // no need to flush in case of a dry run, we're only interested if FTWRL
+      // succeeds
+      if (!m_options.is_dry_run()) {
+        // We do first a FLUSH TABLES. If a long update is running, the FLUSH
+        // TABLES will wait but will not stall the whole mysqld, and when the
+        // long update is done the FLUSH TABLES WITH READ LOCK will start and
+        // succeed quickly. So, FLUSH TABLES is to lower the probability of a
+        // stage where both shell and most client connections are stalled. Of
+        // course, if a second long update starts between the two FLUSHes, we
+        // have that bad stall.
+        execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
       }
 
-      bool timeout = false;
-
-      try {
-        // no need to flush in case of a dry run, we're only interested if FTWRL
-        // succeeds
-        if (!m_options.is_dry_run()) {
-          // We do first a FLUSH TABLES. If a long update is running, the FLUSH
-          // TABLES will wait but will not stall the whole mysqld, and when the
-          // long update is done the FLUSH TABLES WITH READ LOCK will start and
-          // succeed quickly. So, FLUSH TABLES is to lower the probability of a
-          // stage where both shell and most client connections are stalled. Of
-          // course, if a second long update starts between the two FLUSHes, we
-          // have that bad stall.
-          execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
-        }
-
-        execute("FLUSH TABLES WITH READ LOCK;");
-      } catch (const mysqlshdk::db::Error &e) {
-        if (ER_LOCK_WAIT_TIMEOUT == e.code() && m_options.is_dry_run()) {
-          // it's a dry run and FTWRL failed due to a timeout, treat this as a
-          // success - user had privileges required to execute FTWRL
-          timeout = true;
-        } else if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code() ||
-                   ER_DBACCESS_DENIED_ERROR == e.code() ||
-                   ER_ACCESS_DENIED_ERROR == e.code()) {
-          // FTWRL failed due to an access denied error, fall back to LOCK
-          // TABLES
-          m_ftwrl_failed = true;
-        } else {
-          current_console()->print_error(
-              "Failed to acquire global read lock: " + e.format());
-          THROW_ERROR0(SHERR_DUMP_GLOBAL_READ_LOCK_FAILED);
-        }
-      }
-
-      if (m_options.is_dry_run()) {
-        // restore previous value of lock_wait_timeout
-        execute("SET @@session.lock_wait_timeout = @current_lock_wait_timeout");
-
-        if (!timeout && !m_ftwrl_failed) {
-          // we've successfully acquired FTWRL, but it's a dry run and we don't
-          // want to interfere with the live server, release it immediately
-          execute("UNLOCK TABLES");
-        }
-      }
-
-      if (!m_ftwrl_failed) {
-        current_console()->print_info("Global read lock acquired");
-
-        // FTWRL was used to lock the tables, it is safe to start a transaction,
-        // as it will not release the global read lock
-        start_transaction(session());
+      execute("FLUSH TABLES WITH READ LOCK;");
+    } catch (const mysqlshdk::db::Error &e) {
+      if (ER_LOCK_WAIT_TIMEOUT == e.code() && m_options.is_dry_run()) {
+        // it's a dry run and FTWRL failed due to a timeout, treat this as a
+        // success - user had privileges required to execute FTWRL
+        timeout = true;
+      } else if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code() ||
+                 ER_DBACCESS_DENIED_ERROR == e.code() ||
+                 ER_ACCESS_DENIED_ERROR == e.code()) {
+        // FTWRL failed due to an access denied error, fall back to LOCK TABLES
+        m_ftwrl_used = false;
+      } else {
+        current_console()->print_error("Failed to acquire global read lock: " +
+                                       e.format());
+        THROW_ERROR0(SHERR_DUMP_GLOBAL_READ_LOCK_FAILED);
       }
     }
 
-    if (m_ftwrl_failed) {
-      current_console()->print_warning(
-          "The current user lacks privileges to acquire a global read lock "
-          "using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK "
-          "TABLES...");
+    if (m_options.is_dry_run()) {
+      // restore previous value of lock_wait_timeout
+      execute("SET @@session.lock_wait_timeout = @current_lock_wait_timeout");
 
-      const auto handle_error = [](const std::string &msg) {
-        current_console()->print_error(
-            "Unable to acquire global read lock neither table read locks.");
-
-        THROW_ERROR(SHERR_DUMP_LOCK_TABLES_FAILED, msg.c_str());
-      };
-
-      // if FTWRL isn't executable by the user, try LOCK TABLES instead
-      try {
-        lock_all_tables();
-
-        current_console()->print_info("Table locks acquired");
-        // a transaction would release the table locks, it cannot be started
-        // until tables are unlocked
-      } catch (const mysqlshdk::db::Error &e) {
-        handle_error(e.format());
-      } catch (const std::runtime_error &e) {
-        handle_error(e.what());
+      if (!timeout && m_ftwrl_used) {
+        // we've successfully acquired FTWRL, but it's a dry run and we don't
+        // want to interfere with the live server, release it immediately
+        execute("UNLOCK TABLES");
       }
+    }
+
+    if (m_ftwrl_used) {
+      current_console()->print_info("Global read lock acquired");
     }
   }
+
+  if (!m_ftwrl_used) {
+    current_console()->print_warning(
+        "The current user lacks privileges to acquire a global read lock "
+        "using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK "
+        "TABLES...");
+
+    const auto handle_error = [](const std::string &msg) {
+      current_console()->print_error(
+          "Unable to acquire global read lock neither table read locks.");
+
+      THROW_ERROR(SHERR_DUMP_LOCK_TABLES_FAILED, msg.c_str());
+    };
+
+    // if FTWRL isn't executable by the user, try LOCK TABLES instead
+    try {
+      lock_all_tables();
+
+      current_console()->print_info("Table locks acquired");
+    } catch (const mysqlshdk::db::Error &e) {
+      handle_error(e.format());
+    } catch (const std::runtime_error &e) {
+      handle_error(e.what());
+    }
+  }
+
+  // if FTWRL was used to lock the tables, it is safe to start a transaction, as
+  // it will not release the global read lock; if LOCK TABLES was used instead,
+  // tables were locked in separate sessions, so it's safe to start the
+  // transaction in the main session
+  start_transaction(session());
 }
 
 void Dumper::release_read_locks() const {
-  if (m_options.consistent_dump()) {
-    if (m_ftwrl_failed) {
-      // FTWRL has failed, LOCK TABLES was used instead, transaction is not yet
-      // active, we start it here - existing table locks will be implicitly
-      // released
-      start_transaction(session());
+  if (!m_options.consistent_dump()) {
+    return;
+  }
 
-      log_info("Releasing the table locks");
+  if (!m_ftwrl_used) {
+    log_info("Releasing the table locks");
 
-      // close the locking sessions, this will release the table locks
-      for (const auto &session : m_lock_sessions) {
-        session->close();
-      }
-    } else {
-      // FTWRL has succeeded, transaction is active, UNLOCK TABLES will not
-      // automatically commit the transaction
-      execute("UNLOCK TABLES;");
+    // close the locking sessions, this will release the table locks
+    for (const auto &session : m_lock_sessions) {
+      session->close();
     }
+  } else {
+    // FTWRL has succeeded, transaction is active, UNLOCK TABLES will not
+    // automatically commit the transaction
+    execute("UNLOCK TABLES;");
+  }
 
-    if (!m_worker_interrupt) {
-      // we've been interrupted, we still need to release locks, but don't
-      // inform the user
-      current_console()->print_info("Global read lock has been released");
-    }
+  if (!m_worker_interrupt) {
+    // we've been interrupted, we still need to release locks, but don't
+    // inform the user
+    current_console()->print_info("Global read lock has been released");
   }
 }
 
@@ -1872,43 +1946,50 @@ void Dumper::assert_transaction_is_open(
 }
 
 void Dumper::lock_instance() {
-  if (m_options.consistent_dump() && !m_instance_locked) {
+  if (!m_options.consistent_dump() || m_instance_locked) {
+    return;
+  }
+
+  if (m_user_has_backup_admin) {
     const auto console = current_console();
 
     console->print_info("Locking instance for backup");
 
-    // cache might not be available here, query the session for version
-    const auto version = session()->get_server_version();
+    if (!m_options.is_dry_run()) {
+      try {
+        execute("LOCK INSTANCE FOR BACKUP");
+      } catch (const shcore::Error &e) {
+        console->print_error("Could not acquire the backup lock: " +
+                             e.format());
 
-    if (version >= Version(8, 0, 0)) {
-      if (m_user_privileges->validate({"BACKUP_ADMIN"})
-              .has_missing_privileges()) {
-        console->print_error("User " + m_user_account +
-                             " is missing the BACKUP_ADMIN privilege and "
-                             "cannot execute 'LOCK INSTANCE FOR BACKUP'.");
-        THROW_ERROR0(SHERR_DUMP_BACKUP_LOCK_MISSING_PRIVILEGES);
+        throw;
       }
-
-      if (!m_options.is_dry_run()) {
-        try {
-          execute("LOCK INSTANCE FOR BACKUP");
-        } catch (const shcore::Error &e) {
-          console->print_error("Could not acquire the backup lock: " +
-                               e.format());
-
-          throw;
-        }
-      }
-    } else {
-      console->print_note("Backup lock is not supported in MySQL " +
-                          version.get_short() +
-                          " and DDL changes will not be blocked. The dump may "
-                          "fail with an error or not be completely consistent "
-                          "if schema changes are made while dumping.");
     }
+  } else if (!m_ftwrl_used && !m_gtid_enabled &&
+             (!m_binlog_enabled ||
+              2 == m_user_privileges->validate({"REPLICATION CLIENT", "SUPER"})
+                       .missing_privileges()
+                       .size())) {
+    const auto msg =
+        "The current user does not have required privileges to execute FLUSH "
+        "TABLES WITH READ LOCK.\n    Backup lock is not " +
+        why_backup_lock_is_missing() +
+        " and DDL changes cannot be blocked.\n    The gtid_mode system "
+        "variable is set to OFF or OFF_PERMISSIVE.\n    The log_bin system "
+        "variable is set to OFF or the current user does not have required "
+        "privileges to execute SHOW MASTER STATUS.\nThe consistency of the "
+        "dump cannot be guaranteed.";
+    const auto console = current_console();
 
-    m_instance_locked = true;
+    if (shcore::str_caseeq(name(), "dumpInstance")) {
+      console->print_error(msg);
+      THROW_ERROR0(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
+    } else {
+      console->print_warning(msg);
+    }
   }
+
+  m_instance_locked = true;
 }
 
 void Dumper::initialize_instance_cache_minimal() {
@@ -2767,8 +2848,8 @@ void Dumper::write_dump_started_metadata() const {
                 {m_cache.server_version.get_full().c_str(), a}, a);
 
   if (m_options.dump_binlog_info()) {
-    doc.AddMember(StringRef("binlogFile"), refs(m_cache.binlog_file), a);
-    doc.AddMember(StringRef("binlogPosition"), m_cache.binlog_position, a);
+    doc.AddMember(StringRef("binlogFile"), refs(m_cache.binlog.file), a);
+    doc.AddMember(StringRef("binlogPosition"), m_cache.binlog.position, a);
   }
 
   doc.AddMember(StringRef("gtidExecuted"), refs(m_cache.gtid_executed), a);
@@ -3509,7 +3590,7 @@ void Dumper::validate_privileges() const {
 }
 
 bool Dumper::is_gtid_executed_inconsistent() const {
-  return !m_options.consistent_dump() || m_ftwrl_failed;
+  return !m_options.consistent_dump();
 }
 
 void Dumper::validate_schemas_list() const {
@@ -3602,6 +3683,83 @@ std::string Dumper::format_object_stats(uint64_t value, uint64_t total,
 
 bool Dumper::dump_users() const {
   return m_options.dump_users() && !m_skip_grant_tables_active;
+}
+
+void Dumper::validate_dump_consistency(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
+  if (!m_options.consistent_dump() || m_ftwrl_used || m_user_has_backup_admin) {
+    return;
+  }
+
+  // if there are still metadata or DDL files to be written, skip this check
+  if (!(m_all_table_metadata_tasks_scheduled &&
+        m_table_metadata_to_write == m_table_metadata_written &&
+        m_total_schemas == m_schema_metadata_written &&
+        m_total_objects == m_ddl_written)) {
+    return;
+  }
+
+  bool consistent = false;
+  std::string context;
+  auto dumper = schema_dumper(session);
+
+  if (m_gtid_enabled) {
+    const auto gtid_executed = dumper->gtid_executed(true);
+    consistent = gtid_executed == m_cache.gtid_executed;
+
+    if (!consistent) {
+      context =
+          "The value of the gtid_executed "
+          "system variable has changed during the dump, from: '" +
+          m_cache.gtid_executed + "' to: '" + gtid_executed + "'.";
+    }
+  } else {
+    // gtid_mode is not enabled, check binlog
+    const auto binlog = dumper->binlog(true);
+    consistent = m_cache.binlog == binlog;
+
+    if (!consistent) {
+      context = "The binlog position has changed during the dump, from: '" +
+                m_cache.binlog.to_string() + "' to: '" + binlog.to_string() +
+                "'.";
+    }
+  }
+
+  const auto console = current_console();
+
+  if (!consistent) {
+    const auto msg = "Backup lock is not " + why_backup_lock_is_missing() +
+                     " and DDL changes were not blocked. " + context +
+                     " The consistency of the dump cannot be guaranteed.";
+
+    if (shcore::str_caseeq(name(), "dumpInstance")) {
+      console->print_error(msg);
+      console->print_note(
+          "In order to overcome this issue, use a read-only replica with "
+          "replication stopped, or, if dumping from a primary, then enable "
+          "super_read_only system variable and ensure that any inbound "
+          "replication channels are stopped.");
+      THROW_ERROR0(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
+    } else {
+      console->print_warning(msg);
+    }
+  } else {
+    console->print_note(
+        "Backup lock was not acquired, but DDL is consistent, the world may "
+        "resume now.");
+  }
+}
+
+void Dumper::fetch_server_information() {
+  const auto instance = mysqlshdk::mysql::Instance(session());
+
+  m_server_version = instance.get_version();
+  m_binlog_enabled = instance.get_sysvar_bool("log_bin").get_safe(false);
+  m_gtid_enabled = shcore::str_ibeginswith(
+      instance.get_sysvar_string("gtid_mode").get_safe("OFF"), "ON");
+
+  DBUG_EXECUTE_IF("dumper_binlog_disabled", { m_binlog_enabled = false; });
+  DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });
 }
 
 }  // namespace dump

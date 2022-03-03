@@ -174,7 +174,7 @@ session.runSql("ALTER TABLE test.fixed_row_format ROW_FORMAT=FIXED;");
 // BUG32376447 - use small bytesPerChunk to ensure some tables are chunked, triggering the bug
 WIPE_SHELL_LOG();
 util.dumpInstance(k_instance_dump, { "users": false, "bytesPerChunk": "128k", "ocimds": true, "compatibility": [ "ignore_missing_pks", "strip_definers" ] });
-EXPECT_STDOUT_CONTAINS("NOTE: Backup lock is not supported in MySQL 5.6 and DDL changes will not be blocked. The dump may fail with an error or not be completely consistent if schema changes are made while dumping.");
+EXPECT_STDOUT_CONTAINS("NOTE: Backup lock is not supported in MySQL 5.6 and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.");
 // BUG32376447 - check if some tables were chunked
 EXPECT_SHELL_LOG_MATCHES(/Data dump for table `\w+`.`\w+` will be written to \d+ files/);
 // util.checkForServerUpgrade() does not support 5.6 and it should not be suggested when using the 'ocimds' option

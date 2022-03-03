@@ -3211,6 +3211,30 @@ std::string Schema_dumper::gtid_executed(bool quiet) {
   return {};
 }
 
+Instance_cache::Binlog Schema_dumper::binlog(bool quiet) {
+  Instance_cache::Binlog binlog;
+
+  try {
+    const auto result = m_mysql->query("SHOW MASTER STATUS;");
+
+    if (const auto row = result->fetch_one()) {
+      binlog.file = row->get_string(0);    // File
+      binlog.position = row->get_uint(1);  // Position
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    if (e.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
+      if (!quiet) {
+        current_console()->print_warning(
+            "Could not fetch the binary log information: " + e.format());
+      }
+    } else {
+      throw;
+    }
+  }
+
+  return binlog;
+}
+
 bool Schema_dumper::include_grant(const std::string &grant) const {
   return include_grant(
       grant, [this](const std::string &schema, const std::string &object,
