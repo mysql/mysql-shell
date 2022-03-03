@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,6 +180,9 @@ class Sql_upgrade_check : public Upgrade_check {
       const Upgrade_check_options &opts);
   static std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check();
   static std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check(
+      const Upgrade_check_options &opts);
+  static std::unique_ptr<Sql_upgrade_check>
+  get_changed_functions_generated_columns_check(
       const Upgrade_check_options &opts);
 
   Sql_upgrade_check(const char *name, const char *title,

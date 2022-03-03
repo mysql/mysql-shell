@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -270,8 +270,8 @@ and rename the dummy .frm and .ibd files to the orphan name using OS file comman
 
 * oldGeometryCheck.description
 # Error
-Error: The following columns are spatial data columns created in MySQL Server version 5.6. 
-MySQL 8.0 servers before 8.0.24 do not support upgrading these tables and will reject them. 
+Error: The following columns are spatial data columns created in MySQL Server version 5.6.
+MySQL 8.0 servers before 8.0.24 do not support upgrading these tables and will reject them.
 In order for the upgrade to succeed we encourage you to upgrade directly to MySQL Server version
 8.0.24 or newer. Otherwise, you must rebuild these tables using ALTER TABLE FORCE before upgrading.
 
@@ -310,3 +310,14 @@ may impact you.
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication
 
+* changedFunctionsInGeneratedColumnsCheck.title
+# Indexes on functions with changed semantics
+
+* changedFunctionsInGeneratedColumnsCheck.description
+# Warning
+Warning: The following tables have indexes on generated columns that use functions that have had
+changes in their semantics. Replication problems and index corruption may arise unless the
+underlying issue is resolved before upgrade. See documentation for more information.
+
+* changedFunctionsInGeneratedColumnsCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-sql-changes

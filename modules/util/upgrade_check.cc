@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <map>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "modules/util/upgrade_check.h"
@@ -1352,7 +1353,7 @@ Sql_upgrade_check::get_old_geometry_types_check(
   return std::make_unique<Sql_upgrade_check>(
       "oldGeometryCheck", "Spatial data columns created in MySQL 5.6",
       std::vector<std::string>{
-          R"(select t.table_schema, t.table_name, c.column_name, 
+          R"(select t.table_schema, t.table_name, c.column_name,
               concat(c.data_type, " column") as 'advice'
               from information_schema.innodb_sys_tables as st,
               information_schema.innodb_sys_columns as sc,
@@ -1365,7 +1366,7 @@ Sql_upgrade_check::get_old_geometry_types_check(
                 c.table_name = t.table_name and
                 c.column_name = sc.name and
                 c.data_type in ('point', 'geometry', 'polygon', 'linestring',
-                  'multipoint', 'multilinestring', 'multipolygon', 
+                  'multipoint', 'multilinestring', 'multipolygon',
                   'geometrycollection');)"},
       Upgrade_issue::ERROR);
 }
@@ -1459,5 +1460,68 @@ bool register_manual_checks() {
 
 bool UNUSED_VARIABLE(reg_manual_checks) = register_manual_checks();
 }  // namespace
+
+class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
+ private:
+  const std::unordered_set<std::string> functions{"CAST", "CONVERT"};
+
+ public:
+  Changed_functions_in_generated_columns_check()
+      : Sql_upgrade_check(
+            "changedFunctionsInGeneratedColumnsCheck",
+            "Indexes on functions with changed semantics",
+            {"SELECT s.table_schema, s.table_name, s.column_name,"
+             "    UPPER(c.generation_expression)"
+             "  FROM information_schema.columns c"
+             "  JOIN information_schema.statistics s"
+             "    ON c.table_schema = s.table_schema"
+             "    AND c.table_name = s.table_name"
+             "    AND c.column_name = s.column_name"
+             "  WHERE s.table_schema not in "
+             "    ('performance_schema','information_schema','sys','mysql')"
+             "    AND c.generation_expression <> ''"},
+            Upgrade_issue::WARNING) {}
+
+ protected:
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+    Upgrade_issue res;
+    bool match = false;
+    std::string definition = row->get_as_string(3);
+    mysqlshdk::utils::SQL_iterator it(definition);
+    std::string func;
+    while (!(func = it.next_sql_function()).empty()) {
+      if (functions.find(func) != functions.end()) {
+        match = true;
+        break;
+      }
+    }
+
+    if (!match) return res;
+
+    res.schema = row->get_as_string(0);
+    res.table = row->get_as_string(1);
+    res.column = row->get_as_string(2);
+    res.description = definition;
+    res.level = m_level;
+    return res;
+  }
+};
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_changed_functions_generated_columns_check(
+    const Upgrade_check_options &opts) {
+  if (opts.target_version < Version(8, 0, 28) ||
+      opts.server_version >= Version(8, 0, 28))
+    throw Check_not_needed();
+
+  return std::make_unique<Changed_functions_in_generated_columns_check>();
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_changed_functions_generated_columns) =
+    Upgrade_check::register_check(
+        &Sql_upgrade_check::get_changed_functions_generated_columns_check,
+        "5.7.0");
+}
 
 } /* namespace mysqlsh */
