@@ -1204,14 +1204,16 @@ void Cluster_impl::add_metadata_for_instance(
 }
 
 void Cluster_impl::update_metadata_for_instance(
-    const mysqlshdk::db::Connection_options &instance_definition) const {
+    const mysqlshdk::db::Connection_options &instance_definition,
+    Instance_id instance_id, const std::string &label) const {
   auto instance = connect_to_instance_for_metadata(instance_definition);
 
-  update_metadata_for_instance(*instance);
+  update_metadata_for_instance(*instance, instance_id, label);
 }
 
 void Cluster_impl::update_metadata_for_instance(
-    const mysqlshdk::mysql::IInstance &instance) const {
+    const mysqlshdk::mysql::IInstance &instance, Instance_id instance_id,
+    const std::string &label) const {
   log_debug("Updating instance metadata");
 
   auto console = mysqlsh::current_console();
@@ -1221,6 +1223,9 @@ void Cluster_impl::update_metadata_for_instance(
     Instance_metadata instance_md(query_instance_info(instance, true));
 
     instance_md.cluster_id = get_id();
+    instance_md.id = instance_id;
+    // note: label is only updated in MD if <> ''
+    instance_md.label = label;
 
     // Updates the instance metadata.
     get_metadata_storage()->update_instance(instance_md);

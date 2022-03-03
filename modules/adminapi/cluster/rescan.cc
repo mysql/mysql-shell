@@ -207,6 +207,52 @@ void Rescan::prepare() {
   }
 }
 
+void Rescan::check_mismatched_hostnames(shcore::Array_t instances) const {
+  m_cluster->execute_in_members(
+      [&instances](const std::shared_ptr<Instance> &instance,
+                   const Instance_md_and_gr_member &info) {
+        // skip members that are already in the update list
+        for (const auto &i : *instances) {
+          if (i.as_map()->get_string("member_id") == instance->get_uuid())
+            return true;
+        }
+
+        auto address = instance->get_canonical_address();
+
+        auto res = instance->query(
+            "select @@hostname, @@report_host, @@port, @@report_port");
+        auto row = res->fetch_one();
+
+        log_debug(
+            "Hostname metadata check for %s: address=%s @@hostname=%s "
+            "@@report_host=%s @@port=%s @@report_port=%s md.instance_id=%u "
+            "md.endpoint=%s md.address=%s md.label=%s md.xendpoint=%s "
+            "md.grendpoint=%s member_id=%s member_host=%s member_port=%i",
+            instance->get_uuid().c_str(), address.c_str(),
+            row->get_as_string(0).c_str(), row->get_as_string(1).c_str(),
+            row->get_as_string(2).c_str(), row->get_as_string(3).c_str(),
+            info.first.id, info.first.endpoint.c_str(),
+            info.first.address.c_str(), info.first.label.c_str(),
+            info.first.xendpoint.c_str(), info.first.grendpoint.c_str(),
+            info.second.uuid.c_str(), info.second.host.c_str(),
+            info.second.port);
+
+        if (info.first.endpoint != address || info.first.address != address) {
+          instances->emplace_back(shcore::Value(shcore::make_dict(
+              "member_id", shcore::Value(instance->get_uuid()), "id",
+              shcore::Value(info.first.id), "label",
+              shcore::Value(info.first.label), "host",
+              shcore::Value(instance->get_canonical_address()), "old_host",
+              shcore::Value(info.first.endpoint))));
+        }
+
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
+}
+
 shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   auto cluster_map = std::make_shared<shcore::Value::Map_type>();
 
@@ -291,6 +337,9 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
       unavailable_instances->push_back(shcore::Value(unavailable_instance));
     }
   }
+
+  check_mismatched_hostnames(updated_instances);
+
   // Add the missing_instances list to the result Map
   (*cluster_map)["unavailableInstances"] = shcore::Value(unavailable_instances);
 
@@ -380,7 +429,8 @@ void Rescan::add_instance_to_metadata(
 }
 
 void Rescan::update_metadata_for_instance(
-    const mysqlshdk::db::Connection_options &instance_cnx_opts) {
+    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    Instance_id instance_id, const std::string &label) {
   // Create a copy of the connection options to set the cluster user
   // credentials if needed (should not change the value passed as parameter).
   mysqlshdk::db::Connection_options cnx_opts = instance_cnx_opts;
@@ -391,7 +441,7 @@ void Rescan::update_metadata_for_instance(
         m_cluster->get_cluster_server()->get_connection_options());
   }
 
-  m_cluster->update_metadata_for_instance(cnx_opts);
+  m_cluster->update_metadata_for_instance(cnx_opts, instance_id, label);
 }
 
 void Rescan::remove_instance_from_metadata(
@@ -519,21 +569,40 @@ void Rescan::update_metadata_for_instances(
 
   for (const auto &instance : *instance_list) {
     auto instance_map = instance.as_map();
+    std::string label;
 
     std::string instance_address = instance_map->get_string("host");
     // Report that an obsolete instance was found (in the metadata).
-    console->print_info(shcore::str_format(
-        "The instance '%s' is part of the cluster but its UUID has changed. "
-        "Old UUID: %s. Current UUID: %s.",
-        instance_address.c_str(),
-        instance_map->get_string("old_member_id").c_str(),
-        instance_map->get_string("member_id").c_str()));
+    if (instance_map->has_key("old_member_id")) {
+      // member UUID changed
+      console->print_info(shcore::str_format(
+          "The instance '%s' is part of the cluster but its UUID has changed. "
+          "Old UUID: %s. Current UUID: %s.",
+          instance_address.c_str(),
+          instance_map->get_string("old_member_id").c_str(),
+          instance_map->get_string("member_id").c_str()));
+    } else {
+      // member address changed
+      console->print_info(
+          shcore::str_format("The instance '%s' is part of the cluster but its "
+                             "reported address has changed. "
+                             "Old address: %s. Current address: %s.",
+                             instance_address.c_str(),
+                             instance_map->get_string("old_host").c_str(),
+                             instance_map->get_string("host").c_str()));
+
+      // update instance label if it's the default value
+      if (instance_map->get_string("label") ==
+          instance_map->get_string("old_host"))
+        label = instance_map->get_string("host");
+    }
 
     // Decide to add/remove instance based on given operation options.
     auto instance_cnx_opts =
         shcore::get_connection_options(instance_address, false);
 
-    update_metadata_for_instance(instance_cnx_opts);
+    update_metadata_for_instance(instance_cnx_opts,
+                                 instance_map->get_uint("id"), label);
   }
 }
 

@@ -815,20 +815,32 @@ void MetadataStorage::update_instance(const Instance_metadata &instance) {
   std::string attributes;
   attributes = shcore::sqlstring("'server_id', ?", 0) << instance.server_id;
 
+  bool lookup_by_address = instance.id == 0 || instance.cluster_id.empty();
+
   shcore::sqlstring query;
   query = shcore::sqlstring(
       "UPDATE mysql_innodb_cluster_metadata.instances "
-      "SET cluster_id = ?, address = ?, mysql_server_uuid = ?, addresses = "
-      "json_merge_patch(addresses, json_object(" +
-          addresses +
+      "SET cluster_id = ?, address = ?, mysql_server_uuid = ?, " +
+          std::string(instance.label.empty() ? "" : "instance_name = ?, ") +
+          "addresses = json_merge_patch(addresses, json_object(" + addresses +
           ")), attributes = json_merge_patch(attributes, json_object(" +
-          attributes + ")) WHERE address = ?",
+          attributes + ")) WHERE " +
+          (lookup_by_address ? "address = ?"
+                             : "cluster_id = ? AND instance_id = ?"),
       0);
 
   query << instance.cluster_id;
   query << instance.address;
   query << instance.uuid;
-  query << instance.address;
+  if (!instance.label.empty()) {
+    query << instance.label;
+  }
+  if (lookup_by_address) {
+    query << instance.address;
+  } else {
+    query << instance.cluster_id;
+    query << instance.id;
+  }
   query.done();
 
   execute_sql(query);

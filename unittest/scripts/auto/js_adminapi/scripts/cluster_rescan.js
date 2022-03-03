@@ -751,6 +751,73 @@ EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication
 EXPECT_OUTPUT_NOT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 
+
+//@<> check metadata repair when report_host is changed  {VER(>=8.0.27)}
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+testutil.destroySandbox(__mysql_sandbox_port3);
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: instance3_uuid, server_id: instance3_id, report_host: hostname_ip});
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+
+c = dba.createCluster("cluster" , {gtidSetIsComplete:1});
+c.addInstance(__sandbox_uri3);
+dba.configureLocalInstance(__sandbox_uri3);
+c.status();
+
+shell.connect(__sandbox_uri3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "report_host", hostname);
+testutil.restartSandbox(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
+c.rejoinInstance(__sandbox_uri3);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+s = c.status();
+
+EXPECT_EQ(`ERROR: Metadata for this instance does not match hostname reported by instance (metadata=${hostname_ip}:${__mysql_sandbox_port3}, actual=${hostname}:${__mysql_sandbox_port3}). Use rescan() to update the metadata.`, s["defaultReplicaSet"]["topology"][hostname_ip+":"+__mysql_sandbox_port3]["instanceErrors"][0])
+
+EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, s["defaultReplicaSet"]["topology"][hostname_ip+":"+__mysql_sandbox_port3]["address"]);
+
+row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
+EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, row.address);
+EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, row.instance_name);
+EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_port3+"1", "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+
+//@<> setPrimary is expected to throw b/c metadata doesn't match {VER(>=8.0.27)}
+EXPECT_THROWS(function(){c.setPrimaryInstance(__sandbox_uri3);}, `The instance 'localhost:${__mysql_sandbox_port3}' does not belong to the cluster: 'cluster'.`);
+
+//@<> rescan to repair metadata according to new report_host {VER(>=8.0.27)}
+
+// sb3 address should be fixed now
+c.rescan();
+row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
+EXPECT_EQ(hostname+":"+__mysql_sandbox_port3, row.address);
+EXPECT_EQ(hostname+":"+__mysql_sandbox_port3, row.instance_name);
+EXPECT_EQ( {"mysqlX": hostname+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_port3+"1", "mysqlClassic": hostname+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+
+s = c.status();
+
+EXPECT_EQ(hostname+":"+__mysql_sandbox_port3, s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["address"]);
+
+//@<> ensure setPrimary works now {VER(>=8.0.27)}
+c.setPrimaryInstance(__sandbox_uri3);
+c.setPrimaryInstance(__sandbox_uri1);
+
+//@<> check that label is not changed if it's not the default  {VER(>=8.0.27)}
+c.setInstanceOption(hostname+":"+__mysql_sandbox_port3, "label", "hooray");
+
+shell.connect(__sandbox_uri3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "report_host", hostname_ip);
+testutil.restartSandbox(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
+c.rejoinInstance(__sandbox_uri3);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+c.rescan();
+s = c.status();
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["topology"][hostname_ip+":"+__mysql_sandbox_port3]);
+EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, s["defaultReplicaSet"]["topology"]["hooray"]["address"]);
+
+
 //@ Finalize.
 cluster.disconnect();
 session.close();
