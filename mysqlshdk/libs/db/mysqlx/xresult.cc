@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,7 +78,6 @@ void Result::fetch_metadata() {
       case ::xcl::Column_type::BIT:
         type = Type::Bit;
         is_unsigned = true;
-        is_numeric = true;
         break;
       case ::xcl::Column_type::DOUBLE:
         is_unsigned = (column.flags & 0x001) != 0;
@@ -112,9 +111,14 @@ void Result::fetch_metadata() {
             if (column.collation == 0) {
               type = Type::Bytes;
             } else {
-              if (mysqlshdk::db::charset::charset_name_from_collation_id(
-                      column.collation) == "binary") {
+              if (column.collation == charset::k_binary_collation_id ||
+                  shcore::str_endswith(
+                      charset::collation_name_from_collation_id(
+                          column.collation),
+                      "_bin")) {
                 is_binary = true;
+              }
+              if (column.collation == charset::k_binary_collation_id) {
                 type = Type::Bytes;
               } else {
                 type = Type::String;
@@ -175,8 +179,8 @@ void Result::fetch_metadata() {
         column.catalog, column.schema,
         column.original_table.empty() ? column.table : column.original_table,
         column.table, column.original_name, column.name, column.length,
-        column.fractional_digits, type, column.collation,
-        is_numeric ? is_unsigned : false, is_zerofill, is_binary, flags.str()));
+        column.fractional_digits, type, column.collation, is_unsigned,
+        is_zerofill, is_binary, flags.str()));
   }
 }
 
