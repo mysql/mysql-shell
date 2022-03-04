@@ -40,10 +40,11 @@ namespace cluster {
 
 Set_primary_instance::Set_primary_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    Cluster_impl *cluster)
+    Cluster_impl *cluster, const cluster::Set_primary_instance_options &options)
     : Topology_configuration_command(cluster),
       m_instance_cnx_opts(instance_cnx_opts) {
   assert(m_instance_cnx_opts.has_data());
+  m_runningTransactionsTimeout = options.running_transactions_timeout;
 }
 
 void Set_primary_instance::ensure_single_primary_mode() {
@@ -121,7 +122,8 @@ shcore::Value Set_primary_instance::execute() {
   auto change_primary = [this, &console, &target_instance_address]() {
     try {
       // elect the new primary
-      mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
+      mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid,
+                                    m_runningTransactionsTimeout);
     } catch (const std::exception &e) {
       console->print_info(
           shcore::str_format("Failed to set '%s' as primary instance: %s",

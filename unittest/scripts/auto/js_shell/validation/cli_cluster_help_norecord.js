@@ -391,7 +391,7 @@ NAME
                              primary.
 
 SYNTAX
-      cluster set-primary-instance <instance>
+      cluster set-primary-instance <instance> [<options>]
 
 WHERE
       instance: An instance definition.

@@ -82,7 +82,7 @@ FUNCTIONS
       setOption(option, value)
             Changes the value of an option for the whole Cluster.
 
-      setPrimaryInstance(instance)
+      setPrimaryInstance(instance[, options])
             Elects a specific cluster member as the new primary.
 
       setupAdminAccount(user, options)
@@ -1092,10 +1092,11 @@ NAME
       setPrimaryInstance - Elects a specific cluster member as the new primary.
 
 SYNTAX
-      <Cluster>.setPrimaryInstance(instance)
+      <Cluster>.setPrimaryInstance(instance[, options])
 
 WHERE
       instance: An instance definition.
+      options: Dictionary with options for the operation.
 
 RETURNS
       Nothing.
@@ -1110,6 +1111,13 @@ DESCRIPTION
 
       The instance definition is mandatory and is the identifier of the cluster
       member that shall become the new primary.
+
+      The options dictionary may contain the following attributes:
+
+      - runningTransactionsTimeout: integer value to define the time period, in
+        seconds, that the primary election waits for ongoing transactions to
+        complete. After the timeout is reached, any ongoing transaction is
+        rolled back allowing the operation to complete.
 
 //@<OUT> switchToMultiPrimaryMode
 NAME

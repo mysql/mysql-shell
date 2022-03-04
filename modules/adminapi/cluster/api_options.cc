@@ -206,6 +206,16 @@ void Rescan_options::set_list_option(const std::string &option,
   }
 }
 
+const shcore::Option_pack_def<Set_primary_instance_options>
+    &Set_primary_instance_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Set_primary_instance_options>().optional(
+          "runningTransactionsTimeout",
+          &Set_primary_instance_options::running_transactions_timeout);
+
+  return opts;
+}
+
 }  // namespace cluster
 }  // namespace dba
 }  // namespace mysqlsh

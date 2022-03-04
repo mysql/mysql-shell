@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -346,9 +346,12 @@ void update_group_seeds(mysqlshdk::config::Config *config,
  *
  * @param instance Instance to run the operations.
  * @param uuid server_uuid of the member that shall become the new primary.
+ * @param running_transactions_timeout number of seconds before ongoing
+ * transactions are killed and the request is allowed to proceed
  */
 void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
-                    const std::string &uuid);
+                    const std::string &uuid,
+                    std::optional<uint32_t> running_transactions_timeout);
 
 /**
  * Changes a group running in single-primary mode to multi-primary mode

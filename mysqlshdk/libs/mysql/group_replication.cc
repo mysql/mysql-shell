@@ -906,14 +906,20 @@ void update_group_seeds(mysqlshdk::config::Config *config,
 }
 
 void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
-                    const std::string &uuid) {
-  shcore::sqlstring query("SELECT group_replication_set_as_primary(?)", 0);
-  query << uuid;
-  query.done();
+                    const std::string &uuid,
+                    std::optional<uint32_t> running_transactions_timeout) {
+  std::string query;
+  if (running_transactions_timeout) {
+    query = ("SELECT group_replication_set_as_primary(?, ?)"_sql
+             << uuid << *running_transactions_timeout)
+                .str();
+  } else {
+    query = ("SELECT group_replication_set_as_primary(?)"_sql << uuid).str();
+  }
 
   try {
     log_debug("Executing UDF: %s",
-              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(

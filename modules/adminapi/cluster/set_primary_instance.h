@@ -37,7 +37,8 @@ class Set_primary_instance final : public Topology_configuration_command {
  public:
   Set_primary_instance(
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
-      Cluster_impl *cluster);
+      Cluster_impl *cluster,
+      const cluster::Set_primary_instance_options &options);
 
   ~Set_primary_instance() override = default;
 
@@ -76,6 +77,7 @@ class Set_primary_instance final : public Topology_configuration_command {
   void finish() override {}
 
  private:
+  std::optional<uint32_t> m_runningTransactionsTimeout;
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::string m_target_uuid;

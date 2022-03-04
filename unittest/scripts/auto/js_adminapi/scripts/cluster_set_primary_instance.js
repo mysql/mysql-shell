@@ -111,16 +111,35 @@ cluster.setPrimaryInstance(hostname_ip+":"+__mysql_sandbox_port3);
 //@<> setPrimary using hostname {VER(>=8.0.13)}
 cluster.setPrimaryInstance(hostname+":"+__mysql_sandbox_port2);
 
+//@<> Ensure the call does not fail because of a transaction timeout {VER(>=8.0.29)}
+shell.connect(__sandbox_uri2);
+
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("CREATE DATABASE test;");
+session2.runSql("USE test;");
+session2.runSql("CREATE TABLE t1 (a int, PRIMARY KEY(a))");
+session2.runSql("START TRANSACTION");
+session2.runSql("INSERT INTO t1 VALUES(1)");
+
+cluster = dba.getCluster()
+EXPECT_NO_THROWS(function() {
+    cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port1, {runningTransactionsTimeout: 0});
+});
+EXPECT_OUTPUT_CONTAINS("The instance '" + localhost + ":" + __mysql_sandbox_port1 + "' was successfully elected as primary.");
+
+session2.close();
+session.close();
+
 //@<> Check if the primary version fails if there's an async channels running {VER(>=8.0.13)}
-shell.connect(__sandbox_uri1);
+shell.connect(__sandbox_uri2);
 session.runSql("SET GLOBAL super_read_only = 0");
 session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 session.runSql("SET GLOBAL super_read_only = 1");
 session.close();
 
-shell.connect(__sandbox_uri2);
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + localhost + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
+shell.connect(__sandbox_uri1);
+session.runSql("CHANGE MASTER TO MASTER_HOST='" + localhost + "', MASTER_PORT=" + __mysql_sandbox_port2 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
 session.runSql("START SLAVE");
 
 do {
@@ -129,12 +148,11 @@ do {
 
 cluster = dba.getCluster()
 EXPECT_THROWS(function() {
-    cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port1);
+    cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port2);
 }, "Instance cannot be set as primary");
-EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port1 + "' as primary instance: The function 'group_replication_set_as_primary' failed. There is a slave channel running in the group's current primary member.");
+EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. There is a slave channel running in the group's current primary member.");
 
 session.close();
 
 //@ Finalization
 scene.destroy();
-

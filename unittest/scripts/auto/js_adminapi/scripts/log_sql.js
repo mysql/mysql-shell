@@ -89,6 +89,11 @@ var set_primary_instance_sql = [
     "SELECT group_replication_set_as_primary(*)"
 ];
 
+var set_primary_instance_timeout_sql = [
+    set_primary_instance_sql[0],
+    "SELECT group_replication_set_as_primary(*, 11)"
+];
+
 var switch_multi_primary_sql = [
     "SELECT group_replication_switch_to_multi_primary_mode()",
     "SET PERSIST `auto_increment_increment` = 7",
@@ -273,6 +278,12 @@ WIPE_SHELL_LOG();
 c.setPrimaryInstance(__sandbox_uri2);
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[1]);
+
+//@<> Bug#33538559: set primary instance with timeout (dba.logSql = 0). {VER(>=8.0.29)}
+WIPE_SHELL_LOG();
+c.setPrimaryInstance(__sandbox_uri2, {runningTransactionsTimeout: 11});
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_timeout_sql[0]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_timeout_sql[1]);
 
 //@<> WL#13294: switch to multi-primary (dba.logSql = 0). {VER(>=8.0.13)}
 WIPE_SHELL_LOG();
@@ -501,6 +512,12 @@ c.setPrimaryInstance(__sandbox_uri2);
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[1]);
 
+//@<> Bug#33538559: set primary instance with timeout (dba.logSql = 1). {VER(>=8.0.29)}
+WIPE_SHELL_LOG();
+c.setPrimaryInstance(__sandbox_uri2, {runningTransactionsTimeout: 11});
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_timeout_sql[0]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_timeout_sql[1]);
+
 //@<> WL#13294: switch to multi-primary (dba.logSql = 1). {VER(>=8.0.13)}
 WIPE_SHELL_LOG();
 c.switchToMultiPrimaryMode();
@@ -727,6 +744,12 @@ WIPE_SHELL_LOG();
 c.setPrimaryInstance(__sandbox_uri2);
 EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_sql[1]);
+
+//@<> Bug#33538559: set primary instance with timeout (dba.logSql = 2). {VER(>=8.0.29)}
+WIPE_SHELL_LOG();
+c.setPrimaryInstance(__sandbox_uri2, {runningTransactionsTimeout: 11});
+EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_timeout_sql[0]);
+EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_timeout_sql[1]);
 
 //@<> WL#13294: switch to multi-primary (dba.logSql = 2). {VER(>=8.0.13)}
 WIPE_SHELL_LOG();

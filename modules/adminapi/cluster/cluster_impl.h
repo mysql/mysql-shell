@@ -119,7 +119,9 @@ class Cluster_impl : public Base_cluster_impl,
   void rescan(const cluster::Rescan_options &options);
   void switch_to_single_primary_mode(const Connection_options &instance_def);
   void switch_to_multi_primary_mode();
-  void set_primary_instance(const Connection_options &instance_def);
+  void set_primary_instance(
+      const Connection_options &instance_def,
+      const cluster::Set_primary_instance_options &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
   void reset_recovery_password(const mysqlshdk::null_bool &force,
                                const bool interactive);
