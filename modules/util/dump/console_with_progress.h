@@ -74,9 +74,14 @@ class Console_with_progress final : public IConsole {
 
   void print_diag(const std::string &text) const override;
 
+  shcore::Prompt_result prompt(const std::string &prompt,
+                               const shcore::prompt::Prompt_options &options,
+                               std::string *out_val) const override;
+
   shcore::Prompt_result prompt(
       const std::string &prompt, std::string *out_val,
-      Validator validator = nullptr, Prompt_type type = Prompt_type::TEXT,
+      Validator validator = nullptr,
+      shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
       const std::string &default_value = "") const override;

@@ -271,7 +271,7 @@ TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   output_handler.set_log_level(shcore::Logger::LOG_WARNING);
   // BUG 26830224
   // Please enter a MySQL root password for the new instance:
-  output_handler.passwords.push_back({"*", "root"});
+  output_handler.passwords.push_back({"*", "root", {}});
   validate_interactive("dba_deploy_sandbox.js");
   // BUG#26393614
   std::vector<std::string> log{
@@ -341,23 +341,23 @@ TEST_F(Shell_js_dba_tests, cluster_interactive) {
   output_handler.set_log_level(shcore::Logger::LOG_INFO);
 
   //@ Cluster: removeInstance errors
-  output_handler.prompts.push_back({"*", "no"});
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "no", {}});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   // @<OUT> Cluster: dissolve error: not empty
-  output_handler.prompts.push_back({"*", "no"});
+  output_handler.prompts.push_back({"*", "no", {}});
 
   //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back({"*", "n"});
+  output_handler.passwords.push_back({"*", "n", {}});
 
   //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back({"*", "n"});
+  output_handler.passwords.push_back({"*", "n", {}});
 
   // @<OUT> Cluster: rejoinInstance with interaction, ok
-  output_handler.passwords.push_back({"*", "root"});
+  output_handler.passwords.push_back({"*", "root", {}});
 
   // @<OUT> Cluster: final dissolve
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   // Tests cluster functionality, adding, removing instances
   // error conditions
@@ -374,31 +374,31 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   reset_replayable_shell();
 
   //@<OUT> Dba: createCluster multiPrimary with interaction, cancel
-  output_handler.prompts.push_back({"*", "no"});
+  output_handler.prompts.push_back({"*", "no", {}});
 
   //@<OUT> Dba: createCluster multiPrimary with interaction, ok
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   //@ Dissolve cluster
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   //@<OUT> Dba: createCluster multiMaster with interaction, regression for
   // BUG#25926603
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   //@ Dissolve cluster with success
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   //@<OUT> Dba: createCluster multiMaster with interaction 2, ok
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   //@: Cluster: rejoinInstance errors
-  output_handler.passwords.push_back({"*", "root"});
-  output_handler.passwords.push_back({"*", "root"});
+  output_handler.passwords.push_back({"*", "root", {}});
+  output_handler.passwords.push_back({"*", "root", {}});
 
   // @<OUT> Cluster: status for rejoin: success
   // Dissolve cluster.
-  output_handler.prompts.push_back({"*", "yes"});
+  output_handler.prompts.push_back({"*", "yes", {}});
 
   // Tests cluster functionality, adding, removing instances
   // error conditions.
@@ -455,14 +455,14 @@ TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
 TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   reset_replayable_shell();
   //@<OUT> Configures the instance, answers 'yes' on the read only prompt
-  output_handler.prompts.push_back({"*", "y"});
+  output_handler.prompts.push_back({"*", "y", {}});
 
   //@ Reboot the cluster
   // Confirms addition of second instance
-  output_handler.prompts.push_back({"*", "y"});
+  output_handler.prompts.push_back({"*", "y", {}});
 
   // Confirms addition of third instance
-  output_handler.prompts.push_back({"*", "y"});
+  output_handler.prompts.push_back({"*", "y", {}});
 
   validate_interactive("dba_super_read_only_handling.js");
 }

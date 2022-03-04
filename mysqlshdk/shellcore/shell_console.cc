@@ -46,26 +46,6 @@
 
 namespace mysqlsh {
 namespace {
-constexpr const char kPromptText[] = "text";
-constexpr const char kPromptPassword[] = "password";
-constexpr const char kPromptConfirm[] = "confirm";
-constexpr const char kPromptSelect[] = "select";
-constexpr const char kPromptFileSave[] = "fileSave";
-constexpr const char kPromptFileOpen[] = "fileOpen";
-constexpr const char kPromptDirectory[] = "directory";
-
-std::unordered_map<std::string, std::string> get_prompt_additional(
-    const std::string &title, const std::string &type) {
-  std::unordered_map<std::string, std::string> result;
-
-  if (!title.empty()) {
-    result["title"] = title;
-  }
-
-  result["type"] = type;
-
-  return result;
-}
 
 std::string json_obj(
     const char *key, const std::string &value,
@@ -119,46 +99,6 @@ inline bool use_json() {
   return mysqlsh::current_shell_options()->get().wrap_json != "off";
 }
 }  // namespace
-
-std::string to_string(Prompt_type type) {
-  switch (type) {
-    case Prompt_type::CONFIRM:
-      return kPromptConfirm;
-    case Prompt_type::DIRECTORY:
-      return kPromptDirectory;
-    case Prompt_type::FILEOPEN:
-      return kPromptFileOpen;
-    case Prompt_type::FILESAVE:
-      return kPromptFileSave;
-    case Prompt_type::PASSWORD:
-      return kPromptPassword;
-    case Prompt_type::SELECT:
-      return kPromptSelect;
-    case Prompt_type::TEXT:
-      return kPromptText;
-  }
-  throw std::logic_error("Unhandled prompt type");
-}
-
-Prompt_type to_prompt_type(const std::string &type) {
-  if (shcore::str_caseeq(type, kPromptConfirm)) {
-    return Prompt_type::CONFIRM;
-  } else if (shcore::str_caseeq(type, kPromptDirectory)) {
-    return Prompt_type::DIRECTORY;
-  } else if (shcore::str_caseeq(type, kPromptFileOpen)) {
-    return Prompt_type::FILEOPEN;
-  } else if (shcore::str_caseeq(type, kPromptFileSave)) {
-    return Prompt_type::FILESAVE;
-  } else if (shcore::str_caseeq(type, kPromptPassword)) {
-    return Prompt_type::PASSWORD;
-  } else if (shcore::str_caseeq(type, kPromptSelect)) {
-    return Prompt_type::SELECT;
-  } else if (shcore::str_caseeq(type, kPromptText)) {
-    return Prompt_type::TEXT;
-  } else {
-    throw std::runtime_error("Invalid prompt type: '" + type + "'.");
-  }
-}
 
 #ifdef _WIN32
 
@@ -462,13 +402,13 @@ void Shell_console::print_para(const std::string &text) const {
 }
 
 shcore::Prompt_result Shell_console::call_prompt(
-    const std::string &text, std::string *out_val, Validator validator,
-    shcore::Interpreter_delegate::Prompt func,
-    const std::string &default_value) const {
+    const std::string &text, const shcore::prompt::Prompt_options &options,
+    std::string *out_val, Validator validator,
+    shcore::Interpreter_delegate::Prompt func) const {
   shcore::Prompt_result result;
   bool valid = true;
   do {
-    result = (m_ideleg->*func)(text.c_str(), out_val);
+    result = (m_ideleg->*func)(text.c_str(), options, out_val);
 
     if (result == shcore::Prompt_result::Ok) {
       if (validator) {
@@ -481,78 +421,38 @@ shcore::Prompt_result Shell_console::call_prompt(
     }
   } while (result == shcore::Prompt_result::Ok && !valid);
 
-  if (out_val->empty() && !default_value.empty()) {
-    *out_val = default_value;
-  }
-
   return result;
 }
 
-void Shell_console::print_prompt_description(
-    const std::vector<std::string> &description) const {
-  // Prints each paragraph on a separate line if the description is provided
-  for (const auto &paragraph : description) {
-    println(paragraph);
-    println();
-  }
+shcore::Prompt_result Shell_console::prompt(
+    const std::string &prompt, const shcore::prompt::Prompt_options &options,
+    std::string *out_val) const {
+  return call_prompt(prompt, options, out_val, {},
+                     &shcore::Interpreter_delegate::prompt);
 }
 
 shcore::Prompt_result Shell_console::prompt(
     const std::string &prompt, std::string *ret_val, Validator validator,
-    Prompt_type type, const std::string &title,
+    shcore::prompt::Prompt_type type, const std::string &title,
     const std::vector<std::string> &description,
     const std::string &default_value) const {
-  std::string text;
-
   // Other prompt types mus use their specific Shell_console function
-  assert(type == Prompt_type::TEXT || type == Prompt_type::FILEOPEN ||
-         type == Prompt_type::FILESAVE || type == Prompt_type::DIRECTORY);
-  if (use_json()) {
-    std::string type_desc = to_string(type);
+  assert(type == shcore::prompt::Prompt_type::TEXT ||
+         type == shcore::prompt::Prompt_type::PASSWORD ||
+         type == shcore::prompt::Prompt_type::FILEOPEN ||
+         type == shcore::prompt::Prompt_type::FILESAVE ||
+         type == shcore::prompt::Prompt_type::DIRECTORY);
 
-    auto additional = get_prompt_additional(title, type_desc);
+  shcore::prompt::Prompt_options options;
+  options.title = title;
+  options.type = type;
+  options.description = description;
+  options.default_value = shcore::Value(default_value);
 
-    if (!default_value.empty()) {
-      additional["defaultValue"] = default_value;
-    }
+  options.done();
 
-    text = json_obj("prompt", prompt, description, additional);
-  } else {
-    std::string more;
-    if (!shcore::str_iendswith(prompt, ": ") && prompt.back() != ':') {
-      more = ": ";
-    }
-
-    text = mysqlshdk::textui::bold(prompt + more);
-    print_prompt_description(description);
-  }
-
-  return call_prompt(text, ret_val, validator,
-                     &shcore::Interpreter_delegate::prompt, default_value);
-}
-
-char process_label(const std::string &s, std::string *out_display,
-                   std::string *out_clean_text) {
-  out_display->clear();
-  if (s.empty()) return 0;
-
-  char letter = 0;
-  char prev = 0;
-  for (char c : s) {
-    if (prev == '&') letter = c;
-    if (c != '&') {
-      if (prev == '&') {
-        out_display->push_back('[');
-        out_display->push_back(c);
-        out_display->push_back(']');
-      } else {
-        out_display->push_back(c);
-      }
-      out_clean_text->push_back(c);
-    }
-    prev = c;
-  }
-  return letter;
+  return call_prompt(prompt, options, ret_val, validator,
+                     &shcore::Interpreter_delegate::prompt);
 }
 
 Prompt_answer Shell_console::confirm(
@@ -562,248 +462,80 @@ Prompt_answer Shell_console::confirm(
     const std::vector<std::string> &description) const {
   assert(def != Prompt_answer::ALT || !alt_label.empty());
 
-  Prompt_answer final_ans = Prompt_answer::NONE;
+  shcore::prompt::Prompt_options options;
+  options.title = title;
+  options.type = shcore::prompt::Prompt_type::CONFIRM;
+  options.description = description;
+  options.yes_label = yes_label;
+  options.no_label = no_label;
+  options.alt_label = alt_label;
+
+  if (def == Prompt_answer::YES) {
+    options.default_value = shcore::Value(yes_label);
+  } else if (def == Prompt_answer::NO) {
+    options.default_value = shcore::Value(no_label);
+  } else if (def == Prompt_answer::ALT) {
+    options.default_value = shcore::Value(alt_label);
+  }
+
+  options.done();
+
   std::string ans;
-  char yes_letter = 0;
-  char no_letter = 0;
-  char alt_letter = 0;
-  std::string yes_display_text, no_display_text, alt_display_text;
-  std::string clean_yes_text, clean_no_text, clean_alt_text;
-  std::string def_str;
 
-  // Label pre-processing
-  yes_letter = process_label(yes_label, &yes_display_text, &clean_yes_text);
-  no_letter = process_label(no_label, &no_display_text, &clean_no_text);
-  if (!alt_label.empty()) {
-    alt_letter = process_label(alt_label, &alt_display_text, &clean_alt_text);
-  }
+  auto res = call_prompt(prompt, options, &ans, {},
+                         &shcore::Interpreter_delegate::prompt);
 
-  std::string text;
-  if (use_json()) {
-    auto additional = get_prompt_additional(title, "confirm");
-
-    additional["yes"] = yes_label;
-    additional["no"] = no_label;
-
-    if (!alt_label.empty()) {
-      additional["alt"] = alt_label;
-    }
-
-    if (def == Prompt_answer::YES) {
-      additional["defaultValue"] = yes_label;
-    } else if (def == Prompt_answer::NO) {
-      additional["defaultValue"] = no_label;
-    } else if (def == Prompt_answer::ALT) {
-      additional["defaultValue"] = alt_label;
-    }
-
-    text = json_obj("prompt", prompt, description, additional);
-  } else {
-    if (yes_label == "&Yes" && no_label == "&No" && alt_label.empty()) {
-      if (def == Prompt_answer::YES)
-        def_str = "[Y/n]: ";
-      else if (def == Prompt_answer::NO)
-        def_str = "[y/N]: ";
-      else
-        def_str = "[y/n]: ";
-    } else {
-      if (!yes_display_text.empty()) {
-        def_str.append(yes_display_text).append("/");
-      }
-      if (!no_display_text.empty()) {
-        def_str.append(no_display_text).append("/");
-      }
-      if (!alt_display_text.empty()) {
-        def_str.append(alt_display_text).append("/");
-      }
-
-      def_str.pop_back();  // erase trailing /
-
-      switch (def) {
-        case Prompt_answer::YES:
-          def_str.append(" (default ").append(clean_yes_text).append("): ");
-          break;
-
-        case Prompt_answer::NO:
-          def_str.append(" (default ").append(clean_no_text).append("): ");
-          break;
-
-        case Prompt_answer::ALT:
-          def_str.append(" (default ").append(clean_alt_text).append("): ");
-          break;
-
-        default:
-          break;
-      }
-    }
-    text = mysqlshdk::textui::bold(prompt + " " + def_str);
-    print_prompt_description(description);
-  }
-
-  while (final_ans == Prompt_answer::NONE) {
-    auto res = this->call_prompt(text, &ans, nullptr,
-                                 &shcore::Interpreter_delegate::prompt);
-    if (res == shcore::Prompt_result::Cancel)
-      throw shcore::cancelled("Cancelled");
-    // Since fixing the prompt we need to preserve original behavior of the
-    // functionality, which was repeating prompt when user did press ctrl+d.
-    if (res == shcore::Prompt_result::CTRL_D) continue;
-    if (res == shcore::Prompt_result::Ok) {
-      if (ans.empty()) {
-        final_ans = def;
-      } else {
-        if (shcore::str_caseeq(ans, std::string{&yes_letter, 1}) ||
-            shcore::str_caseeq(ans, clean_yes_text)) {
-          final_ans = Prompt_answer::YES;
-        } else if (!clean_no_text.empty() &&
-                   (shcore::str_caseeq(ans, std::string{&no_letter, 1}) ||
-                    shcore::str_caseeq(ans, clean_no_text))) {
-          final_ans = Prompt_answer::NO;
-        } else if (!clean_alt_text.empty() &&
-                   (shcore::str_caseeq(ans, std::string{&alt_letter, 1}) ||
-                    shcore::str_caseeq(ans, clean_alt_text))) {
-          final_ans = Prompt_answer::ALT;
-        } else {
-          println("\nPlease pick an option out of " + def_str);
-        }
-      }
-    } else {
-      break;
+  Prompt_answer final_ans = Prompt_answer::NONE;
+  // TODO(rennox): Does it make sense to validate this returned value? iiuc
+  // call_prompt will ALWAYS return OK for confirm prompts.
+  if (res == shcore::Prompt_result::Ok) {
+    if (ans == yes_label) {
+      final_ans = Prompt_answer::YES;
+    } else if (ans == no_label) {
+      final_ans = Prompt_answer::NO;
+    } else if (ans == alt_label) {
+      final_ans = Prompt_answer::ALT;
     }
   }
+
   return final_ans;
-}  // namespace mysqlsh
+}
 
-bool Shell_console::select(const std::string &prompt_text, std::string *result,
+bool Shell_console::select(const std::string &prompt_text, std::string *out_val,
                            const std::vector<std::string> &options,
                            size_t default_option, bool allow_custom,
                            Validator validator, const std::string &title,
                            const std::vector<std::string> &description) const {
-  std::string answer;
-  std::string default_str;
-  result->clear();
+  assert(default_option <= options.size());
 
-  std::string text;
-  if (use_json()) {
-    auto additional = get_prompt_additional(title, "select");
-    text = json_obj(
-        "prompt", prompt_text, description, additional,
-        [default_option, &options](shcore::JSON_dumper *dumper) -> void {
-          if (default_option != 0) {
-            dumper->append_string("defaultValue");
-            dumper->append_uint(default_option);
-          }
-
-          dumper->append_string("options");
-          dumper->start_array();
-          for (const auto &item : options) {
-            dumper->append_string(item);
-          }
-          dumper->end_array();
-        });
-  } else {
-    print_prompt_description(description);
-
-    text = prompt_text;
-    if (default_option != 0) {
-      text += " [" + std::to_string(default_option) + "]: ";
-    } else if (!shcore::str_iendswith(text, ": ") && text.back() != ':') {
-      text.append(": ");
-    }
-
-    text = mysqlshdk::textui::bold(text);
-
-    int index = 1;
-    for (const auto &option : options)
-      println(shcore::str_format("  %d) %s", index++, option.c_str()));
-
-    println();
+  shcore::prompt::Prompt_options prompt_options;
+  prompt_options.title = title;
+  prompt_options.type = shcore::prompt::Prompt_type::SELECT;
+  prompt_options.description = description;
+  prompt_options.select_items = options;
+  prompt_options.allow_custom = allow_custom;
+  if (default_option != 0) {
+    prompt_options.default_value =
+        shcore::Value(static_cast<unsigned int>(default_option));
   }
 
-  bool valid = false;
+  prompt_options.done();
 
-  mysqlshdk::utils::nullable<std::string> good_answer;
+  call_prompt(prompt_text, prompt_options, out_val, validator,
+              &shcore::Interpreter_delegate::prompt);
 
-  while (!valid && good_answer.is_null()) {
-    auto res = call_prompt(text, &answer, nullptr,
-                           &shcore::Interpreter_delegate::prompt);
-    if (res == shcore::Prompt_result::Cancel)
-      throw shcore::cancelled("Cancelled");
-    // Since fixing the prompt we need to preserve original behavior of the
-    // functionality, which was repeating prompt when user did press ctrl+d.
-    if (res == shcore::Prompt_result::CTRL_D) continue;
-    if (res == shcore::Prompt_result::Ok) {
-      int option = static_cast<int>(default_option);
-
-      try {
-        if (!answer.empty())
-          option = std::stoi(answer);
-        else
-          valid = allow_custom;
-
-        // The selection is a number from the list
-        if (option > 0 && option <= static_cast<int>(options.size())) {
-          answer = options[option - 1];
-          valid = true;
-        }
-      } catch (const std::exception &err) {
-        // User typed something else and it is allowed
-        auto found = std::find_if(options.begin(), options.end(),
-                                  [&answer](const std::string &element) {
-                                    return shcore::str_caseeq(answer, element);
-                                  });
-
-        if (found != options.end()) {
-          answer = *found;
-          valid = true;
-        } else {
-          valid = allow_custom;
-        }
-      }
-
-      // If there's a validator, the answer should be validated
-      std::string warning;
-      if (valid && validator) {
-        warning = validator(answer);
-        valid = warning.empty();
-      } else if (!valid) {
-        warning = "Invalid option selected.";
-      }
-
-      if (valid)
-        good_answer = answer;
-      else
-        print_warning(warning);
-    } else {
-      break;
-    }
-  }
-
-  if (!good_answer.is_null()) *result = *good_answer;
-
-  return valid;
+  // TODO(rennox): Not needed to validate anything as SELECT prompts always
+  // return true
+  return true;
 }
 
 shcore::Prompt_result Shell_console::prompt_password(
     const std::string &prompt, std::string *out_val, Validator validator,
     const std::string &title,
     const std::vector<std::string> &description) const {
-  std::string text;
-  if (use_json()) {
-    auto additional = get_prompt_additional(title, "password");
-    text = json_obj("prompt", prompt, description, additional);
-  } else {
-    std::string more;
-    if (!shcore::str_iendswith(prompt, ": ") && prompt.back() != ':') {
-      more = ": ";
-    }
-
-    text = mysqlshdk::textui::bold(prompt + more);
-    print_prompt_description(description);
-  }
-
-  return call_prompt(text, out_val, validator,
-                     &shcore::Interpreter_delegate::password);
+  return this->prompt(prompt, out_val, validator,
+                      shcore::prompt::Prompt_type::PASSWORD, title,
+                      description);
 }
 
 void Shell_console::print_value(const shcore::Value &value,

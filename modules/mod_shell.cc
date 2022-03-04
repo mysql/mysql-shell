@@ -479,76 +479,11 @@ str Shell::prompt(str message, dict options) {}
 #endif
 std::string Shell::prompt(
     const std::string &message,
-    const shcore::Option_pack_ref<prompt::Prompt_options> &options) {
+    const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options) {
   std::string ret_val;
 
   // Performs the actual prompt
-  const auto console = mysqlsh::current_console();
-
-  shcore::Prompt_result result = shcore::Prompt_result::Ok;
-
-  switch (options->type) {
-    case Prompt_type::PASSWORD:
-      result = console->prompt_password(message, &ret_val, nullptr,
-                                        options->title, options->description);
-      if (result == shcore::Prompt_result::Ok && ret_val.empty() &&
-          options->default_value) {
-        ret_val = options->default_value.as_string();
-      }
-      break;
-    case Prompt_type::CONFIRM: {
-      Prompt_answer def_val = Prompt_answer::NONE;
-      if (options->default_value) {
-        const auto &value = options->default_value.as_string();
-        if (shcore::str_caseeq(value, options->yes_label)) {
-          def_val = Prompt_answer::YES;
-        } else if (shcore::str_caseeq(value, options->no_label)) {
-          def_val = Prompt_answer::NO;
-        } else if (shcore::str_caseeq(value, options->alt_label)) {
-          def_val = Prompt_answer::ALT;
-        }
-      }
-
-      auto answer = console->confirm(message, def_val, options->yes_label,
-                                     options->no_label, options->alt_label,
-                                     options->title, options->description);
-
-      switch (answer) {
-        case Prompt_answer::YES:
-          ret_val = options->yes_label;
-          break;
-        case Prompt_answer::NO:
-          ret_val = options->no_label;
-          break;
-        case Prompt_answer::ALT:
-          ret_val = options->alt_label;
-          break;
-        default:
-          // NOOP
-          break;
-      }
-      break;
-    }
-    case Prompt_type::SELECT: {
-      uint64_t default_value = 0;
-      if (options->default_value) {
-        default_value = options->default_value.as_uint();
-      }
-      console->select(message, &ret_val, options->select_items,
-                      static_cast<size_t>(default_value), false, nullptr,
-                      options->title, options->description);
-      break;
-    }
-    default:
-      std::string default_value = "";
-      if (options->default_value) {
-        default_value = options->default_value.as_string();
-      }
-      result =
-          console->prompt(message, &ret_val, nullptr, options->type,
-                          options->title, options->description, default_value);
-      break;
-  }
+  auto result = mysqlsh::current_console()->prompt(message, *options, &ret_val);
 
   if (result == shcore::Prompt_result::Cancel) {
     throw shcore::cancelled("Cancelled");

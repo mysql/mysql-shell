@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -196,8 +196,10 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("waitForRplApplierError", &Testutils::wait_for_rpl_applier_error,
          "port", "?channel", "");
 
-  expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value");
-  expose("expectPassword", &Testutils::expect_password, "prompt", "value");
+  expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value",
+         "?options");
+  expose("expectPassword", &Testutils::expect_password, "prompt", "value",
+         "?options");
   expose("assertNoPrompts", &Testutils::assert_no_prompts);
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
@@ -2893,14 +2895,16 @@ void Testutils::preprocess_file(const std::string &in_path,
  * prompt validation).
  */
 #if DOXYGEN_JS
-Undefined Testutils::expectPrompt(String prompt, String answer);
+Undefined Testutils::expectPrompt(String prompt, String answer,
+                                  Dictionary options);
 #elif DOXYGEN_PY
-None Testutils::expect_prompt(str prompt, str answer);
+None Testutils::expect_prompt(str prompt, str answer, dict options);
 #endif
 ///@}
-void Testutils::expect_prompt(const std::string &prompt,
-                              const std::string &text) {
-  _feed_prompt(prompt, text);
+void Testutils::expect_prompt(
+    const std::string &prompt, const std::string &text,
+    const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options) {
+  _feed_prompt(prompt, text, options);
 }
 
 //!<  @name Testing Utilities
@@ -2962,9 +2966,10 @@ Undefined Testutils::expectPassword(String prompt, String password);
 None Testutils::expect_password(str prompt, str password);
 #endif
 ///@}
-void Testutils::expect_password(const std::string &prompt,
-                                const std::string &text) {
-  _feed_password(prompt, text);
+void Testutils::expect_password(
+    const std::string &prompt, const std::string &text,
+    const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options) {
+  _feed_password(prompt, text, options);
 }
 
 //!<  @name Testing Utilities

@@ -32,9 +32,9 @@
 #include "modules/mod_shell_context.h"
 #include "modules/mod_shell_options.h"
 #include "modules/mod_shell_reports.h"
-#include "modules/shell_prompt_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/shellcore/shell_prompt_options.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/base_session.h"
 #include "src/mysqlsh/mysql_shell.h"
@@ -67,7 +67,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
   std::string prompt(
       const std::string &message,
-      const shcore::Option_pack_ref<prompt::Prompt_options> &options = {});
+      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
+          {});
   std::shared_ptr<ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &connection_options,
       const char *password = {});

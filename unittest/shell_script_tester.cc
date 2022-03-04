@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,8 +75,10 @@ static bool do_print(void * /* udata */, const char *s) {
   return true;
 }
 
-static shcore::Prompt_result do_prompt(void * /* udata */, const char *prompt,
-                                       std::string *ret_input) {
+static shcore::Prompt_result do_prompt(
+    void * /* udata */, const char *prompt,
+    const shcore::prompt::Prompt_options & /*options*/,
+    std::string *ret_input) {
   printf("%s", prompt);
   fflush(stdout);
   std::cin >> *ret_input;
@@ -88,8 +90,7 @@ class Test_debugger {
  public:
   enum class Action { Skip_execute, Continue, Abort };
 
-  Test_debugger()
-      : m_deleg(this, do_print, do_prompt, nullptr, nullptr, nullptr) {
+  Test_debugger() : m_deleg(this, do_print, do_prompt, nullptr, nullptr) {
     m_console.reset(new mysqlsh::Shell_console(&m_deleg));
   }
 

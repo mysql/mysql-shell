@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -86,8 +86,8 @@ TEST_F(Shell_js_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server) {
 }
 
 TEST_F(Shell_js_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server_1) {
-  output_handler.prompts.push_back({"*", "mike"});
-  output_handler.passwords.push_back({"*", "paSSw0rd"});
+  output_handler.prompts.push_back({"*", "mike", {}});
+  output_handler.passwords.push_back({"*", "paSSw0rd", {}});
 
   validate_interactive("concepts/Connecting_to_a_Single_MySQL_Server_1");
 }

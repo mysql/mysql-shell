@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,7 @@
 #include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -55,6 +56,7 @@
 #include "shellcore/utils_help.h"
 #include "src/mysqlsh/commands/command_edit.h"
 #include "src/mysqlsh/commands/command_system.h"
+#include "src/mysqlsh/prompt_handler.h"
 
 #ifdef WIN32
 #undef max
@@ -303,7 +305,6 @@ bool send_ctrl_c_to_terminal() {
 
   return success;
 }
-
 }  // namespace
 
 REGISTER_HELP(CMD_HISTORY_BRIEF, "View and edit command line history.");
@@ -570,7 +571,6 @@ Command_line_shell::Command_line_shell(std::shared_ptr<Shell_options> options)
                              new shcore::Interpreter_delegate{
                                  this, &Command_line_shell::deleg_print,
                                  &Command_line_shell::deleg_prompt,
-                                 &Command_line_shell::deleg_password,
                                  &Command_line_shell::deleg_print_error,
                                  &Command_line_shell::deleg_print_diag}),
                          true) {}
@@ -935,29 +935,29 @@ char *Command_line_shell::readline(const char *prompt) {
 
 void Command_line_shell::handle_interrupt() { _interrupted = true; }
 
-shcore::Prompt_result Command_line_shell::deleg_prompt(void *cdata,
-                                                       const char *prompt,
-                                                       std::string *ret) {
+shcore::Prompt_result Command_line_shell::deleg_prompt(
+    void *cdata, const char *prompt,
+    const shcore::prompt::Prompt_options &options, std::string *ret) {
   const auto self = reinterpret_cast<Command_line_shell *>(cdata);
 
-  return self->do_prompt(Command_line_shell::readline, false, prompt, ret);
+  return Prompt_handler(
+             [self](bool is_password, const char *text, std::string *reply) {
+               return self->do_prompt(is_password, text, reply);
+             })
+      .handle_prompt(prompt, options, ret);
 }
 
-shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
-                                                         const char *prompt,
-                                                         std::string *ret) {
-  const auto self = reinterpret_cast<Command_line_shell *>(cdata);
-  const auto passwords_from_stdin = self->options().passwords_from_stdin;
-
-  return self->do_prompt(passwords_from_stdin ? shcore::mysh_get_stdin_password
-                                              : mysh_get_tty_password,
-                         true, prompt, ret);
-}
-
-shcore::Prompt_result Command_line_shell::do_prompt(
-    char *(*get_response)(const char *), bool is_password, const char *text,
-    std::string *ret) {
+shcore::Prompt_result Command_line_shell::do_prompt(bool is_password,
+                                                    const char *text,
+                                                    std::string *ret) {
   char *tmp = nullptr;
+
+  const auto passwords_from_stdin = this->options().passwords_from_stdin;
+
+  char *(*get_response)(const char *) =
+      is_password ? (passwords_from_stdin ? shcore::mysh_get_stdin_password
+                                          : mysh_get_tty_password)
+                  : Command_line_shell::readline;
 
   shcore::on_leave_scope cleanup([tmp, is_password]() {
     if (tmp) {
@@ -995,8 +995,8 @@ shcore::Prompt_result Command_line_shell::do_prompt(
     }
 
     // always suppress further processing of the interrupt handlers, if a call
-    // to prompt*() throws in response to Prompt_result::Cancel, we want to make
-    // sure that this exception is properly propagated
+    // to prompt*() throws in response to Prompt_result::Cancel, we want to
+    // make sure that this exception is properly propagated
     return false;
   });
 
@@ -1075,8 +1075,8 @@ void Command_line_shell::command_loop() {
       case shcore::Shell_core::Mode::SQL:
 #ifdef HAVE_V8
         message =
-            "Currently in SQL mode. Use \\js or \\py to switch the shell to a "
-            "scripting language.";
+            "Currently in SQL mode. Use \\js or \\py to switch the shell to "
+            "a scripting language.";
 #else
         message =
             "Currently in SQL mode. Use \\py to switch the shell to python "
@@ -1262,7 +1262,8 @@ void Command_line_shell::handle_notification(
       console->print_info(get_pager_message(data->get_string("value")));
 
       if (console->is_global_pager_enabled()) {
-        // if global pager is enabled, disable and re-enable it to use new pager
+        // if global pager is enabled, disable and re-enable it to use new
+        // pager
         console->disable_global_pager();
         console->enable_global_pager();
       }
@@ -1315,7 +1316,8 @@ void Command_line_shell::set_next_input(const std::string &input) {
       lines.pop_back();
     }
 
-    // if there are only two lines, and the last one is empty, remove it as well
+    // if there are only two lines, and the last one is empty, remove it as
+    // well
     if (lines.size() == 2 && lines.back().empty()) {
       lines.pop_back();
     }

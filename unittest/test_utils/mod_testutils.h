@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,8 +84,8 @@ class Testutils : public mysqlsh::Extensible_object {
                                   Integer timeout = 60);
   Integer waitForReplConnectionError(
       Integer port, String channel = "group_replication_recovery");
-  Undefined expectPrompt(String prompt, String answer);
-  Undefined expectPassword(String prompt, String password);
+  Undefined expectPrompt(String prompt, String answer, Dictionary options);
+  Undefined expectPassword(String prompt, String password, Dictionary options);
   Undefined assertNoPrompts();
   Integer makeFileReadonly(String path);
   List grepFile(String path, String pattern);
@@ -151,8 +151,8 @@ class Testutils : public mysqlsh::Extensible_object {
   None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
   int wait_for_repl_connection_error(
       int port, str channel = "group_replication_recovery");
-  None expect_prompt(str prompt, str answer);
-  None expect_password(str prompt, str password);
+  None expect_prompt(str prompt, str answer, dict options);
+  None expect_password(str prompt, str password, dict options);
   None assert_no_prompts();
   int make_file_readonly(str path);
   list grep_file(str path, str pattern);
@@ -201,8 +201,9 @@ class Testutils : public mysqlsh::Extensible_object {
                                    bool delete_if_expired = true);
   static std::string get_mysqld_version(const std::string &mysqld_path);
 
-  using Input_fn =
-      std::function<void(const std::string &, const std::string &)>;
+  using Input_fn = std::function<void(
+      const std::string &, const std::string &,
+      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &)>;
 
   using Output_fn = std::function<std::string(bool)>;
   using Simple_callback = std::function<void()>;
@@ -375,8 +376,14 @@ class Testutils : public mysqlsh::Extensible_object {
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail
   // the test if it is different
-  void expect_prompt(const std::string &prompt, const std::string &text);
-  void expect_password(const std::string &prompt, const std::string &text);
+  void expect_prompt(
+      const std::string &prompt, const std::string &text,
+      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
+          {});
+  void expect_password(
+      const std::string &prompt, const std::string &text,
+      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
+          {});
   void assert_no_prompts();
   void wipe_all_output();
 

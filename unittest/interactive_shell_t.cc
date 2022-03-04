@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -200,7 +200,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   output_handler.wipe_all();
 
   // Invalid user/password
-  output_handler.passwords.push_back({"*", "whatever"});
+  output_handler.passwords.push_back({"*", "whatever", {}});
   execute("\\connect --mx " + _uri_nopasswd);
   if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 12)) {
     MY_EXPECT_STDERR_CONTAINS("Access denied for user 'root'@'localhost'");

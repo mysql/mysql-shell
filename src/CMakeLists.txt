@@ -36,6 +36,7 @@ set(mysh_SRC
     mysqlsh/mysql_shell.cc
     mysqlsh/prompt_renderer.cc
     mysqlsh/prompt_manager.cc
+    mysqlsh/prompt_handler.cc
     mysqlsh/commands/command_edit.cc
     mysqlsh/commands/command_help.cc
     mysqlsh/commands/command_show.cc

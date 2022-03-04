@@ -76,7 +76,7 @@ EXPECT_EQ("Whatever", result)
 //@<> TEST Invalid defaultValue in confirm prompts
 EXPECT_THROWS(function() {
     shell.prompt("Invalid Prompt Type", {type:"confirm", defaultValue:'other'});
-}, "Shell.prompt: Argument #2: Invalid 'defaultValue', allowed values include: &Yes, Yes, Y, &No, No, N");
+}, "Shell.prompt: Argument #2: Invalid 'defaultValue', allowed values include: &No, &Yes, N, No, Y, Yes");
 
 //@<> TEST confirm prompts with duplicated labels/values/shortcuts
 // WL14872-TSFR_4_3
