@@ -1,0 +1,1 @@
+mysqlx://use:password@(/path\to\mysql.sock)

@@ -1,0 +1,1 @@
+mysqlx://user@10.150.123.45:2845/w?ssl-ca=value&auth-method=my%20space&ssl-cert=crt&ssl-capath=ca_path&ssl-cipher=(/what/e/ver)
