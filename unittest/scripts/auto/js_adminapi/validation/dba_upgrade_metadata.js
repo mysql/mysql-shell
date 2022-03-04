@@ -123,6 +123,8 @@ An upgrade of all cluster router instances is required. All router installations
 [[*]]
 There are 10 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
+NOTE: If Router's Metadata Cache TTL is high Router's own update in the Metadata will take longer. Re-check for outdated Routers if that's the case or alternatively restart the Router.
+
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
   3) Abort the operation.
@@ -169,6 +171,8 @@ An upgrade of all cluster router instances is required. All router installations
 [[*]]
 There are 11 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
+NOTE: If Router's Metadata Cache TTL is high Router's own update in the Metadata will take longer. Re-check for outdated Routers if that's the case or alternatively restart the Router.
+
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
   3) Abort the operation.
@@ -209,6 +213,8 @@ An upgrade of all cluster router instances is required. All router installations
 [[*]]
 There are 11 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
+NOTE: If Router's Metadata Cache TTL is high Router's own update in the Metadata will take longer. Re-check for outdated Routers if that's the case or alternatively restart the Router.
+
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
   3) Abort the operation.
@@ -245,6 +251,8 @@ An upgrade of all cluster router instances is required. All router installations
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
 There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
+
+NOTE: If Router's Metadata Cache TTL is high Router's own update in the Metadata will take longer. Re-check for outdated Routers if that's the case or alternatively restart the Router.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
