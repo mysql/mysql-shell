@@ -178,7 +178,8 @@ class Rescan : public Command_interface {
       const mysqlshdk::db::Connection_options &instance_cnx_opts);
 
   void update_metadata_for_instance(
-      const mysqlshdk::db::Connection_options &instance_cnx_opts);
+      const mysqlshdk::db::Connection_options &instance_cnx_opts,
+      Instance_id instance_id, const std::string &label);
   /**
    * Remove the given instance from the metadata.
    *
@@ -203,6 +204,8 @@ class Rescan : public Command_interface {
    */
   void ensure_view_change_uuid_set_stored_metadata(
       const std::string &view_change_uuid = "");
+
+  void check_mismatched_hostnames(shcore::Array_t instances) const;
 };
 
 }  // namespace cluster

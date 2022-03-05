@@ -152,10 +152,12 @@ class Cluster_impl : public Base_cluster_impl,
       const mysqlshdk::db::Connection_options &instance_def);
 
   void update_metadata_for_instance(
-      const mysqlshdk::db::Connection_options &instance_definition) const;
+      const mysqlshdk::db::Connection_options &instance_definition,
+      Instance_id instance_id = 0, const std::string &label = "") const;
 
-  void update_metadata_for_instance(
-      const mysqlshdk::mysql::IInstance &instance) const;
+  void update_metadata_for_instance(const mysqlshdk::mysql::IInstance &instance,
+                                    Instance_id instance_id = 0,
+                                    const std::string &label = "") const;
 
   bool get_disable_clone_option() const;
   void set_disable_clone_option(const bool disable_clone);

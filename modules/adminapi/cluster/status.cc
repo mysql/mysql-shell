@@ -890,6 +890,19 @@ void check_unrecognized_channels(shcore::Array_t issues, Instance *instance,
   }
 }
 
+void check_host_metadata(shcore::Array_t issues, Instance *instance,
+                         const Instance_metadata_info &instance_md) {
+  auto address = instance->get_canonical_address();
+
+  if (instance_md.md.endpoint != address) {
+    issues->push_back(
+        shcore::Value("ERROR: Metadata for this instance does not match "
+                      "hostname reported by instance (metadata=" +
+                      instance_md.md.endpoint + ", actual=" + address +
+                      "). Use rescan() to update the metadata."));
+  }
+}
+
 shcore::Array_t instance_diagnostics(
     Instance *instance, const Cluster_impl *cluster,
     const Instance_metadata_info &instance_md,
@@ -956,6 +969,9 @@ shcore::Array_t instance_diagnostics(
         "NOTE: instance server_id is not registered in the metadata. Use "
         "cluster.rescan() to update the metadata."));
   }
+
+  // check if value of report_host matches what's in the metadata
+  if (instance) check_host_metadata(issues, instance, instance_md);
 
   // Check if parallel-appliers are not configured. The requirement was
   // introduced in 8.0.23 so only check if the version is equal or higher to
