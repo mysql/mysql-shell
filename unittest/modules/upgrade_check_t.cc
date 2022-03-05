@@ -1078,7 +1078,8 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
       {"Please provide the password for "
        "'" +
            _mysql_uri_nopasswd + "': ",
-       "WhAtEvEr"});
+       "WhAtEvEr",
+       {}});
   EXPECT_THROW(util.check_for_server_upgrade(
                    shcore::get_connection_options(_mysql_uri_nopasswd)),
                shcore::Exception);
@@ -1091,7 +1092,7 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
 TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
   Util util(_interactive_shell->shell_context().get());
   output_handler.passwords.push_back(
-      {"If this was prompted it is an error", "WhAtEvEr"});
+      {"If this was prompted it is an error", "WhAtEvEr", {}});
 
   try {
     util.check_for_server_upgrade(shcore::get_connection_options(_mysql_uri));
@@ -1111,7 +1112,7 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   Util util(_interactive_shell->shell_context().get());
 
   output_handler.passwords.push_back(
-      {"If this was prompted it is an error", "WhAtEvEr"});
+      {"If this was prompted it is an error", "WhAtEvEr", {}});
 
   try {
     util.check_for_server_upgrade(

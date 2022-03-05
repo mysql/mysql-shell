@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include "unittest/test_utils.h"
 
 #include "mysqlshdk/shellcore/shell_console.h"
+#include "src/mysqlsh/prompt_handler.h"
 
 namespace mysqlsh {
 
@@ -45,42 +46,44 @@ bool print(void *user_data, const char *text) {
 }
 
 shcore::Prompt_result prompt(void *user_data, const char *prompt,
-                             std::string *ret_input) {
+                             const shcore::prompt::Prompt_options &options,
+                             std::string *ret) {
   Test_data *data = static_cast<Test_data *>(user_data);
-  if (data->input.empty()) {
-    ADD_FAILURE() << "Unexpected prompt: " << prompt;
-    return shcore::Prompt_result::CTRL_D;
+
+  return mysqlsh::Prompt_handler(
+             [data](bool /*is_password*/, const char *prompt_text,
+                    std::string *answer) -> shcore::Prompt_result {
+               if (data->input.empty()) {
+                 ADD_FAILURE() << "Unexpected prompt: " << prompt_text;
+                 return shcore::Prompt_result::CTRL_D;
+               }
+               if (!data->output.empty()) data->output.append("||");
+               data->output.append(prompt_text);
+               *answer = data->input.front();
+               data->input.pop_front();
+               return shcore::Prompt_result::Ok;
+             })
+      .handle_prompt(prompt, options, ret);
+
+  // Implementation handles the default value
+  if (ret->empty() && options.default_value) {
+    *ret = options.default_value.as_string();
   }
-  if (!data->output.empty()) data->output.append("||");
-  data->output.append(prompt);
-  *ret_input = data->input.front();
-  data->input.pop_front();
-  return shcore::Prompt_result::Ok;
 }
 
-shcore::Prompt_result password(void *user_data, const char *prompt,
-                               std::string *ret_password) {
-  Test_data *data = static_cast<Test_data *>(user_data);
-  if (data->input.empty()) {
-    ADD_FAILURE() << "Unexpected password prompt: " << prompt;
-    return shcore::Prompt_result::CTRL_D;
-  }
-  if (!data->output.empty()) data->output.append("||");
-  data->output.append(prompt);
-  *ret_password = data->input.front();
-  data->input.pop_front();
-  return shcore::Prompt_result::Ok;
-}
 }  // namespace
 
 class Shell_console_test : public Shell_core_test_wrapper {};
 
 TEST_F(Shell_console_test, prompt) {
   auto data = std::make_unique<Test_data>();
-  shcore::Interpreter_delegate deleg(data.get(), print, prompt, password,
-                                     nullptr, nullptr);
+  shcore::Interpreter_delegate deleg(data.get(), print, prompt, nullptr,
+                                     nullptr);
 
-  Shell_console console(&deleg);
+  mysqlsh::Scoped_console scoped_console{
+      std::make_shared<Shell_console>(&deleg)};
+  const Shell_console &console(
+      *std::dynamic_pointer_cast<Shell_console>(scoped_console.get()));
   Prompt_answer answer;
 
   data->input.push_back("");
@@ -99,7 +102,9 @@ TEST_F(Shell_console_test, prompt) {
   data->input.push_back("y");
   answer = console.confirm("Really?", Prompt_answer::NONE);
   EXPECT_EQ(Prompt_answer::YES, answer);
-  EXPECT_EQ("Really? [y/n]: ||Really? [y/n]: ", data->output);
+  EXPECT_EQ(
+      "Really? [y/n]: ||Please pick an option out of [y/n]: ||Really? [y/n]: ",
+      data->output);
   data->output.clear();
 
   data->input.push_back("");
@@ -180,10 +185,8 @@ TEST_F(Shell_console_test, prompt) {
                            "C&ancel");
   EXPECT_EQ(Prompt_answer::NO, answer);
   EXPECT_EQ(
-      "Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ||\nPlease pick "
-      "an "
-      "option out of [C]ontinue/[E]dit/C[a]ncel (default Continue): "
-      "\n||Really? "
+      "Really? [C]ontinue/[E]dit/C[a]ncel (default Continue): ||Please pick an "
+      "option out of [C]ontinue/[E]dit/C[a]ncel (default Continue): ||Really? "
       "[C]ontinue/[E]dit/C[a]ncel (default Continue): ",
       data->output);
   data->output.clear();

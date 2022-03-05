@@ -35,16 +35,6 @@ namespace mysqlsh {
 enum class Prompt_answer { NONE = 0, YES = 1, NO = 2, ALT = 3 };
 enum class Output_stream { STDOUT = 0, STDERR = 1 };
 
-enum class Prompt_type {
-  CONFIRM,
-  DIRECTORY,
-  FILEOPEN,
-  FILESAVE,
-  PASSWORD,
-  SELECT,
-  TEXT
-};
-
 class IPager {
  public:
   IPager() = default;
@@ -80,8 +70,13 @@ class IConsole {
   using Validator = std::function<std::string(const std::string &)>;
 
   virtual shcore::Prompt_result prompt(
+      const std::string &prompt, const shcore::prompt::Prompt_options &options,
+      std::string *out_val) const = 0;
+
+  virtual shcore::Prompt_result prompt(
       const std::string &prompt, std::string *out_val,
-      Validator validator = nullptr, Prompt_type type = Prompt_type::TEXT,
+      Validator validator = nullptr,
+      shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
       const std::string &default_value = "") const = 0;

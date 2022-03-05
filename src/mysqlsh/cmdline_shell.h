@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,15 +31,15 @@
 
 #include "shellcore/base_shell.h"
 
+#include "mysqlsh/history.h"
 #include "mysqlsh/mysql_shell.h"
+#include "mysqlsh/prompt_manager.h"
+#include "mysqlshdk/libs/utils/syslog.h"
+#include "mysqlshdk/shellcore/shell_prompt_options.h"
 #include "scripting/types.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/shell_options.h"
-
-#include "mysqlsh/history.h"
-#include "mysqlsh/prompt_manager.h"
-#include "mysqlshdk/libs/utils/syslog.h"
 
 namespace mysqlsh {
 
@@ -118,13 +118,11 @@ class Command_line_shell : public Mysql_shell,
   static bool deleg_delayed_print_error(void *self, const char *text);
   static bool deleg_disable_print_error(void *self, const char *text);
   static bool deleg_print_diag(void *self, const char *text);
-  static shcore::Prompt_result deleg_prompt(void *self, const char *text,
-                                            std::string *ret);
-  static shcore::Prompt_result deleg_password(void *self, const char *text,
-                                              std::string *ret);
+  static shcore::Prompt_result deleg_prompt(
+      void *self, const char *text,
+      const shcore::prompt::Prompt_options &options, std::string *ret);
 
-  shcore::Prompt_result do_prompt(char *(*get_response)(const char *),
-                                  bool is_password, const char *text,
+  shcore::Prompt_result do_prompt(bool is_password, const char *text,
                                   std::string *ret);
 
   std::string history_file(

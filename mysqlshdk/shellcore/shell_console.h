@@ -72,11 +72,6 @@
 //   Use for other informational text meant for users.
 
 namespace mysqlsh {
-std::string to_string(Prompt_type type);
-Prompt_type to_prompt_type(const std::string &type);
-
-char process_label(const std::string &s, std::string *out_display,
-                   std::string *out_clean_text);
 
 class Shell_console : public IConsole {
  public:
@@ -188,23 +183,96 @@ class Shell_console : public IConsole {
    */
   virtual void print_para(const std::string &text) const override;
 
+  /**
+   * @brief Prompt interface for prompts coming from the user (shell.prompt)
+   *
+   * @param prompt The main prompt message
+   * @param options The options defining the type and structure of the prompt
+   * @param out_val The value to be returned as answer to the prompt
+   * @return shcore::Prompt_result The prompt resolution state
+   */
+  shcore::Prompt_result prompt(const std::string &prompt,
+                               const shcore::prompt::Prompt_options &options,
+                               std::string *out_val) const override;
+
+  /**
+   * @brief Prompt interface for prompts coming from Shell code
+   *
+   * @param prompt The main prompt message
+   * @param out_val The value to be returned as answer to the prompt
+   * @param validator Optional validation callback to be used during the prompt
+   * @param type Optional prompt type: supports all types except Confirm and
+   * Select
+   * @param title Optional title for the prompt (ignored in the Shell
+   * implementation)
+   * @param description List of paragraphs to be printed as context for the
+   * prompt
+   * @param default_value Optional value to be returned in case user provides
+   * empty reply
+   * @return shcore::Prompt_result The prompt resolution state
+   */
   shcore::Prompt_result prompt(
       const std::string &prompt, std::string *out_val,
-      Validator validator = nullptr, Prompt_type type = Prompt_type::TEXT,
+      Validator validator = nullptr,
+      shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
       const std::string &default_value = "") const override;
+  /**
+   * @brief Prompt interface for confirmation prompts coming from Shell code
+   *
+   * @param prompt The main prompt message
+   * @param def Optional identifier of the value to be used as return value if
+   * user provides empty reply
+   * @param yes_label Optional label to customize the default &Yes label
+   * @param no_label Optional label to customize the default &No label
+   * @param alt_label Optional label to add a third valid reply
+   * @param title Optional title for the prompt (ignored in the Shell
+   * implementation)
+   * @param description List of paragraphs to be printed as context for the
+   * prompt
+   * @return Prompt_answer The identifier of the selected answer
+   */
   Prompt_answer confirm(
       const std::string &prompt, Prompt_answer def = Prompt_answer::NO,
       const std::string &yes_label = "&Yes",
       const std::string &no_label = "&No", const std::string &alt_label = "",
       const std::string &title = "",
       const std::vector<std::string> &description = {}) const override;
+  /**
+   * @brief Prompt interface for password prompts coming from Shell code
+   *
+   * @param prompt The main prompt message
+   * @param out_val The value to be returned as answer to the prompt
+   * @param validator Optional validation callback to be used during the prompt
+   * @param title Optional title for the prompt (ignored in the Shell
+   * implementation)
+   * @param description List of paragraphs to be printed as context for the
+   * prompt
+   * @return shcore::Prompt_result The prompt resolution state
+   */
   shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
       Validator validator = nullptr, const std::string &title = "",
       const std::vector<std::string> &description = {}) const override;
-  bool select(const std::string &prompt_text, std::string *result,
+  /**
+   * @brief Prompt interface for select prompts coming from Shell code
+   *
+   * @param prompt_text The main prompt message
+   * @param out_val The value to be returned as answer to the prompt
+   * @param items List of eligible options
+   * @param default_option 1 based index of the option to be used as default
+   * answer if user provides empty reply
+   * @param allow_custom Option to enable the user providing a custom option
+   * (not from the list)
+   * @param validator Optional callback to validate the user reply
+   * @param title Optional title for the prompt (ignored in the Shell
+   * implementation)
+   * @param description List of paragraphs to be printed as context for the
+   * prompt
+   * @return true
+   */
+  bool select(const std::string &prompt_text, std::string *out_val,
               const std::vector<std::string> &items, size_t default_option = 0,
               bool allow_custom = false, Validator validator = nullptr,
               const std::string &title = "",
@@ -242,12 +310,9 @@ class Shell_console : public IConsole {
   void detach_log_hook();
 
   shcore::Prompt_result call_prompt(
-      const std::string &text, std::string *ret_val, Validator validator,
-      shcore::Interpreter_delegate::Prompt func,
-      const std::string &default_value = "") const;
-
-  void print_prompt_description(
-      const std::vector<std::string> &description) const;
+      const std::string &text, const shcore::prompt::Prompt_options &options,
+      std::string *ret_val, Validator validator,
+      shcore::Interpreter_delegate::Prompt func) const;
 
   shcore::Interpreter_delegate *m_ideleg;
   std::weak_ptr<IPager> m_current_pager;

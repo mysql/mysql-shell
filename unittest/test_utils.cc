@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_resultset_dumper.h"
+#include "src/mysqlsh/prompt_handler.h"
 #include "unittest/test_utils/sandboxes.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -45,7 +46,6 @@ extern int g_profile_test_scripts;
 Shell_test_output_handler::Shell_test_output_handler()
     : deleg(this, &Shell_test_output_handler::deleg_print,
             &Shell_test_output_handler::deleg_prompt,
-            &Shell_test_output_handler::deleg_password,
             &Shell_test_output_handler::deleg_print_error,
             &Shell_test_output_handler::deleg_print_diag),
       m_internal(false),
@@ -161,89 +161,72 @@ bool Shell_test_output_handler::deleg_print_diag(void *user_data,
   return true;
 }
 
-shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
-    void *user_data, const char *prompt, std::string *ret) {
-  Shell_test_output_handler *target =
-      reinterpret_cast<Shell_test_output_handler *>(user_data);
-  std::string answer;
-  std::string expected_prompt;
+shcore::Prompt_result Shell_test_output_handler::do_prompt(bool is_password,
+                                                           const char *prompt,
+                                                           std::string *ret) {
+  std::lock_guard<std::mutex> lock(stdout_mutex);
+  shcore::Option_pack_ref<shcore::prompt::Prompt_options> expected_options;
+  std::string answer, expected_prompt;
+  full_output << prompt;
+  std_out.append(prompt);
 
-  std::lock_guard<std::mutex> lock(target->stdout_mutex);
-  target->full_output << prompt;
-  target->std_out.append(prompt);
+  std::list<std::tuple<std::string, std::string,
+                       shcore::Option_pack_ref<shcore::prompt::Prompt_options>>>
+      &prompt_replies{is_password ? passwords : prompts};
 
   shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
-  if (!target->prompts.empty()) {
-    std::tie(expected_prompt, answer) = target->prompts.front();
-    target->prompts.pop_front();
+  if (!prompt_replies.empty()) {
+    std::tie(expected_prompt, answer, expected_options) =
+        prompt_replies.front();
+    prompt_replies.pop_front();
 
     if (expected_prompt == "*" ||
         shcore::str_beginswith(prompt, expected_prompt)) {
-      target->debug_print(makegreen(
-          shcore::str_format("\n--> prompt %s %s", prompt, answer.c_str())));
-      target->full_output << answer << std::endl;
+      debug_print(makegreen(shcore::str_format(
+          "\n--> %s %s %s", is_password ? "password" : "prompt", prompt,
+          answer.c_str())));
+      full_output << answer << std::endl;
     } else {
-      ADD_FAILURE() << "Mismatched prompts. Expected: '" << expected_prompt
-                    << "'\n"
+      ADD_FAILURE() << "Mismatched " << (is_password ? " pwd" : "")
+                    << "prompts. Expected: '" << expected_prompt << "'\n"
                     << "actual: '" << prompt << "'";
-      target->debug_print(
-          makered(shcore::str_format("\n--> mismatched prompt '%s'", prompt)));
+      debug_print(
+          makered(shcore::str_format("\n--> mismatched%s prompt '%s'",
+                                     (is_password ? " pwd" : ""), prompt)));
     }
     if (answer != "<<<CANCEL>>>") ret_val = shcore::Prompt_result::Ok;
   } else {
-    ADD_FAILURE() << "Unexpected prompt for '" << prompt << "'";
-    target->debug_print(
-        makered(shcore::str_format("\n--> unexpected prompt '%s'", prompt)));
+    ADD_FAILURE() << "Unexpected " << (is_password ? "password " : "")
+                  << "prompt for '" << prompt << "'";
+    debug_print(
+        makered(shcore::str_format("\n--> unexpected%s prompt '%s'",
+                                   (is_password ? " pwd" : ""), prompt)));
   }
 
-  if (target->m_answers_to_stdout) target->std_out.append(answer).append("\n");
+  if (m_answers_to_stdout)
+    std_out.append(is_password ? std::string(answer.size(), '*') : answer)
+        .append("\n");
 
   *ret = answer;
   return ret_val;
 }
 
-shcore::Prompt_result Shell_test_output_handler::deleg_password(
-    void *user_data, const char *prompt, std::string *ret) {
+shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
+    void *user_data, const char *prompt,
+    const shcore::prompt::Prompt_options &options, std::string *ret) {
   Shell_test_output_handler *target =
       reinterpret_cast<Shell_test_output_handler *>(user_data);
-  std::string answer;
-  std::string expected_prompt;
 
-  std::lock_guard<std::mutex> lock(target->stdout_mutex);
-  target->full_output << prompt;
-  target->std_out.append(prompt);
+  auto ret_val =
+      mysqlsh::Prompt_handler(
+          std::bind(&Shell_test_output_handler::do_prompt, target, _1, _2, _3))
+          .handle_prompt(prompt, options, ret);
 
-  shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
-  if (!target->passwords.empty()) {
-    std::tie(expected_prompt, answer) = target->passwords.front();
-    target->passwords.pop_front();
-
-    if (expected_prompt == "*" ||
-        shcore::str_beginswith(prompt, expected_prompt)) {
-      target->debug_print(makegreen(
-          shcore::str_format("\n--> password %s %s", prompt, answer.c_str())));
-      target->full_output << answer << std::endl;
-    } else {
-      ADD_FAILURE() << "Mismatched pwd prompts. Expected: '" << expected_prompt
-                    << "'\n"
-                    << "actual: '" << prompt << "'";
-      target->debug_print(makered(
-          shcore::str_format("\n--> mismatched pwd prompt '%s'", prompt)));
-    }
-
-    if (answer != "<<<CANCEL>>>") ret_val = shcore::Prompt_result::Ok;
-  } else {
-    ADD_FAILURE() << "Unexpected password prompt for '" << prompt << "'";
-    target->debug_print(makered(
-        shcore::str_format("\n--> unexpected pwd prompt '%s'", prompt)));
+  // Implementation handles the default value
+  if (ret->empty() && options.default_value) {
+    *ret = options.default_value.as_string();
   }
 
-  if (target->m_answers_to_stdout) {
-    std::string password(answer.size(), '*');
-    target->std_out.append(password).append("\n");
-  }
-
-  *ret = answer;
   return ret_val;
 }
 
@@ -442,11 +425,15 @@ void Shell_core_test_wrapper::enable_testutil() {
       new tests::Testutils(_sandbox_dir, _recording_enabled && dummy_sandboxes,
                            _interactive_shell, get_path_to_mysqlsh()));
   testutil->set_test_callbacks(
-      [this](const std::string &prompt, const std::string &text) {
-        output_handler.prompts.push_back({prompt, text});
+      [this](const std::string &prompt, const std::string &text,
+             const shcore::Option_pack_ref<shcore::prompt::Prompt_options>
+                 &options) {
+        output_handler.prompts.push_back({prompt, text, options});
       },
-      [this](const std::string &prompt, const std::string &pass) {
-        output_handler.passwords.push_back({prompt, pass});
+      [this](const std::string &prompt, const std::string &pass,
+             const shcore::Option_pack_ref<shcore::prompt::Prompt_options>
+                 &options) {
+        output_handler.passwords.push_back({prompt, pass, options});
       },
       [this](bool one) -> std::string {
         if (one) {
@@ -469,8 +456,8 @@ void Shell_core_test_wrapper::enable_testutil() {
           std::vector<std::string> prompts;
           for (const auto &prompt : output_handler.prompts) {
             prompts.push_back(shcore::str_format("PROMPT: '%s' [%s]",
-                                                 prompt.first.c_str(),
-                                                 prompt.second.c_str()));
+                                                 std::get<0>(prompt).c_str(),
+                                                 std::get<1>(prompt).c_str()));
           }
           SCOPED_TRACE(shcore::str_join(prompts, "\n").c_str());
           EXPECT_EQ(0, output_handler.prompts.size());
@@ -478,9 +465,9 @@ void Shell_core_test_wrapper::enable_testutil() {
         {
           std::vector<std::string> passwords;
           for (const auto &password : output_handler.passwords) {
-            passwords.push_back(shcore::str_format("PROMPT: '%s' [%s]",
-                                                   password.first.c_str(),
-                                                   password.second.c_str()));
+            passwords.push_back(shcore::str_format(
+                "PROMPT: '%s' [%s]", std::get<0>(password).c_str(),
+                std::get<1>(password).c_str()));
           }
           SCOPED_TRACE(shcore::str_join(passwords, "\n").c_str());
           EXPECT_EQ(0, output_handler.passwords.size());
@@ -687,8 +674,8 @@ void Crud_test_wrapper::ensure_available_functions(
 
   std::set<std::string>::iterator index, end = _functions.end();
   for (index = _functions.begin(); index != end; index++) {
-    // If the function is suppossed to be valid it needs to be available on the
-    // crud dir
+    // If the function is suppossed to be valid it needs to be available on
+    // the crud dir
     if (valid_functions.find(*index) != valid_functions.end()) {
       SCOPED_TRACE("Function " + *index + " should be available and is not.");
       if (is_js)

@@ -23,14 +23,39 @@
 #ifndef MODULES_SHELL_PROMPT_OPTIONS_H_
 #define MODULES_SHELL_PROMPT_OPTIONS_H_
 
+#include <map>
 #include <string>
 #include <vector>
 
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/include/shellcore/console.h"
 
-namespace mysqlsh {
+namespace shcore {
 namespace prompt {
+
+constexpr const char k_title[] = "title";
+constexpr const char k_description[] = "description";
+constexpr const char k_type[] = "type";
+constexpr const char k_yes_label[] = "yes";
+constexpr const char k_no_label[] = "no";
+constexpr const char k_alt_label[] = "alt";
+constexpr const char k_options[] = "options";
+constexpr const char k_default_value[] = "defaultValue";
+
+enum class Prompt_type {
+  CONFIRM,
+  DIRECTORY,
+  FILEOPEN,
+  FILESAVE,
+  PASSWORD,
+  SELECT,
+  TEXT
+};
+
+std::string to_string(Prompt_type type);
+Prompt_type to_prompt_type(const std::string &type);
+char process_label(const std::string &s, std::string *out_display,
+                   std::string *out_clean_text);
+
 struct Prompt_options final {
  public:
   Prompt_options();
@@ -48,17 +73,30 @@ struct Prompt_options final {
   std::string title;
   std::vector<std::string> description;
   std::vector<std::string> select_items;
-  mysqlsh::Prompt_type type = Prompt_type::TEXT;
+  Prompt_type type = Prompt_type::TEXT;
   std::string yes_label;
   std::string no_label;
   std::string alt_label;
   shcore::Value default_value;
+  bool allow_custom;
+
+  bool is_valid_answer(const std::string &answer,
+                       std::string *real_answer = nullptr) const;
+
+  // To be called for the complete initialization of the options when they are
+  // filled by hand
+  void done() { on_unpacked_options(); }
 
  private:
   void on_unpacked_options();
   void set_type(const std::string &type);
+
+  static bool icomp(const std::string &lhs, const std::string &rhs);
+  std::map<std::string, std::string,
+           bool (*)(const std::string &, const std::string &)>
+      m_allowed_answers_map;
 };
 }  // namespace prompt
-}  // namespace mysqlsh
+}  // namespace shcore
 
 #endif  // MODULES_SHELL_PROMPT_OPTIONS_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,14 +32,12 @@ Delegate_wrapper::Delegate_wrapper(
     const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks)
     : Interpreter_delegate(this, &Delegate_wrapper::deleg_print,
                            &Delegate_wrapper::deleg_prompt,
-                           &Delegate_wrapper::deleg_password,
                            &Delegate_wrapper::deleg_print_error,
                            &Delegate_wrapper::deleg_print_diag) {
   m_deleg_print_func = callbacks->deleg_print_func();
   m_deleg_error_func = callbacks->deleg_error_func();
   m_deleg_diag_func = callbacks->deleg_diag_func();
   m_deleg_prompt_func = callbacks->deleg_prompt_func();
-  m_deleg_password_func = callbacks->deleg_password_func();
 }
 
 shcore::Value Delegate_wrapper::call_delegate(
@@ -51,6 +49,65 @@ shcore::Value Delegate_wrapper::call_delegate(
     r.push_back(shcore::Value(text));
     return (self->*func)->invoke(r);
   }
+  return shcore::Value();
+}
+
+shcore::Value Delegate_wrapper::call_prompt_delegate(
+    void *cdata, const char *text,
+    const shcore::prompt::Prompt_options &options,
+    shcore::Function_base_ref Delegate_wrapper::*func) {
+  using shcore::prompt::Prompt_type;
+  Delegate_wrapper *self = reinterpret_cast<Delegate_wrapper *>(cdata);
+  if (self && text && self->*func) {
+    shcore::Argument_list r;
+    r.push_back(shcore::Value(text));
+
+    auto options_dict = shcore::make_dict();
+
+    (*options_dict)[shcore::prompt::k_type] =
+        shcore::Value(shcore::prompt::to_string(options.type));
+
+    if (!options.title.empty()) {
+      (*options_dict)[shcore::prompt::k_title] = shcore::Value(options.title);
+    }
+
+    if (!options.description.empty()) {
+      auto desc_option = shcore::make_array();
+      for (const auto &paragraph : options.description) {
+        desc_option->emplace_back(paragraph);
+      }
+
+      (*options_dict)[shcore::prompt::k_description] =
+          shcore::Value(desc_option);
+    }
+
+    if (options.default_value) {
+      (*options_dict)[shcore::prompt::k_default_value] =
+          shcore::Value(options.default_value);
+    }
+
+    if (options.type == Prompt_type::CONFIRM) {
+      (*options_dict)[shcore::prompt::k_yes_label] =
+          shcore::Value(options.yes_label);
+      (*options_dict)[shcore::prompt::k_no_label] =
+          shcore::Value(options.no_label);
+      if (!options.alt_label.empty()) {
+        (*options_dict)[shcore::prompt::k_alt_label] =
+            shcore::Value(options.alt_label);
+      }
+    } else if (options.type == Prompt_type::SELECT) {
+      auto item_list = shcore::make_array();
+      for (const auto &item : options.select_items) {
+        item_list->emplace_back(item);
+      }
+      (*options_dict)[shcore::prompt::k_options] = shcore::Value(item_list);
+    }
+
+    r.push_back(shcore::Value(options_dict));
+
+    return (self->*func)->invoke(r);
+  }
+
   return shcore::Value();
 }
 
@@ -69,18 +126,12 @@ shcore::Prompt_result Delegate_wrapper::get_prompt_value(
   return shcore::Prompt_result::Cancel;
 }
 
-shcore::Prompt_result Delegate_wrapper::deleg_prompt(void *cdata,
-                                                     const char *text,
-                                                     std::string *ret) {
+shcore::Prompt_result Delegate_wrapper::deleg_prompt(
+    void *cdata, const char *text,
+    const shcore::prompt::Prompt_options &options, std::string *ret) {
   return get_prompt_value(
-      call_delegate(cdata, text, &Delegate_wrapper::m_deleg_prompt_func), ret);
-}
-
-shcore::Prompt_result Delegate_wrapper::deleg_password(void *cdata,
-                                                       const char *text,
-                                                       std::string *ret) {
-  return get_prompt_value(
-      call_delegate(cdata, text, &Delegate_wrapper::m_deleg_password_func),
+      call_prompt_delegate(cdata, text, options,
+                           &Delegate_wrapper::m_deleg_prompt_func),
       ret);
 }
 
@@ -117,9 +168,7 @@ const shcore::Option_pack_def<Shell_context_wrapper_options>
           .optional("diagDelegate",
                     &Shell_context_wrapper_options::m_deleg_diag_func)
           .optional("promptDelegate",
-                    &Shell_context_wrapper_options::m_deleg_prompt_func)
-          .optional("passwordDelegate",
-                    &Shell_context_wrapper_options::m_deleg_password_func);
+                    &Shell_context_wrapper_options::m_deleg_prompt_func);
   return opts;
 }
 

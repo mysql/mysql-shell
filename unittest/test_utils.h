@@ -99,12 +99,12 @@ class Shell_test_output_handler {
   static bool deleg_print(void *user_data, const char *text);
   static bool deleg_print_error(void *user_data, const char *text);
   static bool deleg_print_diag(void *user_data, const char *text);
-  static shcore::Prompt_result deleg_prompt(void *user_data,
-                                            const char *UNUSED(prompt),
-                                            std::string *ret);
-  static shcore::Prompt_result deleg_password(void *user_data,
-                                              const char *UNUSED(prompt),
-                                              std::string *ret);
+  static shcore::Prompt_result deleg_prompt(
+      void *user_data, const char *prompt,
+      const shcore::prompt::Prompt_options &options, std::string *ret);
+
+  shcore::Prompt_result do_prompt(bool is_password, const char *text,
+                                  std::string *ret);
 
   void wipe_out() {
     std::lock_guard<std::mutex> lock(stdout_mutex);
@@ -156,11 +156,15 @@ class Shell_test_output_handler {
   bool debug;
 
   void feed_to_prompt(const std::string &line) {
-    prompts.push_back({std::string("*"), line});
+    prompts.push_back({std::string("*"), line, {}});
   }
 
-  std::list<std::pair<std::string, std::string>> prompts;
-  std::list<std::pair<std::string, std::string>> passwords;
+  std::list<std::tuple<std::string, std::string,
+                       shcore::Option_pack_ref<shcore::prompt::Prompt_options>>>
+      prompts;
+  std::list<std::tuple<std::string, std::string,
+                       shcore::Option_pack_ref<shcore::prompt::Prompt_options>>>
+      passwords;
 
   void set_internal(bool value) { m_internal = value; }
   void set_answers_to_stdout(bool value) { m_answers_to_stdout = value; }

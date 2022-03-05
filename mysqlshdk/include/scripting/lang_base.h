@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,8 @@
 #include "scripting/common.h"
 #include "scripting/types.h"
 #include "scripting/types_common.h"
+
+#include "mysqlshdk/shellcore/shell_prompt_options.h"
 
 namespace shcore {
 
@@ -89,39 +91,35 @@ class TYPES_COMMON_PUBLIC Interpreter_print_handler {
 class TYPES_COMMON_PUBLIC Interpreter_delegate
     : public Interpreter_print_handler {
  public:
-  using Prompt_function = Prompt_result (*)(void *, const char *,
-                                            std::string *);
+  using Prompt_function =
+      Prompt_result (*)(void *, const char *,
+                        const prompt::Prompt_options &options, std::string *);
 
-  using Prompt = Prompt_result (Interpreter_delegate ::*)(const char *,
-                                                          std::string *) const;
+  using Prompt = Prompt_result (Interpreter_delegate ::*)(
+      const char *, const prompt::Prompt_options &options, std::string *) const;
 
   Interpreter_delegate(void *user_data, Print_function print_,
-                       Prompt_function prompt_, Prompt_function password_,
-                       Print_function error, Print_function diag)
+                       Prompt_function prompt_, Print_function error,
+                       Print_function diag)
       : Interpreter_print_handler(user_data, print_, error, diag),
-        m_prompt(prompt_),
-        m_password(password_) {}
+        m_prompt(prompt_) {}
 
-  Prompt_result prompt(const char *msg, std::string *result) const {
-    return delegate(msg, result, m_prompt);
-  }
-
-  Prompt_result password(const char *msg, std::string *result) const {
-    return delegate(msg, result, m_password);
+  Prompt_result prompt(const char *msg, const prompt::Prompt_options &options,
+                       std::string *result) const {
+    return delegate(msg, options, result, m_prompt);
   }
 
  private:
-  Prompt_result delegate(const char *msg, std::string *result,
-                         Prompt_function func) const {
+  Prompt_result delegate(const char *msg, const prompt::Prompt_options &options,
+                         std::string *result, Prompt_function func) const {
     if (func) {
-      return func(m_user_data, msg, result);
+      return func(m_user_data, msg, options, result);
     } else {
       return Prompt_result::CTRL_D;
     }
   }
 
   Prompt_function m_prompt = nullptr;
-  Prompt_function m_password = nullptr;
 };
 
 }  // namespace shcore

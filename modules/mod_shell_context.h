@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,8 @@
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "src/mysqlsh/mysql_shell.h"
 
+#include "mysqlshdk/shellcore/shell_prompt_options.h"
+
 namespace mysqlsh {
 class Shell;
 
@@ -66,9 +68,6 @@ class Shell_context_wrapper_options {
   shcore::Function_base_ref deleg_prompt_func() const {
     return m_deleg_prompt_func;
   }
-  shcore::Function_base_ref deleg_password_func() const {
-    return m_deleg_password_func;
-  }
   shcore::Function_base_ref deleg_error_func() const {
     return m_deleg_error_func;
   }
@@ -85,7 +84,6 @@ class Shell_context_wrapper_options {
       shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
   shcore::Function_base_ref m_deleg_print_func;
   shcore::Function_base_ref m_deleg_prompt_func;
-  shcore::Function_base_ref m_deleg_password_func;
   shcore::Function_base_ref m_deleg_error_func;
   shcore::Function_base_ref m_deleg_diag_func;
 };
@@ -97,21 +95,23 @@ class Delegate_wrapper : public shcore::Interpreter_delegate {
 
  private:
   static bool deleg_print(void *self, const char *text);
-  static shcore::Prompt_result deleg_prompt(void *self, const char *text,
-                                            std::string *ret);
-  static shcore::Prompt_result deleg_password(void *self, const char *text,
-                                              std::string *ret);
+  static shcore::Prompt_result deleg_prompt(
+      void *self, const char *text,
+      const shcore::prompt::Prompt_options &options, std::string *ret);
   static bool deleg_print_error(void *self, const char *text);
   static bool deleg_print_diag(void *self, const char *text);
   static shcore::Value call_delegate(
       void *cdata, const char *text,
+      shcore::Function_base_ref Delegate_wrapper::*func);
+  static shcore::Value call_prompt_delegate(
+      void *cdata, const char *text,
+      const shcore::prompt::Prompt_options &options,
       shcore::Function_base_ref Delegate_wrapper::*func);
   static shcore::Prompt_result get_prompt_value(
       const shcore::Value &prompt_value, std::string *ret);
 
   shcore::Function_base_ref m_deleg_print_func;
   shcore::Function_base_ref m_deleg_prompt_func;
-  shcore::Function_base_ref m_deleg_password_func;
   shcore::Function_base_ref m_deleg_error_func;
   shcore::Function_base_ref m_deleg_diag_func;
 };

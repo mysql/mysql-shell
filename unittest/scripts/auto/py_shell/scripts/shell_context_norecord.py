@@ -8,25 +8,38 @@ callback_diag_queue = queue.Queue()
 
 def thread_sample_print(thread_name):
     prompt_return = True
-    prompt_pw_return = True
     def print_delegate(text):
         callback_print_queue.put(text)
     def diag_delegate(text):
         callback_diag_queue.put(text)
-    def prompt_delegate(prompt):
-        return prompt_return, prompt
-    def password_prompt(caption):
-        return prompt_pw_return, caption
+    def prompt_delegate(prompt, options):
+        ret_caption = prompt
+        if "defaultValue" in options:
+            ret_caption = options["defaultValue"]
+        ret_value=f"'{ret_caption}', options: {str(options)}"
+        return prompt_return, ret_value
     ctx = shell.create_context({"printDelegate": print_delegate, "promptDelegate": prompt_delegate,
-                                "passwordDelegate": password_prompt, "diagDelegate": diag_delegate})
+                                "diagDelegate": diag_delegate})
     sh = ctx.get_shell()
     print("this will be available on the callback queue")
-    EXPECT_EQ("reply from prompt: ", sh.prompt("reply from prompt"))
-    EXPECT_EQ("reply from password prompt: ", sh.prompt("reply from password prompt", {'type':'password'}))
+    EXPECT_EQ("'caption', options: {\"type\": \"text\"}", sh.prompt("caption"))
+    EXPECT_EQ("'caption', options: {\"description\": [\"Paragraph 1\", \"Paragraph 2\"], \"type\": \"text\"}", sh.prompt("caption", {"description":["Paragraph 1", "Paragraph 2"]}))
+    EXPECT_EQ("'caption', options: {\"type\": \"password\"}", sh.prompt("caption", {'type':'password'}))
+    EXPECT_EQ("'Other Value', options: {\"defaultValue\": \"Other Value\", \"title\": \"Titled Prompt\", \"type\": \"text\"}", sh.prompt("caption", {"title":"Titled Prompt", "defaultValue":"Other Value"}))
+    EXPECT_EQ("'caption', options: {\"title\": \"File Open\", \"type\": \"fileOpen\"}", sh.prompt("caption", {"title":"File Open", "type":"fileOpen"}))
+    EXPECT_EQ("'caption', options: {\"title\": \"File Save\", \"type\": \"fileSave\"}", sh.prompt("caption", {"title":"File Save", "type":"fileSave"}))
+    EXPECT_EQ("'caption', options: {\"title\": \"Open Folder\", \"type\": \"directory\"}", sh.prompt("caption", {"title":"Open Folder", "type":"directory"}))
+    EXPECT_EQ("'caption', options: {\"no\": \"&No\", \"type\": \"confirm\", \"yes\": \"&Yes\"}", sh.prompt("caption", {"type":"confirm"}))
+    EXPECT_EQ("'caption', options: {\"alt\": \"Cancel\", \"no\": \"&Reject\", \"type\": \"confirm\", \"yes\": \"&Accept\"}", sh.prompt("caption", {"type":"confirm", "yes":"&Accept", "no": "&Reject", "alt": "Cancel"}))
+    EXPECT_EQ("'caption', options: {\"options\": [\"one\", \"two\", \"three\"], \"type\": \"select\"}", sh.prompt("caption", {"type":"select", "options":["one", "two", "three"]}))
     prompt_return = False
     EXPECT_THROWS(lambda: sh.prompt("caption"), "Cancelled")
-    prompt_pw_return = False
     EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'password'}), "Cancelled")
+    EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'fileOpen'}), "Cancelled")
+    EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'fileSave'}), "Cancelled")
+    EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'directory'}), "Cancelled")
+    EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'confirm'}), "Cancelled")
+    EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'select', 'options': ['one', 'two']}), "Cancelled")
     call_unknown_function() # this will cause error to be shown on the diag queue
 
 th = threading.Thread(target = thread_sample_print, args=("my thread", ))
