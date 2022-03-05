@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,7 +180,8 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
     recovery user of that instance is registered for more than one instance
     and if that's the case then it won't be dropped.
   */
-  if (get_metadata_storage()->is_recovery_account_unique(repl_user, true)) {
+  if (get_metadata_storage()->count_recovery_account_uses(repl_user, true) ==
+      1) {
     log_info("Dropping replication account '%s'@'%s' for cluster '%s'",
              repl_user.c_str(), repl_user_host.c_str(),
              cluster->get_name().c_str());

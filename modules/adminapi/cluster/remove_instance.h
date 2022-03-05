@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,8 +42,7 @@ namespace cluster {
 class Remove_instance : public Command_interface {
  public:
   Remove_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
-                  const bool interactive,
-                  mysqlshdk::utils::nullable<bool> force,
+                  const Remove_instance_options &options,
                   Cluster_impl *cluster);
 
   ~Remove_instance() override;
@@ -90,8 +89,7 @@ class Remove_instance : public Command_interface {
 
  private:
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
-  const bool m_interactive = false;
-  mysqlshdk::utils::nullable<bool> m_force;
+  Remove_instance_options m_options;
   Cluster_impl *m_cluster = nullptr;
 
   std::string m_instance_address;
@@ -99,6 +97,7 @@ class Remove_instance : public Command_interface {
   std::string m_address_in_metadata;
   bool m_skip_sync = false;
   std::string m_instance_uuid;
+  uint32_t m_instance_id = 0;
 
   void validate_metadata_for_address(const std::string &address,
                                      Instance_metadata *out_metadata);
@@ -145,6 +144,12 @@ class Remove_instance : public Command_interface {
   bool prompt_to_force_remove();
 
   void check_protocol_upgrade_possible();
+
+  /**
+   * Look for a leftover recovery account (not used by any member)
+   * to remove it from the cluster
+   */
+  void cleanup_leftover_recovery_account();
 };
 
 }  // namespace cluster

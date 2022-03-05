@@ -527,7 +527,7 @@ void Cluster::remove_instance(
   Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Remove the Instance from the Cluster
-  m_impl->remove_instance(instance_def, options->force, options->interactive());
+  m_impl->remove_instance(instance_def, *options);
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);

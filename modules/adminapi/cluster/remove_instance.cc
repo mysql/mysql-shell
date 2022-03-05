@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,11 +49,9 @@ namespace cluster {
 
 Remove_instance::Remove_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
-    const bool interactive, mysqlshdk::utils::nullable<bool> force,
-    Cluster_impl *cluster)
+    const Remove_instance_options &options, Cluster_impl *cluster)
     : m_instance_cnx_opts(instance_cnx_opts),
-      m_interactive(interactive),
-      m_force(force),
+      m_options(options),
       m_cluster(cluster) {
   assert(cluster);
   m_instance_address =
@@ -192,8 +190,49 @@ void Remove_instance::check_protocol_upgrade_possible() {
   }
 }
 
+void Remove_instance::cleanup_leftover_recovery_account() {
+  // Generate the recovery account username that was created for the instance
+  std::string user = m_cluster->make_replication_user_name(
+      m_instance_id, mysqlshdk::gr::k_group_recovery_user_prefix);
+
+  // Get the Cluster's allowedHost
+  std::string host = "%";
+
+  if (shcore::Value allowed_host;
+      m_cluster->get_metadata_storage()->query_cluster_attribute(
+          m_cluster->get_id(), k_cluster_attribute_replication_allowed_host,
+          &allowed_host) &&
+      allowed_host.type == shcore::String &&
+      !allowed_host.as_string().empty()) {
+    host = allowed_host.as_string();
+  }
+
+  // The account must not be in use by any other member of the cluster
+  if (m_cluster->get_metadata_storage()->count_recovery_account_uses(user) ==
+      0) {
+    log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
+             user.c_str(), host.c_str(), m_instance_address.c_str());
+
+    try {
+      m_cluster->get_primary_master()->drop_user(user, host, true);
+    } catch (...) {
+      mysqlsh::current_console()->print_warning(shcore::str_format(
+          "Error dropping recovery account '%s'@'%s' for instance '%s': "
+          "%s",
+          user.c_str(), host.c_str(), m_instance_address.c_str(),
+          format_active_exception().c_str()));
+    }
+  } else {
+    log_info(
+        "Recovery account '%s'@'%s' for instance '%s' still in use in "
+        "the Cluster: Skipping its removal",
+        user.c_str(), host.c_str(), m_instance_address.c_str());
+  }
+}
+
 void Remove_instance::prepare() {
   auto console = mysqlsh::current_console();
+  const auto force = m_options.get_force();
 
   // Use default port if not provided in the connection options.
   if (!m_instance_cnx_opts.has_port()) {
@@ -250,8 +289,7 @@ void Remove_instance::prepare() {
 
     // if the error is a server side error, then it means are able to connect to
     // it, so we just bubble it up to the user (unless force:1)
-    if (!mysqlshdk::db::is_mysql_client_error(err.code()) &&
-        !m_force.get_safe()) {
+    if (!mysqlshdk::db::is_mysql_client_error(err.code()) && !force) {
       try {
         throw;
       }
@@ -287,7 +325,7 @@ void Remove_instance::prepare() {
     // - b should fail with instance doesn't belong to cluster; same as above
     // - c should succeed
 
-    if (m_force.get_safe())
+    if (force)
       console->print_note(err.format());
     else
       console->print_warning(err.format());
@@ -296,6 +334,7 @@ void Remove_instance::prepare() {
       Instance_metadata md;
       validate_metadata_for_address(m_instance_address, &md);
       m_instance_uuid = md.uuid;
+      m_instance_id = md.server_id;
       m_address_in_metadata = m_instance_address;
     } catch (const std::exception &e) {
       log_warning("Couldn't get metadata for %s: %s",
@@ -311,7 +350,7 @@ void Remove_instance::prepare() {
       throw;
     }
 
-    if (!m_force.get_safe()) {
+    if (!force) {
       // the address is valid, but we can only remove if force:true
       console->print_error(
           "The instance '" + m_instance_address +
@@ -323,7 +362,8 @@ void Remove_instance::prepare() {
           "connectable, use the 'force' option to remove it from the "
           "metadata.");
 
-      if (!m_interactive || !m_force.is_null() || !prompt_to_force_remove())
+      if (!m_options.interactive() || m_options.force ||
+          !prompt_to_force_remove())
         throw;
     } else {
       // if we're here, we can't connect to the instance but we'll force remove
@@ -345,6 +385,7 @@ void Remove_instance::prepare() {
       Instance_metadata md;
       validate_metadata_for_address(m_instance_address, &md);
       m_instance_uuid = md.uuid;
+      m_instance_id = md.server_id;
       m_address_in_metadata = m_instance_address;
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
@@ -361,6 +402,7 @@ void Remove_instance::prepare() {
       try {
         auto md = lookup_metadata_for_uuid(uuid);
         m_instance_uuid = md.uuid;
+        m_instance_id = md.server_id;
         m_address_in_metadata = md.address;
 
         log_debug(
@@ -394,7 +436,7 @@ void Remove_instance::prepare() {
       // error or something and the sync will never finish. Since we have a
       // timeout anyway, we'll opt for the potentially useless wait.
       m_skip_sync = true;
-      if (m_force.get_safe())
+      if (force)
         console->print_note(m_target_instance->descr() +
                             " is reachable but has state " +
                             to_string(member_state));
@@ -406,12 +448,13 @@ void Remove_instance::prepare() {
       // If force:true, then all is fine.
       // If force:false, then throw an error.
       // If force not given, then ask the user if interactive, otherwise error.
-      if (!m_force.get_safe()) {
+      if (!force) {
         console->print_info(
             "To safely remove it from the cluster, it must be brought back "
             "ONLINE. If not possible, use the 'force' option to remove it "
             "anyway.");
-        if (!m_interactive || !m_force.is_null() || !prompt_to_force_remove())
+        if (!m_options.interactive() || m_options.force ||
+            !prompt_to_force_remove())
           throw shcore::Exception(
               "Instance is not ONLINE and cannot be safely removed",
               SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
@@ -452,14 +495,13 @@ shcore::Value Remove_instance::execute() {
     cs->reconcile_view_change_gtids(m_cluster->get_cluster_server().get());
   }
 
-  if (m_target_instance) {
-    // Remove recovery user being used by the target instance from the
-    // primary. NOTE: This operation MUST be performed before leave-cluster
-    // to ensure the that user removal is also propagated to the target
-    // instance to remove (if ONLINE), but before metadata removal, since
-    // we need account info stored there.
-    m_cluster->drop_replication_user_old(m_target_instance.get());
-  }
+  // Remove recovery user being used by the target instance from the
+  // primary. NOTE: This operation MUST be performed before leave-cluster
+  // to ensure the that user removal is also propagated to the target
+  // instance to remove (if ONLINE), but before metadata removal, since
+  // we need account info stored there.
+  m_cluster->drop_replication_user(m_target_instance.get(), m_instance_address,
+                                   m_instance_uuid, m_instance_id);
 
   // JOB: Remove instance from the MD (metadata).
   // NOTE: This operation MUST be performed before leave-cluster to ensure
@@ -485,7 +527,8 @@ shcore::Value Remove_instance::execute() {
       } catch (const std::exception &err) {
         // Skip error if force=true, otherwise revert instance remove from MD
         // and issue error.
-        if (m_force.is_null() || *m_force == false) {
+        // If force is not used OR is set to false
+        if (!m_options.force.value_or(false)) {
           // REVERT JOB: Remove instance from the MD (metadata).
           undo_remove_instance_metadata(instance_def);
           // TODO(alfredo): all these checks for auto-rejoin should be done in
@@ -569,7 +612,7 @@ shcore::Value Remove_instance::execute() {
           shcore::str_format("Instance '%s' failed to leave the cluster: %s",
                              m_instance_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
-      if (m_force.is_null() || *m_force == false) {
+      if (!m_options.force.value_or(false)) {
         // REVERT JOB: Remove instance from the MD (metadata).
         // If the removal of the instance from the cluster failed
         // We must add it back to the MD if force is not used
@@ -603,7 +646,7 @@ shcore::Value Remove_instance::execute() {
                              "after removing '%s': %s",
                              m_instance_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
-      if (m_force.is_null() || *m_force == false) {
+      if (!m_options.force.value_or(false)) {
         // REVERT JOB: Remove instance from the MD (metadata).
         // If the removal of the instance from the cluster failed
         // We must add it back to the MD if force is not used

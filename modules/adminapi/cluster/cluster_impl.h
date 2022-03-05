@@ -107,8 +107,7 @@ class Cluster_impl : public Base_cluster_impl,
                        bool interactive, bool skip_precondition_check);
 
   void remove_instance(const Connection_options &instance_def,
-                       const mysqlshdk::null_bool &force,
-                       const bool interactive);
+                       const cluster::Remove_instance_options &options);
   shcore::Value describe();
   shcore::Value options(const bool all);
   shcore::Value status(int64_t extended);
@@ -187,9 +186,11 @@ class Cluster_impl : public Base_cluster_impl,
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   create_replication_user(mysqlshdk::mysql::IInstance *target);
 
-  void drop_replication_user_old(mysqlshdk::mysql::IInstance *target);
-  bool drop_replication_user(const std::string &server_uuid,
-                             const std::string &endpoint);
+  bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
+                             const std::string &endpoint = "",
+                             const std::string &server_uuid = "",
+                             const uint32_t server_id = 0);
+
   void drop_replication_users();
 
   bool contains_instance_with_address(const std::string &host_port) const;

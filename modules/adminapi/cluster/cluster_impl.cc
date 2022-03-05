@@ -1117,9 +1117,9 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
   ensure_metadata_has_server_id(target);
 }
 
-void Cluster_impl::remove_instance(const Connection_options &instance_def,
-                                   const mysqlshdk::null_bool &force,
-                                   const bool interactive) {
+void Cluster_impl::remove_instance(
+    const Connection_options &instance_def,
+    const cluster::Remove_instance_options &options) {
   check_preconditions("removeInstance");
 
   acquire_primary();
@@ -1127,8 +1127,7 @@ void Cluster_impl::remove_instance(const Connection_options &instance_def,
       shcore::on_leave_scope([this]() { release_primary(); });
 
   // Create the remove_instance command and execute it.
-  cluster::Remove_instance op_remove_instance(instance_def, interactive, force,
-                                              this);
+  cluster::Remove_instance op_remove_instance(instance_def, options, this);
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope(
       [&op_remove_instance]() { op_remove_instance.finish(); });
@@ -2360,21 +2359,128 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target) {
           host};
 }
 
-bool Cluster_impl::drop_replication_user(const std::string &server_uuid,
-                                         const std::string &endpoint) {
+bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
+                                         const std::string &endpoint,
+                                         const std::string &server_uuid,
+                                         const uint32_t server_id) {
+  // Either target is a valid pointer or endpoint & server_uuid are set
+  assert(target || (!endpoint.empty() && !server_uuid.empty()));
+
   auto console = current_console();
-
   auto primary = get_primary_master();
+  std::string recovery_user, recovery_user_host;
+  std::vector<std::string> recovery_user_hosts;
 
-  std::string recovery_user;
-  std::string recovery_user_host;
+  std::string target_endpoint = endpoint;
+  std::string target_server_uuid = server_uuid;
+  uint32_t target_server_id = server_id;
+  bool from_metadata = false;
 
-  std::tie(recovery_user, recovery_user_host) =
-      get_metadata_storage()->get_instance_repl_account(
-          server_uuid, Cluster_type::GROUP_REPLICATION);
-  if (recovery_user.empty()) return false;
+  // Get the endpoint, uuid and server_id if empty
+  if (target) {
+    if (target_endpoint.empty()) {
+      target_endpoint = target->get_canonical_address();
+    }
+    if (target_server_uuid.empty()) {
+      target_server_uuid = target->get_uuid();
+    }
+    if (target_server_id == 0) {
+      target_server_id = target->get_id();
+    }
+  }
 
-  /*
+  // Check if the recovery account created for the instance when it
+  // joined the cluster, is in use by any other member. If not, it is a leftover
+  // that must be dropped. This scenario happens when an instance is added to a
+  // cluster using clone as the recovery method but waitRecovery is zero or the
+  // user cancelled the monitoring of the recovery so the instance will use the
+  // seed's recovery account leaving its own account unused.
+  //
+  // TODO(anyone): BUG#30031815 requires that we skip if the primary instance is
+  // being removed. It causes a primary election and we cannot know which
+  // instance will be the primary to perform the cleanup
+  if (target_endpoint != primary->get_canonical_address()) {
+    // Generate the recovery account username that was created for the
+    // instance
+    std::string user = make_replication_user_name(
+        target_server_id, mysqlshdk::gr::k_group_recovery_user_prefix);
+
+    // Get the Cluster's allowedHost
+    std::string host = "%";
+
+    if (shcore::Value allowed_host;
+        get_metadata_storage()->query_cluster_attribute(
+            get_id(), k_cluster_attribute_replication_allowed_host,
+            &allowed_host) &&
+        allowed_host.type == shcore::String &&
+        !allowed_host.as_string().empty()) {
+      host = allowed_host.as_string();
+    }
+
+    // The account must not be in use by any other member of the cluster
+    if (get_metadata_storage()->count_recovery_account_uses(user) == 0) {
+      log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
+               user.c_str(), host.c_str(), target_endpoint.c_str());
+
+      try {
+        get_primary_master()->drop_user(user, host, true);
+      } catch (...) {
+        mysqlsh::current_console()->print_warning(shcore::str_format(
+            "Error dropping recovery account '%s'@'%s' for instance '%s': "
+            "%s",
+            user.c_str(), host.c_str(), target_endpoint.c_str(),
+            format_active_exception().c_str()));
+      }
+    } else {
+      log_info(
+          "Recovery account '%s'@'%s' for instance '%s' still in use in "
+          "the Cluster: Skipping its removal",
+          user.c_str(), host.c_str(), target_endpoint.c_str());
+    }
+  }
+
+  if (target) {
+    // Attempt to get the recovery account
+    try {
+      std::tie(recovery_user, recovery_user_hosts, from_metadata) =
+          get_replication_user(*target);
+    } catch (const std::exception &e) {
+      console->print_note(
+          "The recovery user name for instance '" + target->descr() +
+          "' does not match the expected format for users "
+          "created automatically by InnoDB Cluster. Skipping its removal.");
+    }
+
+    if (from_metadata) {
+      recovery_user_host = recovery_user_hosts.front();
+    }
+  } else {
+    // Get the user from the Metadata
+    std::tie(recovery_user, recovery_user_host) =
+        get_metadata_storage()->get_instance_repl_account(
+            target_server_uuid, Cluster_type::GROUP_REPLICATION);
+
+    if (recovery_user.empty()) {
+      log_warning("Could not obtain recovery account metadata for '%s'",
+                  target_endpoint.c_str());
+      return false;
+    } else {
+      from_metadata = true;
+    }
+  }
+
+  // Drop the recovery account
+  if (!from_metadata) {
+    log_info("Removing replication user '%s'", recovery_user.c_str());
+    try {
+      mysqlshdk::mysql::drop_all_accounts_for_user(*primary, recovery_user);
+    } catch (const std::exception &e) {
+      console->print_warning("Error dropping recovery accounts for user " +
+                             recovery_user + ": " + e.what());
+      return false;
+    }
+  } else {
+    /*
     Since clone copies all the data, including mysql.slave_master_info
     (where the CHANGE MASTER credentials are stored) an instance may be
     using the info stored in the donor's mysql.slave_master_info.
@@ -2392,86 +2498,12 @@ bool Cluster_impl::drop_replication_user(const std::string &server_uuid,
     As so were we must query the Metadata to check whether the
     recovery user of that instance is registered for more than one instance
     and if that's the case then it won't be dropped.
-  */
-  if (get_metadata_storage()->is_recovery_account_unique(recovery_user)) {
-    log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
-             recovery_user.c_str(), recovery_user_host.c_str(),
-             endpoint.c_str());
-
-    try {
-      primary->drop_user(recovery_user, recovery_user_host, true);
-    } catch (...) {
-      console->print_warning(shcore::str_format(
-          "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
-          recovery_user.c_str(), recovery_user_host.c_str(), endpoint.c_str(),
-          format_active_exception().c_str()));
-    }
-
-    // Also update metadata
-    try {
-      get_metadata_storage()->update_instance_repl_account(
-          server_uuid, Cluster_type::GROUP_REPLICATION, "", "");
-    } catch (const std::exception &e) {
-      log_warning("Could not update recovery account metadata for '%s': %s",
-                  endpoint.c_str(), e.what());
-    }
-  }
-  return true;
-}
-
-void Cluster_impl::drop_replication_user_old(
-    mysqlshdk::mysql::IInstance *target) {
-  assert(target);
-  auto console = current_console();
-
-  auto primary = get_primary_master();
-
-  std::string recovery_user;
-  std::vector<std::string> recovery_user_hosts;
-  bool from_metadata = false;
-  try {
-    std::tie(recovery_user, recovery_user_hosts, from_metadata) =
-        get_replication_user(*target);
-  } catch (const std::exception &e) {
-    console->print_note(
-        "The recovery user name for instance '" + target->descr() +
-        "' does not match the expected format for users "
-        "created automatically by InnoDB Cluster. Skipping its removal.");
-  }
-  if (!from_metadata) {
-    log_info("Removing replication user '%s'", recovery_user.c_str());
-    try {
-      mysqlshdk::mysql::drop_all_accounts_for_user(*primary, recovery_user);
-    } catch (const std::exception &e) {
-      console->print_warning("Error dropping recovery accounts for user " +
-                             recovery_user + ": " + e.what());
-    }
-  } else {
-    std::string recovery_user_host = recovery_user_hosts.front();
-
-    /*
-      Since clone copies all the data, including mysql.slave_master_info
-      (where the CHANGE MASTER credentials are stored) an instance may be
-      using the info stored in the donor's mysql.slave_master_info.
-
-      To avoid such situation, we re-issue the CHANGE MASTER query after
-      clone to ensure the right account is used. However, if the monitoring
-      process is interrupted or waitRecovery = 0, that won't be done.
-
-      The approach to tackle this issue is to store the donor recovery account
-      in the target instance MD.instances table before doing the new CHANGE
-      and only update it to the right account after a successful CHANGE
-      MASTER. With this approach we can ensure that the account is not removed
-      if it is being used.
-
-      As so were we must query the Metadata to check whether the
-      recovery user of that instance is registered for more than one instance
-      and if that's the case then it won't be dropped.
     */
-    if (get_metadata_storage()->is_recovery_account_unique(recovery_user)) {
+    if (get_metadata_storage()->count_recovery_account_uses(recovery_user) ==
+        1) {
       log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
                recovery_user.c_str(), recovery_user_host.c_str(),
-               target->descr().c_str());
+               target_endpoint.c_str());
 
       try {
         primary->drop_user(recovery_user, recovery_user_host, true);
@@ -2479,19 +2511,21 @@ void Cluster_impl::drop_replication_user_old(
         console->print_warning(shcore::str_format(
             "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
             recovery_user.c_str(), recovery_user_host.c_str(),
-            target->descr().c_str(), format_active_exception().c_str()));
+            target_endpoint.c_str(), format_active_exception().c_str()));
       }
 
       // Also update metadata
       try {
         get_metadata_storage()->update_instance_repl_account(
-            target->get_uuid(), Cluster_type::GROUP_REPLICATION, "", "");
+            target_server_uuid, Cluster_type::GROUP_REPLICATION, "", "");
       } catch (const std::exception &e) {
         log_warning("Could not update recovery account metadata for '%s': %s",
-                    target->descr().c_str(), e.what());
+                    target_endpoint.c_str(), e.what());
       }
     }
   }
+
+  return true;
 }
 
 void Cluster_impl::drop_replication_users() {
@@ -2501,7 +2535,7 @@ void Cluster_impl::drop_replication_users() {
       [this](const std::shared_ptr<Instance> &instance,
              const Instance_md_and_gr_member &info) {
         try {
-          drop_replication_user_old(instance.get());
+          drop_replication_user(instance.get());
         } catch (...) {
           current_console()->print_warning("Could not drop internal user for " +
                                            info.first.endpoint + ": " +
@@ -2513,7 +2547,8 @@ void Cluster_impl::drop_replication_users() {
              const Instance_md_and_gr_member &info) {
         // drop user based on MD lookup (will not work if the instance is still
         // using legacy account management)
-        if (!drop_replication_user(info.first.uuid, info.first.endpoint)) {
+        if (!drop_replication_user(nullptr, info.first.endpoint,
+                                   info.first.uuid, info.first.server_id)) {
           current_console()->print_warning("Could not drop internal user for " +
                                            info.first.endpoint + ": " +
                                            connect_error.format());
