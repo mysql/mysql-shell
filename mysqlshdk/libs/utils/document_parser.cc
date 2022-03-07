@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,8 +35,10 @@
 #endif
 
 #include <deque>
+#include <iterator>
 #include <mutex>
 #include <string>
+#include <string_view>
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -231,24 +233,68 @@ void Json_document_parser::clear_document() {
 }
 
 Bson_type Json_document_parser::get_bson_type() {
-  static std::map<std::string, Bson_type> types = {
-      {"oid", Bson_type::OBJECT_ID},
-      {"date", Bson_type::DATE},
-      {"timestamp", Bson_type::TIMESTAMP},
-      {"numberDecimal", Bson_type::DECIMAL},
-      {"numberInt", Bson_type::INTEGER},
-      {"numberLong", Bson_type::LONG},
-      {"regex", Bson_type::REGEX},
-      {"binary", Bson_type::BINARY}};
+  using namespace std::literals;
+  const char *first = &(*m_document)[m_last_attribute_start];
+  const char *last = &(*m_document)[m_last_attribute_end];
 
-  try {
-    std::string field =
-        m_document->substr(m_last_attribute_start + 1,
-                           m_last_attribute_end - m_last_attribute_start - 1);
-    return types.at(field);
-  } catch (const std::out_of_range &exception) {
+  if (first == last || *first != '$') {
     return Bson_type::NONE;
   }
+
+  ++first;
+
+  size_t attr_size = std::distance(first, last);
+  std::string_view attr_view(first, attr_size);
+
+  switch (attr_size) {
+    case 3:
+      // oid
+      if ("oid"sv == attr_view) {
+        return Bson_type::OBJECT_ID;
+      }
+      break;
+    case 4:
+      // date
+      if ("date"sv == attr_view) {
+        return Bson_type::DATE;
+      }
+      break;
+    case 5:
+      // regex
+      if ("regex"sv == attr_view) {
+        return Bson_type::REGEX;
+      }
+      break;
+    case 6:
+      // binary
+      if ("binary"sv == attr_view) {
+        return Bson_type::BINARY;
+      }
+      break;
+    case 9:
+      // numberInt
+      // timestamp
+      if ("numberInt"sv == attr_view) {
+        return Bson_type::INTEGER;
+      }
+      if ("timestamp"sv == attr_view) {
+        return Bson_type::TIMESTAMP;
+      }
+      break;
+    case 10:
+      // numberLong
+      if ("numberLong"sv == attr_view) {
+        return Bson_type::LONG;
+      }
+      break;
+    case 13:
+      // numberDecimal
+      if ("numberDecimal"sv == attr_view) {
+        return Bson_type::DECIMAL;
+      }
+      break;
+  }
+  return Bson_type::NONE;
 }
 
 std::string Json_document_parser::parse() {
@@ -330,9 +376,9 @@ void Json_document_parser::parse(std::string *document) {
     // Only comma or closing is expected
     if (m_source->eof()) throw_premature_end();
 
-    if (m_source->peek() == (m_as_array ? ']' : '}'))
+    if (m_source->peek() == (m_as_array ? ']' : '}')) {
       complete = true;
-    else if (m_source->peek() != ',') {
+    } else if (m_source->peek() != ',') {
       std::string type = m_as_array ? "value" : "field";
       throw invalid_json(
           "Unexpected character, expected " + type + " separator ','",
@@ -793,13 +839,6 @@ void Json_document_parser::parse_bson_binary() {
                  {'X', "", nullptr, nullptr, 2},
                  {'}'}},
                 "processing extended JSON for $binary");
-}
-
-void Json_document_parser::get_char(std::string *target) {
-  if (target)
-    (*target) += m_source->get();
-  else
-    m_source->get();
 }
 
 /**

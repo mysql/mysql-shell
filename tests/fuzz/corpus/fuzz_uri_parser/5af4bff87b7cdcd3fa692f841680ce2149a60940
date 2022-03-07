@@ -1,0 +1,1 @@
+mysqlx://user:password@(\\.\d:/path/to/socket)
