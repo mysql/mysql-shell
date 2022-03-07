@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,8 @@
 
 namespace mysqlsh {
 namespace dba {
+
+constexpr inline int k_router_version_update_timeout = 4;
 
 class Upgrade_metadata : public Command_interface {
  public:

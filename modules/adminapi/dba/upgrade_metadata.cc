@@ -152,34 +152,51 @@ void Upgrade_metadata::prepare() {
 }
 
 shcore::Array_t Upgrade_metadata::get_outdated_routers() {
-  auto routers_dict =
-      mysqlsh::dba::router_list(m_metadata.get(), "", true).as_map();
-
+  // We pool each 2 seconds
+  int timeout_sec = k_router_version_update_timeout / 2;
   shcore::Array_t routers;
 
-  if (!routers_dict->empty()) {
-    routers = shcore::make_array();
+  // When an outdated Router is upgraded and the Metadata schema upgrade process
+  // starts, the first process done is to upgrade the router accounts and if
+  // router is not restarted it won't update the version number immediately but
+  // only after the first TTL is reached and the Metadata cache is reloaded. For
+  // that reason, we wait k_router_version_update_timeout (4 seconds) before
+  // returning to the user the results. Considering that Router's default TTL is
+  // 0.5 seconds, this should overcome the race-condition in most cases
+  while (timeout_sec-- >= 0) {
+    auto routers_dict =
+        mysqlsh::dba::router_list(m_metadata.get(), "", true).as_map();
 
-    auto columns = shcore::make_array();
-    columns->emplace_back("Instance");
-    columns->emplace_back("Version");
-    columns->emplace_back("Last Check-in");
-    columns->emplace_back("R/O Port");
-    columns->emplace_back("R/W Port");
+    if (routers_dict->empty()) {
+      // No outdated routers
+      return {};
+    } else {
+      routers = shcore::make_array();
 
-    routers->emplace_back(std::move(columns));
+      auto columns = shcore::make_array();
+      columns->emplace_back("Instance");
+      columns->emplace_back("Version");
+      columns->emplace_back("Last Check-in");
+      columns->emplace_back("R/O Port");
+      columns->emplace_back("R/W Port");
 
-    for (const auto &router_md : *routers_dict) {
-      auto router = shcore::make_array();
-      router->emplace_back(router_md.first);
-      auto router_data = router_md.second.as_map();
-      router->push_back((*router_data)["version"]);
-      router->push_back((*router_data)["lastCheckin"]);
-      router->push_back((*router_data)["roPort"]);
-      router->push_back((*router_data)["rwPort"]);
+      routers->emplace_back(std::move(columns));
 
-      routers->emplace_back(std::move(router));
+      for (const auto &router_md : *routers_dict) {
+        auto router = shcore::make_array();
+        router->emplace_back(router_md.first);
+        auto router_data = router_md.second.as_map();
+        router->push_back((*router_data)["version"]);
+        router->push_back((*router_data)["lastCheckin"]);
+        router->push_back((*router_data)["roPort"]);
+        router->push_back((*router_data)["rwPort"]);
+
+        routers->emplace_back(std::move(router));
+      }
     }
+
+    // Wait 2 seconds before polling again
+    shcore::sleep_ms(2000);
   }
 
   return routers;
@@ -237,6 +254,13 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
               (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s",
               (count == 1) ? "it" : "them",
               (count == 1) ? "it is" : "they are"));
+
+          console->print_note(
+              "If Router's Metadata Cache TTL is high Router's own update "
+              "in the Metadata will take longer. Re-check for outdated "
+              "Routers if that's the case or alternatively restart the "
+              "Router.");
+          console->print_info();
 
           std::vector<std::string> options = {
               "Re-check for outdated Routers and continue with the metadata "
