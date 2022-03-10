@@ -1883,7 +1883,12 @@
                     "variable": "group_replication_start_on_boot"
                 },
                 {
+?{VER(>=5.7.38)}
+                    "value": "150000000",
+?{}
+?{VER(<5.7.38)}
                     "value": "0",
+?{}
                     "variable": "group_replication_transaction_size_limit"
                 },
                 {
@@ -2113,7 +2118,12 @@
                     "variable": "group_replication_start_on_boot"
                 },
                 {
+?{VER(>=5.7.38)}
+                    "value": "150000000",
+?{}
+?{VER(<5.7.38)}
                     "value": "0",
+?{}
                     "variable": "group_replication_transaction_size_limit"
                 },
                 {
@@ -2343,7 +2353,12 @@
                     "variable": "group_replication_start_on_boot"
                 },
                 {
+?{VER(>=5.7.38)}
+                    "value": "150000000",
+?{}
+?{VER(<5.7.38)}
                     "value": "0",
+?{}
                     "variable": "group_replication_transaction_size_limit"
                 },
                 {
