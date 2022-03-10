@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,7 +127,8 @@ shcore::Dictionary_t channel_status(
     std::string actual_source = mysqlshdk::utils::make_host_and_port(
         channel_info->host.c_str(), channel_info->port);
 
-    if (!expected_source.empty() && actual_source != expected_source)
+    if (!expected_source.empty() &&
+        !mysqlshdk::utils::are_endpoints_equal(actual_source, expected_source))
       show_expected_master = true;
 
     if (show_expected_master || show_details || show_source) {

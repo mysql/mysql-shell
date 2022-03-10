@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,23 +34,23 @@
 #pragma comment(lib, "IPHLPAPI.lib")
 #else
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
 #endif
 #include <errno.h>
 #include <algorithm>
-#include <cstring>
-#include <memory>
-#include <vector>
 #include <bitset>
+#include <cstring>
 #include <iomanip>
-#include <tuple>
+#include <memory>
 #include <regex>
+#include <tuple>
+#include <vector>
 
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -379,13 +379,13 @@ bool Net::is_port_listening(const std::string &address, int port) {
   return get()->is_port_listening_impl(address, port);
 }
 
-std::tuple<std::string, mysqlshdk::utils::nullable<int>> Net::strip_cidr(
+std::tuple<std::string, std::optional<int>> Net::strip_cidr(
     const std::string &address) {
   // Strip the CIDR value, if specified
   const size_t pos = address.find("/");
   if (pos != std::string::npos) {
     const std::string cidr_str = address.substr(pos + 1);
-    mysqlshdk::utils::nullable<int> cidr;
+    std::optional<int> cidr;
     try {
       cidr = std::stoi(cidr_str);
     } catch (const std::invalid_argument &e) {
@@ -395,11 +395,9 @@ std::tuple<std::string, mysqlshdk::utils::nullable<int>> Net::strip_cidr(
       throw std::out_of_range("Converted CIDR value: '" + cidr_str +
                               "' out of range: " + e.what());
     }
-    return std::tuple<std::string, mysqlshdk::utils::nullable<int>>{
-        address.substr(0, pos), cidr};
+    return {address.substr(0, pos), cidr};
   }
-  return std::tuple<std::string, mysqlshdk::utils::nullable<int>>{
-      address, mysqlshdk::utils::nullable<int>{}};
+  return {address, std::nullopt};
 }
 
 std::vector<std::string> Net::get_local_addresses() {
@@ -692,10 +690,16 @@ std::pair<std::string, uint16_t> split_host_and_port(const std::string &s) {
 }
 
 std::string make_host_and_port(const std::string &host, uint16_t port) {
+  std::string address;
+  address.reserve(host.size() + 10);
+
   if (mysqlshdk::utils::Net::is_ipv6(host))
-    return "[" + host + "]:" + std::to_string(port);
+    address.append("[").append(host).append("]");
   else
-    return host + ":" + std::to_string(port);
+    address.append(host);
+
+  address.append(":").append(std::to_string(port));
+  return address;
 }
 
 uint64_t host_to_network(uint64_t v) {
@@ -722,6 +726,18 @@ uint64_t network_to_host(uint64_t v) {
     return v;
   }
 #endif
+}
+
+bool are_endpoints_equal(std::string_view endpointA,
+                         std::string_view endpointB) noexcept {
+  // quick optimization
+  if (endpointA.empty() && endpointB.empty()) return true;
+  if (endpointA.size() != endpointB.size()) return false;
+
+  return std::equal(endpointA.begin(), endpointA.end(), endpointB.begin(),
+                    [](auto charA, auto charB) {
+                      return (std::tolower(charA) == std::tolower(charB));
+                    });
 }
 
 }  // namespace utils

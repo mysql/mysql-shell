@@ -70,6 +70,7 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "scripting/types.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
@@ -315,9 +316,10 @@ void Cluster_impl::execute_in_members(
     std::string instance_address = instance_def.first.endpoint;
 
     // if instance is on the list of instances to be ignored, skip it
-    if (std::find(ignore_instances_vector.begin(),
-                  ignore_instances_vector.end(),
-                  instance_address) != ignore_instances_vector.end()) {
+    if (std::find_if(ignore_instances_vector.begin(),
+                     ignore_instances_vector.end(),
+                     mysqlshdk::utils::Endpoint_predicate{instance_address}) !=
+        ignore_instances_vector.end()) {
       continue;
     }
     // if state list is given but it doesn't match, skip too
@@ -728,8 +730,10 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
 
   for (const auto &instance_def : instance_defs) {
     // If instance is on the list of instances to be ignored, skip it.
-    if (std::find(ignored_instances.begin(), ignored_instances.end(),
-                  instance_def.first.endpoint) != ignored_instances.end()) {
+    if (std::find_if(ignored_instances.begin(), ignored_instances.end(),
+                     mysqlshdk::utils::Endpoint_predicate{
+                         instance_def.first.endpoint}) !=
+        ignored_instances.end()) {
       continue;
     }
 
@@ -1918,14 +1922,16 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   std::vector<Instance_metadata> online_instances = get_active_instances();
 
-  std::vector<std::string> online_instances_array;
-  for (const auto &instance : online_instances) {
-    online_instances_array.push_back(instance.endpoint);
-  }
-
-  if (online_instances_array.empty()) {
+  if (online_instances.empty()) {
     throw shcore::Exception::logic_error(
         "No online instances are visible from the given one.");
+  }
+
+  std::vector<std::string> online_instances_array;
+  online_instances_array.reserve(online_instances.size());
+
+  for (const auto &instance : online_instances) {
+    online_instances_array.push_back(instance.endpoint);
   }
 
   auto group_peers_print = shcore::str_join(online_instances_array, ",");
@@ -2504,7 +2510,8 @@ bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
   // TODO(anyone): BUG#30031815 requires that we skip if the primary instance is
   // being removed. It causes a primary election and we cannot know which
   // instance will be the primary to perform the cleanup
-  if (target_endpoint != primary->get_canonical_address()) {
+  if (!mysqlshdk::utils::are_endpoints_equal(
+          target_endpoint, primary->get_canonical_address())) {
     // Generate the recovery account username that was created for the
     // instance
     std::string user = make_replication_user_name(
@@ -2719,8 +2726,9 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
       // Shouldn't happen, because validation for PRIMARY is done first
       throw std::logic_error("No PRIMARY member found for cluster " +
                              get_name());
-    } else if (primary_url !=
-               m_cluster_server->get_connection_options().uri_endpoint()) {
+    } else if (!mysqlshdk::utils::are_endpoints_equal(
+                   primary_url,
+                   m_cluster_server->get_connection_options().uri_endpoint())) {
       mysqlshdk::db::Connection_options copts(primary_url);
       log_info("Connecting to %s...", primary_url.c_str());
       copts.set_login_options_from(m_cluster_server->get_connection_options());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,12 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_UTILS_NET_H_
 #define MYSQLSHDK_LIBS_UTILS_UTILS_NET_H_
 
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
-
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -163,7 +163,7 @@ class Net {
    * @throws invalid_argument if the address cannot be parsed
    * @throws out_of_range if the converted integer value of cidr is out of range
    */
-  static std::tuple<std::string, mysqlshdk::utils::nullable<int>> strip_cidr(
+  static std::tuple<std::string, std::optional<int>> strip_cidr(
       const std::string &address);
 
  protected:
@@ -240,6 +240,44 @@ uint64_t host_to_network(uint64_t v);
  * Converts the given value from network byte order to host byte order.
  */
 uint64_t network_to_host(uint64_t v);
+
+/**
+ * @brief Compares two endpoints
+ *
+ * Hostname comparison should be case insensitive (RFC 1034), so one cannot
+ * simply do a string compare. This methods properly compares two endpoints /
+ * addresses / hosts.
+ *
+ */
+bool are_endpoints_equal(std::string_view endpointA,
+                         std::string_view endpointB) noexcept;
+
+/**
+ * Predicate to use when comparing two endpoints.
+ *
+ * This is a functor that simply applies are_endpoints_equal(...).
+ */
+struct Endpoint_predicate final {
+  std::string_view lhs;
+  constexpr Endpoint_predicate(std::string_view endpoint) noexcept
+      : lhs{endpoint} {}
+
+  bool operator()(std::string_view rhs) const noexcept {
+    return are_endpoints_equal(lhs, rhs);
+  }
+};
+
+/**
+ * Comparer to use when comparing two endpoints.
+ *
+ * This is a functor that simply applies are_endpoints_equal(...).
+ */
+struct Endpoint_comparer final {
+  bool operator()(std::string_view endpointA,
+                  std::string_view endpointB) const noexcept {
+    return are_endpoints_equal(endpointA, endpointB);
+  }
+};
 
 }  // namespace utils
 }  // namespace mysqlshdk

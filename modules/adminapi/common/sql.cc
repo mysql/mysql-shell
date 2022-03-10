@@ -307,7 +307,7 @@ Instance_metadata query_instance_info(
   Instance_metadata instance_def;
 
   instance_def.address = instance.get_canonical_address();
-  instance_def.endpoint = instance.get_canonical_address();
+  instance_def.endpoint = instance_def.address;
   if (xport != -1)
     instance_def.xendpoint = mysqlshdk::utils::make_host_and_port(
         instance.get_canonical_hostname(), xport);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -370,63 +371,66 @@ shcore::Value Dissolve::execute() {
     auto &instance = *m_available_instances[i];
 
     // Remove all instances except the primary.
-    if (instance.get_uuid() != m_primary_uuid) {
-      std::string instance_address = instance.get_connection_options().as_uri(
-          mysqlshdk::db::uri::formats::only_transport());
 
-      // JOB: Sync transactions with the cluster.
-      try {
-        // Catch-up with all cluster transaction to ensure cluster metadata is
-        // removed on the instance.
-        console->print_info("* Waiting for instance '" + instance.descr() +
-                            "' to synchronize with the primary...");
-
-        m_cluster->sync_transactions(
-            instance, mysqlshdk::gr::k_gr_applier_channel,
-            current_shell_options()->get().dba_gtid_wait_timeout);
-
-        // Remove instance from list of instance with sync error in case it
-        // was previously added during initial verification, since it
-        // succeeded now.
-        m_sync_error_instances.erase(
-            std::remove(m_sync_error_instances.begin(),
-                        m_sync_error_instances.end(), instance_address),
-            m_sync_error_instances.end());
-      } catch (const std::exception &err) {
-        // Skip error if force=true otherwise issue an error.
-        if (m_force.is_null() || *m_force == false) {
-          console->print_error(
-              "The instance '" + instance_address +
-              "' was unable to catch up with cluster transactions. There might "
-              "be too many transactions to apply or some replication error.");
-          throw;
-        } else {
-          // Only add to list of instance with sync error if not already there.
-          if (std::find(m_sync_error_instances.begin(),
-                        m_sync_error_instances.end(),
-                        instance_address) == m_sync_error_instances.end()) {
-            m_sync_error_instances.push_back(instance_address);
-          }
-
-          log_error(
-              "Instance '%s' was unable to catch up with cluster transactions: "
-              "%s",
-              instance_address.c_str(), err.what());
-          console->print_warning(
-              "An error occurred when trying to catch up with cluster "
-              "transactions and instance '" +
-              instance_address +
-              "' might have been left in an inconsistent state that will lead "
-              "to errors if it is reused.");
-          console->print_info();
-        }
-      }
-
-      // JOB: Remove the instance from the cluster (Stop GR)
-      remove_instance(instance_address, i);
-    } else {
+    if (instance.get_uuid() == m_primary_uuid) {
       primary_index = i;
+      continue;
     }
+
+    std::string instance_address = instance.get_connection_options().as_uri(
+        mysqlshdk::db::uri::formats::only_transport());
+
+    // JOB: Sync transactions with the cluster.
+    try {
+      // Catch-up with all cluster transaction to ensure cluster metadata is
+      // removed on the instance.
+      console->print_info("* Waiting for instance '" + instance.descr() +
+                          "' to synchronize with the primary...");
+
+      m_cluster->sync_transactions(
+          instance, mysqlshdk::gr::k_gr_applier_channel,
+          current_shell_options()->get().dba_gtid_wait_timeout);
+
+      // Remove instance from list of instance with sync error in case it
+      // was previously added during initial verification, since it
+      // succeeded now.
+      m_sync_error_instances.erase(
+          std::remove_if(
+              m_sync_error_instances.begin(), m_sync_error_instances.end(),
+              mysqlshdk::utils::Endpoint_predicate{instance_address}),
+          m_sync_error_instances.end());
+    } catch (const std::exception &err) {
+      // Skip error if force=true otherwise issue an error.
+      if (m_force.is_null() || *m_force == false) {
+        console->print_error(
+            "The instance '" + instance_address +
+            "' was unable to catch up with cluster transactions. There might "
+            "be too many transactions to apply or some replication error.");
+        throw;
+      } else {
+        // Only add to list of instance with sync error if not already there.
+        if (std::find(m_sync_error_instances.begin(),
+                      m_sync_error_instances.end(),
+                      instance_address) == m_sync_error_instances.end()) {
+          m_sync_error_instances.push_back(instance_address);
+        }
+
+        log_error(
+            "Instance '%s' was unable to catch up with cluster transactions: "
+            "%s",
+            instance_address.c_str(), err.what());
+        console->print_warning(
+            "An error occurred when trying to catch up with cluster "
+            "transactions and instance '" +
+            instance_address +
+            "' might have been left in an inconsistent state that will lead "
+            "to errors if it is reused.");
+        console->print_info();
+      }
+    }
+
+    // JOB: Remove the instance from the cluster (Stop GR)
+    remove_instance(instance_address, i);
   }
 
   // Remove primary instance at the end (if there is one).

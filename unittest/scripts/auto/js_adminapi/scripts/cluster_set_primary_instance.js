@@ -111,6 +111,14 @@ cluster.setPrimaryInstance(hostname_ip+":"+__mysql_sandbox_port3);
 //@<> setPrimary using hostname {VER(>=8.0.13)}
 cluster.setPrimaryInstance(hostname+":"+__mysql_sandbox_port2);
 
+//@<> setPrimary using hostname, ignore case Bug #33893435 {VER(>=8.0.13)}
+EXPECT_NO_THROWS(function() { cluster.setPrimaryInstance(hostname.toLowerCase() + ":" + __mysql_sandbox_port3); });
+EXPECT_OUTPUT_CONTAINS("The instance '" + hostname.toLowerCase() + ":" + __mysql_sandbox_port3 + "' was successfully elected as primary.");
+
+testutil.wipeAllOutput();
+EXPECT_NO_THROWS(function() { cluster.setPrimaryInstance(hostname.toUpperCase() + ":" + __mysql_sandbox_port2); });
+EXPECT_OUTPUT_CONTAINS("The instance '" + hostname.toUpperCase() + ":" + __mysql_sandbox_port2 + "' was successfully elected as primary.");
+
 //@<> Ensure the call does not fail because of a transaction timeout {VER(>=8.0.29)}
 shell.connect(__sandbox_uri2);
 

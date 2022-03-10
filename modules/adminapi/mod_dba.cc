@@ -785,8 +785,9 @@ void Dba::connect_to_target_group(
     if (primary_uri.empty()) {
       throw shcore::Exception::runtime_error(
           "Unable to find a primary member in the cluster");
-    } else if (primary_uri !=
-               target_member->get_connection_options().uri_endpoint()) {
+    } else if (!mysqlshdk::utils::are_endpoints_equal(
+                   primary_uri,
+                   target_member->get_connection_options().uri_endpoint())) {
       log_info("%s is not a primary, will try to find one and reconnect",
                target_member->get_connection_options().as_uri().c_str());
 
@@ -838,9 +839,9 @@ void Dba::connect_to_target_group(
   }
 
   // Check if we need to reset the MetadataStorage to use the Primary member
-  bool is_md_connected_to_primary =
-      out_metadata->get()->get_md_server()->get_connection_options().as_uri() ==
-      target_member->get_connection_options().as_uri();
+  bool is_md_connected_to_primary = mysqlshdk::utils::are_endpoints_equal(
+      out_metadata->get()->get_md_server()->get_connection_options().as_uri(),
+      target_member->get_connection_options().as_uri());
 
   if (connect_to_primary && !is_md_connected_to_primary) {
     *out_metadata = std::make_shared<MetadataStorage>(target_member);
@@ -2814,7 +2815,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   }
   for (const auto &value : options->remove_instances) {
     // Check if seed instance is present on the list
-    if (value == instance_session_address)
+    if (mysqlshdk::utils::are_endpoints_equal(value, instance_session_address))
       throw shcore::Exception::argument_error(
           "The current session instance cannot be used on the "
           "'removeInstances' list.");
@@ -3418,16 +3419,15 @@ void Dba::validate_instances_gtid_reboot_cluster(
   std::vector<Instance_metadata> instances = cluster->impl()->get_instances();
 
   for (const auto &inst : instances) {
-    bool skip_instance = false;
-
     // Check if there are instances to skip
-    if (!instances_to_skip.empty()) {
-      for (const auto &instance : instances_to_skip) {
-        if (instance == inst.address) skip_instance = true;
-      }
-    }
+    auto skip_instance =
+        std::find_if(instances_to_skip.begin(), instances_to_skip.end(),
+                     mysqlshdk::utils::Endpoint_predicate{inst.address}) !=
+        instances_to_skip.end();
 
-    if ((inst.endpoint == instance_gtids[0].server) || skip_instance) continue;
+    if (skip_instance || mysqlshdk::utils::are_endpoints_equal(
+                             inst.endpoint, instance_gtids[0].server))
+      continue;
 
     auto connection_options =
         shcore::get_connection_options(inst.endpoint, false);

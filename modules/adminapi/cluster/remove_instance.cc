@@ -58,7 +58,7 @@ Remove_instance::Remove_instance(
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
 }
 
-Remove_instance::~Remove_instance() {}
+Remove_instance::~Remove_instance() = default;
 
 void Remove_instance::validate_metadata_for_address(
     const std::string &address, Instance_metadata *out_metadata) {

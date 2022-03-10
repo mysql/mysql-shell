@@ -43,6 +43,7 @@
 #include "mysql/clone.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "shellcore/console.h"
 
 namespace mysqlsh {
@@ -269,7 +270,8 @@ void Create_replica_cluster::handle_clone(
 
     std::string donor_address = donor_instance->get_canonical_address();
 
-    if (primary_address != donor_address) {
+    if (!mysqlshdk::utils::are_endpoints_equal(primary_address,
+                                               donor_address)) {
       console->print_info(
           "* Waiting for the donor to synchronize with PRIMARY...");
       if (!dry_run) {
