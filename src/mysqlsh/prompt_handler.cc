@@ -99,7 +99,7 @@ std::string json_prompt(const std::string &prompt,
 
   dumper.end_object();
 
-  return dumper.str();
+  return dumper.str() + "\n";
 }
 
 }  // namespace
