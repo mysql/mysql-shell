@@ -163,14 +163,24 @@ EXPECT_EQ(1, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0]);
 //@<> it's not possible to adopt from GR when cluster was dissolved
 EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: true}); }, "Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt");
 
-// Close session
-session.close();
-
-//@<> Create cluster and drop metadata, then check behaviour of omitted adoptFromGR option vs explicit disabled (Bug #30548447)
+//@<> Create cluster adopting from GR - answer 'no' / 'yes' to prompt
+shell.options["useWizards"] = true;
 
 shell.connect(__sandbox_uri1);
 dba.createCluster('testCluster');
-dba.dropMetadataSchema({force: true});
+dba.dropMetadataSchema({force: true, clearReadOnly: true});
+
+testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB cluster based on this replication group? [Y/n]:", "n");
+EXPECT_THROWS(function(){ dba.createCluster('testCluster'); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
+
+testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB cluster based on this replication group? [Y/n]:", "y");
+EXPECT_NO_THROWS(function(){ dba.createCluster('testCluster'); });
+
+shell.options["useWizards"] = false;
+
+//@<> Create cluster and drop metadata, then check behaviour of omitted adoptFromGR option vs explicit disabled (Bug #30548447)
+
+dba.dropMetadataSchema({force: true, clearReadOnly: true});
 
 testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB cluster based on this replication group? [Y/n]:", "n");
 EXPECT_THROWS(function(){ dba.createCluster('testCluster', {interactive: true}); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");

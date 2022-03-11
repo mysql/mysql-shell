@@ -86,8 +86,6 @@ void Create_cluster::validate_create_cluster_options() {
   // Get the instance GR state
   TargetType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
-  const auto adopt_from_gr = m_options.get_adopt_from_gr();
-
   if (instance_type == mysqlsh::dba::TargetType::GroupReplication) {
     if (!m_options.adopt_from_gr && m_options.interactive()) {
       if (console->confirm(
@@ -99,27 +97,28 @@ void Create_cluster::validate_create_cluster_options() {
       }
     }
 
-    if (!m_retrying && !adopt_from_gr)
+    if (!m_retrying && !m_options.get_adopt_from_gr())
       throw shcore::Exception(
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true",
           SHERR_DBA_BADARG_INSTANCE_ALREADY_IN_GR);
   }
 
-  if (adopt_from_gr &&
+  if (m_options.get_adopt_from_gr() &&
       m_options.gr_options.ssl_mode != Cluster_ssl_mode::NONE) {
     throw shcore::Exception::argument_error(
         "Cannot use memberSslMode option if adoptFromGR is set to true.");
   }
 
-  if (adopt_from_gr && m_options.multi_primary) {
+  if (m_options.get_adopt_from_gr() && m_options.multi_primary) {
     throw shcore::Exception::argument_error(
         "Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set "
         "to true. Using adoptFromGR mode will adopt the primary mode in use by "
         "the Cluster.");
   }
 
-  if (adopt_from_gr && instance_type != TargetType::GroupReplication) {
+  if (m_options.get_adopt_from_gr() &&
+      instance_type != TargetType::GroupReplication) {
     throw shcore::Exception::argument_error(
         "The adoptFromGR option is set to true, but there is no replication "
         "group to adopt");
@@ -216,12 +215,12 @@ void Create_cluster::resolve_ssl_mode() {
 }
 
 void Create_cluster::prepare() {
-  const auto adopt_from_gr = m_options.get_adopt_from_gr();
-
   auto console = mysqlsh::current_console();
   console->print_info(
       std::string{"A new InnoDB cluster will be created"} +
-      (adopt_from_gr ? " based on the existing replication group" : "") +
+      (m_options.get_adopt_from_gr()
+           ? " based on the existing replication group"
+           : "") +
       " on instance '" +
       m_target_instance->get_connection_options().uri_endpoint() + "'.\n");
 
@@ -265,7 +264,7 @@ void Create_cluster::prepare() {
   // group. We should not bypass GR's mechanism to avoid writes on the secondary
   // by disabling super_read_only. Apart from possible GTID inconsistencies, a
   // secondary will end up having super_read_only disabled.
-  if (adopt_from_gr) {
+  if (m_options.get_adopt_from_gr()) {
     m_target_instance = get_primary_member_from_group(m_target_instance);
   }
 
@@ -282,7 +281,7 @@ void Create_cluster::prepare() {
   }
 
   try {
-    if (!adopt_from_gr) {
+    if (!m_options.get_adopt_from_gr()) {
       // Check instance configuration and state, like dba.checkInstance
       // but skip if we're adopting, since in that case the target is obviously
       // already configured
@@ -346,7 +345,7 @@ void Create_cluster::prepare() {
     }
 
     // Determine the GR mode if the cluster is to be adopt from GR.
-    if (adopt_from_gr) {
+    if (m_options.get_adopt_from_gr()) {
       // Get the primary UUID value to determine GR mode:
       // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
       std::string gr_primary_uuid =
@@ -561,10 +560,8 @@ shcore::Value Create_cluster::execute() {
   console->print_info("Creating InnoDB cluster '" + m_cluster_name + "' on '" +
                       m_target_instance->descr() + "'...\n");
 
-  const auto adopt_from_gr = m_options.get_adopt_from_gr();
-
   //  Common informative logging
-  if (adopt_from_gr) {
+  if (m_options.get_adopt_from_gr()) {
     log_info(
         "Adopting cluster from existing Group Replication and using its "
         "settings.");
@@ -580,7 +577,7 @@ shcore::Value Create_cluster::execute() {
                                                     nullptr);
   }
 
-  if (*m_options.multi_primary && !adopt_from_gr) {
+  if (*m_options.multi_primary && !m_options.get_adopt_from_gr()) {
     console->print_info(
         "The MySQL InnoDB cluster is going to be setup in advanced "
         "Multi-Primary Mode. Consult its requirements and limitations in "
@@ -594,7 +591,7 @@ shcore::Value Create_cluster::execute() {
   try {
     console->print_info("Adding Seed Instance...");
 
-    if (!adopt_from_gr) {
+    if (!m_options.get_adopt_from_gr()) {
       if (m_retrying && !m_options.dry_run) {
         // If we're retrying, make sure GR is stopped
         console->print_note("Stopping GR started by a previous failed attempt");
@@ -610,7 +607,7 @@ shcore::Value Create_cluster::execute() {
       // instance If the instance already has master_user set to this value when
       // we enter createCluster(), it means a previous attempt failed.
       // Note: this shouldn't be set if we're adopting
-      assert(!adopt_from_gr);
+      assert(!m_options.get_adopt_from_gr());
       mysqlshdk::mysql::create_indicator_tag(
           *m_target_instance, metadata::kClusterSetupIndicatorTag);
 
@@ -676,7 +673,8 @@ shcore::Value Create_cluster::execute() {
     MetadataStorage::Transaction trx(metadata);
     undo_list.push_front([&trx]() { trx.rollback(); });
 
-    metadata->create_cluster_record(cluster_impl.get(), adopt_from_gr);
+    metadata->create_cluster_record(cluster_impl.get(),
+                                    m_options.get_adopt_from_gr());
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_replication_allowed_host,
@@ -706,7 +704,7 @@ shcore::Value Create_cluster::execute() {
     }
 
     // Insert instance into the metadata.
-    if (adopt_from_gr) {
+    if (m_options.get_adopt_from_gr()) {
       // Adoption from an existing GR group is performed after creating/updating
       // the metadata (since it is used internally by adopt_from_gr()).
       cluster_impl->adopt_from_gr();
@@ -797,13 +795,14 @@ shcore::Value Create_cluster::execute() {
                                        metadata::kClusterSetupIndicatorTag);
 
   std::string message =
-      adopt_from_gr ? "Cluster successfully created based on existing "
-                      "replication group."
-                    : "Cluster successfully created. Use "
-                      "Cluster.<<<addInstance>>>() to add MySQL instances.\n"
-                      "At least 3 instances are needed for the cluster to be "
-                      "able to withstand up to\n"
-                      "one server failure.";
+      m_options.get_adopt_from_gr()
+          ? "Cluster successfully created based on existing "
+            "replication group."
+          : "Cluster successfully created. Use "
+            "Cluster.<<<addInstance>>>() to add MySQL instances.\n"
+            "At least 3 instances are needed for the cluster to be "
+            "able to withstand up to\n"
+            "one server failure.";
   console->print_info(message);
   console->print_info();
 
