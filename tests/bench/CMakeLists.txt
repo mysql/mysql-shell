@@ -29,5 +29,5 @@ if (WITH_XRAY)
 endif()
 
 TARGET_INCLUDE_DIRECTORIES(bench_json_reader PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/mysqlshdk/include "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
-target_link_libraries(bench_json_reader mysqlshdk-static)
+target_link_libraries(bench_json_reader mysqlshdk-static api_modules)
 
