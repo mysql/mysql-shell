@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -82,7 +82,12 @@ function(add_shell_executable)
                 $<TARGET_FILE:${ARGV0}>)
     endif()
   elseif(NOT WIN32)
-  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR)
+  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR)
+    # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH
+    # entry instead of RPATH this results in loader loading system libraries (if they are available)
+    # instead of bundled ones, this has special impact when bundled libraries are linked using a bundled
+    # version of OpenSSL (which might be newer than the system one)
+    set_property(TARGET "${ARGV0}" PROPERTY LINK_OPTIONS "-Wl,--disable-new-dtags")
     set_property(TARGET "${ARGV0}" PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
     set_property(TARGET "${ARGV0}" PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
   endif()
