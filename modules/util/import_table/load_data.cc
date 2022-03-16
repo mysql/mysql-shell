@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -601,6 +601,16 @@ void Load_data_worker::execute(
             ? ""
             : "PARTITION (" + shcore::quote_identifier(m_opt.partition()) +
                   ") ";
+
+    try {
+      for (const auto &s : m_opt.session_init_sql()) {
+        log_info("Executing custom session init SQL: %s", s.c_str());
+        session->execute(s);
+      }
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::runtime_error(
+          "Error while executing sessionInitSql: " + e.format());
+    }
 
     std::string query_template = on_duplicate_rows + "INTO TABLE !.! " +
                                  partition + character_set +

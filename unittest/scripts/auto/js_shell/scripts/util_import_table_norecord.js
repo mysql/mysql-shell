@@ -49,6 +49,8 @@ session.runSql('USE ' + target_schema);
 session.runSql('DROP TABLE IF EXISTS `cities`');
 session.runSql("CREATE TABLE `cities` (`ID` int(11) NOT NULL AUTO_INCREMENT, `Name` char(64) NOT NULL DEFAULT '', `CountryCode` char(3) NOT NULL DEFAULT '', `District` char(64) NOT NULL DEFAULT '', `Info` json DEFAULT NULL, PRIMARY KEY (`ID`)) ENGINE=InnoDB AUTO_INCREMENT=4080 DEFAULT CHARSET=utf8mb4");
 
+// create a test table to check sessionInitSql
+session.runSql(`create table ${target_schema}.init_test (a int)`);
 
 //@<> Throw if MySQL Server config option local_infile is false
 session.runSql('SET GLOBAL local_infile = false');
@@ -79,9 +81,15 @@ session.runSql('TRUNCATE TABLE ' + target_schema + '.cities');
 //@<> TSF8_1: Using util.importTable, validate that a file that meets the default value for field
 /// and line terminators can be imported in parallel without specifying field and line terminators.
 /// LOAD DATA with default dialect
-util.importTable(__import_data_path + '/world_x_cities.dump', { schema: target_schema, table: 'cities' });
+
+session.runSql(`truncate ${target_schema}.init_test`);
+
+util.importTable(__import_data_path + '/world_x_cities.dump', { schema: target_schema, table: 'cities', sessionInitSql:["set @cid=connection_id()", `insert into ${target_schema}.init_test values (@cid)`] });
 EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0");
+
+//@<> ensure sessionInitSql was executed
+EXPECT_EQ(1, session.runSql(`select * from ${target_schema}.init_test`).fetchAll().length);
 
 //@<> Ignore on duplicate primary key
 util.importTable(__import_data_path + '/world_x_cities.dump', { schema: target_schema, table: 'cities' });

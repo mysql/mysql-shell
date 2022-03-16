@@ -713,6 +713,17 @@ EXPECT_OUTPUT_CONTAINS("Error opening connection to MySQL: MySQL Error 1115 (420
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
 
+//@<> sessionInitSql
+session.runSql(`create schema init_test`);
+session.runSql(`create table init_test.init_test (a int)`);
+
+util.loadDump(__tmp_dir+"/ldtest/dump", {sessionInitSql:["set @cid=connection_id()", `insert into init_test.init_test values (@cid)`] });
+
+// ensure sessionInitSql was executed (4 threads + 1 main thread)
+EXPECT_EQ(5, session.runSql(`select * from init_test.init_test`).fetchAll().length);
+
+wipe_instance(session);
+
 // Various special cases
 // ---------------------
 

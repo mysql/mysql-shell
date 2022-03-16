@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,6 +136,8 @@ const shcore::Option_pack_def<Import_table_option_pack>
           .optional("decodeColumns",
                     &Import_table_option_pack::set_decode_columns)
           .optional("characterSet", &Import_table_option_pack::m_character_set)
+          .optional("sessionInitSql",
+                    &Import_table_option_pack::m_session_init_sql)
           .include(&Import_table_option_pack::m_dialect)
           .include(&Import_table_option_pack::m_oci_options);
 

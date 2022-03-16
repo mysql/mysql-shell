@@ -811,6 +811,10 @@ OPTIONS
             indicated by the character_set_database system variable to
             interpret the information in the file. Default: not set.
 
+--sessionInitSql=<str list>
+            Execute the given list of SQL statements in each session about to
+            load data. Default: [].
+
 --dialect=<str>
             Setup fields and lines options that matches specific data file
             format. Can be used as base dialect and customized with
@@ -1043,6 +1047,10 @@ OPTIONS
             of the bytesPerChunk dump option is used, but only in case of the
             files with data size greater than 1.5 * bytesPerChunk. Default:
             taken from dump.
+
+--sessionInitSql=<str list>
+            Execute the given list of SQL statements in each session about to
+            load data. Default: [].
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given

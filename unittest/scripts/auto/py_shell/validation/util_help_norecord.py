@@ -1501,6 +1501,8 @@ DESCRIPTION
         "binary" specifies "no conversion". If not set, the server will use the
         character set indicated by the character_set_database system variable
         to interpret the information in the file.
+      - sessionInitSql: list of strings (default: []) - execute the given list
+        of SQL statements in each session about to load data.
 
       OCI Object Storage Options
 
@@ -1733,6 +1735,8 @@ DESCRIPTION
         being created. Once all uploaded tables are processed the command will
         either wait for more data, the dump is marked as completed or the given
         timeout (in seconds) passes. <= 0 disables waiting.
+      - sessionInitSql: list of strings (default: []) - execute the given list
+        of SQL statements in each session about to load data.
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where

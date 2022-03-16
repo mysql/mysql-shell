@@ -518,6 +518,26 @@ static void handle_redirect(
   }
 }
 
+static std::string version_string(const char *argv0, bool extra) {
+  std::string version_msg;
+  version_msg.resize(1024);
+
+  if (*MYSH_BUILD_ID && extra) {
+    snprintf(&version_msg[0], version_msg.size(), "%s   %s - build %s", argv0,
+             shcore::get_long_version(), MYSH_BUILD_ID);
+    version_msg.resize(strlen(&version_msg[0]));
+    if (*MYSH_COMMIT_ID) {
+      version_msg.append(" - commit_id ");
+      version_msg.append(MYSH_COMMIT_ID);
+    }
+  } else {
+    snprintf(&version_msg[0], version_msg.size(), "%s   %s", argv0,
+             shcore::get_long_version());
+    version_msg.resize(strlen(&version_msg[0]));
+  }
+  return version_msg;
+}
+
 bool stdin_is_tty = false;
 bool stdout_is_tty = false;
 
@@ -677,6 +697,8 @@ int main(int argc, char **argv) {
 
   mysqlsh::Scoped_logger scoped_logger(logger);
 
+  log_info("%s", version_string(argv[0], true).c_str());
+
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
 #ifdef HAVE_PYTHON
   shcore::Scoped_callback cleanup([&shell] {
@@ -718,23 +740,10 @@ int main(int argc, char **argv) {
     log_debug("Using color mode %i",
               static_cast<int>(mysqlshdk::textui::get_color_capability()));
 
-    std::string version_msg;
-    version_msg.resize(1024);
-
     if (shell_options->action_print_version()) {
-      if (*MYSH_BUILD_ID && shell_options->action_print_version_extra()) {
-        snprintf(&version_msg[0], version_msg.size(), "%s   %s - build %s",
-                 argv[0], shcore::get_long_version(), MYSH_BUILD_ID);
-        version_msg.resize(strlen(&version_msg[0]));
-        if (*MYSH_COMMIT_ID) {
-          version_msg.append(" - commit_id ");
-          version_msg.append(MYSH_COMMIT_ID);
-        }
-      } else {
-        snprintf(&version_msg[0], version_msg.size(), "%s   %s", argv[0],
-                 shcore::get_long_version());
-        version_msg.resize(strlen(&version_msg[0]));
-      }
+      std::string version_msg =
+          version_string(argv[0], shell_options->action_print_version_extra());
+
 #ifdef ENABLE_SESSION_RECORDING
       version_msg.append(" + session_recorder");
 #endif

@@ -1009,6 +1009,8 @@ Interpret the information in the input file using this character set
 encoding. characterSet set to "binary" specifies "no conversion". If not set,
 the server will use the character set indicated by the character_set_database
 system variable to interpret the information in the file.
+@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
+list of SQL statements in each session about to load data.
 
 ${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
 
@@ -1367,6 +1369,8 @@ being created. Once all uploaded tables are processed the command will either
 wait for more data, the dump is marked as completed or the given timeout (in
 seconds) passes.
 <= 0 disables waiting.
+@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
+list of SQL statements in each session about to load data.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 
 Connection options set in the global session, such as compression, ssl-mode, etc.
