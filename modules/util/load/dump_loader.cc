@@ -1058,6 +1058,16 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
              should_create_pks());
   }
 
+  try {
+    for (const auto &s : m_options.session_init_sql()) {
+      log_info("Executing custom session init SQL: %s", s.c_str());
+      session->execute(s);
+    }
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::runtime_error(
+        "Error while executing sessionInitSql: " + e.format());
+  }
+
   return std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -122,6 +122,10 @@ class Import_table_option_pack {
 
   void set_verbose(bool verbose) { m_verbose = verbose; }
 
+  const std::vector<std::string> &session_init_sql() const {
+    return m_session_init_sql;
+  }
+
  private:
   void on_start_unpack(const shcore::Dictionary_t &options);
   void unpack(const shcore::Dictionary_t &options);
@@ -153,6 +157,8 @@ class Import_table_option_pack {
       mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_OPTIONS>
       m_oci_options;
   bool m_verbose = true;
+
+  std::vector<std::string> m_session_init_sql;
 };
 
 class Import_table_options : public Import_table_option_pack {

@@ -190,6 +190,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                     &Load_dump_options::m_create_invisible_pks)
           .optional("maxBytesPerTransaction",
                     &Load_dump_options::set_max_bytes_per_transaction)
+          .optional("sessionInitSql", &Load_dump_options::m_session_init_sql)
           .include(&Load_dump_options::m_oci_option_pack)
           .on_done(&Load_dump_options::on_unpacked_options)
           .on_log(&Load_dump_options::on_log_options);

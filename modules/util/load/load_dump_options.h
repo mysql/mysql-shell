@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -196,6 +196,10 @@ class Load_dump_options {
 
   const std::string &server_uuid() const { return m_server_uuid; }
 
+  const std::vector<std::string> &session_init_sql() const {
+    return m_session_init_sql;
+  }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
   void set_str_vector_option(const std::string &option,
@@ -288,6 +292,8 @@ class Load_dump_options {
   mysqlshdk::utils::nullable<uint64_t> m_max_bytes_per_transaction;
 
   std::string m_server_uuid;
+
+  std::vector<std::string> m_session_init_sql;
 };
 
 }  // namespace mysqlsh
