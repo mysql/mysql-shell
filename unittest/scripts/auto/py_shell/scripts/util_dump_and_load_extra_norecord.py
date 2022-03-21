@@ -312,6 +312,11 @@ for t in range(500):
     sql += ")"
     session1.run_sql(sql)
 
+# BUG#33976259 - table with compound PK, all rows have the same value in the first column, chunker produces `BETWEEN X AND X` which triggers filesort
+session1.run_sql(f"create table {dbname}.bug_33976259 (a int, b int, c int, PRIMARY KEY (a, b, c))")
+session1.run_sql(f"insert into {dbname}.bug_33976259 values {','.join([f'(1, 1, {i})' for i in range(1000)])}")
+session1.run_sql(f"analyze table {dbname}.bug_33976259")
+
 if __version_num > 80000:
     for t in range(500):
         sql = f"ANALYZE TABLE {dbname}.table{t} UPDATE HISTOGRAM ON `column0`;"
