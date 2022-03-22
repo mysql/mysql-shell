@@ -356,3 +356,15 @@ IF(BUNDLED_SSH_DIR)
     INSTALL(FILES ${_SSH_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" COMPONENT main)
   ENDIF()
 ENDIF()
+
+# krb5 is an indirect dependency for libssh, platforms that bundle libssh should may optionally
+# require a custom built version of the krb5 library to be also bundled in the shell packages
+# to prevent the shell from having different openssl dependencies (system one/bundled one)
+IF(BUNDLED_KRB5_DIR)
+  FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/lib/*.so*")
+  IF(NOT _KRB5_LIBRARIES)
+    MESSAGE(FATAL_ERROR "Could not find the bundled krb5 libraries")
+  ENDIF()
+  INSTALL(FILES ${_KRB5_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" COMPONENT main)
+  LINK_DIRECTORIES(${BUNDLED_KRB5_DIR}/lib)
+ENDIF()
