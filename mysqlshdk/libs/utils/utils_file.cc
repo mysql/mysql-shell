@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -719,28 +719,20 @@ std::string get_last_error() {
 }
 
 bool load_text_file(const std::string &path, std::string &data) {
-  bool ret_val = false;
-
-  std::ifstream s(path.c_str());
-  if (!s.fail()) {
-    s.seekg(0, std::ios_base::end);
-    std::streamsize fsize = s.tellg();
-    s.seekg(0, std::ios_base::beg);
-    char *fdata = new char[fsize + 1];
-    s.read(fdata, fsize);
-
-    // Adds string terminator at the position next to the last
-    // read character
-    fdata[s.gcount()] = '\0';
-
-    data.assign(fdata);
-    delete[] fdata;
-    ret_val = true;
-
-    s.close();
+#ifdef _WIN32
+  std::ifstream s(utf8_to_wide(path));
+#else
+  std::ifstream s(path);
+#endif
+  if (s.fail()) {
+    return false;
   }
-
-  return ret_val;
+  s.seekg(0, std::ios_base::end);
+  std::streamsize fsize = s.tellg();
+  s.seekg(0, std::ios_base::beg);
+  data.resize(fsize);
+  s.read(data.data(), fsize);
+  return s.gcount() == fsize;
 }
 
 std::string SHCORE_PUBLIC get_text_file(const std::string &path) {
