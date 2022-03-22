@@ -1117,16 +1117,15 @@ void Command_line_shell::command_loop() {
         m_set_pending_command = true;
 
         char *tmp = Command_line_shell::readline(prompt().c_str());
+        const std::unique_ptr<char, decltype(&free)> tmp_deleter{tmp, free};
 
         m_set_pending_command = false;
 
         if (tmp && strcmp(tmp, CTRL_C_STR) != 0) {
           cmd = tmp;
-          free(tmp);
         } else {
           if (tmp) {
             if (strcmp(tmp, CTRL_C_STR) == 0) _interrupted = true;
-            free(tmp);
           }
           if (_interrupted) {
             clear_input();
