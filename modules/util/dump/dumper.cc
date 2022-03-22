@@ -236,7 +236,10 @@ class Dumper::Table_worker final {
   Table_worker() = delete;
 
   Table_worker(std::size_t id, Dumper *dumper, Exception_strategy strategy)
-      : m_id(id), m_dumper(dumper), m_strategy(strategy) {}
+      : m_id(id),
+        m_log_id(shcore::str_format("[Worker%03zu]: ", m_id)),
+        m_dumper(dumper),
+        m_strategy(strategy) {}
 
   Table_worker(const Table_worker &) = delete;
   Table_worker(Table_worker &&) = default;
@@ -380,14 +383,12 @@ class Dumper::Table_worker final {
     mysqlshdk::utils::Duration duration;
     std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
 
-    log_debug("Dumping %s (chunk %s) using condition: %s",
+    log_debug("%sDumping %s (chunk %s) using condition: %s", m_log_id.c_str(),
               table.task_name.c_str(), table.id.c_str(), table.where.c_str());
 
     duration.start();
 
-    const auto result = query(prepare_query(table, &pre_encoded_columns));
-
-    shcore::on_leave_scope close_index_file([&table]() {
+    shcore::on_leave_scope close_index_file([this, &table]() {
       try {
         if (table.index_file) {
           if (table.index_file->is_open()) {
@@ -395,58 +396,69 @@ class Dumper::Table_worker final {
           }
         }
       } catch (const std::runtime_error &error) {
-        log_error("%s", error.what());
+        log_error("%s%s", m_log_id.c_str(), error.what());
       }
     });
 
-    table.writer->open();
-    if (table.index_file) {
-      table.index_file->open(Mode::WRITE);
-    }
-    bytes_written = table.writer->write_preamble(result->get_metadata(),
-                                                 pre_encoded_columns);
-    bytes_written_per_file += bytes_written;
-    bytes_written_per_update += bytes_written;
+    const auto full_query = prepare_query(table, &pre_encoded_columns);
 
-    while (const auto row = result->fetch_one()) {
-      if (m_dumper->m_worker_interrupt) {
-        return;
+    try {
+      const auto result = query(full_query);
+
+      table.writer->open();
+      if (table.index_file) {
+        table.index_file->open(Mode::WRITE);
       }
-
-      bytes_written = table.writer->write_row(row);
+      bytes_written = table.writer->write_preamble(result->get_metadata(),
+                                                   pre_encoded_columns);
       bytes_written_per_file += bytes_written;
       bytes_written_per_update += bytes_written;
-      bytes_written_per_idx += bytes_written.data_bytes();
-      ++rows_written_per_update;
-      ++rows_written_per_file;
 
-      if (table.index_file && bytes_written_per_idx >= write_idx_every) {
-        // the idx file contains offsets to the data stream, not to binary one
-        const auto offset = mysqlshdk::utils::host_to_network(
-            bytes_written_per_file.data_bytes());
-        table.index_file->write(&offset, sizeof(uint64_t));
-
-        // make sure offsets are written when close to the write_idx_every
-        bytes_written_per_idx %= write_idx_every;
-      }
-
-      if (update_every == rows_written_per_update) {
-        m_dumper->update_progress(rows_written_per_update,
-                                  bytes_written_per_update);
-
-        // we don't know how much data was read from the server, number of
-        // bytes written to the dump file is a good approximation
-        if (m_rate_limit.enabled()) {
-          m_rate_limit.throttle(bytes_written_per_update.data_bytes());
+      while (const auto row = result->fetch_one()) {
+        if (m_dumper->m_worker_interrupt) {
+          return;
         }
 
-        rows_written_per_update = 0;
-        bytes_written_per_update.reset();
-      }
+        bytes_written = table.writer->write_row(row);
+        bytes_written_per_file += bytes_written;
+        bytes_written_per_update += bytes_written;
+        bytes_written_per_idx += bytes_written.data_bytes();
+        ++rows_written_per_update;
+        ++rows_written_per_file;
 
-      if (bytes_written.data_bytes() > max_row_size) {
-        max_row_size = bytes_written.data_bytes();
+        if (table.index_file && bytes_written_per_idx >= write_idx_every) {
+          // the idx file contains offsets to the data stream, not to binary one
+          const auto offset = mysqlshdk::utils::host_to_network(
+              bytes_written_per_file.data_bytes());
+          table.index_file->write(&offset, sizeof(uint64_t));
+
+          // make sure offsets are written when close to the write_idx_every
+          bytes_written_per_idx %= write_idx_every;
+        }
+
+        if (update_every == rows_written_per_update) {
+          m_dumper->update_progress(rows_written_per_update,
+                                    bytes_written_per_update);
+
+          // we don't know how much data was read from the server, number of
+          // bytes written to the dump file is a good approximation
+          if (m_rate_limit.enabled()) {
+            m_rate_limit.throttle(bytes_written_per_update.data_bytes());
+          }
+
+          rows_written_per_update = 0;
+          bytes_written_per_update.reset();
+        }
+
+        if (bytes_written.data_bytes() > max_row_size) {
+          max_row_size = bytes_written.data_bytes();
+        }
       }
+    } catch (const mysqlshdk::db::Error &e) {
+      log_error("%sFailed to dump %s (chunk %s) using query: %s, error: %s",
+                m_log_id.c_str(), table.task_name.c_str(), table.id.c_str(),
+                full_query.c_str(), e.format().c_str());
+      throw;
     }
 
     bytes_written = table.writer->write_postamble();
@@ -462,13 +474,13 @@ class Dumper::Table_worker final {
       table.index_file->close();
     }
 
-    log_info("Dump of %s into '%s' (chunk %s) took %f seconds, written %" PRIu64
-             " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
-             table.task_name.c_str(),
-             table.writer->output()->full_path().masked().c_str(),
-             table.id.c_str(), duration.seconds_elapsed(),
-             rows_written_per_file, bytes_written_per_file.data_bytes(),
-             max_row_size);
+    log_info(
+        "%sDump of %s into '%s' (chunk %s) took %f seconds, written %" PRIu64
+        " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
+        m_log_id.c_str(), table.task_name.c_str(),
+        table.writer->output()->full_path().masked().c_str(), table.id.c_str(),
+        duration.seconds_elapsed(), rows_written_per_file,
+        bytes_written_per_file.data_bytes(), max_row_size);
 
     const auto file_size = m_dumper->finish_writing(
         table.writer, bytes_written_per_file.data_bytes());
@@ -557,7 +569,8 @@ class Dumper::Table_worker final {
   }
 
   void write_schema_metadata(const Schema_info &schema) const {
-    log_info("Writing metadata for schema %s", schema.quoted_name.c_str());
+    log_info("%sWriting metadata for schema %s", m_log_id.c_str(),
+             schema.quoted_name.c_str());
 
     m_dumper->write_schema_metadata(schema);
 
@@ -567,7 +580,8 @@ class Dumper::Table_worker final {
   }
 
   void write_table_metadata(const Table_task &table) {
-    log_info("Writing metadata for table %s", table.quoted_name.c_str());
+    log_info("%sWriting metadata for table %s", m_log_id.c_str(),
+             table.quoted_name.c_str());
 
     m_dumper->write_table_metadata(table, m_session);
 
@@ -584,8 +598,9 @@ class Dumper::Table_worker final {
       ++ranges;
     }
 
-    log_info("Data dump for table %s will be written to %zu file%s",
-             table.task_name.c_str(), ranges, ranges > 1 ? "s" : "");
+    log_info("%sData dump for table %s will be written to %zu file%s",
+             m_log_id.c_str(), table.task_name.c_str(), ranges,
+             ranges > 1 ? "s" : "");
 
     m_dumper->chunking_task_finished();
   }
@@ -601,7 +616,13 @@ class Dumper::Table_worker final {
 
   template <typename T>
   static std::string between(const std::string &column, T begin, T end) {
-    return column + " BETWEEN " + quote(begin) + " AND " + quote(end);
+    assert(begin <= end);
+
+    if (begin == end) {
+      return column + "=" + quote(begin);
+    } else {
+      return column + " BETWEEN " + quote(begin) + " AND " + quote(end);
+    }
   }
 
   struct Chunking_info {
@@ -881,8 +902,8 @@ class Dumper::Table_worker final {
     auto current = min;
     const auto step = estimated_step;
 
-    log_info("Chunking %s using integer algorithm with %s step",
-             info.table->task_name.c_str(),
+    log_info("%sChunking %s using integer algorithm with %s step",
+             m_log_id.c_str(), info.table->task_name.c_str(),
              use_constant_step ? "constant" : "adaptive");
 
     bool last_chunk = false;
@@ -915,7 +936,7 @@ class Dumper::Table_worker final {
 
   std::size_t chunk_integer_column(const Chunking_info &info, const Row &begin,
                                    const Row &end) {
-    log_info("Chunking %s using integer algorithm",
+    log_info("%sChunking %s using integer algorithm", m_log_id.c_str(),
              info.table->task_name.c_str());
 
     const auto type =
@@ -939,7 +960,7 @@ class Dumper::Table_worker final {
 
   std::size_t chunk_non_integer_column(const Chunking_info &info,
                                        const Row &begin, const Row &end) {
-    log_info("Chunking %s using non-integer algorithm",
+    log_info("%sChunking %s using non-integer algorithm", m_log_id.c_str(),
              info.table->task_name.c_str());
 
     std::size_t ranges_count = 0;
@@ -1020,8 +1041,8 @@ class Dumper::Table_worker final {
     const auto type =
         info.table->info->index.columns()[info.index_column]->type;
 
-    log_info("Chunking %s, using columns: %s, min: [%s], max: [%s]",
-             info.table->task_name.c_str(),
+    log_info("%sChunking %s, using columns: %s, min: [%s], max: [%s]",
+             m_log_id.c_str(), info.table->task_name.c_str(),
              shcore::str_join(info.table->info->index.columns(), ", ",
                               [](const auto &c) {
                                 return c->quoted_name + " (" +
@@ -1114,16 +1135,16 @@ class Dumper::Table_worker final {
         });
     info.index_column = 0;
 
-    log_info("Chunking %s, rows: %" PRIu64 ", average row length: %" PRIu64
+    log_info("%sChunking %s, rows: %" PRIu64 ", average row length: %" PRIu64
              ", rows per chunk: %" PRIu64,
-             task_name.c_str(), info.row_count, average_row_length,
-             info.rows_per_chunk);
+             m_log_id.c_str(), task_name.c_str(), info.row_count,
+             average_row_length, info.rows_per_chunk);
 
     const auto ranges_count = chunk_column(info);
 
     duration.finish();
-    log_debug("Chunking of %s took %f seconds", task_name.c_str(),
-              duration.seconds_elapsed());
+    log_debug("%sChunking of %s took %f seconds", m_log_id.c_str(),
+              task_name.c_str(), duration.seconds_elapsed());
 
     return ranges_count;
   }
@@ -1131,8 +1152,8 @@ class Dumper::Table_worker final {
   void handle_exception(const std::string &context, const char *msg) {
     m_dumper->m_worker_exceptions[m_id] = std::current_exception();
     current_console()->print_error(
-        shcore::str_format("[Worker%03zu]: ", m_id) +
-        (context.empty() ? "" : "Error while " + context + ": ") + msg);
+        m_log_id + (context.empty() ? "" : "Error while " + context + ": ") +
+        msg);
 
     if (Exception_strategy::ABORT == m_strategy) {
       m_dumper->emergency_shutdown();
@@ -1140,7 +1161,8 @@ class Dumper::Table_worker final {
   }
 
   void dump_schema_ddl(const Schema_info &schema) const {
-    log_info("Writing DDL for schema %s", schema.quoted_name.c_str());
+    log_info("%sWriting DDL for schema %s", m_log_id.c_str(),
+             schema.quoted_name.c_str());
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -1154,7 +1176,8 @@ class Dumper::Table_worker final {
 
   void dump_table_ddl(const Schema_info &schema,
                       const Table_info &table) const {
-    log_info("Writing DDL for table %s", table.quoted_name.c_str());
+    log_info("%sWriting DDL for table %s", m_log_id.c_str(),
+             table.quoted_name.c_str());
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -1175,7 +1198,8 @@ class Dumper::Table_worker final {
   }
 
   void dump_view_ddl(const Schema_info &schema, const View_info &view) const {
-    log_info("Writing DDL for view %s", view.quoted_name.c_str());
+    log_info("%sWriting DDL for view %s", m_log_id.c_str(),
+             view.quoted_name.c_str());
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -1200,6 +1224,7 @@ class Dumper::Table_worker final {
   }
 
   const std::size_t m_id;
+  const std::string m_log_id;
   Dumper *m_dumper;
   Exception_strategy m_strategy;
   mysqlshdk::utils::Rate_limit m_rate_limit;
