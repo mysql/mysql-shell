@@ -290,6 +290,15 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
                                       date->get_day());
         }
 
+        // The conversion failed, so we take the string representation of the
+        // object
+        if (r == nullptr) {
+          // Cleanup the error condition
+          ctx->fetch_and_clear_exception();
+
+          // Take the object string representation
+          r = PyString_FromString(value.descr().c_str());
+        }
       } else {
         r = wrap(*value.value.o);
       }
