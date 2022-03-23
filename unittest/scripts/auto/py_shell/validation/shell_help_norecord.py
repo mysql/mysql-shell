@@ -1989,6 +1989,10 @@ PROPERTIES
             Gives access to the global objects registered on the context.
 
 FUNCTIONS
+      finalize()
+              Explicitly finalizes the Shell Context object releasing the log
+            file handle.
+
       get_shell()
               Shell object in its own context
 
