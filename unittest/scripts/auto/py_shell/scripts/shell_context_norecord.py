@@ -40,7 +40,8 @@ def thread_sample_print(thread_name):
     EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'directory'}), "Cancelled")
     EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'confirm'}), "Cancelled")
     EXPECT_THROWS(lambda: sh.prompt("caption", {'type':'select', 'options': ['one', 'two']}), "Cancelled")
-    call_unknown_function() # this will cause error to be shown on the diag queue
+    ctx.finalize()
+    sh = ctx.get_shell() # this will cause error to be shown on the diag queue
 
 th = threading.Thread(target = thread_sample_print, args=("my thread", ))
 th.start()
@@ -53,7 +54,8 @@ while True:
         diag_message.append(callback_diag_queue.get_nowait())
     except:
         break
-EXPECT_TRUE("".join(diag_message).find("'call_unknown_function' is not defined") != -1)
+print("===>", "".join(diag_message))
+EXPECT_TRUE("".join(diag_message).find("The Shell context has been finalized already") != -1)
 print_message = []
 while True:
     try:
