@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
+#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -1250,6 +1251,23 @@ void Util::import_table_files(
   importer.rethrow_exceptions();
 }
 
+namespace {
+
+std::shared_ptr<shcore::Log_sql> log_sql_for_dump_and_load() {
+  // copy the storage
+  auto storage = current_shell_options()->get();
+
+  // log all errors
+  if (shcore::Log_sql::parse_log_level(storage.log_sql) <
+      shcore::Log_sql::Log_level::ERROR) {
+    storage.log_sql = "error";
+  }
+
+  return std::make_shared<shcore::Log_sql>(storage);
+}
+
+}  // namespace
+
 REGISTER_HELP_FUNCTION(loadDump, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_LOADDUMP, R"*(
 Loads database dumps created by MySQL Shell.
@@ -1534,6 +1552,9 @@ void Util::load_dump(
     throw std::runtime_error(
         "An open session is required to perform this operation.");
   }
+
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.loadDump()"};
 
   Load_dump_options opt = *options;
   opt.set_url(url);
@@ -2000,6 +2021,9 @@ void Util::export_table(
         "An open session is required to perform this operation.");
   }
 
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.exportTable()"};
+
   using mysqlsh::dump::Export_table;
 
   mysqlsh::dump::Export_table_options opts = *options;
@@ -2105,6 +2129,9 @@ void Util::dump_tables(
         "An open session is required to perform this operation.");
   }
 
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.dumpTables()"};
+
   using mysqlsh::dump::Dump_tables;
 
   mysqlsh::dump::Dump_tables_options opts = *options;
@@ -2179,6 +2206,9 @@ void Util::dump_schemas(
     throw std::runtime_error(
         "An open session is required to perform this operation.");
   }
+
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.dumpSchemas()"};
 
   using mysqlsh::dump::Dump_schemas;
 
@@ -2274,6 +2304,9 @@ void Util::dump_instance(
     throw std::runtime_error(
         "An open session is required to perform this operation.");
   }
+
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.dumpInstance()"};
 
   using mysqlsh::dump::Dump_instance;
 

@@ -399,6 +399,12 @@ def write_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f)
 
+def wipe_dir(path):
+    try:
+        testutil.rmdir(path, True)
+    except:
+        pass
+
 def EXPECT_CAPABILITIES(path, capabilities):
     metadata = read_json(path)
     EXPECT_TRUE("capabilities" in metadata, "Metadata file should have 'capabilities' array")

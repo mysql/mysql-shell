@@ -42,6 +42,7 @@ class Log_sql : public NotificationObserver {
 
   Log_sql();
   explicit Log_sql(const mysqlsh::Shell_options &opts);
+  explicit Log_sql(const mysqlsh::Shell_options::Storage &opts);
 
   Log_sql(const Log_sql &) = delete;
   Log_sql(Log_sql &&) = delete;

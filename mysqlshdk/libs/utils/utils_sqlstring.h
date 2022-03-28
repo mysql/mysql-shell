@@ -29,6 +29,7 @@
 #endif
 #include <inttypes.h>
 #include <string>
+#include <string_view>
 
 #include "scripting/common.h"
 
@@ -75,8 +76,8 @@ class SHCORE_PUBLIC sqlstring {
   };
 
  private:
-  std::string _formatted;
-  std::string _format_string_left;
+  mutable std::string _formatted;
+  mutable std::string _format_string_left;
   sqlstringformat _format;
 
   std::string consume_until_next_escape();
@@ -98,8 +99,10 @@ class SHCORE_PUBLIC sqlstring {
   void done() const;
 
   operator std::string() const;
+  explicit operator std::string_view() const;
   sqlstring &operator=(const sqlstring &) = default;
   std::string str() const;
+  std::string_view str_view() const;
   std::size_t size() const;
 
   //! modifies formatting options

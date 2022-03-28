@@ -491,7 +491,7 @@ std::shared_ptr<mysqlshdk::db::IResult> Schema_dumper::query_log_and_throw(
 std::shared_ptr<mysqlshdk::db::IResult> Schema_dumper::query_log_error(
     const std::string &sql, const std::string &schema,
     const std::string &table) const {
-  return m_mysql->queryf_log_error(sql, schema, table);
+  return m_mysql->queryf(sql, schema, table);
 }
 
 int Schema_dumper::query_with_binary_charset(
@@ -556,7 +556,7 @@ void Schema_dumper::switch_character_set_results(const char *cs_name) {
 }
 
 void Schema_dumper::use(const std::string &db) const {
-  m_mysql->executef_log_error("USE !", db);
+  m_mysql->executef("USE !", db);
 }
 
 void Schema_dumper::unescape(IFile *file, const char *pos, size_t length) {
@@ -2118,8 +2118,8 @@ char Schema_dumper::check_if_ignore_table(const std::string &db,
     }
   } else {
     try {
-      res = m_mysql->query_log_error("show table status like " +
-                                     quote_for_like(table_name));
+      res = m_mysql->query("show table status like " +
+                           quote_for_like(table_name));
     } catch (const mysqlshdk::db::Error &e) {
       if (e.code() != ER_PARSE_ERROR) { /* If old MySQL version */
         log_debug(
@@ -2443,7 +2443,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
           snprintf(qbuf, sizeof(qbuf), "SHOW CREATE DATABASE IF NOT EXISTS %s",
                    qdatabase.c_str());
 
-      auto result = m_mysql->querys_log_error(qbuf, qlen);
+      auto result = m_mysql->querys(qbuf, qlen);
 
       if (opt_drop_database)
         fprintf(file, "\n/*!40000 DROP DATABASE IF EXISTS %s*/;\n",
@@ -3006,7 +3006,7 @@ std::vector<shcore::Account> Schema_dumper::get_roles(
 
   try {
     // check if server supports roles
-    m_mysql->query_log_error("SELECT @@GLOBAL.activate_all_roles_on_login");
+    m_mysql->query("SELECT @@GLOBAL.activate_all_roles_on_login");
   } catch (const mysqlshdk::db::Error &e) {
     if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
       // roles are not supported

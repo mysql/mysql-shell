@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -146,7 +146,7 @@ bool Prepare_json_import::create_default_table(
       0);
   query << *m_schema << name;
   query << column_name;
-  auto result = m_session->query(query);
+  auto result = m_session->query(query.str_view());
   // todo(kg): update_table_cache
   return true;
 }

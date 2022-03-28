@@ -3244,12 +3244,12 @@ void Testutils::handle_remote_root_user(const std::string &rootpass,
         "CREATE USER IF NOT EXISTS root@? IDENTIFIED BY ?", 0);
     create_user << remote_root << rootpass;
     create_user.done();
-    session->execute(create_user);
+    session->execute(create_user.str_view());
 
     shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
     grant << remote_root;
     grant.done();
-    session->execute(grant);
+    session->execute(grant.str_view());
 
     session->execute("SET sql_log_bin = 1");
   } else {

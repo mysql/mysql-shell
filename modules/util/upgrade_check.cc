@@ -1402,9 +1402,9 @@ std::vector<Upgrade_issue> Check_table_command::run(
 
   std::vector<Upgrade_issue> issues;
   for (const auto &pair : tables) {
-    auto check_result =
-        session->query(shcore::sqlstring("CHECK TABLE !.! FOR UPGRADE;", 0)
-                       << pair.first << pair.second);
+    const auto query = shcore::sqlstring("CHECK TABLE !.! FOR UPGRADE;", 0)
+                       << pair.first << pair.second;
+    auto check_result = session->query(query.str_view());
     const mysqlshdk::db::IRow *row = nullptr;
     while ((row = check_result->fetch_one()) != nullptr) {
       if (row->get_string(2) == "status") continue;

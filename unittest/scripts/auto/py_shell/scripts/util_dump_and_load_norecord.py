@@ -13,33 +13,27 @@ import threading
 import time
 import urllib.parse
 
-outdir = __tmp_dir+"/ldtest"
-try:
-    testutil.rmdir(outdir, True)
-except:
-    pass
+outdir = os.path.join(__tmp_dir, "ldtest")
+wipe_dir(outdir)
 testutil.mkdir(outdir)
 
-mysql_tmpdir = __tmp_dir+"/mysql"
-try:
-    testutil.rmdir(mysql_tmpdir, True)
-except:
-    pass
+mysql_tmpdir = os.path.join(__tmp_dir, "mysql")
+wipe_dir(mysql_tmpdir)
 testutil.mkdir(mysql_tmpdir)
 
 def prepare(sbport, options={}):
     # load test schemas
     uri = "mysql://root:root@localhost:%s" % sbport
-    datadir = __tmp_dir+"/ldtest/datadirs%s" % sbport
+    datadir = os.path.join(outdir, f"datadirs{sbport}")
     testutil.mkdir(datadir)
     # 8.0 seems to create dirs automatically but not 5.7
     if __version_num < 80000:
-        testutil.mkdir(datadir+"/testindexdir")
-        testutil.mkdir(datadir+"/test datadir")
+        testutil.mkdir(os.path.join(datadir, "testindexdir"))
+        testutil.mkdir(os.path.join(datadir, "test datadir"))
     options.update({
         "loose_innodb_directories": datadir,
         "early_plugin_load": "keyring_file."+("dll" if __os_type == "windows" else "so"),
-        "keyring_file_data": datadir+"/keyring",
+        "keyring_file_data": os.path.join(datadir, "keyring"),
         "local_infile": "1",
         "tmpdir": mysql_tmpdir,
         # small sort buffer to force stray filesorts to be triggered even if we don't have much data
@@ -52,11 +46,14 @@ prepare(__mysql_sandbox_port1)
 session1 = mysql.get_session(__sandbox_uri1)
 session1.run_sql("set names utf8mb4")
 session1.run_sql("create schema world")
-testutil.import_data(__sandbox_uri1, __data_path+"/sql/world.sql", "world")
-testutil.import_data(__sandbox_uri1, __data_path+"/sql/misc_features.sql")
+testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "world.sql"), "world")
+testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "misc_features.sql"))
 session1.run_sql("create schema tests")
 # BUG#33079172 "SQL SECURITY INVOKER" INSERTED AT WRONG LOCATION
 session1.run_sql("create procedure tests.tmp() IF @v > 0 THEN SELECT 1; ELSE SELECT 2; END IF;;")
+
+shell.connect(__sandbox_uri1)
+util.dump_instance(os.path.join(outdir, "dump_instance"), {"showProgress": False})
 
 prepare(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)
@@ -123,22 +120,22 @@ def format_rows(rows):
 shell.connect(__sandbox_uri2)
 
 # dump with root
-util.dump_instance(__tmp_dir+"/ldtest/dump_root", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
+util.dump_instance(os.path.join(outdir, "dump_root"), {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(__tmp_dir, "ldtest", "dump_root", "@.users.sql"))
+EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(outdir, "dump_root", "@.users.sql"))
 
 # dump with admin user
 shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
 # disable consistency b/c we won't be able to acquire a backup lock
-util.dump_instance(__tmp_dir+"/ldtest/dump_admin", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
+util.dump_instance(os.path.join(outdir, "dump_admin"), {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(__tmp_dir, "ldtest", "dump_admin", "@.users.sql"))
+EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(outdir, "dump_admin", "@.users.sql"))
 
 # load with admin user
 reset_server(session2)
-util.load_dump(__tmp_dir+"/ldtest/dump_admin", {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
+util.load_dump(os.path.join(outdir, "dump_admin"), {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
 
 EXPECT_EQ("""GRANT USAGE ON *.* TO `myuser`@`%`
 GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser`@`%`
@@ -160,7 +157,7 @@ REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TAB
           format_rows(session2.run_sql("show grants for myuser3@'%'").fetch_all()))
 
 reset_server(session2)
-util.load_dump(__tmp_dir+"/ldtest/dump_root", {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
+util.load_dump(os.path.join(outdir, "dump_root"), {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
 
 EXPECT_EQ("""GRANT USAGE ON *.* TO `myuser`@`%`
 GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser`@`%`
@@ -854,10 +851,7 @@ def compute_checksum(schema, table):
     return session.run_sql("CHECKSUM TABLE !.!", [ schema, table ]).fetch_one()[1]
 
 def EXPECT_DUMP_AND_LOAD_PARTITIONED(dump, tables = all_tables):
-    try:
-        testutil.rmdir(dump_dir, True)
-    except:
-        pass
+    wipe_dir(dump_dir)
     shell.connect(__sandbox_uri1)
     WIPE_OUTPUT()
     WIPE_SHELL_LOG()
@@ -1094,6 +1088,8 @@ EXPECT_STDOUT_CONTAINS("""
 """)
 
 #@<> WL14244 - helpers
+shell.connect(__sandbox_uri2)
+
 def dump_and_load(options):
     WIPE_STDOUT()
     # remove everything from the server
@@ -2131,7 +2127,54 @@ EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "bucket", "s3En
 #@<> s3EndpointOverride is using wrong scheme
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint" }), "ValueError: Util.load_dump: Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.")
 
+#@<> BUG#33788895 - log errors even if shell.options["logSql"] is "off"
+old_log_sql = shell.options["logSql"]
+shell.options["logSql"] = "off"
+
+# dump
+dump_dir = os.path.join(outdir, "bug_33788895")
+session1.run_sql("CREATE USER admin@'%' IDENTIFIED BY 'pass'")
+session1.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
+shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port1))
+
+# dump instance
+wipe_dir(dump_dir)
+session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 100")
+WIPE_SHELL_LOG()
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "users": False }), "Fatal error during dump")
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpInstance\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 100\), SQL: "))
+
+# dump schemas
+wipe_dir(dump_dir)
+session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 80")
+WIPE_SHELL_LOG()
+EXPECT_THROWS(lambda: util.dump_schemas(["world"], dump_dir), "Fatal error during dump")
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpSchemas\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 80\), SQL: "))
+
+# dump tables
+wipe_dir(dump_dir)
+session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 70")
+WIPE_SHELL_LOG()
+EXPECT_THROWS(lambda: util.dump_tables("world", ["City", "Country"], dump_dir), "Fatal error during dump")
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpTables\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
+
+session1.run_sql("DROP USER admin@'%'")
+
+# load dump
+dump_dir = os.path.join(outdir, "dump_instance")
+wipeout_server(session2)
+session2.run_sql("CREATE USER admin@'%' IDENTIFIED BY 'pass' WITH MAX_QUERIES_PER_HOUR 70")
+session2.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
+shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
+
+WIPE_SHELL_LOG()
+EXPECT_THROWS(lambda: util.load_dump(dump_dir), "Error loading dump")
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.loadDump\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
+
+#@<> BUG#33788895 - cleanup
+shell.options["logSql"] = old_log_sql
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
-testutil.rmdir(__tmp_dir+"/ldtest", True)
+wipe_dir(outdir)

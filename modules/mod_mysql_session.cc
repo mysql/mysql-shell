@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -328,7 +328,8 @@ std::string ClassicSession::get_current_schema() {
 }
 
 void ClassicSession::set_current_schema(const std::string &name) {
-  get_core_session()->execute(sqlstring("use !", 0) << name);
+  const auto query = sqlstring("use !", 0) << name;
+  get_core_session()->execute(query.str_view());
 }
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(

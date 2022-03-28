@@ -346,7 +346,8 @@ std::string Session::set_savepoint(const std::string &name) {
   if (new_name.empty())
     new_name = "TXSP" + std::to_string(++_savepoint_counter);
 
-  _session->execute(sqlstring("savepoint !", 0) << new_name);
+  const auto query = sqlstring("savepoint !", 0) << new_name;
+  _session->execute(query.str_view());
 
   return new_name;
 }
@@ -374,7 +375,8 @@ Undefined Session::releaseSavepoint(String name) {}
 None Session::release_savepoint(str name) {}
 #endif
 void Session::release_savepoint(const std::string &name) {
-  _session->execute(sqlstring("release savepoint !", 0) << name);
+  const auto query = sqlstring("release savepoint !", 0) << name;
+  _session->execute(query.str_view());
 }
 
 REGISTER_HELP_FUNCTION(rollbackTo, Session);
@@ -404,7 +406,8 @@ Undefined Session::rollbackTo(String name) {}
 None Session::rollback_to(str name) {}
 #endif
 void Session::rollback_to(const std::string &name) {
-  _session->execute(sqlstring("rollback to !", 0) << name);
+  const auto query = sqlstring("rollback to !", 0) << name;
+  _session->execute(query.str_view());
 }
 
 // Documentation of getDefaultSchema function
@@ -922,7 +925,8 @@ void Session::kill_query() {
   auto session = mysqlshdk::db::mysqlx::Session::create();
   try {
     session->connect(_connection_options);
-    session->query(shcore::sqlstring("kill query ?", 0) << cid);
+    const auto query = shcore::sqlstring("kill query ?", 0) << cid;
+    session->query(query.str_view());
   } catch (const std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());
   }

@@ -90,7 +90,7 @@ bool histograms_supported(const Version &version) {
 bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
              const std::string &table) {
   // Return true if the table has a PK or equivalent (UNIQUE NOT NULL)
-  auto res = session->queryf_log_error("SHOW INDEX IN !.!", schema, table);
+  auto res = session->queryf("SHOW INDEX IN !.!", schema, table);
   while (auto row = res->fetch_one_named()) {
     if (row.get_int("Non_unique") == 0 && row.get_string("Null").empty())
       return true;
@@ -162,7 +162,7 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
 
   while (true) {
     try {
-      session->executes_log_error(stmt.data(), stmt.length());
+      session->executes(stmt.data(), stmt.length());
       return;
     } catch (const mysqlshdk::db::Error &e) {
       log_info("Error executing SQL: %s:\n%.*s", e.format().c_str(),
@@ -2118,7 +2118,7 @@ std::shared_ptr<mysqlshdk::db::IResult> query_names(
   set = set.empty() ? "" : "(" + set + ")";
 
   if (!set.empty())
-    return session->queryf_log_error(query_prefix + set, schema);
+    return session->queryf(query_prefix + set, schema);
   else
     return {};
 }
