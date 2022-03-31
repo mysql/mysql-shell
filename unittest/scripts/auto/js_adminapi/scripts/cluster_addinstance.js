@@ -383,7 +383,13 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, se
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id: 22222});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id: 33333});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {gtidSetIsComplete: true});
+
+var c;
+if (__version_num < 80027) {
+    c = dba.createCluster('test', {gtidSetIsComplete: true});
+} else {
+    c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "XCOM"});
+}
 
 // FR1 - A new auto-generated recovery account must be created whenever creating a cluster and joining an instance to a cluster
 //@<> WL#12773: FR1.1 - The account user-name shall be mysql_innodb_cluster_<server_id>
@@ -454,8 +460,13 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 //@<> BUG#25503159: create cluster.
 shell.connect(__hostname_uri1);
-var c = dba.createCluster('test', {gtidSetIsComplete: true});
-//var c = dba.createCluster('test');
+var c;
+
+if (__version_num >= 80027) {
+    c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "XCOM"});
+} else {
+    c = dba.createCluster('test', {gtidSetIsComplete: true});
+}
 
 //@ BUG#25503159: number of recovery users before executing addInstance().
 var num_recovery_users = number_of_gr_recovery_accounts(session);
@@ -517,10 +528,16 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+var cluster;
+if (__version_num < 80027) {
+    cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+} else {
+    cluster = dba.createCluster("cluster", {gtidSetIsComplete: true, communicationStack: "xcom"});
+}
 
 //@<> IPv6 addresses are supported on localAddress and ipWhitelist WL#12758 {VER(>= 8.0.14)}
-var local_address = "[::1]:" + __mysql_sandbox_gr_port2;
+var port = __mysql_sandbox_port2*10+1;
+var local_address = "[::1]:" + port;
 var ip_white_list = "::1, 127.0.0.1";
 cluster.addInstance(__sandbox_uri2, {ipWhitelist:ip_white_list, localAddress:local_address});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

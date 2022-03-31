@@ -255,6 +255,8 @@ constexpr const char kInvalidateErrorInstances[] = "invalidateErrorInstances";
 constexpr const char kClusterSetReplicationSslMode[] =
     "clusterSetReplicationSslMode";
 constexpr const char kReplicationAllowedHost[] = "replicationAllowedHost";
+constexpr const char kCommunicationStack[] = "communicationStack";
+constexpr const char kSwitchCommunicationStack[] = "switchCommunicationStack";
 
 constexpr const int k_group_replication_members_limit = 9;
 
@@ -328,6 +330,9 @@ const std::map<std::string, Option_availability> k_instance_supported_options{
     {kAutoRejoinTries,
      {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}}};
 
+const mysqlshdk::utils::Version k_mysql_communication_stack_initial_version(
+    "8.0.27");
+
 struct Instance_definition {
   int host_id;
   int replicaset_id;
@@ -385,6 +390,19 @@ const std::set<std::string> kClusterSSLModeValues = {
 
 std::string to_string(Cluster_ssl_mode ssl_mode);
 Cluster_ssl_mode to_cluster_ssl_mode(const std::string &ssl_mode);
+
+constexpr const char *kCommunicationStackMySQL = "MYSQL";
+constexpr const char *kCommunicationStackXCom = "XCOM";
+
+const std::set<std::string> kCommunicationStackValidValues = {
+    kCommunicationStackXCom, kCommunicationStackMySQL};
+
+/**
+ * Map of the supported Cluster capabilities
+ */
+const std::map<std::string, std::set<std::string>>
+    k_cluster_supported_capabilities{
+        {kCommunicationStack, kCommunicationStackValidValues}};
 
 /**
  * Check if a setting is supported on the target instance
@@ -528,6 +546,8 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  *
  * @param local_address Nullable string with the input local address value to
  *                      resolve.
+ * @param communication_stack Nullable string with the GR communication stack to
+ * be used
  * @param report_host String with the report host value of the instance (host
  *                    used by GR and the Metadata).
  * @param port integer with port used to connect to the instance.
@@ -539,8 +559,10 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  * if it is already being used.
  */
 std::string resolve_gr_local_address(
-    const mysqlshdk::null_string &local_address, const std::string &report_host,
-    int port, bool check_if_busy, bool quiet = false);
+    const mysqlshdk::null_string &local_address,
+    const mysqlshdk::null_string &communication_stack,
+    const std::string &report_host, int port, bool check_if_busy,
+    bool quiet = false);
 
 struct Instance_gtid_info {
   std::string server;

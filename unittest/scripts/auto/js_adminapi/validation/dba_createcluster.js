@@ -1,51 +1,4 @@
 
-//@<ERR> WL#12011: FR2-04 - invalid value for interactive option.
-Dba.createCluster: Argument #2: Option 'interactive' Bool expected, but value is String (TypeError)
-
-//@<OUT> WL#12011: FR2-01 - interactive = true.
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
-
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
-Before continuing you have to confirm that you understand the requirements and
-limitations of Multi-Primary Mode. For more information see
-https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
-proceeding.
-
-I have read the MySQL InnoDB cluster manual and I understand the requirements
-and limitations of advanced Multi-Primary Mode.
-
-Confirm [y/N]:
-
-//@<ERR> WL#12011: FR2-01 - interactive = true.
-Dba.createCluster: Cancelled (RuntimeError)
-
-//@<OUT> WL#12011: FR2-03 - no interactive option (default: non-interactive).
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
-
-Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-Instance configuration is suitable.
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
-
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
-
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
-Adding Seed Instance...
-Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
-At least 3 instances are needed for the cluster to be able to withstand up to
-one server failure.
-
-//@ WL#12011: Finalization.
-||
-
-//@ WL#12049: Initialization
-||
-
 //@ WL#12049: Unsupported server version {VER(<5.7.24)}
 ||Option 'exitStateAction' not supported on target server version: '<<<__version>>>'
 
@@ -85,11 +38,19 @@ one server failure.
 
 //@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
+?{VER(>=8.0.27)}
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{}
+?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{}
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -107,7 +68,12 @@ group_replication_start_on_boot = ON
 //@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
+?{VER(>=8.0.27)}
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{}
+?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{}
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -152,13 +118,21 @@ group_replication_start_on_boot = ON
 
 //@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
+?{VER(>=8.0.27)}
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{}
+?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{}
 group_replication_member_weight = 75
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -179,7 +153,12 @@ group_replication_start_on_boot = ON
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
+?{VER(>=8.0.27)}
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{}
+?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{}
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -354,48 +333,6 @@ ERROR: Cannot create cluster on instance '<<<hostname>>>:<<<__mysql_sandbox_port
 //@<ERR> Create cluster async replication (should fail)
 Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
-//@ BUG#29305551: Finalization
-||
-
-
-//@ BUG#29361352: Initialization.
-||
-
-//@<OUT> BUG#29361352: no warning or prompt for multi-primary (interactive: true, multiPrimary: false).
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
-
-Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-Instance configuration is suitable.
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
-
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
-
-Adding Seed Instance...
-Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
-At least 3 instances are needed for the cluster to be able to withstand up to
-one server failure.
-
-//@ BUG#29361352: Finalization.
-||
-
-//@ BUG#28064729: Initialization.
-||
-
-//@ BUG#28064729: create a cluster.
-||
-
-//@ BUG#28064729: add an instance.
-||
-
-//@ BUG#28064729: Finalization.
-||
-
 //@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
 |mysql_innodb_cluster_11111, %|
 
@@ -430,6 +367,13 @@ one server failure.
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "MYSQL",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -557,6 +501,13 @@ one server failure.
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "MYSQL",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -680,6 +631,13 @@ one server failure.
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "MYSQL",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {

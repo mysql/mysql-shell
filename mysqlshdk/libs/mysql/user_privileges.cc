@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -454,19 +454,14 @@ void User_privileges::read_user_roles(
   // Get value of system variable that indicates if all roles are active.
   bool all_roles_active = false;
 
-  try {
-    const auto result =
-        instance.query("SELECT @@GLOBAL.activate_all_roles_on_login");
-    all_roles_active = result->fetch_one_or_throw()->get_int(0) == 1;
-  } catch (const mysqlshdk::db::Error &e) {
-    if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
-      // roles are not supported
-      return;
-    } else {
-      // report any other error
-      throw;
-    }
+  // Roles are not supported in MySQL 5.7
+  if (instance.get_version() < Version(8, 0, 0)) {
+    return;
   }
+
+  const auto res =
+      instance.query("SELECT @@GLOBAL.activate_all_roles_on_login");
+  all_roles_active = res->fetch_one_or_throw()->get_int(0) == 1;
 
   std::string query;
 

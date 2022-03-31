@@ -240,8 +240,7 @@ recovery process to finish and its verbosity level.
 @li memberSslMode: SSL mode used on the instance
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
-@li localAddress: string value with the Group Replication local address to be
-used instead of the automatically generated one.
+${CLUSTER_OPT_LOCAL_ADDRESS}
 @li groupSeeds: string value with a comma-separated list of the Group
 Replication peer addresses to be used instead of the automatically generated
 one. Deprecated and ignored.
@@ -302,16 +301,7 @@ ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 The localAddress and groupSeeds are advanced options and their usage is
 discouraged since incorrect values can lead to Group Replication errors.
 
-The value for localAddress is used to set the Group Replication system variable
-'group_replication_local_address'. The localAddress option accepts values in
-the format: 'host:port' or 'host:' or ':port'. If the specified value does not
-include a colon (:) and it is numeric, then it is assumed to be the port,
-otherwise it is considered to be the host. When the host is not specified, the
-default value is the value of the system variable 'report_host' if defined
-(i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
-specified, the default value is the port of the target instance * 10 + 1. In
-case the automatically determined default port value is invalid (> 65535) then
-an error is thrown.
+${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
 The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is ignored.
 'group_replication_group_seeds' is automatically set based on the current
@@ -404,6 +394,7 @@ The options dictionary may contain the following attributes:
 ${OPT_INTERACTIVE}
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
+${CLUSTER_OPT_LOCAL_ADDRESS}
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -425,6 +416,11 @@ based on the cluster configuration
 If memberSslMode is not specified AUTO will be used by default.
 
 ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
+
+The localAddress is an advanced option and its usage is discouraged
+since incorrect values can lead to Group Replication errors.
+
+${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
@@ -462,7 +458,7 @@ void Cluster::rejoin_instance(
 
   // Rejoin the Instance to the Cluster
   m_impl->rejoin_instance(instance_def, options->gr_options,
-                          options->interactive(), false);
+                          options->interactive(), false, {});
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, Cluster);

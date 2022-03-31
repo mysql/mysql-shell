@@ -144,6 +144,7 @@ const extended_1_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -176,6 +177,7 @@ const extended_1_status_templ_8023 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -209,6 +211,7 @@ const extended_1_status_templ_8026 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -243,6 +246,7 @@ const extended_1_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -274,6 +278,7 @@ const extended_2_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -316,6 +321,7 @@ const extended_2_status_templ_8023 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -359,6 +365,7 @@ const extended_2_status_templ_8026 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -403,6 +410,7 @@ const extended_2_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -441,6 +449,7 @@ const full_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "primary": "",
@@ -523,6 +532,7 @@ const full_status_templ_8023 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -614,6 +624,7 @@ const full_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
+        "communicationStack": "",
         "name": "",
         "groupName": "",
         "groupViewId": "",
@@ -1026,6 +1037,8 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<> F4 - shutdown member2 and try again to see if connect error is included
 // TS_3_1	Verify that a shellConnectError is added to the status of a member if the shell can't connect to it when calling cluster.status().
 // WL13208-TS_FR8_4
+session2 = mysql.getSession(__sandbox_uri2);
+disable_auto_rejoin(session2, __mysql_sandbox_port2);
 testutil.stopSandbox(__mysql_sandbox_port2);
 
 var stat = cluster.status({extended:3});
@@ -1059,35 +1072,69 @@ EXPECT_EQ(2, tx["workers"].length);
 json_check(tx["coordinator"], coordinator_status_templ_57);
 
 //@<> F9- Rejoin member2 but trigger a failed recovery so we get a recovery error
+shell.connect(__sandbox_uri1);
 
 // Insert more rows in primary so that a recovery is necessary
 for (i = 0; i < NUM_DATA_ROWS; i++) {
     session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
+var stat = cluster.status({extended:1});
+var comm_stack = json_find_key(stat, "defaultReplicaSet")["communicationStack"];
+
+//@<> XCOM stack
+
 // Drop replication accounts
-var accounts = session.runSql("select concat(user, '@', quote(host)) from mysql.user where user like 'mysql_innodb_cluster%'").fetchAll();
-for (var i in accounts) {
-    var user = accounts[i][0];
-    session.runSql("drop user "+user);
+if (comm_stack == "XCOM") {
+    var accounts = session.runSql("select concat(user, '@', quote(host)) from mysql.user where user like 'mysql_innodb_cluster%'").fetchAll();
+    for (var i in accounts) {
+        var user = accounts[i][0];
+        session.runSql("drop user "+user);
+    }
+
+    testutil.startSandbox(__mysql_sandbox_port2);
+
+    cluster.rejoinInstance(__sandbox_uri2);
+
+    EXPECT_EQ(1045, testutil.waitForReplConnectionError(__mysql_sandbox_port2));
+
+    var stat = cluster.status({extended:3});
+    println(stat);
+
+    // TS8_1	Verify that any error present in PFS is added to the status of the members when calling cluster.status().
+    var recovery = json_find_key(json_find_key(stat, hostname+":" + __mysql_sandbox_port2), "recovery");
+
+    EXPECT_EQ(1045, recovery["receiverErrorNumber"]);
+
+    EXPECT_EQ("CONNECTION_ERROR", recovery["state"]);
+    EXPECT_NE(undefined, recovery["receiverErrorNumber"]);
+    EXPECT_NE(undefined, recovery["state"]);
 }
 
-testutil.startSandbox(__mysql_sandbox_port2);
-// the recovery should fail because it can't connect to the primary
-cluster.rejoinInstance(__sandbox_uri2);
+//@<> MYSQL stack {!__dbug_off}
+if (comm_stack == "MYSQL") {
+    testutil.startSandbox(__mysql_sandbox_port2);
 
-EXPECT_EQ(1045, testutil.waitForReplConnectionError(__mysql_sandbox_port2));
+    testutil.dbugSet("+d,fail_recovery_mysql_stack");
 
-var stat = cluster.status({extended:3});
-println(stat);
-// TS8_1	Verify that any error present in PFS is added to the status of the members when calling cluster.status().
-var recovery = json_find_key(json_find_key(stat, hostname+":" + __mysql_sandbox_port2), "recovery");
-EXPECT_EQ(1045, recovery["receiverErrorNumber"]);
-EXPECT_EQ("CONNECTION_ERROR", recovery["state"]);
-EXPECT_NE(undefined, recovery["receiverErrorNumber"]);
-EXPECT_NE(undefined, recovery["state"]);
+    cluster.rejoinInstance(__sandbox_uri2);
 
-// Cleanup
+    EXPECT_EQ(13120, testutil.waitForReplConnectionError(__mysql_sandbox_port2));
+    testutil.dbugSet("");
+
+    var stat = cluster.status({extended:3});
+    println(stat);
+
+    var recovery = json_find_key(json_find_key(stat, hostname+":" + __mysql_sandbox_port2), "recovery");
+
+    EXPECT_EQ(13120, recovery["receiverErrorNumber"]);
+
+    EXPECT_EQ("CONNECTION_ERROR", recovery["state"]);
+    EXPECT_NE(undefined, recovery["receiverErrorNumber"]);
+    EXPECT_NE(undefined, recovery["state"]);
+}
+
+//@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

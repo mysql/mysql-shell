@@ -462,6 +462,8 @@ DESCRIPTION
         be disabled. Deprecated.
       - multiMaster: boolean value used to define an InnoDB cluster with
         multiple writable instances. Deprecated.
+      - communicationStack: The Group Replication protocol stack to be used in
+        the Cluster: XCom (legacy) or MySQL.
 
       An InnoDB cluster may be setup in two ways:
 
@@ -540,9 +542,10 @@ DESCRIPTION
       When the host is not specified, the default value is the value of the
       system variable 'report_host' if defined (i.e., not 'NULL'), otherwise it
       is the hostname value. When the port is not specified, the default value
-      is the port of the current active connection (session) * 10 + 1. In case
-      the automatically determined default port value is invalid (> 65535) then
-      an error is thrown.
+      is the port of the target instance if the communication stack in use by
+      the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
+      stack is 'XCOM'. In case the automatically determined  default port value
+      is invalid (> 65535) then an error is thrown.
 
       The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is
       ignored. 'group_replication_group_seeds' is automatically set based on
@@ -650,6 +653,23 @@ DESCRIPTION
       quickly, setting this option prevents users from having to manually add
       the expelled node back to the group. The autoRejoinTries option accepts
       positive integer values and, since 8.0.21, defaults to 3.
+
+      The value for communicationStack is used to choose which Group
+      Replication communication stack must be used in the Cluster. It's used to
+      set the value of the Group Replication system variable
+      'group_replication_communication_stack'.
+
+      When set to legacy 'XCom', all internal GCS network traffic (PAXOS and
+      communication infrastructure) flows through a separate network address:
+      the localAddress.
+
+      When set to 'MySQL', such traffic re-uses the existing MySQL Server
+      facilities to establish connections among Cluster members. It allows a
+      simpler and safer setup as it obsoletes the usage of IP allowlists
+      (ipAllowlist), removes the explicit need to have a separate network
+      address (localAddress), and introduces user-based authentication.
+
+      The default value for Clusters running 8.0.27+ is 'MySQL'.
 
       ATTENTION: The clearReadOnly option will be removed in a future release.
 
@@ -985,6 +1005,50 @@ DESCRIPTION
       - rejoinInstances: The list of instances to be rejoined to the cluster.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled
+      - switchCommunicationStack: The Group Replication protocol stack to be
+        used by the Cluster after the reboot.
+      - ipAllowList: The list of hosts allowed to connect to the instance for
+        Group Replication traffic when using the 'XCOM' protocol stack.
+      - localAddress: string value with the Group Replication local address to
+        be used instead of the automatically generated one when using the
+        'XCOM' protocol stack.
+
+      The value for switchCommunicationStack is used to choose which Group
+      Replication communication stack must be used in the Cluster after the
+      reboot is complete. It's used to set the value of the Group Replication
+      system variable 'group_replication_communication_stack'.
+
+      When set to legacy 'XCom', all internal GCS network traffic (PAXOS and
+      communication infrastructure) flows through a separate network address:
+      the localAddress.
+
+      When set to 'MySQL', such traffic re-uses the existing MySQL Server
+      facilities to establish connections among Cluster members. It allows a
+      simpler and safer setup as it obsoletes the usage of IP allowlists
+      (ipAllowlist), removes the explicit need to have a separate network
+      address (localAddress), and introduces user-based authentication.
+
+      The option is used to switch the communication stack previously in use by
+      the Cluster, to another one. Setting the same communication stack results
+      in no changes.
+
+      The ipAllowlist format is a comma separated list of IP addresses or
+      subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
+      the value is set to AUTOMATIC, allowing addresses from the instance
+      private network to be automatically set for the allowlist.
+
+      The value for localAddress is used to set the Group Replication system
+      variable 'group_replication_local_address'. The localAddress option
+      accepts values in the format: 'host:port' or 'host:' or ':port'. If the
+      specified value does not include a colon (:) and it is numeric, then it
+      is assumed to be the port, otherwise it is considered to be the host.
+      When the host is not specified, the default value is the value of the
+      system variable 'report_host' if defined (i.e., not 'NULL'), otherwise it
+      is the hostname value. When the port is not specified, the default value
+      is the port of the target instance if the communication stack in use by
+      the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
+      stack is 'XCOM'. In case the automatically determined  default port value
+      is invalid (> 65535) then an error is thrown.
 
       ATTENTION: The clearReadOnly option will be removed in a future release.
 

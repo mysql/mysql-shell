@@ -114,6 +114,10 @@ OPTIONS
             Integer value to define the number of times an instance will
             attempt to rejoin the Cluster after being expelled.
 
+--communicationStack=<str>
+            The Group Replication protocol stack to be used in the Cluster:
+            XCom (legacy) or MySQL.
+
 --recoveryMethod=<str>
             Preferred method for state recovery/provisioning. May be auto,
             clone or incremental. Default is auto.

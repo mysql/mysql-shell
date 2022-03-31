@@ -155,15 +155,20 @@ struct Drop_metadata_schema_options {
 
 struct Reboot_cluster_options {
   static const shcore::Option_pack_def<Reboot_cluster_options> &options();
+  void check_option_values(const mysqlshdk::utils::Version &version,
+                           int canonical_port, const std::string &comm_stack);
   void set_user(const std::string &option, const std::string &value);
   void set_password(const std::string &option, const std::string &value);
   void set_clear_read_only(bool value);
+  void set_switch_communication_stack(const std::string &value);
 
   std::vector<std::string> remove_instances;
   std::vector<std::string> rejoin_instances;
   mysqlshdk::null_bool clear_read_only;
   mysqlshdk::null_string user;
   mysqlshdk::null_string password;
+  mysqlshdk::null_string switch_communication_stack;
+  Reboot_group_replication_options gr_options;
 };
 
 struct Upgrade_metadata_options : public Interactive_option {

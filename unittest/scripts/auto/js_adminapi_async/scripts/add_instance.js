@@ -185,7 +185,8 @@ rs.addInstance("root:bla@"+__sandbox2);
 //@ instance running unmanaged GR (should fail)
 var session2 = mysql.getSession(__sandbox_uri2);
 reset_instance(session2);
-start_standalone_gr(session2, __mysql_sandbox_gr_port2);
+gr_port = __mysql_sandbox_port2 * 10 + 1;
+start_standalone_gr(session2, gr_port);
 
 shell.connect(__sandbox_uri1);
 var rs = dba.getReplicaSet();

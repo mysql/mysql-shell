@@ -177,18 +177,26 @@ for sbi, uri in enumerate([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3, __san
 
 
 shell.connect(__sandbox_uri1)
-c1 = dba.create_cluster(
-    "cluster1", {"gtidSetIsComplete": 1, "ipAllowlist": "127.0.0.1," + hostname_ip})
-c1.add_instance(__sandbox_uri2, {"ipAllowlist": "127.0.0.1," + hostname_ip})
-c1.add_instance(__sandbox_uri3, {"ipAllowlist": "127.0.0.1," + hostname_ip})
-
-cs = c1.create_cluster_set("cs")
-c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2", {
-                               "ipAllowlist": "127.0.0.1," + hostname_ip})
-c2.add_instance(__sandbox_uri5, {"ipAllowlist": "127.0.0.1," + hostname_ip})
-
-c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3", {
-                               "ipAllowlist": "127.0.0.1," + hostname_ip})
+if __version_num < 80027:
+    c1 = dba.create_cluster(
+        "cluster1", {"gtidSetIsComplete": 1, "ipAllowlist": "127.0.0.1," + hostname_ip})
+    c1.add_instance(__sandbox_uri2, {"ipAllowlist": "127.0.0.1," + hostname_ip})
+    c1.add_instance(__sandbox_uri3, {"ipAllowlist": "127.0.0.1," + hostname_ip})
+    cs = c1.create_cluster_set("cs")
+    c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2", {
+                                   "ipAllowlist": "127.0.0.1," + hostname_ip})
+    c2.add_instance(__sandbox_uri5, {"ipAllowlist": "127.0.0.1," + hostname_ip})
+    c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3", {
+                                   "ipAllowlist": "127.0.0.1," + hostname_ip})
+else:
+    c1 = dba.create_cluster(
+        "cluster1", {"gtidSetIsComplete": 1})
+    c1.add_instance(__sandbox_uri2)
+    c1.add_instance(__sandbox_uri3)
+    cs = c1.create_cluster_set("cs")
+    c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2")
+    c2.add_instance(__sandbox_uri5)
+    c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3")
 
 logs = SQLLogAnalyzer(
     [__mysql_sandbox_port1, __mysql_sandbox_port4, __mysql_sandbox_port6])

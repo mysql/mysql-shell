@@ -43,21 +43,70 @@ namespace dba {
  * @throw ArgumentError if the value is empty or no host and port is specified
  *        (i.e., value is ":").
  */
-void validate_local_address_option(std::string local_address) {
+void validate_local_address_option(std::string local_address,
+                                   const std::string &communication_stack,
+                                   int canonical_port) {
   // Minimal validation is performed here, the rest is already currently
-  // handled at the mysqlprovision level (including the logic to automatically
+  // handled at resolve_gr_local_address() (including the logic to automatically
   // set the host and port when not specified).
 
   local_address = shcore::str_strip(local_address);
-  if (local_address.empty())
+  if (local_address.empty()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s, string value cannot be empty.", kLocalAddress));
-  if (local_address.compare(":") == 0)
+  }
+
+  if (local_address.compare(":") == 0) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s. If ':' is specified then at least a "
         "non-empty host or port must be specified: '<host>:<port>' or "
         "'<host>:' or ':<port>'.",
         kLocalAddress));
+  }
+
+  // If the communicationStack is 'MySQL', the port must be no other than
+  // the use in use by MySQL. If 'XCOM', the check doesn't apply
+  if (communication_stack != kCommunicationStackMySQL) return;
+
+  // Parse the given address host:port (both parts are optional).
+  // Note: Get the last ':' in case a IPv6 address is used, e.g. [::1]:123.
+  size_t pos = local_address.find_last_of(":");
+  std::string str_local_port;
+
+  if (pos == std::string::npos) {
+    // No separator found ':'.
+    // If the value only has digits assume it is a port, otherwise, it's the
+    // hostname which is not validated here
+    if (std::all_of(local_address.cbegin(), local_address.cend(), ::isdigit)) {
+      str_local_port = local_address;
+    }
+  } else {
+    // Local address with ':' separating host and port.
+    str_local_port = local_address.substr(pos + 1, local_address.length());
+  }
+
+  // If it's empty ignore since it'll re resolved later
+  if (!str_local_port.empty()) {
+    int local_port;
+    // Convert port string value to int
+    try {
+      local_port = std::stoi(str_local_port);
+    } catch (const std::exception &) {
+      // Error if the port cannot be converted to an integer (not valid).
+      throw shcore::Exception::argument_error(
+          "Invalid port '" + str_local_port +
+          "' for localAddress option. The port must be an integer between "
+          "1 and 65535.");
+    }
+
+    if (local_port != canonical_port) {
+      throw shcore::Exception::argument_error(
+          "Invalid port '" + str_local_port +
+          "' for localAddress option. When using '" + kCommunicationStackMySQL +
+          "' communication stack, the port must be the same in use by "
+          "MySQL Server");
+    }
+  }
 }
 
 /**
@@ -289,10 +338,33 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
   }
 }
 
+/**
+ * Validate the value specified for the communicationStack option is supported
+ * on the target instance
+ *
+ * @param version version of the target instance
+ * @throw RuntimeError if the value is not supported on the target instance
+ */
+void validate_communication_stack_supported(
+    const mysqlshdk::utils::Version &version) {
+  // The communicationStack option must be allowed only if the target
+  // server version is >= 8.0.27
+  if (version < k_mysql_communication_stack_initial_version) {
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kCommunicationStack, version.get_full().c_str()));
+  }
+}
+
 // ----
 
 void Group_replication_options::check_option_values(
-    const mysqlshdk::utils::Version &version) {
+    const mysqlshdk::utils::Version &version, int canonical_port) {
+  // Validate communicationStack
+  if (!communication_stack.is_null()) {
+    validate_communication_stack_supported(version);
+  }
+
   // Validate ipWhitelist and ipAllowlist
   {
     if (!ip_allowlist.is_null()) {
@@ -304,7 +376,8 @@ void Group_replication_options::check_option_values(
   }
 
   if (!local_address.is_null()) {
-    validate_local_address_option(*local_address);
+    validate_local_address_option(
+        *local_address, communication_stack.get_safe(), canonical_port);
   }
 
   // Validate if the exitStateAction option is supported on the target
@@ -367,7 +440,7 @@ void Group_replication_options::check_option_values(
 }
 
 void Group_replication_options::read_option_values(
-    const mysqlshdk::mysql::IInstance &instance) {
+    const mysqlshdk::mysql::IInstance &instance, bool switching_comm_stack) {
   mysqlshdk::utils::Version version = instance.get_version();
 
   if (group_name.is_null()) {
@@ -379,14 +452,14 @@ void Group_replication_options::read_option_values(
         instance.get_sysvar_string("group_replication_ssl_mode").get_safe());
   }
 
-  if (group_seeds.is_null()) {
+  if (group_seeds.is_null() && !switching_comm_stack) {
     group_seeds = instance.get_sysvar_string("group_replication_group_seeds");
 
     // Set group_seeds to NULL if value read is empty (to be overridden).
     if (!group_seeds.is_null() && group_seeds->empty()) group_seeds.reset();
   }
 
-  if (ip_allowlist.is_null()) {
+  if (ip_allowlist.is_null() && !switching_comm_stack) {
     if (version < mysqlshdk::utils::Version(8, 0, 22)) {
       ip_allowlist =
           instance.get_sysvar_string("group_replication_ip_whitelist");
@@ -396,7 +469,7 @@ void Group_replication_options::read_option_values(
     }
   }
 
-  if (local_address.is_null()) {
+  if (local_address.is_null() && !switching_comm_stack) {
     local_address =
         instance.get_sysvar_string("group_replication_local_address");
     // group_replication_local_address will be "" when it's not set, but we
@@ -495,6 +568,25 @@ void Group_replication_options::set_consistency(const std::string &option,
   consistency = stripped_value;
 }
 
+void Group_replication_options::set_communication_stack(
+    const std::string &value) {
+  communication_stack = shcore::str_upper(shcore::str_strip(value));
+
+  if (communication_stack->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. String value cannot be empty.",
+        kCommunicationStack));
+  }
+
+  if (kCommunicationStackValidValues.count(shcore::str_upper(value)) == 0) {
+    std::string valid_values =
+        shcore::str_join(kCommunicationStackValidValues, ", ");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Supported values: %s.",
+        kCommunicationStack, valid_values.c_str()));
+  }
+}
+
 const shcore::Option_pack_def<Rejoin_group_replication_options>
     &Rejoin_group_replication_options::options() {
   static const auto opts =
@@ -506,7 +598,22 @@ const shcore::Option_pack_def<Rejoin_group_replication_options>
           .optional(kIpWhitelist,
                     &Rejoin_group_replication_options::set_ip_allowlist, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED);
+                    shcore::Option_scope::DEPRECATED)
+          .optional(kLocalAddress,
+                    &Rejoin_group_replication_options::set_local_address);
+
+  return opts;
+}
+
+const shcore::Option_pack_def<Reboot_group_replication_options>
+    &Reboot_group_replication_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Reboot_group_replication_options>()
+          .optional(kIpAllowlist,
+                    &Reboot_group_replication_options::set_ip_allowlist)
+          .optional(kLocalAddress,
+                    &Reboot_group_replication_options::set_local_address);
+  // TODO(miguel): add support for changing the sslMode
 
   return opts;
 }
@@ -555,8 +662,6 @@ const shcore::Option_pack_def<Join_group_replication_options>
   static const auto opts =
       shcore::Option_pack_def<Join_group_replication_options>()
           .include<Rejoin_group_replication_options>()
-          .optional(kLocalAddress,
-                    &Group_replication_options::set_local_address)
           .optional(kGroupSeeds,
                     &Join_group_replication_options::set_group_seeds)
           .optional(kExitStateAction,
@@ -579,8 +684,6 @@ const shcore::Option_pack_def<Cluster_set_group_replication_options>
   static const auto opts =
       shcore::Option_pack_def<Cluster_set_group_replication_options>()
           .include<Rejoin_group_replication_options>()
-          .optional(kLocalAddress,
-                    &Group_replication_options::set_local_address)
           .optional(kExitStateAction,
                     &Group_replication_options::set_exit_state_action)
           .optional(kMemberWeight,
@@ -594,7 +697,10 @@ const shcore::Option_pack_def<Cluster_set_group_replication_options>
                     &Group_replication_options::set_expel_timeout, "",
                     shcore::Option_extract_mode::EXACT)
           .optional(kAutoRejoinTries,
-                    &Group_replication_options::set_auto_rejoin_tries);
+                    &Group_replication_options::set_auto_rejoin_tries)
+          .optional(kCommunicationStack,
+                    &Group_replication_options::set_communication_stack, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE);
 
   return opts;
 }
@@ -616,7 +722,10 @@ const shcore::Option_pack_def<Create_group_replication_options>
                     shcore::Option_scope::DEPRECATED)
           .optional(kExpelTimeout,
                     &Create_group_replication_options::set_expel_timeout, "",
-                    shcore::Option_extract_mode::EXACT);
+                    shcore::Option_extract_mode::EXACT)
+          .optional(kCommunicationStack,
+                    &Create_group_replication_options::set_communication_stack,
+                    "", shcore::Option_extract_mode::CASE_INSENSITIVE);
 
   return opts;
 }

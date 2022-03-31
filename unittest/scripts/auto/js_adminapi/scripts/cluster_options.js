@@ -40,7 +40,12 @@ var __cfg_group_seeds1 = __cfg_local_address2 + "," + __cfg_local_address3;
 var __cfg_group_seeds2 = __cfg_local_address1 + "," + __cfg_local_address3;
 var __cfg_group_seeds3 = __cfg_local_address1 + "," + __cfg_local_address2;
 
-var cluster = dba.createCluster("testCluster", {groupName: __cfg_group_name, localAddress: __cfg_local_address1, gtidSetIsComplete: true});
+var cluster;
+if (__version_num < 80027) {
+  cluster = dba.createCluster("testCluster", {groupName: __cfg_group_name, localAddress: __cfg_local_address1, gtidSetIsComplete: true});
+} else {
+  cluster = dba.createCluster("testCluster", {groupName: __cfg_group_name, localAddress: __cfg_local_address1, gtidSetIsComplete: true, communicationStack: "XCOM"});
+}
 var __gr_view_change_uuid = session.runSql("SELECT NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), '')").fetchOne()[0];
 
 //@ WL#11465: Add instance 2 with specific options

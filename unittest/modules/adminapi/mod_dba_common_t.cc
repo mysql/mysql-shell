@@ -1135,12 +1135,13 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   auto ver_8014 = mysqlshdk::utils::Version(8, 0, 14);
   auto ver_804 = mysqlshdk::utils::Version(8, 0, 4);
   auto ver_800 = mysqlshdk::utils::Version(8, 0, 0);
+  int canonical_port = 3306;
 
   // Error if the ipWhitelist is empty.
   options.ip_allowlist_option_name = "ipWhitelist";
   options.ip_allowlist = "";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1151,7 +1152,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if the ipWhitelist string is empty (only whitespace).
   options.ip_allowlist = " ";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1162,7 +1163,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if CIDR is used but has an invalid value (not in range [1,32])
   options.ip_allowlist = "192.168.1.1/0";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1175,7 +1176,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if CIDR is used but has an invalid value (not in range [1,32])
   options.ip_allowlist = "192.168.1.1/33";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1189,7 +1190,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if CIDR is used but has an invalid value (not in range [1,32])
   options.ip_allowlist = "1/33";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1204,7 +1205,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // And a list of values is used
   options.ip_allowlist = "192.168.1.1/0,192.168.1.1/33";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1217,7 +1218,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if ipWhitelist is an IPv6 address and not supported by server
   options.ip_allowlist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1231,7 +1232,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if ipWhitelist is not a valid IPv4 address (not supported, < 8.0.4)
   options.ip_allowlist = "256.255.255.255";
   try {
-    options.check_option_values(Version(8, 0, 3));
+    options.check_option_values(Version(8, 0, 3), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1244,7 +1245,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if ipWhitelist is not a valid IPv4 address
   options.ip_allowlist = "256.255.255.255/16";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1257,7 +1258,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if hostname is used and server version < 8.0.4
   options.ip_allowlist = "localhost";
   try {
-    options.check_option_values(Version(8, 0, 3));
+    options.check_option_values(Version(8, 0, 3), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1270,7 +1271,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if hostname with cidr
   options.ip_allowlist = "localhost/8";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1283,7 +1284,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // Error if hostname with cidr
   options.ip_allowlist = "bogus/8";
   try {
-    options.check_option_values(Version(8, 0, 4));
+    options.check_option_values(Version(8, 0, 4), canonical_port);
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1296,11 +1297,12 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   // No error if ipWhitelist is an IPv6 address and server does support it
   options.ip_allowlist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   {
-    options.check_option_values(Version(8, 0, 14));
+    options.check_option_values(Version(8, 0, 14), canonical_port);
     SCOPED_TRACE(
         "No error if ipWhitelist is an IPv6 address and server does support "
         "it");
-    EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
+    EXPECT_NO_THROW(
+        options.check_option_values(Version(8, 0, 14), canonical_port));
   }
 
   options.ip_allowlist = "256.255.255.255";
@@ -1311,7 +1313,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     SCOPED_TRACE(
         "Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4");
     EXPECT_THROW_LIKE(
-        options.check_option_values(Version(8, 0, 0)), shcore::Exception,
+        options.check_option_values(Version(8, 0, 0), canonical_port),
+        shcore::Exception,
         "Invalid value for ipWhitelist '256.255.255.255': hostnames are not "
         "supported (version >= 8.0.4 required for hostname support).");
   }
@@ -1321,7 +1324,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     options.ip_allowlist = "localhost";
     SCOPED_TRACE("Error if hostname is used and server version < 8.0.4");
     EXPECT_THROW_LIKE(
-        options.check_option_values(Version(8, 0, 0)), shcore::Exception,
+        options.check_option_values(Version(8, 0, 0), canonical_port),
+        shcore::Exception,
         "Invalid value for ipWhitelist 'localhost': hostnames are not "
         "supported (version >= 8.0.4 required for hostname support).");
   }
@@ -1331,28 +1335,34 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     // we don't do hostname resolution
     SCOPED_TRACE("No error if hostname is used and server version >= 8.0.4");
     options.ip_allowlist = "fake_hostnanme";
-    EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
+    EXPECT_NO_THROW(
+        options.check_option_values(Version(8, 0, 4), canonical_port));
   }
 
   // No error if the ipWhitelist is a valid IPv4 address
   options.ip_allowlist = "192.168.1.1";
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 4), canonical_port));
 
   // No error if the ipWhitelist is a valid IPv4 address with a valid CIDR value
   options.ip_allowlist = "192.168.1.1/15";
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 4), canonical_port));
 
   // No error if the ipWhitelist consist of several valid IPv4 addresses with a
   // valid CIDR value
   // NOTE: if the server version is > 8.0.4, hostnames are allowed too so we
   // must test it
   options.ip_allowlist = "192.168.1.1/15,192.169.1.1/1, localhost";
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 4), canonical_port));
   options.ip_allowlist = "192.168.1.1/15,192.169.1.1/1";
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 3)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 3), canonical_port));
   options.ip_allowlist =
       "2001:0db8:85a3:0000:0000:8a2e:0370:7334/16,192.168.1.1/15,192.169.1.1/1";
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 14), canonical_port));
 }
 
 TEST(mod_dba_common, validate_exit_state_action_supported) {
@@ -1360,23 +1370,28 @@ TEST(mod_dba_common, validate_exit_state_action_supported) {
 
   Group_replication_options options;
   options.exit_state_action = "1";
+  int canonical_port = 3306;
 
   // Error only if the target server version is >= 5.7.24 if 5.0, or >= 8.0.12
   // if 8.0.
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(5, 7, 23)),
-                    shcore::Exception,
-                    "Option 'exitStateAction' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(5, 7, 23), canonical_port),
+      shcore::Exception,
+      "Option 'exitStateAction' not supported on target server "
+      "version:");
 
-  EXPECT_NO_THROW(options.check_option_values(Version(5, 7, 24)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(5, 7, 24), canonical_port));
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 11)),
-                    shcore::Exception,
-                    "Option 'exitStateAction' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(8, 0, 11), canonical_port),
+      shcore::Exception,
+      "Option 'exitStateAction' not supported on target server "
+      "version:");
 
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 12)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 12), canonical_port));
 }
 
 TEST(mod_dba_common, validate_member_weight_supported) {
@@ -1384,23 +1399,28 @@ TEST(mod_dba_common, validate_member_weight_supported) {
 
   Group_replication_options options;
   options.member_weight = 1;
+  int canonical_port = 3306;
 
   // Error only if the target server version is < 5.7.20 if 5.0, or < 8.0.11
   // if 8.0.
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(5, 7, 19)),
-                    shcore::Exception,
-                    "Option 'memberWeight' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(5, 7, 19), canonical_port),
+      shcore::Exception,
+      "Option 'memberWeight' not supported on target server "
+      "version:");
 
-  EXPECT_NO_THROW(options.check_option_values(Version(5, 7, 20)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(5, 7, 20), canonical_port));
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 10)),
-                    shcore::Exception,
-                    "Option 'memberWeight' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(8, 0, 10), canonical_port),
+      shcore::Exception,
+      "Option 'memberWeight' not supported on target server "
+      "version:");
 
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 11)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 11), canonical_port));
 }
 
 TEST(mod_dba_common, validate_consistency_supported) {
@@ -1408,6 +1428,7 @@ TEST(mod_dba_common, validate_consistency_supported) {
 
   Group_replication_options options;
   Version version(8, 0, 14);
+  int canonical_port = 3306;
 
   auto empty_fail_cons = mysqlshdk::utils::nullable<std::string>("  ");
   auto null_fail_cons = mysqlshdk::utils::nullable<std::string>();
@@ -1416,25 +1437,27 @@ TEST(mod_dba_common, validate_consistency_supported) {
   options.consistency = null_fail_cons;
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
-  options.check_option_values(version);
+  options.check_option_values(version, canonical_port);
 
   options.consistency = empty_fail_cons;
   // if an empty value was provided, an error should be thrown independently
   // of the server version
   EXPECT_THROW_LIKE(
-      options.check_option_values(version), shcore::Exception,
+      options.check_option_values(version, canonical_port), shcore::Exception,
       "Invalid value for consistency, string value cannot be empty.");
 
   // if a valid value (non empty) was provided, an error should only be thrown
   // in case the option is not supported by the server version.
   options.consistency = valid_fail_cons;
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 13)),
-                    std::runtime_error,
-                    "Option 'consistency' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(8, 0, 13), canonical_port),
+      std::runtime_error,
+      "Option 'consistency' not supported on target server "
+      "version:");
 
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 14), canonical_port));
 }
 
 TEST(mod_dba_common, validate_auto_rejoin_tries_supported) {
@@ -1442,61 +1465,68 @@ TEST(mod_dba_common, validate_auto_rejoin_tries_supported) {
 
   Group_replication_options options;
   options.auto_rejoin_tries = 1;
+  int canonical_port = 3306;
 
   // Error only if the target server version is < 8.0.16
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(5, 7, 19)),
-                    shcore::Exception,
-                    "Option 'autoRejoinTries' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(5, 7, 19), canonical_port),
+      shcore::Exception,
+      "Option 'autoRejoinTries' not supported on target server "
+      "version:");
 
-  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 15)),
-                    shcore::Exception,
-                    "Option 'autoRejoinTries' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(8, 0, 15), canonical_port),
+      shcore::Exception,
+      "Option 'autoRejoinTries' not supported on target server "
+      "version:");
 
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 16)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 16), canonical_port));
 }
 
 TEST(mod_dba_common, validate_expel_timeout_supported) {
   using mysqlsh::dba::Group_replication_options;
 
   Group_replication_options options;
+  Version version(8, 0, 13);
+  int canonical_port = 3306;
 
   auto null_timeout = mysqlshdk::utils::nullable<int64_t>();
   auto valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3600);
   auto maybe_valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3601);
-  auto invalid_timeout = mysqlshdk::utils::nullable<std::int64_t>(-1);
 
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
   options.expel_timeout = null_timeout;
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 13)));
+  options.check_option_values(version, canonical_port);
 
+  // if a value non in the allowed range value was provided, an error should be
+  // thrown independently of the server version
   // this value is "valid" only for versions > 8.0.13
   options.expel_timeout = maybe_valid_timeout;
-  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 13)),
-                    std::runtime_error,
-                    "Invalid value for 'expelTimeout': integer value must be "
-                    "in the range [0, 3600]");
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 15)));
-
-  options.expel_timeout = invalid_timeout;
   EXPECT_THROW_LIKE(
-      options.check_option_values(Version(8, 0, 13)), shcore::Exception,
-      "Invalid value for 'expelTimeout': integer value must be >= 0");
+      options.check_option_values(Version(8, 0, 13), canonical_port),
+      std::runtime_error,
+      "Invalid value for 'expelTimeout': integer value must be "
+      "in the range [0, 3600]");
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 14), canonical_port));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 15), canonical_port));
 
   // if a valid value was provided, an error should only be thrown
   // in case the option is not supported by the server version.
   options.expel_timeout = valid_timeout;
-  EXPECT_THROW_LIKE(options.check_option_values(Version(8, 0, 12)),
-                    std::runtime_error,
-                    "Option 'expelTimeout' not supported on target server "
-                    "version:");
+  EXPECT_THROW_LIKE(
+      options.check_option_values(Version(8, 0, 12), canonical_port),
+      std::runtime_error,
+      "Option 'expelTimeout' not supported on target server "
+      "version:");
 
   options.expel_timeout = valid_timeout;
-  EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 13)));
+  EXPECT_NO_THROW(
+      options.check_option_values(Version(8, 0, 13), canonical_port));
 }
 
 TEST(mod_dba_common, is_option_supported) {
@@ -1542,30 +1572,83 @@ TEST(mod_dba_common, validate_local_address_option) {
 
   Group_replication_options options;
   Version version(8, 0, 14);
+  int canonical_port = 3306;
 
   // Error if the localAddress is empty.
   options.local_address = "";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
 
   // Error if the localAddress string is empty (only whitespace).
   options.local_address = "  ";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
 
   // Error if the localAddress has ':' and no host nor port part is specified.
   options.local_address = " : ";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
 
   // No error if the localAddress is a non-empty string.
   options.local_address = "myhost:1234";
-  EXPECT_NO_THROW(options.check_option_values(version));
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
   options.local_address = "myhost:";
-  EXPECT_NO_THROW(options.check_option_values(version));
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
   options.local_address = ":1234";
-  EXPECT_NO_THROW(options.check_option_values(version));
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
   options.local_address = "myhost";
-  EXPECT_NO_THROW(options.check_option_values(version));
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
   options.local_address = "1234";
-  EXPECT_NO_THROW(options.check_option_values(version));
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
+}
+
+TEST(mod_dba_common, validate_local_address_option_mysql_comm_stack) {
+  using mysqlsh::dba::Group_replication_options;
+
+  Group_replication_options options;
+  Version version(8, 0, 30);
+  int canonical_port = 3306;
+  options.communication_stack = mysqlsh::dba::kCommunicationStackMySQL;
+
+  // Error if the localAddress is empty.
+  options.local_address = "";
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
+
+  // Error if the localAddress string is empty (only whitespace).
+  options.local_address = "  ";
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
+
+  // Error if the localAddress has ':' and no host nor port part is specified.
+  options.local_address = " : ";
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
+
+  // No Error if the port is not specified
+  options.local_address = "myhost:";
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
+  options.local_address = "myhost";
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
+
+  // Error if the port is not the canonical port
+  options.local_address = "myhost:3300";
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
+  options.local_address = ":3300";
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
+  options.local_address = "3300";
+  EXPECT_THROW(options.check_option_values(version, canonical_port),
+               shcore::Exception);
+
+  // No error if the localAddress is using the canonical port
+  options.local_address = "myhost:3306";
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
+  options.local_address = ":3306";
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
+  options.local_address = "3306";
+  EXPECT_NO_THROW(options.check_option_values(version, canonical_port));
 }
 
 TEST(mod_dba_common, validate_label) {
@@ -1661,6 +1744,7 @@ TEST(mod_dba_common, is_valid_identifier) {
 TEST_F(Dba_common_test, resolve_gr_local_address) {
   mysqlshdk::utils::nullable<std::string> local_address;
   std::string raw_report_host = "127.0.0.1";
+  mysqlshdk::utils::nullable<std::string> communication_stack;
   int port;
 
   // Tests for empty localAddress
@@ -1670,7 +1754,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = mysqlshdk::utils::nullable<std::string>();
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port, true));
+        local_address, communication_stack, raw_report_host, port, true));
   }
 
   // Valid port, local_address empty
@@ -1678,7 +1762,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("");
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port, true));
+        local_address, communication_stack, raw_report_host, port, true));
   }
 
   // Invalid port, local_address null
@@ -1687,8 +1771,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     port = 13040;
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1701,8 +1785,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     port = 13040;
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1716,8 +1800,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("");
     port = _mysql_sandbox_ports[0];
     try {
-      mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                             port, true);
+      mysqlsh::dba::resolve_gr_local_address(local_address, communication_stack,
+                                             raw_report_host, port, true);
       testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
       SCOPED_TRACE("Unexpected success calling resolve_gr_local_address");
       ADD_FAILURE();
@@ -1740,7 +1824,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("127.0.0.1");
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port, true));
+        local_address, communication_stack, raw_report_host, port, true));
   }
 
   // Invalid port, complete local_address
@@ -1748,8 +1832,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("127.0.0.1:130400");
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Invalid port '130400' for localAddress option. The port must be an "
         "integer between 1 and 65535.");
@@ -1760,8 +1844,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("127.0.0.1:a");
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Invalid port 'a' for localAddress option. The port must be an "
         "integer between 1 and 65535.");
@@ -1773,8 +1857,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     port = 13040;
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1787,8 +1871,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     port = 13040;
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1801,7 +1885,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::to_string(unused_port);
 
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port, true));
+        local_address, communication_stack, raw_report_host, port, true));
   }
 
   // Invalid port, local_address without separator ':', assumed to be the port
@@ -1809,8 +1893,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("130401");
 
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port, true),
+        mysqlsh::dba::resolve_gr_local_address(
+            local_address, communication_stack, raw_report_host, port, true),
         shcore::Exception,
         "Invalid port '130401' for localAddress option. The port must be an "
         "integer between 1 and 65535.");
@@ -1822,8 +1906,8 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("127.0.0.1:") + std::to_string(used_port);
 
     try {
-      mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                             port, true);
+      mysqlsh::dba::resolve_gr_local_address(local_address, communication_stack,
+                                             raw_report_host, port, true);
       testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
       SCOPED_TRACE("Unexpected success calling resolve_gr_local_address");
       ADD_FAILURE();

@@ -98,11 +98,16 @@ EXPECT_EQ(old_auth_string_3, new_auth_string_3);
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@<> Bring Instance 3 online
-session.close();
-shell.connect(__sandbox_uri3);
-session.runSql("START group_replication");
-session.close();
-shell.connect(__sandbox_uri1);
+if (__version_num < 80027) {
+    session.close();
+    shell.connect(__sandbox_uri3);
+    session.runSql("START group_replication");
+    session.close();
+    shell.connect(__sandbox_uri1);
+} else {
+    c.rejoinInstance(__sandbox_uri3);
+}
+
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@WL#12776 Warning is printed for the instance not online but no error is thrown if force option is used (no prompts are shown even in interactive mode because the force option was already set)
@@ -128,11 +133,16 @@ restart_gr_plugin(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> Bring Instance 2 online
-session.close();
-shell.connect(__sandbox_uri2);
-session.runSql("START group_replication");
-session.close();
-shell.connect(__sandbox_uri1);
+if (__version_num < 80027) {
+    session.close();
+    shell.connect(__sandbox_uri2);
+    session.runSql("START group_replication");
+    session.close();
+    shell.connect(__sandbox_uri1);
+} else {
+    c.rejoinInstance(__sandbox_uri2);
+}
+
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Validate resetRecoveryAccountsPassword works after the instances are brought back online

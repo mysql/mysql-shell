@@ -102,7 +102,10 @@ EXPECT_EXECUTION_TIME(1, lambda: shell.connect(f"{mysqlx_uri}?connect-timeout=10
 testutil.deploy_sandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname})
 
 shell.connect(__sandbox_uri1)
-cluster = dba.create_cluster("test", {"ipAllowlist": "127.0.0.1," + hostname_ip})
+if __version_num < 80027:
+  cluster = dba.create_cluster("test", {"ipAllowlist": "127.0.0.1," + hostname_ip})
+else:
+  cluster = dba.create_cluster("test")
 
 #@<> WL14698-ET_2 - classic protocol
 # default value of the "dba.connectTimeout" is 5 seconds, set "connectTimeout" to something else to make sure it's not used

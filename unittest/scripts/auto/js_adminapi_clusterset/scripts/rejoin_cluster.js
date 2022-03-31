@@ -326,13 +326,20 @@ session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
 shell.connect(__sandbox_uri1);
-c1 = dba.rebootClusterFromCompleteOutage();
+
+// Unable to rejoin instances since this cluster is INVALIDATED
+EXPECT_THROWS_TYPE(function(){dba.rebootClusterFromCompleteOutage("cluster1", {rejoinInstances: [__endpoint2, __endpoint3]});}, "Dba.rebootClusterFromCompleteOutage: removeInstances and/or rejoinInstances options cannot be used for Invalidated Clusters", "ArgumentError");
+
+c1 = dba.rebootClusterFromCompleteOutage("cluster1");
+
+cs.rejoinCluster("cluster1");
+
+// Rejoin the instances now
+c1 = dba.getCluster();
 c1.rejoinInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c1.rejoinInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-
-cs.rejoinCluster("cluster1");
 
 cs.status({extended:1});
 

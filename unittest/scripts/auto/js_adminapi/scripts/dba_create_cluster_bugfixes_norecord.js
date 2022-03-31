@@ -31,13 +31,22 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' i
 //@<> create cluster fails with nice error if innodb_page_size=4k
 shell.connect(__sandbox_uri1);
 EXPECT_THROWS(function(){
-  var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
+  if (__version_num < 80027) {
+    dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
+  } else {
+    dba.createCluster("test_cluster", {gtidSetIsComplete: true});
+  }
 }, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
 //@<> create cluster works with innodb_page_size=8k (> 4k)
 shell.connect(__sandbox_uri2);
-var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
+var cluster;
+if (__version_num < 80027) {
+  cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
+} else {
+  cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
+}
 EXPECT_STDERR_EMPTY();
 
 //@<> Clean-up deployed instances.
@@ -50,7 +59,12 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 //@<> dba.createCluster using innodb_default_row__format=COMPACT
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, innodb_default_row_format: 'COMPACT'});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
+var c;
+if (__version_num < 80027) {
+  c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
+} else {
+  c = dba.createCluster('sample');
+}
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -58,7 +72,12 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@<> dba.createCluster using innodb_default_row__format=REDUNDANT
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, innodb_default_row_format: 'REDUNDANT'});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
+var c;
+if (__version_num < 80027) {
+  c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
+} else {
+  c = dba.createCluster('sample');
+}
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

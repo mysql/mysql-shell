@@ -27,6 +27,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -221,6 +222,15 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void update_cluster_attribute(const Cluster_id &cluster_id,
                                 const std::string &attribute,
                                 const shcore::Value &value);
+
+  void update_cluster_capability(
+      const Cluster_id &cluster_id, const std::string &capability,
+      const std::string &value,
+      const std::set<std::string> &allowed_operations);
+
+  bool query_cluster_capability(const Cluster_id &cluster_id,
+                                const std::string &capability,
+                                shcore::Value *out_value) const;
 
   void update_cluster_set_attribute(const Cluster_set_id &clusterset_id,
                                     const std::string &attribute,

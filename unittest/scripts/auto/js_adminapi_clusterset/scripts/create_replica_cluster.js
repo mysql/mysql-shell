@@ -116,7 +116,7 @@ EXPECT_EQ(0, session3.runSql("select @@super_read_only").fetchOne()[0]);
 EXPECT_EQ("", session3.runSql("select @@gtid_executed").fetchOne()[0]);
 
 EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster2' of cluster 'cluster' at instance '${hostname}:${__mysql_sandbox_port3}'.`);
-EXPECT_OUTPUT_CONTAINS(`A new InnoDB cluster will be created on instance 'localhost:${__mysql_sandbox_port3}'.`);
+EXPECT_OUTPUT_CONTAINS(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port3}'.`);
 EXPECT_OUTPUT_CONTAINS(`* Checking transaction state of the instance...`);
 EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${hostname}:${__mysql_sandbox_port3}' has not been pre-provisioned (GTID set is empty), but the clusterset was configured to assume that replication can completely recover the state of new instances.`);
 EXPECT_OUTPUT_CONTAINS(`The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '${hostname}:${__mysql_sandbox_port3}' with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);

@@ -10,6 +10,7 @@
     "clusterName": "sample",
     "defaultReplicaSet": {
         "GRProtocolVersion": "[[*]]",
+        "communicationStack": "XCOM",
         "groupName": "<<<gr_uuid>>>",
 ?{VER(>=8.0.26)}
         "groupViewChangeUuid": "[[*]]",
@@ -260,6 +261,13 @@ ${*}
             {
                 "option": "replicationAllowedHost", 
                 "value": null
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {

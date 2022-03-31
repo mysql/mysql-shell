@@ -90,7 +90,7 @@ void Create_cluster::validate_create_cluster_options() {
     if (!m_options.adopt_from_gr && m_options.interactive()) {
       if (console->confirm(
               "You are connected to an instance that belongs to an unmanaged "
-              "replication group.\nDo you want to setup an InnoDB cluster "
+              "replication group.\nDo you want to setup an InnoDB Cluster "
               "based on this replication group?",
               mysqlsh::Prompt_answer::YES) == mysqlsh::Prompt_answer::YES) {
         m_options.adopt_from_gr = true;
@@ -124,13 +124,32 @@ void Create_cluster::validate_create_cluster_options() {
         "group to adopt");
   }
 
+  // Using communicationStack and adoptFromGR and/or ipAllowlist/ipWhitelist at
+  // the same time is forbidden
+  if (m_options.adopt_from_gr &&
+      !m_options.gr_options.communication_stack.is_null()) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Cannot use the '%s' option if '%s' is set "
+                           "to true.",
+                           kCommunicationStack, kAdoptFromGR));
+  }
+
+  if (m_options.gr_options.communication_stack.get_safe() ==
+          kCommunicationStackMySQL &&
+      !m_options.gr_options.ip_allowlist.is_null()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use '%s' when setting the '%s' option to '%s'",
+        m_options.gr_options.ip_allowlist_option_name.c_str(),
+        kCommunicationStack, kCommunicationStackMySQL));
+  }
+
   // Set multi-primary to false by default.
   if (!m_options.multi_primary) m_options.multi_primary = false;
 
   if (*m_options.multi_primary && !m_options.force.get_safe()) {
     if (m_options.interactive()) {
       console->print_para(
-          "The MySQL InnoDB cluster is going to be setup in advanced "
+          "The MySQL InnoDB Cluster is going to be setup in advanced "
           "Multi-Primary Mode. Before continuing you have to confirm that you "
           "understand the requirements and limitations of Multi-Primary Mode. "
           "For more information see "
@@ -138,7 +157,7 @@ void Create_cluster::validate_create_cluster_options() {
           "group-replication-limitations.html before proceeding.");
 
       console->print_para(
-          "I have read the MySQL InnoDB cluster manual and I understand the "
+          "I have read the MySQL InnoDB Cluster manual and I understand the "
           "requirements and limitations of advanced Multi-Primary Mode.");
 
       if (console->confirm("Confirm", mysqlsh::Prompt_answer::NO) ==
@@ -216,20 +235,27 @@ void Create_cluster::resolve_ssl_mode() {
 
 void Create_cluster::prepare() {
   auto console = mysqlsh::current_console();
-  console->print_info(
-      std::string{"A new InnoDB cluster will be created"} +
-      (m_options.get_adopt_from_gr()
-           ? " based on the existing replication group"
-           : "") +
-      " on instance '" +
-      m_target_instance->get_connection_options().uri_endpoint() + "'.\n");
+
+  std::string msg = "A new InnoDB Cluster will be created ";
+
+  if (m_options.adopt_from_gr) {
+    msg += "based on the existing replication group ";
+  }
+
+  msg += "on instance '" + m_target_instance->descr();
+  msg += "'.";
+
+  console->print_info(msg);
+  console->print_info();
 
   // Validate the cluster_name
   mysqlsh::dba::validate_cluster_name(m_cluster_name,
                                       Cluster_type::GROUP_REPLICATION);
 
   // Validate values given for GR options.
-  m_options.gr_options.check_option_values(m_target_instance->get_version());
+  m_options.gr_options.check_option_values(
+      m_target_instance->get_version(),
+      m_target_instance->get_canonical_port());
 
   // Validate the Clone options.
   m_options.clone_options.check_option_values(m_target_instance->get_version());
@@ -244,6 +270,34 @@ void Create_cluster::prepare() {
 
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
+
+  // The default value for communicationStack must be 'mysql' if the target
+  // instance is running 8.0.27+
+  // NOTE: When adoptFromGR is used, we don't set the communication stack since
+  // the one in use by the unmanaged GR group must be kept
+  if (m_options.gr_options.communication_stack.is_null() &&
+      !m_options.adopt_from_gr &&
+      m_target_instance->get_version() >=
+          k_mysql_communication_stack_initial_version) {
+    m_options.gr_options.communication_stack = kCommunicationStackMySQL;
+
+    // Verify if the allowlist is used when the communication stack is MySQL by
+    // default
+    if (!m_options.gr_options.ip_allowlist.is_null()) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Cannot use '%s' when the '%s' is '%s'",
+          m_options.gr_options.ip_allowlist_option_name.c_str(),
+          kCommunicationStack, kCommunicationStackMySQL));
+    }
+
+    // Validate localAddress if the communication stack is MySQL by default
+    if (!m_options.gr_options.local_address.is_null()) {
+      validate_local_address_option(
+          *m_options.gr_options.local_address,
+          m_options.gr_options.communication_stack.get_safe(),
+          m_target_instance->get_canonical_port());
+    }
+  }
 
   // Verify if the instance is running asynchronous
   // replication. Skip if 'force' is enabled.
@@ -321,6 +375,7 @@ void Create_cluster::prepare() {
       m_options.gr_options.local_address =
           mysqlsh::dba::resolve_gr_local_address(
               m_options.gr_options.local_address,
+              m_options.gr_options.communication_stack,
               m_target_instance->get_canonical_hostname(),
               m_target_instance->get_canonical_port(), !m_retrying, false);
 
@@ -374,6 +429,16 @@ void Create_cluster::prepare() {
     }
     throw;
   }
+
+  // Check if the operation is being called from create_replica_cluster():
+  // if the Metadata belongs to a ClusterSet we can assume that
+  Cluster_metadata cluster_md;
+  if (m_metadata &&
+      m_metadata->get_cluster_for_server_uuid(
+          m_metadata->get_md_server()->get_uuid(), &cluster_md) &&
+      !cluster_md.cluster_set_id.empty()) {
+    m_create_replica_cluster = true;
+  }
 }
 
 void Create_cluster::log_used_gr_options() {
@@ -426,6 +491,11 @@ void Create_cluster::log_used_gr_options() {
     log_info("Using Group Replication auto-rejoin tries: %s",
              std::to_string(*m_options.gr_options.auto_rejoin_tries).c_str());
   }
+
+  if (!m_options.gr_options.communication_stack.is_null()) {
+    log_info("Using Group Replication Communication Stack: %s",
+             m_options.gr_options.communication_stack->c_str());
+  }
 }
 
 void Create_cluster::prepare_metadata_schema() {
@@ -441,24 +511,58 @@ void Create_cluster::prepare_metadata_schema() {
   mysqlsh::dba::prepare_metadata_schema(m_target_instance, false);
 }
 
-void Create_cluster::setup_recovery(Cluster_impl *cluster,
-                                    mysqlshdk::mysql::IInstance *target,
-                                    std::string *out_username) {
+void Create_cluster::create_recovery_account(
+    mysqlshdk::mysql::IInstance *target, Cluster_impl *cluster,
+    std::string *out_username) {
   // Setup recovery account for this seed instance, which will be used
   // when/if it needs to rejoin.
   std::string repl_account_host;
   mysqlshdk::mysql::Auth_options repl_account;
-  std::tie(repl_account, repl_account_host) =
-      cluster->create_replication_user(target);
 
-  if (out_username) *out_username = repl_account.user;
+  if (cluster) {
+    std::tie(repl_account, repl_account_host) =
+        cluster->create_replication_user(target);
+  } else {
+    repl_account_host = m_options.replication_allowed_host.empty()
+                            ? "%"
+                            : m_options.replication_allowed_host;
 
-  // Insert the recovery account on the Metadata Schema.
-  cluster->get_metadata_storage()->update_instance_repl_account(
-      target->get_uuid(), Cluster_type::GROUP_REPLICATION, repl_account.user,
-      repl_account_host);
+    repl_account.user = mysqlshdk::gr::k_group_recovery_user_prefix +
+                        std::to_string(m_target_instance->get_server_id());
 
-  // Set the GR replication (recovery) user.
+    log_info("Creating recovery account '%s'@'%s' for instance '%s'",
+             repl_account.user.c_str(), repl_account_host.c_str(),
+             m_target_instance->descr().c_str());
+
+    if (m_target_instance->user_exists(repl_account.user, repl_account_host)) {
+      mysqlsh::current_console()->print_note(shcore::str_format(
+          "User '%s'@'%s' already existed at instance '%s'. It will be "
+          "deleted and created again with a new password.",
+          repl_account.user.c_str(), repl_account_host.c_str(),
+          m_target_instance->descr().c_str()));
+      m_target_instance->drop_user(repl_account.user, repl_account_host);
+    }
+
+    auto target_version = m_target_instance->get_version();
+
+    bool clone_available_on_target =
+        target_version >=
+        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
+
+    bool mysql_communication_stack_available_on_target =
+        target_version >= k_mysql_communication_stack_initial_version;
+
+    repl_account = mysqlshdk::gr::create_recovery_user(
+        repl_account.user, *m_target_instance, {repl_account_host}, {},
+        clone_available_on_target, false,
+        mysql_communication_stack_available_on_target);
+  }
+
+  if (out_username) {
+    *out_username = repl_account.user;
+  }
+
+  // Configure GR's recovery channel with the newly created account
   log_debug("Changing GR recovery user details for %s",
             target->descr().c_str());
 
@@ -473,6 +577,29 @@ void Create_cluster::setup_recovery(Cluster_impl *cluster,
 
     cluster->drop_replication_user(target);
   }
+}
+
+void Create_cluster::store_recovery_account_metadata(
+    mysqlshdk::mysql::IInstance *target, const Cluster_impl &cluster) {
+  std::string repl_account_host = "%";
+  mysqlshdk::mysql::Auth_options repl_account;
+
+  shcore::Value allowed_host;
+  if (cluster.get_metadata_storage()->query_cluster_attribute(
+          cluster.get_id(), k_cluster_attribute_replication_allowed_host,
+          &allowed_host) &&
+      allowed_host.type == shcore::String &&
+      !allowed_host.as_string().empty()) {
+    repl_account_host = allowed_host.as_string();
+  }
+
+  repl_account.user = mysqlshdk::mysql::get_replication_user(
+      *target, mysqlshdk::gr::k_gr_recovery_channel);
+
+  // Insert the recovery account on the Metadata Schema.
+  cluster.get_metadata_storage()->update_instance_repl_account(
+      target->get_uuid(), Cluster_type::GROUP_REPLICATION, repl_account.user,
+      repl_account_host);
 }
 
 void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
@@ -492,7 +619,10 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
             *target, mysqlshdk::gr::k_gr_recovery_channel));
 
         std::string new_user;
-        setup_recovery(cluster, target.get(), &new_user);
+
+        create_recovery_account(target.get(), cluster, &new_user);
+        store_recovery_account_metadata(target.get(), *cluster);
+
         new_users.insert(new_user);
         return true;
       });
@@ -557,7 +687,7 @@ void Create_cluster::validate_local_address_ip_compatibility() const {
 
 shcore::Value Create_cluster::execute() {
   auto console = mysqlsh::current_console();
-  console->print_info("Creating InnoDB cluster '" + m_cluster_name + "' on '" +
+  console->print_info("Creating InnoDB Cluster '" + m_cluster_name + "' on '" +
                       m_target_instance->descr() + "'...\n");
 
   //  Common informative logging
@@ -579,7 +709,7 @@ shcore::Value Create_cluster::execute() {
 
   if (*m_options.multi_primary && !m_options.get_adopt_from_gr()) {
     console->print_info(
-        "The MySQL InnoDB cluster is going to be setup in advanced "
+        "The MySQL InnoDB Cluster is going to be setup in advanced "
         "Multi-Primary Mode. Consult its requirements and limitations in "
         "https://dev.mysql.com/doc/refman/en/"
         "group-replication-limitations.html");
@@ -611,6 +741,48 @@ shcore::Value Create_cluster::execute() {
       mysqlshdk::mysql::create_indicator_tag(
           *m_target_instance, metadata::kClusterSetupIndicatorTag);
 
+      // When using the communicationStack 'MySQL' the recovery channel must be
+      // set-up before starting GR because GR requires that the recovery channel
+      // is configured in order to obtain the credentials information
+      if (m_options.gr_options.communication_stack.get_safe() ==
+          kCommunicationStackMySQL) {
+        // Create the Recovery account and configure GR's recovery channel.
+        // If creating a Replica Cluster, suppress the binary log otherwise
+        // we're creating an errant transaction in the Replica Cluster.
+        // When a standalone Cluster we must not suppress the binary log
+        // otherwise the transaction will never be replicated to the Cluster
+        // members
+
+        // Check if super_read_only is enabled. If so it must be disabled to
+        // create the account. This might happen if super_read_only is persisted
+        // and we're creating a Replica Cluster
+        if (m_target_instance->get_sysvar_bool("super_read_only").get_safe()) {
+          m_target_instance->set_sysvar("super_read_only", false);
+        }
+
+        std::string repl_account;
+
+        if (m_create_replica_cluster) {
+          mysqlshdk::mysql::Suppress_binary_log nobinlog(
+              m_target_instance.get());
+
+          create_recovery_account(m_target_instance.get(), nullptr,
+                                  &repl_account);
+        } else {
+          create_recovery_account(m_target_instance.get(), nullptr,
+                                  &repl_account);
+        }
+
+        // Drop the recovery account if GR fails to start
+        undo_list.push_front([=]() {
+          std::string repl_account_host =
+              m_options.replication_allowed_host.empty()
+                  ? "%"
+                  : m_options.replication_allowed_host;
+          m_target_instance->drop_user(repl_account, repl_account_host);
+        });
+      }
+
       // GR has to be stopped if this fails
       undo_list.push_front([this, console]() {
         log_info("revert: Stopping group_replication");
@@ -632,6 +804,9 @@ shcore::Value Create_cluster::execute() {
       });
       // Start GR before creating the recovery user and metadata, so that
       // all transactions executed by us have the same GTID prefix
+      // NOTE: When the communicationStack chosen is "MySQL", there's one
+      // transaction that will have a different GTID prefix that is the "CREATE
+      // USER" (see above)
       mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
                                   m_options.multi_primary, m_cfg.get());
     }
@@ -682,6 +857,12 @@ shcore::Value Create_cluster::execute() {
             ? shcore::Value("%")
             : shcore::Value(m_options.replication_allowed_host));
 
+    // Store the communicationStack in the Metadata as a Cluster capability
+    // TODO(miguel): build and add the list of allowed operations
+    metadata->update_cluster_capability(
+        cluster_impl->get_id(), kCommunicationStack,
+        m_options.gr_options.communication_stack.get_safe(), {});
+
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_assume_gtid_set_complete,
         m_options.clone_options.gtid_set_is_complete ? shcore::Value::True()
@@ -731,7 +912,33 @@ shcore::Value Create_cluster::execute() {
             m_target_instance->get_connection_options());
       }
 
-      setup_recovery(cluster_impl.get(), m_target_instance.get());
+      // Create the recovery account and update the Metadata
+      // NOTE: If the Cluster is a REPLICA the account must be created at the
+      // PRIMARY Cluster too (create_recovery_account will create it at the MD
+      // server)
+      if (m_create_replica_cluster ||
+          m_options.gr_options.communication_stack.is_null() ||
+          m_options.gr_options.communication_stack.get_safe() ==
+              kCommunicationStackXCom) {
+        std::string repl_account;
+        create_recovery_account(m_target_instance.get(), cluster_impl.get(),
+                                &repl_account);
+
+        // Drop the recovery account if GR fails to start
+        undo_list.push_front([=]() {
+          std::string repl_account_host =
+              m_options.replication_allowed_host.empty()
+                  ? "%"
+                  : m_options.replication_allowed_host;
+          m_target_instance->drop_user(repl_account, repl_account_host);
+        });
+
+        store_recovery_account_metadata(m_target_instance.get(), *cluster_impl);
+      } else {
+        // The recovery account was already created, just updated the Metadata:
+        // Standalone cluster using MySQL comm stack
+        store_recovery_account_metadata(m_target_instance.get(), *cluster_impl);
+      }
     }
 
     // Handle the clone options

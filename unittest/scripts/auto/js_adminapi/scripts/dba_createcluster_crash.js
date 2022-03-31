@@ -12,14 +12,18 @@ shell.options["dba.logSql"]=1;
 
 //@<> run createCluster in a loop, fail during it and see if we can recover
 
-function try_once(fail_after, verbose) {
+function try_once(fail_after, verbose, comm_stack) {
   shell.options.verbose=verbose;
 
   testutil.setTrap("mysql", ["sql !regex select.*|show.*", "++match_counter > "+fail_after], {msg: "debug break"});
 
   try {
     println("### Creating cluster...");
-    c = dba.createCluster("cluster");
+    if (comm_stack != null) {
+      c = dba.createCluster("cluster", {communicationStack: comm_stack});
+    } else {
+      c = dba.createCluster("cluster");
+    }
     println("### Create worked on the 1st try after executing", fail_after, "stmts");
     if (shell.options.verbose)
       testutil.wipeAllOutput();
@@ -45,7 +49,11 @@ function try_once(fail_after, verbose) {
   // check if we can retry
   try {
     println("### Retrying createCluster");
-    c = dba.createCluster("cluster");
+    if (comm_stack != null) {
+      c = dba.createCluster("cluster", {communicationStack: comm_stack});
+    } else {
+      c = dba.createCluster("cluster");
+    }
     println("### createCluster retry OK");
 
     num_clusters = session.runSql("select count(*) from mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
@@ -72,7 +80,7 @@ function try_once(fail_after, verbose) {
     c.dissolve();
     session.runSql("set global super_read_only=0");
     session.runSql("drop schema if exists mysql_innodb_cluster_metadata");
-    session.runSql("reset master");    
+    session.runSql("reset master");
   }
 }
 
@@ -88,22 +96,69 @@ if (everything) {
 }
 verbose = 0;
 
+var comm_stack = "xcom";
+
 for (iter = start; iter < 100; iter += skip) {
   println();
   println("##############################################################");
   println("### Testing createCluster() recovery after "+iter+" statements");
   println("##############################################################");
+  println("### Using "+comm_stack+" Communication Stack");
   println();
 
   ok = false;
   r = null;
-  EXPECT_NO_THROWS(function(){ r = try_once(iter, verbose); ok = true; });
+  EXPECT_NO_THROWS(function() {
+    if (__version_num < 80027) {
+      r = try_once(iter, verbose);
+    } else {
+      r = try_once(iter, verbose, comm_stack);
+    }
+    ok = true;
+  });
   if (r == 42) {
     break;
   }
   if (!ok) {
     print("aborting at iteration ", iter);
     break;
+  }
+}
+
+// If version >= 8.0.27, test with "MySQL" communication stack too
+if (__version_num >= 80027) {
+  // set skip to 1 for full coverage sure, but increase it for shorter runtime
+  if (everything) {
+    skip = 1;
+    start = 1;
+  } else {
+    skip = 11;
+    start = 20;
+  }
+
+  var comm_stack = "mysql";
+
+  for (iter = start; iter < 100; iter += skip) {
+    println();
+    println("##############################################################");
+    println("### Testing createCluster() recovery after "+iter+" statements");
+    println("##############################################################");
+    println("### Using "+comm_stack+" Communication Stack");
+    println();
+
+    ok = false;
+    r = null;
+    EXPECT_NO_THROWS(function() {
+        r = try_once(iter, verbose, comm_stack);
+      ok = true;
+    });
+    if (r == 42) {
+      break;
+    }
+    if (!ok) {
+      print("aborting at iteration ", iter);
+      break;
+    }
   }
 }
 

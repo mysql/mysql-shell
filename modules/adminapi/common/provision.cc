@@ -112,6 +112,46 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
       // Enable SSL on GR
       config->set("group_replication_recovery_use_ssl",
                   mysqlshdk::utils::nullable<bool>(true));
+
+      // Set GR's SSL configurations when memberSslMode is either VERIFY_CA or
+      // VERIFY_IDENTITY. Group Replication SSL settings must be set according
+      // to the corresponding settings used by the Server (copy the values),
+      // regardless of the communication stack in use
+
+      if (gr_opts.ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA ||
+          gr_opts.ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY) {
+        std::string ssl_ca = instance.get_sysvar_string("ssl_ca").get_safe("");
+        std::string ssl_capath =
+            instance.get_sysvar_string("ssl_capath").get_safe("");
+        std::string ssl_cert =
+            instance.get_sysvar_string("ssl_cert").get_safe("");
+        std::string ssl_cipher =
+            instance.get_sysvar_string("ssl_cipher").get_safe("");
+        std::string ssl_crl =
+            instance.get_sysvar_string("ssl_crl").get_safe("");
+        std::string ssl_crl_path =
+            instance.get_sysvar_string("ssl_crlpath").get_safe("");
+        std::string ssl_crl_key =
+            instance.get_sysvar_string("ssl_key").get_safe("");
+
+        config->set("group_replication_recovery_ssl_ca", ssl_ca);
+        config->set("group_replication_recovery_ssl_capath", ssl_capath);
+        config->set("group_replication_recovery_ssl_cert", ssl_cert);
+        config->set("group_replication_recovery_ssl_cipher", ssl_cipher);
+        config->set("group_replication_recovery_ssl_crl", ssl_crl);
+        config->set("group_replication_recovery_ssl_crlpath", ssl_crl_path);
+        config->set("group_replication_recovery_ssl_key", ssl_crl_key);
+      } else {
+        // Reset to the defaults in case the options are already set or
+        // persisted with different values
+        instance.set_sysvar_default("group_replication_recovery_ssl_ca");
+        instance.set_sysvar_default("group_replication_recovery_ssl_capath");
+        instance.set_sysvar_default("group_replication_recovery_ssl_cert");
+        instance.set_sysvar_default("group_replication_recovery_ssl_cipher");
+        instance.set_sysvar_default("group_replication_recovery_ssl_crl");
+        instance.set_sysvar_default("group_replication_recovery_ssl_crlpath");
+        instance.set_sysvar_default("group_replication_recovery_ssl_key");
+      }
     }
 
     // Set the ssl_mode
@@ -182,6 +222,12 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
   config->set("group_replication_start_on_boot",
               mysqlshdk::utils::nullable<bool>(
                   !gr_opts.manual_start_on_boot.get_safe(false)));
+
+  // Set GR communication stack (if provided).
+  if (!gr_opts.communication_stack.is_null()) {
+    config->set("group_replication_communication_stack",
+                gr_opts.communication_stack, "communicationStack");
+  }
 }
 
 void report_gr_start_error(const mysqlshdk::mysql::IInstance &instance,
@@ -279,7 +325,7 @@ namespace mysqlsh {
 namespace dba {
 
 void leave_cluster(const mysqlsh::dba::Instance &instance,
-                   bool is_cluster_set_member) {
+                   bool is_cluster_set_member, bool reset_repl_channels) {
   std::string instance_address = instance.get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
 
@@ -305,13 +351,15 @@ void leave_cluster(const mysqlsh::dba::Instance &instance,
   }
 
   // Reset the replication channels used by Group Replication.
-  std::string replica_term =
-      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
+  if (reset_repl_channels) {
+    std::string replica_term =
+        mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
-  instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
-                    "group_replication_applier");
-  instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
-                    "group_replication_recovery");
+    instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
+                      "group_replication_applier");
+    instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
+                      "group_replication_recovery");
+  }
 
   // Disable and persist GR start on boot and reset values for
   // group_replication_bootstrap_group,
@@ -688,6 +736,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - expel timeout (if provided);
   // - auto-rejoin tries (if provided);
   // - Enable GR start on boot;
+  // - communication stack (if provided)
   set_gr_options(instance, gr_opts, config, single_primary_mode);
 
   if (multi_primary) {

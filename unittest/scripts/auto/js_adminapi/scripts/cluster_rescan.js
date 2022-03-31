@@ -768,7 +768,6 @@ shell.connect(__sandbox_uri3);
 testutil.changeSandboxConf(__mysql_sandbox_port3, "report_host", hostname);
 testutil.restartSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
-c.rejoinInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 s = c.status();
@@ -780,7 +779,7 @@ EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, s["defaultReplicaSet"]["topolog
 row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
 EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, row.address);
 EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, row.instance_name);
-EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_port3+"1", "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
 
 //@<> setPrimary is expected to throw b/c metadata doesn't match {VER(>=8.0.27)}
 EXPECT_THROWS(function(){c.setPrimaryInstance(__sandbox_uri3);}, `The instance 'localhost:${__mysql_sandbox_port3}' does not belong to the cluster: 'cluster'.`);
@@ -792,7 +791,7 @@ c.rescan();
 row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
 EXPECT_EQ(hostname+":"+__mysql_sandbox_port3, row.address);
 EXPECT_EQ(hostname+":"+__mysql_sandbox_port3, row.instance_name);
-EXPECT_EQ( {"mysqlX": hostname+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_port3+"1", "mysqlClassic": hostname+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+EXPECT_EQ( {"mysqlX": hostname+":"+__mysql_sandbox_x_port3, "grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
 
 s = c.status();
 

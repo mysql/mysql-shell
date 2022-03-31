@@ -1207,6 +1207,11 @@ void Cluster_set_impl::remove_cluster(
 
         // Remove Cluster's recovery accounts
         if (!options.dry_run && target_cluster->get_cluster_server()) {
+          // The accounts must be dropped from the ClusterSet
+          // NOTE: If the replication channel is down and 'force' was used, the
+          // accounts won't be dropped in the target cluster. This is expected,
+          // otherwise, it wouldn't be possible to reboot the cluster from
+          // complete outage later on
           target_cluster->drop_replication_users();
 
           undo_list.push_front([=]() {
@@ -1386,6 +1391,7 @@ void Cluster_set_impl::remove_cluster(
 
         console->print_info("* Dissolving the Cluster...");
 
+        auto comm_stack = target_cluster->get_communication_stack();
         // First the secondaries
         for (const auto &member : cluster_reachable_members) {
           if (member->get_uuid() != target_cluster_primary->get_uuid()) {
@@ -1394,7 +1400,21 @@ void Cluster_set_impl::remove_cluster(
               log_debug("Stopping GR at %s", member->descr().c_str());
 
               if (!options.dry_run) {
-                mysqlsh::dba::leave_cluster(*member);
+                // Do not reset Group Replication's recovery channel
+                // credentials, otherwise, when MySQL communication stack is
+                // used it won't be possible to reboot the cluster from complete
+                // outage. That would require re-creating the account, but
+                // that's a problem if the cluster is a replica cluster since it
+                // would create an errant transaction since the cluster is not
+                // yet rejoined back to the clusterset and, on the other side,
+                // suppressing the binary log is not an option since then the
+                // recovery account wouldn't be replicated to the other cluster
+                // members
+                if (comm_stack == kCommunicationStackMySQL) {
+                  mysqlsh::dba::leave_cluster(*member, false, false);
+                } else {
+                  mysqlsh::dba::leave_cluster(*member);
+                }
 
                 undo_list.push_front([=]() {
                   Group_replication_options gr_opts;
@@ -1427,7 +1447,13 @@ void Cluster_set_impl::remove_cluster(
                     target_cluster_primary->descr().c_str());
 
           if (!options.dry_run) {
-            mysqlsh::dba::leave_cluster(*target_cluster_primary);
+            // Do not reset Group Replication's recovery channel credentials
+            if (comm_stack == kCommunicationStackMySQL) {
+              mysqlsh::dba::leave_cluster(*target_cluster_primary, false,
+                                          false);
+            } else {
+              mysqlsh::dba::leave_cluster(*target_cluster_primary);
+            }
           }
         } catch (const std::exception &err) {
           console->print_error(shcore::str_format(

@@ -14,7 +14,10 @@ cluster_admin_uri= "mysql://tst_admin:tst_pwd@" + __host + ":" + str(__mysql_san
 
 # Session to be used through all the AAPI calls
 shell.connect(cluster_admin_uri)
-dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip})
+if __version_num < 80027:
+    dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip})
+else:
+    dba.create_cluster('sample')
 
 def set_metadata_1_0_1():
     dba.drop_metadata_schema({"force": True})

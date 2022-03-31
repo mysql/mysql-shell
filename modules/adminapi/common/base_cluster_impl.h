@@ -52,6 +52,9 @@ constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
 constexpr const char k_cluster_attribute_replication_allowed_host[] =
     "opt_replicationAllowedHost";
 
+// Cluster capabilities
+constexpr const char k_cluster_capabilities[] = "capabilities";
+
 class Base_cluster_impl {
  public:
   Base_cluster_impl(const std::string &cluster_name,

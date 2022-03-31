@@ -32,16 +32,13 @@ function get_all_recovery_accounts(session) {
 // remaining instances of the cluster.
 
 //@<> Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
-
-//@<> Create cluster
-shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {gtidSetIsComplete: true});
-
+var scene = new ClusterScenario([__mysql_sandbox_port1]);
+var session = scene.session
+var c = scene.cluster
 var all_users_instance1 = get_all_users(session);
 
 //@<> Add instance to the cluster
+testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 

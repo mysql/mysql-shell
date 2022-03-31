@@ -249,8 +249,7 @@ otherwise it must be started manually.
 communication between the InnoDB Cluster members.
 @li ipAllowlist: The list of hosts allowed to connect to the instance for
 Group Replication.
-@li localAddress: string value with the Group Replication local address to
-be used instead of the automatically generated one.
+${CLUSTER_OPT_LOCAL_ADDRESS}
 @li exitStateAction: string value indicating the Group Replication exit
 state action.
 @li memberWeight: integer value with a percentage weight for automatic
@@ -268,6 +267,7 @@ with the PRIMARY Cluster. Default is 0 and it means no timeout.
 internal replication accounts (i.e. 'mysql_innodb_cluster_###'@'hostname').
 Default is %. It must be possible for any member of the Cluster to connect to
 any other member using accounts with this hostname value.
+${CLUSTER_OPT_COMM_STACK}
 
 The recoveryMethod option supports the following values:
 
@@ -322,16 +322,7 @@ discouraged since incorrect values can lead to Group Replication errors.
 The value for groupName is used to set the Group Replication system variable
 'group_replication_group_name'.
 
-The value for localAddress is used to set the Group Replication system variable
-'group_replication_local_address'. The localAddress option accepts values in
-the format: 'host:port' or 'host:' or ':port'. If the specified value does not
-include a colon (:) and it is numeric, then it is assumed to be the port,
-otherwise it is considered to be the host. When the host is not specified, the
-default value is the value of the system variable 'report_host' if defined
-(i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
-specified, the default value is the port of the current active connection
-(session) * 10 + 1. In case the automatically determined default port value is
-invalid (> 65535) then an error is thrown.
+${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
@@ -346,6 +337,8 @@ ${CLUSTER_OPT_CONSISTENCY_EXTRA}
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
+${CLUSTER_OPT_COMM_STACK_EXTRA}
 )*");
 /**
  * $(CLUSTERSET_CREATEREPLICACLUSTER_BRIEF)

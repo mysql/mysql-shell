@@ -104,7 +104,8 @@ class Cluster_impl : public Base_cluster_impl,
 
   void rejoin_instance(const Connection_options &instance_def,
                        const Group_replication_options &gr_options,
-                       bool interactive, bool skip_precondition_check);
+                       bool interactive, bool skip_precondition_check,
+                       std::optional<bool> switch_comm_stack = false);
 
   void remove_instance(const Connection_options &instance_def,
                        const cluster::Remove_instance_options &options);
@@ -167,6 +168,8 @@ class Cluster_impl : public Base_cluster_impl,
 
   const std::string get_view_change_uuid() const;
 
+  const std::string get_communication_stack() const;
+
   Cluster_type get_type() const override {
     return Cluster_type::GROUP_REPLICATION;
   }
@@ -184,7 +187,35 @@ class Cluster_impl : public Base_cluster_impl,
   }
 
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
-  create_replication_user(mysqlshdk::mysql::IInstance *target);
+  create_replication_user(mysqlshdk::mysql::IInstance *target,
+                          bool only_on_target = false,
+                          mysqlshdk::mysql::Auth_options creds = {},
+                          bool print_recreate_node = true);
+
+  /**
+   * Reset the password of the recovery_account or the target instance's
+   * recovery account and update the credentials for the recovery channel
+   *
+   * @param target           Target instance
+   * @param recovery_account Username of the recovery account that will have the
+   *                         password reset. If empty, the function will use the
+   *                         target_instance recovery account
+   * @param hosts            List of hosts on which the password must be reset
+   */
+  void reset_recovery_password(const std::shared_ptr<Instance> &target,
+                               const std::string &recovery_account = "",
+                               const std::vector<std::string> &hosts = {});
+
+  /**
+   * Recreate the recovery replication account for the instance instance
+   *
+   * Drops and creates a new recovery account for the target instance, ensuring
+   * the credentials for the recovery channel are updated too
+   *
+   * @param target          Target instance
+   */
+  std::pair<std::string, std::string> recreate_replication_user(
+      const std::shared_ptr<Instance> &target);
 
   bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
                              const std::string &endpoint = "",

@@ -80,7 +80,11 @@ shell.connect(__hostname_uri1);
 
 var __local_address_1 = (__mysql_sandbox_port2 * 10 + 1).toString();
 
-cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
+if (__version_num < 80027) {
+    cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
+} else {
+    cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
+}
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 
 var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
@@ -214,7 +218,11 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
+if (__version_num < 80027) {
+    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
+} else {
+    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
+}
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 cluster = dba.getCluster("ClusterName");
 var __local_address_2 = "15679";
@@ -225,6 +233,7 @@ var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
 
 //@ FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
+__mysql_sandbox_gr_port1_xcom = __mysql_sandbox_port1 * 10 + 1
 print(persisted_sysvars1);
 print("\n");
 print(persisted_sysvars2);
@@ -280,7 +289,11 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__hostname_uri1);
-dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
+if (__version_num < 80027) {
+    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
+} else {
+    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true, communicationStack: "XCOM"});
+}
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 cluster = dba.getCluster("ClusterName");
 var __local_address_3 = (__mysql_sandbox_port3 * 10 + 1).toString();

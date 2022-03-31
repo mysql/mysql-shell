@@ -124,6 +124,8 @@ validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
 shell.connect(__sandbox_uri1);
 
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]}); });
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> createClusterSet()
 EXPECT_NO_THROWS(function() { cs = cluster.createClusterSet("testCS"); });
@@ -147,6 +149,8 @@ NOTE: Applications will now be blocked from performing writes on Cluster 'cluste
 Cluster successfully fenced from write traffic
 `);
 
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 validate_fenced_write_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
 
 //@<> verify allowed ops primary cluster fenced to writes
@@ -234,6 +238,8 @@ validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
 //@<> rebootClusterFromCompleteOutage() on a primary fenced cluster from all traffic
 shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]}); });
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE", true);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE", true);
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 
@@ -274,10 +280,16 @@ validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
 
 //@<> rebootClusterFromCompleteOutage() on a primary fenced cluster from all traffic that was previously fenced from write traffic only
 shell.connect(__sandbox_uri1);
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]}); });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 
-// The Cluster is still fenced to writes so it must be unfenced
+// The Cluster is still fenced to writes so it must be unfenced before rejoining the instances back to it
 EXPECT_NO_THROWS(function() { cluster.unfenceWrites(); });
+
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2); });
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri3); });
+
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 

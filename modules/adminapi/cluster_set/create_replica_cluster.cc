@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #include <memory>
 #include <set>
+#include <utility>
+#include <vector>
 
 #include "adminapi/common/async_topology.h"
 #include "adminapi/common/instance_validations.h"
@@ -35,9 +37,11 @@
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_monitoring.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "mysql/clone.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "shellcore/console.h"
 
@@ -70,6 +74,8 @@ Create_replica_cluster::prepare_create_cluster_options() {
 
   options->gr_options.ssl_mode = m_options.gr_options.ssl_mode;
   options->gr_options.ip_allowlist = m_options.gr_options.ip_allowlist;
+  options->gr_options.ip_allowlist_option_name =
+      m_options.gr_options.ip_allowlist_option_name;
   options->gr_options.local_address = m_options.gr_options.local_address;
   options->gr_options.exit_state_action =
       m_options.gr_options.exit_state_action;
@@ -80,6 +86,9 @@ Create_replica_cluster::prepare_create_cluster_options() {
       m_options.gr_options.auto_rejoin_tries;
   options->gr_options.manual_start_on_boot =
       m_options.gr_options.manual_start_on_boot;
+
+  options->gr_options.communication_stack =
+      m_options.gr_options.communication_stack;
 
   Create_cluster_clone_options no_clone_options;
 
@@ -438,6 +447,33 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
   return cluster;
 }
 
+void Create_replica_cluster::recreate_recovery_account(
+    const std::shared_ptr<Cluster_impl> cluster, std::string *recovery_user,
+    std::string *recovery_host) {
+  std::string rec_user, host;
+
+  // Get the recovery account
+  std::vector<std::string> recovery_user_hosts;
+  std::tie(rec_user, recovery_user_hosts, std::ignore) =
+      cluster->get_replication_user(*m_target_instance);
+
+  // Recovery account is coming from the Metadata
+  host = recovery_user_hosts.front();
+
+  // Ensure the replication user is deleted if exists before creating it
+  // again
+  m_primary_instance->drop_user(rec_user, host);
+
+  log_debug("Re-creating temporary recovery user '%s'@'%s' at instance '%s'.",
+            rec_user.c_str(), host.c_str(),
+            m_primary_instance->descr().c_str());
+  std::tie(rec_user, host) =
+      cluster->recreate_replication_user(m_target_instance);
+
+  if (recovery_user) *recovery_user = rec_user;
+  if (recovery_host) *recovery_host = host;
+}
+
 void Create_replica_cluster::prepare() {
   auto console = mysqlsh::current_console();
 
@@ -641,7 +677,7 @@ void Create_replica_cluster::prepare() {
   std::string have_ssl = *m_target_instance->get_sysvar_string("have_ssl");
 
   // The instance does not support SSL
-  if (shcore::str_casecmp(have_ssl.c_str(), "YES") &&
+  if (shcore::str_casecmp(have_ssl.c_str(), "YES") != 0 &&
       m_ssl_mode == Cluster_ssl_mode::REQUIRED) {
     console->print_error(
         "The ClusterSet's clusterSetReplicationSslMode is 'REQUIRED', "
@@ -756,6 +792,34 @@ shcore::Value Create_replica_cluster::execute() {
       log_info("Revert: Removing and resetting ClusterSet settings");
       m_cluster_set->remove_replica(m_target_instance.get(), m_options.dry_run);
     });
+
+    // If the communication stack is 'MySQL' the recovery account must be
+    // recreated because the account was created with the binary log disabled
+    // so any other member joining the cluster afterward won't have the account
+    // and in the event of a primary failover of a clusterSet
+    // switchover/failover Group replication will fail to start when using this
+    // communication stack.
+    //
+    // The account was created with the binary log disabled because when using
+    // the communicationStack 'MySQL' the recovery channel must be set-up before
+    // starting GR because GR requires that the recovery channel is configured
+    // in order to obtain the credentials information. The account had to be
+    // created with the binary log disabled otherwise an errant transaction
+    // would be created in the Replica Cluster
+    if (!m_options.dry_run &&
+        cluster->get_communication_stack() == kCommunicationStackMySQL) {
+      std::string repl_account_user;
+
+      recreate_recovery_account(cluster, &repl_account_user,
+                                &repl_account_host);
+
+      undo_list.push_front([&]() {
+        log_info("Revert: Dropping replication user '%s'",
+                 repl_account_user.c_str());
+        m_cluster_set->get_primary_master()->drop_user(repl_account_user,
+                                                       repl_account_host, true);
+      });
+    }
 
     try {
       console->print_info();

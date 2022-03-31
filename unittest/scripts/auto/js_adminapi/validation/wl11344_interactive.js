@@ -25,6 +25,9 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 
 //@<OUT> FR1-TS-01 check persisted variables {VER(>=8.0.12)}
 group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
@@ -77,7 +80,7 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR1-TS-03 {VER(>=8.0.12)}
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -89,7 +92,7 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
-Creating InnoDB cluster 'C' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'C' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -135,7 +138,7 @@ Calling this function on a cluster member is only required for MySQL versions 8.
 ||
 
 //@<OUT> FR1-TS-06 {VER(<8.0.12)}
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -147,7 +150,7 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-Creating InnoDB cluster 'ClusterName' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'ClusterName' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -187,6 +190,9 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 
 //@<OUT> FR1-TS-7 check persisted variables {VER(>=8.0.12)}
 group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
@@ -398,6 +404,9 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 ||
 
 //@<OUT> FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = XCOM
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
@@ -410,7 +419,7 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{VER(<8.0.22)}
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
-group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -419,13 +428,16 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = XCOM
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 ?{VER(>=8.0.22)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
@@ -450,13 +462,16 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR2-TS-5 {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = XCOM
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_3>>>
-group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -465,13 +480,16 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = XCOM
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 ?{VER(>=8.0.22)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
@@ -490,13 +508,16 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = XCOM
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 ?{VER(>=8.0.22)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
@@ -536,6 +557,9 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 ||
 
 //@<OUT> FR2-TS-8 Check that correct values were persisted and that instance rejoins automatically {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = ON
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
@@ -551,6 +575,9 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
 ?{VER(<8.0.16)}
@@ -639,6 +666,9 @@ ONLINE
 ||
 
 //@<OUT> FR2-TS-9 Check that correct values were persisted on instance 2 {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -660,6 +690,9 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR2-TS-9 Check that correct values are persisted and updated when instances are added and that instances rejoin automatically {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -677,6 +710,9 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -694,6 +730,9 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
@@ -803,6 +842,9 @@ ONLINE
 
 //@<OUT> FR5-TS-1 Check that persisted variables are updated/reset after removeCluster operation {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -820,6 +862,9 @@ group_replication_start_on_boot = OFF
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
@@ -842,6 +887,9 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - before {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -870,6 +918,9 @@ start a new session to the Metadata Storage R/W instance.
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - after {VER(>=8.0.12)}
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -888,6 +939,9 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
 group_replication_bootstrap_group = OFF
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -905,6 +959,9 @@ group_replication_start_on_boot = OFF
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
@@ -984,6 +1041,9 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 
 //@<OUT> Check if Cluster dissolve will reset persisted variables {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
+?{VER(>=8.0.27)}
+group_replication_communication_stack = MYSQL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY

@@ -235,6 +235,7 @@ EXPECT_THROWS(function(){cluster.rejoinInstance(__sandbox_uri3)}, "Access denied
 EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
 
 cluster2.rejoinInstance("localhost:"+__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 cluster.status();
 
 //@<> setOption (no primary, should fail)

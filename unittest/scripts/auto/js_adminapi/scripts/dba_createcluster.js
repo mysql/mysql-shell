@@ -51,14 +51,89 @@ shell.connect(__sandbox_uri1);
 
 // WL#12011: AdminAPI: Refactor dba.createCluster()
 //@<> WL#12011: FR2-04 - invalid value for interactive option.
-var c = dba.createCluster('test', {interactive: "not a valid type"});
+EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {interactive: "not a valid type"}) }, "Argument #2: Option 'interactive' Bool expected, but value is String", "TypeError");
 
 //@<> WL#12011: FR2-01 - interactive = true.
 testutil.expectPrompt("Confirm [y/N]:", "n");
-var c = dba.createCluster('test', {interactive: true, multiPrimary: true});
+
+EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {interactive: true, multiPrimary: true}) }, "Cancelled", "RuntimeError");
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode.
+Before continuing you have to confirm that you understand the requirements and
+limitations of Multi-Primary Mode. For more information see
+https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
+proceeding.
+
+I have read the MySQL InnoDB Cluster manual and I understand the requirements
+and limitations of advanced Multi-Primary Mode.
+`);
 
 //@<> WL#12011: FR2-03 - no interactive option (default: non-interactive).
-var c = dba.createCluster('test', {multiPrimary: true, force: true});
+var c;
+EXPECT_NO_THROWS(function() { c = dba.createCluster('test', {multiPrimary: true, force: true}); });
+
+if (__version_num < 80011) {
+ EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+Validating instance configuration at localhost:${__mysql_sandbox_port1}...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
+
+WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
+
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.`);
+} else if (__version_num > 80011 && __version_num < 80027) {
+EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+Validating instance configuration at localhost:${__mysql_sandbox_port1}...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
+
+Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
+
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.`);
+} else {
+EXPECT_STDOUT_CONTAINS_MULTILINE(
+`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+Validating instance configuration at localhost:${__mysql_sandbox_port1}...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port1}'. Use the localAddress option to override.
+
+Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
+
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.`);
+}
 
 c.dissolve();
 
@@ -86,20 +161,20 @@ c.dissolve();
 //@<> check error log dumping on create if supported {VER(>=8.0.22)}
 
 // force GR start to fail by passing an invalid localAddress
-EXPECT_THROWS(function(){dba.createCluster("test", {localAddress:"0.0.0.0:1"})}, "Group Replication failed to start:");
+EXPECT_THROWS(function(){dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1"})}, "Group Replication failed to start:");
 
 EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
 EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
 
 //@<> check error log dumping on add if supported {VER(>=8.0.22)}
-var c = dba.createCluster("test");
+var c = dba.createCluster("test", {communicationStack: "XCOM"});
 
 EXPECT_THROWS(function(){c.addInstance(__sandbox_uri2, {localAddress:"0.0.0.0:1", recoveryMethod:"incremental"})}, "Group Replication failed to start:");
 
 EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
 EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
 
-//@ WL#12011: Finalization.
+//@<> WL#12011: Finalization.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -123,7 +198,7 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // - Cluster.addInstance()
 //
 
-//@ WL#12049: Initialization
+//@<> WL#12049: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
@@ -238,7 +313,7 @@ print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
 //@<> BUG#29037274: ADMINAPI MUST NOT SET DEFAULT VALUE FOR G_R_EXIT_STATE_ACTION IN 8.0.16 {VER(>=8.0.16)}
 EXPECT_EQ(null, session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like 'group_replication_exit_state_action'").fetchOne());
 
-//@ WL#12049: Finalization
+//@<> WL#12049: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
@@ -681,7 +756,7 @@ session.close();
 // dba.createCluster() must fail if asynchronous replication is running, unless
 // the 'force' option is
 
-//@ BUG#29305551: Initialization
+//@<> BUG#29305551: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 //@<> BUG#29305551: Setup asynchronous replication
@@ -704,7 +779,7 @@ dba.createCluster('testAsync', {clearReadOnly: true});
 //@<> Create cluster async replication using force option (should pass)
 EXPECT_NO_THROWS(function(){dba.createCluster('testAsync', {clearReadOnly: true, force: true});});
 
-//@ BUG#29305551: Finalization
+//@<> BUG#29305551: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
@@ -715,15 +790,75 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // displayed if the multiPrimary option is set to true.
 // This is a regression issue.
 
-//@ BUG#29361352: Initialization.
+//@<> BUG#29361352: Initialization.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 
 //@<> BUG#29361352: no warning or prompt for multi-primary (interactive: true, multiPrimary: false).
-var c = dba.createCluster('test', {interactive: true, multiPrimary: false, force: false});
 
-//@ BUG#29361352: Finalization.
+var c;
+EXPECT_NO_THROWS(function() { c = dba.createCluster('test', {interactive: true, multiPrimary: false, force: false}); });
+
+if (__version_num < 80011) {
+ EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+Validating instance configuration at localhost:${__mysql_sandbox_port1}...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
+
+WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.`);
+} else if (__version_num > 80011 && __version_num < 80027) {
+EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+Validating instance configuration at localhost:${__mysql_sandbox_port1}...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
+
+Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.`);
+} else {
+EXPECT_STDOUT_CONTAINS_MULTILINE(
+`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
+
+Validating instance configuration at localhost:${__mysql_sandbox_port1}...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port1}'. Use the localAddress option to override.
+
+Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.`);
+}
+
+//@<> BUG#29361352: Finalization.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -734,13 +869,22 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // before bootstrapping the GR group, creating GTIDs for those transaction
 // associated to the server UUID instead of the Gr group name (UUID).
 
-//@ BUG#28064729: Initialization.
+//@<> BUG#28064729: Initialization.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
-//@ BUG#28064729: create a cluster.
-var c = dba.createCluster('test', {gtidSetIsComplete: true});
+//@<> BUG#28064729: create a cluster.
+// NOTE: This test only makes sense when using the XCom communication protocol.
+// With MySQL we have to create the replication account before starting GR so
+// there's no way to guarantee that there won't be any transactions associated
+// to the server uuid
+var c;
+if (__version_num < 80027) {
+    c = dba.createCluster('test', {gtidSetIsComplete: true});
+} else {
+    c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "xcom"});
+}
 
 //@<> BUG#28064729: Verify that there are no GTIDs associated to the server uuid (create cluster).
 EXPECT_FALSE(gtid_contains_server_uuid(session));
@@ -748,7 +892,7 @@ EXPECT_FALSE(gtid_contains_server_uuid(session));
 //@<> BUG#28064729: Verify that there are GTIDS associated to the GR group name (create cluster).
 EXPECT_TRUE(gtid_contains_gr_group_name(session));
 
-//@ BUG#28064729: add an instance.
+//@<> BUG#28064729: add an instance.
 c.addInstance(__sandbox_uri2);
 session.close();
 shell.connect(__sandbox_uri2);
@@ -759,7 +903,7 @@ EXPECT_FALSE(gtid_contains_server_uuid(session));
 //@<> BUG#28064729: Verify that there are GTIDS associated to the GR group name (add instance).
 EXPECT_TRUE(gtid_contains_gr_group_name(session));
 
-//@ BUG#28064729: Finalization.
+//@<> BUG#28064729: Finalization.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -774,7 +918,12 @@ shell.connect(__sandbox_uri1);
 //@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
 var result = session.runSql("SELECT COUNT(*) FROM mysql.user");
 var old_account_number = result.fetchOne()[0];
-testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-whitelist=192.168.2.1/15,127.0.0.1," + hostname_ip])
+
+if (__version_num < 80027) {
+    testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-whitelist=192.168.2.1/15,127.0.0.1," + hostname_ip])
+} else {
+    testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-whitelist=192.168.2.1/15,127.0.0.1," + hostname_ip, "--communication-stack=xcom"])
+}
 print(get_all_gr_recovery_accounts(session));
 
 result = session.runSql("SELECT COUNT(*) FROM mysql.user");
@@ -828,7 +977,16 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
 shell.connect(__sandbox_uri1);
 
 //@ canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
-c = dba.createCluster("cluster");
+// The following test requires the XCOM protocol stack and the validation uses __mysql_sandbox_gr_port1 so we must set it to the default value that is used when XCOM is used, otherwise, it'll be using the one for MySQL Comm Stack if the version is >= 8.0.27
+__mysql_sandbox_gr_port1 = __mysql_sandbox_port1 * 10 + 1;
+
+var c;
+if (__version_num < 80027) {
+    c = dba.createCluster("cluster");
+} else {
+    c = dba.createCluster("cluster", {communicationStack: "xcom"});
+}
+
 // Bug #30548843 Validate that IPv6 value stored on metadata for mysqlx is valid
 print_metadata_instance_addresses(session);
 
@@ -844,7 +1002,7 @@ shell.connect(__sandbox_uri1);
 var local_address = "[::1]:" + __mysql_sandbox_gr_port1;
 var ip_white_list = "::1, 127.0.0.1";
 var group_seeds = "[::1]:" + __mysql_sandbox_gr_port1; + ", [::1]:" + __mysql_sandbox_gr_port2;
-c = dba.createCluster("cluster", {ipWhitelist:ip_white_list, groupSeeds:group_seeds, localAddress:local_address});
+c = dba.createCluster("cluster", {ipWhitelist:ip_white_list, groupSeeds:group_seeds, localAddress:local_address, communicationStack: "xcom"});
 
 //@<> If the target instance is >= 8.0.22, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.22)}
 shell.connect(__sandbox_uri1);
@@ -861,7 +1019,14 @@ EXPECT_EQ(group_seeds, get_sysvar(session, "group_replication_group_seeds"));
 c.dissolve({force: true});
 
 //@<> Verify the new option ipAllowlist that deprecates ipWhitelist sets the allowlist {VER(>=8.0.22)}
-c = dba.createCluster("cluster", {ipAllowlist: ip_white_list});
+
+
+if (__version_num < 80027) {
+    c = dba.createCluster("cluster", {ipAllowlist: ip_white_list});
+} else {
+    c = dba.createCluster("cluster", {ipAllowlist: ip_white_list, communicationStack: "xcom"});
+}
+
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> Cleanup IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
@@ -873,7 +1038,11 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
 shell.connect(__sandbox_uri1);
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-c = dba.createCluster("cluster");
+if (__version_num < 80027) {
+   c = dba.createCluster("cluster");
+} else {
+    c = dba.createCluster("cluster", {communicationStack: "xcom"});
+}
 
 //@<> Cleanup canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 session.close();

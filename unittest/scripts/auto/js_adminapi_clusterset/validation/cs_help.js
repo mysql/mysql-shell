@@ -177,6 +177,8 @@ DESCRIPTION
         'mysql_innodb_cluster_###'@'hostname'). Default is %. It must be
         possible for any member of the Cluster to connect to any other member
         using accounts with this hostname value.
+      - communicationStack: The Group Replication protocol stack to be used in
+        the Cluster: XCom (legacy) or MySQL.
 
       The recoveryMethod option supports the following values:
 
@@ -244,9 +246,10 @@ DESCRIPTION
       When the host is not specified, the default value is the value of the
       system variable 'report_host' if defined (i.e., not 'NULL'), otherwise it
       is the hostname value. When the port is not specified, the default value
-      is the port of the current active connection (session) * 10 + 1. In case
-      the automatically determined default port value is invalid (> 65535) then
-      an error is thrown.
+      is the port of the target instance if the communication stack in use by
+      the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
+      stack is 'XCOM'. In case the automatically determined  default port value
+      is invalid (> 65535) then an error is thrown.
 
       The exitStateAction option supports the following values:
 
@@ -350,6 +353,23 @@ DESCRIPTION
       quickly, setting this option prevents users from having to manually add
       the expelled node back to the group. The autoRejoinTries option accepts
       positive integer values and, since 8.0.21, defaults to 3.
+
+      The value for communicationStack is used to choose which Group
+      Replication communication stack must be used in the Cluster. It's used to
+      set the value of the Group Replication system variable
+      'group_replication_communication_stack'.
+
+      When set to legacy 'XCom', all internal GCS network traffic (PAXOS and
+      communication infrastructure) flows through a separate network address:
+      the localAddress.
+
+      When set to 'MySQL', such traffic re-uses the existing MySQL Server
+      facilities to establish connections among Cluster members. It allows a
+      simpler and safer setup as it obsoletes the usage of IP allowlists
+      (ipAllowlist), removes the explicit need to have a separate network
+      address (localAddress), and introduces user-based authentication.
+
+      The default value for Clusters running 8.0.27+ is 'MySQL'.
 
 //@<OUT> RemoveCluster
 NAME

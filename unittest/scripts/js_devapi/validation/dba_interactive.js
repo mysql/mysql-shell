@@ -39,7 +39,7 @@
 ||
 
 //@<OUT> Dba: createCluster with interaction {VER(>=8.0.11)}
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -50,7 +50,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
-Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 NOTE: Invalid Metadata schema found in target instance: re-creating new Metadata
@@ -59,7 +59,7 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@<OUT> Dba: createCluster with interaction {VER(<8.0.11)}
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
 NOTE: Instance detected as a sandbox.
@@ -71,7 +71,7 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
 NOTE: Invalid Metadata schema found in target instance: re-creating new Metadata
@@ -500,7 +500,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in
 ||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ createCluster() should fail if user does not have global GRANT OPTION {VER(>=8.0.18)}
-|A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port2>>>'.|
+|A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'.|
 |Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 |ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT CLONE_ADMIN, CONNECTION_ADMIN, CREATE USER, EXECUTE, FILE, GROUP_REPLICATION_ADMIN, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, REPLICATION_APPLIER, REPLICATION_SLAVE_ADMIN, ROLE_ADMIN, SELECT, SHUTDOWN, SYSTEM_VARIABLES_ADMIN ON *.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
@@ -512,7 +512,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in
 ||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ createCluster() should fail if user does not have global GRANT OPTION {VER(<8.0.0)}
-|A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port2>>>'.|
+|A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'.|
 |Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 |ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER ON *.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|

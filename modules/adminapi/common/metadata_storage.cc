@@ -596,6 +596,49 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
   }
 }
 
+bool MetadataStorage::query_cluster_capability(const Cluster_id &cluster_id,
+                                               const std::string &capability,
+                                               shcore::Value *out_value) const {
+  std::string attribute =
+      std::string(k_cluster_capabilities) + "." + capability;
+
+  return query_cluster_attribute(cluster_id, attribute, out_value);
+}
+
+void MetadataStorage::update_cluster_capability(
+    const Cluster_id &cluster_id, const std::string &capability,
+    const std::string &value, const std::set<std::string> &allowed_operations) {
+  shcore::Dictionary_t cap = shcore::make_dict();
+
+  if (!value.empty()) {
+    shcore::Dictionary_t value_and_allow = shcore::make_dict();
+    shcore::Array_t allowed_ops = shcore::make_array();
+
+    value_and_allow->set("value", shcore::Value(value));
+
+    for (const auto &op : allowed_operations) {
+      allowed_ops->push_back(shcore::Value(op));
+    }
+
+    value_and_allow->set("allow", shcore::Value(allowed_ops));
+
+    cap->set(capability, shcore::Value(value_and_allow));
+  } else {
+    cap->set(capability, shcore::Value(nullptr));
+  }
+
+  shcore::sqlstring query(
+      "UPDATE mysql_innodb_cluster_metadata.clusters"
+      " SET attributes = JSON_MERGE_PATCH(attributes, CAST('{\"" +
+          std::string(k_cluster_capabilities) + "\": " +
+          shcore::Value(cap).repr() + "}' as JSON)) WHERE cluster_id = ?",
+      0);
+
+  query << cluster_id;
+  query.done();
+  execute_sql(query);
+}
+
 void MetadataStorage::update_cluster_set_attribute(
     const Cluster_set_id &clusterset_id, const std::string &attribute,
     const shcore::Value &value) {

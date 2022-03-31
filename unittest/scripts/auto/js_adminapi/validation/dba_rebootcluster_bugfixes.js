@@ -36,8 +36,15 @@
                 "value": false
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.22)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -466,6 +473,13 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Gr
 * Waiting for seed instance to become ONLINE...
 <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.
 Rejoining '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster.
+Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
+
+Instance configuration is suitable.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 
 //@<OUT> BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown. {VER(>=8.0.11)}
@@ -492,8 +506,15 @@ ONLINE
                 "value": false
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.22)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -720,7 +741,7 @@ ONLINE
                 "value": true
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
             }
         ],

@@ -1,13 +1,13 @@
 //@<OUT> Dba: createCluster multiPrimary with interaction, cancel
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
 proceeding.
 
-I have read the MySQL InnoDB cluster manual and I understand the requirements
+I have read the MySQL InnoDB Cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 
 Confirm [y/N]:
@@ -16,15 +16,15 @@ Confirm [y/N]:
 Dba.createCluster: Cancelled (RuntimeError)
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
 proceeding.
 
-I have read the MySQL InnoDB cluster manual and I understand the requirements
+I have read the MySQL InnoDB Cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 
 Confirm [y/N]:
@@ -38,9 +38,9 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 Adding Seed Instance...
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
@@ -54,15 +54,15 @@ one server failure.
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
 WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
 
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
 proceeding.
 
-I have read the MySQL InnoDB cluster manual and I understand the requirements
+I have read the MySQL InnoDB Cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 
 Confirm [y/N]:
@@ -77,9 +77,9 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 Adding Seed Instance...
 NOTE: Invalid Metadata schema found in target instance: re-creating new Metadata
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -99,7 +99,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port2>>>1'. Use the localAddress option to override.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
 
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
@@ -124,7 +124,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port3>>>1'. Use the localAddress option to override.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>'. Use the localAddress option to override.
 
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
@@ -202,15 +202,15 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 |The cluster was successfully dissolved.|
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
-A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
+A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode.
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode.
 Before continuing you have to confirm that you understand the requirements and
 limitations of Multi-Primary Mode. For more information see
 https://dev.mysql.com/doc/refman/en/group-replication-limitations.html before
 proceeding.
 
-I have read the MySQL InnoDB cluster manual and I understand the requirements
+I have read the MySQL InnoDB Cluster manual and I understand the requirements
 and limitations of advanced Multi-Primary Mode.
 
 Confirm [y/N]:
@@ -225,9 +225,9 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Creating InnoDB cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
+Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
-The MySQL InnoDB cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
+The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
 Adding Seed Instance...
 NOTE: Invalid Metadata schema found in target instance: re-creating new Metadata
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
@@ -262,7 +262,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port3>>>1'. Use the localAddress option to override.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>'. Use the localAddress option to override.
 
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
@@ -294,13 +294,31 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(>=8.0.11)}
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
+Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
+
+Instance configuration is suitable.
 Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
 
+?{VER(>=8.0.27)}
+Re-creating recovery account...
+NOTE: User '<<<repl_user>>>'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with a new password.
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(<8.0.11)}
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
+Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
+NOTE: Instance detected as a sandbox.
+Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
+
+Instance configuration is suitable.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
 
