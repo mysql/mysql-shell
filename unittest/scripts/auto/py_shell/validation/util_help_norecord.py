@@ -1720,6 +1720,8 @@ DESCRIPTION
       - schema: string (default not set) - Load the dump into the given schema.
         This option can only be used when loading dumps created by the
         util.dump_tables() function.
+      - sessionInitSql: list of strings (default: []) - execute the given list
+        of SQL statements in each session about to load data.
       - showMetadata: bool (default: false) - Displays the metadata information
         stored in the dump files, i.e. binary log file name and position.
       - showProgress: bool (default: true if stdout is a tty, false otherwise)
@@ -1735,8 +1737,6 @@ DESCRIPTION
         being created. Once all uploaded tables are processed the command will
         either wait for more data, the dump is marked as completed or the given
         timeout (in seconds) passes. <= 0 disables waiting.
-      - sessionInitSql: list of strings (default: []) - execute the given list
-        of SQL statements in each session about to load data.
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where

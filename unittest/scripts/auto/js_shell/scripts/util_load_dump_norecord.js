@@ -722,6 +722,14 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {sessionInitSql:["set @cid=connection_id
 // ensure sessionInitSql was executed (4 threads + 1 main thread)
 EXPECT_EQ(5, session.runSql(`select * from init_test.init_test`).fetchAll().length);
 
+session.runSql("truncate init_test.init_test");
+
+util.loadDump(__tmp_dir+"/ldtest/dump", {sessionInitSql:["set @cid=connection_id()", `insert into init_test.init_test values (@cid)`] });
+
+// ensure sessionInitSql was executed even if no data loaded (4 threads + 1 main thread)
+EXPECT_EQ(5, session.runSql(`select * from init_test.init_test`).fetchAll().length);
+
+
 wipe_instance(session);
 
 // Various special cases

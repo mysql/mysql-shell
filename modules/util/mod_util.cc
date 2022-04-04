@@ -1353,6 +1353,8 @@ again.
 @li <b>schema</b>: string (default not set) - Load the dump into the given
 schema. This option can only be used when loading dumps created by the
 util.<<<dumpTables>>>() function.
+@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
+list of SQL statements in each session about to load data.
 @li <b>showMetadata</b>: bool (default: false) - Displays the metadata
 information stored in the dump files, i.e. binary log file name and position.
 @li <b>showProgress</b>: bool (default: true if stdout is a tty, false
@@ -1369,8 +1371,6 @@ being created. Once all uploaded tables are processed the command will either
 wait for more data, the dump is marked as completed or the given timeout (in
 seconds) passes.
 <= 0 disables waiting.
-@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
-list of SQL statements in each session about to load data.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 
 Connection options set in the global session, such as compression, ssl-mode, etc.

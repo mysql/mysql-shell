@@ -668,15 +668,6 @@ struct value_type_for_native<std::vector<std::string>> {
 };
 
 template <>
-struct value_type_for_native<const std::vector<std::string> &> {
-  static const Value_type type = Array;
-
-  static std::vector<std::string> extract(const Value &value) {
-    return value.to_string_container<std::vector<std::string>>();
-  }
-};
-
-template <>
 struct value_type_for_native<std::list<std::string>> {
   static const Value_type type = Array;
 
