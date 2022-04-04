@@ -1353,6 +1353,8 @@ again.
 @li <b>schema</b>: string (default not set) - Load the dump into the given
 schema. This option can only be used when loading dumps created by the
 util.<<<dumpTables>>>() function.
+@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
+list of SQL statements in each session about to load data.
 @li <b>showMetadata</b>: bool (default: false) - Displays the metadata
 information stored in the dump files, i.e. binary log file name and position.
 @li <b>showProgress</b>: bool (default: true if stdout is a tty, false
