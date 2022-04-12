@@ -99,21 +99,22 @@ Logger::LOG_LEVEL get_level_by_name(const std::string &name) {
     throw std::invalid_argument("invalid level");
 }
 
-bool check_logfile_permissions(const std::string &filepath) {
+std::string check_logfile_permissions(const std::string &filepath) {
+  std::string ret_val;
   auto s = fs::status(filepath);
 
-  if (!fs::is_regular_file(s)) {
-    return true;
-  }
+  if (fs::is_regular_file(s)) {
+    auto perms = s.permissions();
+    auto mask = perms & ~(fs::perms::owner_read | fs::perms::owner_write);
+    if (mask != fs::perms::none) {
+      std::stringstream warning;
+      warning << "Permissions 0" << std::oct << static_cast<int>(perms)
+              << " for log file \"" << filepath << "\" are too open.";
 
-  auto perms = s.permissions();
-  auto mask = perms & ~(fs::perms::owner_read | fs::perms::owner_write);
-  if (mask != fs::perms::none) {
-    std::cerr << "WARNING: Permissions 0" << std::oct << static_cast<int>(perms)
-              << " for log file \"" << filepath << "\" are too open.\n";
-    return false;
+      ret_val = warning.str();
+    }
   }
-  return true;
+  return ret_val;
 }
 
 }  // namespace
@@ -382,12 +383,15 @@ Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
           "' for writing: " + shcore::errno_to_string(errno));
     }
 #else
-    bool permissions_ok = check_logfile_permissions(m_log_file_name);
-    if (!permissions_ok) {
+    m_initialization_warning = check_logfile_permissions(m_log_file_name);
+    if (!m_initialization_warning.empty()) {
       int rc = shcore::set_user_only_permissions(m_log_file_name);
       if (rc != 0) {
-        std::cerr << "Error setting permissions on log file: "
-                  << m_log_file_name << std::endl;
+        m_initialization_warning +=
+            " Failed adjusting permissions for user only access.";
+      } else {
+        m_initialization_warning +=
+            " Permissions have been adjusted for user only access.";
       }
     }
 

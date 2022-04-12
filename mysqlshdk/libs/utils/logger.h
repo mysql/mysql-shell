@@ -135,6 +135,10 @@ class SHCORE_PUBLIC Logger final {
     return m_log_context.empty() ? "" : m_log_context.back().c_str();
   }
 
+  inline std::string get_initialization_warning() const {
+    return m_initialization_warning;
+  }
+
  private:
   Logger(const char *filename, bool use_stderr);
 
@@ -169,6 +173,8 @@ class SHCORE_PUBLIC Logger final {
   std::recursive_mutex m_mutex;
 
   std::atomic<int> m_dont_log;
+
+  std::string m_initialization_warning;
 
   friend class Log_reentrant_protector;
   friend class Log_sql;

@@ -737,6 +737,14 @@ int main(int argc, char **argv) {
 
     init_shell(shell);
 
+    // Since log initialization errors are not critical but just warnings, they
+    // get printed in a delayed way to have them properly formatted based on the
+    // ourput format
+    if (const auto warning = logger->get_initialization_warning();
+        !warning.empty()) {
+      mysqlsh::current_console()->print_warning(warning);
+    }
+
 #ifdef _WIN32
     Interrupt_windows_helper whelper;
 #endif
