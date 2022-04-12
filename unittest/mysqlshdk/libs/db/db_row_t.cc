@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,8 +27,6 @@ using Version = mysqlshdk::utils::Version;
 
 namespace mysqlshdk {
 namespace db {
-
-bool Db_tests::first_test = true;
 
 TEST_F(Db_tests, row_getters_date) {
   do {
