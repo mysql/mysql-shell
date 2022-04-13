@@ -779,9 +779,19 @@ for (const data of grants_and_errors) {
 
   shell.connect("mysql://user@localhost:"+__mysql_sandbox_port1);
 
+  let load_dump_error;
+  let output_error;
+  if (__version_num >= 80030) {
+    load_dump_error = "Util.loadDump: Access denied;"
+    output_error = "Error opening connection to MySQL: MySQL Error 1227 (42000): Access denied;"
+  } else {
+    load_dump_error = "Util.loadDump: Error loading dump";
+    output_error = data.error;
+  }
+
   WIPE_OUTPUT();
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk", { "includeSchemas": [ data.schema ]});}, "Util.loadDump: Error loading dump");
-  EXPECT_STDOUT_CONTAINS(data.error);
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk", { "includeSchemas": [ data.schema ]});}, load_dump_error);
+  EXPECT_OUTPUT_CONTAINS(output_error);
 
   shell.connect(__sandbox_uri1);
   wipe_instance(session);
