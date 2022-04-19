@@ -262,7 +262,8 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
-    bool clone_supported = false, bool auto_failover = false);
+    bool clone_supported = false, bool auto_failover = false,
+    bool mysql_comm_stack_supported = false);
 
 /**
  * Checks if the thread for a delayed initialization of the group replication is

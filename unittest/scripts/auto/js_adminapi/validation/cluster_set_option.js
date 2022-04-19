@@ -115,8 +115,17 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 "value": false
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
+?{VER(<8.0.27)}
+?{}
             }
         ],
         "tags": {
@@ -432,8 +441,17 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 "value": true
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
+?{VER(<8.0.27)}
+?{}
             }
         ],
         "tags": {

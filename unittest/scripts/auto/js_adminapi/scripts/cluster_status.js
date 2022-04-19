@@ -6,7 +6,13 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 
 shell.connect(__sandbox_uri1);
-cluster = dba.createCluster("cluster", {gtidSetIsComplete:1});
+
+var cluster;
+if (__version_num < 80027) {
+  cluster = dba.createCluster("cluster", {gtidSetIsComplete: 1});
+} else {
+  cluster = dba.createCluster("cluster", {gtidSetIsComplete: 1, communicationStack: "XCOM"});
+}
 
 // BUG#32582745 - ADMINAPI: OPERATIONS LOGGING USELESS MD STATE INFORMATION
 // When run in debug mode, the MD state check logging should be present
@@ -254,6 +260,11 @@ cluster.status();
 //@ instanceError with split-brain
 session2.runSql("stop group_replication");
 session2.runSql("set global group_replication_bootstrap_group=1");
+
+if (__version_num >= 80027) {
+    session2.runSql("set global group_replication_communication_stack='xcom'");
+}
+
 session2.runSql("start group_replication");
 session2.runSql("set global group_replication_bootstrap_group=0");
 

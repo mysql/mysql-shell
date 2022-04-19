@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,8 @@ class Cluster_join {
   Cluster_join(Cluster_impl *cluster, mysqlsh::dba::Instance *primary_instance,
                const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
                const Group_replication_options &gr_options,
-               const Clone_options &clone_options, bool interactive);
+               const Clone_options &clone_options, bool interactive,
+               std::optional<bool> switch_comm_stack = false);
 
   /**
    * Prepare the Cluster_join command for execution.
@@ -106,13 +107,32 @@ class Cluster_join {
                              checks::Check_type check_type);
 
   void resolve_ssl_mode();
+  /**
+   * Create a recovery account for the target instance with the required
+   * privileges
+   */
   bool create_replication_user();
+
+  /**
+   * Create a local recovery account for the target instance
+   *
+   * Required when using the 'MySQL' communication stack. The account is created
+   * locally only to the target instance and with binary logging disabled to not
+   * introduce errant transactions
+   */
+  void create_local_replication_user();
   void clean_replication_user();
   void log_used_gr_options();
   void ensure_unique_server_id() const;
   void store_cloned_replication_account() const;
   void restore_group_replication_account() const;
   void check_cluster_members_limit() const;
+
+  /**
+   * Check if the target instance supported the communication protocol in used
+   * by the Cluster
+   */
+  void check_comm_stack_support();
 
   void refresh_target_connections();
 
@@ -138,6 +158,36 @@ class Cluster_join {
    */
   void configure_cluster_set_member();
 
+  /**
+   * Change the recovery user credentials of all Cluster members
+   *
+   * @param repl_account The authentication options of the recovery account
+   * @param repl_account_host The hostname of the recovery account
+   */
+  void change_recovery_credentials_all_members(
+      const mysqlshdk::mysql::Auth_options &repl_account,
+      const std::string &repl_account_host) const;
+
+  /**
+   * Recreate the recovery account for each Cluster member
+   *
+   * Required when using the 'MySQL' communication stack to ensure each active
+   * member of the Cluster will use its own recovery account instead of the one
+   * created whenever a new member joined since all possible seeds had to be
+   * updated to use that same account. This ensures distributed recovery is
+   * possible at any circumstance.
+   */
+  void restore_recovery_account_all_members() const;
+
+  /**
+   * Validate the options used in addInstance() and rejoinInstance()
+   *
+   * The function validates if the options used in
+   * addInstance()/rejoinInstance() are accepted according to the communication
+   * stack in use by the Cluster
+   */
+  void validate_add_rejoin_options() const;
+
  private:
   Cluster_impl *m_cluster = nullptr;
   mysqlsh::dba::Instance *m_primary_instance;
@@ -151,6 +201,9 @@ class Cluster_join {
 
   bool m_already_member = false;
   bool m_is_autorejoining = false;
+  std::optional<bool> m_is_switching_comm_stack;
+
+  std::string m_comm_stack;
 };
 
 }  // namespace cluster

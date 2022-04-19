@@ -4,7 +4,14 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
 //@<> Create cluster
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {gtidSetIsComplete: true});
+
+// Use XCOM comm stack since we'll test allowList that is not allowed with MYSQL comm stack
+var c;
+if (__version_num < 80027) {
+  c = dba.createCluster('test', {gtidSetIsComplete: true});
+} else {
+  c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "xcom"});
+}
 
 //@<> AddInstance
 c.addInstance(__sandbox_uri2);
@@ -106,8 +113,16 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 //@ BUG#29754915: create cluster.
+// Use XCOM comm stack, otherwise, with MYSQL comm stack recovery won't even start
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {gtidSetIsComplete: true});
+
+var c;
+if (__version_num < 80027) {
+  c = dba.createCluster('test', {gtidSetIsComplete: true});
+} else {
+  c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "xcom"});
+}
+
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c.addInstance(__sandbox_uri3);
@@ -156,7 +171,15 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: "::1"});
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+
+// Use XCOM comm stack since allowLists are to be tested
+var cluster;
+if (__version_num < 80027) {
+  cluster = dba.createCluster('cluster', {gtidSetIsComplete: true});
+} else {
+  cluster = dba.createCluster('cluster', {gtidSetIsComplete: true, communicationStack: "xcom"});
+}
+
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
@@ -178,6 +201,18 @@ EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
 //@<> Confirm that ipWhitelist is set {VER(>= 8.0.22)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+
+//@<> localAddress supported on rejoinInstance WL#14765 {VER(>= 8.0.14)}
+session.runSql("STOP GROUP_REPLICATION");
+
+var local_address = localhost + ":" + __mysql_sandbox_port4;
+cluster.rejoinInstance(__sandbox_uri2, {localAddress: local_address});
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@<> Confirm that localAddress is set {VER(>= 8.0.14)}
+EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
 
 //@<> Cleanup IPv6 addresses supported WL#12758 {VER(>= 8.0.14)}
 session.close();
@@ -237,7 +272,16 @@ var c = dba.getCluster();
 testutil.startSandbox(__mysql_sandbox_port1);
 
 //@<> Rejoin instance to cluster (BUG#30174191). {VER(<8.0.0)}
-c.rejoinInstance(__sandbox_uri1);
+
+//localAddress supported on rejoinInstance WL#14765 {VER(>= 8.0.14)}
+var local_address = localhost + ":" + __mysql_sandbox_port4;
+
+c.rejoinInstance(__sandbox_uri1, {localAddress: local_address});
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+session.close();
+shell.connect(__sandbox_uri1);
+// Confirm that localAddress is set
+EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
 
 //@<> Check auto increment settings (BUG#30174191). {VER(<8.0.0)}
 var s1 = mysql.getSession(__sandbox_uri1);

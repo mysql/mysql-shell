@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -118,8 +118,8 @@ class Create_cluster : public Command_interface {
   const std::string m_cluster_name;
   Create_cluster_options m_options;
   bool m_retrying = false;
-
   std::string m_address_in_metadata;
+  bool m_create_replica_cluster = false;
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
@@ -128,9 +128,11 @@ class Create_cluster : public Command_interface {
   void resolve_ssl_mode();
   void log_used_gr_options();
   void prepare_metadata_schema();
-  void setup_recovery(Cluster_impl *cluster,
-                      mysqlshdk::mysql::IInstance *target,
-                      std::string *out_username = nullptr);
+  void create_recovery_account(mysqlshdk::mysql::IInstance *target,
+                               Cluster_impl *cluster = nullptr,
+                               std::string *out_username = nullptr);
+  void store_recovery_account_metadata(mysqlshdk::mysql::IInstance *target,
+                                       const Cluster_impl &cluster);
   void reset_recovery_all(Cluster_impl *cluster);
   void persist_sro_all(Cluster_impl *cluster);
 

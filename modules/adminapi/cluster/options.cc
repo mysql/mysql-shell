@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -116,6 +116,21 @@ shcore::Array_t Options::collect_global_options() {
     option = shcore::make_dict();
     (*option)["option"] = shcore::Value(kReplicationAllowedHost);
     (*option)["value"] = shcore::Value(allowed_host);
+    array->push_back(shcore::Value(option));
+  }
+
+  // Get the communicationStack
+  //
+  // If the Cluster doesn't support communication stack don't add it to the
+  // globalOptions, otherwise, we might pass a misleading message that the
+  // communicationStack is an option when in fact it's not in that case
+  if (group_instance->get_version() >=
+      k_mysql_communication_stack_initial_version) {
+    option = shcore::make_dict();
+    (*option)["option"] = shcore::Value(kCommunicationStack);
+    (*option)["variable"] =
+        shcore::Value("group_replication_communication_stack");
+    (*option)["value"] = shcore::Value(m_cluster.get_communication_stack());
     array->push_back(shcore::Value(option));
   }
 

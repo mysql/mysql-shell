@@ -30,8 +30,15 @@
                 "value": false
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -646,6 +653,13 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -2445,8 +2459,15 @@
                 "value": false
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {
@@ -2813,8 +2834,15 @@
                 "value": false
             },
             {
-                "option": "replicationAllowedHost", 
+                "option": "replicationAllowedHost",
                 "value": "%"
+?{VER(>=8.0.27)}
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+?{}
             }
         ],
         "tags": {

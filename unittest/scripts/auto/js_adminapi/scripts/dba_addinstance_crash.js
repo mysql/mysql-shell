@@ -11,7 +11,13 @@ shell.connect(__sandbox_uri1)
 
 shell.options["dba.logSql"]=1;
 
-cluster = dba.createCluster("mycluster");
+var cluster;
+
+if (__version_num >= 80027) {
+  cluster = dba.createCluster("mycluster", {communicationStack: "xcom"});
+} else {
+  cluster = dba.createCluster("mycluster");
+}
 
 mysql.getSession(__sandbox_uri1).runSql("set global general_log=1");
 
@@ -29,7 +35,6 @@ function try_once(fail_after) {
     return 42;
   } catch (error) {
     println("### Add failed as expected", error["message"]);
-    SHERR_DBA_METADATA_INCONSISTENT = 51106;
     EXPECT_TRUE(error["message"].search("debug break") >= 0);
   }
 
@@ -37,7 +42,7 @@ function try_once(fail_after) {
   testutil.resetTraps("mysql");
 
   // MD for instance shouldn't be added if the add fails
-  shell.dumpRows(session.runSql("select count(*) from mysql_innodb_cluster_metadata.instances"));
+   shell.dumpRows(session.runSql("select count(*) from mysql_innodb_cluster_metadata.instances"));
   EXPECT_EQ(1, session.runSql("select count(*) from mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 
   if (shell.options.verbose) {
@@ -54,7 +59,6 @@ function try_once(fail_after) {
     println("### exception on status():", error["message"]);
   }
 
-  
   // shell.options.verbose=1;
   // check if we can retry
   try {
@@ -102,10 +106,37 @@ for (iter = 10; iter < 100; iter += skip) {
   }
 }
 
+// If version >= 8.0.27, test with "MySQL" communication stack too
+if (__version_num >= 80027) {
+  testutil.clearTraps("mysql");
+  testutil.resetTraps("mysql");
+
+  cluster.dissolve({force: 1});
+  cluster = dba.createCluster("mycluster", {communicationStack: "mysql"});
+
+  skip = 30;
+
+  for (iter = 10; iter < 100; iter += skip) {
+    println();
+    println("##############################################################");
+    println("### Testing addInstance() recovery after "+iter+" statements");
+    println("##############################################################");
+    println("### Using MySQL Communication Stack");
+    println();
+
+    ok = false;
+    r = null;
+    EXPECT_NO_THROWS(function(){ r = try_once(iter); ok = true; });
+    if (r == 42) {
+      break;
+    }
+    if (!ok) {
+      print("aborting at iteration ", iter);
+      break;
+    }
+  }
+}
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-
-
-
-

@@ -9,7 +9,6 @@ var md_utils = require("_metadata_schema_utils")
 shell.connect(common.sandbox_uri(primary_port))
 testutil.touch(testutil.getSandboxLogPath(primary_port));
 var cluster = dba.createCluster("sample");
-
 var cluster_id = session.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters").fetchAll()[0][0]
 
 var status = cluster.status({extended:2});

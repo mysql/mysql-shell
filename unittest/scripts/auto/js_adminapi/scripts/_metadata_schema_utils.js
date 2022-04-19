@@ -12,7 +12,13 @@ function update_var(file, variable, val) {
 }
 
 function create_instance_record_2_0_0(id, cluster_id, hostport, uuid, server_id) {
-  return `(${id},'${cluster_id}','${hostport}','${uuid}','${hostport}','{\"mysqlX\": \"${hostport}0\", \"grLocal\": \"${hostport}1\", \"mysqlClassic\": \"${hostport}\"}','{\"server_id\": ${server_id}, \"recoveryAccountHost\": \"%\", \"recoveryAccountUser\": \"mysql_innodb_cluster_4094449207\"}',NULL)`;
+  if (__version_num < 80027) {
+    return `(${id},'${cluster_id}','${hostport}','${uuid}','${hostport}','{\"mysqlX\": \"${hostport}0\", \"grLocal\": \"${hostport}1\", \"mysqlClassic\": \"${hostport}\"}','{\"server_id\": ${server_id}, \"recoveryAccountHost\": \"%\", \"recoveryAccountUser\": \"mysql_innodb_cluster_4094449207\"}',NULL)`;
+  } else {
+    // With 8.0.27, the default communications stack is MySQL, so grLocal will
+    // use the classic port and not the generated GR port
+    return `(${id},'${cluster_id}','${hostport}','${uuid}','${hostport}','{\"mysqlX\": \"${hostport}0\", \"grLocal\": \"${hostport}\", \"mysqlClassic\": \"${hostport}\"}','{\"server_id\": ${server_id}, \"recoveryAccountHost\": \"%\", \"recoveryAccountUser\": \"mysql_innodb_cluster_4094449207\"}',NULL)`;
+  }
 }
 
 function update_script(script, schema, replication_group_id, topology) {

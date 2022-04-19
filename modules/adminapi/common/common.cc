@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1415,10 +1415,13 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 
 std::string resolve_gr_local_address(
     const mysqlshdk::null_string &local_address,
+    const mysqlshdk::null_string &communication_stack,
     const std::string &raw_report_host, int port, bool check_if_busy,
     bool quiet) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
   bool generated = false;
+  bool comm_stack_mysql = shcore::str_casecmp(communication_stack.get_safe(),
+                                              kCommunicationStackMySQL) == 0;
 
   // if report host is an IPv6 address, surround it with []
   // The [] are necessary for IPv6 because we later have to append a colon and
@@ -1429,14 +1432,21 @@ std::string resolve_gr_local_address(
     report_host = "[" + raw_report_host + "]";
   }
 
-  std::string local_host, str_local_port;
+  std::string local_host;
   int local_port;
 
   if (local_address.is_null() || local_address->empty()) {
-    // No local address specified, use instance host and port * 10 + 1.
-    local_host = report_host;
-    local_port = port * 10 + 1;
-    generated = true;
+    // If communicationStack is set to 'mysql' local_address must default to the
+    // network address on which MySQL is listening to: report_host:port
+    if (comm_stack_mysql) {
+      local_host = report_host;
+      local_port = port;
+    } else {
+      // No local address specified, use instance host and port * 10 + 1.
+      local_host = report_host;
+      local_port = port * 10 + 1;
+      generated = true;
+    }
 
     if (!quiet) {
       auto console = mysqlsh::current_console();
@@ -1460,7 +1470,8 @@ std::string resolve_gr_local_address(
     if (pos != std::string::npos) {
       // Local address with ':' separating host and port.
       local_host = local_address->substr(0, pos);
-      str_local_port = local_address->substr(pos + 1, local_address->length());
+      std::string str_local_port =
+          local_address->substr(pos + 1, local_address->length());
 
       // No host part, use instance report host.
       if (local_host.empty()) {
@@ -1522,8 +1533,9 @@ std::string resolve_gr_local_address(
     throw shcore::Exception::argument_error(msg);
   }
 
-  if (check_if_busy) {
-    // Verify if the port is already in use.
+  // Verify if the port is already in use, skip if the communication protocol is
+  // "MySQL"
+  if (check_if_busy && !comm_stack_mysql) {
     bool port_busy = false;
     try {
       port_busy =

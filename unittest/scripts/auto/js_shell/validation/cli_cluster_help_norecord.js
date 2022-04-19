@@ -245,6 +245,10 @@ OPTIONS
             The list of hosts allowed to connect to the instance for group
             replication.
 
+--localAddress=<str>
+            String value with the Group Replication local address to be used
+            instead of the automatically generated one.
+
 --password=<str>
             The instance connection password
 

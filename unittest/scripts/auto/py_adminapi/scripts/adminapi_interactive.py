@@ -92,7 +92,10 @@ session.close()
 shell.connect({'host': hostname, 'port': __mysql_sandbox_port1, 'user': 'myAdmin', 'password': 'myPwd'})
 
 #@<OUT> create_cluster()
-c = dba.create_cluster("testCluster", {'groupName': 'ca94447b-e6fc-11e7-b69d-4485005154dc', 'ipWhitelist': '255.255.255.255/32,127.0.0.1,' + hostname_ip, 'memberSslMode': 'DISABLED', 'exitStateAction': 'READ_ONLY', 'gtidSetIsComplete': True})
+if __version_num < 80027:
+  c = dba.create_cluster("testCluster", {'groupName': 'ca94447b-e6fc-11e7-b69d-4485005154dc', 'ipWhitelist': '255.255.255.255/32,127.0.0.1,' + hostname_ip, 'memberSslMode': 'DISABLED', 'exitStateAction': 'READ_ONLY', 'gtidSetIsComplete': True})
+else:
+  c = dba.create_cluster("testCluster", {'groupName': 'ca94447b-e6fc-11e7-b69d-4485005154dc', 'memberSslMode': 'DISABLED', 'exitStateAction': 'READ_ONLY', 'gtidSetIsComplete': True})
 
 # Cluster.addInstance():
 #

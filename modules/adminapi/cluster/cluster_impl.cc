@@ -64,6 +64,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -267,6 +268,12 @@ void Cluster_impl::adopt_from_gr() {
     newly_discovered_instance.set_login_options_from(session_data);
 
     add_metadata_for_instance(newly_discovered_instance);
+
+    // Store the communicationStack in the Metadata as a Cluster capability
+    // TODO(miguel): build and add the list of allowed operations
+    get_metadata_storage()->update_cluster_capability(
+        get_id(), kCommunicationStack, get_communication_stack(),
+        std::set<std::string>());
   }
 }
 
@@ -1090,7 +1097,8 @@ void Cluster_impl::add_instance(
 void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
                                    const Group_replication_options &gr_options,
                                    bool interactive,
-                                   bool skip_precondition_check) {
+                                   bool skip_precondition_check,
+                                   std::optional<bool> switch_comm_stack) {
   // rejoin the Instance to the Cluster
   if (!skip_precondition_check) check_preconditions("rejoinInstance");
 
@@ -1100,7 +1108,7 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
 
   Scoped_instance target(connect_target_instance(instance_def, true));
   cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
-                               gr_options, {}, interactive);
+                               gr_options, {}, interactive, switch_comm_stack);
 
   // Rejoin the Instance to the Cluster
   bool uuid_mistmatch = false;
@@ -2178,6 +2186,14 @@ const std::string Cluster_impl::get_view_change_uuid() const {
   return "";
 }
 
+const std::string Cluster_impl::get_communication_stack() const {
+  // Get the communication stack in used. The default value must be XCOM if the
+  // sysvar doesn't exist (< 8.0.27)
+  return get_cluster_server()
+      ->get_sysvar_string("group_replication_communication_stack")
+      .get_safe(kCommunicationStackXCom);
+}
+
 shcore::Value Cluster_impl::check_instance_state(
     const Connection_options &instance_def) {
   check_preconditions("checkInstanceState");
@@ -2300,12 +2316,16 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
 }
 
 std::pair<mysqlshdk::mysql::Auth_options, std::string>
-Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target) {
+Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
+                                      bool only_on_target,
+                                      mysqlshdk::mysql::Auth_options creds,
+                                      bool print_recreate_note) {
   assert(target);
+
+  auto primary = target;
 
   std::string host = "%";
 
-  mysqlshdk::mysql::Auth_options creds;
   shcore::Value allowed_host;
   if (get_metadata_storage()->query_cluster_attribute(
           get_id(), k_cluster_attribute_replication_allowed_host,
@@ -2315,8 +2335,10 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target) {
     host = allowed_host.as_string();
   }
 
-  creds.user = make_replication_user_name(
-      target->get_server_id(), mysqlshdk::gr::k_group_recovery_user_prefix);
+  if (creds.user.empty()) {
+    creds.user = make_replication_user_name(
+        target->get_server_id(), mysqlshdk::gr::k_group_recovery_user_prefix);
+  }
 
   log_info("Creating recovery account '%s'@'%s' for instance '%s'",
            creds.user.c_str(), host.c_str(), target->descr().c_str());
@@ -2324,39 +2346,122 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target) {
   // When in a clusterset, this needs to happen at the global primary,
   // but during replica creation, acquiring the global primary from cluster
   // is tricky, so take a shortcut for now...
-  auto primary = get_metadata_storage()->get_md_server();
+  if (!only_on_target) {
+    primary = get_metadata_storage()->get_md_server().get();
+  }
+
+  // Get all hosts for the recovery account:
+  //
+  // There may be left-over accounts in the target instance that must be
+  // cleared-out, especially because when using the MySQL Communication Stack a
+  // new account is created on both ends (joiner and donor) to allow GCS
+  // establish a connection before joining the member to the group and if the
+  // account already exists with a different host that is reachable, GCS will
+  // fail to establish a connection and the member won't be able to join the
+  // group. For that reason, we must ensure all of those recovery accounts are
+  // dropped and not only the one of the 'replicationAllowedHost'
+  std::vector<std::string> recovery_user_hosts =
+      mysqlshdk::mysql::get_all_hostnames_for_user(*primary, creds.user);
 
   // Check if the replication user already exists and delete it if it does,
   // before creating it again.
-  bool rpl_user_exists = primary->user_exists(creds.user, host);
-  if (rpl_user_exists) {
-    auto console = current_console();
-    console->print_note(shcore::str_format(
+  for (const auto &hostname : recovery_user_hosts) {
+    if (!primary->user_exists(creds.user, hostname)) continue;
+
+    std::string note = shcore::str_format(
         "User '%s'@'%s' already existed at instance '%s'. It will be "
         "deleted and created again with a new password.",
-        creds.user.c_str(), host.c_str(), primary->descr().c_str()));
-    primary->drop_user(creds.user, host);
+        creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
+
+    if (print_recreate_note) {
+      current_console()->print_note(note);
+    } else {
+      log_debug("%s", note.c_str());
+    }
+
+    primary->drop_user(creds.user, hostname);
   }
 
   // Check if clone is available on ALL cluster members, to avoid a failing
   // SQL query because BACKUP_ADMIN is not supported
+  // Do the same for MySQL commStack, being the grant GROUP_REPLICATION_STREAM
   bool clone_available_all_members = false;
+  bool mysql_comm_stack_available_all_members = false;
 
   mysqlshdk::utils::Version lowest_version = get_lowest_instance_version();
   if (lowest_version >= mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
     clone_available_all_members = true;
 
+  if (lowest_version >= k_mysql_communication_stack_initial_version)
+    mysql_comm_stack_available_all_members = true;
+
   // Check if clone is supported on the target instance
+  auto target_version = target->get_version();
   bool clone_available_on_target =
-      target->get_version() >=
-      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
+      target_version >= mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
 
   bool clone_available =
       clone_available_all_members && clone_available_on_target;
 
-  return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, {host}, {},
-                                              clone_available),
-          host};
+  bool mysql_comm_stack_available_on_target =
+      target_version >= k_mysql_communication_stack_initial_version;
+
+  bool mysql_comm_stack_available = mysql_comm_stack_available_all_members &&
+                                    mysql_comm_stack_available_on_target;
+
+  if (creds.password.is_null()) {
+    return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, {host},
+                                                {}, clone_available, false,
+                                                mysql_comm_stack_available),
+            host};
+  } else {
+    return {mysqlshdk::gr::create_recovery_user(
+                creds.user, *primary, {host}, creds.password, clone_available,
+                false, mysql_comm_stack_available),
+            host};
+  }
+}
+
+void Cluster_impl::reset_recovery_password(
+    const std::shared_ptr<Instance> &target,
+    const std::string &recovery_account,
+    const std::vector<std::string> &hosts) {
+  // Get the recovery account for the target instance
+  std::string recovery_user = recovery_account;
+  std::vector<std::string> recovery_user_hosts = hosts;
+
+  if (recovery_user.empty() && recovery_user_hosts.empty()) {
+    std::tie(recovery_user, recovery_user_hosts, std::ignore) =
+        get_replication_user(*target);
+  }
+
+  std::string password;
+
+  log_info("Resetting recovery account credentials for '%s'",
+           target->descr().c_str());
+
+  // Generate and set a new password and update the replication credentials
+  mysqlshdk::mysql::set_random_password(*get_primary_master(), recovery_user,
+                                        recovery_user_hosts, &password);
+
+  mysqlshdk::mysql::change_replication_credentials(
+      *target, recovery_user, password, mysqlshdk::gr::k_gr_recovery_channel);
+}
+
+std::pair<std::string, std::string> Cluster_impl::recreate_replication_user(
+    const std::shared_ptr<Instance> &target) {
+  std::string repl_account_host;
+  mysqlshdk::mysql::Auth_options repl_account;
+
+  std::tie(repl_account, repl_account_host) =
+      create_replication_user(target.get(), false, {}, false);
+
+  mysqlshdk::mysql::change_replication_credentials(
+      *target, repl_account.user, repl_account.password.get_safe(),
+      mysqlshdk::gr::k_gr_recovery_channel);
+
+  return std::pair<std::string, std::string>(repl_account.user,
+                                             repl_account_host);
 }
 
 bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,

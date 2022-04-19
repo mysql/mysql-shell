@@ -177,6 +177,9 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {ipWhitelist: " ", password: "root"});
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
+var session3 = mysql.getSession(__sandbox_uri3);
+var server_id = session3.runSql("select @@server_id").fetchOne()[0];
+var repl_user = "mysql_innodb_cluster_"+server_id;
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: "AUTO", password: 'root'});
 EXPECT_STDOUT_CONTAINS("WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.")
 EXPECT_STDOUT_CONTAINS("WARNING: 'dbUser' connection option is deprecated, use 'user' option instead.");

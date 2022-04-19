@@ -164,6 +164,15 @@ session.runSql("SET GLOBAL slave_parallel_type='DATABASE'");
 session.runSql("SET GLOBAL transaction_write_set_extraction=OFF");
 dba.checkInstanceConfiguration();
 
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is set to the default (mysql_main) {VER(>=8.0.21)}
+ensure_plugin_enabled("group_replication", session);
+session.runSql("SET GLOBAL group_replication_tls_source='mysql_admin'");
+dba.checkInstanceConfiguration();
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is not persisted to use mysql_admin {VER(>=8.0.21)}
+session.runSql("SET PERSIST group_replication_tls_source='mysql_admin'");
+dba.checkInstanceConfiguration();
+
 //@<> Clean-up {VER(>= 8.0.21)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

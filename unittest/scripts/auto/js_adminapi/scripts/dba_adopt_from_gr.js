@@ -24,6 +24,10 @@ session.runSql("GRANT ALL ON *.* TO some_user@'%'");
 ensure_plugin_enabled("group_replication", session);
 ensure_plugin_enabled("group_replication", session2);
 
+// The following test requires the XCOM protocol stack and the validation uses __mysql_sandbox_gr_port1 so we must set it to the default value that is used when XCOM is used, otherwise, it'll be using the one for MySQL Comm Stack if the version is >= 8.0.27
+__mysql_sandbox_gr_port1 = __mysql_sandbox_port1 * 10 + 1;
+__mysql_sandbox_gr_port2 = __mysql_sandbox_port2 * 10 + 1;
+
 session.runSql("SET GLOBAL group_replication_group_name='6ed4243e-88b9-11e9-8eac-7281347dd9c6'");
 session2.runSql("SET GLOBAL group_replication_group_name='6ed4243e-88b9-11e9-8eac-7281347dd9c6'");
 session.runSql("SET GLOBAL group_replication_local_address='localhost:"+__mysql_sandbox_gr_port1+"'");
@@ -120,8 +124,8 @@ cluster.disconnect();
 shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true, force: true});
-EXPECT_STDOUT_CONTAINS("A new InnoDB cluster will be created based on the existing replication group on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.");
-EXPECT_STDOUT_CONTAINS("Creating InnoDB cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...");
+EXPECT_STDOUT_CONTAINS("A new InnoDB Cluster will be created based on the existing replication group on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.");
+EXPECT_STDOUT_CONTAINS("Creating InnoDB Cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...");
 EXPECT_STDOUT_CONTAINS("Adding Seed Instance...");
 EXPECT_STDOUT_CONTAINS("Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...");
 EXPECT_STDOUT_CONTAINS("Adding Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'...");
@@ -170,10 +174,10 @@ shell.connect(__sandbox_uri1);
 dba.createCluster('testCluster');
 dba.dropMetadataSchema({force: true, clearReadOnly: true});
 
-testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB cluster based on this replication group? [Y/n]:", "n");
+testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB Cluster based on this replication group? [Y/n]:", "n");
 EXPECT_THROWS(function(){ dba.createCluster('testCluster'); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
 
-testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB cluster based on this replication group? [Y/n]:", "y");
+testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB Cluster based on this replication group? [Y/n]:", "y");
 EXPECT_NO_THROWS(function(){ dba.createCluster('testCluster'); });
 
 shell.options["useWizards"] = false;
@@ -182,12 +186,12 @@ shell.options["useWizards"] = false;
 
 dba.dropMetadataSchema({force: true, clearReadOnly: true});
 
-testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB cluster based on this replication group? [Y/n]:", "n");
+testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB Cluster based on this replication group? [Y/n]:", "n");
 EXPECT_THROWS(function(){ dba.createCluster('testCluster', {interactive: true}); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
 
 testutil.wipeAllOutput();
 EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: false}); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
-EXPECT_OUTPUT_NOT_CONTAINS("Do you want to setup an InnoDB cluster based on this replication group?");
+EXPECT_OUTPUT_NOT_CONTAINS("Do you want to setup an InnoDB Cluster based on this replication group?");
 
 //@<> Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

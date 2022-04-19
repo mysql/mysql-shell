@@ -224,6 +224,17 @@ void Create_cluster_options::set_clear_read_only(bool value) {
   clear_read_only = value;
 }
 
+void Reboot_cluster_options::set_switch_communication_stack(
+    const std::string &value) {
+  switch_communication_stack = shcore::str_upper(shcore::str_strip(value));
+
+  if (switch_communication_stack->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.",
+        kSwitchCommunicationStack));
+  }
+}
+
 const shcore::Option_pack_def<Create_replicaset_options>
     &Create_replicaset_options::options() {
   static const auto opts =
@@ -282,9 +293,52 @@ const shcore::Option_pack_def<Reboot_cluster_options>
           .optional(mysqlshdk::db::kDbPassword,
                     &Reboot_cluster_options::set_password, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED);
+                    shcore::Option_scope::DEPRECATED)
+          .optional(kSwitchCommunicationStack,
+                    &Reboot_cluster_options::set_switch_communication_stack, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE)
+          .include(&Reboot_cluster_options::gr_options);
 
   return opts;
+}
+
+void Reboot_cluster_options::check_option_values(
+    const mysqlshdk::utils::Version &version, int canonical_port,
+    const std::string &comm_stack) {
+  // The switchCommunicationStack option must be allowed only if the target
+  // server version is >= 8.0.27
+  if (!switch_communication_stack.is_null()) {
+    if (version < k_mysql_communication_stack_initial_version) {
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "Option '%s' not supported on target server version: '%s'",
+          kSwitchCommunicationStack, version.get_full().c_str()));
+    }
+  }
+
+  // Using switchCommunicationStack set to 'mysql' and ipAllowlist at the same
+  // time is forbidden
+  if (switch_communication_stack.get_safe() == kCommunicationStackMySQL &&
+      !gr_options.ip_allowlist.is_null()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use '%s' when setting the '%s' option to '%s'", kIpAllowlist,
+        kSwitchCommunicationStack, kCommunicationStackMySQL));
+  }
+
+  if (switch_communication_stack.is_null() &&
+      comm_stack == kCommunicationStackMySQL &&
+      !gr_options.ip_allowlist.is_null()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use '%s' when the Cluster's communication stack is "
+        "'%s'",
+        gr_options.ip_allowlist_option_name.c_str(), kCommunicationStackMySQL));
+  }
+
+  // Validate the usage of the localAddress option
+  if (!gr_options.local_address.is_null()) {
+    validate_local_address_option(gr_options.local_address.get_safe(),
+                                  switch_communication_stack.get_safe(),
+                                  canonical_port);
+  }
 }
 
 void Reboot_cluster_options::set_user(const std::string &option,

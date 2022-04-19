@@ -122,6 +122,10 @@ Cluster.rejoinInstance({host: "localhost", schema: "abs", "authMethod":56});
 Cluster.rejoinInstance("localhost:3306");
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
+var session3 = mysql.getSession(__sandbox_uri3);
+var server_id = session3.runSql("select @@server_id").fetchOne()[0];
+var repl_user = "mysql_innodb_cluster_"+server_id;
+
 Cluster.rejoinInstance({user: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'REQUIRED'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");

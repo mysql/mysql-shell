@@ -98,15 +98,53 @@ testutil.startSandbox(__mysql_sandbox_port2, {timeout: 120});
 testutil.waitSandboxAlive(__mysql_sandbox_port1);
 testutil.waitSandboxAlive(__mysql_sandbox_port2);
 
+//@<> Upgrade the root account with GROUP_REPLICATION_STREAM
+//NOTE: the server upgrade doesn't do it
+if (__version_num >= 80032) {
+    for (i = 1; i <= 2; i++) {
+        if (i == 1) {
+            session = mysql.getSession(__sandbox_admin_uri1);
+        } else {
+            session = mysql.getSession(__sandbox_admin_uri2);
+        }
+
+        session.runSql("SET sql_log_bin=0")
+        session.runSql("SET GLOBAL super_read_only=0")
+        session.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO 'root'@'%' WITH GRANT OPTION");
+        session.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO 'root'@'localhost' WITH GRANT OPTION");
+        session.runSql("SET sql_log_bin=1")
+        session.close();
+    }
+}
+
 //@<> Configure again the instances to include parallel-applier settings @{VER(>=8.0.23)}
 dba.configureInstance(__sandbox_uri1, {clearReadOnly: true});
 dba.configureInstance(__sandbox_uri2, {clearReadOnly: true});
 
+//@<> Add the missing grants to the admin account
+for (i = 1; i <= 2; i++) {
+    if (i == 1) {
+        session = mysql.getSession(__sandbox_uri1);
+    } else {
+        session = mysql.getSession(__sandbox_uri2);
+    }
+
+    session.runSql("SET sql_log_bin=0")
+    session.runSql("SET GLOBAL super_read_only=0")
+    session.runSql("GRANT EXECUTE ON *.* TO 'AdminUser'@'%' WITH GRANT OPTION;");
+    session.runSql("SET sql_log_bin=1")
+    session.close();
+}
+
 //@<> Restore the cluster object
 shell.connect(__sandbox_admin_uri1);
-cluster = dba.rebootClusterFromCompleteOutage();
-// TODO(alfredo) - the reboot should auto-rejoin all members
-cluster.rejoinInstance(__sandbox_admin_uri2);
+// Switch the communication stack if >= 8.0.27
+if (__version_num >= 80027) {
+    cluster = dba.rebootClusterFromCompleteOutage("mycluster", {switchCommunicationStack: "mysql", rejoinInstances: [__endpoint2]});
+} else {
+    cluster = dba.rebootClusterFromCompleteOutage("mycluster", {rejoinInstances: [__endpoint2]});
+}
+
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Deploy sandbox 3 using base server

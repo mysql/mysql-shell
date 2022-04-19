@@ -16,7 +16,10 @@ sql_mode = "ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO,NO_BACKSLASH_ESCAPES,NO_UNSIGNED_S
 testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {'report_host': hostname, 'sql_mode': sql_mode})
 testutil.snapshot_sandbox_conf(__mysql_sandbox_port1)
 shell.connect(__sandbox_uri1)
-dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip});
+if __version_num < 80027:
+    dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip});
+else:
+    dba.create_cluster('sample');
 
 # Gets a snapshot of the latest version of the metadata
 testutil.dump_data(__sandbox_uri1, "latest_md.sql", ["mysql_innodb_cluster_metadata"], {'noData':True, 'skipComments':True});

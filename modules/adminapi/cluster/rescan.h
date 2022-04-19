@@ -205,6 +205,12 @@ class Rescan : public Command_interface {
   void ensure_view_change_uuid_set_stored_metadata(
       const std::string &view_change_uuid = "");
 
+  /**
+   * Ensures the recovery accounts in use by each cluster member match the one
+   * created for itself
+   */
+  void ensure_recovery_accounts_match();
+
   void check_mismatched_hostnames(shcore::Array_t instances) const;
 };
 

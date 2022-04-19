@@ -186,3 +186,104 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     ],
     "status": "error"
 }
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is set to the default (mysql_main) {VER(>=8.0.21)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| group_replication_tls_source           | MYSQL_ADMIN   | MYSQL_MAIN     | Update the server variable                       |
+| <<<__version_num<=80025?"slave_parallel_type  " : "replica_parallel_type">>>                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| <<<__version_num<=80025?"slave_preserve_commit_order  " : "replica_preserve_commit_order">>>          | OFF           | ON             | Update the server variable                       |
+| transaction_write_set_extraction       | OFF           | XXHASH64       | Update read-only variable and restart the server |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
+
+{
+    "config_errors": [
+        {
+            "action": "server_update",
+            "current": "COMMIT_ORDER",
+            "option": "binlog_transaction_dependency_tracking",
+            "required": "WRITESET"
+        },
+        {
+            "action": "server_update",
+            "current": "MYSQL_ADMIN",
+            "option": "group_replication_tls_source",
+            "required": "MYSQL_MAIN"
+        },
+        {
+            "action": "server_update",
+            "current": "DATABASE",
+            "option": "<<<__replica_keyword>>>_parallel_type",
+            "required": "LOGICAL_CLOCK"
+        },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "<<<__replica_keyword>>>_preserve_commit_order",
+            "required": "ON"
+        },
+        {
+            "action": "server_update+restart",
+            "current": "OFF",
+            "option": "transaction_write_set_extraction",
+            "required": "XXHASH64"
+        }
+    ],
+    "status": "error"
+}
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is not persisted to use mysql_admin {VER(>=8.0.21)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| group_replication_tls_source           | MYSQL_ADMIN   | MYSQL_MAIN     | Update the server variable                       |
+| <<<__version_num<=80025?"slave_parallel_type  " : "replica_parallel_type">>>                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| <<<__version_num<=80025?"slave_preserve_commit_order  " : "replica_preserve_commit_order">>>          | OFF           | ON             | Update the server variable                       |
+| transaction_write_set_extraction       | OFF           | XXHASH64       | Update read-only variable and restart the server |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
+
+{
+    "config_errors": [
+        {
+            "action": "server_update",
+            "current": "COMMIT_ORDER",
+            "option": "binlog_transaction_dependency_tracking",
+            "required": "WRITESET"
+        },
+        {
+            "action": "server_update",
+            "current": "MYSQL_ADMIN",
+            "option": "group_replication_tls_source",
+            "persisted": "MYSQL_ADMIN",
+            "required": "MYSQL_MAIN"
+        },
+        {
+            "action": "server_update",
+            "current": "DATABASE",
+            "option": "<<<__replica_keyword>>>_parallel_type",
+            "required": "LOGICAL_CLOCK"
+        },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "<<<__replica_keyword>>>_preserve_commit_order",
+            "required": "ON"
+        },
+        {
+            "action": "server_update+restart",
+            "current": "OFF",
+            "option": "transaction_write_set_extraction",
+            "required": "XXHASH64"
+        }
+    ],
+    "status": "error"
+}

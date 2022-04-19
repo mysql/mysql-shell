@@ -147,6 +147,7 @@ CHECK_CLUSTER_SET(session);
 
 testutil.startSandbox(__mysql_sandbox_port4);
 shell.connect(__sandbox_uri4);
+
 c2 = dba.rebootClusterFromCompleteOutage();
 
 //TODO(miguel): it won't be necessary to call getClusterSet() whenever the refactor to ensure the objects freshness is done

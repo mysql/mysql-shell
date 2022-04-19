@@ -725,6 +725,11 @@ int main(int argc, char **argv) {
     // The Json_shell mode is enabled when this env variable is defined
     char *json_shell = getenv("MYSQLSH_JSON_SHELL");
     if (json_shell) {
+      // The variable needs to be remvoved in case AAPI sandbox operations are
+      // executed, this is because the launched shell instance will also use the
+      // variable, breaking the output parsing
+      shcore::unsetenv("MYSQLSH_JSON_SHELL");
+
       // When shell is running as MYSQL_JSON_SHELL binary data is truncated at
       // 257 bytes, eventually this should be determined by a shell command ilne
       // argument, i.e. --binary-limit

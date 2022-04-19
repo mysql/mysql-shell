@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -428,7 +428,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
     } else if (io_state == "No") {
       *out_io_state = Replication_channel::Receiver::OFF;
     } else if (io_state == "Connecting") {
-      *out_io_state = Replication_channel::Receiver::ON;
+      *out_io_state = Replication_channel::Receiver::CONNECTING;
     } else {
       throw std::logic_error("Unexpected value for Replica_IO_Running: " +
                              io_state);

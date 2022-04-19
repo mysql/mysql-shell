@@ -271,6 +271,10 @@ OPTIONS
             members should wait for a non-responding member before evicting it
             from the cluster.
 
+--communicationStack=<str>
+            The Group Replication protocol stack to be used in the Cluster:
+            XCom (legacy) or MySQL.
+
 --disableClone=<bool>
             Boolean value used to disable the clone usage on the cluster.
 

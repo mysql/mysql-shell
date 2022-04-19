@@ -250,6 +250,13 @@ void check_server_variables_compatibility(
     if (instance_version < utils::Version(8, 0, 21)) {
       requirements.push_back(std::make_tuple(
           "binlog_checksum", std::vector<std::string>{"NONE"}, false));
+
+    } else {
+      // group_replication_tls_source, introduced in 8.0.21, must not be set
+      // to the value of 'mysql_admin'
+      requirements.push_back(std::make_tuple(
+          "group_replication_tls_source",
+          std::vector<std::string>{"MYSQL_MAIN", k_value_not_set}, false));
     }
   }
 

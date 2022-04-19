@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -999,13 +999,20 @@ void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  mysqlshdk::utils::Version version =
-      metadata::installed_version(target_instance);
+  try {
+    mysqlshdk::utils::Version version =
+        metadata::installed_version(target_instance);
 
-  if (version != metadata::kNotInstalled) {
-    current_console()->print_note(
-        "Invalid Metadata schema found in target instance: re-creating new "
-        "Metadata");
+    if (version != metadata::kNotInstalled) {
+      current_console()->print_note(
+          "Invalid Metadata schema found in target instance: re-creating new "
+          "Metadata");
+    }
+  } catch (const std::exception &e) {
+    // Ignore if we're unable to get the Metadata version, because the schema is
+    // inconsistent (the creation process failed in the middle for example)
+    // since it'll be dropped anyway
+    log_info("Unable to verify installed metadata version: %s", e.what());
   }
 
   if (!dry_run) {

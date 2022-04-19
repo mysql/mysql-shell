@@ -242,9 +242,10 @@ DESCRIPTION
       When the host is not specified, the default value is the value of the
       system variable 'report_host' if defined (i.e., not 'NULL'), otherwise it
       is the hostname value. When the port is not specified, the default value
-      is the port of the target instance * 10 + 1. In case the automatically
-      determined default port value is invalid (> 65535) then an error is
-      thrown.
+      is the port of the target instance if the communication stack in use by
+      the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
+      stack is 'XCOM'. In case the automatically determined  default port value
+      is invalid (> 65535) then an error is thrown.
 
       The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is
       ignored. 'group_replication_group_seeds' is automatically set based on
@@ -568,6 +569,8 @@ DESCRIPTION
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication.
+      - localAddress: string value with the Group Replication local address to
+        be used instead of the automatically generated one.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -594,6 +597,22 @@ DESCRIPTION
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      The localAddress is an advanced option and its usage is discouraged since
+      incorrect values can lead to Group Replication errors.
+
+      The value for localAddress is used to set the Group Replication system
+      variable 'group_replication_local_address'. The localAddress option
+      accepts values in the format: 'host:port' or 'host:' or ':port'. If the
+      specified value does not include a colon (:) and it is numeric, then it
+      is assumed to be the port, otherwise it is considered to be the host.
+      When the host is not specified, the default value is the value of the
+      system variable 'report_host' if defined (i.e., not 'NULL'), otherwise it
+      is the hostname value. When the port is not specified, the default value
+      is the port of the target instance if the communication stack in use by
+      the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
+      stack is 'XCOM'. In case the automatically determined  default port value
+      is invalid (> 65535) then an error is thrown.
 
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.

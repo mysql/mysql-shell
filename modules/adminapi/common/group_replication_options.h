@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,14 +45,16 @@ struct Group_replication_options {
     CREATE_REPLICA_CLUSTER,  // all but group_name, group_seeds,
                              // manual_start_on_boot
     JOIN,                    // all but group_name
-    REJOIN                   // only memberSslMode and ipWhitelist
+    REJOIN,                  // only memberSslMode, ipWhitelist and localAddress
+    REBOOT                   // same as REJOIN plus sslMode
   };
 
   Group_replication_options() : target(NONE) {}
 
   explicit Group_replication_options(Unpack_target t) : target(t) {}
 
-  void check_option_values(const mysqlshdk::utils::Version &version);
+  void check_option_values(const mysqlshdk::utils::Version &version,
+                           int canonical_port);
 
   /**
    * Read the Group Replication option values from the given Instance.
@@ -62,7 +64,8 @@ struct Group_replication_options {
    *
    * @param instance target Instance object to read the GR options.
    */
-  void read_option_values(const mysqlshdk::mysql::IInstance &instance);
+  void read_option_values(const mysqlshdk::mysql::IInstance &instance,
+                          bool switching_comm_stack = false);
 
   void set_local_address(const std::string &value);
   void set_exit_state_action(const std::string &value);
@@ -70,6 +73,7 @@ struct Group_replication_options {
   void set_auto_rejoin_tries(int64_t value);
   void set_expel_timeout(int64_t value);
   void set_consistency(const std::string &option, const std::string &value);
+  void set_communication_stack(const std::string &value);
 
   Unpack_target target;
 
@@ -88,9 +92,14 @@ struct Group_replication_options {
   mysqlshdk::utils::nullable<int64_t> expel_timeout;
   mysqlshdk::utils::nullable<int64_t> auto_rejoin_tries;
   mysqlshdk::null_bool manual_start_on_boot;
+  mysqlshdk::null_string communication_stack;
 
   std::string ip_allowlist_option_name;
 };
+
+void validate_local_address_option(std::string local_address,
+                                   const std::string &communication_stack,
+                                   int canonical_port);
 
 struct Rejoin_group_replication_options : public Group_replication_options {
   explicit Rejoin_group_replication_options(
@@ -102,6 +111,16 @@ struct Rejoin_group_replication_options : public Group_replication_options {
   void set_ssl_mode(const std::string &value);
   void set_ip_allowlist(const std::string &option, const std::string &value);
 };
+
+struct Reboot_group_replication_options
+    : public Rejoin_group_replication_options {
+  explicit Reboot_group_replication_options(
+      Unpack_target t = Unpack_target::REBOOT)
+      : Rejoin_group_replication_options(t) {}
+  static const shcore::Option_pack_def<Reboot_group_replication_options>
+      &options();
+};
+
 struct Join_group_replication_options
     : public Rejoin_group_replication_options {
   explicit Join_group_replication_options(Unpack_target t = Unpack_target::JOIN)

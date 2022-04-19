@@ -48,7 +48,12 @@ single.removeInstance(__sandbox_uri3);
 //@<> create cluster with unsupported recovery user
 //BUG#32157182
 single.dissolve({interactive: false});
-single = dba.createCluster("c", {gtidSetIsComplete: true});
+var single;
+if (__version_num < 80027) {
+  single = dba.createCluster("c", {gtidSetIsComplete: true});
+} else {
+    single = dba.createCluster("c", {gtidSetIsComplete: true, communicationStack: "xcom"});
+}
 single.addInstance(__sandbox_uri2);
 
 shell.connect(__sandbox_uri1);

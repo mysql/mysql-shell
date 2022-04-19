@@ -53,13 +53,20 @@
 ||
 
 //@ Add instance errors using localAddress option {VER(<8.0.22)}
-|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please check the MySQL server error log for more information.|The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.
+|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please check the MySQL server error log for more information.|
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
 
-//@ Add instance errors using localAddress option {VER(>=8.0.22)}
+//@ Add instance errors using localAddress option {VER(>=8.0.22) && VER(<8.0.30)}
 |ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'.|The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.
+|The MySQL error_log contains the following messages:|
+||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
+||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
+||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
+
+//@ Add instance errors using localAddress option {VER(>=8.0.30)}
+|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'.|
 |The MySQL error_log contains the following messages:|
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)

@@ -1436,14 +1436,31 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
 
   if ((!m_extended.is_null() && *m_extended >= 1)) {
     (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
+
     if (group_instance &&
-        group_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 26))
+        group_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 26)) {
       (*ret)["groupViewChangeUuid"] =
           shcore::Value(*group_instance->get_sysvar_string(
               "group_replication_view_change_uuid"));
+    }
+
     (*ret)["GRProtocolVersion"] =
         protocol_version ? shcore::Value(protocol_version.get_full())
                          : shcore::Value::Null();
+
+    // Add the communicationStack
+    //
+    // Always add the value of the communicationStack regardless of the version
+    // in use, because:
+    //
+    //   - Even before the 'MySQL' communication stack was introduced, 'XCOM'
+    //   was the name of the communication stack used by GR
+    //   - It slightly educates users that there's a possibility of having a
+    //   different communication stack.
+    if (group_instance) {
+      (*ret)[kCommunicationStack] =
+          shcore::Value(m_cluster.get_communication_stack());
+    }
   }
 
   auto ssl_mode = group_instance ? *group_instance->get_sysvar_string(

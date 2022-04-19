@@ -1493,8 +1493,15 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
     if (!create_cluster_options.hasOwnProperty("gtidSetIsComplete")) {
       create_cluster_options["gtidSetIsComplete"] = true;
     }
+    if (testutil.versionCheck(__version, ">=", "8.0.27") && !create_cluster_options.hasOwnProperty("communicationStack")) {
+      create_cluster_options["communicationStack"] = "XCOM";
+    }
   } else {
-    create_cluster_options = { gtidSetIsComplete: true };
+    if (testutil.versionCheck(__version, ">=", "8.0.27")) {
+      create_cluster_options = { gtidSetIsComplete: true, communicationStack: "XCOM" };
+    } else {
+      create_cluster_options = { gtidSetIsComplete: true };
+    }
   }
 
   this.cluster = dba.createCluster("cluster", create_cluster_options);

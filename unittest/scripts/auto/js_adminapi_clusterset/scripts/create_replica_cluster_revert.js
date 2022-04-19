@@ -26,7 +26,7 @@ var cs = cluster.createClusterSet("myClusterSet");
 // Get the CS replication user created
 var __cs_replication_user = session.runSql("select user from mysql.user where user like 'mysql_innodb_cs_%'").fetchOne()[0];
 
-//@<> createReplicaCluster() - failure pre creating InnoDB Cluster
+//@<> createReplicaCluster() - failure pre Creating InnoDB Cluster
 testutil.dbugSet("+d,dba_create_replica_cluster_fail_pre_create_cluster");
 
 EXPECT_THROWS_TYPE(function(){ cs.createReplicaCluster(__sandbox_uri2, "replica"); }, "debug", "LogicError");
@@ -43,7 +43,7 @@ testutil.dbugSet("");
 
 retry_with_success();
 
-//@<> createReplicaCluster() - failure post creating InnoDB Cluster
+//@<> createReplicaCluster() - failure post Creating InnoDB Cluster
 testutil.dbugSet("+d,dba_create_replica_cluster_fail_post_create_cluster");
 EXPECT_THROWS_TYPE(function(){ cs.createReplicaCluster(__sandbox_uri2, "replica"); }, "debug", "LogicError");
 EXPECT_OUTPUT_CONTAINS("NOTE: Reverting changes...");

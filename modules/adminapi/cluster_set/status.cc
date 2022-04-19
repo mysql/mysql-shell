@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -159,7 +159,8 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
 
     res->set("topology", shcore::Value(topology));
     if (extended > 1) {
-      for (const auto key : {"ssl", "groupName", "groupViewChangeUuid"})
+      for (const auto key :
+           {"ssl", "groupName", "groupViewChangeUuid", "communicationStack"})
         if (status_map->has_key(key)) res->set(key, status_map->at(key));
     }
   }

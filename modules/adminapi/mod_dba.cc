@@ -63,6 +63,7 @@
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -245,6 +246,7 @@ application traffic.
  *  - Cluster.addInstance()
  *  - Cluster.setOption()
  *  - Cluster.setInstanceOption()
+ *  - ClusterSet.createReplicaCluster()
  */
 REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION,
               "@li exitStateAction: string value indicating the group "
@@ -273,6 +275,12 @@ REGISTER_HELP(CLUSTER_OPT_IP_WHITELIST,
 REGISTER_HELP(CLUSTER_OPT_IP_ALLOWLIST,
               "@li ipAllowlist: The list of hosts allowed to connect to the "
               "instance for group replication.");
+REGISTER_HELP(CLUSTER_OPT_COMM_STACK,
+              "@li communicationStack: The Group Replication protocol stack to "
+              "be used in the Cluster: XCom (legacy) or MySQL.");
+REGISTER_HELP(CLUSTER_OPT_LOCAL_ADDRESS,
+              "@li localAddress: string value with the Group Replication local "
+              "address to be used instead of the automatically generated one.");
 
 REGISTER_HELP(
     OPT_INTERACTIVE,
@@ -411,6 +419,37 @@ notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
 AUTOMATIC, allowing addresses from the instance private network to be
 automatically set for the allowlist.
 )*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_COMM_STACK_EXTRA, R"*(
+The value for communicationStack is used to choose which Group Replication
+communication stack must be used in the Cluster. It's used to set the value
+of the Group Replication system variable
+'group_replication_communication_stack'.
+
+When set to legacy 'XCom', all internal GCS network traffic (PAXOS and
+communication infrastructure) flows through a separate network address: the
+localAddress.
+
+When set to 'MySQL', such traffic re-uses the existing MySQL Server facilities
+to establish connections among Cluster members. It allows a simpler and safer
+setup as it obsoletes the usage of IP allowlists (ipAllowlist), removes the
+explicit need to have a separate network address (localAddress), and introduces
+user-based authentication.
+
+The default value for Clusters running 8.0.27+ is 'MySQL'.)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_LOCAL_ADDRESS_EXTRA, R"*(
+The value for localAddress is used to set the Group Replication system variable
+'group_replication_local_address'. The localAddress option accepts values in
+the format: 'host:port' or 'host:' or ':port'. If the specified value does not
+include a colon (:) and it is numeric, then it is assumed to be the port,
+otherwise it is considered to be the host. When the host is not specified, the
+default value is the value of the system variable 'report_host' if defined
+(i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
+specified, the default value is the port of the target instance if the
+communication stack in use by the Cluster is 'MYSQL', otherwise, port * 10 + 1
+ when the communication stack is 'XCOM'. In case the automatically determined
+ default port value is invalid (> 65535) then an error is thrown.)*");
 
 // TODO create a dedicated topic for InnoDB clusters and replicasets,
 // with a quick tutorial for both, in addition to more deep technical info
@@ -1179,8 +1218,7 @@ ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 @li groupName: string value with the Group Replication group name UUID to be
 used instead of the automatically generated one.
-@li localAddress: string value with the Group Replication local address to be
-used instead of the automatically generated one.
+${CLUSTER_OPT_LOCAL_ADDRESS}
 @li groupSeeds: string value with a comma-separated list of the Group
 Replication peer addresses to be used instead of the automatically generated
 one. Deprecated and ignored.
@@ -1201,6 +1239,7 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 disabled. Deprecated.
 @li multiMaster: boolean value used to define an InnoDB cluster with multiple
 writable instances. Deprecated.
+${CLUSTER_OPT_COMM_STACK}
 
 An InnoDB cluster may be setup in two ways:
 
@@ -1264,16 +1303,7 @@ discouraged since incorrect values can lead to Group Replication errors.
 The value for groupName is used to set the Group Replication system variable
 'group_replication_group_name'.
 
-The value for localAddress is used to set the Group Replication system variable
-'group_replication_local_address'. The localAddress option accepts values in
-the format: 'host:port' or 'host:' or ':port'. If the specified value does not
-include a colon (:) and it is numeric, then it is assumed to be the port,
-otherwise it is considered to be the host. When the host is not specified, the
-default value is the value of the system variable 'report_host' if defined
-(i.e., not 'NULL'), otherwise it is the hostname value. When the port is not
-specified, the default value is the port of the current active connection
-(session) * 10 + 1. In case the automatically determined default port value is
-invalid (> 65535) then an error is thrown.
+${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
 The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is ignored.
 'group_replication_group_seeds' is automatically set based on the current
@@ -1292,6 +1322,8 @@ ${CLUSTER_OPT_CONSISTENCY_EXTRA}
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
+${CLUSTER_OPT_COMM_STACK_EXTRA}
 
 @attention The clearReadOnly option will be removed in a future release.
 
@@ -2636,6 +2668,34 @@ The options dictionary can contain the next values:
 @li rejoinInstances: The list of instances to be rejoined to the cluster.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled
+@li switchCommunicationStack: The Group Replication protocol stack to be used by the Cluster after the reboot.
+@li ipAllowList: The list of hosts allowed to connect to the instance for Group Replication traffic when using the 'XCOM' protocol stack.
+@li localAddress: string value with the Group Replication local address to be used instead of the automatically generated one when using the 'XCOM' protocol stack.
+
+The value for switchCommunicationStack is used to choose which Group
+Replication communication stack must be used in the Cluster after the reboot is complete. It's used to set the value of the Group Replication system variable
+'group_replication_communication_stack'.
+
+When set to legacy 'XCom', all internal GCS network traffic (PAXOS and
+communication infrastructure) flows through a separate network address:
+the localAddress.
+
+When set to 'MySQL', such traffic re-uses the existing MySQL Server
+facilities to establish connections among Cluster members. It allows a
+simpler and safer setup as it obsoletes the usage of IP allowlists
+(ipAllowlist), removes the explicit need to have a separate network
+address (localAddress), and introduces user-based authentication.
+
+The option is used to switch the communication stack previously in
+use by the Cluster, to another one. Setting the same communication stack
+results in no changes.
+
+The ipAllowlist format is a comma separated list of IP addresses or
+subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
+the value is set to AUTOMATIC, allowing addresses from the instance
+private network to be automatically set for the allowlist.
+
+${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
 @attention The clearReadOnly option will be removed in a future release.
 
@@ -2680,6 +2740,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> target_instance;
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
+  const auto console = current_console();
+  bool interactive = current_shell_options()->get().wizards;
+
   // The cluster is completely dead, so we can't find the primary anyway...
   // thus this instance will be used as the primary
   connect_to_target_group({}, &metadata, &target_instance, false);
@@ -2687,13 +2751,31 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   check_function_preconditions("Dba.rebootClusterFromCompleteOutage", metadata,
                                target_instance);
 
+  // Validate and handle command options
+  {
+    // Get the communication in stack that was being used by the Cluster
+    auto target_instance_version = target_instance->get_version();
+    std::string comm_stack = kCommunicationStackXCom;
+
+    if (target_instance_version >=
+        k_mysql_communication_stack_initial_version) {
+      comm_stack =
+          target_instance
+              ->get_persisted_value("group_replication_communication_stack")
+              .get_safe();
+    }
+
+    // Validate the options:
+    //   - switchCommunicationStack
+    //   - localAddress
+    static_cast<Reboot_cluster_options>(*options).check_option_values(
+        target_instance_version, target_instance->get_canonical_port(),
+        comm_stack);
+  }
+
   std::string instance_session_address;
-  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection, instances_to_skip_gtid_check;
-
-  bool interactive = current_shell_options()->get().wizards;
-  const auto console = current_console();
 
   // These session options are taken as base options for further operations
   auto current_session_options = target_instance->get_connection_options();
@@ -2857,6 +2939,38 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   std::vector<std::pair<Instance_metadata, std::string>> instances =
       validate_instances_status_reboot_cluster(cluster_impl.get(),
                                                *target_instance);
+
+  // When switching the communication stack, we must ensure all instances are
+  // reachable
+  // TODO(joao): With the refactor of the command, this check becomes
+  // unnecessary since we must ensure all instances are reachable anyway
+  if (!options->switch_communication_stack.is_null()) {
+    std::vector<std::string> unreachable_instances;
+
+    for (const auto &i : instances) {
+      if (!i.second.empty()) {
+        unreachable_instances.push_back(i.first.endpoint);
+      }
+    }
+
+    if (!unreachable_instances.empty()) {
+      throw std::runtime_error(
+          "Unable to switch the communication stack. The following instances: "
+          "'" +
+          shcore::str_join(unreachable_instances, ", ") + "' are unreachable.");
+    }
+  }
+
+  // If localAddress is used, warn about the fact that it only applies to the
+  // seed instance
+  if (!options->gr_options.local_address.is_null()) {
+    console->print_warning(
+        "The value used for 'localAddress' only applies to the current "
+        "session instance (seed). If the values generated automatically for "
+        "other rejoining Cluster members are not valid, please use "
+        "<Cluster>.<<<rejoinInstance>>>() with the 'localAddress' option.");
+    console->print_info();
+  }
 
   {
     // Get get instance address in metadata.
@@ -3040,8 +3154,28 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   {
     Group_replication_options gr_options(Group_replication_options::NONE);
 
-    cluster::Cluster_join joiner(cluster_impl.get(), nullptr, target_instance,
-                                 gr_options, {}, interactive);
+    // Set the communicationStack if option used
+    if (!options->switch_communication_stack.is_null()) {
+      gr_options.communication_stack =
+          options->switch_communication_stack.get_safe();
+    }
+
+    // Set localAddress if option used
+    if (!options->gr_options.local_address.is_null()) {
+      gr_options.local_address = options->gr_options.local_address.get_safe();
+    } else {
+      // Ensure it'll be auto resolved later
+      gr_options.local_address = nullptr;
+    }
+
+    // Set the ipAllowlist if option used
+    if (!options->gr_options.ip_allowlist.is_null()) {
+      gr_options.ip_allowlist = options->gr_options.ip_allowlist;
+    }
+
+    cluster::Cluster_join joiner(
+        cluster_impl.get(), nullptr, target_instance, gr_options, {},
+        interactive, !options->switch_communication_stack.is_null());
 
     joiner.prepare_reboot();
 
@@ -3071,6 +3205,14 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         cluster_impl->acquire_primary();
       }
     }
+
+    // If the communication stack was changed and this is a replica cluster, we
+    // must ensure here that 'grLocal' reflects the new value for local address
+    if (cs && cluster_impl->is_cluster_set_member() &&
+        !cluster_impl->is_primary_cluster() &&
+        !options->switch_communication_stack.is_null()) {
+      cluster_impl->update_metadata_for_instance(*target_instance);
+    }
   }
 
   // 7. Update the Metadata Schema information
@@ -3089,7 +3231,17 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
       console->print_info("Rejoining '" + connect_options.uri_endpoint() +
                           "' to the cluster.");
-      cluster_impl->rejoin_instance(connect_options, {}, false, true);
+
+      Group_replication_options gr_options(Group_replication_options::NONE);
+
+      // Set the ipAllowlist if option used
+      if (!options->gr_options.ip_allowlist.is_null()) {
+        gr_options.ip_allowlist = options->gr_options.ip_allowlist;
+      }
+
+      cluster_impl->rejoin_instance(
+          connect_options, gr_options, false, true,
+          !options->switch_communication_stack.is_null());
     } catch (const shcore::Error &e) {
       console->print_warning(instance + ": " + e.format());
       // TODO(miguel) Once WL#13535 is implemented and rejoin supports

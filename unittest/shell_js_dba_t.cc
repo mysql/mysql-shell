@@ -111,8 +111,16 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
       code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
-      code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
-                                _mysql_sandbox_ports[i] * 10 + 1);
+
+      // With 8.0.27, the GR Protocol Communication Stack became MySQL by
+      // default and localAddress is set to the server port by default
+      if (_target_server_version < mysqlshdk::utils::Version("8.0.27")) {
+        code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
+                                  _mysql_sandbox_ports[i] * 10 + 1);
+      } else {
+        code = shcore::str_format("var __mysql_sandbox_gr_port%i = %i;", i + 1,
+                                  _mysql_sandbox_ports[i]);
+      }
       exec_and_out_equals(code);
       code = shcore::str_format(
           "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,

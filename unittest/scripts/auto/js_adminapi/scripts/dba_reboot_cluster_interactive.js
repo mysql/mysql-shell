@@ -4,11 +4,11 @@
 testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
 
 //@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname, log_error_verbosity:3});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname, log_error_verbosity:3});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname, log_error_verbosity:3});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 // NOTE: Workaround BUG#25503817 to display the right ssl info for status()
@@ -126,12 +126,16 @@ testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root');
 uri2 = hostname + ":"  + __mysql_sandbox_port2;
 uri3 = hostname + ":"  + __mysql_sandbox_port3;
 
-//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11)}
+//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11) && VER(<8.0.27)}
 // if server version is greater than 8.0.11 then the GR settings will be
 // persisted on instance 3 and it will rejoin the cluster that has been
 // rebooted. We just need to add it back to the metadata.
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
 cluster.rescan();
+
+//@<> addInstance() to add the instance back to the cluster {VER(>=8.0.27)}
+//NOTE: restarting the instance to trigger GR auto-rejoin won't work because the recovery accounts changed at rebootCluster() when using MySQL comm stack and, on top of that, it will hit BUG#24809604 leaving the group completely blocked
+cluster.addInstance(__sandbox_uri3);
 
 //@ Add instance 3 back to the cluster {VER(<8.0.11)}
 // if server version is smaller than 8.0.11 then no GR settings will be persisted

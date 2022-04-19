@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_SET_CREATE_REPLICA_CLUSTER_H_
 #define MODULES_ADMINAPI_CLUSTER_SET_CREATE_REPLICA_CLUSTER_H_
 
+#include <memory>
 #include <string>
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
@@ -72,6 +73,21 @@ class Create_replica_cluster : public Command_interface {
   std::shared_ptr<Cluster_impl> create_cluster_object(
       const mysqlshdk::mysql::Auth_options &repl_credentials,
       const std::string &repl_account_host);
+
+  /**
+   * Recreate the recovery account at the target instance on which the Replica
+   * Cluster is being created
+   *
+   * Required for when using the 'MySQL' communication stack to ensure the
+   * account is available on all ClusterSet members
+   *
+   * @param cluster       Cluster Object
+   * @param recovery_user Username for the recreated account
+   * @param recovery_host Hostname for the recreated account
+   */
+  void recreate_recovery_account(const std::shared_ptr<Cluster_impl> cluster,
+                                 std::string *recovery_user = nullptr,
+                                 std::string *recovery_host = nullptr);
 
  private:
   Cluster_set_impl *m_cluster_set = nullptr;

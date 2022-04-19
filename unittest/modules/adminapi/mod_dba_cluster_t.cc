@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -123,12 +123,24 @@ TEST_F(Dba_cluster_test, bug28219398) {
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'localhost' /*)*/");
 
+  if (m_cluster->impl()->get_communication_stack() ==
+      mysqlsh::dba::kCommunicationStackMySQL) {
+    md_session->query("GRANT GROUP_REPLICATION_STREAM ON *.* to /*(*/ '" +
+                      replication_user + "'@'localhost' /*)*/");
+  }
+
   md_session->query("CREATE USER IF NOT EXISTS '" + replication_user +
                     "'@'%' IDENTIFIED BY /*((*/ '" + replication_pwd +
                     "' /*))*/ ");
 
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'%' /*)*/");
+
+  if (m_cluster->impl()->get_communication_stack() ==
+      mysqlsh::dba::kCommunicationStackMySQL) {
+    md_session->query("GRANT GROUP_REPLICATION_STREAM ON *.* to /*(*/ '" +
+                      replication_user + "'@'%' /*)*/");
+  }
 
   try {
     {
@@ -144,6 +156,42 @@ TEST_F(Dba_cluster_test, bug28219398) {
 
       auto target = std::make_unique<mysqlsh::dba::Instance>(
           create_session(_mysql_sandbox_ports[0]));
+
+      // If using 'MySQL' comm stack, the account must exist in the target
+      // instance too
+      if (m_cluster->impl()->get_communication_stack() ==
+          mysqlsh::dba::kCommunicationStackMySQL) {
+        auto target_instance = std::make_unique<mysqlsh::dba::Instance>(
+            create_session(_mysql_sandbox_ports[2]));
+
+        // Suppress binary logging
+        target_instance->query("SET sql_log_bin=0");
+
+        target_instance->query("CREATE USER IF NOT EXISTS '" +
+                               replication_user +
+                               "'@'localhost' IDENTIFIED BY /*((*/ '" +
+                               replication_pwd + "' /*))*/ ");
+
+        target_instance->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
+                               replication_user + "'@'localhost' /*)*/");
+
+        target_instance->query(
+            "GRANT GROUP_REPLICATION_STREAM ON *.* to /*(*/ '" +
+            replication_user + "'@'localhost' /*)*/");
+
+        target_instance->query(
+            "CREATE USER IF NOT EXISTS '" + replication_user +
+            "'@'%' IDENTIFIED BY /*((*/ '" + replication_pwd + "' /*))*/ ");
+
+        target_instance->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
+                               replication_user + "'@'%' /*)*/");
+
+        target_instance->query(
+            "GRANT GROUP_REPLICATION_STREAM ON *.* to /*(*/ '" +
+            replication_user + "'@'%' /*)*/");
+
+        target_instance->query("SET sql_log_bin=1");
+      }
 
       // Create the add_instance command and execute it.
       mysqlsh::dba::cluster::Cluster_join joiner(

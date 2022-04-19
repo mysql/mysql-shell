@@ -698,7 +698,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
-    bool clone_supported, bool auto_failover) {
+    bool clone_supported, bool auto_failover, bool mysql_comm_stack_supported) {
   mysqlshdk::mysql::Auth_options creds;
   assert(!hosts.empty());
   assert(!username.empty());
@@ -715,6 +715,18 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
 
   if (auto_failover) {
     grants.push_back(std::make_tuple("SELECT", "performance_schema.*", false));
+  }
+
+  if (mysql_comm_stack_supported) {
+    grants.push_back(std::make_tuple("GROUP_REPLICATION_STREAM", "*.*", false));
+  }
+
+  if (primary.get_version() >= utils::Version(8, 0, 0)) {
+    // Recovery accounts must have CONNECTION_ADMIN too, otherwise, if a group
+    // members has offline_mode enabled the member is evicted from the group
+    // since the recovery account connections are disconnected and blocked. This
+    // has greater impact when using "MySQL" communication stack
+    grants.push_back(std::make_tuple("CONNECTION_ADMIN", "*.*", false));
   }
 
   try {
