@@ -49,7 +49,6 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/oci/oci_setup.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"

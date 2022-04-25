@@ -28,6 +28,9 @@
 #include <openssl/md5.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
+#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
+#include <openssl/encoder.h>
+#endif
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -46,9 +49,13 @@ namespace shcore {
 namespace ssl {
 namespace {
 using BN_ptr = std::unique_ptr<BIGNUM, decltype(&::BN_free)>;
+#if OPENSSL_VERSION_NUMBER < 0x30000000L /* 3.0.x */
 using RSA_ptr = std::unique_ptr<RSA, decltype(&::RSA_free)>;
+#endif
 using EVP_KEY_ptr = std::unique_ptr<EVP_PKEY, decltype(&::EVP_PKEY_free)>;
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
+using EVP_PKEY_CTX_ptr =
+    std::unique_ptr<EVP_PKEY_CTX, decltype(&::EVP_PKEY_CTX_free)>;
 
 void throw_last_error(const std::string &context) {
   auto rc = ERR_get_error();
@@ -146,17 +153,65 @@ std::string load_private_key(const std::string &path, Password_callback pwd_cb,
 }
 
 std::string create_key_pair(const std::string &path,
-                            const std::string &key_name, size_t bitsize,
+                            const std::string &key_name, unsigned int bitsize,
                             const std::string &passphrase) {
   std::string private_path =
       shcore::path::join_path(path, key_name + kPrivatePemSuffix);
   std::string public_path =
       shcore::path::join_path(path, key_name + kPublicPemSuffix);
 
-  BN_ptr bn(BN_new(), ::BN_free);
-
   int rc = 0;
   unsigned long e = RSA_F4;
+
+#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
+
+  EVP_PKEY_CTX_ptr pctx(EVP_PKEY_CTX_new_from_name(NULL, "RSA", NULL),
+                        ::EVP_PKEY_CTX_free);
+
+  EVP_PKEY_keygen_init(pctx.get());
+
+  OSSL_PARAM params[3];
+  params[0] = OSSL_PARAM_construct_uint("bits", &bitsize);
+  params[1] = OSSL_PARAM_construct_ulong("e", &e);
+  params[2] = OSSL_PARAM_construct_end();
+
+  EVP_PKEY *praw_key = NULL;
+
+  rc = EVP_PKEY_CTX_set_params(pctx.get(), params);
+  if (rc == 1) {
+    rc = EVP_PKEY_generate(pctx.get(), &praw_key);
+  }
+
+  if (rc != 1) throw_last_error("generating private key");
+
+  EVP_KEY_ptr pkey(praw_key, ::EVP_PKEY_free);
+
+  BIO_ptr bio_public(BIO_new_file(public_path.c_str(), "w+"), ::BIO_free);
+  rc = PEM_write_bio_PUBKEY(bio_public.get(), pkey.get());
+
+  if (rc != 1) throw_last_error("saving public key file");
+
+  rc = shcore::set_user_only_permissions(public_path);
+  if (rc != 0) {
+    throw std::runtime_error(
+        "Error setting file permissions on public key file: " + public_path);
+  }
+
+  BIO_ptr bio_private(BIO_new_file(private_path.c_str(), "w+"), ::BIO_free);
+  OSSL_ENCODER_CTX *ctx = OSSL_ENCODER_CTX_new_for_pkey(
+      pkey.get(), OSSL_KEYMGMT_SELECT_ALL, "PEM", NULL, NULL);
+
+  if (!passphrase.empty()) {
+    OSSL_ENCODER_CTX_set_cipher(ctx, "aes256", NULL);
+    unsigned char *passwd = reinterpret_cast<unsigned char *>(
+        const_cast<char *>(passphrase.c_str()));
+    OSSL_ENCODER_CTX_set_passphrase(ctx, passwd, passphrase.size());
+  }
+
+  OSSL_ENCODER_to_bio(ctx, bio_private.get());
+
+#else
+  BN_ptr bn(BN_new(), ::BN_free);
 
   EVP_KEY_ptr pkey(EVP_PKEY_new(), ::EVP_PKEY_free);
   RSA_ptr rsa(RSA_new(), ::RSA_free);
@@ -194,6 +249,7 @@ std::string create_key_pair(const std::string &path,
                                      passwd, passphrase.size(), nullptr,
                                      nullptr);
   }
+#endif
 
   if (rc != 1) throw_last_error("saving private key file");
 
@@ -245,10 +301,22 @@ std::vector<unsigned char> md5(const char *data, size_t size) {
   std::vector<unsigned char> md_value;
   md_value.resize(16);
 
+#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
+  unsigned int final_size;
+
+  const EVP_MD *md = EVP_md5();
+  EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+
+  EVP_DigestInit(mdctx, md);
+  EVP_DigestUpdate(mdctx, data, size);
+  EVP_DigestFinal_ex(mdctx, md_value.data(), &final_size);
+  EVP_MD_CTX_free(mdctx);
+#else
   MD5_CTX ctx;
   MD5_Init(&ctx);
   MD5_Update(&ctx, data, size);
   MD5_Final(md_value.data(), &ctx);
+#endif
 
   return md_value;
 }
