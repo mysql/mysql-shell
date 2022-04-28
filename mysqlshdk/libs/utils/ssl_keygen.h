@@ -74,7 +74,8 @@ void init();
  * - For the public key:  <key_name>_public.pem
  */
 std::string create_key_pair(const std::string &path,
-                            const std::string &key_name, size_t bitsize = 2048,
+                            const std::string &key_name,
+                            unsigned int bitsize = 2048,
                             const std::string &passphrase = "");
 
 /**
