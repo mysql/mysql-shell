@@ -2616,8 +2616,11 @@ void Cluster_set_impl::ensure_transaction_set_consistent(
 
   std::string errant_gtids;
   std::string missing_gtids;
-  auto state = check_replica_group_gtid_state(*primary, *replica,
-                                              &missing_gtids, &errant_gtids);
+  // Do not filter VCLEs since we need to assess whether the GTID-SETs are
+  // diverging or not and only then check whether the divergence is due to
+  // VCLEs
+  auto state = check_replica_gtid_state(*primary, *replica, &missing_gtids,
+                                        &errant_gtids);
 
   log_info("GTID check between %s and %s result=%s missing=%s errant=%s",
            replica->descr().c_str(), primary->descr().c_str(),

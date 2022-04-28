@@ -30,7 +30,6 @@ session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 session4 = mysql.getSession(__sandbox_uri4);
 session5 = mysql.getSession(__sandbox_uri5);
-session6 = mysql.getSession(__sandbox_uri6);
 
 // - switch to invalid cluster
 // - single member in {current, promoted} cluster {unreachable,offline}
@@ -111,15 +110,22 @@ c2.addInstance(__sandbox_uri5);
 testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port1);
 
 session4 = mysql.getSession(__sandbox_uri4);
+session5 = mysql.getSession(__sandbox_uri5);
+// Purge the binary logs from all members
+// BUG#34013718: reconciliation doesn't happen when binlogs purged from all members
 session4.runSql("flush binary logs");
+session5.runSql("flush binary logs");
+os.sleep(1);
 session4.runSql("purge binary logs before now(6)");
+session5.runSql("purge binary logs before now(6)");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5], c1, c2);
 CHECK_CLUSTER_SET(session);
 
 // promoting cluster2 should be OK
-cs.setPrimaryCluster("cluster2");
+EXPECT_NO_THROWS(function() { cs.setPrimaryCluster("cluster2"); } );
+EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs");
 
 testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 
@@ -171,7 +177,8 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 //@<> Create 3/3 clusterset
 
 c2.addInstance(__sandbox_uri5);
-c2.addInstance(__sandbox_uri6);
+// Instance 6 was never part of the Cluster so it's missing all the transactions that were purged before, clone required
+c2.addInstance(__sandbox_uri6, {recoveryMethod: "clone"});
 
 testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port6, __mysql_sandbox_port1);
@@ -403,6 +410,7 @@ EXPECT_EQ([], logs);
 //@<> switchover with 3 clusters while 1 member is offline
 
 // take down sb6 because sb4 is primary and there's no group failover of AR yet
+session6 = mysql.getSession(__sandbox_uri6);
 session6.runSql("stop group_replication");
 shell.connect(__sandbox_uri4);
 testutil.waitMemberState(__mysql_sandbox_port6, "(MISSING)");
@@ -508,11 +516,12 @@ testutil.destroySandbox(__mysql_sandbox_port6);
 
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host:hostname});
+
+c4 = cs.createReplicaCluster(__sandbox_uri6, "cluster4", {manualStartOnBoot:1, recoveryMethod: "clone"});
+c4.addInstance(__sandbox_uri4, {recoveryMethod: "clone"});
+
 session4 = mysql.getSession(__sandbox_uri4);
 session6 = mysql.getSession(__sandbox_uri6);
-
-c4 = cs.createReplicaCluster(__sandbox_uri6, "cluster4", {manualStartOnBoot:1});
-c4.addInstance(__sandbox_uri4);
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c3, c1);
 CHECK_INVALIDATED_CLUSTER([], c3, c2);

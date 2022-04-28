@@ -130,7 +130,7 @@ CHECK_CLUSTER_SET(session);
 // dryRun -> no-op
 EXPECT_DRYRUN(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, __mysql_sandbox_port1);
 
-// this rejoin will have no errant transactions, but there will be GR view events
+// this rejoin will have no errant transactions
 cs.rejoinCluster("cluster2");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
@@ -147,6 +147,47 @@ cs.rejoinCluster("cluster2");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], c1, c2);
+CHECK_CLUSTER_SET(session);
+
+//@<> rejoin cluster with extra GTID events that are view-change-events
+
+// Stop the CS replication channel
+session4.runSql("stop replica for channel 'clusterset_replication'");
+
+// Generate view change events in the replica Cluster
+session6.runSql("STOP group_replication");
+session6.runSql("START group_replication");
+
+// Rejoin the Cluster
+cs.rejoinCluster("cluster2");
+EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs");
+
+// Purge the binary logs from all members
+// BUG#34013718: reconciliation doesn't happen when binlogs purged from all members
+session4.runSql("flush binary logs");
+session5.runSql("flush binary logs");
+session6.runSql("flush binary logs");
+os.sleep(1);
+session4.runSql("purge binary logs before now(6)");
+session5.runSql("purge binary logs before now(6)");
+session6.runSql("purge binary logs before now(6)");
+
+// promoting cluster2 to primary should be OK
+EXPECT_NO_THROWS(function() { cs.setPrimaryCluster("cluster2"); } );
+
+testutil.waitMemberTransactions(__mysql_sandbox_port1, __mysql_sandbox_port4);
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri4, __sandbox_uri6], c2);
+CHECK_REPLICA_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c2, c1);
+CHECK_CLUSTER_SET(session);
+
+// promoting cluster1 back to primary
+EXPECT_NO_THROWS(function() { cs.setPrimaryCluster("cluster1"); } );
+
+testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri6], c1, c2);
 CHECK_CLUSTER_SET(session);
 
 //@<> rejoin partially offline cluster
