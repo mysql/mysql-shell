@@ -671,7 +671,7 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
     // Read actual GR configurations to preserve them when rejoining the
     // instance.
     m_gr_opts.read_option_values(*m_target_instance,
-                                 *m_is_switching_comm_stack);
+                                 m_is_switching_comm_stack.value_or(false));
   }
 
   // Check instance configuration and state, like dba.checkInstance
