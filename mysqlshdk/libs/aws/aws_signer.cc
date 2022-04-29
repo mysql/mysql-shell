@@ -329,7 +329,7 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   std::string authorization;
   authorization.reserve(512);
   authorization += "AWS4-HMAC-SHA256 Credential=";
-  authorization += *m_access_key_id;
+  authorization += m_access_key_id.value_or(std::string{});
   authorization += '/';
   authorization += scope;
   authorization += ", SignedHeaders=";

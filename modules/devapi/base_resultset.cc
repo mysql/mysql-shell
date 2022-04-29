@@ -64,7 +64,8 @@ std::vector<std::string> ShellBaseResult::get_members() const {
   // Result classes
   auto pos = std::find(members.begin(), members.end(), "dump");
 
-  members.erase(pos);
+  assert(pos != members.end());
+  if (pos != members.end()) members.erase(pos);
 
   return members;
 }
@@ -105,13 +106,8 @@ std::unique_ptr<mysqlsh::Row> ShellBaseResult::fetch_one_row() const {
 }
 
 shcore::Dictionary_t ShellBaseResult::fetch_one_object() const {
-  shcore::Dictionary_t ret_val;
-
-  auto row = fetch_one_row();
-  if (row) {
-    ret_val = row->as_object();
-  }
-  return ret_val;
+  if (auto row = fetch_one_row(); row) return row->as_object();
+  return {};
 }
 
 std::shared_ptr<std::vector<std::string>> ShellBaseResult::get_column_names()
@@ -180,6 +176,7 @@ REGISTER_HELP_PROPERTY(numberSigned, Column);
 REGISTER_HELP_PROPERTY(collationName, Column);
 REGISTER_HELP_PROPERTY(characterSetName, Column);
 REGISTER_HELP_PROPERTY(zeroFill, Column);
+REGISTER_HELP_PROPERTY(flags, Column);
 
 REGISTER_HELP_FUNCTION(getSchemaName, Column);
 REGISTER_HELP_FUNCTION(getTableName, Column);
@@ -193,6 +190,7 @@ REGISTER_HELP_FUNCTION(getNumberSigned, Column);
 REGISTER_HELP_FUNCTION(getCollationName, Column);
 REGISTER_HELP_FUNCTION(getCharacterSetName, Column);
 REGISTER_HELP_FUNCTION(getZeroFill, Column);
+REGISTER_HELP_FUNCTION(getFlags, Column);
 #if DOXYGEN_CPP
 /**
  * Use this function to retrieve an valid member of this class exposed to the
@@ -229,37 +227,20 @@ REGISTER_HELP_FUNCTION(getZeroFill, Column);
  */
 #endif
 shcore::Value Column::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-  if (prop == "schemaName")
-    ret_val = shcore::Value(_c.get_schema());
-  else if (prop == "tableName")
-    ret_val = shcore::Value(_c.get_table_name());
-  else if (prop == "tableLabel")
-    ret_val = shcore::Value(_c.get_table_label());
-  else if (prop == "columnName")
-    ret_val = shcore::Value(_c.get_column_name());
-  else if (prop == "columnLabel")
-    ret_val = shcore::Value(_c.get_column_label());
-  else if (prop == "type")
-    ret_val = shcore::Value(_type);
-  else if (prop == "length")
-    ret_val = shcore::Value(_c.get_length());
-  else if (prop == "fractionalDigits")
-    ret_val = shcore::Value(_c.get_fractional());
-  else if (prop == "numberSigned")
-    ret_val = shcore::Value(is_number_signed());
-  else if (prop == "collationName")
-    ret_val = shcore::Value(_c.get_collation_name());
-  else if (prop == "characterSetName")
-    ret_val = shcore::Value(_c.get_charset_name());
-  else if (prop == "zeroFill")
-    ret_val = shcore::Value(_c.is_zerofill());
-  else if (prop == "flags")
-    ret_val = shcore::Value(_c.get_flags());
-  else
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
+  if (prop == "schemaName") return shcore::Value(_c.get_schema());
+  if (prop == "tableName") return shcore::Value(_c.get_table_name());
+  if (prop == "tableLabel") return shcore::Value(_c.get_table_label());
+  if (prop == "columnName") return shcore::Value(_c.get_column_name());
+  if (prop == "columnLabel") return shcore::Value(_c.get_column_label());
+  if (prop == "type") return shcore::Value(_type);
+  if (prop == "length") return shcore::Value(_c.get_length());
+  if (prop == "fractionalDigits") return shcore::Value(_c.get_fractional());
+  if (prop == "numberSigned") return shcore::Value(is_number_signed());
+  if (prop == "collationName") return shcore::Value(_c.get_collation_name());
+  if (prop == "characterSetName") return shcore::Value(_c.get_charset_name());
+  if (prop == "zeroFill") return shcore::Value(_c.is_zerofill());
+  if (prop == "flags") return shcore::Value(_c.get_flags());
+  return shcore::Cpp_object_bridge::get_member(prop);
 }
 
 REGISTER_HELP_CLASS(Row, shellapi);
@@ -290,8 +271,9 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
   add_property("length", "getLength");
   expose("getField", &Row::get_field, "fieldName");
 
+  assert(row.num_fields() == names_->size());
   for (uint32_t i = 0, c = row.num_fields(); i < c; i++) {
-    const std::string &key = (*names_)[i];
+    const std::string &key = names_->at(i);
     // Values would be available as properties if they are valid identifier
     // and not base members like length and getField
     // O on this case the values would be available as

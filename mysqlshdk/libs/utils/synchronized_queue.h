@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -68,13 +69,13 @@ class Synchronized_queue final {
     return unsynchronized_pop();
   }
 
-  T try_pop(int timeout_msec) {
+  std::optional<T> try_pop(std::chrono::milliseconds timeout) {
     std::unique_lock<std::mutex> lock(m_queue_mutex);
-    if (m_task_ready.wait_for(lock, std::chrono::milliseconds(timeout_msec),
+    if (m_task_ready.wait_for(lock, timeout,
                               [this]() { return !unsynchronized_empty(); })) {
       return unsynchronized_pop();
     }
-    return T();
+    return {};
   }
 
   /**
@@ -86,17 +87,13 @@ class Synchronized_queue final {
   void shutdown(int64_t n) {
     {
       std::lock_guard<std::mutex> lock(m_queue_mutex);
-      for (int64_t i = 0; i < n; i++) {
+      for (int64_t i = 0; i < n; i++)
         unsynchronized_push(T(), k_shutdown_priority);
-      }
     }
     m_task_ready.notify_all();
   }
 
-  size_t size() const {
-    std::lock_guard<std::mutex> lock(m_queue_mutex);
-    return m_size;
-  }
+  size_t size() const { return m_size; }
 
  private:
   using Priority_t = std::underlying_type_t<Queue_priority>;
@@ -133,7 +130,7 @@ class Synchronized_queue final {
   mutable std::mutex m_queue_mutex;
   std::condition_variable m_task_ready;
   std::array<std::deque<T>, 4> m_queues;
-  std::size_t m_size = 0;
+  std::atomic<std::size_t> m_size{0};
 };
 }  // namespace shcore
 

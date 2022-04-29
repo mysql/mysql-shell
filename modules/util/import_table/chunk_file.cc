@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,26 +55,29 @@ File_iterator::File_iterator(
     }
   }
 
-  if (m_next) {
-    m_next->reserved = needle_size;
-  }
+  if (m_next) m_next->reserved = needle_size;
 
-  if (start_from_offset < file_size) {
-    m_aio->fh = m_fh;
-    m_aio->length = BUFFER_SIZE;
+  if (start_from_offset >= file_size) return;
 
-    read_next(m_offset);
-    await_next();
-    this->swap();
-    read_next(m_offset + m_current->size() - m_current->reserved);
-  }
+  assert(m_aio);
+  if (!m_aio) return;
+
+  m_aio->fh = m_fh;
+  m_aio->length = BUFFER_SIZE;
+
+  read_next(m_offset);
+  await_next();
+  this->swap();
+
+  assert(m_current);
+  read_next(m_offset + m_current->size() - m_current->reserved);
 }
 
 File_iterator &File_iterator::operator++() {
   ++m_offset;
   ++m_ptr;
 
-  if (!(m_ptr < m_ptr_end)) {
+  if (m_ptr >= m_ptr_end) {
     await_next();
     swap();
     if (!m_eof) {

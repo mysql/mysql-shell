@@ -198,6 +198,7 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
   offset += file->write(data.data() + offset, 5);
   offset += file->write(data.data() + offset, 5);
   offset += file->write(data.data() + offset, 5);
+  EXPECT_EQ(offset, data.size());
 
   auto uploads = bucket.list_multipart_uploads();
   EXPECT_EQ(1, uploads.size());

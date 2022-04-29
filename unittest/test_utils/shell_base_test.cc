@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -177,7 +177,6 @@ bool Shell_base_test::check_wildcard_match(const std::string &expected,
     if (all_start == std::string::npos) {
       return false;
     } else {
-      all_end = std::string::npos;
       all_end = all_start + strings[0].length();
 
       strings.erase(strings.begin());

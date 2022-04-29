@@ -35,6 +35,8 @@
 
 namespace shcore {
 
+using namespace std::literals;
+
 TEST(utils_string, strip) {
   EXPECT_EQ("", str_strip(""));
   EXPECT_EQ("", str_strip(" \r\n\t"));
@@ -153,6 +155,19 @@ TEST(utils_string, caseeq) {
   EXPECT_FALSE(str_caseeq("B", "a"));
   EXPECT_FALSE(str_caseeq("a", "bB"));
   EXPECT_FALSE(str_caseeq("b", "Ab"));
+
+  EXPECT_TRUE(str_caseeq("a"sv, "a"sv));
+  EXPECT_TRUE(str_caseeq("", ""sv));
+  EXPECT_FALSE(str_caseeq("a"sv, "b"));
+  EXPECT_FALSE(str_caseeq("b", "a"sv));
+  EXPECT_FALSE(str_caseeq("a"sv, "bb"));
+  EXPECT_FALSE(str_caseeq("b", "ab"sv));
+
+  EXPECT_TRUE(str_caseeq("a"sv, "A"sv));
+  EXPECT_FALSE(str_caseeq("A", "b"));
+  EXPECT_FALSE(str_caseeq("B", "a"sv));
+  EXPECT_FALSE(str_caseeq("a", "bB"sv));
+  EXPECT_FALSE(str_caseeq("b"sv, "Ab"sv));
 }
 
 TEST(utils_string, casecmp) {
@@ -194,6 +209,96 @@ TEST(utils_string, beginswith) {
   EXPECT_FALSE(str_beginswith(std::string(""), std::string("a")));
   EXPECT_FALSE(str_beginswith(std::string("a"), std::string("b")));
   EXPECT_FALSE(str_beginswith(std::string("a"), std::string("ab")));
+
+  EXPECT_TRUE(str_beginswith(""sv, ""));
+  EXPECT_TRUE(str_beginswith("a", ""sv));
+  EXPECT_TRUE(str_beginswith("a", "a"));
+  EXPECT_TRUE(str_beginswith("ab"sv, "a"sv));
+  EXPECT_FALSE(str_beginswith("", "a"sv));
+  EXPECT_FALSE(str_beginswith("a"sv, "b"));
+  EXPECT_FALSE(str_beginswith("a"sv, "ab"sv));
+
+  EXPECT_TRUE(str_beginswith(""sv, ""));
+  EXPECT_TRUE(str_beginswith("a"sv, ""));
+  EXPECT_TRUE(str_beginswith("a"sv, "a"));
+  EXPECT_TRUE(str_beginswith("ab"sv, "a"));
+  EXPECT_FALSE(str_beginswith(""sv, "a"));
+  EXPECT_FALSE(str_beginswith("a"sv, "b"));
+  EXPECT_FALSE(str_beginswith("a"sv, "ab"));
+
+  EXPECT_TRUE(str_beginswith(std::string(""), ""sv));
+  EXPECT_TRUE(str_beginswith(std::string("a"), ""sv));
+  EXPECT_TRUE(str_beginswith(std::string("a"), "a"sv));
+  EXPECT_TRUE(str_beginswith(std::string("ab"), "a"sv));
+  EXPECT_FALSE(str_beginswith(std::string(""), "a"sv));
+  EXPECT_FALSE(str_beginswith(std::string("a"), "b"sv));
+  EXPECT_FALSE(str_beginswith(std::string("a"), "ab"sv));
+
+  EXPECT_TRUE(str_beginswith(""sv, ""sv));
+  EXPECT_TRUE(str_beginswith("a"sv, ""sv));
+  EXPECT_TRUE(str_beginswith("a"sv, "a"sv));
+  EXPECT_TRUE(str_beginswith("ab"sv, "a"sv));
+  EXPECT_FALSE(str_beginswith(""sv, "a"sv));
+  EXPECT_FALSE(str_beginswith("a"sv, "b"sv));
+  EXPECT_FALSE(str_beginswith("a"sv, "ab"sv));
+}
+
+TEST(utils_string, ibeginswith) {
+  EXPECT_TRUE(str_ibeginswith("", ""));
+  EXPECT_TRUE(str_ibeginswith("a", ""));
+  EXPECT_TRUE(str_ibeginswith("a", "A"));
+  EXPECT_TRUE(str_ibeginswith("ab", "A"));
+  EXPECT_FALSE(str_ibeginswith("", "A"));
+  EXPECT_FALSE(str_ibeginswith("a", "B"));
+  EXPECT_FALSE(str_ibeginswith("a", "AB"));
+
+  EXPECT_TRUE(str_ibeginswith(std::string(""), ""));
+  EXPECT_TRUE(str_ibeginswith(std::string("a"), ""));
+  EXPECT_TRUE(str_ibeginswith(std::string("a"), "A"));
+  EXPECT_TRUE(str_ibeginswith(std::string("ab"), "A"));
+  EXPECT_FALSE(str_ibeginswith(std::string(""), "A"));
+  EXPECT_FALSE(str_ibeginswith(std::string("a"), "B"));
+  EXPECT_FALSE(str_ibeginswith(std::string("a"), "AB"));
+
+  EXPECT_TRUE(str_ibeginswith(std::string(""), std::string("")));
+  EXPECT_TRUE(str_ibeginswith(std::string("a"), std::string("")));
+  EXPECT_TRUE(str_ibeginswith(std::string("a"), std::string("A")));
+  EXPECT_TRUE(str_ibeginswith(std::string("ab"), std::string("A")));
+  EXPECT_FALSE(str_ibeginswith(std::string(""), std::string("A")));
+  EXPECT_FALSE(str_ibeginswith(std::string("a"), std::string("B")));
+  EXPECT_FALSE(str_ibeginswith(std::string("a"), std::string("AB")));
+
+  EXPECT_TRUE(str_ibeginswith(""sv, ""));
+  EXPECT_TRUE(str_ibeginswith("a", ""sv));
+  EXPECT_TRUE(str_ibeginswith("a", "A"));
+  EXPECT_TRUE(str_ibeginswith("ab"sv, "A"sv));
+  EXPECT_FALSE(str_ibeginswith("", "A"sv));
+  EXPECT_FALSE(str_ibeginswith("a"sv, "B"));
+  EXPECT_FALSE(str_ibeginswith("a"sv, "AB"sv));
+
+  EXPECT_TRUE(str_ibeginswith(""sv, ""));
+  EXPECT_TRUE(str_ibeginswith("a"sv, ""));
+  EXPECT_TRUE(str_ibeginswith("a"sv, "A"));
+  EXPECT_TRUE(str_ibeginswith("ab"sv, "A"));
+  EXPECT_FALSE(str_ibeginswith(""sv, "A"));
+  EXPECT_FALSE(str_ibeginswith("a"sv, "B"));
+  EXPECT_FALSE(str_ibeginswith("a"sv, "AB"));
+
+  EXPECT_TRUE(str_ibeginswith(std::string(""), ""sv));
+  EXPECT_TRUE(str_ibeginswith(std::string("a"), ""sv));
+  EXPECT_TRUE(str_ibeginswith(std::string("a"), "A"sv));
+  EXPECT_TRUE(str_ibeginswith(std::string("ab"), "A"sv));
+  EXPECT_FALSE(str_ibeginswith(std::string(""), "A"sv));
+  EXPECT_FALSE(str_ibeginswith(std::string("a"), "B"sv));
+  EXPECT_FALSE(str_ibeginswith(std::string("a"), "AB"sv));
+
+  EXPECT_TRUE(str_ibeginswith(""sv, ""sv));
+  EXPECT_TRUE(str_ibeginswith("a"sv, ""sv));
+  EXPECT_TRUE(str_ibeginswith("a"sv, "A"sv));
+  EXPECT_TRUE(str_ibeginswith("ab"sv, "A"sv));
+  EXPECT_FALSE(str_ibeginswith(""sv, "A"sv));
+  EXPECT_FALSE(str_ibeginswith("a"sv, "B"sv));
+  EXPECT_FALSE(str_ibeginswith("a"sv, "AB"sv));
 }
 
 TEST(utils_string, endswith) {

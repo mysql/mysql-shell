@@ -273,9 +273,9 @@ std::string quote_string(const std::string &s, char quote) {
   return std::string(q + esc + q);
 }
 
-std::string unquote_string(const std::string &s, char quote) {
+std::string unquote_string(std::string_view s, char quote) {
   const std::string q{quote};
-  auto result = s;
+  auto result = std::string{s};
 
   if (result.length() >= 2 && result[0] == quote &&
       result[result.length() - 1] == quote) {

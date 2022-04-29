@@ -806,39 +806,38 @@ Value Python_context::execute_interactive(const std::string &code,
         const char *msg;
         PyObject *obj;
         if (PyArg_ParseTuple(value, "sO", &msg, &obj)) {
-          constexpr auto unexpected_character =
-              "unexpected character after line continuation character";
-          constexpr auto eof_while_scanning =
-              "EOF while scanning triple-quoted string literal";
-          constexpr auto unterminated_triple_quoted =
-              "unterminated triple-quoted string literal";
-          // "'%c' was never closed"
-          constexpr auto was_never_closed = "was never closed";
-          constexpr auto unexpected_eof = "unexpected EOF while parsing";
-          constexpr auto expected_indented_block = "expected an indented block";
+          using namespace std::literals;
 
-          if (strncmp(msg, unexpected_character,
-                      strlen(unexpected_character)) == 0) {
+          constexpr auto unexpected_character =
+              "unexpected character after line continuation character"sv;
+          constexpr auto eof_while_scanning =
+              "EOF while scanning triple-quoted string literal"sv;
+          constexpr auto unterminated_triple_quoted =
+              "unterminated triple-quoted string literal"sv;
+          // "'%c' was never closed"
+          constexpr auto was_never_closed = "was never closed"sv;
+          constexpr auto unexpected_eof = "unexpected EOF while parsing"sv;
+          constexpr auto expected_indented_block =
+              "expected an indented block"sv;
+
+          std::string_view msg_view{msg};
+
+          if (msg_view == unexpected_character) {
             // NOTE: These two characters will come if explicit line
             // continuation is specified
             if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
                 code[code.length() - 1] == '\n') {
               r_state = Input_state::ContinuedSingle;
             }
-          } else if (strncmp(msg, eof_while_scanning,
-                             strlen(eof_while_scanning)) == 0) {
+          } else if (msg_view == eof_while_scanning) {
             r_state = Input_state::ContinuedSingle;
-          } else if (strncmp(msg, unterminated_triple_quoted,
-                             strlen(unterminated_triple_quoted)) == 0) {
+          } else if (msg_view == unterminated_triple_quoted) {
             r_state = Input_state::ContinuedSingle;
-          } else if (strncmp(msg + 4, was_never_closed,
-                             strlen(was_never_closed)) == 0) {
+          } else if (msg_view.substr(4) == was_never_closed) {
             r_state = Input_state::ContinuedBlock;
-          } else if (strncmp(msg, unexpected_eof, strlen(unexpected_eof)) ==
-                     0) {
+          } else if (msg_view == unexpected_eof) {
             r_state = Input_state::ContinuedBlock;
-          } else if (strncmp(msg, expected_indented_block,
-                             strlen(expected_indented_block)) == 0) {
+          } else if (msg_view == expected_indented_block) {
             r_state = Input_state::ContinuedBlock;
           }
         }
@@ -1016,9 +1015,7 @@ void Python_context::set_python_error(PyObject *obj,
 bool Python_context::pystring_to_string(PyObject *strobject,
                                         std::string *result, bool convert) {
   if (PyUnicode_Check(strobject)) {
-    PyObject *ref = PyUnicode_AsUTF8String(strobject);
-
-    if (ref) {
+    if (PyObject *ref = PyUnicode_AsUTF8String(strobject); ref) {
       bool ret = pystring_to_string(ref, result, false);
       Py_DECREF(ref);
       return ret;
@@ -1041,9 +1038,7 @@ bool Python_context::pystring_to_string(PyObject *strobject,
   // If strobject is not a string, we can choose if we want to convert it to
   // string with PyObject_str() or return an error
   if (convert) {
-    PyObject *str = PyObject_Str(strobject);
-
-    if (str) {
+    if (PyObject *str = PyObject_Str(strobject); str) {
       bool ret = pystring_to_string(str, result, false);
       Py_DECREF(str);
       return ret;
@@ -1075,11 +1070,9 @@ py::Store Python_context::get_shell_function_class() const {
 
 PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
                                       const std::string &stream) {
-  Python_context *ctx;
+  if (!Python_context::get_and_check()) return NULL;
+
   std::string text;
-
-  if (!(ctx = Python_context::get_and_check())) return NULL;
-
   if (stream != "error.flush") {
     PyObject *o;
     if (!PyArg_ParseTuple(args, "O", &o)) {
@@ -1774,58 +1767,68 @@ void Python_context::throw_if_mysqlsh_error() {
   }
 }
 
+void Python_context::clear_exception() {
+  PyObject *exc, *value, *tb;
+
+  PyErr_Fetch(&exc, &value, &tb);
+
+  Py_XDECREF(exc);
+  Py_XDECREF(value);
+  Py_XDECREF(tb);
+}
+
 std::string Python_context::fetch_and_clear_exception() {
+  if (!PyErr_Occurred()) return {};
+
   std::string exception;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  if (nullptr != PyErr_Occurred()) {
-    PyObject *exc = nullptr;
-    PyObject *value = nullptr;
-    PyObject *tb = nullptr;
+  PyObject *exc = nullptr;
+  PyObject *value = nullptr;
+  PyObject *tb = nullptr;
 
-    PyErr_Fetch(&exc, &value, &tb);
-    PyErr_NormalizeException(&exc, &value, &tb);
+  PyErr_Fetch(&exc, &value, &tb);
+  PyErr_NormalizeException(&exc, &value, &tb);
 
-    {
-      PyObject *str = PyObject_Str(value);
-      pystring_to_string(str, &exception);
-      Py_XDECREF(str);
-    }
+  {
+    PyObject *str = PyObject_Str(value);
+    pystring_to_string(str, &exception);
+    Py_XDECREF(str);
+  }
 
-    if (nullptr != tb) {
-      PyObject *traceback_module = PyImport_ImportModule("traceback");
+  if (nullptr != tb) {
+    PyObject *traceback_module = PyImport_ImportModule("traceback");
 
-      if (nullptr != traceback_module) {
-        PyObject *format_exception =
-            PyObject_GetAttrString(traceback_module, "format_exception");
+    if (nullptr != traceback_module) {
+      PyObject *format_exception =
+          PyObject_GetAttrString(traceback_module, "format_exception");
 
-        if (nullptr != format_exception && PyCallable_Check(format_exception)) {
-          PyObject *backtrace = PyObject_CallFunctionObjArgs(
-              format_exception, exc, value, tb, nullptr);
+      if (nullptr != format_exception && PyCallable_Check(format_exception)) {
+        PyObject *backtrace = PyObject_CallFunctionObjArgs(
+            format_exception, exc, value, tb, nullptr);
 
-          if (nullptr != backtrace && PyList_Check(backtrace)) {
-            exception = "\n";
+        if (nullptr != backtrace && PyList_Check(backtrace)) {
+          exception = "\n";
 
-            for (Py_ssize_t c = PyList_Size(backtrace), i = 0; i < c; ++i) {
-              std::string item;
-              pystring_to_string(PyList_GetItem(backtrace, i), &item);
-              exception += item;
-            }
+          for (Py_ssize_t c = PyList_Size(backtrace), i = 0; i < c; ++i) {
+            std::string item;
+            pystring_to_string(PyList_GetItem(backtrace, i), &item);
+            exception += item;
           }
-
-          Py_XDECREF(backtrace);
         }
 
-        Py_XDECREF(format_exception);
+        Py_XDECREF(backtrace);
       }
 
-      Py_XDECREF(traceback_module);
+      Py_XDECREF(format_exception);
     }
 
-    Py_XDECREF(exc);
-    Py_XDECREF(value);
-    Py_XDECREF(tb);
+    Py_XDECREF(traceback_module);
   }
+
+  Py_XDECREF(exc);
+  Py_XDECREF(value);
+  Py_XDECREF(tb);
 
   return exception;
 }

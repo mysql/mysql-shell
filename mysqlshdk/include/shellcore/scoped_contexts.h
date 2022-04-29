@@ -38,8 +38,8 @@ template <typename T>
 class Global_scoped_object {
  public:
   explicit Global_scoped_object(
-      const std::shared_ptr<T> &scoped_value,
-      const std::function<void(const std::shared_ptr<T> &)> &deleter = {});
+      std::shared_ptr<T> scoped_value,
+      std::function<void(const std::shared_ptr<T> &)> on_delete_cb = {});
   ~Global_scoped_object();
 
   Global_scoped_object(const Global_scoped_object &) = delete;
@@ -47,11 +47,11 @@ class Global_scoped_object {
   Global_scoped_object &operator=(const Global_scoped_object &) = delete;
   Global_scoped_object &operator=(Global_scoped_object &&) = delete;
 
-  std::shared_ptr<T> get() const;
+  std::shared_ptr<T> get() const { return m_scoped_value; }
 
  private:
-  std::function<void(const std::shared_ptr<T> &)> m_deleter;
   std::shared_ptr<T> m_scoped_value;
+  std::function<void(const std::shared_ptr<T> &)> m_on_delete_cb;
 };
 
 using Scoped_console = Global_scoped_object<mysqlsh::IConsole>;

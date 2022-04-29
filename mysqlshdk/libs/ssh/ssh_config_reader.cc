@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,6 +102,7 @@ void Ssh_config_reader::read(Ssh_config_data *out_config,
         // Skips emptylines and comments
         if (line.empty() || line[0] == '#') continue;
 
+        // TODO(Bug#34144479): refactor the parser
         auto tokens = shcore::str_split(line, " \t=", -1, true);
         // Lines are expected to have attr[=]value, extra values are ignored
         if (tokens.size() < 2) continue;
@@ -109,7 +110,11 @@ void Ssh_config_reader::read(Ssh_config_data *out_config,
         // Values may be double quoted
         std::string value{tokens[1]};
         if (!value.empty() && value[0] == '"') {
-          value = mysqlshdk::utils::span_quoted_string_dq(value, 0);
+          if (auto end = mysqlshdk::utils::span_quoted_string_dq(value, 0);
+              end == std::string_view::npos)
+            value.clear();
+          else
+            value = value.substr(1, end - 2);  // end is after the last "
         }
 
         if (shcore::str_casecmp("host", tokens[0]) == 0) {

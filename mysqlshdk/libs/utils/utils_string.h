@@ -75,14 +75,6 @@ struct Case_insensitive_comparator {
   }
 };
 
-inline bool str_caseeq(const char *a, const char *b) {
-#ifdef _WIN32
-  return ::_stricmp(a, b) == 0;
-#else
-  return ::strcasecmp(a, b) == 0;
-#endif
-}
-
 inline bool str_caseeq(const char *a, const char *b, size_t n) {
 #ifdef _WIN32
   return ::_strnicmp(a, b, n) == 0;
@@ -91,16 +83,13 @@ inline bool str_caseeq(const char *a, const char *b, size_t n) {
 #endif
 }
 
-inline bool str_caseeq(const std::string &a, const char *b) {
-  return str_caseeq(a.c_str(), b);
-}
-
-inline bool str_caseeq(const char *a, const std::string &b) {
-  return str_caseeq(a, b.c_str());
-}
-
-inline bool str_caseeq(const std::string &a, const std::string &b) {
-  return a.length() == b.length() && str_caseeq(a.c_str(), b.c_str());
+inline constexpr bool str_caseeq(std::string_view a, std::string_view b) {
+  if (a.size() != b.size()) return false;
+#ifdef _WIN32
+  return ::_strnicmp(a.data(), b.data(), a.size()) == 0;
+#else
+  return ::strncasecmp(a.data(), b.data(), a.size()) == 0;
+#endif
 }
 
 template <typename T, typename... Args>
@@ -109,28 +98,17 @@ bool str_caseeq_mv(T &&token, Args &&... args) {
 }
 
 /** Checks whether a string has another as a prefix */
-inline bool str_beginswith(const char *s, const char *prefix) {
-  return strncmp(s, prefix, strlen(prefix)) == 0;
-}
-
-inline bool str_beginswith(const std::string &s, const std::string &prefix) {
+inline bool str_beginswith(std::string_view s, std::string_view prefix) {
   return s.compare(0, prefix.length(), prefix) == 0;
 }
 
-inline bool str_ibeginswith(const char *s, const char *prefix) {
-#ifdef _WIN32
-  return ::_strnicmp(s, prefix, strlen(prefix)) == 0;
-#else
-  return strncasecmp(s, prefix, strlen(prefix)) == 0;
-#endif
-}
+inline bool str_ibeginswith(std::string_view s, std::string_view prefix) {
+  if (s.size() < prefix.size()) return false;
 
-inline bool str_ibeginswith(const std::string &s,
-                            const std::string_view &prefix) {
 #ifdef _WIN32
-  return ::_strnicmp(s.c_str(), prefix.data(), prefix.size()) == 0;
+  return ::_strnicmp(s.data(), prefix.data(), prefix.size()) == 0;
 #else
-  return strncasecmp(s.c_str(), prefix.data(), prefix.size()) == 0;
+  return strncasecmp(s.data(), prefix.data(), prefix.size()) == 0;
 #endif
 }
 
@@ -436,7 +414,7 @@ std::string quote_string(const std::string &s, char quote);
  *
  * @return Unquoted string.
  */
-std::string unquote_string(const std::string &s, char quote);
+std::string unquote_string(std::string_view s, char quote);
 
 // Macro to turn a symbol into a string
 #define STRINGIFY(s) STRINGIFY_(s)

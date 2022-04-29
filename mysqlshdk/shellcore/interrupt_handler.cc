@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -167,8 +167,7 @@ namespace shcore {
 */
 
 std::shared_ptr<Interrupts> Interrupts::create(Interrupt_helper *helper) {
-  std::shared_ptr<Interrupts> interrupt(new Interrupts(helper));
-  return interrupt;
+  return std::shared_ptr<Interrupts>(new Interrupts(helper));
 }
 
 Interrupts::Interrupts(Interrupt_helper *helper)
@@ -192,16 +191,16 @@ void Interrupts::push_handler(const std::function<bool()> &handler) {
   // If you do want a background thread to be cancelled, the creator thread
   // should register a handler that will in turn result in the cancellation of
   // the background thread.
-  if (!in_creator_thread()) {
-    return;
-  }
+  if (!in_creator_thread()) return;
 
   // Note: If you're getting a stack overflow pushing handlers, there may be
   // something wrong with how your code is working.
   // Interrupt handlers should be installed once per language. If code in a
   // scripting language can call code in the language, that should probably
   // not result in the installation of another interrupt handler.
-  if (m_num_handlers.load() >= kMax_interrupt_handlers) {
+  std::lock_guard lock(m_handler_mutex);
+
+  if (m_num_handlers >= k_max_interrupt_handlers) {
     throw std::logic_error(
         "Internal error: interrupt handler stack overflow during "
         "push_interrupt_handler()");
@@ -213,8 +212,10 @@ void Interrupts::pop_handler() {
   if (!in_creator_thread()) {
     return;
   }
-  std::lock_guard<std::mutex> lock(m_handler_mutex);
-  if (m_num_handlers.load() == 0) {
+
+  std::lock_guard lock(m_handler_mutex);
+
+  if (m_num_handlers == 0) {
     throw std::logic_error(
         "Internal error: interrupt handler stack underflow during "
         "pop_interrupt_handler()");
@@ -224,10 +225,10 @@ void Interrupts::pop_handler() {
 
 void Interrupts::interrupt() {
   Block_interrupts block_ints;
-  std::lock_guard<std::mutex> lock(m_handler_mutex);
-  int n = m_num_handlers.load();
-  if (n > 0) {
-    for (int i = n - 1; i >= 0; --i) {
+  std::lock_guard lock(m_handler_mutex);
+
+  if (m_num_handlers > 0) {
+    for (int i = m_num_handlers - 1; i >= 0; --i) {
       try {
         if (!m_handlers[i]()) break;
       } catch (const std::exception &e) {

@@ -118,7 +118,7 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   collation_name;      //!< Same as get_collation_name()
   character_set_name;  //!< Same as get_character_set_name()
   zero_fill;           //!< Same as is_zero_fill()
-  flags;               //!< Same as getFlags()
+  flags;               //!< Same as get_flags()
 #endif
 
 /**
@@ -259,6 +259,17 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
   bool is_zero_fill() {}
 #endif
   bool is_zerofill() const { return _c.is_zerofill(); }
+
+/**
+ * Retrieves a space separated list of database flags
+ * \return a space separated list of database flags set for the column.
+ */
+#if DOXYGEN_JS
+  String getFlags() {}
+#elif DOXYGEN_PY
+  str get_flags() {}
+#endif
+  std::string get_flags() const { return _c.get_flags(); }
 
   bool is_binary() const { return _c.is_binary(); }
   bool is_numeric() const { return _c.is_numeric(); }

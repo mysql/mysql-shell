@@ -32,18 +32,13 @@
 namespace shcore {
 
 namespace {
-Log_sql::Log_level get_level_by_name(const std::string &name) {
-  if (str_caseeq(name.c_str(), "off")) {
-    return Log_sql::Log_level::OFF;
-  } else if (str_caseeq(name.c_str(), "error")) {
-    return Log_sql::Log_level::ERROR;
-  } else if (str_caseeq(name.c_str(), "on")) {
-    return Log_sql::Log_level::ON;
-  } else if (str_caseeq(name.c_str(), "unfiltered")) {
-    return Log_sql::Log_level::UNFILTERED;
-  } else {
-    throw std::invalid_argument("invalid level");
-  }
+Log_sql::Log_level get_level_by_name(std::string_view name) {
+  if (str_caseeq(name, "off")) return Log_sql::Log_level::OFF;
+  if (str_caseeq(name, "error")) return Log_sql::Log_level::ERROR;
+  if (str_caseeq(name, "on")) return Log_sql::Log_level::ON;
+  if (str_caseeq(name, "unfiltered")) return Log_sql::Log_level::UNFILTERED;
+
+  throw std::invalid_argument("invalid level");
 }
 
 const char *get_level_range_info() {
@@ -59,17 +54,14 @@ std::string mask_sql_query(const std::string &sql) {
 // with --dba-log-sql option.
 // Dba.* context is when we are invoking one of the following objects: Dba.*,
 // ClusterSet.*, Cluster.*, ReplicaSet.*
-bool is_dba_context(const std::string &context) {
+bool is_dba_context(std::string_view context) {
   using namespace std::literals;
 
   // todo(kg): transform to state machine or use (compile-time) regex
-  if (shcore::str_ibeginswith(context, "dba."sv) ||
-      shcore::str_ibeginswith(context, "cluster."sv) ||
-      shcore::str_ibeginswith(context, "clusterset."sv) ||
-      shcore::str_ibeginswith(context, "replicaset."sv)) {
-    return true;
-  }
-  return false;
+  return (shcore::str_ibeginswith(context, "dba."sv) ||
+          shcore::str_ibeginswith(context, "cluster."sv) ||
+          shcore::str_ibeginswith(context, "clusterset."sv) ||
+          shcore::str_ibeginswith(context, "replicaset."sv));
 }
 }  // namespace
 
@@ -88,46 +80,49 @@ Log_sql::Log_sql(const mysqlsh::Shell_options &opts) {
   init(storage);
 }
 
-Log_sql::~Log_sql() {}
+Log_sql::~Log_sql() = default;
 
 void Log_sql::init(const mysqlsh::Shell_options::Storage &opts) {
+  // only called on ctor: doesn't need protection
   m_dba_log_sql = opts.dba_log_sql;
   m_log_sql_level = get_level_by_name(opts.log_sql);
   m_ignore_patterns = shcore::split_string(opts.log_sql_ignore, ":");
+
   observe_notification(SN_SHELL_OPTION_CHANGED);
 }
 
 void Log_sql::handle_notification(const std::string &name,
                                   const Object_bridge_ref &,
                                   Value::Map_type_ref data) {
-  if (name == SN_SHELL_OPTION_CHANGED) {
-    if (data->get_string("option") == SHCORE_LOG_SQL) {
-      m_log_sql_level = get_level_by_name(data->get_string("value"));
-    } else if (data->get_string("option") == SHCORE_DBA_LOG_SQL) {
-      m_dba_log_sql = data->get_int("value");
-    } else if (data->get_string("option") == SHCORE_LOG_SQL_IGNORE) {
-      auto v = data->get_string("value");
-      m_ignore_patterns = shcore::split_string(v, ":");
-    }
+  if (name != SN_SHELL_OPTION_CHANGED) return;
+
+  auto option = data->get_string("option");
+  if (option == SHCORE_LOG_SQL) {
+    m_log_sql_level = get_level_by_name(data->get_string("value"));
+  } else if (option == SHCORE_DBA_LOG_SQL) {
+    m_dba_log_sql = data->get_int("value");
+  } else if (option == SHCORE_LOG_SQL_IGNORE) {
+    std::lock_guard lock(m_mutex);
+    auto v = data->get_string("value");
+    m_ignore_patterns = shcore::split_string(v, ":");
   }
 }
 
 void Log_sql::do_log(const std::string &msg) const {
-  std::lock_guard<std::mutex> lock(m_context_stack_mutex);
-  if (m_context_stack.empty()) {
-    return;
-  }
-
+  // this is private and called with a lock on m_mutex
   const auto &e = m_context_stack.top();
   Logger::Log_entry entry(e.c_str(), msg.c_str(), msg.size(), m_log_level);
-  current_logger()->do_log(entry);
+  Logger::do_log(entry);
 }
 
 void Log_sql::log(uint64_t thread_id, const char *sql, size_t len) {
+  std::lock_guard lock(m_mutex);
+
+  if (m_context_stack.empty()) return;
+
   const auto [log_flag, filtered_flag] = will_log(sql, len, false);
-  if (!log_flag) {
-    return;
-  }
+  if (!log_flag) return;
+
   const std::string log_msg = "tid=" + std::to_string(thread_id) +
                               ": SQL: " + mask_sql_query(std::string(sql, len));
   do_log(log_msg);
@@ -135,10 +130,13 @@ void Log_sql::log(uint64_t thread_id, const char *sql, size_t len) {
 
 void Log_sql::log(uint64_t thread_id, const char *sql, size_t len,
                   const shcore::Error &error) {
+  std::lock_guard lock(m_mutex);
+
+  if (m_context_stack.empty()) return;
+
   const auto [log_flag, filtered_flag] = will_log(sql, len, true);
-  if (!log_flag) {
-    return;
-  }
+  if (!log_flag) return;
+
   std::string log_msg =
       "tid=" + std::to_string(thread_id) + ": " + error.format();
 
@@ -154,9 +152,12 @@ void Log_sql::log(uint64_t thread_id, const char *sql, size_t len,
 }
 
 void Log_sql::log_connect(const std::string &endpoint_uri, uint64_t thread_id) {
-  if (is_off()) {
-    return;
-  }
+  if (is_off()) return;
+
+  std::lock_guard lock(m_mutex);
+
+  if (m_context_stack.empty()) return;
+
   std::string log_msg{"tid=" + std::to_string(thread_id) +
                       ": CONNECTED: " + endpoint_uri};
   do_log(log_msg);
@@ -173,8 +174,9 @@ std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
     }
 
     if (m_dba_log_sql == 1) {
-      if (shcore::str_ibeginswith(sql, "select") ||
-          shcore::str_ibeginswith(sql, "show")) {
+      if (std::string_view sqlv{sql, len};
+          shcore::str_ibeginswith(sqlv, "select") ||
+          shcore::str_ibeginswith(sqlv, "show")) {
         return std::make_pair(false, true);
       } else {
         return std::make_pair(true, false);
@@ -200,7 +202,7 @@ std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
 
 void Log_sql::push(const char *context) {
   assert(context);
-  std::lock_guard<std::mutex> lock(m_context_stack_mutex);
+  std::lock_guard lock(m_mutex);
 
   m_context_stack.emplace(std::string{context});
 
@@ -211,7 +213,7 @@ void Log_sql::push(const char *context) {
 }
 
 void Log_sql::pop() {
-  std::lock_guard<std::mutex> lock(m_context_stack_mutex);
+  std::lock_guard lock(m_mutex);
 
   assert(!m_context_stack.empty());
   if (!m_context_stack.empty()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,13 +36,10 @@
 namespace testing {
 class Mock_row : public mysqlshdk::db::IRow {
  public:
-  Mock_row() {}
-  Mock_row(const std::vector<std::string> &names,
-           const std::vector<mysqlshdk::db::Type> &types,
-           const std::vector<std::string> &data);
-  void init(const std::vector<std::string> &names,
-            const std::vector<mysqlshdk::db::Type> &types,
-            const std::vector<std::string> &data);
+  Mock_row() = default;
+  void init(std::vector<std::string> names,
+            std::vector<mysqlshdk::db::Type> types,
+            std::vector<std::string> data);
 
   MOCK_CONST_METHOD1(get_as_string, std::string(uint32_t index));
 

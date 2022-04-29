@@ -199,15 +199,11 @@ Shell_context_wrapper::Shell_context_wrapper(
 }
 
 shcore::Value Shell_context_wrapper::get_member(const std::string &prop) const {
-  if (m_finalized) {
+  if (m_finalized.load())
     throw std::logic_error("The Shell context has been finalized already.");
-  }
 
-  if (prop == "globals") {
-    return shcore::Value(get_globals());
-  } else {
-    return Cpp_object_bridge::get_member(prop);
-  }
+  if (prop == "globals") return shcore::Value(get_globals());
+  return Cpp_object_bridge::get_member(prop);
 }
 
 REGISTER_HELP_FUNCTION_MODE(getShell, ShellContextWrapper, PYTHON);
@@ -227,9 +223,8 @@ REGISTER_HELP_FUNCTION_TEXT(SHELLCONTEXTWRAPPER_GETSHELL, R"*(
 Shell ShellContextWrapper::get_shell();
 #endif
 std::shared_ptr<Shell> Shell_context_wrapper::get_shell() const {
-  if (m_finalized) {
+  if (m_finalized.load())
     throw std::logic_error("The Shell context has been finalized already.");
-  }
 
   return m_mysql_shell->get_shell();
 }
@@ -244,6 +239,9 @@ REGISTER_HELP(SHELLCONTEXTWRAPPER_GLOBALS_BRIEF,
 dict ShellContextWrapper::globals;
 #endif
 shcore::Dictionary_t Shell_context_wrapper::get_globals() const {
+  if (m_finalized.load())
+    throw std::logic_error("The Shell context has been finalized already.");
+
   return m_mysql_shell->get_shell()->get_globals(
       shcore::IShell_core::Mode::Python);
 }
@@ -253,7 +251,7 @@ REGISTER_HELP_FUNCTION_TEXT(SHELLCONTEXTWRAPPER_FINALIZE, R"*(
   Explicitly finalizes the Shell Context object releasing the log file handle.
 )*");
 void Shell_context_wrapper::finalize() {
-  m_logger.reset();
   m_finalized = true;
+  m_logger.reset();
 }
 }  // namespace mysqlsh

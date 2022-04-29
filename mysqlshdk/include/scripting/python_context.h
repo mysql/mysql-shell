@@ -187,6 +187,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *db_error() const;
   PyObject *error() const;
 
+  void clear_exception();
   std::string fetch_and_clear_exception();
   void throw_if_mysqlsh_error();
 

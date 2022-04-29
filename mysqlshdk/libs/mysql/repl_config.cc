@@ -491,7 +491,7 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
       } else if (out_invalid_vec->size() == initial_invalid_configs) {
         // if we didn't change the config (already valid), them we need to
         // restart
-        out_invalid_vec->push_back(std::move(change));
+        out_invalid_vec->push_back(change);
       }
     }
     log_invalid_config(change);

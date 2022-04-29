@@ -500,12 +500,7 @@ void check_upgrade(const Connection_options &connection_options,
         "%i errors were found. Please correct these issues before upgrading "
         "to avoid compatibility issues.",
         errors);
-  } else if (warnings > 0) {
-    summary =
-        "No fatal errors were found that would prevent an upgrade, "
-        "but some potential issues were detected. Please ensure that the "
-        "reported issues are not significant before upgrading.";
-  } else if (notices > 0) {
+  } else if ((warnings > 0) || (notices > 0)) {
     summary =
         "No fatal errors were found that would prevent an upgrade, "
         "but some potential issues were detected. Please ensure that the "
