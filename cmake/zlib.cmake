@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 # cmake -DWITH_ZLIB=bundled|system
 # bundled is the default
 
+SET(ZLIB_VERSION "1.2.12")
+
 macro (FIND_SYSTEM_ZLIB)
   find_path(PATH_TO_ZLIB NAMES zlib.h zconf.h)
   find_library(ZLIB_SYSTEM_LIBRARY NAMES z)
@@ -39,13 +41,13 @@ macro(MYSQL_USE_BUNDLED_ZLIB)
   if(MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
     set(WITH_ZLIB "bundled" CACHE STRING "By default use bundled zlib library")
     set(BUILD_BUNDLED_ZLIB 1)
-    include_directories(BEFORE SYSTEM ${MYSQL_SOURCE_DIR}/extra/zlib ${MYSQL_BUILD_DIR}/extra/zlib)
+    include_directories(BEFORE SYSTEM ${MYSQL_SOURCE_DIR}/extra/zlib/zlib-${ZLIB_VERSION} ${MYSQL_BUILD_DIR}/extra/zlib/zlib-${ZLIB_VERSION})
 
     if(WIN32)
       find_file(ZLIB_LIBRARY NAMES zlib.lib PATHS "${MYSQL_BUILD_DIR}/archive_output_directory/"
         PATH_SUFFIXES ${CMAKE_BUILD_TYPE} RelWithDebInfo Release Debug)
     else()
-      find_file(ZLIB_LIBRARY NAMES libz.a PATHS "${MYSQL_BUILD_DIR}/archive_output_directory/")
+      find_file(ZLIB_LIBRARY NAMES libzlib.a PATHS "${MYSQL_BUILD_DIR}/archive_output_directory/")
     endif()
   endif()
 endmacro()
