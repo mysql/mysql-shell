@@ -703,7 +703,10 @@ RETURNS
 
 DESCRIPTION
       This function lists and provides information about all Router instances
-      registered on the Clusters members of the ClusteSet.
+      registered on the Clusters members of the ClusterSet.
+
+      ATTENTION: The lastCheckIn property reflects the Routers' startup
+                 timestamp.
 
 //@<OUT> routingOptions
 NAME

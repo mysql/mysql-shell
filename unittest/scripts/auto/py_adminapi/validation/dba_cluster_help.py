@@ -1077,6 +1077,9 @@ DESCRIPTION
       is to upgrade MySQL Router instances to the latest version before
       upgrading the Metadata itself, in order to minimize service disruption.
 
+      ATTENTION: The lastCheckIn property reflects the Routers' startup
+                 timestamp.
+
       The options dictionary may contain the following attributes:
 
       - onlyUpgradeRequired: boolean, enables filtering so only router
