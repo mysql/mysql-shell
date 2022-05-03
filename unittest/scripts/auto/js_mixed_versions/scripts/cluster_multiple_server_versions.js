@@ -38,7 +38,7 @@ cluster.status();
 //@<> Remove 5.7 server from cluster, which used to trigger a protocol upgrade
 cluster.removeInstance(__sandbox_uri2);
 
-EXPECT_OUTPUT_CONTAINS("NOTE: The communication protocol used by Group Replication can be upgraded to version 8.0.16");
+EXPECT_OUTPUT_CONTAINS("NOTE: The communication protocol used by Group Replication can be upgraded to version 8.0.27");
 
 //@<> Add 5.7 server back, which used to trigger a protocol downgrade (add should fail instead)
 shell.connect(__sandbox_uri1);
@@ -69,9 +69,9 @@ cluster.rescan({upgradeCommProtocol:1});
 //@<> Rescan and upgrade protocol (check) {__test_execution_mode != 'replay'}
 var sb1_grproto = Array.from(testutil.grepFile(sb1_general_log, "group_replication_set_communication_protocol"));
 
-// ensure that protocol was upgraded to 8.0.16 when instance was added
+// ensure that protocol was upgraded to 8.0.27 when instance was added
 EXPECT_EQ(1, sb1_grproto.length);
-EXPECT_EQ("SELECT group_replication_set_communication_protocol('8.0.16')", sb1_grproto[0].split("\t")[2]);
+EXPECT_EQ("SELECT group_replication_set_communication_protocol('8.0.27')", sb1_grproto[0].split("\t")[2]);
 
 //@<> Rescan and upgrade protocol again
 cluster.rescan({upgradeCommProtocol:1});

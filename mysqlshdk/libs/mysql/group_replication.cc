@@ -496,11 +496,15 @@ mysqlshdk::utils::Version get_group_protocol_version(
 
 mysqlshdk::utils::Version get_max_supported_group_protocol_version(
     const mysqlshdk::utils::Version &server_version) {
-  if (server_version < mysqlshdk::utils::Version(8, 0, 16))
+  if (server_version < mysqlshdk::utils::Version(8, 0, 16)) {
     return mysqlshdk::utils::Version(5, 7, 14);
+  } else if (server_version < mysqlshdk::utils::Version(8, 0, 27)) {
+    // Protocol version for any server >= 8.0.16 && < 8.0.27 is 8.0.16
+    return mysqlshdk::utils::Version(8, 0, 16);
+  }
 
-  // we have to assume protocol version for any server >= 8.0.16 is 8.0.16
-  return mysqlshdk::utils::Version(8, 0, 16);
+  // we have to assume protocol version for any server >= 8.0.27 is 8.0.27
+  return mysqlshdk::utils::Version(8, 0, 27);
 }
 
 void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
@@ -535,7 +539,7 @@ bool is_protocol_upgrade_possible(
   // Get the current protocol version in use by the group
   mysqlshdk::utils::Version protocol_version_group =
       get_group_protocol_version(instance);
-  // Check if any of the group_members has a version >= 8.0.16
+  // Check if any of the group_members supports a higher protocol version
   for (const auto &member : group_members) {
     // If version is not available, the instance is < 8.0, so an upgrade is not
     // required.
