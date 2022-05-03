@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -155,6 +155,9 @@ cmake .. \
 %if "%{_lib}" == "lib64"
     -DLIB_SUFFIX=64 \
 %endif
+%if 0%{?bundled_mysql_config_editor:1}
+    -DBUNDLED_MYSQL_CONFIG_EDITOR=%{bundled_mysql_config_editor} \
+%endif
 %if 0%{?bundled_ssh:1}
     -DBUNDLED_SSH_DIR=%{bundled_ssh} \
 %endif
@@ -227,6 +230,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %doc README
 %{_bindir}/mysqlsh
 %{_bindir}/mysql-secret-store-login-path
+%if 0%{?bundled_mysql_config_editor:1}
+%{_libexecdir}/mysqlsh/mysql_config_editor
+%endif
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/adminapi-metadata/*
 %{_datadir}/mysqlsh/upgrade_checker.msg

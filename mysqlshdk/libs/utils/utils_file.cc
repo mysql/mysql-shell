@@ -295,6 +295,16 @@ std::string get_library_folder() {
   return path;
 }
 
+std::string get_libexec_folder() {
+  std::string path =
+      shcore::path::join_path(get_mysqlx_home_path(), "libexec", "mysqlsh");
+  if (!shcore::path::exists(path))
+    throw std::runtime_error(
+        path + ": libexec folder not found, shell installation likely invalid");
+
+  return path;
+}
+
 /*
  * Returns what should be considered the HOME folder for the shell.
  * If MYSQLSH_HOME is defined, returns its value.

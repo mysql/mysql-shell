@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -43,3 +43,13 @@ set(helper_libs
 )
 
 add_helper_executable()
+
+# If defined, installs the mysql_config_editor binary into the shell bundle
+IF (BUNDLED_MYSQL_CONFIG_EDITOR)
+  INSTALL(PROGRAMS ${BUNDLED_MYSQL_CONFIG_EDITOR} DESTINATION "${INSTALL_LIBEXECDIR}" COMPONENT main)
+  # Copy the mysql_config_editor to the build dir
+  ADD_CUSTOM_COMMAND(TARGET mysql-secret-store-login-path POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_LIBEXECDIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${BUNDLED_MYSQL_CONFIG_EDITOR}"
+                "${CONFIG_BINARY_DIR}/${INSTALL_LIBEXECDIR}/mysql_config_editor")
+ENDIF()

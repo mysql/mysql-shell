@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,7 @@ std::string SHCORE_PUBLIC get_binary_path();
 std::string SHCORE_PUBLIC get_binary_folder();
 std::string SHCORE_PUBLIC get_share_folder();
 std::string SHCORE_PUBLIC get_library_folder();
+std::string SHCORE_PUBLIC get_libexec_folder();
 
 /**
  * Tells if path is a regular file.
