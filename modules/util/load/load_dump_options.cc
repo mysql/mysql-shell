@@ -365,22 +365,16 @@ void Load_dump_options::set_session(
     m_target.set(mysqlshdk::db::kMaxAllowedPacket, k_one_gb);
   }
 
+  const auto instance = mysqlshdk::mysql::Instance(m_base_session);
+
   m_target_server_version = mysqlshdk::utils::Version(
       query("SELECT @@version")->fetch_one()->get_string(0));
 
   m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
 
-  try {
-    query("SELECT @@SESSION.sql_generate_invisible_primary_key;");
-    m_auto_create_pks_supported = true;
-  } catch (const mysqlshdk::db::Error &e) {
-    if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
-      m_auto_create_pks_supported = false;
-    } else {
-      throw;
-    }
-  }
+  m_sql_generate_invisible_primary_key =
+      instance.get_sysvar_bool("sql_generate_invisible_primary_key");
 
   m_server_uuid =
       query("SELECT @@server_uuid")->fetch_one_or_throw()->get_string(0);
@@ -390,7 +384,6 @@ void Load_dump_options::set_session(
       add_excluded_users(shcore::to_accounts(k_oci_excluded_users));
     }
 
-    const auto instance = mysqlshdk::mysql::Instance(m_base_session);
     shcore::Account account;
 
     instance.get_current_user(&account.user, &account.host);
@@ -848,6 +841,11 @@ bool Load_dump_options::error_on_trigger_filters_conflicts() const {
                            m_exclude_tables, table_name);
 
   return conflict;
+}
+
+bool Load_dump_options::sql_generate_invisible_primary_key() const {
+  assert(auto_create_pks_supported());
+  return *m_sql_generate_invisible_primary_key;
 }
 
 }  // namespace mysqlsh
