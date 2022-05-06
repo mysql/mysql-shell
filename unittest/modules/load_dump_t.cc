@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -227,164 +227,6 @@ shcore::Interpreter_print_handler g_silencer(
     [](void *, const char *) { return true; },
     [](void *, const char *) { return true; });
 
-class Load_dump_mocked : public Shell_core_test_wrapper {
- public:
-  void SetUp() override {
-    Shell_core_test_wrapper::SetUp();
-
-    // silence the console
-    mysqlsh::current_console()->add_print_handler(&g_silencer);
-
-    m_session_count = 0;
-
-    // override the session factory
-    m_old_session_factory = mysqlshdk::db::mysql::Session::set_factory_function(
-        [this]() -> std::shared_ptr<mysqlshdk::db::mysql::Session> {
-          std::lock_guard<std::mutex> lock(m_sessions_mutex);
-
-          ++m_session_count;
-
-          auto mock = std::make_shared<testing::Mock_mysql_session>();
-          EXPECT_CALL(*mock, do_connect(_)).Times(1);
-          EXPECT_CALL(*mock, executes(_, _)).Times(AtLeast(0));
-          EXPECT_CALL(*mock, execute(_)).Times(AtLeast(0));
-          EXPECT_CALL(*mock, get_connection_options())
-              .WillRepeatedly(ReturnRef(m_coptions));
-          EXPECT_CALL(*mock, get_connection_id())
-              .WillRepeatedly(Return(m_session_count));
-          EXPECT_CALL(*mock, is_open()).WillRepeatedly(Return(false));
-
-          if (m_auto_generate_pk_value) {
-            const auto query = shcore::sqlformat(
-                "SET @@SESSION.sql_generate_invisible_primary_key=?",
-                m_create_invisible_pks);
-            EXPECT_CALL(*mock, executes(StrEq(query.c_str()), _))
-                .Times(Exactly(1));
-          }
-
-          {
-            // this is the main connection used by the loader
-
-            mock->expect_query(
-                    "SELECT CONCAT(@@version, ' ', @@version_comment)")
-                .then({"a"})
-                .add_row({m_version + " mocked"});
-
-            mock->expect_query(
-                    "SELECT schema_name FROM information_schema.schemata WHERE "
-                    "schema_name in ('stackoverflow')")
-                .then({"a"});
-
-            if (Version(m_version) >= Version(8, 0, 13) &&
-                !m_create_invisible_pks) {
-              mock->expect_query(
-                      "show variables like 'sql_require_primary_key';")
-                  .then({"a", "b"})
-                  .add_row({"sql_require_primary_key", "1"});
-            }
-
-            mock->expect_query(
-                    "SELECT VARIABLE_VALUE = 'OFF' FROM "
-                    "performance_schema.global_status WHERE variable_name = "
-                    "'Innodb_redo_log_enabled'")
-                .then({"a"});
-
-            mock->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
-                .then({"a", "b"})
-                .add_row({"local_infile", "1"});
-          }
-
-          mock->set_query_handler(
-              [this](const std::string &sql)
-                  -> std::shared_ptr<mysqlshdk::db::IResult> {
-                if (sql.find("LOAD DATA LOCAL INFILE ") != std::string::npos) {
-                  size_t start = sql.find('\'') + 1;
-                  size_t end = sql.find('\'', start);
-
-                  std::string filename = sql.substr(start, end - start);
-
-                  if (m_on_load_data) {
-                    m_on_load_data(filename);
-                  }
-
-                  auto r = std::make_shared<testing::Mock_result>();
-                  EXPECT_CALL(*r, get_warning_count())
-                      .WillRepeatedly(Return(0));
-                  return r;
-                }
-                return {};
-              });
-
-          m_sessions.push_back(mock);
-
-          return mock;
-        });
-  }
-
-  std::shared_ptr<mysqlshdk::db::ISession> make_mock_main_session() {
-    auto mock_main_session = std::make_shared<testing::Mock_mysql_session>();
-    EXPECT_CALL(*mock_main_session, get_connection_options())
-        .WillRepeatedly(ReturnRef(m_coptions));
-    mock_main_session->expect_query("SELECT @@version")
-        .then({"version"})
-        .add_row({m_version});
-
-    {
-      auto &r = mock_main_session->expect_query(
-          "SELECT @@SESSION.sql_generate_invisible_primary_key;");
-
-      if (m_auto_generate_pk_value) {
-        r.then({""}).add_row({*m_auto_generate_pk_value ? "1" : "0"});
-      } else {
-        r.then_throw(
-            "Unknown system variable 'sql_generate_invisible_primary_key'",
-            ER_UNKNOWN_SYSTEM_VARIABLE, "HY000");
-      }
-    }
-
-    mock_main_session->expect_query("SELECT @@server_uuid")
-        .then({"@@server_uuid"})
-        .add_row({"UUID"});
-
-    mock_main_session
-        ->expect_query(
-            "SELECT VARIABLE_VALUE = 'OFF' FROM "
-            "performance_schema.global_status WHERE variable_name = "
-            "'Innodb_redo_log_enabled'")
-        .then({""});
-
-    mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
-        .then({"a", "b"})
-        .add_row({"local_infile", "1"});
-    return std::static_pointer_cast<mysqlshdk::db::ISession>(mock_main_session);
-  }
-
-  void TearDown() override {
-    m_sessions.clear();
-
-    mysqlsh::current_console()->remove_print_handler(&g_silencer);
-
-    mysqlshdk::db::mysql::Session::set_factory_function(m_old_session_factory);
-
-    Shell_core_test_wrapper::TearDown();
-  }
-
-  mysqlshdk::db::Connection_options m_coptions =
-      mysqlshdk::db::Connection_options("mysql://root@localhost:3306");
-  int m_session_count;
-  std::function<std::shared_ptr<mysqlshdk::db::mysql::Session>()>
-      m_old_session_factory;
-
-  std::mutex m_sessions_mutex;
-  std::vector<std::shared_ptr<testing::Mock_mysql_session>> m_sessions;
-
-  std::function<void(const std::string &)> m_on_load_data;
-
-  std::string m_version = "8.0.20";
-  mysqlshdk::null_bool m_auto_generate_pk_value;
-  bool m_create_invisible_pks = false;
-};
-
 namespace {
 #include "unittest/data/load/test_dump1.h"
 
@@ -528,99 +370,223 @@ class Schedule_checker {
 
 }  // namespace
 
+class Load_dump_mocked : public Shell_core_test_wrapper {
+ public:
+  void SetUp() override {
+    Shell_core_test_wrapper::SetUp();
+
+    // silence the console
+    mysqlsh::current_console()->add_print_handler(&g_silencer);
+
+    m_session_count = 0;
+
+    // override the session factory
+    m_old_session_factory = mysqlshdk::db::mysql::Session::set_factory_function(
+        [this]() -> std::shared_ptr<mysqlshdk::db::mysql::Session> {
+          std::lock_guard<std::mutex> lock(m_sessions_mutex);
+
+          ++m_session_count;
+
+          auto mock = std::make_shared<testing::Mock_mysql_session>();
+          EXPECT_CALL(*mock, do_connect(_)).Times(1);
+          EXPECT_CALL(*mock, executes(_, _)).Times(AtLeast(0));
+          EXPECT_CALL(*mock, execute(_)).Times(AtLeast(0));
+          EXPECT_CALL(*mock, get_connection_options())
+              .WillRepeatedly(ReturnRef(m_coptions));
+          EXPECT_CALL(*mock, get_connection_id())
+              .WillRepeatedly(Return(m_session_count));
+          EXPECT_CALL(*mock, is_open()).WillRepeatedly(Return(false));
+
+          if (m_auto_generate_pk_value &&
+              *m_auto_generate_pk_value != m_create_invisible_pks) {
+            // this query is executed only if the requested value is different
+            // from the current value
+            const auto query = shcore::sqlformat(
+                "SET @@SESSION.sql_generate_invisible_primary_key=?",
+                m_create_invisible_pks);
+            EXPECT_CALL(*mock, executes(StrEq(query.c_str()), _))
+                .Times(Exactly(1));
+          }
+
+          {
+            // this is the main connection used by the loader
+
+            mock->expect_query(
+                    "SELECT CONCAT(@@version, ' ', @@version_comment)")
+                .then({"a"})
+                .add_row({m_version + " mocked"});
+
+            mock->expect_query(
+                    "SELECT schema_name FROM information_schema.schemata WHERE "
+                    "schema_name in ('stackoverflow')")
+                .then({"a"});
+
+            if (Version(m_version) >= Version(8, 0, 13) &&
+                !m_create_invisible_pks) {
+              mock->expect_query(
+                      "show variables like 'sql_require_primary_key';")
+                  .then({"a", "b"})
+                  .add_row({"sql_require_primary_key", "1"});
+            }
+
+            mock->expect_query(
+                    "SELECT VARIABLE_VALUE = 'OFF' FROM "
+                    "performance_schema.global_status WHERE variable_name = "
+                    "'Innodb_redo_log_enabled'")
+                .then({"a"});
+
+            mock->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
+                .then({"a", "b"})
+                .add_row({"local_infile", "1"});
+          }
+
+          mock->set_query_handler(
+              [this](const std::string &sql)
+                  -> std::shared_ptr<mysqlshdk::db::IResult> {
+                if (sql.find("LOAD DATA LOCAL INFILE ") != std::string::npos) {
+                  size_t start = sql.find('\'') + 1;
+                  size_t end = sql.find('\'', start);
+
+                  std::string filename = sql.substr(start, end - start);
+
+                  if (m_on_load_data) {
+                    m_on_load_data(filename);
+                  }
+
+                  auto r = std::make_shared<testing::Mock_result>();
+                  EXPECT_CALL(*r, get_warning_count())
+                      .WillRepeatedly(Return(0));
+                  return r;
+                }
+                return {};
+              });
+
+          m_sessions.push_back(mock);
+
+          return mock;
+        });
+  }
+
+  std::shared_ptr<mysqlshdk::db::ISession> make_mock_main_session() {
+    auto mock_main_session = std::make_shared<testing::Mock_mysql_session>();
+    EXPECT_CALL(*mock_main_session, get_connection_options())
+        .WillRepeatedly(ReturnRef(m_coptions));
+    mock_main_session->expect_query("SELECT @@version")
+        .then({"version"})
+        .add_row({m_version});
+
+    {
+      auto &r = mock_main_session
+                    ->expect_query(
+                        "show GLOBAL variables where `variable_name` in "
+                        "('sql_generate_invisible_primary_key')")
+                    .then({"Variable_name", "Value"});
+
+      if (m_auto_generate_pk_value) {
+        r.add_row({"sql_generate_invisible_primary_key",
+                   *m_auto_generate_pk_value ? "ON" : "OFF"});
+      }
+    }
+
+    mock_main_session->expect_query("SELECT @@server_uuid")
+        .then({"@@server_uuid"})
+        .add_row({"UUID"});
+
+    mock_main_session
+        ->expect_query(
+            "SELECT VARIABLE_VALUE = 'OFF' FROM "
+            "performance_schema.global_status WHERE variable_name = "
+            "'Innodb_redo_log_enabled'")
+        .then({""});
+
+    mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
+        .then({"a", "b"})
+        .add_row({"local_infile", "1"});
+    return std::static_pointer_cast<mysqlshdk::db::ISession>(mock_main_session);
+  }
+
+  void TearDown() override {
+    m_sessions.clear();
+
+    mysqlsh::current_console()->remove_print_handler(&g_silencer);
+
+    mysqlshdk::db::mysql::Session::set_factory_function(m_old_session_factory);
+
+    Shell_core_test_wrapper::TearDown();
+  }
+
+  template <typename... Options>
+  void load_dump(int num_threads, bool check_scheduling, Options &&... opts) {
+    auto dir = std::make_unique<tests::Dummy_dump_directory>(
+        shcore::path::join_path(g_test_home, "data/load/test_dump1"),
+        test_dump1_files, test_dump1_files_size);
+
+    Load_dump_options options;
+    options.set_session(make_mock_main_session(), "");
+
+    Load_dump_options::options().unpack(
+        shcore::make_dict("threads", num_threads, "showProgress", false,
+                          "progressFile", "", std::forward<Options>(opts)...),
+        &options);
+
+    Dump_loader loader(options);
+
+    ASSERT_EQ(options.threads_count(), num_threads);
+
+    Schedule_checker checker(test_dump1_files, test_dump1_files_size,
+                             num_threads);
+
+    if (check_scheduling) {
+      m_on_load_data = [&](const std::string &filename) {
+        checker.on_file_load(filename);
+      };
+    }
+
+    // open the mock dump
+    loader.open_dump(std::move(dir));
+    loader.m_dump->rescan();
+
+    // run the load
+    loader.spawn_workers();
+    {
+      shcore::on_leave_scope cleanup([&loader]() {
+        loader.join_workers();
+
+        loader.m_progress_thread.finish();
+      });
+
+      loader.execute_tasks();
+    }
+  }
+
+  mysqlshdk::db::Connection_options m_coptions =
+      mysqlshdk::db::Connection_options("mysql://root@localhost:3306");
+  int m_session_count;
+  std::function<std::shared_ptr<mysqlshdk::db::mysql::Session>()>
+      m_old_session_factory;
+
+  std::mutex m_sessions_mutex;
+  std::vector<std::shared_ptr<testing::Mock_mysql_session>> m_sessions;
+
+  std::function<void(const std::string &)> m_on_load_data;
+
+  std::string m_version = "8.0.20";
+  mysqlshdk::null_bool m_auto_generate_pk_value;
+  bool m_create_invisible_pks = false;
+};
+
 TEST_F(Load_dump_mocked, chunk_scheduling_more_threads) {
   // Simulate a dump load by using a semi-mock of a dump (all metadata/ddl is
   // real, but no actual data) and DB sessions are mocked
   // The goal is to test that the chunk scheduling is working as expected
-
-  int num_threads = 36;
-  auto file_list = test_dump1_files;
-  auto file_list_size = sizeof(test_dump1_files) / sizeof(*test_dump1_files);
-
-  auto dir = std::make_unique<tests::Dummy_dump_directory>(
-      shcore::path::join_path(g_test_home, "data/load/test_dump1"), file_list,
-      file_list_size);
-
-  Load_dump_options options;
-  options.set_session(make_mock_main_session(), "");
-  options.options().unpack(
-      shcore::make_dict("threads", shcore::Value(num_threads), "showProgress",
-                        shcore::Value(0), "progressFile", shcore::Value("")),
-      &options);
-
-  Dump_loader loader(options);
-
-  ASSERT_EQ(options.threads_count(), num_threads);
-
-  Schedule_checker checker(file_list, file_list_size, num_threads);
-
-  m_on_load_data = [&](const std::string &filename) {
-    checker.on_file_load(filename);
-  };
-
-  // open the mock dump
-  loader.open_dump(std::move(dir));
-  loader.m_dump->rescan();
-
-  // run the load
-  loader.spawn_workers();
-  {
-    shcore::on_leave_scope cleanup([&loader]() {
-      loader.join_workers();
-
-      loader.m_progress_thread.finish();
-    });
-
-    loader.execute_tasks();
-  }
+  load_dump(36, true);
 }
 
 TEST_F(Load_dump_mocked, chunk_scheduling_more_tables) {
   // Simulate a dump load by using a semi-mock of a dump (all metadata/ddl is
   // real, but no actual data) and DB sessions are mocked
   // The goal is to test that the chunk scheduling is working as expected
-
-  int num_threads = 4;
-  auto file_list = test_dump1_files;
-  auto file_list_size = sizeof(test_dump1_files) / sizeof(*test_dump1_files);
-
-  auto dir = std::make_unique<tests::Dummy_dump_directory>(
-      shcore::path::join_path(g_test_home, "data/load/test_dump1"), file_list,
-      file_list_size);
-
-  Load_dump_options options;
-  options.set_session(make_mock_main_session(), "");
-
-  Load_dump_options::options().unpack(
-      shcore::make_dict("threads", shcore::Value(num_threads), "showProgress",
-                        shcore::Value(0), "progressFile", shcore::Value("")),
-      &options);
-
-  Dump_loader loader(options);
-
-  ASSERT_EQ(options.threads_count(), num_threads);
-
-  Schedule_checker checker(file_list, file_list_size, num_threads);
-
-  m_on_load_data = [&](const std::string &filename) {
-    checker.on_file_load(filename);
-  };
-
-  // open the mock dump
-  loader.open_dump(std::move(dir));
-  loader.m_dump->rescan();
-
-  // run the load
-  loader.spawn_workers();
-  {
-    shcore::on_leave_scope cleanup([&loader]() {
-      loader.join_workers();
-
-      loader.m_progress_thread.finish();
-    });
-
-    loader.execute_tasks();
-  }
+  load_dump(4, true);
 }
 
 static constexpr const char *k_mds_administrator_restrictions =
@@ -639,10 +605,10 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
       .add_row({"8.0.21-u1-cloud"});
 
   mock_main_session
-      ->expect_query("SELECT @@SESSION.sql_generate_invisible_primary_key;")
-      .then_throw(
-          "Unknown system variable 'sql_generate_invisible_primary_key'",
-          ER_UNKNOWN_SYSTEM_VARIABLE, "HY000");
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('sql_generate_invisible_primary_key')")
+      .then({"Variable_name", "Value"});
 
   mock_main_session->expect_query("SELECT @@server_uuid")
       .then({"@@server_uuid"})
@@ -705,42 +671,18 @@ TEST_F(Load_dump_mocked, sql_generate_invisible_primary_key) {
   // sql_generate_invisible_primary_key to ON is executed
   m_create_invisible_pks = true;
 
-  int num_threads = 4;
-  auto file_list = test_dump1_files;
-  auto file_list_size = shcore::array_size(test_dump1_files);
+  load_dump(4, false, "createInvisiblePKs", m_create_invisible_pks);
+}
 
-  auto dir = std::make_unique<tests::Dummy_dump_directory>(
-      shcore::path::join_path(g_test_home, "data/load/test_dump1"), file_list,
-      file_list_size);
+TEST_F(Load_dump_mocked, bug_34110375) {
+  m_version = "8.0.30";
+  // sql_generate_invisible_primary_key is supported, global value is true
+  m_auto_generate_pk_value = true;
+  // we want to create PKs, but the global value is already set to true, query
+  // should NOT be executed
+  m_create_invisible_pks = true;
 
-  Load_dump_options options;
-  options.set_session(make_mock_main_session(), "");
-
-  Load_dump_options::options().unpack(
-      shcore::make_dict("threads", num_threads, "showProgress", false,
-                        "progressFile", "", "createInvisiblePKs",
-                        m_create_invisible_pks),
-      &options);
-
-  Dump_loader loader(options);
-
-  ASSERT_EQ(options.threads_count(), num_threads);
-
-  // open the mock dump
-  loader.open_dump(std::move(dir));
-  loader.m_dump->rescan();
-
-  // run the load
-  loader.spawn_workers();
-  {
-    shcore::on_leave_scope cleanup([&loader]() {
-      loader.join_workers();
-
-      loader.m_progress_thread.finish();
-    });
-
-    loader.execute_tasks();
-  }
+  load_dump(4, false, "createInvisiblePKs", m_create_invisible_pks);
 }
 
 }  // namespace mysqlsh

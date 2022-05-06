@@ -1054,8 +1054,18 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
     // target server supports automatic creation of primary keys, we need to
     // explicitly set the value of session variable, so we won't end up creating
     // primary keys when user doesn't want to do that
-    executef(session, "SET @@SESSION.sql_generate_invisible_primary_key=?",
-             should_create_pks());
+    const auto create_pks = should_create_pks();
+
+    // we toggle the session variable only if the global value is different from
+    // the value requested by the user, as it requires at least
+    // SESSION_VARIABLES_ADMIN privilege; in case of MDS (where users do no
+    // have this privilege) we expect that user has set the appropriate
+    // compatibility option during the dump and this variable is not going to be
+    // toggled
+    if (m_options.sql_generate_invisible_primary_key() != create_pks) {
+      executef(session, "SET @@SESSION.sql_generate_invisible_primary_key=?",
+               create_pks);
+    }
   }
 
   try {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -3622,3 +3622,6 @@ static mysqlshdk::storage::IDirectory::File_info test_dump1_files[] = {
     {"stackoverflow@Votes@9.tsv.zst.idx", 54960},
     {"stackoverflow@Votes.json", 664},
     {"stackoverflow@Votes.sql", 838}};
+
+static constexpr auto test_dump1_files_size =
+    shcore::array_size(test_dump1_files);

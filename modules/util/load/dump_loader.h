@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -431,10 +431,8 @@ class Dump_loader {
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
   FRIEND_TEST(Load_dump, add_execute_conditionally);
-  FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_threads);
-  FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_tables);
+  friend class Load_dump_mocked;
   FRIEND_TEST(Load_dump_mocked, filter_user_script_for_mds);
-  FRIEND_TEST(Load_dump_mocked, sql_generate_invisible_primary_key);
 #endif
 
   class Sql_transform {

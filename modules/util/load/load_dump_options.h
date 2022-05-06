@@ -182,7 +182,11 @@ class Load_dump_options {
     return m_create_invisible_pks.get_safe(default_value);
   }
 
-  bool auto_create_pks_supported() const { return m_auto_create_pks_supported; }
+  bool auto_create_pks_supported() const {
+    return !m_sql_generate_invisible_primary_key.is_null();
+  }
+
+  bool sql_generate_invisible_primary_key() const;
 
   const mysqlshdk::utils::nullable<uint64_t> &max_bytes_per_transaction()
       const {
@@ -280,7 +284,7 @@ class Load_dump_options {
   bool m_is_mds = false;
   bool m_show_metadata = false;
   mysqlshdk::null_bool m_create_invisible_pks;
-  bool m_auto_create_pks_supported = false;
+  mysqlshdk::null_bool m_sql_generate_invisible_primary_key;
 
   mysqlshdk::utils::nullable<uint64_t> m_max_bytes_per_transaction;
 
