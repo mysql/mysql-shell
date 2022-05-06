@@ -26,6 +26,8 @@
 #include <tinyxml2.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <unordered_set>
 #include <utility>
 
@@ -47,8 +49,10 @@ using rest::String_response;
 
 namespace {
 
-constexpr std::size_t k_min_part_size = 5242880;     // 5 MiB
-constexpr std::size_t k_max_part_size = 5368709120;  // 5 GiB
+constexpr std::size_t k_min_part_size = 5242880;  // 5 MiB
+// 5 GiB or architecture limit, whichever is smaller
+constexpr std::size_t k_max_part_size = std::min<uint64_t>(
+    UINT64_C(5368709120), std::numeric_limits<std::size_t>::max());
 
 inline std::string encode_path(const std::string &data) {
   // signer expects that path segments are URL-encoded, slashes should not be
