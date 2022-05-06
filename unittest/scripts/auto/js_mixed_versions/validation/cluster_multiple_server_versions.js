@@ -3,7 +3,7 @@
 |    "clusterName": "testCluster", |
 |    "defaultReplicaSet": {|
 |        "clusterErrors": [|
-|            "Group communication protocol in use is version 5.7.14 but it is possible to upgrade to 8.0.16. Message fragmentation for large transactions can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."|
+|            "Group communication protocol in use is version 5.7.14 but it is possible to upgrade to 8.0.27. Message fragmentation for large transactions and Single Consensus Leader can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."|
 |        ],|
 |        "name": "default", |
 |        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>", |
@@ -20,15 +20,15 @@
 
 //@<OUT> extended status should have the protocol version
 {
-    "clusterName": "testCluster", 
+    "clusterName": "testCluster",
     "defaultReplicaSet": {
-        "GRProtocolVersion": "5.7.14", 
+        "GRProtocolVersion": "5.7.14",
         "clusterErrors": [
-            "Group communication protocol in use is version 5.7.14 but it is possible to upgrade to 8.0.16. Message fragmentation for large transactions can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."
+            "Group communication protocol in use is version 5.7.14 but it is possible to upgrade to 8.0.27. Message fragmentation for large transactions and Single Consensus Leader can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."
         ],
 
 //@<OUT> upgraded status
 {
-    "clusterName": "testCluster", 
+    "clusterName": "testCluster",
     "defaultReplicaSet": {
-        "GRProtocolVersion": "8.0.16", 
+        "GRProtocolVersion": "8.0.27",

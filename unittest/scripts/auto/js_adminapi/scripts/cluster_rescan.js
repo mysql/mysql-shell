@@ -816,6 +816,36 @@ s = c.status();
 EXPECT_EQ(undefined, s["defaultReplicaSet"]["topology"][hostname_ip+":"+__mysql_sandbox_port3]);
 EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, s["defaultReplicaSet"]["topology"]["hooray"]["address"]);
 
+//@<> Test communication protocol upgrade {VER(>=8.0)}
+
+// Downgrade the protocol version to 5.7.14
+session.runSql("SELECT group_replication_set_communication_protocol('5.7.14')");
+
+s = c.status();
+
+if (__version_num >= 80027) {
+    EXPECT_EQ(["Group communication protocol in use is version 5.7.14 but it is possible to upgrade to 8.0.27. Message fragmentation for large transactions and Single Consensus Leader can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."], s["defaultReplicaSet"]["clusterErrors"]);
+} else if (__version_num >= 80016 && __version_num < 80027) {
+    EXPECT_EQ(["Group communication protocol in use is version 5.7.14 but it is possible to upgrade to 8.0.16. Message fragmentation for large transactions can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."], s["defaultReplicaSet"]["clusterErrors"]);
+}
+
+EXPECT_NO_THROWS(function () {c.rescan({upgradeCommProtocol:1});});
+
+s = c.status();
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["clusterErrors"]);
+
+// Downgrade the protocol version to 8.0.16
+if (__version_num >= 80027) {
+    session.runSql("SELECT group_replication_set_communication_protocol('8.0.16')");
+
+    s = c.status();
+    EXPECT_EQ(["Group communication protocol in use is version 8.0.16 but it is possible to upgrade to 8.0.27. Single Consensus Leader can only be enabled after upgrade. Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade."], s["defaultReplicaSet"]["clusterErrors"]);
+
+    EXPECT_NO_THROWS(function () {c.rescan({upgradeCommProtocol:1});});
+
+    s = c.status();
+    EXPECT_EQ(undefined, s["defaultReplicaSet"]["clusterErrors"]);
+}
 
 //@ Finalize.
 cluster.disconnect();

@@ -1014,13 +1014,25 @@ void check_comm_protocol_upgrade_possible(
     // get the lowest protocol version supported by the group members
     auto highest_possible_version = all_protocol_versions.front();
     if (highest_possible_version > protocol_version) {
-      issues->emplace_back(shcore::Value(
-          "Group communication protocol in use is version " +
-          protocol_version.get_full() + " but it is possible to upgrade to " +
-          highest_possible_version.get_full() +
-          ". Message fragmentation for large transactions can only be "
-          "enabled after upgrade. Use "
-          "Cluster.rescan({upgradeCommProtocol:true}) to upgrade."));
+      std::string str = "Group communication protocol in use is version " +
+                        protocol_version.get_full() +
+                        " but it is possible to upgrade to " +
+                        highest_possible_version.get_full() + ".";
+
+      if (protocol_version < mysqlshdk::utils::Version(8, 0, 16)) {
+        str += " Message fragmentation for large transactions";
+        if (highest_possible_version == mysqlshdk::utils::Version(8, 0, 27)) {
+          str += " and Single Consensus Leader";
+        }
+
+        str += " can only be enabled after upgrade.";
+      } else {
+        str += " Single Consensus Leader can only be enabled after upgrade.";
+      }
+
+      str += " Use Cluster.rescan({upgradeCommProtocol:true}) to upgrade.";
+
+      issues->emplace_back(shcore::Value(str));
     }
   }
 }

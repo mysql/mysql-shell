@@ -171,16 +171,36 @@ void Remove_instance::check_protocol_upgrade_possible() {
   try {
     mysqlshdk::utils::Version version;
 
+    // Get the current protocol version in use by the group
+    mysqlshdk::utils::Version protocol_version_group =
+        mysqlshdk::gr::get_group_protocol_version(*group_instance);
+
     if (mysqlshdk::gr::is_protocol_upgrade_possible(
             *group_instance, server_uuid.get_safe(""), &version)) {
       console->print_note(
           "The communication protocol used by Group Replication can be "
           "upgraded to version " +
-          version.get_full());
-      console->print_info(
-          "Message fragmentation for large transactions can only be enabled "
-          "after the protocol is upgraded. Use "
-          "Cluster.rescan({upgradeCommProtocol:true}) to perform the upgrade.");
+          version.get_full() + ".");
+
+      std::string str;
+      if (protocol_version_group < mysqlshdk::utils::Version(8, 0, 16)) {
+        str += "Message fragmentation for large transactions";
+        if (version == mysqlshdk::utils::Version(8, 0, 27)) {
+          str += " and Single Consensus Leader";
+        }
+
+        str += " can only be enabled after the protocol is upgraded. ";
+      } else {
+        str +=
+            " Single Consensus Leader can only be enabled after the protocol "
+            "is upgraded. ";
+      }
+
+      str +=
+          "Use Cluster.rescan({upgradeCommProtocol:true}) to perform the "
+          "upgrade.";
+
+      console->print_info(str);
     }
   } catch (const shcore::Exception &error) {
     console->print_note(

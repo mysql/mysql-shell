@@ -773,14 +773,16 @@ Lists the Router instances.
 
 @param options Optional dictionary with options for the operation.
 
-@returns A JSON object listing the Router instances associated to the cluster.
+@returns A JSON object listing the Router instances associated to the ReplicaSet.
 
 This function lists and provides information about all Router instances
-registered for the cluster.
+registered for the ReplicaSet.
 
 Whenever a Metadata Schema upgrade is necessary, the recommended process
 is to upgrade MySQL Router instances to the latest version before upgrading
 the Metadata itself, in order to minimize service disruption.
+
+@attention The lastCheckIn property reflects the Routers' startup timestamp.
 
 The options dictionary may contain the following attributes:
 

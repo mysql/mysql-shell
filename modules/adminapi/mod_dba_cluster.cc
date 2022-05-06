@@ -1225,6 +1225,8 @@ Whenever a Metadata Schema upgrade is necessary, the recommended process
 is to upgrade MySQL Router instances to the latest version before upgrading
 the Metadata itself, in order to minimize service disruption.
 
+@attention The lastCheckIn property reflects the Routers' startup timestamp.
+
 The options dictionary may contain the following attributes:
 
 @li onlyUpgradeRequired: boolean, enables filtering so only router instances

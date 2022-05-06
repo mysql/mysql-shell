@@ -687,3 +687,32 @@ DESCRIPTION
             useful to shut down the instance and perform maintenance on it
             without disrupting incoming application traffic.
 
+//@<OUT> listRouters
+NAME
+      listRouters - Lists the Router instances.
+
+SYNTAX
+      <ReplicaSet>.listRouters([options])
+
+WHERE
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A JSON object listing the Router instances associated to the ReplicaSet.
+
+DESCRIPTION
+      This function lists and provides information about all Router instances
+      registered for the ReplicaSet.
+
+      Whenever a Metadata Schema upgrade is necessary, the recommended process
+      is to upgrade MySQL Router instances to the latest version before
+      upgrading the Metadata itself, in order to minimize service disruption.
+
+      ATTENTION: The lastCheckIn property reflects the Routers' startup
+                 timestamp.
+
+      The options dictionary may contain the following attributes:
+
+      - onlyUpgradeRequired: boolean, enables filtering so only router
+        instances that support older version of the Metadata Schema and require
+        upgrade are included.

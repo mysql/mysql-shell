@@ -122,7 +122,7 @@ SYNTAX
       rs list-routers [<options>]
 
 RETURNS
-      A JSON object listing the Router instances associated to the cluster.
+      A JSON object listing the Router instances associated to the ReplicaSet.
 
 OPTIONS
 --onlyUpgradeRequired=<bool>
