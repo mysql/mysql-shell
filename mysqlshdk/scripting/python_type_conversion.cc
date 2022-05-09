@@ -30,6 +30,7 @@
 #include "scripting/python_function_wrapper.h"
 #include "scripting/python_map_wrapper.h"
 #include "scripting/python_object_wrapper.h"
+#include "scripting/python_utils.h"
 #include "scripting/types_python.h"
 
 namespace shcore {
@@ -44,94 +45,95 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
 
   // Some numeric conversions yield errors, in that case the string
   // representation of the python object is returned
-  Value retval;
 
-  if (!py || py == Py_None) {
-    return Value::Null();
-  } else if (py == Py_False) {
-    return Value(false);
-  } else if (py == Py_True) {
-    return Value(true);
-  } else if (PyInt_Check(py) || PyLong_Check(py)) {
+  if (!py || py == Py_None) return Value::Null();
+  if (py == Py_False) return Value(false);
+  if (py == Py_True) return Value(true);
+
+  auto as_str_repr = [](PyObject *py_obj) -> Value {
+    PyErr_Clear();
+    if (Release obj_repr{PyObject_Repr(py_obj)}; obj_repr) {
+      if (std::string s; Python_context::pystring_to_string(obj_repr, &s))
+        return Value(s);
+    }
+
+    return {};
+  };
+
+  if (PyInt_Check(py) || PyLong_Check(py)) {
     int64_t value = PyLong_AsLongLong(py);
+    if (value != -1 || !PyErr_Occurred()) return Value(value);
 
-    if (value == -1 && PyErr_Occurred()) {
-      // If reading LongLong failed then it attempts
-      // reading UnsignedLongLong
-      PyErr_Clear();
-      uint64_t uint_value = PyLong_AsUnsignedLongLong(py);
-      if (static_cast<int64_t>(uint_value) == -1 && PyErr_Occurred()) {
-        // If reading UnsignedLongLong failed then retrieves
-        // the string representation
-        PyErr_Clear();
-        Release obj_repr{PyObject_Repr(py)};
-        if (obj_repr) {
-          std::string s;
+    // If reading LongLong failed then it attempts
+    // reading UnsignedLongLong
+    PyErr_Clear();
+    uint64_t uint_value = PyLong_AsUnsignedLongLong(py);
+    if (static_cast<int64_t>(uint_value) != -1 || !PyErr_Occurred())
+      return Value(uint_value);
 
-          if (Python_context::pystring_to_string(obj_repr, &s)) {
-            retval = Value(s);
-          }
-        }
-      } else {
-        retval = Value(uint_value);
-      }
-    } else {
-      retval = Value(value);
-    }
-  } else if (PyFloat_Check(py)) {
+    // If reading UnsignedLongLong failed then retrieves
+    // the string representation
+    return as_str_repr(py);
+  }
+
+  if (PyFloat_Check(py)) {
     double value = PyFloat_AsDouble(py);
-    if (value == -1.0 && PyErr_Occurred()) {
-      // At this point it means an error was generated above
-      // It is needed to clear it
-      PyErr_Clear();
-      Release obj_repr{PyObject_Repr(py)};
-      if (obj_repr) {
-        std::string s;
+    if (value != -1.0 || !PyErr_Occurred()) return Value(value);
 
-        if (Python_context::pystring_to_string(obj_repr, &s)) {
-          retval = Value(s);
-        }
-      }
-    } else {
-      retval = Value(value);
-    }
-  } else if (PyByteArray_Check(py)) {
+    // At this point it means an error was generated above
+    // It is needed to clear it
+    return as_str_repr(py);
+  }
+
+  if (PyByteArray_Check(py))
     return Value(PyByteArray_AsString(py), PyByteArray_Size(py), true);
-  } else if (PyBytes_Check(py)) {
+
+  if (PyBytes_Check(py))
     return Value(PyBytes_AsString(py), PyBytes_Size(py), is_binary);
-  } else if (PyUnicode_Check(py)) {
+
+  if (PyUnicode_Check(py)) {
     // TODO: In case of error calls ourself using NULL, either handle here
     // before calling recursively or always allow NULL
     Release ref{PyUnicode_AsUTF8String(py)};
 
     // After unicode check, the value will match the Bytes check but the content
     // should be treated as string
-    retval = convert(ref, context, false);
-  } else if (array_check(py)) {
+    return convert(ref.get(), context, false);
+  }
+
+  if (array_check(py)) {
     std::shared_ptr<Value::Array_type> array;
-
-    if (!unwrap(py, &array)) {
+    if (!unwrap(py, &array))
       throw std::runtime_error("Could not unwrap shell array.");
-    }
 
     return Value(array);
-  } else if (PyList_Check(py)) {
-    auto array = std::make_shared<Value::Array_type>();
+  }
 
-    for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++) {
+  if (PyList_Check(py)) {
+    Py_ssize_t size = PyList_Size(py);
+
+    auto array = std::make_shared<Value::Array_type>();
+    array->reserve(size);
+
+    for (Py_ssize_t i = 0; i < size; i++)
       array->emplace_back(convert(PyList_GetItem(py, i), context));
-    }
 
     return Value(array);
-  } else if (PyTuple_Check(py)) {
+  }
+
+  if (PyTuple_Check(py)) {
+    Py_ssize_t size = PyTuple_Size(py);
+
     auto array = std::make_shared<Value::Array_type>();
+    array->reserve(size);
 
-    for (Py_ssize_t c = PyTuple_Size(py), i = 0; i < c; i++) {
+    for (Py_ssize_t i = 0; i < size; i++)
       array->emplace_back(convert(PyTuple_GetItem(py, i), context));
-    }
 
     return Value(array);
-  } else if (PyDict_Check(py)) {
+  }
+
+  if (PyDict_Check(py)) {
     std::shared_ptr<Value::Map_type> map(new Value::Map_type);
 
     PyObject *key, *value;
@@ -140,16 +142,16 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
     while (PyDict_Next(py, &pos, &key, &value)) {
       // The key may be anything (not necessarily a string)
       // so we get the string representation of whatever it is
-      PyObject *key_repr = PyObject_Str(key);
+      py::Release key_repr{PyObject_Str(key)};
       std::string key_repr_string;
-      Python_context::pystring_to_string(key_repr, &key_repr_string);
-      (*map)[key_repr_string] = convert(value, context);
-
-      Py_DECREF(key_repr);
+      if (Python_context::pystring_to_string(key_repr, &key_repr_string))
+        (*map)[key_repr_string] = convert(value, context);
     }
 
     return Value(map);
-  } else if (PyFunction_Check(py)) {
+  }
+
+  if (PyFunction_Check(py)) {
     if (!*context) {
       try {
         *context = Python_context::get();
@@ -160,154 +162,141 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
     }
 
     return Value(std::make_shared<Python_function>(*context, py));
-  } else {
-    std::shared_ptr<Value::Map_type> map;
-    std::shared_ptr<Object_bridge> object;
-    std::shared_ptr<Function_base> function;
+  }
+  // TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object
 
-    if (unwrap(py, &map)) {
-      return Value(map);
-    } else if (unwrap(py, object)) {
-      return Value(object);
-    } else if (unwrap_method(py, &function)) {
-      return Value(function);
-    } else if (unwrap(py, function)) {
-      return Value(function);
-    } else {
-      if (!*context) {
-        try {
-          *context = Python_context::get();
-        } catch (const std::exception &e) {
-          throw std::runtime_error(
-              std::string{"Could not get SHELL context: "} + e.what());
-        }
-      }
+  if (std::shared_ptr<Value::Map_type> map; unwrap(py, &map)) return Value(map);
 
-      auto get_int64 = [](PyObject *obj, const char *name) {
-        auto att = PyObject_GetAttrString(obj, name);
-        int64_t ret_val = PyLong_AsLongLong(att);
-        Py_XDECREF(att);
-        return ret_val;
-      };
+  if (std::shared_ptr<Object_bridge> object; unwrap(py, object))
+    return Value(object);
 
-      if (PyObject_TypeCheck(py, (*context)->get_datetime_type())) {
-        auto year = get_int64(py, "year");
-        auto month = get_int64(py, "month");
-        auto day = get_int64(py, "day");
-        auto hour = get_int64(py, "hour");
-        auto min = get_int64(py, "minute");
-        auto sec = get_int64(py, "second");
-        auto usec = get_int64(py, "microsecond");
+  if (std::shared_ptr<Function_base> function;
+      unwrap_method(py, &function) || unwrap(py, function))
+    return Value(function);
 
-        return shcore::Value(Object_bridge_ref(
-            new Date(year, month, day, hour, min, sec, usec)));
-      } else if (PyObject_TypeCheck(py, (*context)->get_date_type())) {
-        auto year = get_int64(py, "year");
-        auto month = get_int64(py, "month");
-        auto day = get_int64(py, "day");
-
-        return shcore::Value(Object_bridge_ref(new Date(year, month, day)));
-      } else if (PyObject_TypeCheck(py, (*context)->get_time_type())) {
-        auto hour = get_int64(py, "hour");
-        auto min = get_int64(py, "minute");
-        auto sec = get_int64(py, "second");
-        auto usec = get_int64(py, "microsecond");
-
-        return shcore::Value(Object_bridge_ref(new Date(hour, min, sec, usec)));
-      } else {
-        PyObject *obj_repr = PyObject_Repr(py);
-        std::string s;
-        Value ret_val;
-
-        if (Python_context::pystring_to_string(obj_repr, &s)) {
-          ret_val = Value(s);
-        }
-
-        Py_DECREF(obj_repr);
-
-        if (ret_val)
-          return ret_val;
-        else
-          throw std::invalid_argument(
-              "Cannot convert Python value to internal value");
-      }
+  if (!*context) {
+    try {
+      *context = Python_context::get();
+    } catch (const std::exception &e) {
+      throw std::runtime_error(std::string{"Could not get SHELL context: "} +
+                               e.what());
     }
   }
-  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object
 
-  return retval;
+  auto get_int64 = [](PyObject *obj, const char *name) {
+    py::Release att{PyObject_GetAttrString(obj, name)};
+    return PyLong_AsLongLong(att.get());
+  };
+
+  if (PyObject_TypeCheck(py, (*context)->get_datetime_type())) {
+    auto year = get_int64(py, "year");
+    auto month = get_int64(py, "month");
+    auto day = get_int64(py, "day");
+    auto hour = get_int64(py, "hour");
+    auto min = get_int64(py, "minute");
+    auto sec = get_int64(py, "second");
+    auto usec = get_int64(py, "microsecond");
+
+    return shcore::Value(
+        Object_bridge_ref(new Date(year, month, day, hour, min, sec, usec)));
+  }
+  if (PyObject_TypeCheck(py, (*context)->get_date_type())) {
+    auto year = get_int64(py, "year");
+    auto month = get_int64(py, "month");
+    auto day = get_int64(py, "day");
+
+    return shcore::Value(Object_bridge_ref(new Date(year, month, day)));
+  }
+  if (PyObject_TypeCheck(py, (*context)->get_time_type())) {
+    auto hour = get_int64(py, "hour");
+    auto min = get_int64(py, "minute");
+    auto sec = get_int64(py, "second");
+    auto usec = get_int64(py, "microsecond");
+
+    return shcore::Value(Object_bridge_ref(new Date(hour, min, sec, usec)));
+  }
+
+  {
+    py::Release obj_repr{PyObject_Repr(py)};
+    std::string s;
+    Value ret_val;
+
+    if (Python_context::pystring_to_string(obj_repr, &s)) ret_val = Value(s);
+
+    if (ret_val) return ret_val;
+
+    throw std::invalid_argument(
+        "Cannot convert Python value to internal value");
+  }
+
+  return {};
 }
 
-PyObject *convert(const Value &value, Python_context * /*context*/) {
-  PyObject *r = nullptr;
+py::Release convert(const Value &value, Python_context * /*context*/) {
   switch (value.type) {
     case Undefined:
     case Null:
-      r = Py_None;
-      Py_INCREF(r);
-      break;
+      return py::Release::incref(Py_None);
     case Bool:
-      r = PyBool_FromLong(value.value.b);
-      break;
+      return py::Release{PyBool_FromLong(value.value.b)};
     case String:
-      r = PyString_FromString(value.value.s->c_str());
-      break;
+      assert(value.value.s);
+      return py::Release{PyString_FromString(value.value.s->c_str())};
     case Integer:
-      r = PyLong_FromLongLong(value.value.i);
+      return py::Release{PyLong_FromLongLong(value.value.i)};
       break;
     case UInteger:
-      r = PyLong_FromUnsignedLongLong(value.value.ui);
+      return py::Release{PyLong_FromUnsignedLongLong(value.value.ui)};
       break;
     case Float:
-      r = PyFloat_FromDouble(value.value.d);
+      return py::Release{PyFloat_FromDouble(value.value.d)};
       break;
     case Object: {
-      if (value.as_object()->class_name() == "Date") {
-        auto ctx = Python_context::get();
-        std::shared_ptr<Date> date = value.as_object<Date>();
+      if (value.as_object()->class_name() != "Date")
+        return wrap(*value.value.o);
 
-        // 0 dates are invalid in Python, but OK in MySQL, so we convert these
-        // to None, which is what they probably really mean
-        if (date->has_date() && date->get_year() == 0 &&
-            date->get_month() == 0 && date->get_day() == 0) {
-          r = Py_None;
-          Py_INCREF(r);
-        } else if (date->has_time()) {
-          if (!date->has_date()) {
-            r = ctx->create_time_object(date->get_hour(), date->get_min(),
-                                        date->get_sec(), date->get_usec());
-          } else {
-            r = ctx->create_datetime_object(date->get_year(), date->get_month(),
-                                            date->get_day(), date->get_hour(),
-                                            date->get_min(), date->get_sec(),
-                                            date->get_usec());
-          }
-        } else {
-          r = ctx->create_date_object(date->get_year(), date->get_month(),
-                                      date->get_day());
-        }
+      std::shared_ptr<Date> date = value.as_object<Date>();
 
-        // The conversion failed, so we take the string representation of the
-        // object
-        if (r == nullptr) {
-          // Cleanup the error condition
-          ctx->clear_exception();
-
-          // Take the object string representation
-          r = PyString_FromString(value.descr().c_str());
-        }
-      } else {
-        r = wrap(*value.value.o);
+      // 0 dates are invalid in Python, but OK in MySQL, so we convert these
+      // to None, which is what they probably really mean
+      if (date->has_date() && date->get_year() == 0 && date->get_month() == 0 &&
+          date->get_day() == 0) {
+        return py::Release::incref(Py_None);
       }
-      break;
-    }
 
+      auto ctx = Python_context::get();
+
+      py::Release r;
+      if (date->has_time()) {
+        if (!date->has_date())
+          r = ctx->create_time_object(date->get_hour(), date->get_min(),
+                                      date->get_sec(), date->get_usec());
+        else
+          r = ctx->create_datetime_object(date->get_year(), date->get_month(),
+                                          date->get_day(), date->get_hour(),
+                                          date->get_min(), date->get_sec(),
+                                          date->get_usec());
+
+      } else {
+        r = ctx->create_date_object(date->get_year(), date->get_month(),
+                                    date->get_day());
+      }
+
+      if (r) return r;
+
+      // The conversion failed, so we take the string representation of the
+      // object
+
+      // Cleanup the error condition
+      ctx->clear_exception();
+
+      // Take the object string representation
+      return py::Release{PyString_FromString(value.descr().c_str())};
+    }
     case Array:
-      r = wrap(*value.value.array);
-      break;
+      return wrap(*value.value.array);
     case Map:
-      r = wrap(*value.value.map);
-      break;
+      return wrap(*value.value.map);
     case MapRef:
       /*
       {
@@ -318,17 +307,16 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
       }
       }
       */
-      r = Py_None;
-      break;
+      return py::Release::incref(Py_None);
     case shcore::Function:
-      r = wrap(*value.value.func);
-      break;
+      return wrap(*value.value.func);
     case shcore::Binary:
-      r = PyBytes_FromStringAndSize(value.value.s->c_str(),
-                                    value.value.s->size());
-      break;
+      assert(value.value.s);
+      return py::Release{PyBytes_FromStringAndSize(value.value.s->c_str(),
+                                                   value.value.s->size())};
   }
-  return r;
+
+  return {};
 }
 
 }  // namespace py

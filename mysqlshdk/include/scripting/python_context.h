@@ -42,99 +42,6 @@
 #include "scripting/python_type_conversion.h"
 
 namespace shcore {
-namespace py {
-
-/**
- * Used to store borrowed references, references passed from Python (i.e. as
- * arguments), or new references if such reference is returned to Python.
- *
- * Increases the reference count when acquiring the Python object, decreases it
- * when releasing the object.
- */
-class Store {
- public:
-  Store() = default;
-
-  explicit Store(PyObject *py) : m_object(py) { Py_XINCREF(m_object); }
-
-  Store(const Store &other) : Store(other.m_object) {}
-
-  Store(Store &&other) { operator=(std::move(other)); }
-
-  Store &operator=(PyObject *other) {
-    // increasing the reference count of the other object then decreasing
-    // the reference count of our object protects from self-assignment
-    Py_XINCREF(other);
-    Py_XDECREF(m_object);
-
-    m_object = other;
-
-    return *this;
-  }
-
-  Store &operator=(const Store &other) { return operator=(other.m_object); }
-
-  Store &operator=(Store &&other) {
-    // the other instance already increased the reference count, just move the
-    // pointer
-    assert(this != &other);
-
-    Py_XDECREF(m_object);
-
-    m_object = other.m_object;
-    other.m_object = nullptr;
-
-    return *this;
-  }
-
-  ~Store() { Py_XDECREF(m_object); }
-
-  explicit operator bool() const { return nullptr != m_object; }
-
-  operator PyObject *() const { return m_object; }
-
- private:
-  PyObject *m_object = nullptr;
-};
-
-/**
- * Used to automatically release new references.
- *
- * Does not increase the reference count, decreases it when releasing the Python
- * object.
- */
-class Release {
- public:
-  Release() = default;
-
-  explicit Release(PyObject *py) : m_object(py) {}
-
-  Release(const Release &other) = delete;
-
-  Release(Release &&other) { operator=(std::move(other)); }
-
-  Release &operator=(const Release &other) = delete;
-
-  Release &operator=(Release &&other) {
-    assert(this != &other);
-
-    m_object = other.m_object;
-    other.m_object = nullptr;
-
-    return *this;
-  }
-
-  ~Release() { Py_XDECREF(m_object); }
-
-  explicit operator bool() const { return nullptr != m_object; }
-
-  operator PyObject *() const { return m_object; }
-
- private:
-  PyObject *m_object = nullptr;
-};
-
-}  // namespace py
 
 class TYPES_COMMON_PUBLIC Python_context {
  public:
@@ -143,10 +50,19 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   static Python_context *get();
   static Python_context *get_and_check();
-  PyObject *get_shell_stderr_module();
-  PyObject *get_shell_stdout_module();
-  PyObject *get_shell_stdin_module();
-  PyObject *get_shell_python_support_module();
+
+  py::Store get_shell_stderr_module() const noexcept {
+    return py::Store{_shell_stderr_module.get()};
+  }
+  py::Store get_shell_stdout_module() const noexcept {
+    return py::Store{_shell_stdout_module.get()};
+  }
+  py::Store get_shell_stdin_module() const noexcept {
+    return py::Store{_shell_stdin_module.get()};
+  }
+  py::Store get_shell_python_support_module() const noexcept {
+    return py::Store{_shell_python_support_module.get()};
+  }
 
   Value execute(const std::string &code, const std::string &source = "");
   Value execute_interactive(const std::string &code, Input_state &r_state,
@@ -161,13 +77,13 @@ class TYPES_COMMON_PUBLIC Python_context {
   bool load_plugin(const Plugin_definition &plugin);
 
   Value convert(PyObject *value);
-  PyObject *convert(const Value &value);
+  py::Release convert(const Value &value);
 
   Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
   void set_argv(const std::vector<std::string> &argv);
 
-  PyObject *get_global_py(const std::string &value);
+  py::Store get_global_py(const std::string &value);
 
   static void set_python_error(const shcore::Exception &exc,
                                const std::string &location = "");
@@ -177,15 +93,16 @@ class TYPES_COMMON_PUBLIC Python_context {
   static void set_python_error(PyObject *obj, const std::string &location);
   static bool pystring_to_string(PyObject *strobject, std::string *result,
                                  bool convert = false);
-
+  static bool pystring_to_string(const py::Release &strobject,
+                                 std::string *result, bool convert = false);
   py::Store get_shell_list_class() const;
   py::Store get_shell_dict_class() const;
   py::Store get_shell_object_class() const;
   py::Store get_shell_indexed_object_class() const;
   py::Store get_shell_function_class() const;
 
-  PyObject *db_error() const;
-  PyObject *error() const;
+  py::Store db_error() const;
+  py::Store error() const;
 
   void clear_exception();
   std::string fetch_and_clear_exception();
@@ -198,15 +115,22 @@ class TYPES_COMMON_PUBLIC Python_context {
   std::weak_ptr<py::Store> store(PyObject *object);
   void erase(const std::shared_ptr<py::Store> &object);
 
-  PyObject *create_datetime_object(int year, int month, int day, int hour,
-                                   int minute, int second, int useconds);
-  PyTypeObject *get_datetime_type() const { return _datetime_type; }
+  py::Release create_datetime_object(int year, int month, int day, int hour,
+                                     int minute, int second, int useconds);
+  PyTypeObject *get_datetime_type() const {
+    return reinterpret_cast<PyTypeObject *>(_datetime_type.get());
+  }
 
-  PyObject *create_date_object(int year, int month, int day);
-  PyTypeObject *get_date_type() const { return _date_type; }
+  py::Release create_date_object(int year, int month, int day);
+  PyTypeObject *get_date_type() const {
+    return reinterpret_cast<PyTypeObject *>(_date_type.get());
+  }
 
-  PyObject *create_time_object(int hour, int minute, int second, int useconds);
-  PyTypeObject *get_time_type() const { return _time_type; }
+  py::Release create_time_object(int hour, int minute, int second,
+                                 int useconds);
+  PyTypeObject *get_time_type() const {
+    return reinterpret_cast<PyTypeObject *>(_time_type.get());
+  }
 
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,
@@ -238,22 +162,22 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyThreadState *_main_thread_state;
   std::string _stdin_buffer;
 
-  PyObject *_datetime = nullptr;
-  PyTypeObject *_datetime_type = nullptr;
+  py::Store _datetime;
+  py::Store _datetime_type;
 
-  PyObject *_date = nullptr;
-  PyTypeObject *_date_type = nullptr;
+  py::Store _date;
+  py::Store _date_type;
 
-  PyObject *_time = nullptr;
-  PyTypeObject *_time_type = nullptr;
+  py::Store _time;
+  py::Store _time_type;
 
-  PyObject *_mysqlsh_module = nullptr;
-  PyObject *_mysqlsh_globals = nullptr;
+  py::Store _mysqlsh_module;
+  py::Store _mysqlsh_globals;
 
-  PyObject *_shell_stderr_module = nullptr;
-  PyObject *_shell_stdout_module = nullptr;
-  PyObject *_shell_stdin_module = nullptr;
-  PyObject *_shell_python_support_module = nullptr;
+  py::Release _shell_stderr_module;
+  py::Release _shell_stdout_module;
+  py::Release _shell_stdin_module;
+  py::Release _shell_python_support_module;
 
   // compiler flags are needed to detect imports from __future__, so they are
   // available for subsequent executions

@@ -83,12 +83,12 @@ std::vector<std::wstring> to_py_char_t(const std::vector<std::string> &in) {
 }
 
 void set_python_home(const std::string &home) {
-  if (!home.empty()) {
-    static py_char_t path[1000];
-    copy_py_char_t(home.c_str(), home.length(), path, array_size(path),
-                   "Python home path too long");
-    Py_SetPythonHome(path);
-  }
+  if (home.empty()) return;
+
+  static py_char_t path[1000];
+  copy_py_char_t(home.c_str(), home.length(), path, array_size(path),
+                 "Python home path too long");
+  Py_SetPythonHome(path);
 }
 
 void set_program_name() {
@@ -98,7 +98,7 @@ void set_program_name() {
   Py_SetProgramName(name);
 }
 
-PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
+py::Release py_register_module(const std::string &name, PyMethodDef *members) {
   PyModuleDef *moduledef = new PyModuleDef{
       PyModuleDef_HEAD_INIT,
       nullptr,
@@ -114,40 +114,39 @@ PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
         delete definition;
       }};
 
-  const auto length = name.length();
-  auto copied_name = new char[length + 1];
-  strncpy(copied_name, name.c_str(), length);
-  copied_name[length] = '\0';
-  moduledef->m_name = copied_name;
+  {
+    const auto length = name.length();
+    auto copied_name = new char[length + 1];
+    strncpy(copied_name, name.c_str(), length);
+    copied_name[length] = '\0';
+    moduledef->m_name = copied_name;
+  }
 
-  const auto module = PyModule_Create(moduledef);
+  py::Release module{PyModule_Create(moduledef)};
 
   // create ModuleSpec to indicate it's a built-in module
   {
-    const auto machinery = PyImport_ImportModule("importlib.machinery");
+    py::Release machinery{PyImport_ImportModule("importlib.machinery")};
 
     if (machinery) {
-      const auto modulespec = PyObject_GetAttrString(machinery, "ModuleSpec");
+      py::Release modulespec{
+          PyObject_GetAttrString(machinery.get(), "ModuleSpec")};
 
       if (modulespec) {
-        const auto args = Py_BuildValue("(ss)", name.c_str(), nullptr);
-        const auto kwargs = Py_BuildValue("{s:s}", "origin", "built-in");
+        py::Release args{Py_BuildValue("(ss)", name.c_str(), nullptr)};
+        py::Release kwargs{Py_BuildValue("{s:s}", "origin", "built-in")};
 
-        const auto spec = PyObject_Call(modulespec, args, kwargs);
-        PyDict_SetItemString(PyModule_GetDict(module), "__spec__", spec);
-
-        Py_XDECREF(spec);
-        Py_XDECREF(kwargs);
-        Py_XDECREF(args);
-        Py_XDECREF(modulespec);
+        py::Release spec{
+            PyObject_Call(modulespec.get(), args.get(), kwargs.get())};
+        PyDict_SetItemString(PyModule_GetDict(module.get()), "__spec__",
+                             spec.get());
       }
-
-      Py_XDECREF(machinery);
     }
   }
 
   // module needs to be added to the sys.modules
-  PyDict_SetItemString(PyImport_GetModuleDict(), moduledef->m_name, module);
+  PyDict_SetItemString(PyImport_GetModuleDict(), moduledef->m_name,
+                       module.get());
   return module;
 }
 
@@ -156,8 +155,9 @@ void py_unregister_module(const std::string &name) {
   PyDict_DelItemString(PyImport_GetModuleDict(), name.c_str());
 }
 
-PyObject *py_run_string_interactive(const std::string &str, PyObject *globals,
-                                    PyObject *locals, PyCompilerFlags *flags) {
+py::Release py_run_string_interactive(const std::string &str, PyObject *globals,
+                                      PyObject *locals,
+                                      PyCompilerFlags *flags) {
   // Previously, we were using PyRun_StringFlags() with the Py_single_input flag
   // to run the code string and capture its output using a custom
   // sys.displayhook, however Python's grammar allows only for a single
@@ -174,7 +174,6 @@ PyObject *py_run_string_interactive(const std::string &str, PyObject *globals,
   // the custom sys.displayhook.
 
   assert(flags);
-  PyObject *ret = nullptr;
 
   // set the flag, so that we get the AST representation
   flags->cf_flags |= PyCF_ONLY_AST;
@@ -187,97 +186,92 @@ PyObject *py_run_string_interactive(const std::string &str, PyObject *globals,
   // remove the AST flag
   flags->cf_flags &= ~PyCF_ONLY_AST;
 
+  if (!ast) return {};
+
   // if there was no syntax error, execute the statements one by one
-  if (ast) {
-    try {
-      py::Release body{PyObject_GetAttrString(ast, "body")};
+  py::Release ret;
 
-      if (!body) {
-        throw std::runtime_error("AST is missing a body attribute");
-      }
+  try {
+    py::Release body{PyObject_GetAttrString(ast.get(), "body")};
 
-      if (!PyList_Check(body)) {
-        throw std::runtime_error("AST.body is not a list");
-      }
-
-      auto code = str;
-
-      const auto get_int = [](PyObject *obj, const char *name) {
-        py::Release item{PyObject_GetAttrString(obj, name)};
-
-        if (!item) {
-          throw std::runtime_error("Object has no attribute called: " +
-                                   std::string{name});
-        }
-
-        if (!PyLong_Check(item)) {
-          throw std::runtime_error("Attribute is not an integer: " +
-                                   std::string{name});
-        }
-
-        return PyLong_AsLong(item);
-      };
-
-      const auto size = PyList_GET_SIZE((PyObject *)body);
-
-      for (auto i = decltype(size){0}; i < size; ++i) {
-        const auto statement = PyList_GET_ITEM((PyObject *)body, i);
-        // subtract 1 to get zero-based line number
-        const auto lineno = get_int(statement, "lineno") - 1;
-        const auto end_lineno = get_int(statement, "end_lineno") - 1;
-        // offset is zero-based
-        const auto col_offset = get_int(statement, "col_offset");
-        const auto end_col_offset = get_int(statement, "end_col_offset");
-
-        // find the code block to be executed
-        std::size_t begin = 0;
-
-        // find the first line
-        for (auto line = decltype(lineno){0}; line < lineno; ++line) {
-          begin = code.find('\n', begin) + 1;
-        }
-
-        std::size_t end = begin;
-
-        // find the last line
-        for (auto line = decltype(lineno){0}; line < end_lineno - lineno;
-             ++line) {
-          end = code.find('\n', end) + 1;
-        }
-
-        // adjust for the column offset
-        begin += col_offset;
-        end += end_col_offset;
-
-        // select the code block
-        const auto code_char = code[end];
-        code[end] = '\0';
-        // get the pointer after string has been modified, some compilers
-        // optimize string copy operations and use copy-on-write
-        const auto code_ptr = code.c_str() + begin;
-
-        // release the previous result (if there's one)
-        if (ret) {
-          Py_XDECREF(ret);
-        }
-
-        // run the code block
-        ret = PyRun_StringFlags(code_ptr, Py_single_input, globals, locals,
-                                flags);
-
-        // stop the execution if there was an error
-        if (!ret) {
-          break;
-        }
-
-        code[end] = code_char;
-      }
-    } catch (const std::runtime_error &e) {
-      log_error("Error processing Python code: %s, while executing:\n%s",
-                e.what(), str.c_str());
-      throw std::runtime_error(
-          "Internal error processing Python code, see log for more details");
+    if (!body) {
+      throw std::runtime_error("AST is missing a body attribute");
     }
+
+    if (!PyList_Check(body.get())) {
+      throw std::runtime_error("AST.body is not a list");
+    }
+
+    auto code = str;
+
+    const auto get_int = [](PyObject *obj, const char *name) {
+      py::Release item{PyObject_GetAttrString(obj, name)};
+
+      if (!item) {
+        throw std::runtime_error("Object has no attribute called: " +
+                                 std::string{name});
+      }
+
+      if (!PyLong_Check(item.get())) {
+        throw std::runtime_error("Attribute is not an integer: " +
+                                 std::string{name});
+      }
+
+      return PyLong_AsLong(item.get());
+    };
+
+    const auto size = PyList_GET_SIZE(body.get());
+
+    for (auto i = decltype(size){0}; i < size; ++i) {
+      const auto statement = PyList_GET_ITEM(body.get(), i);
+      // subtract 1 to get zero-based line number
+      const auto lineno = get_int(statement, "lineno") - 1;
+      const auto end_lineno = get_int(statement, "end_lineno") - 1;
+      // offset is zero-based
+      const auto col_offset = get_int(statement, "col_offset");
+      const auto end_col_offset = get_int(statement, "end_col_offset");
+
+      // find the code block to be executed
+      std::size_t begin = 0;
+
+      // find the first line
+      for (auto line = decltype(lineno){0}; line < lineno; ++line) {
+        begin = code.find('\n', begin) + 1;
+      }
+
+      std::size_t end = begin;
+
+      // find the last line
+      for (auto line = decltype(lineno){0}; line < end_lineno - lineno;
+           ++line) {
+        end = code.find('\n', end) + 1;
+      }
+
+      // adjust for the column offset
+      begin += col_offset;
+      end += end_col_offset;
+
+      // select the code block
+      const auto code_char = code[end];
+      code[end] = '\0';
+      // get the pointer after string has been modified, some compilers
+      // optimize string copy operations and use copy-on-write
+      const auto code_ptr = code.c_str() + begin;
+
+      // run the code block
+      ret = py::Release{
+          PyRun_StringFlags(code_ptr, Py_single_input, globals, locals, flags)};
+
+      // stop the execution if there was an error
+      if (!ret) break;
+
+      code[end] = code_char;
+    }
+  } catch (const std::runtime_error &e) {
+    log_error("Error processing Python code: %s, while executing:\n%s",
+              e.what(), str.c_str());
+    throw std::runtime_error(
+        "Internal error processing Python code, see log for more details");
   }
 
   return ret;
@@ -519,16 +513,16 @@ Python_context::Python_context(bool redirect_stdio) {
                   PySys_GetObject(const_cast<char *>("stdin")));
 
   // make sys.stdout and sys.stderr send stuff to SHELL
-  PySys_SetObject(const_cast<char *>("stdout"), get_shell_stdout_module());
-  PySys_SetObject(const_cast<char *>("stderr"), get_shell_stderr_module());
+  PySys_SetObject(const_cast<char *>("stdout"), _shell_stdout_module.get());
+  PySys_SetObject(const_cast<char *>("stderr"), _shell_stderr_module.get());
 
   // set stdin to the shell console when on interactive mode
   if (redirect_stdio) {
     register_shell_stdin_module();
-    PySys_SetObject(const_cast<char *>("stdin"), get_shell_stdin_module());
+    PySys_SetObject(const_cast<char *>("stdin"), _shell_stdin_module.get());
 
     // also override raw_input() to use the prompt function
-    PyObject *dict = PyModule_GetDict(get_shell_python_support_module());
+    PyObject *dict = PyModule_GetDict(_shell_python_support_module.get());
     assert(dict != nullptr);
 
     PyObject *raw_input = PyDict_GetItemString(dict, "raw_input");
@@ -603,19 +597,20 @@ Python_context::~Python_context() {
 
     m_stored_objects.clear();
 
-    Py_XDECREF(_shell_stderr_module);
-    Py_XDECREF(_shell_stdout_module);
-    Py_XDECREF(_shell_stdin_module);
-    Py_XDECREF(_shell_python_support_module);
-    Py_XDECREF(_datetime);
-    Py_XDECREF(_datetime_type);
-    Py_XDECREF(_date);
-    Py_XDECREF(_date_type);
-    Py_XDECREF(_time);
-    Py_XDECREF(_time_type);
+    _shell_stderr_module.reset();
+    _shell_stdout_module.reset();
+    _shell_stdin_module.reset();
+    _shell_python_support_module.reset();
+    _datetime.reset();
+    _datetime_type.reset();
+    _date.reset();
+    _date_type.reset();
+    _time.reset();
+    _time_type.reset();
 
+    _mysqlsh_globals.reset();
     py_unregister_module("mysqlsh");
-    Py_XDECREF(_mysqlsh_module);
+    _mysqlsh_module.reset();
 
     PyGC_Collect();
   }
@@ -656,22 +651,6 @@ Python_context *Python_context::get_and_check() {
         std::string("Could not get SHELL context: ") + exc.what());
   }
   return NULL;
-}
-
-PyObject *Python_context::get_shell_stderr_module() {
-  return _shell_stderr_module;
-}
-
-PyObject *Python_context::get_shell_stdout_module() {
-  return _shell_stdout_module;
-}
-
-PyObject *Python_context::get_shell_stdin_module() {
-  return _shell_stdin_module;
-}
-
-PyObject *Python_context::get_shell_python_support_module() {
-  return _shell_python_support_module;
 }
 
 void Python_context::set_argv(const std::vector<std::string> &argv) {
@@ -770,15 +749,14 @@ Value Python_context::execute_interactive(const std::string &code,
    use the same multiline handling as the official interpreter. We emulate it
    by catching EOF parse errors and accumulate lines until it succeeds.
    */
-  PyObject *orig_hook = PySys_GetObject(const_cast<char *>("displayhook"));
-  Py_INCREF(orig_hook);
+  py::Store orig_hook{PySys_GetObject(const_cast<char *>("displayhook"))};
 
   PySys_SetObject(
       const_cast<char *>("displayhook"),
-      PyDict_GetItemString(PyModule_GetDict(_shell_python_support_module),
+      PyDict_GetItemString(PyModule_GetDict(_shell_python_support_module.get()),
                            const_cast<char *>("interactivehook")));
 
-  PyObject *py_result = nullptr;
+  py::Release py_result;
   try {
     py_result =
         py_run_string_interactive(code, _globals, _locals, &m_compiler_flags);
@@ -790,8 +768,9 @@ Value Python_context::execute_interactive(const std::string &code,
     assert(0);
   }
 
-  PySys_SetObject(const_cast<char *>("displayhook"), orig_hook);
-  Py_DECREF(orig_hook);
+  PySys_SetObject(const_cast<char *>("displayhook"), orig_hook.get());
+  orig_hook.reset();
+
   if (!py_result) {
     PyObject *exc, *value, *tb;
     // check whether this is a SyntaxError: unexpected EOF while parsing
@@ -857,7 +836,7 @@ Value Python_context::execute_interactive(const std::string &code,
   }
 
   if (m_captured_eval_result) {
-    auto tmp = convert(m_captured_eval_result);
+    auto tmp = convert(m_captured_eval_result.get());
     m_captured_eval_result = nullptr;
     return tmp;
   }
@@ -868,22 +847,19 @@ Value Python_context::execute_interactive(const std::string &code,
 void Python_context::get_members_of(
     PyObject *object, std::vector<std::pair<bool, std::string>> *out_keys) {
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
-  PyObject *members = PyObject_Dir(object);
+  py::Release members{PyObject_Dir(object)};
 
-  if (members && PySequence_Check(members)) {
-    for (int i = 0, c = PySequence_Size(members); i < c; i++) {
-      PyObject *m = PySequence_ITEM(members, i);
-      std::string s;
+  if (!members || !PySequence_Check(members.get())) return;
 
-      if (m && pystring_to_string(m, &s) && !shcore::str_beginswith(s, "__")) {
-        PyObject *mem = PyObject_GetAttrString(object, s.c_str());
-        out_keys->push_back(std::make_pair(PyCallable_Check(mem), s));
-        Py_XDECREF(mem);
-      }
-      Py_XDECREF(m);
+  for (int i = 0, c = PySequence_Size(members.get()); i < c; i++) {
+    py::Release m{PySequence_ITEM(members.get(), i)};
+    std::string s;
+
+    if (m && pystring_to_string(m, &s) && !shcore::str_beginswith(s, "__")) {
+      py::Release mem{PyObject_GetAttrString(object, s.c_str())};
+      out_keys->push_back(std::make_pair(PyCallable_Check(mem.get()), s));
     }
   }
-  Py_XDECREF(members);
 }
 
 std::vector<std::pair<bool, std::string>> Python_context::list_globals() {
@@ -913,29 +889,24 @@ Value Python_context::get_global(const std::string &value) {
   return convert(PyDict_GetItemString(_globals, value.c_str()));
 }
 
-PyObject *Python_context::get_global_py(const std::string &value) {
-  PyObject *tmp = PyDict_GetItemString(_globals, value.c_str());
-  Py_XINCREF(tmp);
-  return tmp;
+py::Store Python_context::get_global_py(const std::string &value) {
+  return py::Store{PyDict_GetItemString(_globals, value.c_str())};
 }
 
 void Python_context::set_global(const std::string &name, const Value &value) {
   WillEnterPython lock;
-  PyObject *p = convert(value);
-  assert(p != nullptr);
-  // incs ref
-  PyDict_SetItemString(_globals, name.c_str(), p);
-
-  PyObject_SetAttrString(_mysqlsh_globals, name.c_str(), p);
-
-  Py_XDECREF(p);
+  auto p = convert(value);
+  assert(p);
+  // doesn't steal
+  PyDict_SetItemString(_globals, name.c_str(), p.get());
+  PyObject_SetAttrString(_mysqlsh_globals.get(), name.c_str(), p.get());
 }
 
 Value Python_context::convert(PyObject *value) {
   return py::convert(value, this);
 }
 
-PyObject *Python_context::convert(const Value &value) {
+py::Release Python_context::convert(const Value &value) {
   return py::convert(value);
 }
 
@@ -995,16 +966,14 @@ void Python_context::set_python_error(const shcore::Exception &exc,
 }
 
 void Python_context::set_shell_error(const shcore::Error &e) {
-  PyObject *args = PyTuple_New(2);
-  if (args) {
-    PyTuple_SET_ITEM(args, 0, PyInt_FromLong(e.code()));
-    PyTuple_SET_ITEM(args, 1, PyString_FromString(e.what()));
-    if (e.code() < 50000)  // MySQL server/client error codes
-      PyErr_SetObject(get()->db_error(), args);
-    else
-      PyErr_SetObject(get()->error(), args);
-    Py_DECREF(args);
-  }
+  py::Release args{PyTuple_New(2)};
+  if (!args) return;
+
+  PyTuple_SET_ITEM(args.get(), 0, PyInt_FromLong(e.code()));
+  PyTuple_SET_ITEM(args.get(), 1, PyString_FromString(e.what()));
+
+  auto target = (e.code() < 50000) ? get()->db_error() : get()->error();
+  PyErr_SetObject(target.get(), args.get());  // doesn't steal
 }
 
 void Python_context::set_python_error(PyObject *obj,
@@ -1015,11 +984,9 @@ void Python_context::set_python_error(PyObject *obj,
 bool Python_context::pystring_to_string(PyObject *strobject,
                                         std::string *result, bool convert) {
   if (PyUnicode_Check(strobject)) {
-    if (PyObject *ref = PyUnicode_AsUTF8String(strobject); ref) {
-      bool ret = pystring_to_string(ref, result, false);
-      Py_DECREF(ref);
-      return ret;
-    }
+    py::Release ref{PyUnicode_AsUTF8String(strobject)};
+
+    if (ref) return pystring_to_string(ref.get(), result, false);
 
     return false;
   }
@@ -1027,8 +994,9 @@ bool Python_context::pystring_to_string(PyObject *strobject,
   if (PyBytes_Check(strobject)) {
     char *s;
     Py_ssize_t len;
-    PyBytes_AsStringAndSize(strobject, &s, &len);
-    if (s)
+    if (PyBytes_AsStringAndSize(strobject, &s, &len) == -1) return false;
+
+    if (s && (len > 0))
       *result = std::string(s, len);
     else
       *result = "";
@@ -1038,14 +1006,17 @@ bool Python_context::pystring_to_string(PyObject *strobject,
   // If strobject is not a string, we can choose if we want to convert it to
   // string with PyObject_str() or return an error
   if (convert) {
-    if (PyObject *str = PyObject_Str(strobject); str) {
-      bool ret = pystring_to_string(str, result, false);
-      Py_DECREF(str);
-      return ret;
-    }
+    py::Release str{PyObject_Str(strobject)};
+
+    if (str) return pystring_to_string(str.get(), result, false);
   }
 
   return false;
+}
+
+bool Python_context::pystring_to_string(const py::Release &strobject,
+                                        std::string *result, bool convert) {
+  return pystring_to_string(strobject.get(), result, convert);
 }
 
 py::Store Python_context::get_shell_list_class() const {
@@ -1070,7 +1041,7 @@ py::Store Python_context::get_shell_function_class() const {
 
 PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
                                       const std::string &stream) {
-  if (!Python_context::get_and_check()) return NULL;
+  if (!Python_context::get_and_check()) return nullptr;
 
   std::string text;
   if (stream != "error.flush") {
@@ -1080,10 +1051,10 @@ PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
         PyErr_Clear();
         text = "None";
       } else {
-        return NULL;
+        return nullptr;
       }
     } else if (!pystring_to_string(o, &text, true)) {
-      return NULL;
+      return nullptr;
     }
   }
 
@@ -1241,10 +1212,10 @@ PyObject *Python_context::shell_interactive_eval_hook(PyObject *,
 
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  if (!(ctx = Python_context::get_and_check())) return NULL;
+  if (!(ctx = Python_context::get_and_check())) return nullptr;
 
   if (PyTuple_Size(args) == 1) {
-    ctx->m_captured_eval_result = PyTuple_GetItem(args, 0);
+    ctx->m_captured_eval_result = py::Store{PyTuple_GetItem(args, 0)};
   } else {
     char buff[100];
     snprintf(buff, sizeof(buff),
@@ -1304,15 +1275,14 @@ static void add_module_members(
 
   for (const auto &member_name : module->get_members()) {
     shcore::Value member = module->get_member_advanced(member_name);
-    PyObject *value;
-    if (member.type == shcore::Function) {
+    py::Release value;
+    if (member.type == shcore::Function)
       value = wrap(module, member_name);
-    } else {
+    else
       value = ctx->convert(member);
-    }
-    // incrs ref
-    PyDict_SetItemString(py_dict, member_name.c_str(), value);
-    Py_XDECREF(value);
+
+    // doesn't steal
+    PyDict_SetItemString(py_dict, member_name.c_str(), value.get());
   }
 }
 
@@ -1331,17 +1301,16 @@ void Python_context::register_mysqlsh_builtins() {
 
     std::string module_name = "mysqlsh." + name;
 
-    PyObject *py_module_ref;
+    py::Release py_module_ref;
 
     // add mysqlsh module methods directly into the top-level mysqlsh module
     if (name == "mysqlsh") {
-      py_module_ref = _mysqlsh_module;
-      Py_INCREF(py_module_ref);
+      py_module_ref = py::Release::incref(_mysqlsh_module.get());
     } else {
       py_module_ref = py_register_module(module_name, nullptr);
     }
 
-    if (py_module_ref == NULL)
+    if (!py_module_ref)
       throw std::runtime_error("Error initializing the '" + name +
                                "' module in Python support");
 
@@ -1349,12 +1318,10 @@ void Python_context::register_mysqlsh_builtins() {
     // import mysqlsh; mysqlsh.mysql.whatever() still works for backwards
     // compatibility
     if (name == "mysql" || name == "mysqlx")
-      PyDict_SetItemString(PyModule_GetDict(_mysqlsh_module), name.c_str(),
-                           py_module_ref);
+      PyDict_SetItemString(PyModule_GetDict(_mysqlsh_module.get()),
+                           name.c_str(), py_module_ref.get());
 
-    add_module_members(this, py_module_ref, module);
-
-    Py_DECREF(py_module_ref);
+    add_module_members(this, py_module_ref.get(), module);
   }
 }
 
@@ -1364,15 +1331,15 @@ void Python_context::register_mysqlsh_module() {
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
   // It also exposes other mysqlsh internal machinery.
   // Actual code for this module is in python/packages/mysqlsh
-  _mysqlsh_module = PyImport_ImportModule("mysqlsh");
-  if (_mysqlsh_module == nullptr) {
+  _mysqlsh_module = py::Store{PyImport_ImportModule("mysqlsh")};
+  if (!_mysqlsh_module) {
     PyErr_Print();
 
     throw std::runtime_error(
         "Error initializing the 'mysqlsh' module in Python support");
   }
 
-  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module.get());
 
   if (!PyDict_GetItemString(py_mysqlsh_dict, "DBError")) {
     PyErr_Print();
@@ -1384,156 +1351,144 @@ void Python_context::register_mysqlsh_module() {
     assert(0);
   }
 
-  _mysqlsh_globals = PyDict_GetItemString(py_mysqlsh_dict, "globals");
+  _mysqlsh_globals =
+      py::Store{PyDict_GetItemString(py_mysqlsh_dict, "globals")};
   assert(_mysqlsh_globals);
 }
 
-PyObject *Python_context::db_error() const {
-  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
-  return PyDict_GetItemString(py_mysqlsh_dict, "DBError");
+py::Store Python_context::db_error() const {
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module.get());
+  return py::Store{PyDict_GetItemString(py_mysqlsh_dict, "DBError")};
 }
 
-PyObject *Python_context::error() const {
-  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
-  return PyDict_GetItemString(py_mysqlsh_dict, "Error");
+py::Store Python_context::error() const {
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module.get());
+  return py::Store{PyDict_GetItemString(py_mysqlsh_dict, "Error")};
 }
 
 void Python_context::get_datetime_constructor() {
-  PyObject *py_datetime_module = PyImport_ImportModule("datetime");
-  if (py_datetime_module == nullptr) {
+  py::Release py_datetime_module{PyImport_ImportModule("datetime")};
+  if (!py_datetime_module) {
     PyErr_Print();
 
     throw std::runtime_error("Could not import Python datetime module");
   }
 
-  PyObject *py_datetime_dict = PyModule_GetDict(py_datetime_module);
+  PyObject *py_datetime_dict = PyModule_GetDict(py_datetime_module.get());
 
-  _datetime = PyDict_GetItemString(py_datetime_dict, "datetime");
-  Py_XINCREF(_datetime);
-
+  _datetime = py::Store{PyDict_GetItemString(py_datetime_dict, "datetime")};
   if (!_datetime) PyErr_Print();
   assert(_datetime);
 
-  _date = PyDict_GetItemString(py_datetime_dict, "date");
-  Py_XINCREF(_date);
-
+  _date = py::Store{PyDict_GetItemString(py_datetime_dict, "date")};
   if (!_date) PyErr_Print();
   assert(_date);
 
-  _time = PyDict_GetItemString(py_datetime_dict, "time");
-  Py_XINCREF(_time);
-
+  _time = py::Store{PyDict_GetItemString(py_datetime_dict, "time")};
   if (!_time) PyErr_Print();
   assert(_time);
 
   // Creates a temporary datetime object to cache the python type
-  auto tmp = create_datetime_object(2000, 1, 1, 1, 1, 1, 0);
-  _datetime_type = Py_TYPE(tmp);
-  Py_XINCREF(_datetime_type);
-  Py_XDECREF(tmp);
-
-  tmp = create_date_object(2000, 1, 1);
-  _date_type = Py_TYPE(tmp);
-  Py_XINCREF(_date_type);
-  Py_XDECREF(tmp);
-
-  tmp = create_time_object(0, 0, 0, 0);
-  _time_type = Py_TYPE(tmp);
-  Py_XINCREF(_time_type);
-  Py_XDECREF(tmp);
+  {
+    auto tmp = create_datetime_object(2000, 1, 1, 1, 1, 1, 0);
+    _datetime_type =
+        py::Store{reinterpret_cast<PyObject *>(Py_TYPE(tmp.get()))};
+  }
+  {
+    auto tmp = create_date_object(2000, 1, 1);
+    _date_type = py::Store{reinterpret_cast<PyObject *>(Py_TYPE(tmp.get()))};
+  }
+  {
+    auto tmp = create_time_object(0, 0, 0, 0);
+    _time_type = py::Store{reinterpret_cast<PyObject *>(Py_TYPE(tmp.get()))};
+  }
 }
 
-PyObject *Python_context::create_datetime_object(int year, int month, int day,
-                                                 int hour, int minute,
-                                                 int second, int useconds) {
-  PyObject *args = Py_BuildValue("(iiiiiii)", year, month, day, hour, minute,
-                                 second, useconds);
+py::Release Python_context::create_datetime_object(int year, int month, int day,
+                                                   int hour, int minute,
+                                                   int second, int useconds) {
+  py::Release args{Py_BuildValue("(iiiiiii)", year, month, day, hour, minute,
+                                 second, useconds)};
 
-  PyObject *new_date = PyObject_Call(_datetime, args, nullptr);
-
-  Py_XDECREF(args);
-
-  return new_date;
+  return py::Release{PyObject_Call(_datetime.get(), args.get(), nullptr)};
 }
 
-PyObject *Python_context::create_date_object(int year, int month, int day) {
-  PyObject *args = Py_BuildValue("(iii)", year, month, day);
+py::Release Python_context::create_date_object(int year, int month, int day) {
+  py::Release args{Py_BuildValue("(iii)", year, month, day)};
 
-  PyObject *new_date = PyObject_Call(_date, args, nullptr);
-
-  Py_XDECREF(args);
-
-  return new_date;
+  return py::Release{PyObject_Call(_date.get(), args.get(), nullptr)};
 }
 
-PyObject *Python_context::create_time_object(int hour, int minute, int second,
-                                             int useconds) {
-  PyObject *args = Py_BuildValue("(iiii)", hour, minute, second, useconds);
+py::Release Python_context::create_time_object(int hour, int minute, int second,
+                                               int useconds) {
+  py::Release args{Py_BuildValue("(iiii)", hour, minute, second, useconds)};
 
-  PyObject *new_time = PyObject_Call(_time, args, nullptr);
-
-  Py_XDECREF(args);
-
-  return new_time;
+  return py::Release{PyObject_Call(_time.get(), args.get(), nullptr)};
 }
 
 void Python_context::register_shell_stderr_module() {
-  PyObject *module =
-      py_register_module("mysqlsh.shell_stderr", ShellStdErrMethods);
-  if (module == NULL)
+  auto module = py_register_module("mysqlsh.shell_stderr", ShellStdErrMethods);
+  if (!module)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
 
-  _shell_stderr_module = module;
+  _shell_stderr_module = std::move(module);
 }
 
 void Python_context::register_shell_stdout_module() {
-  PyObject *module =
-      py_register_module("mysqlsh.shell_stdout", ShellStdOutMethods);
-  if (module == NULL)
+  auto module = py_register_module("mysqlsh.shell_stdout", ShellStdOutMethods);
+  if (!module)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
 
-  _shell_stdout_module = module;
+  _shell_stdout_module = std::move(module);
 }
 
 void Python_context::register_shell_stdin_module() {
-  PyObject *module =
-      py_register_module("mysqlsh.shell_stdin", ShellStdInMethods);
-  if (module == NULL)
+  auto module = py_register_module("mysqlsh.shell_stdin", ShellStdInMethods);
+  if (!module)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
 
-  _shell_stdin_module = module;
+  _shell_stdin_module = std::move(module);
 }
 
 void Python_context::register_shell_python_support_module() {
-  PyObject *module = py_register_module("mysqlsh.__shell_python_support__",
-                                        ShellPythonSupportMethods);
-  if (module == NULL)
-    throw std::runtime_error(
-        "Error initializing SHELL module in Python support");
+  {
+    auto module = py_register_module("mysqlsh.__shell_python_support__",
+                                     ShellPythonSupportMethods);
+    if (!module)
+      throw std::runtime_error(
+          "Error initializing SHELL module in Python support");
 
-  _shell_python_support_module = module;
+    _shell_python_support_module = std::move(module);
+  }
+
+  // helper
+  auto module_ptr = _shell_python_support_module.get();
 
   // add the context ptr
-  PyObject *context_object;
-  context_object = PyCapsule_New(this, nullptr, nullptr);
-  PyCapsule_SetContext(context_object, &SHELLTypeSignature);
+  {
+    py::Release context_object{PyCapsule_New(this, nullptr, nullptr)};
+    PyCapsule_SetContext(context_object.get(), &SHELLTypeSignature);
 
-  if (context_object != NULL)
-    PyModule_AddObject(module, "__SHELL__", context_object);  // steals ref
+    if (context_object)
+      PyModule_AddObject(module_ptr, "__SHELL__", context_object.release());
+  }
 
-  PyModule_AddStringConstant(module, "INT", shcore::type_name(Integer).c_str());
-  PyModule_AddStringConstant(module, "DOUBLE",
+  PyModule_AddStringConstant(module_ptr, "INT",
+                             shcore::type_name(Integer).c_str());
+  PyModule_AddStringConstant(module_ptr, "DOUBLE",
                              shcore::type_name(Float).c_str());
-  PyModule_AddStringConstant(module, "STRING",
+  PyModule_AddStringConstant(module_ptr, "STRING",
                              shcore::type_name(String).c_str());
-  PyModule_AddStringConstant(module, "LIST", shcore::type_name(Array).c_str());
-  PyModule_AddStringConstant(module, "DICT", shcore::type_name(Map).c_str());
-  PyModule_AddStringConstant(module, "OBJECT",
+  PyModule_AddStringConstant(module_ptr, "LIST",
+                             shcore::type_name(Array).c_str());
+  PyModule_AddStringConstant(module_ptr, "DICT",
+                             shcore::type_name(Map).c_str());
+  PyModule_AddStringConstant(module_ptr, "OBJECT",
                              shcore::type_name(Object).c_str());
-  PyModule_AddStringConstant(module, "FUNCTION",
+  PyModule_AddStringConstant(module_ptr, "FUNCTION",
                              shcore::type_name(Function).c_str());
 
   init_shell_dict_type();
@@ -1559,7 +1514,7 @@ Value Python_context::execute_module(const std::string &module_name,
   }
 
   const py::Release runmodule{
-      PyObject_GetAttrString(runpy, "_run_module_as_main")};
+      PyObject_GetAttrString(runpy.get(), "_run_module_as_main")};
 
   if (!runmodule) {
     PyErr_Print();
@@ -1567,8 +1522,7 @@ Value Python_context::execute_module(const std::string &module_name,
         "Could not access runpy._run_module_as_main");
   }
 
-  const py::Release runargs{
-      PyTuple_Pack(2, static_cast<PyObject *>(modname), Py_False)};
+  const py::Release runargs{PyTuple_Pack(2, modname.get(), Py_False)};
 
   if (!runargs) {
     PyErr_Print();
@@ -1577,7 +1531,8 @@ Value Python_context::execute_module(const std::string &module_name,
   }
 
   module_processing = true;
-  const py::Release py_result{PyObject_Call(runmodule, runargs, NULL)};
+  const py::Release py_result{
+      PyObject_Call(runmodule.get(), runargs.get(), NULL)};
   module_processing = false;
 
   if (!py_result) {
@@ -1587,7 +1542,7 @@ Value Python_context::execute_module(const std::string &module_name,
   }
 
   if (py_result) {
-    ret_val = convert(py_result);
+    ret_val = convert(py_result.get());
   }
 
   return ret_val;
@@ -1602,7 +1557,6 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
   PyObject *plugin_path = nullptr;
   PyObject *result = nullptr;
   PyObject *globals = nullptr;
-  PyObject *sys_path_backup = nullptr;
   FILE *file = nullptr;
   bool executed = false;
   std::string file_name = plugin.file;
@@ -1644,8 +1598,9 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
 
     // Backups the original sys.path, in case the plugin load fails sys.path
     // will be set back to the original content before the plugin load
-    sys_path_backup = PyList_GetSlice(sys_path, 0, PyList_Size(sys_path));
-    if (nullptr == sys_path_backup) {
+    py::Release sys_path_backup{
+        PyList_GetSlice(sys_path, 0, PyList_Size(sys_path))};
+    if (!sys_path_backup) {
       std::string error = fetch_and_clear_exception();
 
       throw std::runtime_error(
@@ -1674,7 +1629,7 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
     // The plugin paths are required on sys.path at the moment the plugin is
     // loaded, after that they are not required so the original sys.path is
     // restored
-    PySys_SetObject(const_cast<char *>("path"), sys_path_backup);
+    PySys_SetObject(const_cast<char *>("path"), sys_path_backup.get());
 
     // If there was an error, raises the corresponding exception
     if (nullptr == result) {
@@ -1695,7 +1650,6 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
   Py_XDECREF(result);
   Py_XDECREF(globals);
   Py_XDECREF(plugin_path);
-  Py_XDECREF(sys_path_backup);
 
   return ret_val;
 }
@@ -1749,13 +1703,16 @@ void Python_context::throw_if_mysqlsh_error() {
 
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  if (PyErr_ExceptionMatches(db_error())) {
+  auto db_error_ref = db_error();
+  auto error_ref = error();
+
+  if (PyErr_ExceptionMatches(db_error_ref.get())) {
     int code = 0;
     std::string msg;
     if (get_code_and_msg(&code, &msg))
       throw shcore::Exception::mysql_error_with_code(msg, code);
 
-  } else if (PyErr_ExceptionMatches(error())) {
+  } else if (PyErr_ExceptionMatches(error_ref.get())) {
     int code = 0;
     std::string msg;
     if (get_code_and_msg(&code, &msg)) {

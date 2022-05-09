@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@
 
 namespace shcore {
 
-class SHCORE_PUBLIC Python_function : public Function_base {
+class SHCORE_PUBLIC Python_function final : public Function_base {
  public:
   Python_function(Python_context *context, PyObject *function);
   ~Python_function() override;
@@ -53,10 +53,10 @@ class SHCORE_PUBLIC Python_function : public Function_base {
   Value invoke(const Argument_list &args) override;
 
  private:
-  Python_context *_py;
+  Python_context *_py{nullptr};
   std::weak_ptr<py::Store> m_function;
   std::string m_name;
-  uint64_t m_arg_count;
+  uint64_t m_arg_count{0};
 };
 
 }  // namespace shcore

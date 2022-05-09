@@ -402,7 +402,7 @@ def check_flags(session, protocol):
         res = session.run_sql(f"select * from xtest.{table}")
         columns = res.get_columns()
         for column in columns:
-            expected[table][column.column_name]['TYPE'] = column.type.data
+            EXPECT_EQ(expected[table][column.column_name]['TYPE'], column.type.data)
             if isinstance(expected[table][column.column_name]['FLAGS'], dict):
                 # NOTE: There are a couple of inconsistencies on the reported flags between
                 # X protocol and classic, as follows:

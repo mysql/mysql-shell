@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ struct PyShFuncObject {
   // clang-format on
 };
 
-PyObject *wrap(std::shared_ptr<Function_base> func);
+py::Release wrap(std::shared_ptr<Function_base> func);
 bool unwrap(PyObject *value, std::shared_ptr<Function_base> &ret_func);
 }  // namespace shcore
 

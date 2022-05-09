@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #ifndef _PYTHON_UTILS_H_
 #define _PYTHON_UTILS_H_
+
+#include <utility>
 
 // Include and avoid warnings from v8
 #if defined __GNUC__
@@ -58,7 +60,7 @@ struct WillEnterPython {
 
   WillEnterPython() : state(PyGILState_Ensure()), locked(true) {}
 
-  ~WillEnterPython() {
+  ~WillEnterPython() noexcept {
     if (locked) PyGILState_Release(state);
   }
 
@@ -75,7 +77,110 @@ struct WillLeavePython {
 
   WillLeavePython() : save(PyEval_SaveThread()) {}
 
-  ~WillLeavePython() { PyEval_RestoreThread(save); }
+  ~WillLeavePython() noexcept { PyEval_RestoreThread(save); }
 };
+
+namespace shcore::py {
+/**
+ * Used to store borrowed references, references passed from Python (i.e. as
+ * arguments), or new references if such reference is returned to Python.
+ *
+ * Increases the reference count when acquiring the Python object, decreases it
+ * when releasing the object.
+ */
+class Store {
+ public:
+  Store() = default;
+
+  explicit Store(PyObject *py) noexcept : m_object(py) { Py_XINCREF(m_object); }
+
+  Store(const Store &other) noexcept { *this = other; }
+  Store &operator=(const Store &other) noexcept {
+    // since Py_XDECREF and Py_XINCREF are essentially a ref count impl, this
+    // design is safe as far as self-assignment is concerned, so there's no need
+    // to check.
+
+    Py_XDECREF(m_object);
+
+    m_object = other.m_object;
+    Py_XINCREF(m_object);
+
+    return *this;
+  }
+
+  Store(Store &&other) noexcept { *this = std::move(other); }
+  Store &operator=(Store &&other) noexcept {
+    Py_XDECREF(m_object);
+    m_object = std::exchange(other.m_object, nullptr);
+    return *this;
+  }
+
+  ~Store() noexcept { Py_XDECREF(m_object); }
+
+  Store &reset() noexcept {
+    Py_XDECREF(m_object);
+    m_object = nullptr;
+    return *this;
+  }
+
+  Store &operator=(std::nullptr_t) noexcept { return reset(); }
+
+  explicit operator bool() const { return nullptr != m_object; }
+
+  PyObject *get() noexcept { return m_object; }
+  PyObject *get() const noexcept { return m_object; }
+
+ private:
+  PyObject *m_object = nullptr;
+};
+
+/**
+ * Used to automatically release new references.
+ *
+ * Does not increase the reference count, decreases it when releasing the Python
+ * object.
+ */
+class Release {
+ public:
+  static Release incref(PyObject *py) {
+    Py_XINCREF(py);
+    return Release{py};
+  }
+
+ public:
+  Release() = default;
+  explicit Release(PyObject *py) noexcept : m_object(py) {}
+
+  Release(const Release &other) = delete;
+  Release &operator=(const Release &other) = delete;
+
+  Release(Release &&other) noexcept { *this = std::move(other); }
+  Release &operator=(Release &&other) noexcept {
+    Py_XDECREF(m_object);
+    m_object = std::exchange(other.m_object, nullptr);
+    return *this;
+  }
+
+  ~Release() noexcept { Py_XDECREF(m_object); }
+
+  Release &reset() noexcept {
+    Py_XDECREF(m_object);
+    m_object = nullptr;
+    return *this;
+  }
+
+  Release &operator=(std::nullptr_t) noexcept { return reset(); }
+
+  explicit operator bool() const { return nullptr != m_object; }
+
+  PyObject *get() noexcept { return m_object; }
+  PyObject *get() const noexcept { return m_object; }
+
+  PyObject *release() noexcept { return std::exchange(m_object, nullptr); }
+
+ private:
+  PyObject *m_object = nullptr;
+};
+}  // namespace shcore::py
 
 #endif

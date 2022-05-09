@@ -425,12 +425,6 @@ void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source,
   }
 }
 
-Value::Value(const Value &copy) : type(shcore::Null) { operator=(copy); }
-
-Value::Value(Value &&other) : type(shcore::Null) {
-  operator=(std::move(other));
-}
-
 Value::Value(const std::string &s, bool binary)
     : type(binary ? Binary : String) {
   value.s = new std::string(s);
@@ -550,6 +544,8 @@ Value::Value(Array_type_ref &&n) : type(Array) {
 }
 
 Value &Value::operator=(const Value &other) {
+  if (this == &other) return *this;
+
   if (type == other.type) {
     switch (type) {
       case Undefined:
@@ -658,7 +654,9 @@ Value &Value::operator=(const Value &other) {
   return *this;
 }
 
-Value &Value::operator=(Value &&other) {
+Value &Value::operator=(Value &&other) noexcept {
+  if (this == &other) return *this;
+
   switch (type) {
     case Undefined:
     case shcore::Null:
@@ -1649,7 +1647,7 @@ std::string &Value::append_repr(std::string &s_out) const {
   return s_out;
 }
 
-Value::~Value() {
+Value::~Value() noexcept {
   switch (type) {
     case Undefined:
     case shcore::Null:

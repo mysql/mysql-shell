@@ -75,7 +75,7 @@ static PySequenceMethods array_object_as_sequence = {
 PyObject *ao_subscript(Array_object *self, PyObject *item);
 int ao_assign_subscript(Array_object *self, PyObject *item, PyObject *value);
 
-static PyMappingMethods array_object_as_mapping = {
+PyMappingMethods array_object_as_mapping = {
     (lenfunc)ao_length,                 // lenfunc mp_length;
     (binaryfunc)ao_subscript,           // binaryfunc mp_subscript;
     (objobjargproc)ao_assign_subscript  // objobjargproc mp_ass_subscript;
@@ -626,10 +626,8 @@ static PyTypeObject Array_object_riterator_type = {
 // helpers
 ////////////////////////////////////////////////////////////////////////////////
 
-PyObject *get_builtin(const char *name) {
-  auto builtin = PyDict_GetItemString(PyEval_GetBuiltins(), name);
-  Py_XINCREF(builtin);
-  return builtin;
+py::Release get_builtin(const char *name) {
+  return py::Release::incref(PyDict_GetItemString(PyEval_GetBuiltins(), name));
 }
 
 Array_t to_array(PyObject *value) {
@@ -659,16 +657,13 @@ Array_t to_sequence(Array_object *self, PyObject *value, const char *error) {
     ret = *((Array_object *)value)->array;
   } else {
     py::Release sequence{PySequence_Fast(value, error)};
-
-    if (sequence) {
-      ret = py::convert(sequence).as_array();
-    }
+    if (sequence) ret = py::convert(sequence.get()).as_array();
   }
 
   return ret;
 }
 
-PyObject *ao_slice(Array_object *self, Py_ssize_t ilow, Py_ssize_t ihigh) {
+py::Release ao_slice(Array_object *self, Py_ssize_t ilow, Py_ssize_t ihigh) {
   const auto size = ao_length(self);
 
   if (ilow < 0) {
@@ -761,14 +756,14 @@ PyObject *new_list_concat(PyObject *self, PyObject *other) {
     const auto array = ((Array_object *)other)->array->get();
 
     list = py::Release{PyList_New(array->size())};
-    other = list;
+    other = list.get();
 
     Py_ssize_t i = 0;
 
     try {
-      for (const auto &v : *array) {
-        PyList_SET_ITEM(other, i++, py::convert(v));
-      }
+      for (const auto &v : *array)
+        PyList_SET_ITEM(other, i++, py::convert(v).release());
+
     } catch (const std::exception &exc) {
       Python_context::set_python_error(PyExc_RuntimeError, exc.what());
       return nullptr;
@@ -834,7 +829,7 @@ PyObject *ao_concat(Array_object *self, PyObject *right) {
   result->insert(result->end(), l->begin(), l->end());
   result->insert(result->end(), r->begin(), r->end());
 
-  return wrap(result);
+  return wrap(result).release();
 }
 
 /**
@@ -856,7 +851,7 @@ PyObject *ao_repeat(Array_object *self, Py_ssize_t n) {
     result->insert(result->end(), array->begin(), array->end());
   }
 
-  return wrap(result);
+  return wrap(result).release();
 }
 
 /**
@@ -877,7 +872,7 @@ PyObject *ao_item(Array_object *self, Py_ssize_t index) {
   }
 
   try {
-    return py::convert(self->array->get()->at(index));
+    return py::convert(self->array->get()->at(index)).release();
   } catch (const std::exception &exc) {
     Python_context::set_python_error(PyExc_RuntimeError, exc.what());
   }
@@ -945,10 +940,7 @@ int ao_contains(Array_object *self, PyObject *value) {
 PyObject *ao_inplace_concat(Array_object *self, PyObject *other) {
   // we're not using the result, decrease the reference count
   py::Release result{ao_extend(self, other)};
-
-  if (!result) {
-    return result;
-  }
+  if (!result) return nullptr;
 
   // we're returning a new reference, increase the reference count
   Py_INCREF(self);
@@ -1000,54 +992,44 @@ PyObject *ao_subscript(Array_object *self, PyObject *item) {
   if (PyIndex_Check(item)) {
     Py_ssize_t i = PyNumber_AsSsize_t(item, PyExc_IndexError);
 
-    if (-1 == i && PyErr_Occurred()) {
-      return nullptr;
-    }
+    if (-1 == i && PyErr_Occurred()) return nullptr;
 
-    if (i < 0) {
-      i += ao_length(self);
-    }
+    if (i < 0) i += ao_length(self);
 
     return ao_item(self, i);
-  } else if (PySlice_Check(item)) {
+  }
+
+  if (PySlice_Check(item)) {
     Py_ssize_t start = 0;
     Py_ssize_t stop = 0;
     Py_ssize_t step = 0;
 
-    if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
-      return nullptr;
-    }
+    if (PySlice_Unpack(item, &start, &stop, &step) < 0) return nullptr;
 
     const auto length =
         PySlice_AdjustIndices(ao_length(self), &start, &stop, step);
 
-    if (length <= 0) {
-      return wrap(make_array());
-    }
+    if (length <= 0) return wrap(make_array()).release();
 
-    if (1 == step) {
-      return ao_slice(self, start, stop);
-    } else {
-      const auto src = self->array->get();
-      const auto dst = make_array();
+    if (1 == step) return ao_slice(self, start, stop).release();
 
-      dst->resize(length);
+    const auto src = self->array->get();
+    const auto dst = make_array();
 
-      for (Py_ssize_t cur = start, i = 0; i < length;
-           cur += (size_t)step, ++i) {
-        (*dst)[i] = (*src)[cur];
-      }
+    dst->resize(length);
 
-      return wrap(dst);
-    }
-  } else {
-    Python_context::set_python_error(
-        PyExc_TypeError,
-        str_format("list indices must be integers or slices, not %.200s",
-                   item->ob_type->tp_name));
+    for (Py_ssize_t cur = start, i = 0; i < length; cur += (size_t)step, ++i)
+      (*dst)[i] = (*src)[cur];
 
-    return nullptr;
+    return wrap(dst).release();
   }
+
+  Python_context::set_python_error(
+      PyExc_TypeError,
+      str_format("list indices must be integers or slices, not %.200s",
+                 item->ob_type->tp_name));
+
+  return nullptr;
 }
 
 /**
@@ -1193,10 +1175,7 @@ PyObject *ao_setstate(Array_object *self, PyObject *state) {
 
   for (Py_ssize_t i = 0; i < size; ++i) {
     py::Release result{ao_append(self, PyList_GetItem(list, i))};
-
-    if (!result) {
-      return result;
-    }
+    if (!result) return nullptr;
   }
 
   // delete the contents of the base class
@@ -1227,7 +1206,7 @@ PyObject *ao_append(Array_object *self, PyObject *v) {
  * Return a shallow copy of the list. Equivalent to a[:].
  */
 PyObject *ao_copy(Array_object *self) {
-  return ao_slice(self, 0, ao_length(self));
+  return ao_slice(self, 0, ao_length(self)).release();
 }
 
 /**
@@ -1254,10 +1233,7 @@ PyObject *ao_extend(Array_object *self, PyObject *other) {
   {
     // fail if other is not iterable
     py::Release it{PyObject_GetIter(other)};
-
-    if (!it) {
-      return it;
-    }
+    if (!it) return nullptr;
   }
 
   try {
@@ -1417,7 +1393,7 @@ PyObject *ao_pop(Array_object *self, PyObject *args) {
 
     array->erase(array->begin() + i);
 
-    return py::convert(value);
+    return py::convert(value).release();
   } catch (const std::exception &exc) {
     Python_context::set_python_error(PyExc_RuntimeError, exc.what());
   }
@@ -1518,14 +1494,13 @@ PyObject *ao_sort(Array_object *self, PyObject *args, PyObject *kwds) {
       decltype(items)::size_type idx = 0;
 
       for (const auto &v : (*array)) {
+        const auto conv = py::convert(v);
         py::Release key{
-            PyObject_CallFunctionObjArgs(keyfunc, py::convert(v), nullptr)};
+            PyObject_CallFunctionObjArgs(keyfunc, conv.get(), nullptr)};
 
-        if (!key) {
-          return nullptr;
-        }
+        if (!key) return nullptr;
 
-        items[idx++].key = py::convert(key, &ctx);
+        items[idx++].key = py::convert(key.get(), &ctx);
       }
     } catch (const std::exception &exc) {
       Python_context::set_python_error(PyExc_RuntimeError, exc.what());
@@ -1592,7 +1567,7 @@ int ao_init(Array_object *self, PyObject *args, PyObject *kw) {
     // using arguments to initialize an empty list
     py::Release list_args{PyTuple_New(0)};
 
-    if (PyList_Type.tp_init((PyObject *)self, list_args, nullptr) < 0) {
+    if (PyList_Type.tp_init((PyObject *)self, list_args.get(), nullptr) < 0) {
       return -1;
     }
   }
@@ -1612,17 +1587,14 @@ int ao_init(Array_object *self, PyObject *args, PyObject *kw) {
 
   if (arg) {
     py::Release result{ao_extend(self, arg)};
-
-    if (!result) {
-      return -1;
-    }
+    if (!result) return -1;
   }
 
   return 0;
 }
 
 void ao_dealloc(Array_object *self) {
-  delete self->array;
+  delete std::exchange(self->array, nullptr);
 
   Py_TYPE(self)->tp_free(self);
 }
@@ -1766,15 +1738,13 @@ void ao_iter_dealloc(Array_object_iterator *self) {
 }
 
 PyObject *ao_iter_next(Array_object_iterator *self) {
-  if (!self->o) {
-    return nullptr;
-  }
+  if (!self->o) return nullptr;
 
   if (self->index < ao_length(self->o)) {
     try {
-      const auto item = py::convert(self->o->array->get()->at(self->index));
+      auto item = py::convert(self->o->array->get()->at(self->index));
       ++self->index;
-      return item;
+      return item.release();
     } catch (const std::exception &exc) {
       Python_context::set_python_error(PyExc_RuntimeError, exc.what());
     }
@@ -1801,12 +1771,13 @@ PyObject *ao_iter_length(Array_object_iterator *self) {
 }
 
 PyObject *ao_iter_reduce(Array_object_iterator *self) {
-  if (self->o) {
-    return Py_BuildValue("N(O)n", get_builtin("iter"), self->o, self->index);
-  } else {
-    // empty iterator, create empty list
-    return Py_BuildValue("N(N)", get_builtin("iter"), wrap(make_array()));
-  }
+  if (self->o)
+    return Py_BuildValue("N(O)n", get_builtin("iter").release(), self->o,
+                         self->index);
+
+  // empty iterator, create empty list
+  return Py_BuildValue("N(N)", get_builtin("iter").release(),
+                       wrap(make_array()).release());
 }
 
 PyObject *ao_iter_setstate(Array_object_iterator *self, PyObject *state) {
@@ -1856,9 +1827,9 @@ PyObject *ao_riter_next(Array_object_riterator *self) {
 
   if (self->index >= 0 && self->index < ao_length(self->o)) {
     try {
-      const auto item = py::convert(self->o->array->get()->at(self->index));
+      auto item = py::convert(self->o->array->get()->at(self->index));
       --self->index;
-      return item;
+      return item.release();
     } catch (const std::exception &exc) {
       Python_context::set_python_error(PyExc_RuntimeError, exc.what());
     }
@@ -1882,13 +1853,13 @@ PyObject *ao_riter_length(Array_object_riterator *self) {
 }
 
 PyObject *ao_riter_reduce(Array_object_riterator *self) {
-  if (self->o) {
-    return Py_BuildValue("N(O)n", get_builtin("reversed"), self->o,
+  if (self->o)
+    return Py_BuildValue("N(O)n", get_builtin("reversed").release(), self->o,
                          self->index);
-  } else {
-    // empty iterator, create empty list, iter() is used on purpose
-    return Py_BuildValue("N(N)", get_builtin("iter"), wrap(make_array()));
-  }
+
+  // empty iterator, create empty list, iter() is used on purpose
+  return Py_BuildValue("N(N)", get_builtin("iter").release(),
+                       wrap(make_array()).release());
 }
 
 PyObject *ao_riter_setstate(Array_object_riterator *self, PyObject *state) {
@@ -1925,18 +1896,21 @@ void Python_context::init_shell_list_type() {
   replace_list_concat();
 
   Py_INCREF(&Array_object_type);
-  PyModule_AddObject(get_shell_python_support_module(), "List",
+
+  const auto module = get_shell_python_support_module();
+
+  PyModule_AddObject(module.get(), "List",
                      reinterpret_cast<PyObject *>(&Array_object_type));
 
-  _shell_list_class = PyDict_GetItemString(
-      PyModule_GetDict(get_shell_python_support_module()), "List");
+  _shell_list_class =
+      py::Store{PyDict_GetItemString(PyModule_GetDict(module.get()), "List")};
 }
 
 bool array_check(PyObject *value) {
   return Py_TYPE(value) == &Array_object_type;
 }
 
-PyObject *wrap(const std::shared_ptr<Value::Array_type> &array) {
+py::Release wrap(const std::shared_ptr<Value::Array_type> &array) {
   Array_object *wrapper = PyObject_New(Array_object, &Array_object_type);
 
   // tp_new is not used by PyObject_New, array needs to be allocated
@@ -1948,12 +1922,14 @@ PyObject *wrap(const std::shared_ptr<Value::Array_type> &array) {
   Py_SIZE(&wrapper->base) = 0;
   wrapper->base.allocated = 0;
 
-  return reinterpret_cast<PyObject *>(wrapper);
+  return py::Release{reinterpret_cast<PyObject *>(wrapper)};
 }
 
 bool unwrap(PyObject *value, std::shared_ptr<Value::Array_type> *ret_object) {
   if (const auto ctx = Python_context::get_and_check()) {
-    if (PyObject_IsInstance(value, ctx->get_shell_list_class())) {
+    const auto lclass = ctx->get_shell_list_class();
+
+    if (PyObject_IsInstance(value, lclass.get())) {
       const auto array = ((Array_object *)value)->array;
 
       assert(array);
