@@ -125,14 +125,19 @@ class SHCORE_PUBLIC Logger final {
 
   bool use_stderr() const;
 
-  inline void push_context(const std::string &context) {
-    m_log_context.push_back(context);
+  void push_context(std::string context) {
+    std::lock_guard l{m_mutex_log_ctx};
+    m_log_context.push_back(std::move(context));
   }
 
-  inline void pop_context() { m_log_context.pop_back(); }
+  void pop_context() {
+    std::lock_guard l{m_mutex_log_ctx};
+    m_log_context.pop_back();
+  }
 
-  inline const char *context() const {
-    return m_log_context.empty() ? "" : m_log_context.back().c_str();
+  std::string context() const {
+    std::lock_guard l{m_mutex_log_ctx};
+    return m_log_context.empty() ? "" : m_log_context.back();
   }
 
   inline std::string get_initialization_warning() const {
@@ -151,13 +156,11 @@ class SHCORE_PUBLIC Logger final {
   static std::string format(const char *formats, va_list args);
 
   static void do_log(const Log_entry &entry);
+  static void do_log(const Logger &logger, const Log_entry &entry);
 
   bool will_log(LOG_LEVEL level) const;
 
-  static std::unique_ptr<Logger> s_instance;
-  static std::string s_output_format;
-
-  LOG_LEVEL m_log_level = LOG_NONE;
+  std::atomic<LOG_LEVEL> m_log_level{LOG_NONE};
 
 #ifdef _WIN32
   std::ofstream m_log_file;
@@ -165,12 +168,13 @@ class SHCORE_PUBLIC Logger final {
   FILE *m_log_file = nullptr;
 #endif
   std::string m_log_file_name;
+
+  mutable std::mutex m_mutex_hooks;
   std::list<std::tuple<Log_hook, void *, bool>> m_hook_list;
   std::list<std::tuple<Log_level_hook, void *>> m_level_hook_list;
 
+  mutable std::mutex m_mutex_log_ctx;
   std::list<std::string> m_log_context;
-
-  std::recursive_mutex m_mutex;
 
   std::atomic<int> m_dont_log;
 

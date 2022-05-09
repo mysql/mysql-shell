@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,7 +132,7 @@ class Masked_value final {
 
   const T &real() const { return m_real_ref; }
 
-  const T &masked() const { return m_masked.get_safe(real()); }
+  T masked() const { return m_masked.get_safe(real()); }
 
   bool operator==(const Masked_value &mv) const {
     // call the other comparison operator

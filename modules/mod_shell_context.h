@@ -23,6 +23,7 @@
 #ifndef MODULES_MOD_SHELLCONTEXT_H_
 #define MODULES_MOD_SHELLCONTEXT_H_
 
+#include <atomic>
 #include <memory>
 #include <string>
 
@@ -128,9 +129,7 @@ class ShellContextWrapper {
 };
 #endif
 
-class SHCORE_PUBLIC Shell_context_wrapper
-    : public shcore::Cpp_object_bridge,
-      public std::enable_shared_from_this<Shell_context_wrapper> {
+class SHCORE_PUBLIC Shell_context_wrapper : public shcore::Cpp_object_bridge {
  public:
   Shell_context_wrapper(
       const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks,
@@ -151,7 +150,7 @@ class SHCORE_PUBLIC Shell_context_wrapper
   std::shared_ptr<Scoped_log_sql> m_log_sql;
   mysqlsh::Mysql_thread m_mysql_thread;
   std::shared_ptr<Scoped_interrupt> m_interrupt;
-  bool m_finalized = false;
+  std::atomic<bool> m_finalized{false};
 };
 
 }  // namespace mysqlsh

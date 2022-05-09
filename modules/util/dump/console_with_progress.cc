@@ -142,7 +142,7 @@ shcore::Prompt_result Console_with_progress::prompt(
     shcore::prompt::Prompt_type type, const std::string &title,
     const std::vector<std::string> &description,
     const std::string &default_value) const {
-  Hide_progress(m_progress, m_mutex);
+  Hide_progress hp(m_progress, m_mutex);
   return m_console->prompt(prompt, out_val, validator, type, title, description,
                            default_value);
 }

@@ -177,7 +177,7 @@ class File_iterator final {
   size_t m_offset = 0;  //< Global file offset where m_ptr points
   mysqlshdk::storage::IFile *m_fh = nullptr;
   size_t m_file_size = 0;
-  Async_read_task *m_aio{};
+  Async_read_task *m_aio = nullptr;
   bool m_eof = false;
   shcore::Synchronized_queue<Async_read_task *> *m_task_queue = nullptr;
 
@@ -199,6 +199,10 @@ class File_iterator final {
    */
   void swap() {
     std::swap(m_current, m_next);
+
+    assert(m_current);
+    if (!m_current) throw std::logic_error("No buffer available");
+
     m_ptr = m_current->begin();
     if (m_offset + m_current->size() < m_file_size) {
       m_ptr_end = m_current->begin() + m_current->size() - m_current->reserved;

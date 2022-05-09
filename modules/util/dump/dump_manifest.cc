@@ -294,9 +294,9 @@ Manifest_writer::Manifest_writer(
         m_start_time = shcore::current_time_rfc3339();
 
         while (!is_complete()) {
-          auto par = m_pars_queue.try_pop(wait_for.count());
+          auto par = m_pars_queue.try_pop(wait_for);
 
-          if (par.id == "DONE" && !test) {
+          if (par && par->id == "DONE" && !test) {
             // TODO(rennox): If this is reached then it means the manifest
             // was not completed, so we can fall in the following scenarios:
             // - The PAR cache was completely flushed into the manifest in
@@ -311,7 +311,7 @@ Manifest_writer::Manifest_writer(
             break;
           } else {
             // If PAR is received, adds it to the cache
-            cache_par(std::move(par));
+            if (par) cache_par(std::move(*par));
 
             auto waited_for =
                 std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 
+#include <atomic>
 #include <stack>
 #include <thread>
 
@@ -38,22 +39,22 @@ class Scoped_storage {
     m_objects.push(value);
   }
 
-  void pop(const std::shared_ptr<T> &value) {
+  void pop(const std::shared_ptr<T> &value) noexcept {
     std::lock_guard<std::mutex> lock(m_mtx);
     assert(!m_objects.empty() && m_objects.top() == value);
     (void)value;  // silence warning if NDEBUG=0
     m_objects.pop();
   }
 
-  std::shared_ptr<T> get(bool allow_empty = false) const {
+  std::shared_ptr<T> get(bool allow_empty = false) const noexcept {
     std::lock_guard<std::mutex> lock(m_mtx);
-    if (allow_empty && m_objects.empty()) return std::shared_ptr<T>();
+    if (allow_empty && m_objects.empty()) return nullptr;
 
     assert(!m_objects.empty());
     return m_objects.top();
   }
 
-  bool empty() const {
+  bool empty() const noexcept {
     std::lock_guard<std::mutex> lock(m_mtx);
     return m_objects.empty();
   }
@@ -72,37 +73,27 @@ class Multi_storage : public Scoped_storage<mysqlsh::IConsole>,
 
 thread_local Multi_storage mstorage;
 
-Multi_storage *g_main_mstorage = nullptr;
+std::atomic<Multi_storage *> g_main_mstorage{nullptr};
 
 }  // namespace
 
 template <typename T>
 Global_scoped_object<T>::Global_scoped_object(
-    const std::shared_ptr<T> &scoped_value,
-    const std::function<void(const std::shared_ptr<T> &)> &deleter)
-    : m_deleter(deleter), m_scoped_value(scoped_value) {
-  if (scoped_value) mstorage.Scoped_storage<T>::push(scoped_value);
+    std::shared_ptr<T> scoped_value,
+    std::function<void(const std::shared_ptr<T> &)> on_delete_cb)
+    : m_scoped_value{std::move(scoped_value)},
+      m_on_delete_cb{std::move(on_delete_cb)} {
+  if (m_scoped_value) mstorage.Scoped_storage<T>::push(m_scoped_value);
 
   // assumes the first scoped object is created in the main thread
-  if (!g_main_mstorage) {
-    g_main_mstorage = &mstorage;
-  }
+  Multi_storage *desired{nullptr};
+  g_main_mstorage.compare_exchange_strong(desired, &mstorage);
 }
 
 template <typename T>
 Global_scoped_object<T>::~Global_scoped_object() {
-  if (m_deleter) {
-    m_deleter(m_scoped_value);
-  }
-
-  if (m_scoped_value) {
-    mstorage.Scoped_storage<T>::pop(m_scoped_value);
-  }
-}
-
-template <typename T>
-std::shared_ptr<T> Global_scoped_object<T>::get() const {
-  return m_scoped_value;
+  if (m_on_delete_cb) m_on_delete_cb(m_scoped_value);
+  if (m_scoped_value) mstorage.Scoped_storage<T>::pop(m_scoped_value);
 }
 
 template class Global_scoped_object<shcore::Interrupts>;
@@ -115,9 +106,9 @@ template class Global_scoped_object<shcore::Log_sql>;
 namespace detail {
 template <typename T>
 std::shared_ptr<T> current_scoped_value(bool allow_empty) {
-  auto storage = mstorage.Scoped_storage<T>::empty() && g_main_mstorage
-                     ? g_main_mstorage
-                     : &mstorage;
+  auto g_storage = g_main_mstorage.load();
+  auto storage =
+      mstorage.Scoped_storage<T>::empty() && g_storage ? g_storage : &mstorage;
   return storage->Scoped_storage<T>::get(allow_empty);
 }
 }  // namespace detail

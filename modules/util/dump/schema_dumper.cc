@@ -2070,13 +2070,11 @@ std::string Schema_dumper::get_actual_table_name(
 
   query = "SHOW TABLES LIKE " + quote_for_like(old_table_name);
 
-  if (query_no_throw(query, &table_res)) return nullptr;
+  if (query_no_throw(query, &table_res)) return {};
 
-  if (auto row = table_res->fetch_one()) {
-    return row->get_string(0);
-  }
+  if (auto row = table_res->fetch_one()) return row->get_string(0);
 
-  return "";
+  return {};
 }
 
 /*

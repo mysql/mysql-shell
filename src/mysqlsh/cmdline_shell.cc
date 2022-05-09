@@ -960,15 +960,15 @@ shcore::Prompt_result Command_line_shell::do_prompt(bool is_password,
                                           : mysh_get_tty_password)
                   : Command_line_shell::readline;
 
-  shcore::on_leave_scope cleanup([tmp, is_password]() {
-    if (tmp) {
-      if (is_password) {
-        // BUG#28915716: Cleans up the memory containing the password
-        shcore::clear_buffer(tmp, ::strlen(tmp));
-      }
+  shcore::on_leave_scope cleanup([&tmp, is_password]() {
+    if (!tmp) return;
 
-      free(tmp);
+    if (is_password) {
+      // BUG#28915716: Cleans up the memory containing the password
+      shcore::clear_buffer(tmp, ::strlen(tmp));
     }
+
+    free(std::exchange(tmp, nullptr));
   });
 
   shcore::Interrupt_handler second_handler([get_response]() {

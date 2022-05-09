@@ -341,7 +341,6 @@ std::string type_description(Value_type type) {
     case Array:
       return "an array";
     case Map:
-      return "a map";
     case MapRef:
       return "a map";
     case Function:
@@ -700,7 +699,6 @@ Value &Value::operator=(Value &&other) {
 
   switch (type) {
     case Undefined:
-      break;
     case shcore::Null:
       break;
     case Bool:
@@ -1105,40 +1103,26 @@ Value Value::parse(const char *s, size_t size) {
 }
 
 Value Value::parse(const char **pc) {
-  if (**pc == '{') {
-    return parse_map(pc);
-  } else if (**pc == '[') {
-    return parse_array(pc);
-  } else if (**pc == '"') {
-    return parse_double_quoted_string(pc);
-  } else if (**pc == '\'') {
-    return parse_single_quoted_string(pc);
-  } else {
-    if (IS_DIGIT(**pc) || **pc == '-' || **pc == '+')  // a number
-    {
-      return parse_number(pc);
-    } else  // a constant between true, false, null
-    {
-      const char *pi = *pc;
-      int n;
-      while (*pc && IS_ALPHA(**pc)) ++*pc;
+  if (**pc == '{') return parse_map(pc);
+  if (**pc == '[') return parse_array(pc);
+  if (**pc == '"') return parse_double_quoted_string(pc);
+  if (**pc == '\'') return parse_single_quoted_string(pc);
 
-      n = *pc - pi;
-      if (n == 9 && str_caseeq(pi, "undefined", n)) {
-        return Value();
-      } else if (n == 4 && str_caseeq(pi, "true", n)) {
-        return Value(true);
-      } else if (n == 4 && str_caseeq(pi, "null", n)) {
-        return Value::Null();
-      } else if (n == 5 && str_caseeq(pi, "false", n)) {
-        return Value(false);
-      } else {
-        throw Exception::parser_error(std::string("Can't parse '") + pi + "'");
-      }
-    }
-  }
+  if (IS_DIGIT(**pc) || **pc == '-' || **pc == '+')  // a number
+    return parse_number(pc);
 
-  return Value();
+  // a constant between true, false, null
+  const char *pi = *pc;
+  while (**pc && IS_ALPHA(**pc)) ++*pc;
+
+  std::string_view tok{pi, static_cast<size_t>(*pc - pi)};
+
+  if (tok.size() == 9 && str_caseeq(tok, "undefined")) return Value();
+  if (tok.size() == 4 && str_caseeq(tok, "true")) return Value(true);
+  if (tok.size() == 4 && str_caseeq(tok, "null")) return Value::Null();
+  if (tok.size() == 5 && str_caseeq(tok, "false")) return Value(false);
+
+  throw Exception::parser_error("Can't parse '" + std::string{tok} + "'");
 }
 
 bool Value::operator==(const Value &other) const {

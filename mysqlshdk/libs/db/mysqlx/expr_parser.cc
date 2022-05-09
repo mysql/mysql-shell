@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -692,12 +692,7 @@ std::string Expr_parser::cast_data_type() {
       result += cast_data_type_dimension();
     const std::string &opt_binary_result = opt_binary();
     if (!opt_binary_result.empty()) result += " " + opt_binary_result;
-  } else if (type == Token::Type::SIGNED) {
-    result += token.get_text();
-    _tokenizer.consume_any_token();
-    if (_tokenizer.cur_token_type_is(Token::Type::INTEGER))
-      result += " " + _tokenizer.consume_token(Token::Type::INTEGER);
-  } else if (type == Token::Type::UNSIGNED) {
+  } else if ((type == Token::Type::SIGNED) || (type == Token::Type::UNSIGNED)) {
     result += token.get_text();
     _tokenizer.consume_any_token();
     if (_tokenizer.cur_token_type_is(Token::Type::INTEGER))
@@ -739,19 +734,14 @@ std::string Expr_parser::cast_data_type_dimension(bool double_dimension) {
 std::string Expr_parser::opt_binary() {
   std::string result;
   const Token &token = _tokenizer.peek_token();
-  if (token.get_type() == Token::Type::ASCII) {
+  if (auto type = token.get_type();
+      (type == Token::Type::ASCII) || (type == Token::Type::UNICODE)) {
     result += token.get_text();
     _tokenizer.consume_any_token();
     if (_tokenizer.cur_token_type_is(Token::Type::BINARY))
       result += " " + _tokenizer.consume_any_token().get_text();
     return result;
-  } else if (token.get_type() == Token::Type::UNICODE) {
-    result += token.get_text();
-    _tokenizer.consume_any_token();
-    if (_tokenizer.cur_token_type_is(Token::Type::BINARY))
-      result += " " + _tokenizer.consume_any_token().get_text();
-    return result;
-  } else if (token.get_type() == Token::Type::BINARY) {
+  } else if (type == Token::Type::BINARY) {
     result += token.get_text();
     _tokenizer.consume_any_token();
     const Token &token2 = _tokenizer.peek_token();
@@ -762,7 +752,7 @@ std::string Expr_parser::opt_binary() {
              (token2.get_type() == Token::Type::CHARSET))
       result += " " + charset_def();
     return result;
-  } else if (token.get_type() == Token::Type::BYTE) {
+  } else if (type == Token::Type::BYTE) {
     return token.get_text();
   } else {
     return "";

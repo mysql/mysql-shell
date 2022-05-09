@@ -242,9 +242,6 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
   PyObject *r = nullptr;
   switch (value.type) {
     case Undefined:
-      r = Py_None;
-      Py_INCREF(r);
-      break;
     case Null:
       r = Py_None;
       Py_INCREF(r);
@@ -294,7 +291,7 @@ PyObject *convert(const Value &value, Python_context * /*context*/) {
         // object
         if (r == nullptr) {
           // Cleanup the error condition
-          ctx->fetch_and_clear_exception();
+          ctx->clear_exception();
 
           // Take the object string representation
           r = PyString_FromString(value.descr().c_str());

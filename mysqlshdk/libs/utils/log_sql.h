@@ -73,11 +73,12 @@ class Log_sql : public NotificationObserver {
   void do_log(const std::string &msg) const;
   bool is_filtered(const std::string_view sql) const;
 
+  mutable std::mutex m_mutex;
+
   int m_dba_log_sql = 0;
-  Log_level m_log_sql_level = Log_level::OFF;
+  std::atomic<Log_level> m_log_sql_level{Log_level::OFF};
   std::vector<std::string> m_ignore_patterns;
   Logger::LOG_LEVEL m_log_level = Logger::LOG_LEVEL::LOG_INFO;
-  mutable std::mutex m_context_stack_mutex;
   std::stack<std::string> m_context_stack;
   bool m_in_dba_context = false;
 };
@@ -90,11 +91,11 @@ class Log_sql_guard final {
   explicit Log_sql_guard(const char *context);
   Log_sql_guard();
 
-  Log_sql_guard(const Log_sql_guard &) = default;
-  Log_sql_guard(Log_sql_guard &&) = default;
+  Log_sql_guard(const Log_sql_guard &) = delete;
+  Log_sql_guard(Log_sql_guard &&) = delete;
 
-  Log_sql_guard &operator=(const Log_sql_guard &) = default;
-  Log_sql_guard &operator=(Log_sql_guard &&) = default;
+  Log_sql_guard &operator=(const Log_sql_guard &) = delete;
+  Log_sql_guard &operator=(Log_sql_guard &&) = delete;
 
   ~Log_sql_guard();
 

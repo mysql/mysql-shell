@@ -656,15 +656,15 @@ void Instance_pool::check_group_member(
                             SHERR_DBA_GROUP_MEMBER_NOT_IN_QUORUM);
   }
 
-  if (member_state == mysqlshdk::gr::Member_state::ONLINE) {
-  } else if (member_state == mysqlshdk::gr::Member_state::RECOVERING &&
-             allow_recovering) {
-  } else {
-    throw shcore::Exception(
-        "member " + label_for_server_uuid(instance.get_uuid()) +
-            " is in state " + mysqlshdk::gr::to_string(member_state),
-        SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
-  }
+  if ((member_state == mysqlshdk::gr::Member_state::ONLINE) ||
+      (member_state == mysqlshdk::gr::Member_state::RECOVERING &&
+       allow_recovering))
+    return;
+
+  throw shcore::Exception(
+      "member " + label_for_server_uuid(instance.get_uuid()) + " is in state " +
+          mysqlshdk::gr::to_string(member_state),
+      SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
 }
 
 std::shared_ptr<Instance> Instance_pool::connect_primary(

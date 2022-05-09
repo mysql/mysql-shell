@@ -80,10 +80,9 @@ void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
 
   // If the level of the log is different than
   // the one set, we don't want to store the message
-  if (current_level == entry.level) {
-    std::string message_s(entry.message, entry.length);
-    self->log.emplace_back(std::move(message_s));
-  }
+  if (current_level == entry.level)
+    self->log.emplace_back(std::string(entry.message, entry.length));
+
   if (entry.domain && strcmp(entry.domain, "dba.sql") == 0) {
     if (!self->dba_sql_log) self->dba_sql_log = shcore::make_array();
     self->dba_sql_log->push_back(

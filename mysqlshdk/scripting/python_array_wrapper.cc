@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1137,6 +1137,7 @@ int ao_assign_subscript(Array_object *self, PyObject *item, PyObject *value) {
 
       // in range [start, stop), move 0, step, 2*step, ... element to the end of
       // that range, erase moved elements
+      assert(step > 0);
       array->erase(std::remove_if(array->begin() + start, array->begin() + stop,
                                   [&idx, step](const auto &) {
                                     return 0 == (idx++ % step);

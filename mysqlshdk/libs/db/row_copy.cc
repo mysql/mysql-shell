@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -159,8 +159,6 @@ std::string Mem_row::get_as_string(uint32_t index) const {
       return "NULL";
 
     case Type::String:
-      return get<std::string>(index);
-
     case Type::Bytes:
       return get<std::string>(index);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -238,8 +238,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
     bool command = false;
     bool last_line_was_delimiter = false;
     // process input per line so we can count line numbers
-    char *real_eol;
-    char *eol = real_eol = static_cast<char *>(memchr(bol, '\n', m_end - bol));
+    char *eol = static_cast<char *>(memchr(bol, '\n', m_end - bol));
     if (!eol) {
       eol = m_end;
       has_complete_line = m_last_chunk;

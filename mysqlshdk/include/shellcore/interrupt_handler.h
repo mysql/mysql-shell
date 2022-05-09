@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,9 +35,6 @@
 
 namespace shcore {
 
-// Max number of SIGINT handlers to allow at a time in the stack
-static constexpr int kMax_interrupt_handlers = 8;
-
 class Interrupt_helper {
  public:
   virtual ~Interrupt_helper() = default;
@@ -46,7 +43,10 @@ class Interrupt_helper {
   virtual void unblock(bool clean_pending) = 0;
 };
 
-class Interrupts {
+class Interrupts final {
+  // Max number of SIGINT handlers to allow at a time in the stack
+  static constexpr int k_max_interrupt_handlers = 8;
+
  public:
   static std::shared_ptr<Interrupts> create(Interrupt_helper *helper);
   void setup();
@@ -70,8 +70,8 @@ class Interrupts {
   explicit Interrupts(Interrupt_helper *helper);
 
   Interrupt_helper *m_helper;
-  std::function<bool()> m_handlers[kMax_interrupt_handlers];
-  std::atomic<int> m_num_handlers;
+  std::function<bool()> m_handlers[k_max_interrupt_handlers];
+  int m_num_handlers;
   std::mutex m_handler_mutex;
   bool m_propagates_interrupt;
   std::thread::id m_creator_thread_id;

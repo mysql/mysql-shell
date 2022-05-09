@@ -764,10 +764,8 @@ shcore::Prompt_result prompt_user(const std::string &prompt, std::string *reply,
 
 Ssh_auth_return Ssh_session::auth_interactive() {
   log_debug3("SSH trying auth_interactive");
-  int ret_auth = 0;
   Ssh_auth_return ret_val = Ssh_auth_return::AUTH_NONE;
-  while ((ret_auth = m_session->userauthKbdint(nullptr, nullptr)) ==
-         SSH_AUTH_INFO) {
+  while (m_session->userauthKbdint(nullptr, nullptr) == SSH_AUTH_INFO) {
     for (auto i = 0; i < m_session->userauthKbdintGetNPrompts(); i++) {
       char echo;
       auto prompt =

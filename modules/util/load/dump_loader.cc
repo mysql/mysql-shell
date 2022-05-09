@@ -1557,8 +1557,11 @@ size_t Dump_loader::handle_worker_events(
     // Wait for events from workers, but update progress and check for ^C
     // every now and then
     for (;;) {
-      event = m_worker_events.try_pop(1000);
-      if (event.worker) break;
+      auto event_opt = m_worker_events.try_pop(std::chrono::seconds{1});
+      if (event_opt && event_opt->worker) {
+        event = std::move(*event_opt);
+        break;
+      }
     }
 
     log_debug2("Got event %s from worker %zi", to_string(event.event),
@@ -2461,11 +2464,11 @@ void Dump_loader::execute_table_ddl_tasks() {
         // move tasks from the queue in the processing thread to the main thread
         while (pending_tasks > 0 && tasks_to_fetch > 0) {
           // just have a peek, we may have other tasks to execute
-          work = worker_tasks.try_pop(1);
+          auto work_opt = worker_tasks.try_pop(std::chrono::milliseconds{1});
+          if (!work_opt) break;
 
-          if (!work) {
-            break;
-          }
+          work = std::move(*work_opt);
+          if (!work) break;
 
           --pending_tasks;
           --tasks_to_fetch;

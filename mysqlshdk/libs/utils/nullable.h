@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,7 +66,7 @@ class nullable {
 
   explicit operator bool() const { return !_is_null; }
 
-  const C &get_safe(const C &defval = C()) const {
+  C get_safe(const C &defval = C()) const {
     if (_is_null) return defval;
     return _value;
   }

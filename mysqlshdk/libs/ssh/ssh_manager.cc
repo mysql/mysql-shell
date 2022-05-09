@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,6 +85,7 @@ void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
       mysqlsh::current_console()->print_info("Opening SSH tunnel to " +
                                              ssh_config->get_server() + "...");
 
+      assert(session);
       auto ret_val = session->connect(*ssh_config);
       switch (std::get<0>(ret_val)) {
         case ssh::Ssh_return_type::CONNECTION_FAILURE: {
@@ -93,7 +94,8 @@ void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
                                        .append(error_msg.c_str()));
         }
         case ssh::Ssh_return_type::CONNECTED: {
-          auto tunnel_info = m_manager->create_tunnel(std::move(session));
+          auto tunnel_info =
+              m_manager->create_tunnel(std::exchange(session, nullptr));
           uint16_t port = std::get<1>(tunnel_info);
           log_debug("SSH: manager: SSH tunnel opened on port: %d",
                     static_cast<int>(port));

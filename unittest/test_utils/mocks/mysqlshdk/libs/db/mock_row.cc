@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,9 +28,9 @@
 #include "utils/utils_general.h"
 
 namespace testing {
-void Mock_row::init(const std::vector<std::string> &names,
-                    const std::vector<mysqlshdk::db::Type> &types,
-                    const std::vector<std::string> &data) {
+void Mock_row::init(std::vector<std::string> names,
+                    std::vector<mysqlshdk::db::Type> types,
+                    std::vector<std::string> data) {
   _names = std::move(names);
   _types = std::move(types);
   _record = std::move(data);

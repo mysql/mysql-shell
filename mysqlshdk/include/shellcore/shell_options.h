@@ -78,7 +78,7 @@
 
 namespace mysqlsh {
 
-class Shell_options : public shcore::Options {
+class Shell_options final : public shcore::Options {
  public:
   enum class Quiet_start { NOT_SET, SUPRESS_BANNER, SUPRESS_INFO };
 
@@ -272,7 +272,7 @@ class Shell_options : public shcore::Options {
 
   std::vector<std::string> get_named_options();
 
- protected:
+ private:
   bool custom_cmdline_handler(Iterator *iterator);
 
   void override_session_type(const std::string &option, const char *value);

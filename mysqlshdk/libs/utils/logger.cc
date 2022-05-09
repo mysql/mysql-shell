@@ -55,6 +55,19 @@ namespace shcore {
 
 namespace {
 
+/**
+ * There are 3 mutexes that controll access to the Logger:
+ *    - m_mutex_log_ctx (per instance): protects the acess to m_log_context
+ *    - m_mutex_hooks (per instance): protects access to the hooks features:
+ *        m_hook_list and m_level_hook_list
+ *    - g_mutex (global): protects access to the (also global) variable
+ *        g_output_format but also to the file system
+ *
+ * NOTE: m_mutex_hooks is locked while g_mutex is locked (check do_log)
+ */
+std::recursive_mutex g_mutex;
+std::string g_output_format;
+
 std::string to_string(Logger::LOG_LEVEL level) {
   switch (level) {
     case Logger::LOG_NONE:
@@ -78,25 +91,16 @@ std::string to_string(Logger::LOG_LEVEL level) {
   }
 }
 
-Logger::LOG_LEVEL get_level_by_name(const std::string &name) {
-  if (strcasecmp(name.c_str(), "none") == 0)
-    return Logger::LOG_NONE;
-  else if (strcasecmp(name.c_str(), "internal") == 0)
-    return Logger::LOG_INTERNAL_ERROR;
-  else if (strcasecmp(name.c_str(), "error") == 0)
-    return Logger::LOG_ERROR;
-  else if (strcasecmp(name.c_str(), "warning") == 0)
-    return Logger::LOG_WARNING;
-  else if (strcasecmp(name.c_str(), "info") == 0)
-    return Logger::LOG_INFO;
-  else if (strcasecmp(name.c_str(), "debug") == 0)
-    return Logger::LOG_DEBUG;
-  else if (strcasecmp(name.c_str(), "debug2") == 0)
-    return Logger::LOG_DEBUG2;
-  else if (strcasecmp(name.c_str(), "debug3") == 0)
-    return Logger::LOG_DEBUG3;
-  else
-    throw std::invalid_argument("invalid level");
+Logger::LOG_LEVEL get_level_by_name(std::string_view name) {
+  if (str_caseeq(name, "none")) return Logger::LOG_NONE;
+  if (str_caseeq(name, "internal")) return Logger::LOG_INTERNAL_ERROR;
+  if (str_caseeq(name, "error")) return Logger::LOG_ERROR;
+  if (str_caseeq(name, "warning")) return Logger::LOG_WARNING;
+  if (str_caseeq(name, "info")) return Logger::LOG_INFO;
+  if (str_caseeq(name, "debug")) return Logger::LOG_DEBUG;
+  if (str_caseeq(name, "debug2")) return Logger::LOG_DEBUG2;
+  if (str_caseeq(name, "debug3")) return Logger::LOG_DEBUG3;
+  throw std::invalid_argument("invalid level");
 }
 
 std::string check_logfile_permissions(const std::string &filepath) {
@@ -119,8 +123,6 @@ std::string check_logfile_permissions(const std::string &filepath) {
 
 }  // namespace
 
-std::string Logger::s_output_format;
-
 Logger::Log_entry::Log_entry()
     : Log_entry(nullptr, nullptr, 0, LOG_LEVEL::LOG_NONE) {}
 
@@ -134,6 +136,7 @@ Logger::Log_entry::Log_entry(const char *domain_, const char *message_,
 
 void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
   if (hook) {
+    std::lock_guard l{m_mutex_hooks};
     m_hook_list.emplace_back(hook, user_data, catch_all);
   } else {
     throw std::invalid_argument("Logger::attach_log_hook: Null hook pointer");
@@ -142,6 +145,7 @@ void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
 
 void Logger::detach_log_hook(Log_hook hook) {
   if (hook) {
+    std::lock_guard l{m_mutex_hooks};
     m_hook_list.remove_if([hook](const std::tuple<Log_hook, void *, bool> &i) {
       return std::get<0>(i) == hook;
     });
@@ -152,6 +156,7 @@ void Logger::detach_log_hook(Log_hook hook) {
 
 void Logger::attach_log_level_hook(Log_level_hook hook, void *user_data) {
   if (hook) {
+    std::lock_guard l{m_mutex_hooks};
     m_level_hook_list.emplace_back(hook, user_data);
   } else {
     throw std::invalid_argument(
@@ -161,6 +166,7 @@ void Logger::attach_log_level_hook(Log_level_hook hook, void *user_data) {
 
 void Logger::detach_log_level_hook(Log_level_hook hook) {
   if (hook) {
+    std::lock_guard l{m_mutex_hooks};
     m_level_hook_list.remove_if(
         [hook](const std::tuple<Log_level_hook, void *> &i) {
           return std::get<0>(i) == hook;
@@ -175,6 +181,8 @@ bool Logger::log_allowed() const { return m_dont_log == 0; }
 
 void Logger::set_log_level(LOG_LEVEL log_level) {
   m_log_level = log_level;
+
+  std::lock_guard l{m_mutex_hooks};
 
   for (const auto &f : m_level_hook_list) {
     std::get<0>(f)(m_log_level, std::get<1>(f));
@@ -217,49 +225,55 @@ std::string Logger::format(const char *formats, va_list args) {
 }
 
 void Logger::log(LOG_LEVEL level, const char *formats, ...) {
-  if (current_logger()->will_log(level)) {
+  if (auto logger = current_logger(); logger->will_log(level)) {
     va_list args;
     va_start(args, formats);
     const auto msg = format(formats, args);
     va_end(args);
 
-    do_log({current_logger()->context(), msg.c_str(), msg.size(), level});
+    auto ctx = logger->context();
+    Logger::do_log(*logger, {ctx.c_str(), msg.c_str(), msg.size(), level});
   }
 }
 
 void Logger::do_log(const Log_entry &entry) {
-  std::lock_guard<std::recursive_mutex> lock(current_logger()->m_mutex);
-  auto logger = current_logger().get();
+  Logger::do_log(*current_logger(), entry);
+}
 
+void Logger::do_log(const Logger &logger, const Log_entry &entry) {
+  std::lock_guard lg{g_mutex};
+
+  if (entry.level <= logger.m_log_level) {
 #ifdef _WIN32
-  if (logger->m_log_file.is_open() && entry.level <= logger->m_log_level) {
-    const auto s = format_message(entry);
-    logger->m_log_file.write(s.c_str(), s.length());
-    logger->m_log_file.flush();
-  }
+    if (logger.m_log_file.is_open()) {
+      const auto s = format_message(entry);
+      logger.m_log_file.write(s.c_str(), s.length());
+      logger.m_log_file.flush();
+    }
 #else
-  if (logger->m_log_file && entry.level <= logger->m_log_level) {
-    const auto s = format_message(entry);
-    fwrite(s.c_str(), s.length(), 1, logger->m_log_file);
-    fflush(logger->m_log_file);
-  }
+    if (logger.m_log_file) {
+      const auto s = format_message(entry);
+      fwrite(s.c_str(), s.length(), 1, logger.m_log_file);
+      fflush(logger.m_log_file);
+    }
 #endif
+  }
 
-  for (const auto &f : logger->m_hook_list) {
-    if (std::get<2>(f) || entry.level <= logger->m_log_level)
+  std::lock_guard lh{logger.m_mutex_hooks};
+
+  for (const auto &f : logger.m_hook_list) {
+    if (std::get<2>(f) || entry.level <= logger.m_log_level)
       std::get<0>(f)(entry, std::get<1>(f));
   }
 }
 
 bool Logger::will_log(LOG_LEVEL level) const {
-  if (level <= m_log_level) {
-    return true;
-  }
+  if (level <= m_log_level) return true;
+
+  std::lock_guard l{m_mutex_hooks};
 
   for (const auto &hook : m_hook_list) {
-    if (std::get<2>(hook)) {
-      return true;
-    }
+    if (std::get<2>(hook)) return true;
   }
 
   return false;
@@ -268,7 +282,13 @@ bool Logger::will_log(LOG_LEVEL level) const {
 void Logger::out_to_stderr(const Log_entry &entry, void *) {
   std::string msg;
 
-  if (std::string::npos != s_output_format.find("json")) {
+  decltype(g_output_format) output_format;
+  {
+    std::lock_guard l{g_mutex};
+    output_format = g_output_format;
+  }
+
+  if (std::string::npos != output_format.find("json")) {
     rapidjson::Document doc{rapidjson::Type::kObjectType};
     auto &allocator = doc.GetAllocator();
 
@@ -292,7 +312,7 @@ void Logger::out_to_stderr(const Log_entry &entry, void *) {
 
     rapidjson::StringBuffer buffer;
 
-    if ("json" == s_output_format) {
+    if ("json" == output_format) {
       rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
       doc.Accept(writer);
     } else {
@@ -450,12 +470,17 @@ const char *Logger::get_level_range_info() {
 }
 
 void Logger::set_stderr_output_format(const std::string &format) {
-  s_output_format = format;
+  std::lock_guard l{g_mutex};
+  g_output_format = format;
 }
 
-std::string Logger::stderr_output_format() { return s_output_format; }
+std::string Logger::stderr_output_format() {
+  std::lock_guard l{g_mutex};
+  return g_output_format;
+}
 
 bool Logger::use_stderr() const {
+  std::lock_guard l{m_mutex_hooks};
   return m_hook_list.end() !=
          std::find_if(m_hook_list.begin(), m_hook_list.end(),
                       [](const std::tuple<Log_hook, void *, bool> &h) {
