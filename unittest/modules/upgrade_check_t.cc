@@ -746,6 +746,21 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
       "values less than ('2019-02-22 10:17:03'), partition p2 values less than "
       "(maxvalue));"));
 
+  // List of file names that cause problem on windows, when they are used in
+  // schemas or tables, such names are are registered in i_s.innodb_sys_tables
+  // by appending @@@ but not in i_s.tables
+  std::vector<std::string> reserved_names = {
+      "CLOCK$", "CON",  "PRN",  "AUX",  "NUL",  "COM1", "COM2", "COM3",
+      "COM4",   "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+      "LPT3",   "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
+  for (const auto &schema_name : reserved_names) {
+    PrepareTestDatabase(schema_name);
+    for (const auto &table_name : reserved_names) {
+      EXPECT_NO_THROW(
+          session->execute("create table `" + table_name + "` (i integer);"));
+    }
+  }
+
   EXPECT_NO_ISSUES(check.get());
 }
 
