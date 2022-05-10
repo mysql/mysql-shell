@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,7 +66,16 @@ std::unordered_set<IDirectory::File_info> Directory::filter_files(
   std::error_code ec;
 
   for (auto &entry : std::filesystem::directory_iterator(path, ec)) {
-    if (entry.is_regular_file()) {
+    if (entry.is_regular_file()
+#if (__GNUC__ < 8 || (__GNUC__ == 8 && __GNUC_MINOR__ < 4)) && \
+    !defined(__clang__)
+        // older versions of GCC do not handle filesystems which do not support
+        // dirent.d_type (OS sets this field to DT_UNKNOWN in such case) and are
+        // unable to detect the entry type; newer versions fall back to stat(),
+        // we do the same here
+        || (std::filesystem::file_type::regular == entry.status().type())
+#endif
+    ) {
       auto name =
 #ifdef _WIN32
           shcore::wide_to_utf8
