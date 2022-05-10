@@ -2180,7 +2180,7 @@ void Cluster_set_impl::set_primary_cluster(
     for (const auto &replica : clusters) {
       if (promoted_cluster->get_name() != replica->get_name() &&
           primary_cluster->get_name() != replica->get_name()) {
-        undo_list.push_front([this, replica, primary, ar_options, options,
+        undo_list.push_front([this, &replica, primary, ar_options, options,
                               console]() {
           try {
             update_replica(replica.get(), primary, ar_options, options.dry_run);
