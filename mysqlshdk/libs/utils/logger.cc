@@ -232,37 +232,38 @@ void Logger::log(LOG_LEVEL level, const char *formats, ...) {
     va_end(args);
 
     auto ctx = logger->context();
-    Logger::do_log(*logger, {ctx.c_str(), msg.c_str(), msg.size(), level});
+    Logger::do_log(logger, {ctx.c_str(), msg.c_str(), msg.size(), level});
   }
 }
 
 void Logger::do_log(const Log_entry &entry) {
-  Logger::do_log(*current_logger(), entry);
+  Logger::do_log(current_logger(), entry);
 }
 
-void Logger::do_log(const Logger &logger, const Log_entry &entry) {
+void Logger::do_log(const std::shared_ptr<shcore::Logger> &logger,
+                    const Log_entry &entry) {
   std::lock_guard lg{g_mutex};
 
-  if (entry.level <= logger.m_log_level) {
+  if (entry.level <= logger->m_log_level) {
 #ifdef _WIN32
-    if (logger.m_log_file.is_open()) {
+    if (logger->m_log_file.is_open()) {
       const auto s = format_message(entry);
-      logger.m_log_file.write(s.c_str(), s.length());
-      logger.m_log_file.flush();
+      logger->m_log_file.write(s.c_str(), s.length());
+      logger->m_log_file.flush();
     }
 #else
-    if (logger.m_log_file) {
+    if (logger->m_log_file) {
       const auto s = format_message(entry);
-      fwrite(s.c_str(), s.length(), 1, logger.m_log_file);
-      fflush(logger.m_log_file);
+      fwrite(s.c_str(), s.length(), 1, logger->m_log_file);
+      fflush(logger->m_log_file);
     }
 #endif
   }
 
-  std::lock_guard lh{logger.m_mutex_hooks};
+  std::lock_guard lh{logger->m_mutex_hooks};
 
-  for (const auto &f : logger.m_hook_list) {
-    if (std::get<2>(f) || entry.level <= logger.m_log_level)
+  for (const auto &f : logger->m_hook_list) {
+    if (std::get<2>(f) || entry.level <= logger->m_log_level)
       std::get<0>(f)(entry, std::get<1>(f));
   }
 }
