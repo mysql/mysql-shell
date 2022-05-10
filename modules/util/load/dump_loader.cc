@@ -1247,13 +1247,19 @@ void Dump_loader::on_dump_end() {
               "Resetting GTID_PURGED to dumped gtid set");
           log_info("Setting GTID_PURGED to %s",
                    m_dump->gtid_executed().c_str());
-          executef(query, m_dump->gtid_executed());
+
+          if (!m_options.dry_run()) {
+            executef(query, m_dump->gtid_executed());
+          }
         } else {
           current_console()->print_status(
               "Appending dumped gtid set to GTID_PURGED");
           log_info("Appending %s to GTID_PURGED",
                    m_dump->gtid_executed().c_str());
-          executef(query, "+" + m_dump->gtid_executed());
+
+          if (!m_options.dry_run()) {
+            executef(query, "+" + m_dump->gtid_executed());
+          }
         }
         m_load_log->end_gtid_update();
       } catch (const std::exception &e) {

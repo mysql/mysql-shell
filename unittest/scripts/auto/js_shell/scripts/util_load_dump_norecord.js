@@ -1311,6 +1311,32 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});
 
 shell.connect(__sandbox_uri1);
 
+//@<> BUG#34127069 dryRun should not change gtid_purged (updateGtidSet: "replace")
+shell.connect(__sandbox_uri1);
+wipe_instance(session);
+
+old_gtid_executed = session.runSql("SELECT concat(@@global.gtid_executed,':',@@global.gtid_purged)").fetchOne()[0];
+util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: true, updateGtidSet: "replace", skipBinlog: true});
+new_gtid_executed = session.runSql("SELECT concat(@@global.gtid_executed,':',@@global.gtid_purged)").fetchOne()[0];
+
+// DB should be untouched and no files should've been created because of dryRun
+EXPECT_FILE_NOT_EXISTS(__tmp_dir+"/ldtest/dump/load-progress."+uuid+".json");
+EXPECT_EQ(old_gtid_executed, new_gtid_executed);
+EXPECT_STDOUT_CONTAINS("Resetting GTID_PURGED to dumped gtid set");
+
+//@<> BUG#34127069 dryRun should not change gtid_purged (updateGtidSet: "append") {VER(>=8.0.0)}
+shell.connect(__sandbox_uri1);
+wipe_instance(session);
+
+old_gtid_executed = session.runSql("SELECT concat(@@global.gtid_executed,':',@@global.gtid_purged)").fetchOne()[0];
+util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: true, updateGtidSet: "append"});
+new_gtid_executed = session.runSql("SELECT concat(@@global.gtid_executed,':',@@global.gtid_purged)").fetchOne()[0];
+
+// DB should be untouched and no files should've been created because of dryRun
+EXPECT_FILE_NOT_EXISTS(__tmp_dir+"/ldtest/dump/load-progress."+uuid+".json");
+EXPECT_EQ(old_gtid_executed, new_gtid_executed);
+EXPECT_STDOUT_CONTAINS("Appending dumped gtid set to GTID_PURGED");
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.rmdir(__tmp_dir+"/ldtest", true);
