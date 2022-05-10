@@ -75,6 +75,7 @@ session1.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET options = json
 CHECK_GTID_CONSISTENT(session1, session4);
 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {timeout: 0}); });
+EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
 
 CHECK_ROUTER_OPTIONS_REMOVED_CLUSTER(session1);
 
@@ -120,7 +121,42 @@ EXPECT_EQ("OFFLINE", session4.runSql("select member_state from performance_schem
 
 CHECK_REMOVED_CLUSTER([__sandbox_uri4, __sandbox_uri6], cluster, "replicacluster");
 
-//<> Remove Cluster but with limited sync timeout
+//@<> Re-create the Replica Cluster on the primary instance (GTID-SET should have been reconciled regarding VCLEs).
+var replica_vcle_primary;
+EXPECT_NO_THROWS(function() {replica_vcle_primary = clusterset.createReplicaCluster(__sandbox_uri4, "replica_vcle_primary"); });
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replica_vcle_primary);
+CHECK_CLUSTER_SET(session);
+
+EXPECT_NO_THROWS(function() {clusterset.removeCluster("replica_vcle_primary", {timeout: 0}); });
+EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+
+//@<> Re-create the Replica Cluster on a secondary instance (GTID-SET should have been reconciled regarding VCLEs)
+var replica_vcle_secondary;
+EXPECT_NO_THROWS(function() {replica_vcle_secondary = clusterset.createReplicaCluster(__sandbox_uri6, "replica_vcle_secondary"); });
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri6], cluster, replica_vcle_secondary);
+CHECK_CLUSTER_SET(session);
+
+EXPECT_NO_THROWS(function() {clusterset.removeCluster("replica_vcle_secondary", {timeout: 0}); });
+EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+
+//@<> Re-create the Replica Cluster on a single-member Cluster (GTID-SET should have been reconciled regarding VCLEs).
+CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replica_vcle_primary");
+
+EXPECT_NO_THROWS(function() {replica_vcle_primary = clusterset.createReplicaCluster(__sandbox_uri4, "replica_vcle_primary"); });
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replica_vcle_primary);
+CHECK_CLUSTER_SET(session);
+
+// Remove the cluster to clean-up for the proceeding tests
+EXPECT_NO_THROWS(function() {clusterset.removeCluster("replica_vcle_primary", {timeout: 0}); });
+EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+
+//@<> Remove Cluster but with limited sync timeout
 var replicacluster2 = clusterset.createReplicaCluster(__sandbox_uri5, "replicacluster2", {recoveryMethod: "clone"});
 
 session1 = mysql.getSession(__sandbox_uri1);
