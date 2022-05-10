@@ -813,6 +813,7 @@ endif()
 ## Installation location
 ##
 SET(INSTALL_BINDIR "bin")
+SET(INSTALL_LIBEXECDIR "libexec/mysqlsh")
 SET(INSTALL_LIBDIR "lib/mysqlsh")
 SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")

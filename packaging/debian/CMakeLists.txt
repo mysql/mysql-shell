@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -279,5 +279,13 @@ if (BUNDLED_SSH_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For libssh bundle
 usr/lib/mysqlsh/libssh*.so*
+")
+endif()
+
+if (BUNDLED_MYSQL_CONFIG_EDITOR)
+list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_MYSQL_CONFIG_EDITOR=${BUNDLED_MYSQL_CONFIG_EDITOR}")
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"
+usr/libexec/mysqlsh/mysql_config_editor
 ")
 endif()
