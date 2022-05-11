@@ -204,14 +204,6 @@ class SHCORE_PUBLIC ISession {
   virtual std::string escape_string(const std::string &s) const = 0;
   virtual std::string escape_string(const char *buffer, size_t len) const = 0;
 
-  // TODO(rennox): This is a convenient function as URI is being retrieved from
-  // the session in many places, eventually should be removed, if needed URI
-  // should be retrieved as get_connection_options().as_uri()
-  std::string uri(mysqlshdk::db::uri::Tokens_mask format =
-                      mysqlshdk::db::uri::formats::full_no_password()) const {
-    return get_connection_options().as_uri(format);
-  }
-
   const char *get_sql_mode() {
     if (!m_sql_mode && is_open()) refresh_sql_mode();
     return m_sql_mode ? m_sql_mode->c_str() : "";

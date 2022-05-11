@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -329,7 +329,7 @@ TEST(utils_net, strip_cidr) {
   {
     const std::string address = "192.168.1.1";
     auto ip = Net::strip_cidr(address);
-    EXPECT_FALSE(!std::get<1>(ip).is_null());
+    EXPECT_FALSE(std::get<1>(ip));
   }
 
   // Address with CIDR value should return true and the values
@@ -337,7 +337,7 @@ TEST(utils_net, strip_cidr) {
   {
     const std::string address = "192.168.1.1/8";
     auto ip = Net::strip_cidr(address);
-    EXPECT_TRUE(!std::get<1>(ip).is_null());
+    EXPECT_TRUE(std::get<1>(ip));
     EXPECT_EQ("192.168.1.1", std::get<0>(ip));
     EXPECT_EQ(8, *std::get<1>(ip));
   }
@@ -419,6 +419,46 @@ TEST(utils_net, split_host_and_port) {
   EXPECT_THROW(split_host_and_port("[::1]:port"), std::invalid_argument);
 
   EXPECT_THROW(split_host_and_port("[]:1234"), std::invalid_argument);
+}
+
+TEST(utils_net, are_endpoints_equal) {
+  EXPECT_TRUE(are_endpoints_equal("", ""));
+  EXPECT_FALSE(are_endpoints_equal("localhostA", "localhostB"));
+
+  EXPECT_TRUE(are_endpoints_equal("localhost:", "localhost:"));
+  EXPECT_TRUE(are_endpoints_equal("LocalhosT:", "localHost:"));
+
+  EXPECT_TRUE(are_endpoints_equal("hostname", "hostname"));
+  EXPECT_TRUE(are_endpoints_equal("hOsTnaMe", "HoStNAmE"));
+
+  EXPECT_FALSE(are_endpoints_equal("hOsTnaMe", "HoStNAmE "));
+  EXPECT_FALSE(are_endpoints_equal("hOs TnaMe", "HoStNAmE "));
+
+  Endpoint_comparer comp;
+
+  EXPECT_TRUE(comp("", ""));
+  EXPECT_FALSE(comp("localhostA", "localhostB"));
+
+  EXPECT_TRUE(comp("localhost:", "localhost:"));
+  EXPECT_TRUE(comp("LocalhosT:", "localHost:"));
+
+  EXPECT_TRUE(comp("hostname", "hostname"));
+  EXPECT_TRUE(comp("hOsTnaMe", "HoStNAmE"));
+
+  EXPECT_FALSE(comp("hOsTnaMe", "HoStNAmE "));
+  EXPECT_FALSE(comp("hOs TnaMe", "HoStNAmE "));
+
+  EXPECT_TRUE(Endpoint_predicate{""}(""));
+  EXPECT_FALSE(Endpoint_predicate{"localhostA"}("localhostB"));
+
+  EXPECT_TRUE(Endpoint_predicate{"localhost:"}("localhost:"));
+  EXPECT_TRUE(Endpoint_predicate{"LocalhosT:"}("localHost:"));
+
+  EXPECT_TRUE(Endpoint_predicate{"hostname"}("hostname"));
+  EXPECT_TRUE(Endpoint_predicate{"hOsTnaMe"}("HoStNAmE"));
+
+  EXPECT_FALSE(Endpoint_predicate{"hOsTnaMe"}("HoStNAmE "));
+  EXPECT_FALSE(Endpoint_predicate{"hOs TnaMe"}("HoStNAmE "));
 }
 
 }  // namespace utils

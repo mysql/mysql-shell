@@ -227,12 +227,12 @@ std::string get_all_online_check_query(
 
 constexpr const char *k_base_instance_in_cluster_query =
     "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
-    "WHERE cluster_id = ? AND addresses->'$.mysqlClassic' = ?";
+    "WHERE cluster_id = ? AND LOWER(addresses->>'$.mysqlClassic') = LOWER(?)";
 
 constexpr const char *k_base_instance_in_cluster_query_1_0_1 =
     "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances, "
     "mysql_innodb_cluster_metadata.replicasets "
-    "WHERE cluster_id = ? AND addresses->'$.mysqlClassic' = ?";
+    "WHERE cluster_id = ? AND LOWER(addresses->>'$.mysqlClassic') = LOWER(?)";
 
 std::string get_instance_in_cluster_query(
     const mysqlshdk::utils::Version &md_version) {
@@ -1204,15 +1204,11 @@ int MetadataStorage::count_recovery_account_uses(
 }
 
 void MetadataStorage::remove_instance(const std::string &instance_address) {
-  shcore::sqlstring query;
-
   // Remove the instance
-  query = shcore::sqlstring(
-      "DELETE FROM mysql_innodb_cluster_metadata.instances "
-      "WHERE addresses->'$.mysqlClassic' = ?",
-      0);
-  query << instance_address;
-  query.done();
+  auto query = ("DELETE FROM mysql_innodb_cluster_metadata.instances "
+                "WHERE LOWER(addresses->>'$.mysqlClassic') = LOWER(?)"_sql
+                << instance_address)
+                   .str();
 
   execute_sql(query);
 }
@@ -1530,7 +1526,7 @@ Instance_metadata MetadataStorage::get_instance_by_address(
   auto query(get_instance_query(md_version));
 
   if (md_version.get_major() == 1)
-    query += " WHERE i.addresses->>'$.mysqlClassic' = ?";
+    query += " WHERE LOWER(i.addresses->>'$.mysqlClassic') = LOWER(?)";
   else
     query += " WHERE i.address = ?";
 
@@ -2300,7 +2296,7 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
     auto result = execute_sqlf(
         "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
         " JOIN mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id"
-        " WHERE r.router_name = ? AND h.host_name = ?",
+        " WHERE r.router_name = ? AND LOWER(h.host_name) = LOWER(?)",
         name, address);
 
     if (auto row = result->fetch_one()) {

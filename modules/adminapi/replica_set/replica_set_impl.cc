@@ -528,7 +528,8 @@ void Replica_set_impl::validate_add_instance(
       // Check whether the instance we found is really the target one
       // or if it's just a case of duplicate UUID
       if (!md.cluster_id.empty() &&
-          md.address != target.get_canonical_address()) {
+          !mysqlshdk::utils::are_endpoints_equal(
+              md.address, target.get_canonical_address())) {
         log_info("%s: UUID %s already in used by %s", target.descr().c_str(),
                  target.get_uuid().c_str(), md.address.c_str());
         throw shcore::Exception("server_uuid in " + target.descr() +
@@ -2236,7 +2237,8 @@ void Replica_set_impl::handle_clone(
 
     std::string donor_address = donor_instance->get_canonical_address();
 
-    if (primary_address != donor_address) {
+    if (!mysqlshdk::utils::are_endpoints_equal(primary_address,
+                                               donor_address)) {
       console->print_info(
           "* Waiting for the donor to synchronize with PRIMARY...");
       if (!dry_run) {

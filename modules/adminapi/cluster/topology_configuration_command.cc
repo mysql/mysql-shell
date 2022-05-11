@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -131,7 +132,9 @@ void Topology_configuration_command::ensure_version_all_members_cluster(
         mysqlshdk::db::uri::formats::only_transport());
     // Skip the current cluster instance since it was already checked in
     // ensure_server_version()
-    if (instance_uri == cluster_session_uri) continue;
+    if (mysqlshdk::utils::are_endpoints_equal(instance_uri,
+                                              cluster_session_uri))
+      continue;
 
     // Verify if the instance version is supported
     if (instance->get_version() < version) {

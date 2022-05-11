@@ -156,7 +156,8 @@ class SHCORE_PUBLIC Logger final {
   static std::string format(const char *formats, va_list args);
 
   static void do_log(const Log_entry &entry);
-  static void do_log(const Logger &logger, const Log_entry &entry);
+  static void do_log(const std::shared_ptr<shcore::Logger> &logger,
+                     const Log_entry &entry);
 
   bool will_log(LOG_LEVEL level) const;
 

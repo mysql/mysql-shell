@@ -288,8 +288,7 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
     const bool is_ipv4 = mysqlshdk::utils::Net::is_ipv4(std::get<0>(ip));
     const bool is_hostname = !is_ipv4 && !is_ipv6;
 
-    const auto &cidr = std::get<1>(ip);
-    if (!cidr.is_null()) {
+    if (const auto &cidr = std::get<1>(ip); cidr) {
       // Check if value is an hostname: hostname/cidr is not allowed
       if (is_hostname)
         throw shcore::Exception::argument_error(shcore::str_format(

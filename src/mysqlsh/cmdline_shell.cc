@@ -1278,18 +1278,13 @@ void Command_line_shell::handle_notification(
 }
 
 std::string Command_line_shell::get_current_session_uri() const {
-  std::string session_uri;
-
-  const auto session = _shell->get_dev_session();
-
-  if (session) {
-    const auto core_session = session->get_core_session();
-    if (core_session && core_session->is_open()) {
-      session_uri = core_session->uri();
-    }
+  if (const auto session = _shell->get_dev_session(); session) {
+    if (const auto core_session = session->get_core_session();
+        core_session && core_session->is_open())
+      return core_session->get_connection_options().as_uri();
   }
 
-  return session_uri;
+  return {};
 }
 
 void Command_line_shell::detect_session_change() {

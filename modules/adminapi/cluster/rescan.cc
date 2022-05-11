@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -238,7 +239,10 @@ void Rescan::check_mismatched_hostnames(shcore::Array_t instances) const {
             info.second.uuid.c_str(), info.second.host.c_str(),
             info.second.port);
 
-        if (info.first.endpoint != address || info.first.address != address) {
+        if (!mysqlshdk::utils::are_endpoints_equal(info.first.endpoint,
+                                                   address) ||
+            !mysqlshdk::utils::are_endpoints_equal(info.first.address,
+                                                   address)) {
           instances->emplace_back(shcore::Value(shcore::make_dict(
               "member_id", shcore::Value(instance->get_uuid()), "id",
               shcore::Value(info.first.id), "label",
@@ -465,24 +469,20 @@ void Rescan::remove_instance_from_metadata(
 namespace {
 using Instance_list = std::vector<mysqlshdk::db::Connection_options>;
 Instance_list::const_iterator find_in_instance_list(
-    const Instance_list &list, const std::string &instance_address) {
-  auto ret_val = list.end();
+    const Instance_list &list, std::string_view instance_address) {
+  if (list.empty()) return list.end();
 
-  if (!list.empty()) {
-    // Lambda function (predicate) to check if the instance address
-    // matches.
-    auto in_list =
-        [&instance_address](const mysqlshdk::db::Connection_options &cnx_opt) {
-          std::string address =
-              cnx_opt.as_uri(mysqlshdk::db::uri::formats::only_transport());
-          return address == instance_address;
-        };
+  // Lambda function (predicate) to check if the instance address
+  // matches.
+  auto in_list =
+      [&instance_address](const mysqlshdk::db::Connection_options &cnx_opt) {
+        std::string address =
+            cnx_opt.as_uri(mysqlshdk::db::uri::formats::only_transport());
+        return mysqlshdk::utils::are_endpoints_equal(address, instance_address);
+      };
 
-    // Return iterator with a matching address (if in the list).
-    ret_val = std::find_if(list.begin(), list.end(), in_list);
-  }
-
-  return ret_val;
+  // Return iterator with a matching address (if in the list).
+  return std::find_if(list.begin(), list.end(), in_list);
 }
 }  // namespace
 
@@ -796,18 +796,23 @@ shcore::Value Rescan::execute() {
   }
 
   // Print warning about not used instances in addInstances.
-  std::vector<std::string> not_used_add_instances;
-  for (const auto &cnx_opts : m_options.add_instances_list) {
-    not_used_add_instances.push_back(
-        cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
-  }
-  if (!not_used_add_instances.empty()) {
-    console->print_warning(
-        "The following instances were not added to the metadata because they "
-        "are already part of the cluster: '" +
-        shcore::str_join(not_used_add_instances, ", ") +
-        "'. Please verify if the specified value for 'addInstances' option is "
-        "correct.");
+  {
+    std::vector<std::string> not_used_add_instances;
+    not_used_add_instances.reserve(m_options.add_instances_list.size());
+
+    for (const auto &cnx_opts : m_options.add_instances_list) {
+      not_used_add_instances.push_back(
+          cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
+    }
+
+    if (!not_used_add_instances.empty()) {
+      console->print_warning(
+          "The following instances were not added to the metadata because they "
+          "are already part of the cluster: '" +
+          shcore::str_join(not_used_add_instances, ", ") +
+          "'. Please verify if the specified value for 'addInstances' option "
+          "is correct.");
+    }
   }
 
   // Check if there are missing instances
@@ -871,19 +876,23 @@ shcore::Value Rescan::execute() {
   }
 
   // Print warning about not used instances in removeInstances.
-  std::vector<std::string> not_used_remove_instances;
-  for (const auto &cnx_opts : m_options.remove_instances_list) {
-    not_used_remove_instances.push_back(
-        cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
-  }
-  if (!not_used_remove_instances.empty()) {
-    console->print_warning(
-        "The following instances were not removed from the metadata because "
-        "they are already not part of the cluster or are running auto-rejoin"
-        ": '" +
-        shcore::str_join(not_used_remove_instances, ", ") +
-        "'. Please verify if the specified value for 'removeInstances' option "
-        "is correct.");
+  {
+    std::vector<std::string> not_used_remove_instances;
+    not_used_remove_instances.reserve(m_options.remove_instances_list.size());
+
+    for (const auto &cnx_opts : m_options.remove_instances_list) {
+      not_used_remove_instances.push_back(
+          cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
+    }
+    if (!not_used_remove_instances.empty()) {
+      console->print_warning(
+          "The following instances were not removed from the metadata because "
+          "they are already not part of the cluster or are running auto-rejoin"
+          ": '" +
+          shcore::str_join(not_used_remove_instances, ", ") +
+          "'. Please verify if the specified value for 'removeInstances' "
+          "option is correct.");
+    }
   }
 
   // Check if the topology mode changed.

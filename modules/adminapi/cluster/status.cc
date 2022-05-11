@@ -894,7 +894,8 @@ void check_host_metadata(shcore::Array_t issues, Instance *instance,
                          const Instance_metadata_info &instance_md) {
   auto address = instance->get_canonical_address();
 
-  if (instance_md.md.endpoint != address) {
+  if (!mysqlshdk::utils::are_endpoints_equal(instance_md.md.endpoint,
+                                             address)) {
     issues->push_back(
         shcore::Value("ERROR: Metadata for this instance does not match "
                       "hostname reported by instance (metadata=" +
@@ -1173,24 +1174,27 @@ shcore::Dictionary_t Status::get_topology(
     if (!found) {
       // if instance in MD was not found by uuid, then search by address
       for (const auto &i : m_instances) {
-        if (i.address == m.host + ":" + std::to_string(m.port)) {
-          log_debug(
-              "Instance with address=%s is in group, but UUID doesn't match "
-              "group=%s MD=%s",
-              i.endpoint.c_str(), m.uuid.c_str(), i.uuid.c_str());
+        if (!mysqlshdk::utils::are_endpoints_equal(
+                i.address,
+                mysqlshdk::utils::make_host_and_port(m.host, m.port)))
+          continue;
 
-          Instance_metadata_info mdi;
-          mdi.md = i;
-          mdi.actual_server_uuid = m.uuid;
-          instances.emplace_back(std::move(mdi));
-          found = true;
-          break;
-        }
+        log_debug(
+            "Instance with address=%s is in group, but UUID doesn't match "
+            "group=%s MD=%s",
+            i.endpoint.c_str(), m.uuid.c_str(), i.uuid.c_str());
+
+        Instance_metadata_info mdi;
+        mdi.md = i;
+        mdi.actual_server_uuid = m.uuid;
+        instances.emplace_back(std::move(mdi));
+        found = true;
+        break;
       }
     }
     if (!found) {
       Instance_metadata_info mdi;
-      mdi.md.address = m.host + ":" + std::to_string(m.port);
+      mdi.md.address = mysqlshdk::utils::make_host_and_port(m.host, m.port);
       mdi.md.label = mdi.md.address;
       mdi.md.uuid = m.uuid;
       mdi.md.endpoint = mdi.md.address;
@@ -1219,7 +1223,9 @@ shcore::Dictionary_t Status::get_topology(
     bool found = false;
     for (const auto &m : member_info) {
       if (m.uuid == i.uuid ||
-          i.endpoint == m.host + ":" + std::to_string(m.port)) {
+          mysqlshdk::utils::are_endpoints_equal(
+              i.endpoint,
+              mysqlshdk::utils::make_host_and_port(m.host, m.port))) {
         found = true;
         break;
       }
@@ -1228,7 +1234,7 @@ shcore::Dictionary_t Status::get_topology(
       log_debug("Instance with uuid=%s address=%s is in MD but not in group",
                 i.uuid.c_str(), i.endpoint.c_str());
 
-      auto &instance(m_member_sessions[i.endpoint]);
+      auto &instance = m_member_sessions[i.endpoint];
 
       Instance_metadata_info mdi;
       mdi.md = i;
@@ -1256,7 +1262,7 @@ shcore::Dictionary_t Status::get_topology(
     mysqlshdk::gr::Member_state self_state =
         mysqlshdk::gr::Member_state::MISSING;
 
-    auto &instance(m_member_sessions[inst.md.endpoint]);
+    auto &instance = m_member_sessions[inst.md.endpoint];
 
     mysqlshdk::utils::nullable<bool> super_read_only;
     std::vector<std::string> fence_sysvars;
@@ -1504,17 +1510,16 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
         // In single primary mode we need to add the "primary" field
         (*ret)["primary"] = shcore::Value("?");
         for (const auto &member : member_info) {
-          if (member.role == mysqlshdk::gr::Member_role::PRIMARY) {
-            const Instance_metadata *primary = instance_with_uuid(member.uuid);
-            if (primary) {
-              auto s = m_member_sessions.find(primary->endpoint);
-              if (s != m_member_sessions.end()) {
-                primary_instance = s->second;
-              }
-              (*ret)["primary"] = shcore::Value(primary->endpoint);
+          if (member.role != mysqlshdk::gr::Member_role::PRIMARY) continue;
+          const Instance_metadata *primary = instance_with_uuid(member.uuid);
+          if (primary) {
+            if (auto s = m_member_sessions.find(primary->endpoint);
+                s != m_member_sessions.end()) {
+              primary_instance = s->second;
             }
-            break;
+            (*ret)["primary"] = shcore::Value(primary->endpoint);
           }
+          break;
         }
       }
     }

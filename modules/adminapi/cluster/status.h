@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,14 +24,15 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_STATUS_H_
 #define MODULES_ADMINAPI_CLUSTER_STATUS_H_
 
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -90,8 +91,13 @@ class Status : public Command_interface {
   shcore::Value get_default_replicaset_status();
 
   std::vector<Instance_metadata> m_instances;
-  std::map<std::string, std::shared_ptr<Instance>> m_member_sessions;
-  std::map<std::string, std::string> m_member_connect_errors;
+  std::unordered_map<std::string, std::shared_ptr<Instance>,
+                     std::hash<std::string>,
+                     mysqlshdk::utils::Endpoint_comparer>
+      m_member_sessions;
+  std::unordered_map<std::string, std::string, std::hash<std::string>,
+                     mysqlshdk::utils::Endpoint_comparer>
+      m_member_connect_errors;
 
   bool m_no_quorum = false;
 
