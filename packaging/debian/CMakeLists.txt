@@ -210,6 +210,10 @@ if(PYTHON_DEPS)
   list(APPEND EXTRA_CMAKE_OPTS "-DPYTHON_DEPS=${PYTHON_DEPS}")
 endif()
 
+if (BUNDLED_MYSQL_CONFIG_EDITOR)
+list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_MYSQL_CONFIG_EDITOR=${BUNDLED_MYSQL_CONFIG_EDITOR}")
+endif()
+
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")
 string(REPLACE ";" ", " DEB_BUILD_DEPS   "${DEB_BUILD_DEPS}")
 string(REPLACE ";" ", " DEB_DEPS         "${DEB_DEPS}")
@@ -283,9 +287,9 @@ usr/lib/mysqlsh/libssh*.so*
 endif()
 
 if (BUNDLED_MYSQL_CONFIG_EDITOR)
-list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_MYSQL_CONFIG_EDITOR=${BUNDLED_MYSQL_CONFIG_EDITOR}")
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "
 usr/libexec/mysqlsh/mysql_config_editor
 ")
 endif()
+

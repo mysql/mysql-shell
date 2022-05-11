@@ -202,6 +202,7 @@ cmake .. \
     -DBUNDLED_PYTHON_DIR="%{bundled_python}" \
 %endif
     -DHAVE_PYTHON=1 \
+    -DLIBEXECDIR="%{_libexecdir}" \
 
 # Supported V8 versions are limited, disable
 # V8 in non static for now.

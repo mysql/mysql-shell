@@ -295,6 +295,7 @@ std::string get_library_folder() {
   return path;
 }
 
+#ifdef HAVE_LIBEXEC_DIR
 std::string get_libexec_folder() {
   std::string path =
       shcore::path::join_path(get_mysqlx_home_path(), "libexec", "mysqlsh");
@@ -304,6 +305,7 @@ std::string get_libexec_folder() {
 
   return path;
 }
+#endif  // HAVE_LIBEXEC_DIR
 
 /*
  * Returns what should be considered the HOME folder for the shell.

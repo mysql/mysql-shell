@@ -25,8 +25,6 @@
 
 #include "mysql-secret-store/include/helper.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysql {
@@ -122,17 +120,6 @@ std::string Config_editor_invoker::invoke(const std::vector<std::string> &args,
   if (uses_terminal) {
     app.enable_child_terminal();
   }
-
-  // Adds the libexec path to the PATH to make a bundled config editor eligible
-  // if a system one is not present
-  std::string path_env = "PATH=";
-  char *current_path = getenv("PATH");
-  if (current_path) {
-    path_env.append(current_path);
-    path_env.append(1, shcore::path::pathlist_separator);
-  }
-  path_env.append(shcore::get_libexec_folder());
-  app.set_environment({path_env});
 
   app.start();
 

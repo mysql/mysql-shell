@@ -813,7 +813,11 @@ endif()
 ## Installation location
 ##
 SET(INSTALL_BINDIR "bin")
+IF(LIBEXECDIR)
+SET(INSTALL_LIBEXECDIR "${LIBEXECDIR}/mysqlsh")
+ELSE()
 SET(INSTALL_LIBEXECDIR "libexec/mysqlsh")
+ENDIF()
 SET(INSTALL_LIBDIR "lib/mysqlsh")
 SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
@@ -1006,6 +1010,10 @@ IF(PYTHON_DEPS)
     FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
     SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
   ENDIF()
+ENDIF()
+
+IF(BUNDLED_MYSQL_CONFIG_EDITOR)
+  add_definitions(-DHAVE_LIBEXEC_DIR)
 ENDIF()
 
 IF(WITH_TESTS)
