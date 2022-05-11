@@ -2362,6 +2362,12 @@ void Dump_loader::execute_table_ddl_tasks() {
                                     std::list<Dump_reader::Name_and_file> *list,
                                     bool placeholder,
                                     Load_progress_log::Status schema_status) {
+// GCC 12 may warn about a possibly uninitialized usage of IFile in the lambda
+// capture
+#if __GNUC__ >= 12 && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     if (should_fetch_table_ddl(placeholder)) {
       for (auto &item : *list) {
         if (item.second) {
@@ -2388,6 +2394,9 @@ void Dump_loader::execute_table_ddl_tasks() {
         }
       }
     }
+#if __GNUC__ >= 12 && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
   };
 
   log_debug("Begin loading table DDL");
@@ -2593,6 +2602,12 @@ void Dump_loader::execute_view_ddl_tasks() {
         ddl_to_execute += views.size();
         views_per_schema[schema] = views.size();
 
+        // GCC 12 may warn about a possibly uninitialized usage of IFile in the
+        // lambda capture
+#if __GNUC__ >= 12 && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
         for (auto &item : views) {
           pool->add_task(
               [file = std::move(item.second), schema, view = item.first]() {
@@ -2633,6 +2648,9 @@ void Dump_loader::execute_view_ddl_tasks() {
                 }
               });
         }
+#if __GNUC__ >= 12 && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
       }
     }
   }
