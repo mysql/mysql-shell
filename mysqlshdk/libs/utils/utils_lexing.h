@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -308,7 +308,7 @@ class SQL_iterator {
 
   bool operator!=(const SQL_iterator &a) const { return !(*this == a); }
 
-  operator std::string::size_type() const { return m_offset; }
+  explicit operator bool() const { return valid(); }
 
   std::string::size_type position() const { return m_offset; }
 

@@ -128,8 +128,8 @@ std::string str_format(const char *formats, ...) {
   return buffer;
 }
 
-std::string str_replace(const std::string &s, const std::string &from,
-                        const std::string &to) {
+std::string str_replace(std::string_view s, std::string_view from,
+                        std::string_view to) {
   std::string str;
   int offs = from.length();
   str.reserve(s.length());

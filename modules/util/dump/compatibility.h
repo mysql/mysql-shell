@@ -27,6 +27,7 @@
 #include <functional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -137,6 +138,32 @@ std::string convert_grant_to_create_user(
 
 std::string strip_default_role(const std::string &create_user,
                                std::string *rewritten);
+
+/**
+ * Checks if the given SQL statement contains sensitive information (i.e.
+ * passwords).
+ *
+ * Only the syntax of SQL statement is analysed, data is not checked.
+ *
+ * @param statement Statement to be checked.
+ *
+ * @returns true if statement contains sensitive information
+ */
+bool contains_sensitive_information(const std::string &statement);
+
+/**
+ * Replaces the values of all single and double quoted strings with the given
+ * text.
+ *
+ * @param statement Statement to be processed.
+ * @param replacement Text to be used as a replacement.
+ * @param[out] rewritten Replaced strings (quoted).
+ *
+ * @returns modified statement
+ */
+std::string replace_quoted_strings(const std::string &statement,
+                                   std::string_view replacement,
+                                   std::vector<std::string> *replaced);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

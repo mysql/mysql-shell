@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -240,7 +240,7 @@ TEST(Utils_lexing, SQL_iterator) {
   EXPECT_EQ('s', *it);
   EXPECT_EQ('s', *(++it));
   EXPECT_EQ('s', *(++it));
-  EXPECT_EQ(ts.length(), ++it);
+  EXPECT_EQ(ts.length(), (++it).position());
   EXPECT_THROW(++it, std::out_of_range);
 
   std::string ts1(
@@ -251,7 +251,7 @@ TEST(Utils_lexing, SQL_iterator) {
 
   std::string ts2("# test");
   SQL_iterator it2(ts2);
-  EXPECT_EQ(ts2.length(), it2);
+  EXPECT_EQ(ts2.length(), it2.position());
   EXPECT_THROW(++it2, std::out_of_range);
 
   std::string ts3("/* foo; bar */a-- 'foo'\nb 'foo\"'`bar'\"z`c d");
