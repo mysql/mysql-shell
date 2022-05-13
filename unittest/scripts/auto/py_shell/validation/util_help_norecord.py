@@ -2095,19 +2095,20 @@ WHERE
 
 DESCRIPTION
       A zip file containing diagnostics information collected from the server
-      connected to.
+      connected to and other members of the same topology.
 
       The following information is collected
 
       General - Error logs from performance_schema (if available) - Shell logs,
       configuration options and hostname where it is executed - InnoDB locks
       and metrics - InnoDB storage engine status and metrics - Names of tables
-      without a Primary Key - Slow queries (if enabled)
+      without a Primary Key - Slow queries (if enabled) - Performance Schema
+      configuration
 
       Replication/InnoDB Cluster - mysql_innodb_cluster_metadata schema and
       contents - Replication related tables in performance_schema - Replication
       status information - InnoDB Cluster accounts and their grants - InnoDB
-      Cluster metadata schema - Output of ping for 5s
+      Cluster metadata schema - Output of ping for 5s - NDB Thread Blocks
 
       Schema Statistics - Number of schema objects (sys.schema_table_overview)
       - Top 20 biggest tables with index, blobs and partitioning information
@@ -2129,6 +2130,8 @@ DESCRIPTION
         slow_log to be enabled and configured for TABLE output. Default false.
       - ignoreErrors: Bool - If true, ignores query errors during collection.
         Default false.
+      - customSql: Array - Custom list of SQL statements to execute.
+      - customShell: Array - Custom list of shell commands to execute.
 
 #@<OUT> util debug collect_diagnostics with util.debug.help (partial path)
 NAME
@@ -2144,19 +2147,20 @@ WHERE
 
 DESCRIPTION
       A zip file containing diagnostics information collected from the server
-      connected to.
+      connected to and other members of the same topology.
 
       The following information is collected
 
       General - Error logs from performance_schema (if available) - Shell logs,
       configuration options and hostname where it is executed - InnoDB locks
       and metrics - InnoDB storage engine status and metrics - Names of tables
-      without a Primary Key - Slow queries (if enabled)
+      without a Primary Key - Slow queries (if enabled) - Performance Schema
+      configuration
 
       Replication/InnoDB Cluster - mysql_innodb_cluster_metadata schema and
       contents - Replication related tables in performance_schema - Replication
       status information - InnoDB Cluster accounts and their grants - InnoDB
-      Cluster metadata schema - Output of ping for 5s
+      Cluster metadata schema - Output of ping for 5s - NDB Thread Blocks
 
       Schema Statistics - Number of schema objects (sys.schema_table_overview)
       - Top 20 biggest tables with index, blobs and partitioning information
@@ -2178,3 +2182,127 @@ DESCRIPTION
         slow_log to be enabled and configured for TABLE output. Default false.
       - ignoreErrors: Bool - If true, ignores query errors during collection.
         Default false.
+      - customSql: Array - Custom list of SQL statements to execute.
+      - customShell: Array - Custom list of shell commands to execute.
+
+#@<OUT> util debug collect_high_load_diagnostics
+NAME
+      collect_high_load_diagnostics - Collects MySQL high load diagnostics
+                                      information
+
+SYNTAX
+      util.debug.collect_high_load_diagnostics(path[, options])
+
+WHERE
+      path: String - path to write the zip file with diagnostics information.
+      options: Dictionary - Optional arguments.
+
+DESCRIPTION
+      A zip file containing diagnostics information collected from the server
+      connected to.
+
+      The following information is collected
+
+      General - Error logs from performance_schema or error log file (if
+      available) - Shell configuration options and hostname where it is
+      executed - Names of tables without a Primary Key - Benchmark info (SELECT
+      BENCHMARK()) - Process list, open tables, host cache - System info
+      collected from the OS (if connected to localhost)
+
+      Schema Statistics - Number of schema objects (sys.schema_table_overview)
+      - Full list of tables with basic stats - Top 20 biggest tables with
+      index, blobs and partitioning information - Stored procedure and function
+      stats
+
+      The following performance metrics are collected multiple times, as
+      specified by the `iterations` option.
+
+      - InnoDB locks and metrics - InnoDB storage engine status and metrics -
+        InnoDB buffer pool stats - InnoDB transaction info
+
+      If the `pfsInstrumentation` option is set to a value other than
+      'current', additional PERFORMANCE_SCHEMA instruments and consumers are
+      enabled for the duration of the collection. If set to 'full', all
+      instruments and consumers are enabled. If set to 'medium', non-history
+      consumers and instruments other than wait/synch/% are enabled. Enabling
+      additional instrumentation may provide additional insights, at the cost
+      of an larger impact on server performance.
+
+      The options parameter accepts the following options:
+
+      - iterations: Integer - Number of iterations to collect perf stats
+        (default 2).
+      - delay: Integer - Number of seconds to wait between iterations (default
+        5min).
+      - innodbMutex: Bool - If true, also collects output of SHOW ENGINE INNODB
+        MUTEX. Disabled by default, as this command can have some impact on
+        production performance.
+      - pfsInstrumentation: String - One of current, medium, full. Controls
+        whether additional PERFORMANCE_SCHEMA instruments and consumers are
+        temporarily enabled (default 'current').
+      - customSql: Array - Custom list of SQL statements to execute. If the
+        statement is prefixed with `before:` or nothing, it will be executed
+        once, before the metrics collection loop. If prefixed with `after:`, it
+        will be executed after the loop. If prefixed with `during:`, it will be
+        executed once for each iteration of the collection loop.
+      - customShell: Array - Custom list of shell commands to execute. If the
+        command is prefixed with `before:` or nothing, it will be executed
+        once, before the metrics collection loop. If prefixed with `after:`, it
+        will be executed after the loop. If prefixed with `during:`, it will be
+        executed once for each iteration of the collection loop.
+
+
+#@<OUT> util debug collect_slow_query_diagnostics
+NAME
+      collect_slow_query_diagnostics - Collects MySQL diagnostics and profiling
+                                       information for a slow query
+
+SYNTAX
+      util.debug.collect_slow_query_diagnostics(path, query[, options])
+
+WHERE
+      path: String - path to write the zip file with diagnostics information.
+      query: String - query to be analyzed.
+      options: Dictionary - Optional arguments.
+
+DESCRIPTION
+      A zip file containing diagnostics information collected from the server
+      connected to.
+
+      The given query is executed once. Performance metrics are collected
+      during execution of the query.
+
+      The following information is collected, in addition to what's collected
+      by `util.debug.collectHighLoadDiagnostics()`
+
+      - EXPLAIN output of the query - Optimizer trace of the query - DDL of
+        tables used in the query - Warnings generated by the query
+
+      If the `pfsInstrumentation` option is set to a value other than
+      'current', additional PERFORMANCE_SCHEMA instruments and consumers are
+      enabled for the duration of the collection. If set to 'full', all
+      instruments and consumers are enabled. If set to 'medium', non-history
+      consumers and instruments other than wait/synch/% are enabled. Enabling
+      additional instrumentation may provide additional insights, at the cost
+      of an larger impact on server performance.
+
+      The options parameter accepts the following options:
+
+      - delay: Integer - Number of seconds to wait between collection
+        iterations (default 5s).
+      - innodbMutex: Bool - If true, also collects output of SHOW ENGINE INNODB
+        MUTEX. Disabled by default, as this command can have some impact on
+        production performance.
+      - pfsInstrumentation: String - One of current, medium, full. Controls
+        whether additional PERFORMANCE_SCHEMA instruments and consumers are
+        temporarily enabled (default 'current').
+      - customSql: Array - Custom list of SQL statements to execute. If the
+        statement is prefixed with `before:` or nothing, it will be executed
+        once, before the metrics collection loop. If prefixed with `after:`, it
+        will be executed after the loop. If prefixed with `during:`, it will be
+        executed once for each iteration of the collection loop.
+      - customShell: Array - Custom list of shell commands to execute. If the
+        command is prefixed with `before:` or nothing, it will be executed
+        once, before the metrics collection loop. If prefixed with `after:`, it
+        will be executed after the loop. If prefixed with `during:`, it will be
+        executed once for each iteration of the collection loop.

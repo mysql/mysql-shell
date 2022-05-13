@@ -150,7 +150,8 @@ void do_monitor_gr_recovery_status(
         // switches away from RECOVERING, so we need to poll again until we know
         // what's happening.
         monitor_post_clone_gr_recovery_status(
-            new_instance.get(), post_clone_coptions, begin_time, progress_style,
+            new_instance.get() ? new_instance.get() : instance,
+            post_clone_coptions, begin_time, progress_style,
             startup_timeout_sec);
       } else {
         console->print_info(

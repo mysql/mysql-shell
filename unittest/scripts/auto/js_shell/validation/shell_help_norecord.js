@@ -68,7 +68,7 @@ FUNCTIONS
       log(level, message)
             Logs an entry to the shell's log file.
 
-      openSession(connectionData[, password])
+      openSession([connectionData][, password])
             Establishes and returns session.
 
       parseUri(uri)

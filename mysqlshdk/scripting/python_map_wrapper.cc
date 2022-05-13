@@ -304,6 +304,10 @@ int dict_as_subscript(PyShDictObject *self, PyObject *key, PyObject *value) {
 }
 
 PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
+  if (auto object = PyObject_GenericGetAttr(reinterpret_cast<PyObject *>(self),
+                                            attr_name))
+    return object;
+
   std::string attrname;
 
   if (Python_context::pystring_to_string(attr_name, &attrname)) {
@@ -316,7 +320,7 @@ PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
       return py::convert((**self->map)[attrname]).release();
     } else {
       std::string err = std::string("unknown attribute: ") + attrname;
-      Python_context::set_python_error(PyExc_IndexError, err.c_str());
+      Python_context::set_python_error(PyExc_AttributeError, err.c_str());
       return nullptr;
     }
   }

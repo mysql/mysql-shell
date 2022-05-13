@@ -268,6 +268,8 @@ void SHCORE_PUBLIC split_priv_level(const std::string &str,
 std::string SHCORE_PUBLIC unquote_identifier(const std::string &str,
                                              bool allow_ansi_quotes = false);
 
+std::string SHCORE_PUBLIC unquote_sql_string(const std::string &str);
+
 /** Substitute variables in string.
  *
  * str_subvar("hello ${foo}",

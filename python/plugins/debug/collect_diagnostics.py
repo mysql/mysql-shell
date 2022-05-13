@@ -19,8 +19,10 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+from re import X
+from typing import List, Tuple, Optional
 from mysqlsh import globals
-from mysqlsh import mysql, DBError, Error
+from mysqlsh import mysql, Error
 import socket
 import zipfile
 import yaml
@@ -28,7 +30,11 @@ import os
 import time
 import sys
 
-from debug.host_info import collect_ping_stats
+from debug.host_info import collect_ping_stats, collect_host_info
+from debug.sql_collector import make_zipinfo, InstanceSession, collect_diagnostics, collect_diagnostics_once, DiagnosticsSession
+from debug.sql_collector import collect_innodb_cluster_accounts, collect_cluster_metadata, collect_error_log_sql, collect_schema_stats, collect_slow_queries, get_topology_members, collect_table_info, explain_heatwave_query, explain_query
+from debug.host_info import ShellExecutor
+from debug.sql_collector import SQLExecutor
 
 
 def repr_yaml_text(self, tag, value, style=None):
@@ -47,298 +53,169 @@ def repr_yaml_text(self, tag, value, style=None):
 yaml.representer.BaseRepresenter.represent_scalar = repr_yaml_text
 
 
-def dump_query(zf, fn, session, query, args=[], *, as_yaml=True,
-               as_tsv=True, labels=True, filter=None, ignore_errors=False, include_timing=False):
-    try:
-        start_time = time.time()
-        r = session.run_sql(query, args)
-        end_time = time.time()
-        all_rows = r.fetch_all()
-    except Exception as e:
-        if ignore_errors:
-            with zf.open(fn+".error", "w") as f:
-                f.write(f"{query}\n{e}\n".encode("utf-8"))
-            return
-        print(f"ERROR: While executing {query}: {e}")
-        raise
-
-    yaml_out = []
-    tsv_out = []
-    if labels and as_tsv:
-        line = []
-        for c in r.columns:
-            line.append(c.column_label)
-        tsv_out.append("# " + "\t".join(line))
-
-    for row in all_rows:
-        line = []
-        if filter and not filter(row):
-            continue
-        entry = {}
-        for i in range(len(row)):
-            line.append(str(row[i]) if row[i] is not None else "NULL")
-            if type(row[i]) in (int, str, bool, type(None), float):
-                entry[r.columns[i].column_label] = row[i]
-            else:
-                entry[r.columns[i].column_label] = str(row[i])
-        if as_tsv:
-            tsv_out.append("\t".join(line))
-        yaml_out.append(entry)
-
-    if include_timing:
-        yaml_out.append({"Execution Time": end_time-start_time})
-        if as_tsv:
-            tsv_out.append(f"# Execution Time: {end_time-start_time}")
-
-    if as_tsv:
-        with zf.open(fn+".tsv", "w") as f:
-            f.write("\n".join(tsv_out).encode("utf-8"))
-            f.write(b"\n")
-
-    if as_yaml:
-        with zf.open(fn+".yaml", "w") as f:
-            f.write(yaml.dump_all(yaml_out).encode("utf-8"))
-
-    return yaml_out
+def copy_local_file(zf: zipfile.ZipFile, path: str, source_path: str):
+    with zf.open(make_zipinfo(path), "w") as f:
+        with open(source_path, "rb") as inf:
+            while True:
+                data = inf.read(1024*1024)
+                if not data:
+                    break
+                f.write(data)
 
 
-def dump_table(zf, fn, session, table, *, as_yaml=False, filter=None,
-               ignore_errors=False):
-    return dump_query(zf, fn, session, f"select * from {table}", filter=filter,
-                      as_yaml=as_yaml, ignore_errors=ignore_errors)
+def collect_error_log(zf: zipfile.ZipFile, path: str, *, local_target: bool, session: InstanceSession, ignore_errors: bool):
+    if local_target:
+        sys_datadir, sys_log_error = session.run_sql(
+            "select @@datadir, @@log_error").fetch_one()
 
-
-def get_instance_id(session):
-    try:
-        return session.run_sql(
-            "select instance_id from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=@@server_uuid").fetch_one()[0]
-    except Error as e:
-        if e.code == mysql.ErrorCode.ER_BAD_DB_ERROR or e.code == mysql.ErrorCode.ER_NO_SUCH_TABLE:
-            return 0  # no MD
-        raise
-
-
-def collect_metadata(zf, prefix, session, ignore_errors):
-    try:
-        r = session.run_sql(
-            "show full tables in mysql_innodb_cluster_metadata").fetch_all()
-    except Error as e:
-        if e.code == mysql.ErrorCode.ER_BAD_DB_ERROR or e.code == mysql.ErrorCode.ER_NO_SUCH_TABLE:
-            return None
-        if ignore_errors:
-            print(f"ERROR: Could not query InnoDB Cluster metadata: {e}")
-            with zf.open(f"{prefix}/mysql_innodb_cluster_metadata.error", "w") as f:
-                f.write(f"{e}\n".encode("utf-8"))
-            return None
-        raise
-
-    print("Dumping mysql_innodb_cluster_metadata schema...")
-    for row in r:
-        if row[1] != "BASE TABLE" and row[0] not in ("schema_version", ):
-            continue
-        table = row[0]
-        dump_table(
-            zf, f"{prefix}/mysql_innodb_cluster_metadata.{table}", session,
-            f"mysql_innodb_cluster_metadata.{table}", as_yaml=True,
-            ignore_errors=ignore_errors)
-
-
-def get_topology_members(session):
-    return [(r[0], r[1]) for r in session.run_sql(
-        "select instance_id, addresses->>'$.mysqlClassic' from mysql_innodb_cluster_metadata.instances").fetch_all()]
-
-
-def collect_queries(zf, prefix, fn, session, queries, *, as_yaml=False,
-                    ignore_errors=False, include_timing=False):
-    prefix = prefix + "/" + (fn + "." if fn else "")
-    info = {}
-    for q in queries:
-        if type(q) is tuple:
-            label, query = q
+        if os.path.isabs(sys_log_error):
+            log_path = sys_log_error
         else:
-            label, query = q, q
-        print(f" - Gathering {label}...")
-        info[label.replace(' ', '_')] = dump_query(zf, f"{prefix}{label.replace(' ', '_')}",
-                                                   session, query, as_yaml=as_yaml,
-                                                   ignore_errors=ignore_errors,
-                                                   include_timing=include_timing)
-    return info
-
-
-def collect_innodb_metrics(zf, prefix, fn, session, innodb_mutex,
-                           ignore_errors):
-    queries = [("innodb_status", "SHOW ENGINE INNODB STATUS"),
-               ("innodb_metrics", "SELECT * FROM information_schema.innodb_metrics")
-               ]
-    if innodb_mutex:
-        queries += [
-            ("innodb_mutex", "SHOW ENGINE INNODB MUTEX")
-        ]
-
-    print(f"Collecting InnoDB Metrics")
-    return collect_queries(zf, prefix, fn, session, queries,
-                           as_yaml=True, ignore_errors=ignore_errors)
-
-
-def get_version_num(session):
-    version = session.run_sql("select @@version").fetch_one()[0]
-    if "-" in version:
-        version = version.split("-")[0]
-    a, b, c = version.split(".")
-    return int(a)*10000 + int(b)*100 + int(c)
-
-
-def collect_member_info(zf, prefix, fn, session, slow_queries, ignore_errors):
-    version = get_version_num(session)
-
-    info = {}
-
-    try:
-        tables = [t[0] for t in session.run_sql(
-            "show tables in performance_schema like 'replication_%'").fetch_all()]
-    except Exception as e:
-        print(f"ERROR: Could not list tables in performance_schema: {e}")
-        if ignore_errors:
-            with zf.open(f"{prefix}/performance_schema.error", "w") as f:
-                f.write(
-                    f"show tables in performance_schema like 'replication_%'\n{e}\n".encode("utf-8"))
-            return
-        raise
-
-    queries = [
-        "SHOW BINARY LOGS",
-        "SHOW SLAVE HOSTS",
-        "SHOW MASTER STATUS",
-        "SHOW GLOBAL STATUS",
-        "SHOW PLUGINS",
-        ("global variables", """SELECT g.variable_name name, g.variable_value value /*!80000, i.variable_source source*/
-        FROM performance_schema.global_variables g
-        /*!80000 JOIN performance_schema.variables_info i ON g.variable_name = i.variable_name */
-        ORDER BY name""")
-    ]
-
-    if version >= 80000:
-        if slow_queries:
-            queries.append(("slow_log", "SELECT * FROM mysql.slow_log"))
-        tables.append("persisted_variables")
-        queries.append(("processlist", "SELECT * FROM sys.processlist"))
+            log_path = os.path.join(sys_datadir, sys_log_error)
+        print(f" - Copying MySQL error log file ({log_path})")
+        copy_local_file(zf, path, log_path)
     else:
-        queries.append("SHOW PROCESSLIST")
+        if not collect_error_log_sql(zf, path, session, ignore_errors=ignore_errors):
+            print(
+                f"MySQL error logs could not be collected for {session}, please include error.log files if reporting bugs or seeking assistance")
+            return False
+    return True
 
-    with zf.open(f"{prefix}/{fn}.uri", "w") as f:
+
+def collect_member_info(zf: zipfile.ZipFile, prefix: str, session: InstanceSession, slow_queries: bool,
+                        ignore_errors: bool, benchmark: bool = False, local_target: bool = False):
+
+    with zf.open(make_zipinfo(f"{prefix}uri"), "w") as f:
         f.write(f"{session.uri}\n".encode("utf-8"))
 
-    for table in tables:
-        print(f" - Gathering {table}...")
-        info[table] = dump_table(zf, f"{prefix}/{fn}.{table}", session,
-                                 "performance_schema." + table, as_yaml=True,
-                                 ignore_errors=ignore_errors)
+    utc_time, local_time, time_zone, sys_tz, tz_offs, hostname, port, report_host, report_port, server_uuid, server_id, version = session.run_sql(
+        "select utc_timestamp(), now(), @@time_zone, @@system_time_zone, cast(TIMEDIFF(NOW(), UTC_TIMESTAMP()) as char), @@hostname, @@port, @@report_host, @@report_port, @@server_uuid, @@server_id, concat(@@version_comment, ' ', @@version)").fetch_one()
 
-    info.update(collect_queries(zf, prefix, fn, session, queries,
-                                as_yaml=True, ignore_errors=ignore_errors))
+    try:
+        sys_version = session.run_sql(
+            "select sys_version from sys.version").fetch_one()[0]
+    except:
+        sys_version = "N/A"
 
-    if version >= 80022:
-        def filter_pwd(row):
-            if "temporary password" in row[5]:
-                return None
-            return row
-        print(" - Gathering error_log")
-        dump_table(zf, f"{prefix}/{fn}.error_log", session, "performance_schema.error_log",
-                   filter=filter_pwd, as_yaml=False, ignore_errors=ignore_errors)
-    else:
-        print(
-            f"MySQL error logs could not be collected for {session.uri}, please include error.log files if reporting bugs or seeking assistance")
+    bm_time = None
+    loop_count = 50000000
+    # -- should take less than 20 seconds
+    if benchmark:
+        print("Executing BENCHMARK()...")
+        # speed up tests
+        if sys.executable.endswith("mysqlshrec"):
+            loop_count = 100
+        bm_time = session.run_sql(
+            f"SELECT BENCHMARK({loop_count},(1234*5678/37485-1298+8596^2))").get_execution_time()
 
-    return info
+    with zf.open(make_zipinfo(f"{prefix}instance"), "w") as f:
+        f.write(
+            f"Hostname: {hostname} (report_host={report_host})\n".encode("utf-8"))
+        f.write(f"Port: {port} (report_port={report_port})\n".encode("utf-8"))
+        f.write(f"Server UUID: {server_uuid}\n".encode("utf-8"))
+        f.write(f"Server ID: {server_id}\n".encode("utf-8"))
+        f.write(f"Connection Endpoint: {session.uri}\n".encode("utf-8"))
+        f.write(f"Version: {version}\n".encode("utf-8"))
+        f.write(f"UTC Time: {utc_time}\n".encode("utf-8"))
+        f.write(f"Local Time: {local_time}\n".encode("utf-8"))
+        f.write(f"Time Zone: {time_zone}\n".encode("utf-8"))
+        f.write(f"System Time Zone: {sys_tz}\n".encode("utf-8"))
+        f.write(f"Time Zone Offset: {tz_offs}\n".encode("utf-8"))
+        f.write(f"SYS Schema Version: {sys_version}\n".encode("utf-8"))
+        f.write(f"PFS Enabled: {session.has_pfs}\n".encode("utf-8"))
+        f.write(
+            f"Has InnoDB Cluster: {session.has_innodbcluster}\n".encode("utf-8"))
+        f.write(f"Has NDB: {session.has_ndb}\n".encode("utf-8"))
+        f.write(f"Has Rapid: {session.has_rapid}\n".encode("utf-8"))
+        if benchmark:
+            f.write(
+                f"BENCHMARK({loop_count},(1234*5678/37485-1298+8596^2)): {bm_time}\n".encode("utf-8"))
 
+    collect_error_log(zf, f"{prefix}error_log",
+                      local_target=local_target,
+                      session=session, ignore_errors=ignore_errors)
 
-def dump_accounts(zf, prefix, session, ignore_errors=False):
-    accounts = session.run_sql(
-        "select user,host from mysql.user where user like 'mysql_innodb_%'").fetch_all()
-    with zf.open(prefix+"/cluster_accounts.tsv", "w") as f:
-        for row in accounts:
-            user, host = row[0], row[1]
-            f.write(f"-- {user}@{host}\n".encode("utf-8"))
-            try:
-                for r in session.run_sql("show grants for ?@?", args=[user, host]).fetch_all():
-                    f.write((r[0]+"\n").encode("utf-8"))
-            except Exception as e:
-                if ignore_errors:
-                    print(
-                        f"WARNING: Error getting grants for {user}@{host}: {e}")
-                    f.write(
-                        f"Could not get grants for {user}@{host}: {e}\n".encode("utf-8"))
-                else:
-                    print(
-                        f"ERROR: Error getting grants for {user}@{host}: {e}")
-                    raise
-            f.write(b"\n")
-
-
-def collect_schema_stats(zf, prefix, session, full=False, ignore_errors=False):
-    if full:
-        print(f"Collecting Schema Statistics")
-    queries = [
-        ("tables without a PK", """SELECT t.table_schema, t.table_name
-            FROM information_schema.tables t
-              LEFT JOIN information_schema.statistics s on t.table_schema=s.table_schema and t.table_name=s.table_name and s.index_name='PRIMARY'
-            WHERE s.index_name is NULL and t.table_type = 'BASE TABLE'
-                and t.table_schema not in ('performance_schema', 'sys', 'mysql', 'information_schema')""")
-    ]
-    if full:
-        queries += [
-            ("schema object overview", "select * from sys.schema_object_overview"),
-            ("top biggest tables", """select t.table_schema, t.table_name, t.row_format, t.table_rows, t.avg_row_length, t.data_length, t.max_data_length, t.index_length, t.table_collation,
-        json_objectagg(idx.index_name, json_object('columns', idx.col, 'type', idx.index_type, 'cardinality', idx.cardinality)) indexes,
-        group_concat((select concat(c.column_name, ':', c.column_type)
-          from information_schema.columns c
-          where c.table_schema = t.table_schema and c.table_name = t.table_name and c.column_type in ('blob'))) blobs
-    from information_schema.tables t
-    join (select s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality, json_arrayagg(concat(c.column_name, ':', c.column_type)) col
-          from information_schema.statistics s left join information_schema.columns c on s.table_schema=c.table_schema and s.table_name=c.table_name and s.column_name=c.column_name
-          group by s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality
-          order by s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality) idx
-    on idx.table_schema=t.table_schema and idx.table_name = t.table_name
-    where t.table_type = 'BASE TABLE' and t.table_schema not in ('mysql', 'information_schema', 'performance_schema')
-    group by t.table_schema, t.table_name, t.engine, t.row_format, t.table_rows, t.avg_row_length, t.data_length, t.max_data_length, t.index_length, t.table_collation
-    order by t.data_length desc limit 20""")
-        ]
-    collect_queries(zf, prefix, None, session, queries,
-                    as_yaml=True, ignore_errors=ignore_errors)
+    if slow_queries:
+        collect_slow_queries(zf, f"{prefix}", session,
+                             ignore_errors=ignore_errors)
 
 
-def collect_basic_diagnostics(zf, prefix, session, info={}, shell_logs=True):
-    def to_dict(options):
+def normalize(data):
+    t = getattr(type(data), "__name__", None)
+    if t == "Dict":
+        data = dict(data)
+    elif t == "List":
+        data = list(data)
+    elif t == "Object":
+        shclass = getattr(data, "__mysqlsh_classname__", None)
+        if shclass == "Options":
+            out = {}
+            for k in dir(data):
+                if not callable(data[k]):
+                    out[k] = normalize(data[k])
+            return out
+
+    if isinstance(data, dict):
         out = {}
-        for k in dir(options):
-            if not callable(options[k]):
-                if type(options[k]) in (str, int, float, bool):
-                    out[k] = options[k]
-                else:
-                    out[k] = str(options[k])
+        for k, v in data.items():
+            out[k] = normalize(v)
         return out
+    elif isinstance(data, list):
+        out = []
+        for v in data:
+            out.append(normalize(v))
+        return out
+    else:
+        return data
 
+
+def collect_basic_info(zf: zipfile.ZipFile, prefix: str, session: InstanceSession, info: dict = {}, shell_logs: bool = True):
     shell = globals.shell
 
     shell_info = dict(info)
     shell_info["version"] = shell.version
-    shell_info["options"] = to_dict(shell.options)
+    shell_info["options"] = normalize(shell.options)
     shell_info["destination"] = session.uri
     shell_info["hostname"] = socket.gethostname()
 
-    with zf.open(prefix+"/shell_info.yaml", "w") as f:
+    with zf.open(make_zipinfo(f"{prefix}shell_info.yaml"), "w") as f:
         f.write(yaml.dump(shell_info).encode("utf-8"))
 
     if shell_logs:
         print("Copying shell log file...")
         if shell.options["logFile"] and os.path.exists(shell.options["logFile"]):
-            logs = open(shell.options["logFile"]).read()
-            with zf.open(prefix+"/mysqlsh.log", "w") as f:
-                f.write(logs.encode("utf-8"))
+            copy_local_file(zf, f"{prefix}mysqlsh.log",
+                            shell.options["logFile"])
 
 
-def collect_topology_diagnostics(zf, prefix, session, creds, innodb_mutex=False,
-                                 slow_queries=False, ignore_errors=False):
+def collect_member(zf: zipfile.ZipFile, prefix: str,
+                   session: InstanceSession,
+                   innodb_mutex: bool = False,
+                   slow_queries: bool = False,
+                   ignore_errors: bool = False,
+                   local_target: bool = False,
+                   custom_sql: List[str] = []):
+    vars = []
+    for r in iter(session.run_sql("show global variables").fetch_one_object, None):
+        vars.append(r)
+
+    collect_member_info(
+        zf, prefix, session, slow_queries=slow_queries,
+        ignore_errors=ignore_errors,
+        local_target=local_target)
+
+    collect_diagnostics_once(zf, prefix, session,
+                             innodb_mutex=innodb_mutex,
+                             custom_sql=custom_sql)
+    return vars
+
+
+def collect_topology_diagnostics(zf: zipfile.ZipFile, prefix: str, session: InstanceSession, creds,
+                                 innodb_mutex: bool = False,
+                                 slow_queries: bool = False,
+                                 ignore_errors: bool = False,
+                                 local_instance_id: int = -1,
+                                 custom_sql: List[str] = []):
     instance_data = []
     members = get_topology_members(session)
     for instance_id, endpoint in members:
@@ -351,24 +228,22 @@ def collect_topology_diagnostics(zf, prefix, session, creds, innodb_mutex=False,
             dest = dict(creds)
             dest["host"], dest["port"] = endpoint.split(":")
 
-            session = mysql.get_session(dest)
+            session = InstanceSession(mysql.get_session(dest))
         except Error as e:
             print(f"Could not connect to {endpoint}: {e}")
-            with zf.open(f"{prefix}/{instance_id}.connect_error.txt", "w") as f:
+            with zf.open(make_zipinfo(f"{prefix}{instance_id}.connect_error.txt"), "w") as f:
+                f.write(f"# {endpoint}\n".encode("utf-8"))
                 f.write((str(e)+"\n").encode("utf-8"))
             if e.code == mysql.ErrorCode.ER_ACCESS_DENIED_ERROR:
                 raise
             continue
 
-        info = collect_member_info(
-            zf, prefix, f"{instance_id}", session, slow_queries=slow_queries,
-            ignore_errors=ignore_errors)
-        data["member_info"] = info
-
-        info = collect_innodb_metrics(
-            zf, prefix, f"{instance_id}", session, innodb_mutex=innodb_mutex,
-            ignore_errors=ignore_errors)
-        data["innodb_info"] = info
+        data["global_variables"] = collect_member(
+            zf, f"{prefix}{instance_id}.", session,
+            innodb_mutex=innodb_mutex, slow_queries=slow_queries,
+            ignore_errors=ignore_errors,
+            local_target=instance_id == local_instance_id,
+            custom_sql=custom_sql)
         print()
 
         instance_data.append(data)
@@ -376,28 +251,35 @@ def collect_topology_diagnostics(zf, prefix, session, creds, innodb_mutex=False,
     return instance_data
 
 
-def dump_cluster_status(zf, prefix):
-    try:
-        status = globals.dba.get_cluster().status({"extended": 2})
-        with zf.open(f"{prefix}/cluster_status.yaml", "w") as f:
-            f.write(yaml.dump(eval(repr(status))).encode("utf-8"))
-    except Exception as e:
-        with zf.open(f"{prefix}/cluster_status.error", "w") as f:
-            f.write(f"{e}\n".encode("utf-8"))
-    try:
-        status = globals.dba.get_cluster_set().status({"extended": 2})
-        with zf.open(f"{prefix}/cluster_set_status.yaml", "w") as f:
-            f.write(yaml.dump(eval(repr(status))).encode("utf-8"))
-    except Exception as e:
-        with zf.open(f"{prefix}/cluster_set_status.error", "w") as f:
-            f.write(f"{e}\n".encode("utf-8"))
-    try:
-        status = globals.dba.get_replica_set().status({"extended": 2})
-        with zf.open(f"{prefix}/replica_set_status.yaml", "w") as f:
-            f.write(yaml.dump(eval(repr(status))).encode("utf-8"))
-    except Exception as e:
-        with zf.open(f"{prefix}/replica_set_status.error", "w") as f:
-            f.write(f"{e}\n".encode("utf-8"))
+def dump_cluster_status(zf, prefix: str, cluster_type: Optional[str]):
+
+    if cluster_type in (None, "gr", "cs"):
+        try:
+            status = globals.dba.get_cluster().status({"extended": 2})
+            with zf.open(make_zipinfo(f"{prefix}cluster_status.yaml"), "w") as f:
+                f.write(yaml.dump(eval(repr(status))).encode("utf-8"))
+        except Exception as e:
+            with zf.open(make_zipinfo(f"{prefix}cluster_status.error"), "w") as f:
+                f.write(b"cluster.status({'extended':2})\n")
+                f.write(f"{e}\n".encode("utf-8"))
+    if cluster_type in (None, "cs"):
+        try:
+            status = globals.dba.get_cluster_set().status({"extended": 2})
+            with zf.open(make_zipinfo(f"{prefix}cluster_set_status.yaml"), "w") as f:
+                f.write(yaml.dump(eval(repr(status))).encode("utf-8"))
+        except Exception as e:
+            with zf.open(make_zipinfo(f"{prefix}cluster_set_status.error"), "w") as f:
+                f.write(b"cluster_set.status({'extended':2})\n")
+                f.write(f"{e}\n".encode("utf-8"))
+    if cluster_type in (None, "ar"):
+        try:
+            status = globals.dba.get_replica_set().status({"extended": 2})
+            with zf.open(make_zipinfo(f"{prefix}replica_set_status.yaml"), "w") as f:
+                f.write(yaml.dump(eval(repr(status))).encode("utf-8"))
+        except Exception as e:
+            with zf.open(make_zipinfo(f"{prefix}replica_set_status.error"), "w") as f:
+                f.write(b"replica_set.status({'extended':2})\n")
+                f.write(f"{e}\n".encode("utf-8"))
 
 
 def default_filename():
@@ -457,28 +339,22 @@ def dump_diff(f, key_label, instance_labels, diff, header):
         f.write((" | ".join(line) + "\n").encode("utf-8"))
 
 
-def analyze_topology_data(zf, prefix, topology_info):
+def analyze_topology_data(zf: zipfile.ZipFile, prefix, topology_info):
     diff = diff_multi_tables(topology_info,
-                             lambda i: i["member_info"]["global_variables"],
-                             lambda row: row["name"], lambda row: row["value"])
-
+                             lambda i: i["global_variables"],
+                             lambda row: row["Variable_name"],
+                             lambda row: row["Value"])
     instance_names = []
     for i in topology_info:
         instance_names.append(i["endpoint"])
 
-    with zf.open(f"{prefix}/diff.global_variables.txt", "w") as f:
+    with zf.open(make_zipinfo(f"{prefix}diff.global_variables.txt"), "w") as f:
         if diff:
             dump_diff(
                 f, "Variable", instance_names, diff, f"{len(diff)} differing global variables between instances")
 
 
-def analyze_instance_data(zf, prefix, instance_info):
-    pass
-
-
-def do_collect_diagnostics(session, path, orig_args, innodbMutex=False, allMembers=False,
-                           schemaStats=False, slowQueries=False,
-                           ignoreErrors=False):
+def process_path(path: str) -> Tuple[str, str]:
     if not path:
         raise Error("'path' cannot be an empty string")
 
@@ -488,12 +364,26 @@ def do_collect_diagnostics(session, path, orig_args, innodbMutex=False, allMembe
         else:
             path += ".zip"
 
-    prefix = os.path.basename(path.replace("\\", "/"))[:-4]
+    prefix = os.path.basename(path.replace("\\", "/"))[:-4] + "/"
 
     if os.path.exists(path):
         raise Error(path+" already exists")
 
-    if get_version_num(session) < 50700:
+    return path, prefix
+
+
+def do_collect_diagnostics(session_, path, orig_args,
+                           innodbMutex=False,
+                           allMembers=False,
+                           schemaStats=False,
+                           slowQueries=False,
+                           ignoreErrors=False,
+                           customSql: List[str] = [],
+                           customShell: List[str] = []):
+    path, prefix = process_path(path)
+
+    session = InstanceSession(session_)
+    if session.version < 50700:
         raise Error("MySQL 5.7 or newer required")
 
     if slowQueries:
@@ -504,21 +394,7 @@ def do_collect_diagnostics(session, path, orig_args, innodbMutex=False, allMembe
                 "slowQueries option requires slow_query_log to be enabled and log_output to be set to TABLE")
 
     shell = globals.shell
-
-    try:
-        my_instance_id = get_instance_id(session)
-    except Exception as e:
-        if ignoreErrors:
-            if allMembers:
-                print(
-                    f"ERROR querying InnoDB Cluster metadata. Cannot ignore error because allMembers is enabled: {e}")
-                raise
-            else:
-                print(
-                    f"ERROR querying InnoDB Cluster metadata: {e}")
-            my_instance_id = 0
-        else:
-            raise
+    my_instance_id = session.instance_id
 
     creds = None
     if allMembers and my_instance_id:
@@ -526,53 +402,63 @@ def do_collect_diagnostics(session, path, orig_args, innodbMutex=False, allMembe
         creds["password"] = shell.prompt(
             f"Password for {creds['user']}: ", {"type": "password"})
 
+    target = globals.shell.parse_uri(session.uri)
+    local_target = True if "host" not in target else target["host"] == "localhost"
+    if customShell and not local_target:
+        raise Error(
+            "Option 'customShell' is only allowed when connected to localhost")
+
+    shell_exe = ShellExecutor(customShell, allow_phases=False)
+
     print(f"Collecting diagnostics information from {session.uri}...")
     try:
         with zipfile.ZipFile(path, mode="w") as zf:
-            collect_metadata(zf, prefix, session, ignore_errors=ignoreErrors)
-            collect_basic_diagnostics(zf, prefix, session,
-                                      info={"command": "collectDiagnostics",
-                                            "commandOptions": orig_args})
+            os.chmod(path, 0o600)
+            if local_target:
+                shell_exe.execute(zf, prefix)
+
+            cluster_type = None
+            if session.has_innodbcluster:
+                print("InnoDB Cluster detected")
+                cluster_type = collect_cluster_metadata(
+                    zf, prefix, session, ignore_errors=ignoreErrors)
+            collect_basic_info(zf, prefix, session,
+                               info={"command": "collectDiagnostics",
+                                     "commandOptions": normalize(orig_args)})
             collect_schema_stats(zf, prefix, session, full=schemaStats,
                                  ignore_errors=ignoreErrors)
 
             topology_data = None
             collected = False
-            if my_instance_id:
+            if session.has_innodbcluster and my_instance_id:
                 print("Gathering grants for mysql_innodb_% accounts...")
-                dump_accounts(zf, prefix, session,
-                              ignore_errors=ignoreErrors)
+                collect_innodb_cluster_accounts(zf, prefix, session,
+                                                ignore_errors=ignoreErrors)
 
                 print("Gathering cluster status...")
-                dump_cluster_status(zf, prefix)
+                dump_cluster_status(zf, prefix, cluster_type)
 
                 if allMembers and my_instance_id:
                     collected = True
                     topology_data = collect_topology_diagnostics(
                         zf, prefix, session, creds, innodb_mutex=innodbMutex,
-                        slow_queries=slowQueries, ignore_errors=ignoreErrors)
+                        slow_queries=slowQueries, ignore_errors=ignoreErrors,
+                        local_instance_id=my_instance_id if local_target else -1)
 
                     analyze_topology_data(zf, prefix, topology_data)
-            elif my_instance_id is None:
-                # None means get_instance_id() failed with error
-                my_instance_id = 0
 
             if not collected:
-                instance_data = {}
-                info = collect_member_info(zf, prefix, str(my_instance_id),
-                                           session, slow_queries=slowQueries,
-                                           ignore_errors=ignoreErrors)
-                instance_data["member_info"] = info
-                info = collect_innodb_metrics(
-                    zf, prefix, str(my_instance_id), session,
-                    innodb_mutex=innodbMutex, ignore_errors=ignoreErrors)
-                instance_data["innodb_info"] = info
-                analyze_instance_data(zf, prefix, instance_data)
+                collect_member(zf, f"{prefix}{my_instance_id}.",
+                               session, slow_queries=slowQueries,
+                               innodb_mutex=innodbMutex,
+                               ignore_errors=ignoreErrors,
+                               local_target=local_target,
+                               custom_sql=customSql)
 
             # collect local host info if we're connected to localhost
             target = shell.parse_uri(session.uri)
             if topology_data:
-                if "host" not in target or target["host"] in ("127.0.0.1", "localhost"):
+                if local_target:
                     print("Connected to local server, collecting ping stats...")
                     collect_ping_stats(zf, prefix, topology_data)
                 else:
@@ -587,3 +473,258 @@ def do_collect_diagnostics(session, path, orig_args, innodbMutex=False, allMembe
 
     print()
     print(f"Diagnostics information was written to {path}")
+    if not session.has_pfs:
+        print("WARNING: performance_schema is disabled, collected a limited amount of information")
+    if allMembers and not session.has_innodbcluster:
+        print("NOTE: allMembers enabled, but InnoDB Cluster metadata not found")
+
+
+def collect_common_high_load_data(zf: zipfile.ZipFile, prefix: str, session: InstanceSession, info: dict, local_target: bool):
+    # collect general info
+    collect_basic_info(zf, prefix, session,
+                       info=info,
+                       shell_logs=False)
+
+    collect_schema_stats(zf, prefix, session,
+                         full=True, ignore_errors=False)
+
+    collect_member_info(zf, prefix, session,
+                        slow_queries=True,
+                        ignore_errors=False,
+                        local_target=local_target,
+                        benchmark=True)
+
+    # collect system info
+    if local_target:
+        collect_host_info(zf, prefix)
+
+
+def do_collect_high_load_diagnostics(session_, path, orig_args,
+                                     innodbMutex=False,
+                                     iterations=2,
+                                     delay=5*60,
+                                     pfsInstrumentation="current",
+                                     customSql: List[str] = [],
+                                     customShell: List[str] = []):
+    path, prefix = process_path(path)
+
+    if iterations < 1:
+        raise Error(f"'iterations' must be > 0 (is {iterations})")
+    if delay < 1:
+        raise Error(f"'delay' must be > 0 (is {delay})")
+    if pfsInstrumentation not in ("current", "medium", "full"):
+        raise Error(
+            "'pfsInstrumentation' must be one of current, medium, full")
+
+    session = InstanceSession(session_)
+
+    if session.version < 50700:
+        raise Error("MySQL 5.7 or newer required")
+
+    target = globals.shell.parse_uri(session.uri)
+    local_target = True if "host" not in target else target["host"] == "localhost"
+    if customShell and not local_target:
+        raise Error(
+            "Option 'customShell' is only allowed when connected to localhost")
+
+    print(f"Collecting diagnostics information from {session.uri}...")
+    try:
+        with zipfile.ZipFile(path, mode="w") as zf:
+            os.chmod(path, 0o600)
+            collect_common_high_load_data(zf, prefix, session,
+                                          {"command": "collectHighLoadDiagnostics",
+                                           "commandOptions": normalize(orig_args)},
+                                          local_target)
+
+            assert not customShell or local_target
+
+            print()
+            collect_diagnostics(zf, prefix, session,
+                                iterations, delay, pfsInstrumentation,
+                                innodb_mutex=innodbMutex,
+                                custom_sql=customSql,
+                                custom_shell=customShell)
+    except:
+        if os.path.exists(path):
+            os.remove(path)
+        print()
+        print("An error occurred during data collection. Partial output deleted.")
+        raise
+
+    print()
+    if not session.has_pfs:
+        print("WARNING: performance_schema is disabled, collected a limited amount of information")
+    if not local_target:
+        print("NOTE: Target server is not at localhost, host information was not collected")
+    if not session.has_pfs:
+        print("NOTE: performance_schema is disabled, only a limited set of metrics and information could be collected")
+    print(f"Server load diagnostics information was written to {path}")
+
+
+def extract_referenced_tables(session: InstanceSession, query: str) -> List[Tuple[str, str]]:
+    default_schema = session.run_sql("select schema()").fetch_one()[0]
+
+    def find_table_refs(ast):
+        def extract_table_ref(node):
+            if "rule" in node and node["rule"] == "pureIdentifier":
+                if node["children"][0]["symbol"] == "BACK_TICK_QUOTED_ID":
+                    return [mysql.unquote_identifier(node["children"][0]["text"])]
+                else:
+                    return [node["children"][0]["text"]]
+            elif "children" in node:
+                ref = []
+                for n in node["children"]:
+                    ref += extract_table_ref(n)
+                return ref
+            return []
+
+        refs = []
+        if "rule" in ast and ast["rule"] == "tableRef":
+            table_ref = extract_table_ref(ast)
+            assert table_ref
+            if len(table_ref) == 1:
+                table_ref = default_schema, table_ref[0]
+            refs.append(table_ref)
+        elif "children" in ast:
+            for child in ast["children"]:
+                refs += find_table_refs(child)
+        return refs
+
+    ast = mysql.parse_statement_ast(query)
+
+    return find_table_refs(ast)
+
+
+def execute_profiled_query(zf: zipfile.ZipFile, prefix: str, helper_session, query: str):
+    print(f"Executing query: {query}")
+    r = helper_session.run_sql(query)
+    print(f"Query finished in {r.get_execution_time()}")
+
+    fetch_start = time.time()
+    row_count = len(r.fetch_all())
+    fetch_end = time.time()
+    print(f"Results fetched in {fetch_end-fetch_start:.4f} sec")
+
+    query_info = {
+        "Execution Time": r.get_execution_time(),
+        "Result Fetch Time": (fetch_end - fetch_start),
+        "Query": query,
+        "Warnings": normalize(r.get_warnings()),
+        "Affected Rows": r.get_affected_row_count(),
+        "Info": r.get_info(),
+        "Result Rows": row_count
+    }
+
+    return query_info
+
+
+def do_collect_slow_query_diagnostics(session_, path: str, query: str, orig_args,
+                                      innodbMutex=False,
+                                      delay=15,
+                                      pfsInstrumentation="current",
+                                      customSql: List[str] = [],
+                                      customShell: List[str] = []):
+    if not query:
+        raise Error("'query' must contain the query to be analyzed")
+    path, prefix = process_path(path)
+
+    if delay < 1:
+        raise Error(f"'delay' must be > 0 (is {delay})")
+    if pfsInstrumentation not in ("current", "medium", "full"):
+        raise Error(
+            "'pfsInstrumentation' must be one of current, medium, full")
+
+    session = InstanceSession(session_)
+    if session.version < 50700:
+        raise Error("MySQL 5.7 or newer required")
+
+    target = globals.shell.parse_uri(session.uri)
+    local_target = True if "host" not in target else target["host"] == "localhost"
+    if customShell and not local_target:
+        raise Error(
+            "Option 'customShell' is only allowed when connected to localhost")
+
+    referenced_tables = extract_referenced_tables(session, query)
+
+    helper_session = globals.shell.open_session()
+
+    print(f"Collecting diagnostics information from {session.uri}...")
+    try:
+        with zipfile.ZipFile(path, mode="w") as zf:
+            os.chmod(path, 0o600)
+            shell = ShellExecutor(customShell, allow_phases=True)
+            custom = SQLExecutor(session, customSql, allow_phases=True)
+
+            shell.execute_before(zf, prefix)
+            custom.execute_before(zf, prefix)
+
+            for s, t in referenced_tables:
+                print(
+                    f"Collecting information for referenced table `{s}`.`{t}`")
+                collect_table_info(zf, prefix, session, s, t)
+
+            collect_common_high_load_data(zf, prefix, session,
+                                          {"command": "collectSlowQueryDiagnostics",
+                                           "commandOptions": normalize(orig_args)},
+                                          local_target)
+
+            print("Collecting EXPLAIN")
+            explain_query(zf, session, query, prefix)
+
+            if session.has_rapid:
+                print("Collecting EXPLAIN with Heatwave")
+                explain_heatwave_query(zf, session, query, prefix)
+
+            diag = DiagnosticsSession(session, innodb_mutex=innodbMutex)
+            diag.collect_configs_and_state(zf, prefix)
+            try:
+                diag.start(zf, f"{prefix}diagnostics",
+                           pfs_instrumentation=pfsInstrumentation)
+
+                print("Starting background diagnostics collector...")
+
+                def on_iterate(i):
+                    shell.execute_during(zf, prefix, i)
+                    custom.execute_during(zf, prefix, i)
+
+                diag.start_background(delay, zf, f"{prefix}diagnostics",
+                                      on_iterate)
+
+                try:
+                    query_info = execute_profiled_query(
+                        zf, prefix, helper_session, query)
+                except:
+                    diag.stop_background()
+                    raise
+            except:
+                diag.cleanup(zf, prefix)
+                raise
+
+            diag.stop_background()
+
+            diag.finish(zf, f"{prefix}diagnostics")
+
+            with zf.open(f"{prefix}query-info.yaml", "w") as f:
+                f.write(yaml.dump(query_info).encode("utf-8"))
+                f.write(b"\n")
+
+            shell.execute_after(zf, prefix)
+            custom.execute_after(zf, prefix)
+    except:
+        helper_session.close()
+        if os.path.exists(path):
+            os.remove(path)
+        print()
+        print("An error occurred during query profiling. Partial output deleted.")
+        raise
+
+    helper_session.close()
+
+    print()
+    if not session.has_pfs:
+        print("WARNING: performance_schema is disabled, collected a limited amount of information")
+    if not referenced_tables:
+        print("NOTE: could not extract list of referenced tables from query")
+    if not local_target:
+        print("NOTE: Target server is not at localhost, host information was not collected")
+    print(f"Server and query diagnostics information was written to {path}")

@@ -72,7 +72,7 @@ FUNCTIONS
       log(level, message)
             Logs an entry to the shell's log file.
 
-      open_session(connectionData[, password])
+      open_session([connectionData][, password])
             Establishes and returns session.
 
       parse_uri(uri)

@@ -15,7 +15,11 @@ validate_members(mysql, [
   'get_classic_session',
   'get_session',
   'ErrorCode',
-  'help'])
+  'help',
+  'parse_statement_ast',
+  'quote_identifier',
+  'split_script',
+  'unquote_identifier'])
 
 #@# get_classic_session errors
 mysql.get_classic_session()

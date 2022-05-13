@@ -34,13 +34,12 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
+#include "mysqlshdk/libs/parser/mysql_parser_utils.h"
+#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 
 #include "errmsg.h"  // NOLINT
-
-using namespace std::placeholders;
 namespace mysqlsh {
 namespace mysql {
-
 struct Mysqld_ername {
   const char *name;
   int code;
@@ -191,6 +190,12 @@ REGISTER_MODULE(Mysql, mysql) {
          "?password");
   expose("getSession", &Mysql::get_session, "connectionData", "?password");
 
+  expose("splitScript", &Mysql::split_script, "script");
+  expose("parseStatementAst", &Mysql::parse_statement_ast, "statement");
+
+  expose("quoteIdentifier", &Mysql::quote_identifier, "string");
+  expose("unquoteIdentifier", &Mysql::unquote_identifier, "string");
+
   _type.reset(new Type());
 }
 
@@ -314,6 +319,134 @@ std::shared_ptr<shcore::Object_bridge> Mysql::get_session(
   return ClassicSession::create(co);
 }
 #endif
+
+REGISTER_HELP_FUNCTION(splitScript, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_SPLITSCRIPT, R"*(
+Split a SQL script into individual statements.
+
+@param script A SQL script as a string containing multiple statements
+
+@returns A list of statements
+
+The default statement delimiter is `;` but it can be changed with the
+DELIMITER keyword, which must be followed by the delimiter character(s)
+and a newline.
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_SPLITSCRIPT_BRIEF)
+ *
+ * $(MYSQL_SPLITSCRIPT)
+ */
+#if DOXYGEN_JS
+Array splitScript(String script) {}
+#elif DOXYGEN_PY
+list split_script(str script) {}
+#endif
+shcore::Value Mysql::split_script(const std::string &sql) const {
+  shcore::Array_t array = shcore::make_array();
+  for (auto s : mysqlshdk::utils::split_sql(sql))
+    array->emplace_back(std::move(s));
+  return shcore::Value(array);
+}
+
+REGISTER_HELP_FUNCTION(parseStatementAst, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_PARSESTATEMENTAST, R"*(
+Parse a MySQL statement and return its AST representation.
+
+@param statement The SQL statement to parse
+
+@returns AST encoded as a JSON structure
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_PARSESTATEMENTAST_BRIEF)
+ *
+ * $(MYSQL_PARSESTATEMENTAST)
+ */
+#if DOXYGEN_JS
+Dictionary parseStatementAst(String statement) {}
+#elif DOXYGEN_PY
+dict parse_statement_ast(str statement) {}
+#endif
+shcore::Value Mysql::parse_statement_ast(const std::string &sql) const {
+  auto array = shcore::make_array();
+  shcore::Value root =
+      shcore::Value(shcore::make_dict("children", shcore::Value(array)));
+
+  mysqlshdk::parser::traverse_statement_ast<shcore::Value>(
+      sql, &root,
+      [](const mysqlshdk::parser::AST_node &node, shcore::Value *parent) {
+        auto parent_list = parent->as_map()->get_array("children");
+
+        if (node.is_terminal) {
+          parent_list->emplace_back(
+              shcore::make_dict("symbol", node.name, "text", node.text));
+        } else {
+          parent_list->emplace_back(shcore::make_dict(
+              "rule", node.name, "children", shcore::make_array()));
+        }
+        return &parent_list->back();
+      });
+
+  // this is only supposed to return 1 node, so remove the parent
+  assert(array->size() <= 1);
+  if (array->size() == 0) return {};
+
+  return array->at(0);
+}
+
+REGISTER_HELP_FUNCTION(quoteIdentifier, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_QUOTEIDENTIFIER, R"*(
+Quote a string as a MySQL identifier, escaping characters when needed.
+
+@param s the identifier name to be quoted
+
+@returns Quoted identifier
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_QUOTEIDENTIFIER_BRIEF)
+ *
+ * $(MYSQL_QUOTEIDENTIFIER)
+ */
+#if DOXYGEN_JS
+String quoteIdentifier(String s) {}
+#elif DOXYGEN_PY
+str quote_identifier(str s) {}
+#endif
+std::string Mysql::quote_identifier(const std::string &s) const {
+  return shcore::quote_identifier(s);
+}
+
+REGISTER_HELP_FUNCTION(unquoteIdentifier, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_UNQUOTEIDENTIFIER, R"*(
+Unquote a MySQL identifier.
+
+@param s String to unquote
+
+@returns Unquoted string.
+
+An exception is thrown if the input string is not quoted with backticks.
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_UNQUOTEIDENTIFIER_BRIEF)
+ *
+ * $(MYSQL_UNQUOTEIDENTIFIER)
+ */
+#if DOXYGEN_JS
+String unquoteIdentifier(String s) {}
+#elif DOXYGEN_PY
+str unquote_identifier(str s) {}
+#endif
+std::string Mysql::unquote_identifier(const std::string &s) const {
+  return shcore::unquote_identifier(s);
+}
 
 }  // namespace mysql
 }  // namespace mysqlsh

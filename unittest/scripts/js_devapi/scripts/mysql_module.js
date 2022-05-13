@@ -1,5 +1,5 @@
 // Assumptions: validateMembers exists
-var mysql=require('mysql');
+var mysql = require('mysql');
 
 // The tests assume the next variables have been put in place
 // on the JS Context
@@ -14,7 +14,11 @@ validateMembers(mysql, [
     'getClassicSession',
     'ErrorCode',
     'getSession',
-    'help'])
+    'help',
+    'parseStatementAst',
+    'quoteIdentifier',
+    'splitScript',
+    'unquoteIdentifier'])
 
 //@# getClassicSession errors
 mysql.getClassicSession()
@@ -30,3 +34,22 @@ mysql.getSession("some@uri", 25)
 
 //@<> ErrorCode
 EXPECT_EQ(1045, mysql.ErrorCode.ER_ACCESS_DENIED_ERROR)
+
+//@# parseStatementAst errors
+mysql.parseStatementAst(1);
+mysql.parseStatementAst({});
+
+//@ parseStatementAst
+mysql.parseStatementAst("this is not valid sql")
+mysql.parseStatementAst("")
+mysql.parseStatementAst("SELECT")
+
+//@ splitScript
+mysql.splitScript("select 1")
+mysql.splitScript("select 1; select 2;")
+mysql.splitScript("delimiter $$\nselect 1$$select 2;select3$$")
+mysql.splitScript("DELIMITER A\nSELECT 1 A SELECT 2 A SELECT 3; SELECT 4")
+
+//@# splitScript errors
+mysql.splitScript(1)
+mysql.splitScript(["select"])

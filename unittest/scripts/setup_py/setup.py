@@ -13,6 +13,11 @@ import sys
 import inspect
 
 
+mysqlshrec = "mysqlshrec"
+if __os_type == "windows":
+    mysqlshrec = mysqlshrec + ".exe"
+mysqlshrec = os.path.join(__bin_dir, mysqlshrec)
+
 def get_members(object):
     all_exports = dir(object)
 
@@ -140,6 +145,8 @@ def EXPECT_NE(expected, actual, note=""):
 
 
 def EXPECT_EQ_TEXT(expected, actual, note=""):
+    assert isinstance(expected, list)
+    assert isinstance(actual, list)
     if expected != actual:
         if not note:
             note = __caller_context()

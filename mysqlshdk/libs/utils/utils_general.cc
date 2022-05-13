@@ -62,6 +62,7 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -1094,6 +1095,67 @@ std::string SHCORE_PUBLIC unquote_identifier(const std::string &str,
   }
 
   return object;
+}
+
+std::string SHCORE_PUBLIC unquote_sql_string(const std::string &s) {
+  if (s.length() < 2 || s[0] != '\'' || s[0] != s.back())
+    throw std::invalid_argument("string is not properly quoted");
+
+  std::string result;
+  size_t offs;
+  size_t end = s.length();
+
+  result.reserve(end);
+
+  offs = 1;  // skip opening quote
+
+  for (;;) {
+    auto p = s.find_first_of("'\\", offs);
+    if (p == std::string::npos)
+      throw std::invalid_argument("string is not properly quoted");
+
+    if (p > offs) {
+      result.append(s.c_str() + offs, p - offs);
+    }
+
+    if (s[p] == '\\') {
+      ++p;
+      switch (s[p]) {
+        case 0:
+          // string too short?
+          throw std::invalid_argument("string is not properly quoted");
+        case '0':
+          result.push_back(0);
+          break;
+        case 'n':
+          result.push_back('\n');
+          break;
+        case 'r':
+          result.push_back('\r');
+          break;
+        case 'Z': /* This gives problems on Win32 */
+          result.push_back('\032');
+          break;
+        case '\\':
+        case '\'':
+        case '"':
+        default:
+          result.push_back(s[p]);
+          break;
+      }
+    } else {
+      ++p;
+      if (s[p] == '\'')
+        result.push_back('\'');
+      else if (p == end)
+        break;
+      else
+        throw std::invalid_argument("string is not properly quoted");
+    }
+    offs = p + 1;
+  }
+
+  return result;
 }
 
 void sleep_ms(uint32_t ms) { shcore::current_interrupt()->wait(ms); }

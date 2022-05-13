@@ -221,6 +221,18 @@ Shell_options::Shell_options(int argc, char **argv,
         "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
+    (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit.",
+        [this](const std::string &, const char* value) {
+#ifdef HAVE_PYTHON
+          // for backwards compatibility with python executable when
+          // subprocess spawns it
+          storage.initial_mode = shcore::IShell_core::Mode::Python;
+          storage.execute_statement = value ? value: "";
+#else
+          (void)value;
+          throw std::invalid_argument("Python is not supported.");
+#endif
+      })
     (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
         "Any options specified after this are used as arguments of the "
         "processed file.")

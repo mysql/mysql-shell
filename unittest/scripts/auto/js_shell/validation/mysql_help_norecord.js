@@ -33,6 +33,19 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
+      parseStatementAst(statement)
+            Parse a MySQL statement and return its AST representation.
+
+      quoteIdentifier(s)
+            Quote a string as a MySQL identifier, escaping characters when
+            needed.
+
+      splitScript(script)
+            Split a SQL script into individual statements.
+
+      unquoteIdentifier(s)
+            Unquote a MySQL identifier.
+
 CLASSES
  - ClassicResult  Allows browsing through the result information after
                   performing an operation on the database through the MySQL
@@ -264,4 +277,67 @@ SYNTAX
 
 WHERE
       member: If specified, provides detailed information on the given member.
+
+//@<OUT> parseStatementAst
+NAME
+      parseStatementAst - Parse a MySQL statement and return its AST
+                          representation.
+
+SYNTAX
+      mysql.parseStatementAst(statement)
+
+WHERE
+      statement: The SQL statement to parse
+
+RETURNS
+      AST encoded as a JSON structure
+
+//@<OUT> quoteIdentifier
+NAME
+      quoteIdentifier - Quote a string as a MySQL identifier, escaping
+                        characters when needed.
+
+SYNTAX
+      mysql.quoteIdentifier(s)
+
+WHERE
+      s: the identifier name to be quoted
+
+RETURNS
+      Quoted identifier
+
+
+//@<OUT> splitScript
+NAME
+      splitScript - Split a SQL script into individual statements.
+
+SYNTAX
+      mysql.splitScript(script)
+
+WHERE
+      script: A SQL script as a string containing multiple statements
+
+RETURNS
+      A list of statements
+
+DESCRIPTION
+      The default statement delimiter is `;` but it can be changed with the
+      DELIMITER keyword, which must be followed by the delimiter character(s)
+      and a newline.
+
+//@<OUT> unquoteIdentifier
+NAME
+      unquoteIdentifier - Unquote a MySQL identifier.
+
+SYNTAX
+      mysql.unquoteIdentifier(s)
+
+WHERE
+      s: String to unquote
+
+RETURNS
+      Unquoted string.
+
+DESCRIPTION
+      An exception is thrown if the input string is not quoted with backticks.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -90,6 +90,13 @@ std::shared_ptr<shcore::Object_bridge> get_session(
     const char *password = nullptr);
 
 virtual shcore::Value get_member(const std::string &prop) const;
+
+shcore::Value split_script(const std::string &sql) const;
+shcore::Value parse_statement_ast(const std::string &sql) const;
+
+std::string quote_identifier(const std::string &s) const;
+std::string unquote_identifier(const std::string &s) const;
+
 #endif
 
 private:

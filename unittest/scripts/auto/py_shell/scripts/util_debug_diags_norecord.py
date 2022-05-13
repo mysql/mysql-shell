@@ -1,165 +1,15 @@
 import zipfile
 import yaml
 import os
+import re
+import shutil
+
+#@<> INCLUDE diags_common.inc
 
 #@<> Init
 testutil.deploy_sandbox(__mysql_sandbox_port1, "root")
-testutil.deploy_sandbox(__mysql_sandbox_port2, "root")
-testutil.deploy_sandbox(__mysql_sandbox_port3, "root")
-testutil.deploy_sandbox(__mysql_sandbox_port4, "root")
-
-def zfpath(zf, fn):
-    return os.path.basename(zf.filename).rsplit(".", 1)[0]+"/"+fn
-
-def ZEXPECT_NOT_EMPTY(zf, fn):
-    with zf.open(zfpath(zf,fn), "r") as f:
-        EXPECT_NE("", f.read(), f"{fn} is empty")
-
-def ZEXPECT_EXISTS(zf, fn):
-    EXPECT_NO_THROWS(lambda: zf.open(zfpath(zf,fn), "r"))
-
-def ZEXPECT_NOT_EXISTS(zf, fn):
-    EXPECT_THROWS(lambda: zf.open(zfpath(zf,fn), "r"), f"There is no item named '{zfpath(zf,fn)}'")
-
-def EXPECT_NO_FILE(fn):
-    EXPECT_FALSE(os.path.exists(fn), f"{fn} exists but shouldn't")
-
-def EXPECT_FILE(fn):
-    EXPECT_TRUE(os.path.exists(fn), f"{fn} doesn't exist as expected")
-
-g_expected_files_per_instance = [
-    ("", "replication_applier_configuration.tsv", None),
-    ("select * from performance_schema.replication_applier_filters", "replication_applier_filters.tsv", 80000),
-    ("select * from performance_schema.replication_applier_global_filters", "replication_applier_global_filters.tsv", 80000),
-    ("", "replication_applier_status.tsv", None),
-    ("", "replication_applier_status_by_coordinator.tsv", None),
-    ("", "replication_applier_status_by_worker.tsv", None),
-    ("select * from performance_schema.replication_asynchronous_connection_failover_managed", "replication_asynchronous_connection_failover_managed.tsv", 80000),
-    ("", "replication_connection_configuration.yaml", None),
-    ("", "replication_connection_status.tsv", None),
-    ("", "replication_group_member_stats.tsv", None),
-    ("select * from performance_schema.replication_group_members", "replication_group_members.tsv", None),
-    ("", "SHOW_BINARY_LOGS.tsv", None),
-    ("", "SHOW_SLAVE_HOSTS.tsv", None),
-    ("", "SHOW_MASTER_STATUS.tsv", None),
-    ("", "processlist.tsv", 80000),
-    ("", "SHOW_PROCESSLIST.tsv", -80000),
-    ("", "SHOW_GLOBAL_STATUS.tsv", None),
-    ("", "error_log.tsv", 80022),
-    ("""SELECT g.variable_name name, g.variable_value value /*!80000, i.variable_source source*/
-        FROM performance_schema.global_variables g
-        /*!80000 JOIN performance_schema.variables_info i ON g.variable_name = i.variable_name*/ order by name""", "global_variables.tsv", None),
-    ("", "innodb_metrics.tsv", None),
-    ("", "innodb_status.yaml", None)
-]
-
-def CHECK_QUERY(session, data, query, note=None):
-    all = []
-    res = session.run_sql(query)
-    all.append("# "+"\t".join([c.column_label for c in res.columns])+"\n")
-    for row in res.fetch_all():
-        line = []
-        for i in range(len(row)):
-            line.append(str(row[i]) if row[i] is not None else "NULL")
-        all.append("\t".join(line)+"\n")
-    EXPECT_EQ_TEXT("".join(all), "".join(data), note)
-
-
-def CHECK_METADATA(session, zf):
-    tables = [r[0] for r in session.run_sql("show full tables in mysql_innodb_cluster_metadata").fetch_all() if r[1] == "BASE TABLE" or r[0] == "schema_version"]
-    for table in tables:
-        with zf.open(zfpath(zf, f"mysql_innodb_cluster_metadata.{table}.tsv"), "r") as f:
-            data = [line.decode("utf-8") for line in f.readlines()]
-            CHECK_QUERY(session, data, f"select * from mysql_innodb_cluster_metadata.{table}")
-
-
-def CHECK_INSTANCE(session, zf, instance_id, expected_files_per_instance):
-    x,y,z = session.run_sql("select @@version").fetch_one()[0].split("-")[0].split(".")
-    ver = int(x)*10000+int(y)*100+int(z)
-    for q, fn, minver in expected_files_per_instance:
-        if minver and ((minver>0 and ver < minver) or (minver<0 and ver > -minver)):
-            continue
-        with zf.open(zfpath(zf, f"{instance_id}.{fn}"), "r") as f:
-            data = [line.decode("utf-8") for line in f.readlines()]
-            if q:
-                CHECK_QUERY(session, data, q, f"{instance_id}: {fn}")
-            else:
-                EXPECT_NE("", data, f"{instance_id}: {fn}")
-
-
-def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False, allMembers=1, schemaStats=False, slowQueries=False):
-    expected_files_per_instance = g_expected_files_per_instance[:]
-    if innodbMutex:
-        expected_files_per_instance.append(("", "innodb_mutex.tsv", None))
-    with zipfile.ZipFile(file, mode="r") as zf:
-        def read_yaml(fn):
-            with zf.open(fn, "r") as f:
-                return yaml.safe_load(f.read().decode("utf-8"))
-        def read_tsv(fn):
-            with zf.open(fn, "r") as f:
-                return [l.decode("utf-8").split("\t") for l in f.readlines()]
-        def read_text(fn):
-            with zf.open(fn, "r") as f:
-                return f.read().decode("utf-8")
-        ZEXPECT_NOT_EMPTY(zf, "shell_info.yaml")
-        ZEXPECT_NOT_EMPTY(zf, "mysqlsh.log")
-        filelist = zf.namelist()
-        if is_cluster:
-            ZEXPECT_NOT_EMPTY(zf, "cluster_accounts.tsv")
-            CHECK_METADATA(sessions_or_errors[0][1], zf)
-            if allMembers:
-                ZEXPECT_NOT_EMPTY(zf, "ping.txt")
-        else:
-            EXPECT_FALSE(zfpath(zf, "cluster_accounts.tsv") in filelist)
-        ZEXPECT_EXISTS(zf, "tables_without_a_PK.tsv")
-        if schemaStats:
-            ZEXPECT_EXISTS(zf, "schema_object_overview.tsv")
-            ZEXPECT_EXISTS(zf, "top_biggest_tables.tsv")
-        else:
-            ZEXPECT_NOT_EXISTS(zf, "schema_object_overview.tsv")
-            ZEXPECT_NOT_EXISTS(zf, "top_biggest_tables.tsv")
-        first = True
-        for instance_id, session_or_error in sessions_or_errors:
-            if __version_num > 80000:
-                if slowQueries:
-                    ZEXPECT_EXISTS(zf, f"{instance_id}.slow_log.tsv")
-                    ZEXPECT_EXISTS(zf, f"{instance_id}.slow_log.yaml")
-                else:
-                    ZEXPECT_NOT_EXISTS(zf, f"{instance_id}.slow_log.tsv")
-                    ZEXPECT_NOT_EXISTS(zf, f"{instance_id}.slow_log.yaml")
-            if not allMembers:
-                if first:
-                    ZEXPECT_EXISTS(zf, f"{instance_id}.global_variables.tsv")
-                    first = False
-                else:
-                    ZEXPECT_NOT_EXISTS(zf, f"{instance_id}.global_variables.tsv")
-                    continue
-            if zfpath(zf, f"{instance_id}.connect_error.txt") in filelist:
-                EXPECT_IN(session_or_error, read_text(zfpath(zf, f"{instance_id}.connect_error.txt")))
-            else:
-                assert type(session_or_error) != str, f"{instance_id} = {session_or_error}"
-                CHECK_INSTANCE(session_or_error, zf, instance_id, expected_files_per_instance)
-
-def run_collect(uri, path, options={}, *, password="root", **kwargs):
-    if not options:
-        options = kwargs
-    args = [uri, "--passwords-from-stdin", "-e", f"util.debug.collectDiagnostics('{path}', {repr(options)})"]
-    print(args)
-    testutil.call_mysqlsh(args, password+"\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
-
-
-outdir = __tmp_dir+"/diagout"
-try:
-    testutil.rmdir(outdir, True)
-except:
-    pass
-testutil.mkdir(outdir)
-
 
 session1 = mysql.get_session(__sandbox_uri1)
-session2 = mysql.get_session(__sandbox_uri2)
-session3 = mysql.get_session(__sandbox_uri3)
-session4 = mysql.get_session(__sandbox_uri4)
 
 session1.run_sql("create user nothing@'%'")
 
@@ -168,185 +18,527 @@ session1.run_sql("grant select on *.* to selectonly@'%'")
 
 session1.run_sql("create user minimal@'%'")
 session1.run_sql("grant select, process, replication client, replication slave on *.* to minimal@'%'")
-session1.run_sql("grant execute on sys.* to minimal@'%'")
+session1.run_sql("grant execute, select, create temporary tables on sys.* to minimal@'%'")
 
-session1.run_sql("create user nomd@'%'")
-session1.run_sql("grant select on mysql.* to nomd@'%'")
-session1.run_sql("grant select on sys.* to nomd@'%'")
-session1.run_sql("grant select on performance_schema.* to nomd@'%'")
+session1.run_sql("create schema test")
+
+# TODO replace localhost connections with 127.0.0.1 except where system stuff is wanted
+
+#@<> no session - TSFR_1_2_1
+def check(outpath):
+    if "_hl" in outpath:
+        EXPECT_STDOUT_CONTAINS("Shell must be connected to the MySQL server to be diagnosed.")
+    elif "_sq" in outpath:
+        EXPECT_STDOUT_CONTAINS("Shell must be connected to a MySQL server.")
+    else:
+        EXPECT_STDOUT_CONTAINS("Shell must be connected to a member of the desired MySQL topology.")
+
+CHECK_ALL_ERROR(check, uri=None)
 
 #@<> invalid option
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag0i.zip"), {"innodb_mutex":1})
-EXPECT_STDOUT_CONTAINS("debug.collectDiagnostics: Invalid options at Argument #2: innodb_mutex")
-EXPECT_NO_FILE(os.path.join(outdir,"diag0i.zip"))
+def check(outpath):
+    if "_sq" in outpath:
+        EXPECT_STDOUT_CONTAINS("Invalid options at Argument #3: innodb_mutex")
+    else:
+        EXPECT_STDOUT_CONTAINS("Invalid options at Argument #2: innodb_mutex")
+    EXPECT_NO_FILE(outpath)
 
-#@<> BUG#34048754 - 'path' set to an empty string should result in an error
-run_collect(__sandbox_uri1, "")
-EXPECT_STDOUT_CONTAINS("debug.collectDiagnostics: 'path' cannot be an empty string")
-EXPECT_NO_FILE(".zip")
+CHECK_ALL_ERROR(check, {"innodb_mutex":1})
 
-#@<> Regular instance
+#@<> invalid option - slowQuery
+
+outpath = run_collect_sq(__sandbox_uri1, None, "", {"innodb_mutex":1})
+EXPECT_STDOUT_CONTAINS("debug.collectSlowQueryDiagnostics: Invalid options at Argument #3: innodb_mutex")
+EXPECT_NO_FILE(outpath)
+
+RESET(outpath)
+
+# TSFR_9_0_14
+outpath = run_collect_sq(__sandbox_uri1, None, {})
+EXPECT_STDOUT_CONTAINS("debug.collectSlowQueryDiagnostics: Argument #2 is expected to be a string")
+EXPECT_NO_FILE(outpath)
+
+#@<> invalid option - pfsInstrumentation garbage TSFR_6_1, TSFR_6_2
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("'pfsInstrumentation' must be one of current, medium, full")
+
+CHECK_ALL_ERROR(check, {"pfsInstrumentation":""}, nobasic=True)
+
+CHECK_ALL_ERROR(check, {"pfsInstrumentation":"nwelqeq"}, nobasic=True)
+
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("option 'pfsInstrumentation' is expected to be a string")
+
+CHECK_ALL_ERROR(check, {"pfsInstrumentation":{}}, nobasic=True)
+
+#@<> ensure copy of log file with non-utf8 data works
+# Bug#34208308	util.debug.collectDiagnostics() fails if a log file includes non-utf8 character
+
+# inject some binary junk into the log
+shell.log("info", b"test\xed\xf0")
+
+outpath = run_collect(__sandbox_uri1, None)
+EXPECT_FILE_CONTENTS(outpath, "mysqlsh.log", b"test\xed\xf0")
+
+#@<> BUG#34048754 - 'path' set to an empty string should result in an error - all
+# TSFR_1_3_3
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("'path' cannot be an empty string")
+    EXPECT_NO_FILE(".zip")
+
+CHECK_ALL_ERROR(check, path="")
+
+#@<> bogus value for path TSFR_1_1_2, TSFR_9_0_2
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("Argument #1 is expected to be a string")
+
+CHECK_ALL_ERROR(check, path={})
+
+#@<> TSFR_1_3_2 - bad dir
+CHECK_ALL_ERROR(lambda out: EXPECT_STDOUT_CONTAINS("No such file or directory"), path=outdir+"/invalid/out.zip", keep_file=True)
+
+#@<> TSFR_1_3_2 - not writable
+os.mkdir(outdir+"/unwritable", mode=0o555)
+CHECK_ALL_ERROR(lambda out: EXPECT_STDOUT_CONTAINS("Permission denied"), path=outdir+"/unwritable/out.zip", keep_file=True)
+os.rmdir(outdir+"/unwritable")
+
+#@<> TSFR_1_3_2 Duplicate filename - all
+outpath = outdir+"/out.zip"
+open(outpath, "w").close()
+os.chmod(outpath, 0o600)
+CHECK_ALL_ERROR(lambda out: EXPECT_STDOUT_CONTAINS("already exists"), path=outpath, keep_file=True)
+
+# TSFR_1_3_5 - out should expand to out.zip
+outpath = outdir+"/out"
+open(outpath, "w").close()
+os.chmod(outpath, 0o600)
+CHECK_ALL_ERROR(lambda out: EXPECT_STDOUT_CONTAINS("already exists"), path=outpath, keep_file=True)
+
+#@<> TSFR_1_4_1 - bad value for iterations
+outpath = run_collect_hl(hostname_uri, None, {"iterations":"bla"})
+EXPECT_STDOUT_CONTAINS("Argument #2, option 'iterations' is expected to be an integer")
+RESET(outpath)
+
+# TSFR_1_4_2
+outpath = run_collect_hl(hostname_uri, None, {"iterations":0})
+EXPECT_STDOUT_CONTAINS("'iterations' must be > 0")
+RESET(outpath)
+
+# TSFR_1_4_2
+outpath = run_collect_hl(hostname_uri, None, {"iterations":-1})
+EXPECT_STDOUT_CONTAINS("'iterations' must be > 0")
+RESET(outpath)
+
+# TSFR_1_4_8
+outpath = run_collect_hl(hostname_uri, None, {"delay":0})
+EXPECT_STDOUT_CONTAINS("'delay' must be > 0")
+RESET(outpath)
+
+# TSFR_1_4_8
+outpath = run_collect_hl(hostname_uri, None, {"delay":-1})
+EXPECT_STDOUT_CONTAINS("'delay' must be > 0")
+RESET(outpath)
+
+# TSFR_1_4_9
+outpath = run_collect_hl(hostname_uri, None, {"delay":{}})
+EXPECT_STDOUT_CONTAINS("'delay' is expected to be an integer")
+
+#@<> bogus value for options TSFR_1_1_3, TSFR_9_0_3, TSFR_9_0_4
+args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectDiagnostics('x', false)"]
+testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+
+EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a map")
+RESET()
+
+args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectHighLoadDiagnostics('x', false)"]
+testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+
+EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a map")
+RESET()
+
+args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectSlowQueryDiagnostics('x', 'x', false)"]
+testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+
+EXPECT_STDOUT_CONTAINS("Argument #3 is expected to be a map")
+
+RESET()
+
+args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectSlowQueryDiagnostics('x', {}, false)"]
+testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+
+EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a string")
+
+
+#@<> Regular instance - basic
 shell.connect(__sandbox_uri1)
 
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag0.zip"))
+outpath = run_collect(__sandbox_uri1, None)
 # allMembers is true but it's a standalone instance, so it's a no-op
-CHECK_DIAGPACK(os.path.join(outdir,"diag0.zip"), [(0, session1)], is_cluster=False, allMembers=1, innodbMutex=False)
+CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, allMembers=1, innodbMutex=False, localTarget=True)
 
-#@<> output is a directory, default filename with timestamp
-run_collect(__sandbox_uri1, outdir+"/")
+#@<> output is a directory, default filename with timestamp - all
+# TSFR_1_3_4
+run_collect(hostname_uri, outdir+"/")
 filenames = [f for f in os.listdir(outdir) if f.startswith("mysql-diagnostics-")]
-EXPECT_NE([], filenames)
-CHECK_DIAGPACK(os.path.join(outdir,filenames[0]), [(0, session1)], is_cluster=False, innodbMutex=False)
+EXPECT_EQ(1, len(filenames))
 
-#@<> slowQueries fail
-run_collect(__sandbox_uri1, os.path.join(outdir, "diag0.0.zip"), {"slowQueries":1})
+RESET(filenames[0])
+
+run_collect_hl(hostname_uri, outdir+"/")
+filenames = [f for f in os.listdir(outdir) if f.startswith("mysql-diagnostics-")]
+EXPECT_EQ(1, len(filenames))
+
+EXPECT_STDOUT_CONTAINS("NOTE: Target server is not at localhost, host information was not collected")
+
+RESET(filenames[0])
+
+run_collect_sq(hostname_uri+"/mysql", outdir+"/", "select * from mysql.user")
+filenames = [f for f in os.listdir(outdir) if f.startswith("mysql-diagnostics-")]
+EXPECT_EQ(1, len(filenames))
+
+EXPECT_STDOUT_CONTAINS("NOTE: Target server is not at localhost, host information was not collected")
+
+#@<> slowQueries fail - basic
+outpath = run_collect(hostname_uri, None, {"slowQueries":1})
 EXPECT_STDOUT_CONTAINS("slowQueries option requires slow_query_log to be enabled and log_output to be set to TABLE")
-EXPECT_NO_FILE(os.path.join(outdir,"diag0.0.zip"))
+EXPECT_NO_FILE(outpath)
 
 #@<> slowQueries OK
 session.run_sql("set global slow_query_log=1")
 session.run_sql("set session long_query_time=0.1")
 session.run_sql("set global log_output='TABLE'")
 session.run_sql("select sleep(1)")
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag0.0.zip"), {"slowQueries":1})
-CHECK_DIAGPACK(os.path.join(outdir,"diag0.0.zip"), [(0, session1)], is_cluster=False, innodbMutex=False, slowQueries=True)
+outpath = run_collect(hostname_uri, None, {"slowQueries":1})
+CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=False, slowQueries=True)
 
-#@<> with no access
-run_collect("nothing:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag0.1.zip"))
-EXPECT_STDOUT_CONTAINS("SELECT command denied to user 'nothing'@'localhost'")
-EXPECT_NO_FILE(os.path.join(outdir,"diag0.1.zip"))
+#@<> with no access - all - TSFR_1_2_4
+outpath = run_collect(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None)
+EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
+EXPECT_NO_FILE(outpath)
+
+RESET(outpath)
+
+outpath = run_collect_hl(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None)
+EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
+EXPECT_NO_FILE(outpath)
+
+RESET(outpath)
+
+outpath = run_collect_sq(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None, "select 1")
+EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
+EXPECT_NO_FILE(outpath)
 
 #@<> no access + ignoreErrors
-run_collect("nothing:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag0.1.1.zip"), {"allMembers":0, "ignoreErrors":1})
-EXPECT_FILE(os.path.join(outdir,"diag0.1.1.zip"))
+# not enough for anything, so error out
+outpath = run_collect(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None, {"allMembers":0, "ignoreErrors":1})
+EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
+EXPECT_NO_FILE(outpath)
 
 #@<> with select only access
-run_collect("selectonly:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag0.1.zip"))
-EXPECT_STDOUT_CONTAINS("Access denied; you need (at least one of)")
-EXPECT_NO_FILE(os.path.join(outdir,"diag0.1.zip"))
+outpath = run_collect(f"selectonly:@{hostname}:{__mysql_sandbox_port1}", None)
+EXPECT_STDOUT_CONTAINS("execute command denied to user 'selectonly'@'%' for routine")
+EXPECT_NO_FILE(outpath)
 
 #@<> minimal privs
-run_collect("minimal:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag0.2.zip"))
-CHECK_DIAGPACK(os.path.join(outdir,"diag0.2.zip"), [(0, session1)], is_cluster=False, innodbMutex=False)
-
-#@<> Duplicate filename
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag0.zip"))
-EXPECT_STDOUT_CONTAINS("already exists")
+outpath = run_collect(f"minimal:@{hostname}:{__mysql_sandbox_port1}", None)
+CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=False)
 
 #@<> Regular instance + innodbMutex + schemaStatus
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag0i.zip"), innodbMutex=1, schemaStats=1, allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag0i.zip"), [(0, session1)], is_cluster=False, innodbMutex=True, schemaStats=True)
+outpath = run_collect(hostname_uri, None, innodbMutex=1, schemaStats=1, allMembers=1)
+CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=True, schemaStats=True)
+EXPECT_STDOUT_CONTAINS("NOTE: allMembers enabled, but InnoDB Cluster metadata not found")
 
-#@<> ReplicaSet {VER(>8.0.0)}
-shell.connect(__sandbox_uri1)
+#@<> customSql - bad value - TSFR_1_5_1
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("option 'customSql' is expected to be an array")
+    EXPECT_NO_FILE(outpath)
 
-r = dba.create_replica_set("replicaset", {"gtidSetIsComplete":1})
-r.add_instance(__sandbox_uri2)
+CHECK_ALL_ERROR(check, {"customSql":"select 1"})
 
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag1.zip"), allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag1.zip"), [(1, session1), (2, session2)], is_cluster=True, innodbMutex=False)
+outpath = run_collect(__sandbox_uri1, None, {"customSql": ["during:select 1"]})
+EXPECT_STDOUT_CONTAINS("Option 'customSql' may not contain before:, during: or after: prefixes")
+EXPECT_NO_FILE(outpath)
 
-session.run_sql("drop schema mysql_innodb_cluster_metadata")
+#@<> customShell - bad value - TSFR_1_6_1
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("option 'customShell' is expected to be an array")
+    EXPECT_NO_FILE(outpath)
 
-session2.close()
-testutil.destroy_sandbox(__mysql_sandbox_port2)
-testutil.deploy_sandbox(__mysql_sandbox_port2, "root")
-session2 = mysql.get_session(__sandbox_uri2)
+CHECK_ALL_ERROR(check, {"customShell":"true"})
 
-r.disconnect()
+outpath = run_collect(__sandbox_uri1, None, {"customShell": ["during:echo 1"]})
+EXPECT_STDOUT_CONTAINS("Option 'customShell' may not contain before:, during: or after: prefixes")
+EXPECT_NO_FILE(outpath)
 
-#@<> Setup InnoDB Cluster
-shell.connect(__sandbox_uri1)
-c = dba.create_cluster("cluster", {"gtidSetIsComplete":1})
-c.add_instance(__sandbox_uri2)
-c.add_instance(__sandbox_uri3)
+#@<> customShell while connected to not localhost - TSFR_1_6_6
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("Option 'customShell' is only allowed when connected to localhost")
+    EXPECT_NO_FILE(outpath)
 
-testutil.wait_member_transactions(__mysql_sandbox_port3, __mysql_sandbox_port1)
+CHECK_ALL_ERROR(check, {"customShell": ["echo 1"]}, uri=f"root:root@{hostname}:{__mysql_sandbox_port1}")
 
-#@<> cluster with innodbMutex + schemaStats
-testutil.expect_password("Password for root: ", "root")
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag1.1.zip"), innodbMutex=1, schemaStats=1, allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag1.1.zip"), [(1, session1), (2, session2), (3, session3)], is_cluster=True, innodbMutex=True, schemaStats=True)
+#@<> customSql and customShell - success - TSFR_1_6_2, TSFR_1_6_4
+def check(outpath):
+    if "diag_hl" in outpath or "diag_sq" in outpath:
+        csfn = "custom_shell-before.txt"
+        cqfn = "custom_sql-before-script"
+    else:
+        csfn = "custom_shell.txt"
+        cqfn = "0.custom_sql-script"
+    EXPECT_FILE_CONTENTS(outpath, csfn, b"^custom script$")
+    EXPECT_FILE_CONTENTS(outpath, csfn, b"^custom script2$")
+    EXPECT_FILE_CONTENTS(outpath, f"{cqfn}_0.tsv", b"^CUSTOM SQL$")
+    EXPECT_FILE_CONTENTS(outpath, f"{cqfn}_1.tsv", b"^CUSTOM SQL2$")
 
-#@<> cluster with allMembers=False
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag1.2.zip"), schemaStats=1, allMembers=0)
-EXPECT_STDOUT_NOT_CONTAINS("Password for root:")
-CHECK_DIAGPACK(os.path.join(outdir,"diag1.2.zip"), [(1, session1), (2, session2), (3, session3)], is_cluster=True, schemaStats=True, allMembers=False)
+CHECK_ALL(check, {"customShell": ['echo "custom script"',
+                                'echo "custom script2"',
+                                'false || true'],
+                                      "customSql":["select upper('custom sql')",
+                                                    "select upper('custom sql2')"]},
+        uri=__sandbox_uri1)
 
-#@<> with bad password
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag1.3.zip"), password="bla", schemaStats=1, allMembers=1)
-EXPECT_STDOUT_CONTAINS("Access denied for user 'root'@'localhost'")
-EXPECT_NO_FILE(os.path.join(outdir,"diag1.3.zip"))
+#@<> customSql and customShell - errors in the scripts
 
-#@<> with no access to MD
-run_collect("nomd:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag1.4.zip"), allMembers=1)
-EXPECT_STDOUT_CONTAINS("SELECT command denied to user 'nomd'@'localhost' for table 'instances'")
-EXPECT_NO_FILE(os.path.join(outdir,"diag1.4.zip"))
+# should abort
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("While executing \"select invalid\"")
+    EXPECT_NO_FILE(outpath)
 
-#@<> no access to MD but ignoreErrors (allMembers=1, so still error)
-run_collect("nomd:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag1.4.zip"), allMembers=1, ignoreErrors=1)
-EXPECT_STDOUT_CONTAINS("SELECT command denied to user 'nomd'@'localhost' for table 'instances'")
-EXPECT_NO_FILE(os.path.join(outdir,"diag1.4.zip"))
+CHECK_ALL_ERROR(check, {"customSql":["select invalid"]})
 
-#@<> no access to MD but ignoreErrors (allMembers=0, so success)
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag1.4.zip"), allMembers=0, ignoreErrors=1)
-EXPECT_FILE(os.path.join(outdir,"diag1.4.zip"))
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("Shell command \"false\" exited with code 1")
+    EXPECT_NO_FILE(outpath)
 
-#@<> minimal privs with innodb cluster
-run_collect("minimal:@localhost:"+str(__mysql_sandbox_port1), os.path.join(outdir,"diag1.5.zip"), allMembers=1, password="")
-CHECK_DIAGPACK(os.path.join(outdir,"diag1.5.zip"), [(1, session1), (2, session2), (3, session3)], is_cluster=True, innodbMutex=False, allMembers=1)
+# TSFR_1_5_2 TSFR_1_6_3
+CHECK_ALL_ERROR(check, {"customShell": ['echo "custom script"',
+                                        'echo "custom script2"',
+                                        'false']}, uri=__sandbox_uri1)
 
-#@<> Shutdown instance
-session2.close()
-testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})
 
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag2.zip"), allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag2.zip"), [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+def check(outpath):
+    if "_hq" in outpath or "_sl" in outpath:
+        EXPECT_STDOUT_CONTAINS("You have an error in your SQL syntax")
+    EXPECT_NO_FILE(outpath)
 
-#@<> Take offline
-session3.run_sql("stop group_replication")
+CHECK_ALL_ERROR(check, {"customSql":["THIS WILL CAUSE AN ERROR",
+                                     "BefoRe:THIS WILL CAUSE AN ERROR",
+                                     "DURING:THIS WILL CAUSE AN ERROR"]}, 
+                uri=__sandbox_uri1)
 
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag3.zip"), allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag3.zip"), [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+#@<> customSql and customShell - before/during/after - TSFR_1_6_4, TSFR_1_6_7, TSFR_13_1, TSFR_13_2
+options = {
+    "customSql": ["before:select 'before'", "during:select 'during'", "during:select 'during2'", "after:select 'after'"],
+    "customShell": ["before:echo 'before'", "during:echo 'during'", "during:echo 'during2'", "after:echo 'after'", "echo $bla"]
+}
+outpath = run_collect_hl(__sandbox_uri1, None, options, env=["bla=inherited"])
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-before.txt", b"^before$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-before.txt", b"^inherited$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-iteration0.txt", b"^during$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-iteration0.txt", b"^during2$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-after.txt", b"^after$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-before-script_0.tsv", b"^before$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration0-script_0.tsv", b"^during$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration0-script_1.tsv", b"^during2$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-after-script_0.tsv", b"^after$")
+RESET(outpath)
 
-session1.run_sql("stop group_replication")
+outpath = run_collect_sq(__sandbox_uri1, None, "select 123", options, env=["bla=inherited"])
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-before.txt", b"^before$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-before.txt", b"^inherited$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-iteration0.txt", b"^during$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-iteration0.txt", b"^during2$")
+EXPECT_FILE_CONTENTS(outpath, "custom_shell-after.txt", b"^after$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-before-script_0.tsv", b"^before$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration0-script_0.tsv", b"^during$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration0-script_1.tsv", b"^during2$")
+EXPECT_FILE_CONTENTS(outpath, "custom_sql-after-script_0.tsv", b"^after$")
+RESET(outpath)
 
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag4.zip"), allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag4.zip"), [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+#@<> customSql - TSFR_1_5_3
+options = {
+    "customSql": [
+        "CREATE TABLE IF NOT EXISTS test.preamble(execution TIMESTAMP(6))",
+        "DURING:INSERT INTO test.preamble(execution) VALUES (NOW(6))"
+    ],
+    "delay": 2
+}
+def check(outpath):
+    if __version_num >= 80000:
+        count, dif = session1.run_sql("select count(*), cast(max(execution)-min(execution) as float) from test.preamble").fetch_one()
+    else:
+        count, dif = session1.run_sql("select count(*), cast(max(execution)-min(execution) as signed) from test.preamble").fetch_one()
+    EXPECT_EQ(2, count, outpath+" execution count")
+    EXPECT_GT(dif, 1, outpath)
+    # this test is not deterministic
+    # EXPECT_LT(dif, 4, outpath) # ensure iterations are spaced by more than the specified delay, but not too much more
+    if dif > 4:
+        print(f"WARNING: time between iterations > 4??? ({dif})")
+    session1.run_sql("drop table test.preamble")
 
-#@<> Expand to ClusterSet {VER(>8.0.0)}
-testutil.start_sandbox(__mysql_sandbox_port2)
-session2 = mysql.get_session(__sandbox_uri2)
-c = dba.reboot_cluster_from_complete_outage()
-c.rejoin_instance(__sandbox_uri2)
-c.rejoin_instance(__sandbox_uri3)
+CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
 
-cs = c.create_cluster_set("cset")
-c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2")
+#@<> customSql - TSFR_1_5_4
+options = {
+    "customSql": [
+        "before:CREATE TABLE IF NOT EXISTS test.preamble(execution char(64))",
+        "during:INSERT INTO test.preamble(execution) VALUES ('during')",
+        "after:INSERT INTO test.preamble(execution) VALUES ('after') "
+    ],
+    "delay": 2
+}
+def check(outpath):
+    rows = session1.run_sql("select * from test.preamble").fetch_all()
+    EXPECT_EQ(3, len(rows))
+    EXPECT_EQ("during", rows[0][0])
+    EXPECT_EQ("during", rows[1][0])
+    EXPECT_EQ("after", rows[2][0])
+    session1.run_sql("drop table test.preamble")
 
-testutil.wait_member_transactions(__mysql_sandbox_port4, __mysql_sandbox_port1)
-testutil.wait_member_transactions(__mysql_sandbox_port3, __mysql_sandbox_port1)
-testutil.wait_member_transactions(__mysql_sandbox_port2, __mysql_sandbox_port1)
+CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
 
-run_collect(__sandbox_uri1, os.path.join(outdir,"diag5.zip"), allMembers=1)
-CHECK_DIAGPACK(os.path.join(outdir,"diag5.zip"), [(1, session1), (2, session2), (3, session3), (4, session4)], is_cluster=True, innodbMutex=False)
+#@<> customSql - TSFR_1_5_5
+options = {
+    "customSql": [
+        "SHOW VARIABLES",
+        "before:SHOW VARIABLES",
+        "during:SHOW VARIABLES",
+        "after:SHOW VARIABLES"
+    ],
+    "delay": 1
+}
+def check(outpath):
+    EXPECT_FILE_CONTENTS(outpath, "custom_sql-before-script_0.tsv", b"SHOW VARIABLES")
+    EXPECT_FILE_CONTENTS(outpath, "custom_sql-before-script_1.tsv", b"SHOW VARIABLES")
+    EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration0-script_0.tsv", b"SHOW VARIABLES")
+    EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration1-script_0.tsv", b"SHOW VARIABLES")
+    EXPECT_FILE_CONTENTS(outpath, "custom_sql-after-script_0.tsv", b"SHOW VARIABLES")
 
-c.disconnect()
-cs.disconnect()
-c2.disconnect()
+# TSFR_1_4_7
+CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
+
+#@<> plain highLoad
+
+# TSFR_1_4_4
+def check(outpath):
+    CHECK_DIAGPACK(outpath, [(None, session1)], allMembers=0, schemaStats=True, slowQueries=True)
+    EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-1.metrics.tsv")
+    EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-2.metrics.tsv")
+    EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-3.metrics.tsv")
+    EXPECT_FILE_NOT_IN_ZIP(outpath, "diagnostics-raw/iteration-4.metrics.tsv")
+
+outpath = run_collect_hl(hostname_uri, None, {"iterations":3, "delay":1})
+check(outpath)
+
+#@<> plain all with innodbMutex
+
+# TSFR_1_4_5
+def check(outpath):
+    CHECK_DIAGPACK(outpath, [(None, session1)], innodbMutex=True, allMembers=0, schemaStats=True, slowQueries=True)
+    EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-1.metrics.tsv")
+    EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-2.metrics.tsv")
+    EXPECT_FILE_NOT_IN_ZIP(outpath, "diagnostics-raw/iteration-3.metrics.tsv")
+
+outpath = run_collect_hl(hostname_uri, None, {"delay":1, "innodbMutex":1})
+check(outpath)
+
+#@<> highLoad + slowQuery with pfsInstrumentation - current
+
+if __version_num > 80000:
+    default_consumers = ["events_statements_current", "events_statements_history", "events_transactions_current", "events_transactions_history", "global_instrumentation", "thread_instrumentation", "statements_digest"]
+else:
+    default_consumers = ["events_statements_current", "events_statements_history", "global_instrumentation", "thread_instrumentation", "statements_digest"]
+
+def check(outpath):
+    CHECK_DIAGPACK(outpath, [(None, session1)], allMembers=0, schemaStats=True, slowQueries=True)
+    CHECK_PFS_INSTRUMENTS(outpath, "current", {"stage/mysys": lambda x: x == 0,
+                                        "wait/synch":lambda x: x == 0,
+                                        "stage/sql": lambda x: 0 < x < 5,
+                                        "wait/io": lambda x: 80 < x < 90 })
+    CHECK_PFS_CONSUMERS(outpath, "current", default_consumers)
+
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+
+#@<> highLoad + slowQuery with pfsInstrumentation - medium
+if __version_num > 80000:
+    consumers = ["events_stages_current", "events_statements_cpu", "events_statements_current", "events_statements_history", "events_transactions_current", "events_transactions_history", "events_waits_current", "global_instrumentation", "thread_instrumentation", "statements_digest"]
+else:
+    consumers = ["events_stages_current", "events_statements_current", "events_statements_history", "events_transactions_current", "events_waits_current", "global_instrumentation", "thread_instrumentation", "statements_digest"]
+def check(outpath):
+    CHECK_PFS_INSTRUMENTS(outpath, "medium", {"wait/synch":lambda x: x == 0})
+    CHECK_PFS_CONSUMERS(outpath, "medium", consumers)
+
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"medium"}, nobasic=True)
+
+#@<> highLoad + slowQuery with pfsInstrumentation - full
+# TSFR_6_1_1
+
+def check(outpath):
+    CHECK_PFS_INSTRUMENTS(outpath, "full", {})
+    CHECK_PFS_CONSUMERS(outpath, "full", ["events_stages_current", "events_stages_history", "events_stages_history_long", "events_statements_cpu", "events_statements_current","events_statements_history","events_statements_history_long","events_transactions_current","events_transactions_history","events_transactions_history_long","events_waits_current","events_waits_history","events_waits_history_long","global_instrumentation","thread_instrumentation","statements_digest"])
+
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"full"}, nobasic=True)
+
+
+#@<> highLoad with pfsInstrumentation current and all disabled instruments/consumers
+# TSFR_6_8 (is invalid) TSFR_6_9 TSFR_6_10
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+
+session1.run_sql("call sys.ps_setup_reset_to_default(true)")
+
+session1.run_sql("update performance_schema.setup_consumers set enabled='NO'")
+
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("WARNING: performance_schema.setup_consumers is completely disabled")
+
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+
+session1.run_sql("call sys.ps_setup_reset_to_default(true)")
+
+#@<> highLoad with pfsInstrumentation current and all disabled threads {VER(>=8.0.0)}
+session1.run_sql("update performance_schema.setup_threads set enabled='NO'")
+
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("WARNING: performance_schema.setup_threads is completely disabled")
+
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+
+session1.run_sql("call sys.ps_setup_reset_to_default(true)")
+
+#@<> no pfs TSFR_6_3
+testutil.deploy_sandbox(__mysql_sandbox_port5, "root", {"performance-schema":"off"})
+
+def check(outpath):
+    EXPECT_STDOUT_CONTAINS("WARNING: performance_schema is disabled, collected a limited amount of information")
+
+CHECK_ALL(check, uri=__sandbox_uri5)
+
+#@<> plain slowQuery
+
+outpath = run_collect_sq(__sandbox_uri1, None, "select * from mysql.user join mysql.db", {"delay":1})
+CHECK_DIAGPACK(outpath, [(None, session1)], innodbMutex=False, allMembers=0, schemaStats=True, slowQueries=True, localTarget=True)
+
+#@<> invalid slowQuery - TSFR_9_0_15
+outpath = run_collect_sq(__sandbox_uri1, None, "drop schema information_schema")
+EXPECT_STDOUT_CONTAINS("ERROR running query:  EXPLAIN drop schema information_schema MySQL Error (1064):")
+EXPECT_STDOUT_CONTAINS("Access denied for user 'root'@'localhost' to database 'information_schema' (MySQL Error 1044)")
+EXPECT_NO_FILE(outpath)
+RESET(outpath)
+
+outpath = run_collect_sq(__sandbox_uri1, None, "garbage")
+EXPECT_STDOUT_CONTAINS("ERROR running query:  EXPLAIN garbage MySQL Error (1046)")
+EXPECT_STDOUT_CONTAINS("You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'garbage' at line 1 (MySQL Error 1064)")
+EXPECT_NO_FILE(outpath)
+RESET(outpath)
+
+outpath = run_collect_sq(__sandbox_uri1, None, "")
+EXPECT_STDOUT_CONTAINS("debug.collectSlowQueryDiagnostics: 'query' must contain the query to be analyzed")
+EXPECT_NO_FILE(outpath)
 
 #@<> Cleanup
 session1.close()
-session2.close()
-session3.close()
-session4.close()
 
 testutil.destroy_sandbox(__mysql_sandbox_port1)
-testutil.destroy_sandbox(__mysql_sandbox_port2)
-testutil.destroy_sandbox(__mysql_sandbox_port3)
-testutil.destroy_sandbox(__mysql_sandbox_port4)
+testutil.destroy_sandbox(__mysql_sandbox_port5)
 
-try:
-    testutil.rmdir(outdir, True)
-except:
-    pass
+shutil.rmtree(outdir)

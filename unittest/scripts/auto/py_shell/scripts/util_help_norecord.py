@@ -64,3 +64,9 @@ from debug import init
 
 #@ util debug collect_diagnostics with util.debug.help (partial path)
 util.debug.help("collect_diagnostics")
+
+#@ util debug collect_high_load_diagnostics
+\? collect_high_load_diagnostics
+
+#@ util debug collect_slow_query_diagnostics
+\? collect_slow_query_diagnostics

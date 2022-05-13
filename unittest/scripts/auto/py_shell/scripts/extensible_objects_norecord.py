@@ -52,7 +52,7 @@ def f2(data=None):
   if data:
     try:
       print("Function data: ", data.myOption)
-    except IndexError:
+    except AttributeError:
       print("Full data:", data)
   else:
     print("No function data available")

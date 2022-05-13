@@ -1142,6 +1142,10 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
   execute("\\use actest");
 
   std::vector<std::pair<std::string, std::string>> mysql_calls{
+      {"quoteIdentifier", "('a')"},
+      {"unquoteIdentifier", "(`a`)"},
+      {"splitScript", "('a;b;')"},
+      {"parseStatementAst", "('select 1')"},
       {"help", ""},
       {"getClassicSession", "('" + _mysql_uri + "')"},
       {"getSession", "('" + _mysql_uri + "')"}};

@@ -374,6 +374,39 @@ TEST(utils_general, unquote_identifier) {
   EXPECT_EQ("table", unquote_identifier("table"));
   EXPECT_EQ("table", unquote_identifier("`table`"));
   EXPECT_EQ("schema.table", unquote_identifier("`schema.table`"));
+  EXPECT_EQ("aaa`bbb", unquote_identifier("`aaa``bbb`"));
+}
+
+TEST(utils_general, unquote_sql_string) {
+  EXPECT_THROW_LIKE(unquote_sql_string(""), std::invalid_argument,
+                    "string is not properly quoted");
+  EXPECT_THROW_LIKE(unquote_sql_string("\"aa\""), std::invalid_argument,
+                    "string is not properly quoted");
+  EXPECT_THROW_LIKE(unquote_sql_string("'aa"), std::invalid_argument,
+                    "string is not properly quoted");
+  EXPECT_THROW_LIKE(unquote_sql_string("'aa''"), std::invalid_argument,
+                    "string is not properly quoted");
+  EXPECT_THROW_LIKE(unquote_sql_string("aa'"), std::invalid_argument,
+                    "string is not properly quoted");
+  EXPECT_THROW_LIKE(unquote_sql_string("'\\'"), std::invalid_argument,
+                    "string is not properly quoted");
+  EXPECT_THROW_LIKE(unquote_sql_string("''\\'"), std::invalid_argument,
+                    "string is not properly quoted");
+
+  EXPECT_EQ("\n", unquote_sql_string("'\n'"));
+  EXPECT_EQ("\\", unquote_sql_string("'\\\\'"));
+  EXPECT_EQ("", unquote_sql_string("''"));
+  EXPECT_EQ("'", unquote_sql_string(R"*('\'')*"));
+  EXPECT_EQ("'", unquote_sql_string("'\\''"));
+  EXPECT_EQ("'", unquote_sql_string("'\\''"));
+  EXPECT_EQ("'", unquote_sql_string("''''"));
+  EXPECT_EQ("'''", unquote_sql_string("'\\''''''"));
+  EXPECT_EQ("''\\'", unquote_sql_string("'\\'''\\\\'''"));
+  EXPECT_EQ("'", unquote_sql_string("'\\''"));
+  EXPECT_EQ("\n", unquote_sql_string("'\\n'"));
+  EXPECT_EQ("\\n", unquote_sql_string("'\\\\n'"));
+  EXPECT_EQ("\\\n", unquote_sql_string("'\\\\\n'"));
+  EXPECT_EQ("'\n", unquote_sql_string("'\\'\n'"));
 }
 
 TEST(utils_general, split_string_chars) {

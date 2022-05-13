@@ -370,6 +370,10 @@ PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
   std::shared_ptr<Cpp_object_bridge> cobj(
       std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
+  if (attrname == "__mysqlsh_classname__") {
+    return PyString_FromString(cobj->class_name().c_str());
+  }
+
   shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
   if (cobj->has_method_advanced(attrname))

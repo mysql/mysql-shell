@@ -33,6 +33,19 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
+      parse_statement_ast(statement)
+            Parse a MySQL statement and return its AST representation.
+
+      quote_identifier(s)
+            Quote a string as a MySQL identifier, escaping characters when
+            needed.
+
+      split_script(script)
+            Split a SQL script into individual statements.
+
+      unquote_identifier(s)
+            Unquote a MySQL identifier.
+
 CLASSES
  - ClassicResult  Allows browsing through the result information after
                   performing an operation on the database through the MySQL

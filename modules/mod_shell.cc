@@ -210,7 +210,7 @@ void Shell::init() {
   expose("connectToPrimary", &Shell::connect_to_primary, "?connectionData",
          "?password")
       ->cli(false);
-  expose("openSession", &Shell::open_session, "connectionData", "?password")
+  expose("openSession", &Shell::open_session, "?connectionData", "?password")
       ->cli(false);
   if (mysqlshdk::utils::in_main_thread())
     expose("createContext", &Shell::create_context, "callbacks");
@@ -937,7 +937,8 @@ REGISTER_HELP_FUNCTION(openSession, shell);
 REGISTER_HELP_FUNCTION_TEXT(SHELL_OPENSESSION, R"*(
 Establishes and returns session.
 
-@param connectionData the connection data to be used to establish the session.
+@param connectionData Optional the connection data to be used to establish
+  the session. If none given, duplicates the shell's active session.
 @param password Optional the password to be used when establishing the session.
 
 @returns The session object.
@@ -968,9 +969,20 @@ Session Shell::open_session(ConnectionData connectionData, str password) {}
 std::shared_ptr<ShellBaseSession> Shell::open_session(
     const mysqlshdk::db::Connection_options &connection_options_,
     const char *password) {
-  auto connection_options = connection_options_;
-  mysqlsh::set_password_from_string(&connection_options, password);
-  return _shell->connect(connection_options, false, false);
+  if (connection_options_.has_data()) {
+    auto connection_options = connection_options_;
+    mysqlsh::set_password_from_string(&connection_options, password);
+    return _shell->connect(connection_options, false, false);
+  } else {
+    auto session = _shell_core->get_dev_session();
+
+    if (!(session && session->is_open())) {
+      throw shcore::Exception::runtime_error(
+          "An open session is required when duplicating sessions.");
+    }
+
+    return _shell->connect(session->get_connection_options(), false, false);
+  }
 }
 
 REGISTER_HELP_FUNCTION(setCurrentSchema, shell);
