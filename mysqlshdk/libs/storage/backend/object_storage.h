@@ -32,7 +32,6 @@
 
 #include "mysqlshdk/libs/storage/backend/object_storage_bucket.h"
 
-// TODO(rennox): Add error logic leading to multipart abort
 // TODO(rennox): Add handling for read only bucket (public)
 // TODO(rennox): Should we support additional content/types on the objects being
 // uploaded?
@@ -277,6 +276,7 @@ class Object : public mysqlshdk::storage::IFile {
   class File_handler {
    public:
     explicit File_handler(Object *owner) : m_object(owner), m_size(0) {}
+    virtual ~File_handler() = default;
     size_t size() const { return m_size; }
 
    protected:
@@ -290,7 +290,7 @@ class Object : public mysqlshdk::storage::IFile {
   class Writer : public File_handler {
    public:
     explicit Writer(Object *owner, Multipart_object *object = nullptr);
-    virtual ~Writer() = default;
+    ~Writer() override;
 
     off64_t seek(off64_t offset);
     off64_t tell() const;
@@ -298,8 +298,12 @@ class Object : public mysqlshdk::storage::IFile {
     void close();
 
    private:
-    std::string m_buffer;
+    void reset();
 
+    void abort_multipart_upload(const char *context,
+                                const std::string &error = {});
+
+    std::string m_buffer;
     bool m_is_multipart;
     Multipart_object m_multipart;
     std::vector<Multipart_object_part> m_parts;
@@ -311,7 +315,7 @@ class Object : public mysqlshdk::storage::IFile {
   class Reader : public File_handler {
    public:
     explicit Reader(Object *owner);
-    virtual ~Reader() = default;
+    ~Reader() override = default;
 
     off64_t seek(off64_t offset);
     off64_t tell() const;
