@@ -867,9 +867,8 @@ Lists the Router instances of the ClusterSet, or a single Router instance.
 
 @returns A JSON object listing the Router instances registered in the ClusterSet.
 
-This function lists and provides information about all Router instances registered on the Clusters members of the ClusterSet.
-
-@attention The lastCheckIn property reflects the Routers' startup timestamp.
+This function lists and provides information about all Router instances registered
+on the Clusters members of the ClusteSet.
 )*");
 
 /**
