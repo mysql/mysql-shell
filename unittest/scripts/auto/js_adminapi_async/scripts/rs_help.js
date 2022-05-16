@@ -122,15 +122,6 @@ rs.help("setInstanceOption")
 //@ setInstanceOption. \help [USE:setInstanceOption]
 \help ReplicaSet.setInstanceOption
 
-//@ listRouters
-rs.help("listRouters")
-
-//@ listRouters. \? [USE:listRouters]
-\? ReplicaSet.listRouters
-
-//@ listRouters. \help [USE:listRouters]
-\help ReplicaSet.listRouters
-
 //@<> Clean-up.
 rs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
