@@ -83,7 +83,7 @@ inline bool str_caseeq(const char *a, const char *b, size_t n) {
 #endif
 }
 
-inline constexpr bool str_caseeq(std::string_view a, std::string_view b) {
+inline bool str_caseeq(std::string_view a, std::string_view b) {
   if (a.size() != b.size()) return false;
 #ifdef _WIN32
   return ::_strnicmp(a.data(), b.data(), a.size()) == 0;
