@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -368,6 +368,14 @@ void Star_global_topology_manager::validate_rejoin_replica(
 
   // Validate the status of the target instance.
   auto topology_node = m_topology->try_get_node_for_uuid(instance->get_uuid());
+  if (!topology_node)
+    topology_node = m_topology->try_get_node_for_endpoint(
+        instance->get_canonical_address());
+  if (!topology_node)
+    throw shcore::Exception(
+        "Unable to find instance '" + instance->descr() + "' in the topology.",
+        SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
+
   topology::Node_status status = topology_node->status();
   if (status == topology::Node_status::ONLINE ||
       status == topology::Node_status::UNREACHABLE) {
@@ -460,12 +468,15 @@ void Star_global_topology_manager::validate_switch_primary(
 
   console->print_info("** Checking transaction state of the instance...");
   for (const auto &instance : instances) {
-    if (instance.get() != master) {
-      validate_node_status(
-          m_topology->try_get_node_for_uuid(instance->get_uuid()));
+    if (instance.get() == master) continue;
 
-      validate_transaction_sets_for_switch_primary(master, instance.get());
-    }
+    auto node = m_topology->try_get_node_for_uuid(instance->get_uuid());
+    if (!node)
+      node = m_topology->try_get_node_for_endpoint(
+          instance->get_canonical_address());
+    validate_node_status(node);
+
+    validate_transaction_sets_for_switch_primary(master, instance.get());
   }
 }
 

@@ -593,6 +593,31 @@ for (const line of testutil.fetchCapturedStdout(false).split(/[\r\n]+/)) {
     }
 }
 
+//@<> Check if adding an instance to a replica set where another instance changed its server_uuid doesn't throw (BUG #34038210)
+
+testutil.removeFromSandboxConf(__mysql_sandbox_port3, "foo");
+testutil.startSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
+
+reset_instance(session);
+reset_instance(mysql.getSession(__sandbox_uri2));
+reset_instance(mysql.getSession(__sandbox_uri3));
+
+var rs = dba.createReplicaSet("rset", {gtidSetIsComplete:true});
+rs.addInstance(__sandbox_uri2, {recoveryMethod:"clone"});
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.changeSandboxConf(__mysql_sandbox_port2, "server_uuid", "5ef81566-9395-11e9-87e9-333333333302");
+testutil.startSandbox(__mysql_sandbox_port2);
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
+EXPECT_NO_THROWS(function() { rs.addInstance(__sandbox_uri3, {recoveryMethod:"clone"}); });
+EXPECT_STDOUT_NOT_CONTAINS(`Unable to find instance '${hostname_ip}:${__mysql_sandbox_port2}' in the topology.`)
+
 //@ Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

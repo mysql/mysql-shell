@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,44 +29,44 @@ namespace mysqlsh {
 namespace dba {
 
 void validate_node_status(const topology::Node *node) {
-  auto console = mysqlsh::current_console();
+  if (!node)
+    throw shcore::Exception("Unable to find instance in the topology.",
+                            SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
 
-  if (node->status() != topology::Node_status::ONLINE) {
-    switch (node->status()) {
-      case topology::Node_status::UNREACHABLE:
-        throw shcore::Exception(node->label + " is unreachable",
-                                SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
+  switch (node->status()) {
+    case topology::Node_status::UNREACHABLE:
+      throw shcore::Exception(node->label + " is unreachable",
+                              SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
 
-      case topology::Node_status::INVALIDATED:
-        throw shcore::Exception(node->label + " was invalidated by a failover",
-                                SHERR_DBA_ASYNC_MEMBER_INVALIDATED);
+    case topology::Node_status::INVALIDATED:
+      throw shcore::Exception(node->label + " was invalidated by a failover",
+                              SHERR_DBA_ASYNC_MEMBER_INVALIDATED);
 
-      case topology::Node_status::ERROR:
-        if (node->get_primary_member()->master_channel)
-          console->print_error(
-              "Replication or configuration errors at " + node->label + ": " +
-              mysqlshdk::mysql::format_status(
-                  node->get_primary_member()->master_channel->info));
-        else
-          console->print_error("Replication or configuration error at " +
-                               node->label);
-        throw shcore::Exception(
-            "Replication or configuration errors at " + node->label,
-            SHERR_DBA_REPLICATION_ERROR);
+    case topology::Node_status::ERROR:
+      if (node->get_primary_member()->master_channel)
+        mysqlsh::current_console()->print_error(
+            "Replication or configuration errors at " + node->label + ": " +
+            mysqlshdk::mysql::format_status(
+                node->get_primary_member()->master_channel->info));
+      else
+        mysqlsh::current_console()->print_error(
+            "Replication or configuration error at " + node->label);
+      throw shcore::Exception(
+          "Replication or configuration errors at " + node->label,
+          SHERR_DBA_REPLICATION_ERROR);
 
-      case topology::Node_status::OFFLINE:
-        throw shcore::Exception("Replication is stopped at " + node->label,
-                                SHERR_DBA_ASYNC_MEMBER_NOT_REPLICATING);
+    case topology::Node_status::OFFLINE:
+      throw shcore::Exception("Replication is stopped at " + node->label,
+                              SHERR_DBA_ASYNC_MEMBER_NOT_REPLICATING);
 
-      case topology::Node_status::INCONSISTENT:
-        throw shcore::Exception(
-            "Transaction set at " + node->label +
-                " is inconsistent with the rest of the replicaset.",
-            SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
+    case topology::Node_status::INCONSISTENT:
+      throw shcore::Exception(
+          "Transaction set at " + node->label +
+              " is inconsistent with the rest of the replicaset.",
+          SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
 
-      case topology::Node_status::ONLINE:
-        break;
-    }
+    case topology::Node_status::ONLINE:
+      break;
   }
 }
 

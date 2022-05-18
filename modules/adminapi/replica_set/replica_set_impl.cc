@@ -100,8 +100,6 @@ void validate_version(const Instance &target_server) {
 }
 
 void validate_instance(Instance *target_server) {
-  auto console = current_console();
-
   // Check instance configuration and state
   ensure_ar_instance_configuration_valid(target_server);
 
@@ -110,9 +108,10 @@ void validate_instance(Instance *target_server) {
   if (mysqlshdk::gr::get_group_information(*target_server, &state, nullptr,
                                            nullptr, nullptr) &&
       state != mysqlshdk::gr::Member_state::OFFLINE) {
-    console->print_error(target_server->descr() +
-                         " has Group Replication active, which cannot be mixed "
-                         "with ReplicaSets.");
+    current_console()->print_error(
+        target_server->descr() +
+        " has Group Replication active, which cannot be mixed "
+        "with ReplicaSets.");
 
     throw shcore::Exception("group_replication active",
                             SHERR_DBA_INVALID_SERVER_CONFIGURATION);
@@ -836,6 +835,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   log_debug("Connecting to target instance.");
   const auto target_instance =
       Scoped_instance(connect_target_instance(instance_def));
+
   const auto target_uuid = target_instance->get_uuid();
 
   // Acquire required locks on target instance (already acquired on primary).
@@ -943,6 +943,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
     }
 
     console->print_info("* Updating the Metadata...");
+
     // Set new instance information and store in MD.
     if (!dry_run) {
       instance_md.master_id =
@@ -951,6 +952,8 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
               ->instance_id;
       instance_md.primary_master = false;
       m_metadata_storage->record_async_member_rejoined(instance_md);
+
+      ensure_metadata_has_server_uuid(*target_instance);
     }
   } catch (const cancel_sync &) {
     stop_channel(target_instance.get(), k_replicaset_channel_name, true, false);
@@ -1260,6 +1263,10 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
 
   const topology::Server *promoted =
       check_target_member(srv_topology, instance_def);
+  if (!promoted)
+    throw shcore::Exception(
+        "Unable to find instance '" + instance_def + "' in the topology.",
+        SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
 
   const topology::Server *demoted = static_cast<const topology::Server *>(
       srv_topology->get_primary_master_node());
@@ -1956,6 +1963,25 @@ void Replica_set_impl::invalidate_handle() {
   m_primary_master.reset();
 }
 
+void Replica_set_impl::ensure_metadata_has_server_uuid(
+    const mysqlsh::dba::Instance &instance) {
+  const auto target_uuid = instance.get_uuid();
+
+  try {
+    m_metadata_storage->get_instance_by_uuid(target_uuid);
+    return;  // uuid is in metadata
+  } catch (const shcore::Exception &e) {
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+  }
+
+  log_info("Updating instance '%s' server UUID in metadata.",
+           instance.descr().c_str());
+
+  Instance_metadata instance_md(query_instance_info(instance, false));
+  instance_md.cluster_id = get_id();
+  m_metadata_storage->update_instance(instance_md);
+}
+
 void Replica_set_impl::ensure_compatible_donor(
     const std::string &instance_def, mysqlshdk::mysql::IInstance *recipient) {
   /*
@@ -1967,8 +1993,6 @@ void Replica_set_impl::ensure_compatible_donor(
    *   - It has the same version of the recipient
    *   - It has the same operating system as the recipient
    */
-
-  auto console = current_console();
 
   const auto target = Scoped_instance(connect_target_instance(instance_def));
 
@@ -1986,15 +2010,24 @@ void Replica_set_impl::ensure_compatible_donor(
   }
 
   // Check if the instance is ONLINE
-  auto topology_mng = setup_topology_manager();
-  auto topology_node =
-      topology_mng->topology()->try_get_node_for_uuid(target->get_uuid());
-  topology::Node_status status = topology_node->status();
+  {
+    auto topology_mng = setup_topology_manager();
 
-  if (status != topology::Node_status::ONLINE) {
-    throw shcore::Exception("Instance " + target_address +
-                                " is not an ONLINE member of the ReplicaSet.",
-                            SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+    auto topology_node =
+        topology_mng->topology()->try_get_node_for_uuid(target->get_uuid());
+    if (!topology_node)
+      topology_node = topology_mng->topology()->try_get_node_for_endpoint(
+          target->get_canonical_address());
+    if (!topology_node)
+      throw shcore::Exception(
+          "Unable to find instance '" + target->descr() + "' in the topology.",
+          SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
+
+    if (topology_node->status() != topology::Node_status::ONLINE) {
+      throw shcore::Exception("Instance " + target_address +
+                                  " is not an ONLINE member of the ReplicaSet.",
+                              SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+    }
   }
 
   // Check if the instance support clone (the recipient was already checked)

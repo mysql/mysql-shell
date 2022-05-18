@@ -241,6 +241,17 @@ EXPECT_EQ(r1, r2);
 
 // [END] - BUG#30574971: replicaset tries writing to secondary member
 
+//@<> Check if changing primary with an instance with a different server_uuid doesn't crash (BUG #34038210)
+rs = rebuild_rs();
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.changeSandboxConf(__mysql_sandbox_port2, "server_uuid", "5ef81566-9395-11e9-87e9-333333333302");
+testutil.startSandbox(__mysql_sandbox_port2);
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
+EXPECT_NO_THROWS(function() { rs.setPrimaryInstance(__sandbox3); });
+
 //@ Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

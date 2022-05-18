@@ -28,6 +28,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/health_enums.h"
 #include "modules/adminapi/common/instance_pool.h"
@@ -208,6 +209,7 @@ class Global_topology {
   std::list<const Node *> get_available_nodes() const;
 
   const Node *try_get_node_for_uuid(const std::string &uuid) const;
+  const Node *try_get_node_for_endpoint(std::string_view endpoint) const;
 
   const Node *get_primary_master_node() const;
   virtual std::list<const Node *> get_slave_nodes(const Node *master) const = 0;
