@@ -323,7 +323,7 @@ void Dump_reader::schema_table_triggers(
 const std::vector<std::string> &Dump_reader::deferred_schema_fks(
     const std::string &schema) const {
   const auto &s = m_contents.schemas.at(schema);
-  return s->fk_queries;
+  return s->foreign_key_queries;
 }
 
 const std::vector<std::string> &Dump_reader::queries_on_schema_end(
@@ -528,9 +528,9 @@ bool Dump_reader::next_table_chunk(
   return false;
 }
 
-bool Dump_reader::next_deferred_index(std::string *out_schema,
-                                      std::string *out_table,
-                                      std::vector<std::string> **out_indexes) {
+bool Dump_reader::next_deferred_index(
+    std::string *out_schema, std::string *out_table,
+    compatibility::Deferred_statements::Index_info **out_indexes) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
       if ((!m_options.load_data() || table.second->all_data_loaded()) &&
@@ -585,6 +585,18 @@ size_t Dump_reader::filtered_data_size() const {
   } else {
     return total_data_size();
   }
+}
+
+size_t Dump_reader::table_data_size(const std::string &schema,
+                                    const std::string &table) const {
+  if (const auto s = m_contents.table_data_size.find(schema);
+      s != m_contents.table_data_size.end()) {
+    if (const auto t = s->second.find(table); t != s->second.end()) {
+      return t->second;
+    }
+  }
+
+  return 0;
 }
 
 void Dump_reader::compute_filtered_data_size() {
@@ -664,15 +676,11 @@ uint64_t Dump_reader::add_deferred_statements(
   // if indexes are not going to be recreated, we're marking them as already
   // created
   t->second->indexes_scheduled = t->second->indexes_created =
-      !m_options.load_deferred_indexes() ||
-      (stmts.fulltext_indexes.empty() && stmts.indexes.empty());
+      !m_options.load_deferred_indexes() || stmts.index_info.empty();
+  t->second->indexes = std::move(stmts.index_info);
 
-  // fulltext indexes are processed first
-  t->second->indexes = std::move(stmts.fulltext_indexes);
-  std::move(stmts.indexes.begin(), stmts.indexes.end(),
-            std::back_inserter(t->second->indexes));
-  std::move(stmts.fks.begin(), stmts.fks.end(),
-            std::back_inserter(s->second->fk_queries));
+  std::move(stmts.foreign_keys.begin(), stmts.foreign_keys.end(),
+            std::back_inserter(s->second->foreign_key_queries));
 
   if (!stmts.secondary_engine.empty()) {
     s->second->queries_on_schema_end.emplace_back(
