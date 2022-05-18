@@ -68,13 +68,11 @@ struct Log_sql_test_params {
   int dba_log_level;          // (0),1,2
   std::string log_sql_level;  // off,(error),on,unfiltered
   std::array<int, 11> log_count_mask;
-  bool use_query_log_error;
 };
 
 std::ostream &operator<<(std::ostream &os, const Log_sql_test_params &p) {
   os << "Log_sql_test_params(context_name=" << p.context_name
      << ", dba_log=" << p.dba_log_level << ", log_sql=" << p.log_sql_level
-     << ", query_log_error=" << (p.use_query_log_error ? "true" : "false")
      << ")";
   return os;
 }
@@ -174,19 +172,10 @@ TEST_P(Shell_log_sql_parameterized_tests, log_sql) {
   auto session = mysqlsh::establish_session(conn_opts, false);
 
   for (const auto &q : m_queries) {
-    if (params.use_query_log_error) {
-      if (q.throws) {
-        EXPECT_ANY_THROW(
-            { auto r = session->query_log_error(q.query_string); });
-      } else {
-        EXPECT_NO_THROW({ auto r = session->query_log_error(q.query_string); });
-      }
+    if (q.throws) {
+      EXPECT_ANY_THROW({ auto r = session->query(q.query_string); });
     } else {
-      if (q.throws) {
-        EXPECT_ANY_THROW({ auto r = session->query(q.query_string); });
-      } else {
-        EXPECT_NO_THROW({ auto r = session->query(q.query_string); });
-      }
+      EXPECT_NO_THROW({ auto r = session->query(q.query_string); });
     }
   }
 
@@ -208,161 +197,109 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(
         ::testing::Values(
             Log_sql_test_params{
-                "js", 0, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false},
+                "js", 0, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
             Log_sql_test_params{
-                "js", 0, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}, false},
+                "js", 0, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}},
             Log_sql_test_params{
-                "js", 0, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}, false},
-            Log_sql_test_params{"js",
-                                0,
-                                "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                "js", 0, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}},
+            Log_sql_test_params{
+                "js", 0, "unfiltered", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
 
             Log_sql_test_params{
-                "js", 1, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false},
+                "js", 1, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
             Log_sql_test_params{
-                "js", 1, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}, false},
+                "js", 1, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}},
             Log_sql_test_params{
-                "js", 1, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}, false},
-            Log_sql_test_params{"js",
-                                1,
-                                "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                "js", 1, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}},
+            Log_sql_test_params{
+                "js", 1, "unfiltered", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
 
             Log_sql_test_params{
-                "js", 2, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false},
+                "js", 2, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
             Log_sql_test_params{
-                "js", 2, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}, false},
+                "js", 2, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}},
             Log_sql_test_params{
-                "js", 2, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}, false},
-            Log_sql_test_params{"js",
-                                2,
-                                "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                "js", 2, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}},
+            Log_sql_test_params{
+                "js", 2, "unfiltered", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
 
             Log_sql_test_params{
-                "Dba.test", 0, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false},
-            Log_sql_test_params{"Dba.test",
-                                0,
-                                "error",
-                                {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0},
-                                false},
+                "Dba.test", 0, "off", {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
             Log_sql_test_params{
-                "Dba.test", 0, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}, false},
-            Log_sql_test_params{"Dba.test",
-                                0,
-                                "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                "Dba.test", 0, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}},
+            Log_sql_test_params{
+                "Dba.test", 0, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}},
+            Log_sql_test_params{
+                "Dba.test", 0, "unfiltered", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
 
             Log_sql_test_params{
-                "Dba.test", 1, "off", {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, false},
-            Log_sql_test_params{"Dba.test",
-                                1,
-                                "error",
-                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                                false},
+                "Dba.test", 1, "off", {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
             Log_sql_test_params{
-                "Dba.test", 1, "on", {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, false},
-            Log_sql_test_params{"Dba.test",
-                                1,
-                                "unfiltered",
-                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                                false},
+                "Dba.test", 1, "error", {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
+            Log_sql_test_params{
+                "Dba.test", 1, "on", {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
+            Log_sql_test_params{
+                "Dba.test", 1, "unfiltered", {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
 
             Log_sql_test_params{
-                "Dba.test", 2, "off", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}, false},
-            Log_sql_test_params{"Dba.test",
-                                2,
-                                "error",
-                                {1, 0, 2, 1, 1, 1, 1, 1, 1, 1, 0},
-                                false},
+                "Dba.test", 2, "off", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
             Log_sql_test_params{
-                "Dba.test", 2, "on", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}, false},
-            Log_sql_test_params{"Dba.test",
-                                2,
-                                "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                "Dba.test", 2, "error", {1, 0, 2, 1, 1, 1, 1, 1, 1, 1, 0}},
+            Log_sql_test_params{
+                "Dba.test", 2, "on", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
+            Log_sql_test_params{
+                "Dba.test", 2, "unfiltered", {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
 
             Log_sql_test_params{"Cluster.test",
                                 0,
                                 "off",
-                                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                                false},
+                                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
             Log_sql_test_params{"Cluster.test",
                                 0,
                                 "error",
-                                {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0},
-                                false},
+                                {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}},
             Log_sql_test_params{"Cluster.test",
                                 0,
                                 "on",
-                                {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1},
-                                false},
+                                {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}},
             Log_sql_test_params{"Cluster.test",
                                 0,
                                 "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
 
             Log_sql_test_params{"Cluster.test",
                                 1,
                                 "off",
-                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                                false},
+                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
             Log_sql_test_params{"Cluster.test",
                                 1,
                                 "error",
-                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                                false},
+                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
             Log_sql_test_params{"Cluster.test",
                                 1,
                                 "on",
-                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                                false},
+                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
             Log_sql_test_params{"Cluster.test",
                                 1,
                                 "unfiltered",
-                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                                false},
+                                {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}},
 
             Log_sql_test_params{"Cluster.test",
                                 2,
                                 "off",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
             Log_sql_test_params{"Cluster.test",
                                 2,
                                 "error",
-                                {1, 0, 2, 1, 1, 1, 1, 1, 1, 1, 0},
-                                false},
+                                {1, 0, 2, 1, 1, 1, 1, 1, 1, 1, 0}},
             Log_sql_test_params{"Cluster.test",
                                 2,
                                 "on",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
+                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}},
             Log_sql_test_params{"Cluster.test",
                                 2,
                                 "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                false},
-
-            // session->query_log_error
-            Log_sql_test_params{
-                "js", 0, "off", {0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0}, true},
-            Log_sql_test_params{
-                "js", 0, "error", {0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0}, true},
-            Log_sql_test_params{
-                "js", 0, "on", {1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1}, true},
-            Log_sql_test_params{"js",
-                                0,
-                                "unfiltered",
-                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0},
-                                true}),
+                                {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0}}),
         ::testing::Values("Classic", "X")));
 
 }  // namespace shcore

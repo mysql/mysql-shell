@@ -512,13 +512,18 @@ sqlstring &sqlstring::append(const std::string &s) {
   return *this;
 }
 
-sqlstring::operator std::string() const {
-  return _formatted + _format_string_left;
-}
+sqlstring::operator std::string() const { return str(); }
+
+sqlstring::operator std::string_view() const { return str_view(); }
 
 std::string sqlstring::str() const {
+  const auto view = str_view();
+  return std::string{view.data(), view.length()};
+}
+
+std::string_view sqlstring::str_view() const {
   done();
-  return _formatted + _format_string_left;
+  return _formatted;
 }
 
 std::size_t sqlstring::size() const {
@@ -526,10 +531,13 @@ std::size_t sqlstring::size() const {
 }
 
 void sqlstring::done() const {
-  if (!_format_string_left.empty() ||
-      !(_format_string_left[0] != '!' && _format_string_left[0] != '?')) {
+  if (!_format_string_left.empty() &&
+      (_format_string_left[0] == '!' || _format_string_left[0] == '?')) {
     throw std::logic_error("Unbound placeholders left in query");
   }
+
+  _formatted.append(_format_string_left);
+  _format_string_left.clear();
 }
 
 sqlstring &sqlstring::operator<<(const double v) {

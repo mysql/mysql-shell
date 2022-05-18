@@ -90,7 +90,7 @@ bool histograms_supported(const Version &version) {
 bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
              const std::string &table) {
   // Return true if the table has a PK or equivalent (UNIQUE NOT NULL)
-  auto res = session->queryf_log_error("SHOW INDEX IN !.!", schema, table);
+  auto res = session->queryf("SHOW INDEX IN !.!", schema, table);
   while (auto row = res->fetch_one_named()) {
     if (row.get_int("Non_unique") == 0 && row.get_string("Null").empty())
       return true;
@@ -162,7 +162,7 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
 
   while (true) {
     try {
-      session->executes_log_error(stmt.data(), stmt.length());
+      session->executes(stmt.data(), stmt.length());
       return;
     } catch (const mysqlshdk::db::Error &e) {
       log_info("Error executing SQL: %s:\n%.*s", e.format().c_str(),
@@ -1247,13 +1247,19 @@ void Dump_loader::on_dump_end() {
               "Resetting GTID_PURGED to dumped gtid set");
           log_info("Setting GTID_PURGED to %s",
                    m_dump->gtid_executed().c_str());
-          executef(query, m_dump->gtid_executed());
+
+          if (!m_options.dry_run()) {
+            executef(query, m_dump->gtid_executed());
+          }
         } else {
           current_console()->print_status(
               "Appending dumped gtid set to GTID_PURGED");
           log_info("Appending %s to GTID_PURGED",
                    m_dump->gtid_executed().c_str());
-          executef(query, "+" + m_dump->gtid_executed());
+
+          if (!m_options.dry_run()) {
+            executef(query, "+" + m_dump->gtid_executed());
+          }
         }
         m_load_log->end_gtid_update();
       } catch (const std::exception &e) {
@@ -2118,7 +2124,7 @@ std::shared_ptr<mysqlshdk::db::IResult> query_names(
   set = set.empty() ? "" : "(" + set + ")";
 
   if (!set.empty())
-    return session->queryf_log_error(query_prefix + set, schema);
+    return session->queryf(query_prefix + set, schema);
   else
     return {};
 }

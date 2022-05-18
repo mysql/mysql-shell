@@ -80,6 +80,8 @@ Log_sql::Log_sql(const mysqlsh::Shell_options &opts) {
   init(storage);
 }
 
+Log_sql::Log_sql(const mysqlsh::Shell_options::Storage &opts) { init(opts); }
+
 Log_sql::~Log_sql() = default;
 
 void Log_sql::init(const mysqlsh::Shell_options::Storage &opts) {

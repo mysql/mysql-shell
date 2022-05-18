@@ -29,6 +29,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -70,32 +71,31 @@ class Dumper {
   void run();
 
  protected:
-  template <typename T>
   static inline std::shared_ptr<mysqlshdk::db::IResult> query(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
-    return session->query_log_error(sql);
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      std::string_view sql) {
+    return session->query(sql);
   }
 
-  template <typename T>
   static inline void execute(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
-    session->execute_log_error(sql);
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      std::string_view sql) {
+    session->execute(sql);
   }
 
   template <typename... Args>
   static inline void executef(
       const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
       Args &&... args) {
-    session->executef_log_error(sql, std::forward<Args>(args)...);
+    session->executef(sql, std::forward<Args>(args)...);
   }
 
-  template <typename T>
-  inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(
+      std::string_view sql) const {
     return query(session(), sql);
   }
 
-  template <typename T>
-  inline void execute(const T &sql) const {
+  inline void execute(std::string_view sql) const {
     return execute(session(), sql);
   }
 

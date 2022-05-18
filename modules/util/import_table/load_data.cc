@@ -551,13 +551,11 @@ void Load_data_worker::execute(
     fi.max_rate = m_opt.max_rate();
     uint64_t max_trx_size = 0;
     const auto query = [&session](const auto &sql) {
-      return session->query_log_error(sql);
+      return session->query(sql);
     };
-    const auto execute = [&session](const auto &sql) {
-      session->execute_log_error(sql);
-    };
+    const auto execute = [&session](const auto &sql) { session->execute(sql); };
     const auto executef = [&session](const auto &sql, auto &&... args) {
-      session->executef_log_error(sql, std::forward<decltype(args)>(args)...);
+      session->executef(sql, std::forward<decltype(args)>(args)...);
     };
 
     // this sets the character_set_database and collation_database server

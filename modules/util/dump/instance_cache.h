@@ -29,6 +29,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -300,9 +301,9 @@ class Instance_cache_builder final {
                              const Trigger_filters &included,
                              const Trigger_filters &excluded) const;
 
-  template <typename T>
-  inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
-    return m_session->query_log_error(sql);
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(
+      std::string_view sql) const {
+    return m_session->query(sql);
   }
 
   /**

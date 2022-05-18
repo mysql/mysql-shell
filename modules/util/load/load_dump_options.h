@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <vector>
 #include "modules/mod_utils.h"
@@ -210,9 +211,9 @@ class Load_dump_options {
 
   void set_progress_file(const std::string &file);
 
-  template <typename T>
-  inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
-    return m_base_session->query_log_error(sql);
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(
+      std::string_view sql) const {
+    return m_base_session->query(sql);
   }
 
   void add_excluded_users(std::vector<shcore::Account> &&users);
