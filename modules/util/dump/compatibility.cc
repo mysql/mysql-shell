@@ -952,19 +952,20 @@ Deferred_statements check_create_table_for_indexes(
 
   while (it.valid() && brace_count > 0) {
     bool index_declaration = false;
-    bool fulltext_index = false;
-    bool foreign_key = false;
     bool constraint = false;
     std::string column_name;
+    bool generated_virtual = false;
     auto potential_comma = it.position() - 1;
     auto token = it.next_token();
     auto start = it.position() - token.length();
+    auto storage = &ret.index_info.regular;
 
     if (token[0] == '`') {
       column_name = token;
     } else if (fulltext_only) {
       if (shcore::str_caseeq(token, "FULLTEXT")) {
-        fulltext_index = index_declaration = true;
+        index_declaration = true;
+        storage = &ret.index_info.fulltext;
       }
     } else {
       if (shcore::str_caseeq_mv(token, "FULLTEXT", "UNIQUE", "KEY", "INDEX",
@@ -972,7 +973,9 @@ Deferred_statements check_create_table_for_indexes(
         index_declaration = true;
 
         if (shcore::str_caseeq(token, "FULLTEXT")) {
-          fulltext_index = true;
+          storage = &ret.index_info.fulltext;
+        } else if (shcore::str_caseeq(token, "SPATIAL")) {
+          storage = &ret.index_info.spatial;
         }
       } else {
         // Note: FKs on FULLTEXT indexes are not supported, so if we're doing
@@ -983,20 +986,32 @@ Deferred_statements check_create_table_for_indexes(
 
     while (it.valid() && brace_count > 0) {
       token = it.next_token();
-      if (token == "(")
+      if (shcore::str_caseeq(token, "(")) {
         ++brace_count;
-      else if (token == ")")
+      } else if (shcore::str_caseeq(token, ")")) {
         --brace_count;
-      else if (brace_count == 1 && token == ",")
+      } else if (brace_count == 1 && shcore::str_caseeq(token, ",")) {
         break;
-      else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")))
-        index_declaration = true;
-      else if (constraint && (shcore::str_caseeq(token, "FOREIGN")))
-        foreign_key = true;
-      else if (!fulltext_only && !column_name.empty() &&
-               shcore::str_caseeq(token, "AUTO_INCREMENT"))
-        auto_increment_column = column_name;
+      } else if (constraint) {
+        if (shcore::str_caseeq_mv(token, "KEY", "INDEX")) {
+          index_declaration = true;
+        } else if (shcore::str_caseeq(token, "FOREIGN")) {
+          storage = &ret.foreign_keys;
+        }
+      } else if (!column_name.empty()) {
+        if (!fulltext_only && shcore::str_caseeq(token, "AUTO_INCREMENT")) {
+          auto_increment_column = column_name;
+        } else if (shcore::str_caseeq(token, "AS")) {
+          // AS indicates this is a generated column, it is virtual by default
+          generated_virtual = true;
+        } else if (shcore::str_caseeq(token, "STORED")) {
+          // STORED occurs after AS, indicates that the column is not virtual
+          generated_virtual = false;
+        }
+      }
     }
+
+    ret.index_info.has_virtual_columns |= generated_virtual;
 
     if (!it.valid())
       throw std::runtime_error(
@@ -1018,7 +1033,7 @@ Deferred_statements check_create_table_for_indexes(
       offsets.emplace_back(start, end);
     }
 
-    const auto index_definition =
+    auto index_definition =
         shcore::str_strip(statement.substr(start, end - start));
 
     // do not remove indexes specified on AUTO_INCREMENT columns, as this will
@@ -1031,12 +1046,12 @@ Deferred_statements check_create_table_for_indexes(
       continue;
     }
 
-    auto &target = foreign_key
-                       ? ret.fks
-                       : (fulltext_index ? ret.fulltext_indexes : ret.indexes);
-
-    target.emplace_back("ALTER TABLE " + table_name + " ADD " +
-                        index_definition + ";");
+    if (storage == &ret.foreign_keys) {
+      storage->emplace_back("ALTER TABLE " + table_name + " ADD " +
+                            index_definition + ";");
+    } else {
+      storage->emplace_back(std::move(index_definition));
+    }
   }
 
   while (it.valid()) {

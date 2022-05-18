@@ -217,15 +217,16 @@ class Dump_loader {
 
     class Index_recreation_task : public Task {
      public:
-      Index_recreation_task(const std::string &schema, const std::string &table,
-                            const std::vector<std::string> &queries)
-          : Task(schema, table), m_queries(queries) {}
+      Index_recreation_task(
+          const std::string &schema, const std::string &table,
+          compatibility::Deferred_statements::Index_info *indexes)
+          : Task(schema, table), m_indexes(indexes) {}
 
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
 
      private:
-      const std::vector<std::string> &m_queries;
+      compatibility::Deferred_statements::Index_info *m_indexes;
     };
 
     Worker(size_t id, Dump_loader *owner);
@@ -240,8 +241,9 @@ class Dump_loader {
                          const shcore::Dictionary_t &options, bool resuming,
                          uint64_t bytes_to_skip);
 
-    void recreate_indexes(const std::string &schema, const std::string &table,
-                          const std::vector<std::string> &indexes);
+    void recreate_indexes(
+        const std::string &schema, const std::string &table,
+        compatibility::Deferred_statements::Index_info *indexes);
     void analyze_table(const std::string &schema, const std::string &table,
                        const std::vector<Dump_reader::Histogram> &histograms);
 
@@ -491,6 +493,7 @@ class Dump_loader {
   std::unordered_multimap<std::string, size_t> m_tables_being_loaded;
   std::atomic<size_t> m_num_threads_loading;
   std::atomic<size_t> m_num_threads_recreating_indexes;
+  std::atomic<size_t> m_num_index_retries{0};
 
   Sql_transform m_default_sql_transforms;
 
