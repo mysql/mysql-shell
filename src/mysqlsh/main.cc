@@ -608,6 +608,34 @@ static void finalize_shell(mysqlsh::Command_line_shell *shell) {
   mysqlsh::global_end();
 }
 
+static void setup_path_env() {
+  std::string path;
+
+  if (const auto current_path = ::getenv("PATH")) {
+    path = current_path;
+  }
+
+  [[maybe_unused]] const auto append_path = [&path](const std::string &s) {
+    if (!path.empty()) {
+      path.append(1, shcore::path::pathlist_separator);
+    }
+
+    path.append(s);
+  };
+
+#ifdef HAVE_LIBEXEC_DIR
+  try {
+    // Adds the libexec path to the PATH
+    append_path(shcore::get_libexec_folder());
+  } catch (const std::exception &e) {
+    fprintf(stderr, "%s\n", e.what());
+    exit(1);
+  }
+#endif  // HAVE_LIBEXEC_DIR
+
+  shcore::setenv("PATH", path);
+}
+
 #ifdef _WIN32
 int wmain(int argc, wchar_t **wargv) {
   std::vector<std::string> sargv;
@@ -666,6 +694,8 @@ int main(int argc, char **argv) {
   // reset using setlocale(LC_XXX, "") call by any of our dependencies
   shcore::setenv("LC_ALL", "en_US.UTF-8");
 #endif  // _WIN32
+
+  setup_path_env();
 
   // Has to be called once in main so internal static variable is properly set
   // with the main thread id.

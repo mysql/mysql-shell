@@ -640,6 +640,7 @@ void Status::feed_metadata_info(shcore::Dictionary_t dict,
 
 void Status::feed_member_info(
     shcore::Dictionary_t dict, const mysqlshdk::gr::Member &member,
+    const mysqlshdk::utils::nullable<bool> &offline_mode,
     const mysqlshdk::utils::nullable<bool> &super_read_only,
     const std::vector<std::string> &fence_sysvars,
     mysqlshdk::gr::Member_state self_state, bool is_auto_rejoin_running) {
@@ -671,14 +672,19 @@ void Status::feed_member_info(
   (*dict)["status"] = shcore::Value(mysqlshdk::gr::to_string(member.state));
 
   // Set the instance mode (read-only or read-write).
-  if (super_read_only.is_null()) {
-    // super_read_only is null if it could not be obtained from the instance.
+  if (offline_mode.is_null() || super_read_only.is_null()) {
+    // offline_mode or super_read_only is null if it could not be obtained from
+    // the instance.
     (*dict)["mode"] = shcore::Value("n/a");
   } else {
-    // Set mode to read-only if there is no quorum otherwise according to the
-    // instance super_read_only value.
-    (*dict)["mode"] =
-        shcore::Value((m_no_quorum || *super_read_only) ? "R/O" : "R/W");
+    // We deal with offline mode the same as n/a and set mode to read-only if
+    // there is no quorum otherwise according to the instance super_read_only
+    // value.
+    if (*offline_mode)
+      (*dict)["mode"] = shcore::Value("n/a");
+    else
+      (*dict)["mode"] =
+          shcore::Value((m_no_quorum || *super_read_only) ? "R/O" : "R/W");
   }
 
   // Display autoRejoinRunning attribute by default for each member, but only
@@ -1265,6 +1271,7 @@ shcore::Dictionary_t Status::get_topology(
     auto &instance = m_member_sessions[inst.md.endpoint];
 
     mysqlshdk::utils::nullable<bool> super_read_only;
+    mysqlshdk::utils::nullable<bool> offline_mode;
     std::vector<std::string> fence_sysvars;
     bool auto_rejoin = false;
 
@@ -1279,6 +1286,9 @@ shcore::Dictionary_t Status::get_topology(
 
       // Get super_read_only value of each instance to set the mode accurately.
       super_read_only = instance->get_sysvar_bool("super_read_only");
+
+      // Get offline_mode value of each instance to set the mode accurately.
+      offline_mode = instance->get_sysvar_bool("offline_mode");
 
       // Check if auto-rejoin is running.
       auto_rejoin = mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
@@ -1376,12 +1386,16 @@ shcore::Dictionary_t Status::get_topology(
           shcore::Value(m_member_connect_errors[inst.md.endpoint]);
     }
     feed_metadata_info(member, inst.md);
-    feed_member_info(member, minfo, super_read_only, fence_sysvars, self_state,
-                     auto_rejoin);
+    feed_member_info(member, minfo, offline_mode, super_read_only,
+                     fence_sysvars, self_state, auto_rejoin);
 
     shcore::Array_t issues = instance_diagnostics(
         instance.get(), &m_cluster, inst, recovery_channel, applier_channel,
         super_read_only, minfo, self_state, parallel_applier_options);
+
+    if (offline_mode.get_safe(false))
+      issues->push_back(
+          shcore::Value("WARNING: Instance has offline_mode enabled."));
 
     auto ret_val = validate_instance_recovery_user(
         instance, endpoints, inst.actual_server_uuid, self_state);

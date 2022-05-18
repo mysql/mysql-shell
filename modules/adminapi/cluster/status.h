@@ -143,6 +143,7 @@ class Status : public Command_interface {
 
   void feed_member_info(shcore::Dictionary_t dict,
                         const mysqlshdk::gr::Member &member,
+                        const mysqlshdk::utils::nullable<bool> &offline_mode,
                         const mysqlshdk::utils::nullable<bool> &super_read_only,
                         const std::vector<std::string> &fence_sysvars,
                         mysqlshdk::gr::Member_state self_state,

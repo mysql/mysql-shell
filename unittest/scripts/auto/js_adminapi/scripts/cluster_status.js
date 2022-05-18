@@ -393,6 +393,15 @@ shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 0);
 var cluster = dba.getCluster();
 
+//@<> Check if instance is in offline_mode
+shell.connect(__sandbox_uri2);
+set_sysvar(session, "offline_mode", 1);
+status = cluster.status();
+status
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["mode"], "n/a")
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["instanceErrors"], ["WARNING: Instance has offline_mode enabled."])
+set_sysvar(session, "offline_mode", 0);
+
 //@<> Remove two instances of the cluster and add back one of them with a different label
 cluster.removeInstance(__sandbox_uri2);
 cluster.removeInstance(__sandbox_uri3);
