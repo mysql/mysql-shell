@@ -22,6 +22,9 @@
 # Disable "reproducible builds"
 %global source_date_epoch_from_changelog 0
 
+# Injected binaries breaks build-id links
+%undefine _missing_build_ids_terminate_build
+
 %{?with_static: %global static 1}
 
 %global commercial  @COMMERCIAL_VER@
