@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,13 +43,14 @@ using namespace shcore;
 
 void translate_python_exception(const std::string &context = "");
 
-static void method_dealloc(PyShFuncObject *self) {
+namespace {
+void method_dealloc(PyShFuncObject *self) {
   delete self->func;
 
   Py_TYPE(self)->tp_free(self);
 }
 
-static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
+PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
   const auto func = *self->func;
 
   Argument_list r;
@@ -61,11 +62,10 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
       PyObject *argval = PyTuple_GetItem(args, i);
 
       try {
-        Value v = py::convert(argval, &ctx);
-        r.push_back(v);
+        r.push_back(py::convert(argval, &ctx));
       } catch (...) {
         translate_python_exception();
-        return NULL;
+        return nullptr;
       }
     }
   }
@@ -80,13 +80,12 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
       result = func->invoke(r);
     }
 
-    return py::convert(result);
+    return py::convert(result).release();
   } catch (...) {
     translate_python_exception();
-    return NULL;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -99,7 +98,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
 #endif  // __clang__
 #endif  // PY_VERSION_HEX
 
-static PyTypeObject PyShFuncObjectType = {
+PyTypeObject PyShFuncObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "builtin_function_or_method",  // char *tp_name; /* For printing, in format
                                    // "<module>.<name>" */
@@ -199,6 +198,8 @@ static PyTypeObject PyShFuncObjectType = {
 #endif  // __clang__
 #endif  // PY_VERSION_HEX
 
+}  // namespace
+
 void Python_context::init_shell_function_type() {
   if (PyType_Ready(&PyShFuncObjectType) < 0) {
     throw std::runtime_error(
@@ -206,26 +207,31 @@ void Python_context::init_shell_function_type() {
   }
 
   Py_INCREF(&PyShFuncObjectType);
-  PyModule_AddObject(get_shell_python_support_module(), "Function",
+
+  auto module = get_shell_python_support_module();
+
+  PyModule_AddObject(module.get(), "Function",
                      reinterpret_cast<PyObject *>(&PyShFuncObjectType));
 
-  _shell_function_class = PyDict_GetItemString(
-      PyModule_GetDict(get_shell_python_support_module()), "Function");
+  _shell_function_class = py::Store{
+      PyDict_GetItemString(PyModule_GetDict(module.get()), "Function")};
 }
 
-PyObject *shcore::wrap(std::shared_ptr<Function_base> func) {
+py::Release shcore::wrap(std::shared_ptr<Function_base> func) {
   PyShFuncObject *wrapper = PyObject_New(PyShFuncObject, &PyShFuncObjectType);
   wrapper->func = new Function_base_ref(func);
-  return reinterpret_cast<PyObject *>(wrapper);
+  return py::Release{reinterpret_cast<PyObject *>(wrapper)};
 }
 
 bool shcore::unwrap(PyObject *value, std::shared_ptr<Function_base> &ret_func) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
-  if (PyObject_IsInstance(value, ctx->get_shell_function_class())) {
+  auto fclass = ctx->get_shell_function_class();
+  if (PyObject_IsInstance(value, fclass.get())) {
     ret_func = *((PyShFuncObject *)value)->func;
     return true;
   }
+
   return false;
 }

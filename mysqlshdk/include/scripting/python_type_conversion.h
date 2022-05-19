@@ -37,7 +37,7 @@ Value convert(PyObject *value, Python_context *context = nullptr);
 
 Value convert(PyObject *value, Python_context **context, bool is_binary = true);
 
-PyObject *convert(const Value &value, Python_context *context = nullptr);
+py::Release convert(const Value &value, Python_context *context = nullptr);
 
 }  // namespace py
 }  // namespace shcore

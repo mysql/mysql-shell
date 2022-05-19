@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_CPP_H_
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <functional>
 #include <map>
@@ -45,12 +46,12 @@ namespace shcore {
 class SHCORE_PUBLIC Cpp_property_name {
  public:
   explicit Cpp_property_name(const std::string &name, bool constant = false);
-  std::string name(const NamingStyle &style) const;
+  std::string name(NamingStyle style) const;
   std::string base_name() const;
 
  private:
   // Each instance holds it's names on the different styles
-  std::string _name[2];
+  std::array<std::string, 2> _name;
 };
 
 /**
@@ -891,10 +892,10 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   Cpp_object_bridge(const Cpp_object_bridge &) = delete;
 
  public:
-  ~Cpp_object_bridge() override;
+  ~Cpp_object_bridge() override = default;
 
   bool operator==(const Object_bridge &other) const override {
-    return class_name() == other.class_name() && this == &other;
+    return this == &other;
   }
 
   // required to expose() help method

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,25 +28,20 @@
 using namespace shcore;
 
 Python_function::Python_function(Python_context *context, PyObject *function)
-    : _py(context), m_arg_count(0) {
+    : _py(context) {
   m_function = _py->store(function);
 
-  {
-    const auto name = PyObject_GetAttrString(function, "__name__");
-    Python_context::pystring_to_string(name, &m_name);
+  py::Release name{PyObject_GetAttrString(function, "__name__")};
+  Python_context::pystring_to_string(name.get(), &m_name);
 
-    // Gets the number of arguments on the python function definition
-    // NOTE: **kwargs is not accounted on co_argcount
-    // This will be used to determine when the function should be called using
-    // kwargs or not
-    auto fcode = PyFunction_GetCode(function);
-    auto arg_count = PyObject_GetAttrString(fcode, "co_argcount");
-    auto varg_count = _py->convert(arg_count);
-    m_arg_count = varg_count.as_uint();
-
-    Py_XDECREF(name);
-    Py_XDECREF(arg_count);
-  }
+  // Gets the number of arguments on the python function definition
+  // NOTE: **kwargs is not accounted on co_argcount
+  // This will be used to determine when the function should be called using
+  // kwargs or not
+  auto fcode = PyFunction_GetCode(function);
+  py::Release arg_count{PyObject_GetAttrString(fcode, "co_argcount")};
+  auto varg_count = _py->convert(arg_count.get());
+  m_arg_count = varg_count.as_uint();
 }
 
 Python_function::~Python_function() {
@@ -83,15 +78,14 @@ Value Python_function::invoke(const Argument_list &args) {
     WillEnterPython lock;
 
     auto argc = args.size();
-    PyObject *ret_val = nullptr;
-    PyObject *argv = nullptr;
-    PyObject *kw_args = nullptr;
 
     // If the function caller provides more parameters than the ones defined in
     // the function, the last parameter should be handled as follows:
     // - If Dictionary, it's data is passed as kwargs
     // - If Undefined, then kwards is empty
     // - Any other case will fall into passing it as normal parameter
+    py::Release kw_args;
+
     if (argc == (m_arg_count + 1) &&
         (args[argc - 1].type == shcore::Value_type::Map ||
          args[argc - 1].type == shcore::Value_type::Undefined)) {
@@ -100,32 +94,33 @@ Value Python_function::invoke(const Argument_list &args) {
 
       // Sets the kwargs from the dictionary if any
       if (args[argc].type == shcore::Value_type::Map) {
-        kw_args = PyDict_New();
+        kw_args = py::Release{PyDict_New()};
         auto kwd_dictionary = args[argc].as_map();
         for (auto item = kwd_dictionary->begin(); item != kwd_dictionary->end();
              item++) {
-          PyDict_SetItemString(kw_args, item->first.c_str(),
-                               _py->convert(item->second));
+          auto conv = _py->convert(item->second);
+          PyDict_SetItemString(kw_args.get(), item->first.c_str(), conv.get());
         }
       }
     }
 
-    argv = PyTuple_New(argc);
-    for (size_t index = 0; index < argc; ++index) {
-      PyTuple_SetItem(argv, index, _py->convert(args[index]));
+    py::Release ret_val;
+    {
+      py::Release argv{PyTuple_New(argc)};
+
+      for (size_t index = 0; index < argc; ++index)
+        PyTuple_SetItem(argv.get(), index, _py->convert(args[index]).release());
+
+      ret_val = py::Release{
+          PyObject_Call(function->get(), argv.get(), kw_args.get())};
     }
 
-    ret_val = PyObject_Call(*function, argv, kw_args);
-    if (kw_args) Py_DECREF(kw_args);
-
-    Py_DECREF(argv);
-
-    if (ret_val == nullptr) {
+    if (!ret_val) {
       // converts mysqlsh.Error to shcore::Error and throws the exception, if
       // the Python exception is something else, then just returns
       _py->throw_if_mysqlsh_error();
 
-      static constexpr auto error = "User-defined function threw an exception";
+      constexpr auto error = "User-defined function threw an exception";
       std::string details = _py->fetch_and_clear_exception();
 
       if (!details.empty()) {
@@ -134,9 +129,7 @@ Value Python_function::invoke(const Argument_list &args) {
 
       throw Exception::scripting_error(error + details);
     } else {
-      const auto ret = _py->convert(ret_val);
-      Py_DECREF(ret_val);
-      return ret;
+      return _py->convert(ret_val.get());
     }
   } else {
     throw Exception::scripting_error(

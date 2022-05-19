@@ -320,11 +320,6 @@ Cpp_object_bridge::Cpp_object_bridge() {
   expose("help", &Cpp_object_bridge::help, "?item")->cli(false);
 }
 
-Cpp_object_bridge::~Cpp_object_bridge() {
-  _funcs.clear();
-  _properties.clear();
-}
-
 std::string &Cpp_object_bridge::append_descr(std::string &s_out, int,
                                              int) const {
   s_out.append("<" + class_name() + ">");
@@ -337,13 +332,14 @@ std::string &Cpp_object_bridge::append_repr(std::string &s_out) const {
 
 std::vector<std::string> Cpp_object_bridge::get_members() const {
   std::vector<std::string> members;
+  members.reserve(_properties.size() + _funcs.size());
 
   for (const auto &prop : _properties)
     members.push_back(prop.name(current_naming_style()));
 
-  for (const auto &func : _funcs) {
+  for (const auto &func : _funcs)
     members.push_back(func.second->name(current_naming_style()));
-  }
+
   return members;
 }
 
@@ -359,20 +355,17 @@ std::vector<std::string> Cpp_object_bridge::get_cli_members() const {
 }
 
 std::string Cpp_object_bridge::get_base_name(const std::string &member) const {
-  std::string ret_val;
-  auto func = lookup_function(member);
-  if (func) {
-    ret_val = func->name(NamingStyle::LowerCamelCase);
-  } else {
-    auto prop = std::find_if(_properties.begin(), _properties.end(),
-                             [member](const Cpp_property_name &p) {
-                               return p.name(current_naming_style()) == member;
-                             });
-    if (prop != _properties.end())
-      ret_val = (*prop).name(NamingStyle::LowerCamelCase);
-  }
+  if (auto func = lookup_function(member); func)
+    return func->name(NamingStyle::LowerCamelCase);
 
-  return ret_val;
+  auto prop = std::find_if(_properties.begin(), _properties.end(),
+                           [&member](const Cpp_property_name &p) {
+                             return p.name(current_naming_style()) == member;
+                           });
+  if (prop != _properties.end())
+    return (*prop).name(NamingStyle::LowerCamelCase);
+
+  return {};
 }
 
 std::string Cpp_object_bridge::get_function_name(const std::string &member,
@@ -400,35 +393,28 @@ shcore::Value Cpp_object_bridge::get_member_method(
 }
 
 Value Cpp_object_bridge::get_member_advanced(const std::string &prop) const {
-  Value ret_val;
-
   auto func = std::find_if(
-      _funcs.begin(), _funcs.end(), [prop](const FunctionEntry &f) {
+      _funcs.begin(), _funcs.end(), [&prop](const FunctionEntry &f) {
         return f.second->name(current_naming_style()) == prop;
       });
 
-  if (func != _funcs.end()) {
-    ret_val = Value(std::shared_ptr<Function_base>(func->second));
-  } else {
-    auto prop_index =
-        std::find_if(_properties.begin(), _properties.end(),
-                     [prop](const Cpp_property_name &p) {
-                       return p.name(current_naming_style()) == prop;
-                     });
-    if (prop_index != _properties.end()) {
-      ret_val = get_member((*prop_index).base_name());
-    } else
-      throw Exception::attrib_error("Invalid object member " + prop);
-  }
+  if (func != _funcs.end())
+    return Value(std::shared_ptr<Function_base>(func->second));
 
-  return ret_val;
+  auto prop_index =
+      std::find_if(_properties.begin(), _properties.end(),
+                   [&prop](const Cpp_property_name &p) {
+                     return p.name(current_naming_style()) == prop;
+                   });
+  if (prop_index != _properties.end())
+    return get_member((*prop_index).base_name());
+  throw Exception::attrib_error("Invalid object member " + prop);
 }
 
 Value Cpp_object_bridge::get_member(const std::string &prop) const {
-  std::map<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
-  if ((i = _funcs.find(prop)) != _funcs.end()) {
+  if (auto i = _funcs.find(prop); i != _funcs.end())
     return Value(std::shared_ptr<Function_base>(i->second));
-  }
+
   throw Exception::attrib_error("Invalid object member " + prop);
 }
 
@@ -437,7 +423,7 @@ bool Cpp_object_bridge::has_member_advanced(const std::string &prop) const {
 
   auto prop_index =
       std::find_if(_properties.begin(), _properties.end(),
-                   [prop](const Cpp_property_name &p) {
+                   [&prop](const Cpp_property_name &p) {
                      return p.name(current_naming_style()) == prop;
                    });
   return (prop_index != _properties.end());
@@ -451,7 +437,7 @@ bool Cpp_object_bridge::has_member(const std::string &prop) const {
 
   auto prop_index = std::find_if(
       _properties.begin(), _properties.end(),
-      [prop](const Cpp_property_name &p) { return p.base_name() == prop; });
+      [&prop](const Cpp_property_name &p) { return p.base_name() == prop; });
   return (prop_index != _properties.end());
 }
 
@@ -459,7 +445,7 @@ void Cpp_object_bridge::set_member_advanced(const std::string &prop,
                                             Value value) {
   auto prop_index =
       std::find_if(_properties.begin(), _properties.end(),
-                   [prop](const Cpp_property_name &p) {
+                   [&prop](const Cpp_property_name &p) {
                      return p.name(current_naming_style()) == prop;
                    });
   if (prop_index != _properties.end()) {
@@ -1069,7 +1055,8 @@ Cpp_property_name::Cpp_property_name(const std::string &name, bool constant) {
   }
 }
 
-std::string Cpp_property_name::name(const NamingStyle &style) const {
+std::string Cpp_property_name::name(NamingStyle style) const {
+  assert((style >= 0) && (style < _name.size()));
   return _name[style];
 }
 

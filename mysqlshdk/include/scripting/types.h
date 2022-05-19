@@ -207,7 +207,7 @@ struct SHCORE_PUBLIC Value {
   };
   typedef std::shared_ptr<Map_type> Map_type_ref;
 
-  Value_type type;
+  Value_type type{Undefined};
   union {
     bool b;
     std::string *s;
@@ -221,9 +221,9 @@ struct SHCORE_PUBLIC Value {
     std::shared_ptr<class Function_base> *func;
   } value;
 
-  Value() : type(Undefined) {}
-  Value(const Value &copy);
-  Value(Value &&other);
+  Value() = default;
+  Value(const Value &copy) { *this = copy; }
+  Value(Value &&other) noexcept { *this = std::move(other); }
 
   explicit Value(const std::string &s, bool binary = false);
   explicit Value(std::string &&s, bool binary = false);
@@ -286,10 +286,10 @@ struct SHCORE_PUBLIC Value {
   static Value parse(const std::string &s);
   static Value parse(const char *s, size_t length);
 
-  ~Value();
+  ~Value() noexcept;
 
   Value &operator=(const Value &other);
-  Value &operator=(Value &&other);
+  Value &operator=(Value &&other) noexcept;
 
   bool operator==(const Value &other) const;
 
@@ -872,7 +872,7 @@ class JSON_dumper;
  */
 class SHCORE_PUBLIC Object_bridge {
  public:
-  virtual ~Object_bridge() {}
+  virtual ~Object_bridge() = default;
 
   virtual std::string class_name() const = 0;
 

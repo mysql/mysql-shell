@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,42 +136,42 @@ TEST_F(Python, simple_to_py_and_back) {
 
   {
     Value v(Value::True());
-    ASSERT_EQ(py->convert(py->convert(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v).get()), v);
   }
   {
     Value v(Value::False());
-    ASSERT_EQ(py->convert(py->convert(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v).get()), v);
   }
   {
     Value v(Value(1234));
-    ASSERT_EQ(py->convert(py->convert(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v).get()), v);
   }
   {
     Value v(Value(1234));
-    ASSERT_EQ(py->convert(py->convert(v)).repr(), "1234");
+    ASSERT_EQ(py->convert(py->convert(v).get()).repr(), "1234");
   }
   {
     Value v(Value("hello"));
-    ASSERT_EQ(py->convert(py->convert(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v).get()), v);
   }
   {
     Value v(Value(123.45));
-    ASSERT_EQ(py->convert(py->convert(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v).get()), v);
   }
   {
     Value v(Value::Null());
-    ASSERT_EQ(py->convert(py->convert(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v).get()), v);
   }
 
   {
     Value v1(Value(123));
     Value v2(Value(1234));
-    ASSERT_NE(py->convert(py->convert(v1)), v2);
+    ASSERT_NE(py->convert(py->convert(v1).get()), v2);
   }
   {
     Value v1(Value(123));
     Value v2(Value("123"));
-    ASSERT_NE(py->convert(py->convert(v1)), v2);
+    ASSERT_NE(py->convert(py->convert(v1).get()), v2);
   }
 }
 
@@ -288,9 +288,9 @@ TEST_F(Python, array_to_py) {
   Input_state cont = Input_state::Ok;
   WillEnterPython lock;
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->convert(py->convert(v)).repr(), "[123, \"text\", [444]]");
+  ASSERT_EQ(py->convert(py->convert(v).get()).repr(), "[123, \"text\", [444]]");
 
-  ASSERT_EQ(py->convert(py->convert(v)), v);
+  ASSERT_EQ(py->convert(py->convert(v).get()), v);
 
   py->set_global("arr", v);
   ASSERT_EQ(py->get_global("arr").repr(), "[123, \"text\", [444]]");
@@ -319,10 +319,10 @@ TEST_F(Python, map_to_py) {
   WillEnterPython lock;
 
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->convert(py->convert(v)).repr(),
+  ASSERT_EQ(py->convert(py->convert(v).get()).repr(),
             "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
 
-  ASSERT_EQ(py->convert(py->convert(v)), v);
+  ASSERT_EQ(py->convert(py->convert(v).get()), v);
 
   py->set_global("mapval", v);
   ASSERT_EQ(py->get_global("mapval").repr(),
@@ -383,12 +383,11 @@ TEST_F(Python, object_to_py) {
   ASSERT_NE(*obj, *obj3);
 
   WillEnterPython lock;
-
-  PyObject *tmp;
-  ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)),
-            py->convert(tmp = py->convert(Value(
-                            std::static_pointer_cast<Object_bridge>(obj)))));
-  Py_XDECREF(tmp);
+  {
+    auto tmp = py->convert(Value(std::static_pointer_cast<Object_bridge>(obj)));
+    ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)),
+              py->convert(tmp.get()));
+  }
 
   // expose the object to JS
   // py->set_global("test_obj",
@@ -450,9 +449,9 @@ TEST_F(Python, datetime_to_py) {
   Input_state cont = Input_state::Ok;
   WillEnterPython lock;
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->convert(py->convert(v)).repr(), v.repr());
+  ASSERT_EQ(py->convert(py->convert(v).get()).repr(), v.repr());
 
-  ASSERT_EQ(py->convert(py->convert(v)), v);
+  ASSERT_EQ(py->convert(py->convert(v).get()), v);
 
   py->set_global("gdate", v);
   ASSERT_EQ(py->get_global("gdate").repr(), v.repr());
@@ -471,7 +470,7 @@ TEST_F(Python, datetime_to_py) {
   ASSERT_EQ(v, value);
 
   Value zero(std::make_shared<shcore::Date>(0, 0, 0, 0, 0, 0, 0));
-  ASSERT_EQ(py->convert(py->convert(zero)), shcore::Value::Null());
+  ASSERT_EQ(py->convert(py->convert(zero).get()), shcore::Value::Null());
 }
 
 TEST_F(Python, date_to_py) {
@@ -481,9 +480,9 @@ TEST_F(Python, date_to_py) {
   Input_state cont = Input_state::Ok;
   WillEnterPython lock;
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->convert(py->convert(v)).repr(), v.repr());
+  ASSERT_EQ(py->convert(py->convert(v).get()).repr(), v.repr());
 
-  ASSERT_EQ(py->convert(py->convert(v)), v);
+  ASSERT_EQ(py->convert(py->convert(v).get()), v);
 
   py->set_global("gdate", v);
   ASSERT_EQ(py->get_global("gdate").repr(), v.repr());
@@ -501,7 +500,7 @@ TEST_F(Python, date_to_py) {
   ASSERT_EQ(v, value);
 
   Value zero(std::make_shared<shcore::Date>(0, 0, 0));
-  ASSERT_EQ(py->convert(py->convert(zero)), shcore::Value::Null());
+  ASSERT_EQ(py->convert(py->convert(zero).get()), shcore::Value::Null());
 }
 
 TEST_F(Python, time_to_py) {
@@ -513,11 +512,11 @@ TEST_F(Python, time_to_py) {
   Input_state cont = Input_state::Ok;
   WillEnterPython lock;
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->convert(py->convert(v1)).repr(), v1.repr());
-  ASSERT_EQ(py->convert(py->convert(v2)).repr(), v2.repr());
+  ASSERT_EQ(py->convert(py->convert(v1).get()).repr(), v1.repr());
+  ASSERT_EQ(py->convert(py->convert(v2).get()).repr(), v2.repr());
 
-  ASSERT_EQ(py->convert(py->convert(v1)), v1);
-  ASSERT_EQ(py->convert(py->convert(v2)), v2);
+  ASSERT_EQ(py->convert(py->convert(v1).get()), v1);
+  ASSERT_EQ(py->convert(py->convert(v2).get()), v2);
 
   py->set_global("gtime1", v1);
   ASSERT_EQ(py->get_global("gtime1").repr(), v1.repr());

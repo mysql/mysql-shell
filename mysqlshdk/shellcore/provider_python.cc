@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021 Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -99,13 +99,11 @@ class Placeholder_wrapper : public Object {
 class PyObject_proxy : public Object {
  public:
   explicit PyObject_proxy(Provider_python *completer, PyObject *obj)
-      : completer_(completer), pyobj_(obj) {
-    Py_XINCREF(obj);
-  }
+      : completer_(completer), pyobj_(obj) {}
 
   ~PyObject_proxy() {
     WillEnterPython lock;
-    Py_XDECREF(pyobj_);
+    pyobj_ = nullptr;
   }
 
   std::string get_type() const override {
@@ -113,17 +111,13 @@ class PyObject_proxy : public Object {
     std::string t;
 
     std::shared_ptr<Object_bridge> bridged;
-    if (shcore::unwrap(pyobj_, bridged) && bridged) {
+    if (shcore::unwrap(pyobj_.get(), bridged) && bridged) {
       t = bridged->class_name();
     } else {
-      PyObject *cls = PyObject_GetAttrString(pyobj_, "__class__");
+      py::Release cls{PyObject_GetAttrString(pyobj_.get(), "__class__")};
       if (cls) {
-        PyObject *name = PyObject_GetAttrString(cls, "__name__");
-        if (name) {
-          Python_context::pystring_to_string(name, &t);
-          Py_XDECREF(name);
-        }
-        Py_XDECREF(cls);
+        py::Release name{PyObject_GetAttrString(cls.get(), "__name__")};
+        if (name) Python_context::pystring_to_string(name.get(), &t);
       }
       PyErr_Clear();
     }
@@ -132,10 +126,9 @@ class PyObject_proxy : public Object {
 
   bool is_member_callable(const std::string &name) const override {
     WillEnterPython lock;
-    PyObject *mem = PyObject_GetAttrString(pyobj_, name.c_str());
-    if (mem) {
-      return PyCallable_Check(mem);
-    }
+    py::Release mem{PyObject_GetAttrString(pyobj_.get(), name.c_str())};
+    if (mem) return PyCallable_Check(mem.get());
+
     return false;
   }
 
@@ -144,9 +137,9 @@ class PyObject_proxy : public Object {
 
     if (!wrapped_placeholder_) {
       WillEnterPython lock;
-      PyObject *mem = PyObject_GetAttrString(pyobj_, name.c_str());
+      py::Release mem{PyObject_GetAttrString(pyobj_.get(), name.c_str())};
       if (mem) {
-        if (PyCallable_Check(mem)) {
+        if (PyCallable_Check(mem.get())) {
           // If the member is a method, we can't list their contents
           // to see the next completions, we need to list the contents of the
           // would be returned value, instead.
@@ -155,9 +148,8 @@ class PyObject_proxy : public Object {
           wrapped_placeholder_.reset(new Placeholder_wrapper(
               completer_->object_registry()->lookup(get_type())));
         } else {
-          member.reset(new PyObject_proxy(completer_, mem));
+          member.reset(new PyObject_proxy(completer_, mem.get()));
         }
-        Py_XDECREF(mem);
       }
       PyErr_Clear();
     }
@@ -173,7 +165,7 @@ class PyObject_proxy : public Object {
     WillEnterPython lock;
     // evaluate the string (which is expected to not have any side-effect)
     std::vector<std::pair<bool, std::string>> keys;
-    shcore::Python_context::get_members_of(pyobj_, &keys);
+    shcore::Python_context::get_members_of(pyobj_.get(), &keys);
 
     for (auto &i : keys) {
       if (shcore::str_beginswith(i.second, prefix)) {
@@ -186,7 +178,7 @@ class PyObject_proxy : public Object {
 
  private:
   Provider_python *completer_;
-  PyObject *pyobj_;
+  py::Store pyobj_;
   mutable std::shared_ptr<Object> wrapped_placeholder_;
 };
 
@@ -221,15 +213,12 @@ Completion_list Provider_python::complete_chain(const Chain &chain_a) {
 std::shared_ptr<Object> Provider_python::lookup_global_object(
     const std::string &name) {
   WillEnterPython lock;
-  PyObject *obj = context_->get_global_py(name);
-  if (obj && obj != Py_None) {
-    auto tmp = std::shared_ptr<Object>(new PyObject_proxy(this, obj));
-    Py_XDECREF(obj);
-    return tmp;
-  }
-  Py_XDECREF(obj);
+  auto obj = context_->get_global_py(name);
+  if (obj && obj.get() != Py_None)
+    return std::shared_ptr<Object>(new PyObject_proxy(this, obj.get()));
+
   PyErr_Clear();
-  return std::shared_ptr<Object>();
+  return nullptr;
 }
 
 size_t span_python_string(const std::string &s, size_t p) {

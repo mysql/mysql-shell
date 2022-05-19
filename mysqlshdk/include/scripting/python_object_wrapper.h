@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,34 +32,11 @@
 namespace shcore {
 
 class Cpp_object_bridge;
-class Python_context;
 
-struct PyMemberCache {
-  std::map<std::string, py::Store> members;
-};
+py::Release wrap(const std::shared_ptr<Object_bridge> &object);
 
-/*
- * Wraps a native/bridged C++ object reference as a Python sequence object
- */
-struct PyShObjObject {
-  // clang-format off
-  PyObject_HEAD
-  shcore::Object_bridge_ref *object;
-  // clang-format on
-  PyMemberCache *cache;
-};
-
-struct PyShObjIndexedObject {
-  // clang-format off
-  PyObject_HEAD
-  shcore::Object_bridge_ref *object;
-  // clang-format on
-};
-
-PyObject *wrap(const std::shared_ptr<Object_bridge> &object);
-
-PyObject *wrap(const std::shared_ptr<Cpp_object_bridge> &object,
-               const std::string &method);
+py::Release wrap(const std::shared_ptr<Cpp_object_bridge> &object,
+                 const std::string &method);
 
 bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
 

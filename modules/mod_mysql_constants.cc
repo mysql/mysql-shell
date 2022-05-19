@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,15 +27,6 @@
 #include "modules/devapi/base_constants.h"
 #include "scripting/object_factory.h"
 #include "shellcore/utils_help.h"
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-#endif
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 REGISTER_HELP(MYSQL_TYPE_BRIEF, "Data type constants");
 
@@ -77,9 +68,7 @@ std::shared_ptr<shcore::Object_bridge> Type::create(
     const shcore::Argument_list &args) {
   args.ensure_count(0, "mysql.Type");
 
-  std::shared_ptr<Type> ret_val(new Type());
-
-  return ret_val;
+  return std::make_shared<Type>();
 }
 
 }  // namespace mysql
