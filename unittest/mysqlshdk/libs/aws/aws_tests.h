@@ -26,6 +26,7 @@
 
 #include "unittest/gtest_clean.h"
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -170,6 +171,8 @@ class Aws_s3_tests : public testing::Test,
 
   static constexpr std::size_t k_min_part_size = 5242880;  // 5 MiB
   static constexpr std::size_t k_multipart_file_size = k_min_part_size + 1024;
+  static constexpr std::size_t k_max_part_size = std::min<uint64_t>(
+      UINT64_C(5368709120), std::numeric_limits<std::size_t>::max());
 
   std::vector<std::string> m_objects;
 

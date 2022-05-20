@@ -391,16 +391,20 @@ TEST_P(Bucket_test, error_conditions) {
                     shcore::Exception,
                     "Total size has to be greater than part size");
 
-  EXPECT_THROW_LIKE(
-      bucket.copy_object_multipart("from", "to", 2 * k_min_part_size,
-                                   k_min_part_size - 1),
-      shcore::Exception,
-      "Part size has to be a value between 5242880 and 5368709120");
+  EXPECT_THROW_LIKE(bucket.copy_object_multipart(
+                        "from", "to", 2 * k_min_part_size, k_min_part_size - 1),
+                    shcore::Exception,
+                    "Part size has to be a value between 5242880 and " +
+                        std::to_string(k_max_part_size));
 
-  EXPECT_THROW_LIKE(
-      bucket.copy_object_multipart("from", "to", 5368709121, 5368709121),
-      shcore::Exception,
-      "Part size has to be a value between 5242880 and 5368709120");
+  if (k_max_part_size < std::numeric_limits<std::size_t>::max()) {
+    EXPECT_THROW_LIKE(
+        bucket.copy_object_multipart("from", "to", k_max_part_size + 1,
+                                     k_max_part_size + 1),
+        shcore::Exception,
+        "Part size has to be a value between 5242880 and " +
+            std::to_string(k_max_part_size));
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(Aws_s3, Bucket_test, suffixes(), format_suffix);
