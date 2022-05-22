@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,41 +25,79 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/object_factory.h"
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-#endif
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 using namespace shcore;
 using namespace mysqlsh;
 
+namespace {
+// Retrieves the internal constant value based on a Group and ID
+// An exception is produced if invalid group.id data is provided
+// But this should not happen as it is used internally only
+Value get_constant_value(std::string_view module, std::string_view group,
+                         std::string_view id) {
+  if (module != "mysqlx" && module != "mysql")
+    throw shcore::Exception::logic_error(
+        "Invalid module on constant definition:" + std::string{group} + "." +
+        std::string{id});
+
+  if (group == "Type") {
+    if (id == "BIT") return Value("BIT");
+    if (id == "TINYINT") return Value("TINYINT");
+    if (id == "SMALLINT") return Value("SMALLINT");
+    if (id == "MEDIUMINT") return Value("MEDIUMINT");
+    // These 3 are treated as integer as the difference is determined by the
+    // flags on the column metadata
+    if (id == "INT" || id == "INTEGER" || id == "UINTEGER") return Value("INT");
+    if (id == "BIGINT") return Value("BIGINT");
+    if (id == "FLOAT") return Value("FLOAT");
+    if (id == "DECIMAL") return Value("DECIMAL");
+    if (id == "DOUBLE") return Value("DOUBLE");
+
+    // These are new
+    if (id == "JSON") return Value("JSON");
+    if (id == "STRING") return Value("STRING");
+    if (id == "BYTES") return Value("BYTES");
+    if (id == "TIME") return Value("TIME");
+    if (id == "DATE") return Value("DATE");
+    if (id == "DATETIME") return Value("DATETIME");
+    if (id == "SET") return Value("SET");
+    if (id == "ENUM") return Value("ENUM");
+    if (id == "GEOMETRY") return Value("GEOMETRY");
+    // NULL is only registered for mysql module
+    if (id == "NULL" && module == "mysql") return Value("NULL");
+
+    return {};
+  }
+
+  if (group == "LockContention") {
+    if (id == "NOWAIT") return Value("NOWAIT");
+    if (id == "SKIP_LOCKED") return Value("SKIP_LOCKED");
+    if (id == "DEFAULT") return Value("DEFAULT");
+    return {};
+  }
+
+  throw shcore::Exception::logic_error(
+      "Invalid group on constant definition:" + std::string{group} + "." +
+      std::string{id});
+}
+}  // namespace
+
 std::map<std::string, Constant::Module_constants> Constant::_constants;
 
-Constant::Constant(const std::string &module, const std::string &group,
-                   const std::string &id, const shcore::Argument_list &args)
-    : _module(module), _group(group), _id(id) {
-  _data = get_constant_value(_module, _group, _id, args);
+Constant::Constant(std::string module, std::string group, std::string id)
+    : _module(std::move(module)), _group(std::move(group)), _id(std::move(id)) {
+  _data = get_constant_value(_module, _group, _id);
 
   add_property("data");
 }
 
 Value Constant::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
-  Value ret_val;
-
-  if (prop == "data")
-    ret_val = _data;
-  else
-    ret_val = Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
+  if (prop == "data") return _data;
+  return Cpp_object_bridge::get_member(prop);
 }
 
 bool Constant::operator==(const Object_bridge &other) const {
@@ -68,7 +106,7 @@ bool Constant::operator==(const Object_bridge &other) const {
 
 Value Constant::get_constant(const std::string &module,
                              const std::string &group, const std::string &id,
-                             const shcore::Argument_list &args) {
+                             const shcore::Argument_list &) {
   Value ret_val;
 
   if (_constants.find(module) != _constants.end()) {
@@ -81,7 +119,7 @@ Value Constant::get_constant(const std::string &module,
   }
 
   if (!ret_val) {
-    std::shared_ptr<Constant> constant(new Constant(module, group, id, args));
+    std::shared_ptr<Constant> constant(new Constant(module, group, id));
 
     if (constant->data()) {
       if (_constants.find(module) == _constants.end()) {
@@ -101,125 +139,6 @@ Value Constant::get_constant(const std::string &module,
       ret_val = shcore::Value(
           std::static_pointer_cast<shcore::Object_bridge>(constant));
     }
-  }
-
-  return ret_val;
-}
-
-// Retrieves the internal constant value based on a Group and ID
-// An exception is produced if invalid group.id data is provided
-// But this should not happen as it is used internally only
-Value Constant::get_constant_value(const std::string &module,
-                                   const std::string &group,
-                                   const std::string &id,
-                                   const shcore::Argument_list & /*args*/) {
-  Value ret_val;
-
-  // By default all is OK if there are NO params
-  // Only varchar, char and decimal will allow params
-
-  // size_t param_count = 0;
-
-  // param_count = args.size();
-
-  if (module == "mysqlx" || module == "mysql") {
-    if (group == "Type") {
-      if (id == "BIT") {
-        ret_val = Value("BIT");
-      } else if (id == "TINYINT") {
-        ret_val = Value("TINYINT");
-      } else if (id == "SMALLINT") {
-        ret_val = Value("SMALLINT");
-      } else if (id == "MEDIUMINT") {
-        ret_val = Value("MEDIUMINT");
-        // These 3 are treated as integer as the difference is determined by the
-        // flags on the column metadata
-      } else if (id == "INT" || id == "INTEGER" || id == "UINTEGER") {
-        ret_val = Value("INT");
-      } else if (id == "BIGINT") {
-        ret_val = Value("BIGINT");
-      } else if (id == "FLOAT") {
-        ret_val = Value("FLOAT");
-      } else if (id == "DECIMAL") {
-        ret_val = Value("DECIMAL");
-      } else if (id == "DOUBLE") {
-        ret_val = Value("DOUBLE");
-      }
-      // Commenting this, could be useful when we change all the constats to
-      // function calls
-      // On MySQL 8 S II
-      //       else if (id == "Decimal" || id == "Numeric")
-      //       {
-      // 	std::string data = id == "Decimal" ? "DECIMAL" : "NUMERIC";
-      //
-      // 	bool error = false;
-      // 	if (param_count)
-      // 	{
-      // 	  if (param_count <= 2)
-      // 	  {
-      // 	    if (args.at(0).type == shcore::Integer)
-      // 	      data += "(" + args.at(0).descr(false);
-      // 	    else
-      // 	      error = true;
-      //
-      // 	    if (param_count == 2)
-      // 	    {
-      // 	      if (args.at(1).type == shcore::Integer)
-      // 		data += "," + args.at(1).descr(false);
-      // 	      else
-      // 		error = true;
-      // 	    }
-      // 	  }
-      // 	  else
-      // 	    error = true;
-      //
-      // 	  if (error)
-      // 	    throw shcore::Exception::argument_error("Type.Decimal allows
-      // up to two numeric parameters precision and scale");
-      //
-      // 	  data += ")";
-      // 	}
-      // 	ret_val = Value(data);
-      //       }
-
-      // These are new
-      else if (id == "JSON") {
-        ret_val = Value("JSON");
-      } else if (id == "STRING") {
-        ret_val = Value("STRING");
-      } else if (id == "BYTES") {
-        ret_val = Value("BYTES");
-      } else if (id == "TIME") {
-        ret_val = Value("TIME");
-      } else if (id == "DATE") {
-        ret_val = Value("DATE");
-      } else if (id == "DATETIME") {
-        ret_val = Value("DATETIME");
-      } else if (id == "SET") {
-        ret_val = Value("SET");
-      } else if (id == "ENUM") {
-        ret_val = Value("ENUM");
-      } else if (id == "GEOMETRY") {
-        ret_val = Value("GEOMETRY");
-        // NULL is only registered for mysql module
-      } else if (id == "NULL" && module == "mysql") {
-        ret_val = Value("NULL");
-      }
-    } else if (group == "LockContention") {
-      if (id == "NOWAIT") {
-        ret_val = Value("NOWAIT");
-      } else if (id == "SKIP_LOCKED") {
-        ret_val = Value("SKIP_LOCKED");
-      } else if (id == "DEFAULT") {
-        ret_val = Value("DEFAULT");
-      }
-    } else {
-      throw shcore::Exception::logic_error(
-          "Invalid group on constant definition:" + group + "." + id);
-    }
-  } else {
-    throw shcore::Exception::logic_error(
-        "Invalid module on constant definition:" + group + "." + id);
   }
 
   return ret_val;

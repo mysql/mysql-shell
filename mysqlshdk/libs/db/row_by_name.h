@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,9 +42,12 @@ class Field_names {
     for (const auto &col : metadata) add(col.get_column_label());
   }
 
-  Field_names(const Field_names &) = delete;
+  Field_names() = default;
 
-  Field_names() {}
+  Field_names(const Field_names &) = delete;
+  Field_names &operator=(const Field_names &) = delete;
+  Field_names(Field_names &&) = default;
+  Field_names &operator=(Field_names &&) = default;
 
   inline void add(const std::string &name) {
     if (has_field(name)) throw std::invalid_argument("duplicate field " + name);
@@ -77,29 +80,29 @@ class Field_names {
 
 class Row_ref_by_name {
  public:
-  Row_ref_by_name() {}
+  Row_ref_by_name() = default;
+  virtual ~Row_ref_by_name() = default;
 
-  Row_ref_by_name(const std::shared_ptr<Field_names> &field_names,
-                  const IRow *row)
-      : _field_names(field_names), _row_ref(row) {}
+  Row_ref_by_name(std::shared_ptr<Field_names> field_names,
+                  const IRow *row) noexcept
+      : _field_names(std::move(field_names)), _row_ref(row) {}
 
-  Row_ref_by_name(const Row_ref_by_name &p) = default;
-
-  Row_ref_by_name(Row_ref_by_name &&p)
-      : _field_names(std::move(p._field_names)),
-        _row_ref(std::move(p._row_ref)) {}
-
-  virtual ~Row_ref_by_name() {}
-
-  Row_ref_by_name &operator=(Row_ref_by_name &&o) {
-    _field_names = std::move(o._field_names);
-    _row_ref = std::move(o._row_ref);
+  Row_ref_by_name(const Row_ref_by_name &) = default;
+  Row_ref_by_name &operator=(const Row_ref_by_name &) = default;
+  Row_ref_by_name(Row_ref_by_name &&t) noexcept : Row_ref_by_name() {
+    *this = std::move(t);
+  }
+  Row_ref_by_name &operator=(Row_ref_by_name &&t) noexcept {
+    std::swap(_field_names, t._field_names);
+    std::swap(_row_ref, t._row_ref);
     return *this;
   }
 
   const IRow &operator*() const { return *ref(); }
 
-  operator bool() const { return _row_ref != nullptr; }
+  explicit operator bool() const {
+    return _field_names && (_row_ref != nullptr);
+  }
 
   uint32_t num_fields() const { return ref()->num_fields(); }
 
@@ -222,14 +225,17 @@ class Row_ref_by_name {
   }
 
   bool has_field(const std::string &field) const {
+    assert(_field_names);
     return _field_names->has_field(field);
   }
 
   uint32_t field_index(const std::string &field) const {
+    assert(_field_names);
     return _field_names->field_index(field);
   }
 
   const std::string &field_name(uint32_t i) const {
+    assert(_field_names);
     return _field_names->field_name(i);
   }
 
@@ -254,33 +260,36 @@ class Row_ref_by_name {
 
 class Row_by_name : public Row_ref_by_name {
  public:
-  Row_by_name() {}
+  Row_by_name() : Row_ref_by_name(nullptr, &_row_copy) {}
 
   Row_by_name(const std::shared_ptr<Field_names> &field_names, const IRow &row)
       : Row_ref_by_name(field_names, &_row_copy), _row_copy(row) {}
 
   Row_by_name(const std::shared_ptr<Field_names> &field_names,
-              Row_copy &&row_copy)
+              Row_copy &&row_copy) noexcept
       : Row_ref_by_name(field_names, &_row_copy),
         _row_copy(std::move(row_copy)) {}
 
-  Row_by_name(const Row_by_name &rbn) = default;
+  Row_by_name(const Row_by_name &) = delete;
+  Row_by_name &operator=(const Row_by_name &) = delete;
 
-  explicit Row_by_name(const Row_ref_by_name &rbn)
-      : Row_ref_by_name(rbn.field_names(), &_row_copy),
-        _row_copy(rbn.ref() ? Row_copy(*rbn.ref()) : Row_copy()) {}
-
-  Row_by_name(Row_by_name &&rbn)
-      : Row_ref_by_name(std::move(rbn)), _row_copy(std::move(rbn._row_copy)) {
-    _row_ref = &_row_copy;
+  Row_by_name(Row_by_name &&o) noexcept : Row_by_name() {
+    *this = std::move(o);
   }
+  Row_by_name &operator=(Row_by_name &&o) noexcept {
+    if (this == &o) return *this;
 
-  Row_by_name &operator=(Row_by_name &&o) {
-    Row_ref_by_name::operator=(std::move(o));
-    _row_copy = std::move(o._row_copy);
-    _row_ref = &_row_copy;
+    std::swap(static_cast<Row_ref_by_name &>(*this),
+              static_cast<Row_ref_by_name &>(o));
+    std::swap(this->_row_copy, o._row_copy);
+    this->_row_ref = &_row_copy;
+    o._row_ref = &o._row_copy;
     return *this;
   }
+
+  explicit Row_by_name(const Row_ref_by_name &rrbn)
+      : Row_ref_by_name(rrbn.field_names(), &_row_copy),
+        _row_copy(rrbn.ref() ? Row_copy(*rrbn.ref()) : Row_copy()) {}
 
  private:
   Row_copy _row_copy;

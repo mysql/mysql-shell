@@ -55,7 +55,7 @@ std::function<std::string(const std::string &value)>
 Recorder_mysql::Recorder_mysql() {}
 
 void Recorder_mysql::do_connect(const mysqlshdk::db::Connection_options &data) {
-  _trace.reset(Trace_writer::create(new_recording_path("mysql_trace")));
+  _trace = Trace_writer::create(new_recording_path("mysql_trace"));
 
   try {
     if (data.has_port()) _port = data.get_port();
@@ -159,7 +159,7 @@ Recorder_mysqlx::Recorder_mysqlx() {}
 
 void Recorder_mysqlx::do_connect(
     const mysqlshdk::db::Connection_options &data) {
-  _trace.reset(Trace_writer::create(new_recording_path("mysqlx_trace")));
+  _trace = Trace_writer::create(new_recording_path("mysqlx_trace"));
   try {
     if (data.has_port()) _port = data.get_port();
     _trace->serialize_connect(data, "x");

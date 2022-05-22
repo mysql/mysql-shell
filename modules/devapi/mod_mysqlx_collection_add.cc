@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -325,17 +325,18 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args) {
 }
 
 shcore::Value CollectionAdd::execute(bool upsert) {
-  std::unique_ptr<mysqlsh::mysqlx::Result> result;
-
   if (upsert) message_.set_upsert(upsert);
-  if (message_.mutable_row()->size()) {
-    result.reset(new mysqlx::Result(safe_exec(
-        [this]() { return session()->session()->execute_crud(message_); })));
+
+  std::shared_ptr<mysqlx::Result> result;
+  if (!message_.mutable_row()->empty()) {
+    result = std::make_shared<mysqlx::Result>(safe_exec(
+        [this]() { return session()->session()->execute_crud(message_); }));
   } else {
-    result.reset(new mysqlsh::mysqlx::Result({}));
+    result = std::make_shared<mysqlx::Result>(nullptr);
   }
 
-  return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
+  return result ? shcore::Value::wrap(std::move(result))
+                : shcore::Value::Null();
 }
 
 }  // namespace mysqlx

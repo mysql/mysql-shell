@@ -2966,11 +2966,9 @@ void Dumper::write_dump_finished_metadata() const {
   {
     Value files{Type::kObjectType};
 
-    for (const auto &file : m_chunk_file_bytes) {
-      Value tables{Type::kObjectType};
-
+    for (const auto &file : m_chunk_file_bytes)
       files.AddMember(refs(file.first), file.second, a);
-    }
+
     doc.AddMember(StringRef("chunkFileBytes"), std::move(files), a);
   }
 
@@ -3406,11 +3404,10 @@ mysqlshdk::storage::IDirectory *Dumper::directory() const {
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_file(
     const std::string &filename, bool use_mmap) const {
-  static const char *s_mmap_mode = nullptr;
-  if (s_mmap_mode == nullptr) {
-    s_mmap_mode = getenv("MYSQLSH_MMAP");
-    if (!s_mmap_mode) s_mmap_mode = "on";
-  }
+  static const char *s_mmap_mode = std::invoke([]() {
+    if (const char *mode = getenv("MYSQLSH_MMAP"); mode) return mode;
+    return "on";
+  });
 
   mysqlshdk::storage::File_options options;
   if (use_mmap) options["file.mmap"] = s_mmap_mode;

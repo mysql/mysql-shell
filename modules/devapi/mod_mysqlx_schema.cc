@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -135,15 +135,15 @@ void Schema::init() {
   // Setups the cache handlers
   auto table_generator = [this](const std::string &name) {
     return shcore::Value::wrap<Table>(
-        new Table(shared_from_this(), name, false));
+        std::make_shared<Table>(shared_from_this(), name, false));
   };
   auto view_generator = [this](const std::string &name) {
     return shcore::Value::wrap<Table>(
-        new Table(shared_from_this(), name, true));
+        std::make_shared<Table>(shared_from_this(), name, true));
   };
   auto collection_generator = [this](const std::string &name) {
     return shcore::Value::wrap<Collection>(
-        new Collection(shared_from_this(), name));
+        std::make_shared<Collection>(shared_from_this(), name));
   };
 
   update_table_cache = [table_generator, this](const std::string &name,

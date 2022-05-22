@@ -70,7 +70,6 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
          "?connectionData", "?options")
       ->cli();
   expose("importJson", &Util::import_json, "path", "?options")->cli();
-  shcore::ssl::init();
   expose("importTable", &Util::import_table_file, "path", "?options")
       ->cli(false);
   expose("importTable", &Util::import_table_files, "files", "?options")->cli();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -372,8 +372,8 @@ void Trace_writer::serialize_error(const std::runtime_error &e) {
           << ",\n";
 }
 
-Trace_writer *Trace_writer::create(const std::string &path) {
-  return new Trace_writer(path);
+std::unique_ptr<Trace_writer> Trace_writer::create(const std::string &path) {
+  return std::unique_ptr<Trace_writer>{new Trace_writer(path)};
 }
 
 void Trace_writer::set_metadata(
@@ -437,7 +437,7 @@ Trace::Trace(const std::string &path) : _trace_path(path) {
   assert(_doc.IsArray());
 }
 
-Trace::~Trace() {}
+Trace::~Trace() = default;
 
 void Trace::next(rapidjson::Value *entry) {
   if (_index >= _doc.Size() - 1) throw sequence_error("Session trace is over");

@@ -276,10 +276,8 @@ void User_privileges::parse_grant(const std::string &statement) {
 
         if (!privilege_done && !all_privileges_done) {
           privilege += " " + token;
-        } else {
-          if (add_privilege) {
-            privileges.emplace(std::move(privilege));
-          }
+        } else if (add_privilege) {
+          privileges.emplace(std::exchange(privilege, {}));
         }
       } while (!privilege_done && !all_privileges_done);
     } while (!all_privileges_done);

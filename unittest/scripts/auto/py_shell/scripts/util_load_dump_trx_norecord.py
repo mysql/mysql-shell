@@ -21,8 +21,8 @@ def TEST_LOAD(dump, net_buffer_length, max_binlog_cache_size, remove_progress = 
         options["showProgress"] = False
     util.load_dump(__tmp_dir+"/ldtest/"+dump, options)
     for i in range(k_last_table):
-        EXPECT_EQ(rcount[i], session.run_sql("select count(*) from testdb.data%s"%i).fetch_one()[0])
-        EXPECT_EQ(checksum[i], session.run_sql("checksum table testdb.data%s"%i).fetch_one()[1])
+        EXPECT_EQ(rcount[i], session.run_sql(f'select count(*) from testdb.data{i}').fetch_one()[0])
+        EXPECT_EQ(checksum[i], session.run_sql(f'checksum table testdb.data{i}').fetch_one()[1])
 
 k_last_table = 2
 
@@ -37,8 +37,8 @@ def set_test_table_count(num):
     checksum = []
     rcount = []
     for i in range(k_last_table):
-        checksum.append(session.run_sql("checksum table testdb.data%i"%i).fetch_one()[1])
-        rcount.append(session.run_sql("select count(*) from testdb.data%i"%i).fetch_one()[0])
+        checksum.append(session.run_sql(f'checksum table testdb.data{i}').fetch_one()[1])
+        rcount.append(session.run_sql(f'select count(*) from testdb.data{i}').fetch_one()[0])
 
 
 def hack_in_bytes_per_chunk(dump, bytes_per_chunk):

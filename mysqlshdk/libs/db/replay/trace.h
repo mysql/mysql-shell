@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,10 +41,10 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
-class Trace_writer {
+class Trace_writer final {
  public:
   ~Trace_writer();
-  static Trace_writer *create(const std::string &path);
+  static std::unique_ptr<Trace_writer> create(const std::string &path);
 
   void set_metadata(const std::map<std::string, std::string> &meta);
 

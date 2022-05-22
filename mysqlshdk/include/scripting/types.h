@@ -252,9 +252,8 @@ struct SHCORE_PUBLIC Value {
   }
 
   template <class T>
-  static Value wrap(T *o) {
-    return Value(
-        std::static_pointer_cast<Object_bridge>(std::shared_ptr<T>(o)));
+  static Value wrap(std::shared_ptr<T> o) {
+    return Value(std::static_pointer_cast<Object_bridge>(std::move(o)));
   }
 
   static Value new_array() {

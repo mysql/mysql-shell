@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,12 +36,11 @@
 #include "shellcore/ishell_core.h"
 
 namespace mysqlsh {
-class SHCORE_PUBLIC Constant : public shcore::Cpp_object_bridge {
+class SHCORE_PUBLIC Constant final : public shcore::Cpp_object_bridge {
  public:
   explicit Constant(const shcore::Value &data);
-  Constant(const std::string &module, const std::string &group,
-           const std::string &id, const shcore::Argument_list &args);
-  virtual ~Constant() {}
+  Constant(std::string module, std::string group, std::string id);
+  virtual ~Constant() = default;
 
   // Virtual methods from object bridge
   virtual std::string class_name() const { return "Constant"; }
@@ -69,11 +68,6 @@ class SHCORE_PUBLIC Constant : public shcore::Cpp_object_bridge {
   std::string _group;
   std::string _id;
   shcore::Value _data;
-
-  shcore::Value get_constant_value(const std::string &module,
-                                   const std::string &group,
-                                   const std::string &id,
-                                   const shcore::Argument_list &args);
 
   // A single instance of every Constant will exist
   typedef std::map<std::string, std::shared_ptr<Constant>> Group_constants;

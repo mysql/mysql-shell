@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,10 +48,12 @@ class bad_field : public std::invalid_argument {
 
 class SHCORE_PUBLIC IRow {
  public:
-  IRow() {}
-  // non-copiable
+  IRow() = default;
+  // non-copiable but movable
   IRow(const IRow &) = delete;
-  void operator=(const IRow &) = delete;
+  IRow &operator=(const IRow &) = delete;
+  IRow(IRow &&) = default;
+  IRow &operator=(IRow &&) = default;
 
   virtual uint32_t num_fields() const = 0;
 
@@ -97,7 +99,7 @@ class SHCORE_PUBLIC IRow {
     return get_double(index);
   }
 
-  virtual ~IRow() {}
+  virtual ~IRow() = default;
 };
 }  // namespace db
 }  // namespace mysqlshdk

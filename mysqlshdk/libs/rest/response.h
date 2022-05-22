@@ -289,24 +289,23 @@ class Static_char_ref_buffer : public Base_response_buffer {
 
 struct String_response : public Response {
  public:
-  String_response() { body = &buffer; }
+  String_response() noexcept { body = &buffer; }
 
-  String_response(const String_response &other) { *this = other; }
+  String_response(const String_response &other) : String_response() {
+    *this = other;
+  }
 
-  String_response(String_response &&other) { *this = std::move(other); }
+  String_response(String_response &&other) noexcept : String_response() {
+    *this = std::move(other);
+  }
 
   String_response &operator=(const String_response &other) {
     buffer = other.buffer;
-    body = &buffer;
     return *this;
   }
 
-  String_response &operator=(String_response &&other) {
-    buffer = std::move(other.buffer);
-    body = &buffer;
-
-    other.body = nullptr;
-
+  String_response &operator=(String_response &&other) noexcept {
+    std::swap(buffer, other.buffer);
     return *this;
   }
 
