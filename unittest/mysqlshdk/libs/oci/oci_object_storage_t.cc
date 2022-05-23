@@ -363,9 +363,9 @@ TEST_F(Oci_os_tests, file_write_multipart_errors) {
       file->write("67890", 5), shcore::Exception,
       "Failed to upload part 1 for object 'sample.txt': No such upload (404)");
 
-  EXPECT_THROW_LIKE(file->close(), shcore::Exception,
-                    "Failed to commit multipart upload for object "
-                    "'sample.txt': There are no parts to commit (400)");
+  // write has failed and file state has been reset, there's not going to be any
+  // more communication with the server
+  EXPECT_NO_THROW(file->close());
 }
 
 TEST_F(Oci_os_tests, file_writing) {
@@ -481,6 +481,43 @@ TEST_F(Oci_os_tests, file_rename) {
   EXPECT_EQ(expected_files, files);
 
   bucket.delete_object("other/testing.txt");
+}
+
+TEST_F(Oci_os_tests, file_auto_cancel_multipart_upload) {
+  SKIP_IF_NO_OCI_CONFIGURATION;
+
+  auto config = get_config();
+  config->set_part_size(3);
+  Oci_bucket bucket(config);
+  Directory root(config, "test");
+
+  auto file = root.file("sample\".txt");
+
+  std::string data = "0123456789ABCDE";
+  size_t offset = 0;
+
+  file->open(Mode::WRITE);
+  offset += file->write(data.data() + offset, 5);
+  offset += file->write(data.data() + offset, 5);
+  offset += file->write(data.data() + offset, 5);
+
+  const auto uploads = bucket.list_multipart_uploads();
+  EXPECT_EQ(1, uploads.size());
+  EXPECT_STREQ("test/sample\".txt", uploads[0].name.c_str());
+
+  const auto parts = bucket.list_multipart_uploaded_parts(uploads[0]);
+  EXPECT_EQ(4, parts.size());  // Last part is still on the buffer
+
+  // release the file, simulating abnormal situation (close() was not called,
+  // destructor should clean up the upload)
+  file.reset();
+
+  EXPECT_THROW_LIKE(bucket.list_multipart_uploaded_parts(uploads[0]),
+                    Response_error,
+                    "Failed to list uploaded parts for object "
+                    "'test/sample\".txt': No such upload");
+
+  EXPECT_TRUE(bucket.list_multipart_uploads().empty());
 }
 
 }  // namespace testing

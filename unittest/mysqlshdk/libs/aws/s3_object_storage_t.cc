@@ -383,9 +383,9 @@ TEST_P(Object_storage_test, file_write_multipart_errors) {
   EXPECT_THROW_LIKE(file->write("67890", 5), shcore::Exception,
                     "Failed to upload part 1 for object 'sample.txt': ");
 
-  EXPECT_THROW_LIKE(
-      file->close(), shcore::Exception,
-      "Failed to commit multipart upload for object 'sample.txt': ");
+  // write has failed and file state has been reset, there's not going to be any
+  // more communication with the server
+  EXPECT_NO_THROW(file->close());
 }
 
 TEST_P(Object_storage_test, file_writing) {
@@ -501,6 +501,48 @@ TEST_P(Object_storage_test, file_rename) {
   EXPECT_EQ(expected_files, files);
 
   bucket.delete_object("other/testing.txt");
+}
+
+TEST_P(Object_storage_test, file_auto_cancel_multipart_upload) {
+  SKIP_IF_NO_AWS_CONFIGURATION;
+
+  auto config = get_config();
+  config->set_part_size(k_min_part_size);
+  S3_bucket bucket(config);
+  Directory root(config, "test");
+
+  auto file = root.file("sample\".txt");
+
+  const auto data = multipart_file_data();
+  size_t offset = 0;
+  int writes = 0;
+
+  file->open(Mode::WRITE);
+
+  while (offset < k_multipart_file_size) {
+    ++writes;
+    offset += file->write(
+        data.data() + offset,
+        std::min(k_min_part_size + 1, k_multipart_file_size - offset));
+  }
+
+  const auto uploads = bucket.list_multipart_uploads();
+  EXPECT_EQ(1, uploads.size());
+  EXPECT_STREQ("test/sample\".txt", uploads[0].name.c_str());
+
+  const auto parts = bucket.list_multipart_uploaded_parts(uploads[0]);
+  EXPECT_EQ(writes - 1, parts.size());  // Last part is still on the buffer
+
+  // release the file, simulating abnormal situation (close() was not called,
+  // destructor should clean up the upload)
+  file.reset();
+
+  EXPECT_THROW_LIKE(bucket.list_multipart_uploaded_parts(uploads[0]),
+                    Response_error,
+                    "Failed to list uploaded parts for object "
+                    "'test/sample\".txt': No such upload");
+
+  EXPECT_TRUE(bucket.list_multipart_uploads().empty());
 }
 
 INSTANTIATE_TEST_SUITE_P(Aws_s3, Object_storage_test, suffixes(),
