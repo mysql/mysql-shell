@@ -26,6 +26,20 @@ metadata_201 = false
 var cluster = dba.getCluster();
 EXPECT_OUTPUT_CONTAINS("It is recommended to upgrade the metadata.");
 
+cluster.dissolve({force: true});
+
+//@<> INCLUDE BATCH_2 _prepare_metadata_2_0_0_cluster.js
+
+//@<> Test if answer to upgrade is honored BUG #33941759
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers(router_name, product_name, address, attributes) VALUES ('second', 'router', 'localhost', '[]')")
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers(router_name, product_name, address, attributes) VALUES ('third', 'router', 'localhost', '[]')")
+testutil.expectPrompt("Do you want to proceed with the upgrade? [y/N]: ", "n");
+dba.upgradeMetadata({interactive:true});
+EXPECT_STDOUT_CONTAINS("The metadata upgrade has been aborted.")
+EXPECT_STDOUT_NOT_CONTAINS(`Upgrading metadata at '${hostname}:${__mysql_sandbox_port1}' from version 2.0.0 to version 2.1.0.`)
+
+session.runSql("TRUNCATE mysql_innodb_cluster_metadata.routers;");
+
 //@<> INCLUDE BATCH _simple_cluster_tests.js
 
 //@<> INTERACTIVE TESTING

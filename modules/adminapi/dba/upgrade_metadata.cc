@@ -210,177 +210,168 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
   upgrade_router_users();
 
   auto routers = get_outdated_routers();
+  if (!routers) return;
 
-  if (routers) {
-    auto console = current_console();
+  // For patch upgrades, rolling upgrade is not considered
+  bool done_router_upgrade = m_metadata->get_state() == MDState::PATCH_LOWER;
+  if (done_router_upgrade) return;
 
-    // For patch upgrades, rolling upgrade is not considered
-    bool done_router_upgrade = m_metadata->get_state() == MDState::PATCH_LOWER;
+  auto console = current_console();
 
-    // Doing the rolling upgrade is mandatory for a MAJOR upgrade, on a minor
-    // upgrade the user can decide whether to do it or not
-    bool do_rolling_upgrade = m_metadata->get_state() == MDState::MAJOR_LOWER;
+  // Doing the rolling upgrade is mandatory for a MAJOR upgrade, on a minor
+  // upgrade the user can decide whether to do it or not
+  bool do_rolling_upgrade = m_metadata->get_state() == MDState::MAJOR_LOWER;
 
-    if (!done_router_upgrade) {
+  console->print_info(shcore::str_format(
+      "An upgrade of all cluster router instances is %s. All router "
+      "installations should be updated first before doing the actual "
+      "metadata upgrade.\n",
+      do_rolling_upgrade ? "required" : "recommended"));
+
+  print_router_list(routers);
+
+  if (m_interactive && !m_dry_run) {
+    if (!do_rolling_upgrade) {
+      do_rolling_upgrade =
+          console->confirm("Do you want to proceed with the upgrade?") ==
+          mysqlsh::Prompt_answer::YES;
+
+      if (!do_rolling_upgrade) m_abort_rolling_upgrade = true;
+    }
+
+    while (do_rolling_upgrade && routers) {
+      size_t count = routers->size() - 1;
+
+      std::string answer;
+
       console->print_info(shcore::str_format(
-          "An upgrade of all cluster router instances is %s. All router "
-          "installations should be updated first before doing the actual "
-          "metadata upgrade.\n",
-          do_rolling_upgrade ? "required" : "recommended"));
+          "There %s %zu Router%s to upgrade. Please "
+          "upgrade %s and select Continue once %s restarted.\n",
+          (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s",
+          (count == 1) ? "it" : "them", (count == 1) ? "it is" : "they are"));
 
-      print_router_list(routers);
+      console->print_note(
+          "If Router's Metadata Cache TTL is high Router's own update "
+          "in the Metadata will take longer. Re-check for outdated "
+          "Routers if that's the case or alternatively restart the "
+          "Router.");
+      console->print_info();
 
-      if (m_interactive && !m_dry_run) {
-        if (!do_rolling_upgrade) {
-          if (console->confirm(
-                  "Do you want to proceed with the upgrade (Yes/No)") ==
-              mysqlsh::Prompt_answer::YES) {
-            do_rolling_upgrade = true;
-          } else {
-            // If user was given the option to do rolling upgrade and he chooses
-            // not to do it, it's ok, we should continue
-            done_router_upgrade = true;
-          }
-        }
+      std::vector<std::string> options = {
+          "Re-check for outdated Routers and continue with the metadata "
+          "upgrade.",
+          "Unregister the remaining Routers.", "Abort the operation.", "Help"};
 
-        while (do_rolling_upgrade && routers) {
-          size_t count = routers->size() - 1;
-
-          std::string answer;
-
-          console->print_info(shcore::str_format(
-              "There %s %zu Router%s to upgrade. Please "
-              "upgrade %s and select Continue once %s restarted.\n",
-              (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s",
-              (count == 1) ? "it" : "them",
-              (count == 1) ? "it is" : "they are"));
-
-          console->print_note(
-              "If Router's Metadata Cache TTL is high Router's own update "
-              "in the Metadata will take longer. Re-check for outdated "
-              "Routers if that's the case or alternatively restart the "
-              "Router.");
-          console->print_info();
-
-          std::vector<std::string> options = {
-              "Re-check for outdated Routers and continue with the metadata "
-              "upgrade.",
-              "Unregister the remaining Routers.", "Abort the operation.",
-              "Help"};
-
-          if (console->select(
-                  "Please select an option", &answer, options, 0UL, true,
-                  [&options](const std::string &a) -> std::string {
-                    if (a.size() == 1) {
-                      if (a.find_first_of("?aArCuUhH") == std::string::npos) {
-                        return "Invalid option selected";
-                      }
-                    } else {
-                      if (std::find(options.begin(), options.end(), a) ==
-                              std::end(options) &&
-                          !shcore::str_caseeq(a, "abort") &&
-                          !shcore::str_caseeq(a, "continue") &&
-                          !shcore::str_caseeq(a, "unregister") &&
-                          !shcore::str_caseeq(a, "help")) {
-                        return "Invalid option selected";
-                      }
-                    }
-                    return "";
-                  })) {
-            switch (answer[0]) {
-              case 'U':
-              case 'u':
-                if (console->confirm(
-                        "Unregistering a Router implies it will not "
-                        "be used in the "
-                        "Cluster, do you want to continue?") ==
-                    mysqlsh::Prompt_answer::YES) {
-                  // First row is the table headers
-                  routers->erase(routers->begin());
-                  unregister_routers(routers);
-                }
-                // NOTE: This fallback is required, after unregistering the
-                // listed routers it will refresh the list if needed (implicit
-                // retry)
-                FALLTHROUGH;
-              case 'R':
-              case 'r':
-                DBUG_EXECUTE_IF("dba_EMULATE_ROUTER_UNREGISTER", {
-                  m_target_instance->execute(
-                      "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE "
-                      "router_id = 2");
-                });
-                DBUG_EXECUTE_IF("dba_EMULATE_ROUTER_UPGRADE", {
-                  m_target_instance->execute(
-                      "UPDATE mysql_innodb_cluster_metadata.routers SET "
-                      "attributes=JSON_OBJECT('version','8.0.19') WHERE "
-                      "router_id = 2");
-                });
-
-                routers = get_outdated_routers();
-                if (routers) {
-                  print_router_list(routers);
+      if (console->select(
+              "Please select an option", &answer, options, 0UL, true,
+              [&options](const std::string &a) -> std::string {
+                if (a.size() == 1) {
+                  if (a.find_first_of("?aArCuUhH") == std::string::npos) {
+                    return "Invalid option selected";
+                  }
                 } else {
-                  done_router_upgrade = true;
+                  if (std::find(options.begin(), options.end(), a) ==
+                          std::end(options) &&
+                      !shcore::str_caseeq(a, "abort") &&
+                      !shcore::str_caseeq(a, "continue") &&
+                      !shcore::str_caseeq(a, "unregister") &&
+                      !shcore::str_caseeq(a, "help")) {
+                    return "Invalid option selected";
+                  }
                 }
-                break;
-              case 'A':
-              case 'a':
-                do_rolling_upgrade = false;
-                m_abort_rolling_upgrade = true;
-                break;
-              case 'H':
-              case 'h':
-              case '?':
-                console->print_info(shcore::str_subvars(
-                    "To perform a rolling upgrade of the InnoDB "
-                    "Cluster/ReplicaSet metadata, execute the following "
-                    "steps:\n\n"
-                    "1 - Upgrade the Shell to the latest version\n"
-                    "2 - Execute dba.<<<upgradeMetadata>>>() (the current "
-                    "step)\n"
-                    "3 - Upgrade MySQL Router instances to the latest "
-                    "version\n"
-                    "4 - Continue with the metadata upgrade once all Router "
-                    "instances are upgraded or accounted for\n",
-                    [](const std::string &var) {
-                      return shcore::get_member_name(
-                          var, shcore::current_naming_style());
-                    },
-                    "<<<", ">>>"));
-
-                routers = get_outdated_routers();
-                if (routers) {
-                  console->print_info(
-                      "If the following Router instances no longer exist, "
-                      "select Unregister to delete their metadata.");
-                  print_router_list(routers);
-                }
-                break;
+                return "";
+              })) {
+        switch (answer[0]) {
+          case 'U':
+          case 'u':
+            if (console->confirm("Unregistering a Router implies it will not "
+                                 "be used in the "
+                                 "Cluster, do you want to continue?") ==
+                mysqlsh::Prompt_answer::YES) {
+              // First row is the table headers
+              routers->erase(routers->begin());
+              unregister_routers(routers);
             }
-          } else {
-            // Ctrl+C was hit
+            // NOTE: This fallback is required, after unregistering the
+            // listed routers it will refresh the list if needed (implicit
+            // retry)
+            FALLTHROUGH;
+          case 'R':
+          case 'r':
+            DBUG_EXECUTE_IF("dba_EMULATE_ROUTER_UNREGISTER", {
+              m_target_instance->execute(
+                  "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE "
+                  "router_id = 2");
+            });
+            DBUG_EXECUTE_IF("dba_EMULATE_ROUTER_UPGRADE", {
+              m_target_instance->execute(
+                  "UPDATE mysql_innodb_cluster_metadata.routers SET "
+                  "attributes=JSON_OBJECT('version','8.0.19') WHERE "
+                  "router_id = 2");
+            });
+
+            routers = get_outdated_routers();
+            if (routers) {
+              print_router_list(routers);
+            } else {
+              done_router_upgrade = true;
+            }
+            break;
+          case 'A':
+          case 'a':
             do_rolling_upgrade = false;
             m_abort_rolling_upgrade = true;
-          }
-        }
-      }
+            break;
+          case 'H':
+          case 'h':
+          case '?':
+            console->print_info(shcore::str_subvars(
+                "To perform a rolling upgrade of the InnoDB "
+                "Cluster/ReplicaSet metadata, execute the following "
+                "steps:\n\n"
+                "1 - Upgrade the Shell to the latest version\n"
+                "2 - Execute dba.<<<upgradeMetadata>>>() (the current "
+                "step)\n"
+                "3 - Upgrade MySQL Router instances to the latest "
+                "version\n"
+                "4 - Continue with the metadata upgrade once all Router "
+                "instances are upgraded or accounted for\n",
+                [](const std::string &var) {
+                  return shcore::get_member_name(
+                      var, shcore::current_naming_style());
+                },
+                "<<<", ">>>"));
 
-      if (!done_router_upgrade) {
-        if (m_dry_run) {
-          size_t count = routers->size() - 1;
-          console->print_info(shcore::str_format(
-              "There %s %zu Router%s to be upgraded in order to perform the "
-              "Metadata schema upgrade.\n",
-              (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s"));
-        } else if (m_abort_rolling_upgrade) {
-          console->print_info("The metadata upgrade has been aborted.");
-        } else {
-          throw shcore::Exception::runtime_error(
-              "Outdated Routers found. Please upgrade the Routers before "
-              "upgrading the Metadata schema");
+            routers = get_outdated_routers();
+            if (routers) {
+              console->print_info(
+                  "If the following Router instances no longer exist, "
+                  "select Unregister to delete their metadata.");
+              print_router_list(routers);
+            }
+            break;
         }
+      } else {
+        // Ctrl+C was hit
+        do_rolling_upgrade = false;
+        m_abort_rolling_upgrade = true;
       }
+    }
+  }
+
+  if (!done_router_upgrade) {
+    if (m_dry_run) {
+      size_t count = routers->size() - 1;
+      console->print_info(shcore::str_format(
+          "There %s %zu Router%s to be upgraded in order to perform the "
+          "Metadata schema upgrade.\n",
+          (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s"));
+    } else if (m_abort_rolling_upgrade) {
+      console->print_info("The metadata upgrade has been aborted.");
+    } else {
+      throw shcore::Exception::runtime_error(
+          "Outdated Routers found. Please upgrade the Routers before "
+          "upgrading the Metadata schema");
     }
   }
 }
