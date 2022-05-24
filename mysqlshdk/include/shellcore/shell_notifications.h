@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,11 @@
 #ifndef _SHELLNOTIFICATIONS_H_
 #define _SHELLNOTIFICATIONS_H_
 
+#include <map>
+#include <memory>
+#include <mutex>
+#include <unordered_set>
+
 #include "scripting/common.h"
 #include "scripting/types.h"
 
@@ -41,26 +46,31 @@ class SHCORE_PUBLIC NotificationObserver {
   std::list<std::string> _notifications;
 };
 
-typedef std::list<NotificationObserver *> ObserverList;
+class SHCORE_PUBLIC ShellNotifications final {
+  using Observer_list = std::unordered_set<NotificationObserver *>;
 
-class SHCORE_PUBLIC ShellNotifications {
- private:
-  ShellNotifications() {}
-  std::map<std::string, ObserverList *> _observers;
-
-  static ShellNotifications *_instance;
+  ShellNotifications() = default;
 
  public:
+  ShellNotifications(const ShellNotifications &) = delete;
+  ShellNotifications(ShellNotifications &&) = delete;
+  ShellNotifications &operator=(const ShellNotifications &) = delete;
+  ShellNotifications &operator=(ShellNotifications &&) = delete;
+
   static ShellNotifications *get();
-  virtual ~ShellNotifications();
 
   bool add_observer(NotificationObserver *observer,
                     const std::string &notification);
   bool remove_observer(NotificationObserver *observer,
                        const std::string &notification);
   void notify(const std::string &name, const shcore::Object_bridge_ref &sender,
-              shcore::Value::Map_type_ref data);
-  void notify(const std::string &name, const shcore::Object_bridge_ref &sender);
+              shcore::Value::Map_type_ref data) const;
+  void notify(const std::string &name,
+              const shcore::Object_bridge_ref &sender) const;
+
+ private:
+  mutable std::mutex m_mutex;
+  std::map<std::string, Observer_list> m_observers;
 };
 }  // namespace shcore
 

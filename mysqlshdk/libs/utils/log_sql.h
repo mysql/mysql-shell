@@ -24,11 +24,13 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_LOGSQL_H_
 #define MYSQLSHDK_LIBS_UTILS_LOGSQL_H_
 
+#include <atomic>
 #include <mutex>
 #include <stack>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -56,7 +58,7 @@ class Log_sql : public NotificationObserver {
                            const Object_bridge_ref &sender,
                            Value::Map_type_ref data) override;
 
-  void push(const char *context);
+  void push(std::string_view context);
   void pop();
 
   void log(uint64_t thread_id, const char *sql, size_t len);
@@ -76,12 +78,12 @@ class Log_sql : public NotificationObserver {
 
   mutable std::mutex m_mutex;
 
-  int m_dba_log_sql = 0;
+  std::atomic<int> m_dba_log_sql{0};
   std::atomic<Log_level> m_log_sql_level{Log_level::OFF};
   std::vector<std::string> m_ignore_patterns;
   Logger::LOG_LEVEL m_log_level = Logger::LOG_LEVEL::LOG_INFO;
   std::stack<std::string> m_context_stack;
-  bool m_in_dba_context = false;
+  size_t m_num_dba_ctx{0};
 };
 
 // implemented in scoped_contexts.cc

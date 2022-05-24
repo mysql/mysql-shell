@@ -147,9 +147,9 @@ class Shell_options final : public shcore::Options {
     std::string execute_statement;
     std::string execute_dba_statement;
     std::string sandbox_directory;
-    int dba_gtid_wait_timeout;
-    int dba_restart_wait_timeout;
-    int dba_log_sql;
+    int dba_gtid_wait_timeout = 60;
+    int dba_restart_wait_timeout = 60;
+    int dba_log_sql = 0;
     std::string log_sql;  //< Global SQL logging level
     std::string log_sql_ignore;
     shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_INFO;

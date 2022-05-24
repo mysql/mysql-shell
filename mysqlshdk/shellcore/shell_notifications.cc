@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,13 +25,10 @@
 #include <algorithm>
 
 namespace shcore {
-ShellNotifications *ShellNotifications::_instance = NULL;
 
 NotificationObserver::~NotificationObserver() {
-  std::list<std::string>::iterator it, end = _notifications.end();
-
-  for (it = _notifications.begin(); it != end; it++)
-    ShellNotifications::get()->remove_observer(this, *it);
+  for (const auto &notify : _notifications)
+    ShellNotifications::get()->remove_observer(this, notify);
 
   _notifications.clear();
 }
@@ -49,74 +46,48 @@ void NotificationObserver::ignore_notification(
 }
 
 ShellNotifications *ShellNotifications::get() {
-  if (!_instance) _instance = new ShellNotifications();
-
-  return _instance;
+  static ShellNotifications instance;
+  return &instance;
 }
-
-ShellNotifications::~ShellNotifications() {}
 
 bool ShellNotifications::add_observer(NotificationObserver *observer,
                                       const std::string &notification) {
-  bool ret_val = false;
+  std::lock_guard lock(m_mutex);
 
-  // Gets the observer list for the given notification
-  // creates the list if it is the first observer
-  if (_observers.find(notification) == _observers.end())
-    _observers[notification] = new ObserverList();
-
-  // Adds the observer if it does not exists already
-  ObserverList *list = _observers[notification];
-  ret_val = std::find(list->begin(), list->end(), observer) == list->end();
-  if (ret_val) _observers[notification]->push_back(observer);
-
-  return ret_val;
+  return m_observers[notification]
+      .emplace(observer)
+      .second;  // true if inserted
 }
 
 bool ShellNotifications::remove_observer(NotificationObserver *observer,
                                          const std::string &notification) {
-  bool ret_val = false;
+  std::lock_guard lock(m_mutex);
 
-  if (_observers.find(notification) != _observers.end()) {
-    ObserverList *list = _observers[notification];
+  auto it = m_observers.find(notification);
+  if (it == m_observers.end()) return false;
 
-    ObserverList::iterator it = list->begin();
-    while (it != list->end()) {
-      if (*it == observer) {
-        ret_val = true;
-        list->erase(it);
-        break;
-      } else
-        it++;
-    }
+  auto &list = it->second;
 
-    if (list->size() == 0) {
-      delete list;
-      _observers.erase(notification);
-    }
-  }
+  auto ret_val = list.erase(observer) != 0;
+  if (list.empty()) m_observers.erase(it);
 
   return ret_val;
 }
 
 void ShellNotifications::notify(const std::string &name,
                                 const shcore::Object_bridge_ref &sender,
-                                shcore::Value::Map_type_ref data) {
-  if (_observers.find(name) != _observers.end()) {
-    ObserverList *list = _observers[name];
+                                shcore::Value::Map_type_ref data) const {
+  std::lock_guard lock(m_mutex);
 
-    ObserverList::iterator it = list->begin();
-    while (it != list->end()) {
-      auto next = it;
-      ++next;
-      (*it)->handle_notification(name, sender, data);
-      it = next;
-    }
-  }
+  auto it = m_observers.find(name);
+  if (it == m_observers.end()) return;
+
+  for (const auto &notify : it->second)
+    notify->handle_notification(name, sender, data);
 }
 
 void ShellNotifications::notify(const std::string &name,
-                                const shcore::Object_bridge_ref &sender) {
+                                const shcore::Object_bridge_ref &sender) const {
   notify(name, sender, shcore::Value::Map_type_ref());
 }
 }  // namespace shcore

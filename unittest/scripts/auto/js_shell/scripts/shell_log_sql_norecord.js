@@ -1,11 +1,13 @@
 //@<> Setup test
-shell.connect(__mysql_uri);
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+shell.connect(__sandbox_uri1);
 
 // =================================
 // Using 'unfiltered' logging option
 // =================================
 
 \option logSql = "unfiltered"
+\option dba.logSql = 0
 
 //@<> Testing unfiltered sql logging with \use
 WIPE_SHELL_LOG();
@@ -61,7 +63,7 @@ WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()
 } catch (error) {
-    // This doesn't matter
+    print(error)
 }
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: CONNECTED: localhost:\d+/);
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: SQL: SET SESSION `autocommit` = 1/);
@@ -137,7 +139,7 @@ WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()
 } catch (error) {
-    // This doesn't matter
+    print(error)
 }
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: CONNECTED: localhost:\d+/);
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: SQL: SET SESSION `autocommit` = 1/);
@@ -212,7 +214,7 @@ WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()
 } catch (error) {
-    // This doesn't matter
+    print(error)
 }
 EXPECT_SHELL_LOG_NOT_CONTAINS("CONNECTED: localhost:\d+");
 EXPECT_SHELL_LOG_NOT_CONTAINS("SQL: SET SESSION `autocommit` = 1");
@@ -253,5 +255,6 @@ session.runSql("select whatever");
 EXPECT_SHELL_LOG_MATCHES(/Info: ClassicSession.runSql: tid=\d+: MySQL Error 1054 \(42S22\): Unknown column 'whatever' in 'field list', SQL: select whatever/);
 
 //@<> Clean-up
-testutil.rmfile("multi.sql");
 session.close();
+testutil.rmfile("multi.sql");
+testutil.destroySandbox(__mysql_sandbox_port1);
