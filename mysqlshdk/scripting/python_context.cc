@@ -800,23 +800,31 @@ Value Python_context::execute_interactive(const std::string &code,
               "expected an indented block"sv;
 
           std::string_view msg_view{msg};
+          const auto starts_with = [](std::string_view view,
+                                      std::string_view prefix) {
+            return view.substr(0, prefix.length()) == prefix;
+          };
+          const auto msg_starts_with = [&starts_with,
+                                        msg_view](std::string_view prefix) {
+            return starts_with(msg_view, prefix);
+          };
 
-          if (msg_view == unexpected_character) {
+          if (msg_starts_with(unexpected_character)) {
             // NOTE: These two characters will come if explicit line
             // continuation is specified
             if (code.length() >= 2 && code[code.length() - 2] == '\\' &&
                 code[code.length() - 1] == '\n') {
               r_state = Input_state::ContinuedSingle;
             }
-          } else if (msg_view == eof_while_scanning) {
+          } else if (msg_starts_with(eof_while_scanning)) {
             r_state = Input_state::ContinuedSingle;
-          } else if (msg_view == unterminated_triple_quoted) {
+          } else if (msg_starts_with(unterminated_triple_quoted)) {
             r_state = Input_state::ContinuedSingle;
-          } else if (msg_view.substr(4) == was_never_closed) {
+          } else if (starts_with(msg_view.substr(4), was_never_closed)) {
             r_state = Input_state::ContinuedBlock;
-          } else if (msg_view == unexpected_eof) {
+          } else if (msg_starts_with(unexpected_eof)) {
             r_state = Input_state::ContinuedBlock;
-          } else if (msg_view == expected_indented_block) {
+          } else if (msg_starts_with(expected_indented_block)) {
             r_state = Input_state::ContinuedBlock;
           }
         }
