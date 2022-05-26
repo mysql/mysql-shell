@@ -81,17 +81,20 @@ shell.connect(uri);
 dba.rebootClusterFromCompleteOutage("bla");
 session.close();
 
-//@ dissolve the cluster
+//@<> remove the cluster's metadata
 shell.connect(__sandbox_uri1);
-var c = dba.getCluster("bla");
-c.dissolve();
+
+var cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_name = 'bla'").fetchOne()[0];
+
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE cluster_id = '" + cluster_id +"'");
+session.runSql("DELETE from mysql_innodb_cluster_metadata.clusters WHERE cluster_id = '" + cluster_id + "'");
+session.runSql("STOP group_replication");
 
 //@ Dba_preconditions_standalone_with_metadata, get_cluster_fails
 dba.getCluster("bla");
 
 //@ Dba_preconditions_standalone_with_metadata, create_cluster_succeeds
-// Create Cluster is allowed on standalone instance with metadata, the precondition
-// validation passes
+// Create Cluster is allowed on standalone instance with metadata, the precondition validation passes
 dba.createCluster("1nvalidName");
 
 //@ Dba_preconditions_standalone_with_metadata, reboot_cluster_from_complete_outage_fails

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,6 +102,7 @@ class Dissolve : public Command_interface {
   std::vector<std::string> m_skipped_instances;
   std::vector<std::string> m_sync_error_instances;
   std::string m_primary_uuid;
+  bool m_is_clusterset_member = false;
 
   /**
    * Auxiliar method to prompt the user to confirm the execution of the

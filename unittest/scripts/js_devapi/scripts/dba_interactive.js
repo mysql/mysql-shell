@@ -69,20 +69,6 @@ print("Current sql_mode is: "+ row[0] + "\n");
 var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 print(c1);
 
-//@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
-testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
-c1.dissolve({ force: true });
-
-
-// Set old_sql_mode
-session.runSql("SET @@GLOBAL.SQL_MODE = '"+ original_sql_mode+ "'");
-var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
-var row = result.fetchOne();
-var restored_sql_mode = row[0];
-var was_restored = restored_sql_mode == original_sql_mode;
-print("Original SQL_MODE has been restored: " + was_restored + "\n");
-session.runSql("set GLOBAL super_read_only = 0");
-
 var enable_bug_26979375 = true;
 try {
   var result = session.runSql("SHOW CREATE VIEW mysql_innodb_cluster_metadata.schema_version");
@@ -102,6 +88,20 @@ try {
 } catch (error) {
   testutil.fail("Error trying to get mysql_innodb_cluster_metadata.schema_version structure");
 }
+
+//@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
+c1.dissolve({ force: true });
+
+
+// Set old_sql_mode
+session.runSql("SET @@GLOBAL.SQL_MODE = '"+ original_sql_mode+ "'");
+var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
+var row = result.fetchOne();
+var restored_sql_mode = row[0];
+var was_restored = restored_sql_mode == original_sql_mode;
+print("Original SQL_MODE has been restored: " + was_restored + "\n");
+session.runSql("set GLOBAL super_read_only = 0");
 
 //@ Dba: create cluster using a non existing user that authenticates as another user (BUG#26979375) {enable_bug_26979375}
 // Clear super read_only

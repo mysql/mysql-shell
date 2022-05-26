@@ -5,6 +5,7 @@
 // be tested everywhere else.
 
 //@<> INCLUDE clusterset_utils.inc
+//@<> INCLUDE dba_utils.inc
 
 // Negative tests based on environment and params
 //-----------------------------------------------
@@ -232,6 +233,10 @@ EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have be
 
 EXPECT_NO_THROWS(function() {c = dba.getCluster(); });
 
+// Dissolve the Cluster and verify all accounts and metadata are dropped (BUG#33239404)
+c.dissolve();
+CHECK_DISSOLVED_CLUSTER(session);
+
 reset_instance(session4);
 
 //@<> Dissolve cluster that was the primary and got invalidated
@@ -258,6 +263,8 @@ EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have be
 //@<> dissolve invalidated primary cluster with the handle from the reboot
 // (Bug#33166307)
 rc.dissolve();
+// Dissolve the Cluster and verify all accounts and metadata are dropped (BUG#33239404)
+CHECK_DISSOLVED_CLUSTER(session);
 
 reset_instance(session4);
 

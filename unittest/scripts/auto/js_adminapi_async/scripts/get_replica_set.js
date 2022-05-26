@@ -49,7 +49,6 @@ dba.getReplicaSet();
 c.dissolve();
 session.runSql("SET GLOBAL super_read_only=0");
 session.runSql("SET GLOBAL read_only=0");
-session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 session.runSql("RESET MASTER");
 session.runSql("RESET SLAVE ALL");
 

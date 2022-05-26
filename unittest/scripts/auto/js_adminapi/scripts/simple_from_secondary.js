@@ -157,13 +157,10 @@ EXPECT_EQ("OFFLINE", session3.runSql("select member_state from performance_schem
 // @<> prepare and make primary unreachable from shell
 
 session1.runSql("set global super_read_only=0");
-session1.runSql("drop schema mysql_innodb_cluster_metadata");
 session1.runSql("reset master");
 session2.runSql("set global super_read_only=0");
-session2.runSql("drop schema mysql_innodb_cluster_metadata");
 session2.runSql("reset master");
 session3.runSql("set global super_read_only=0");
-session3.runSql("drop schema mysql_innodb_cluster_metadata");
 session3.runSql("reset master");
 
 shell.connect(__sandbox_uri1);

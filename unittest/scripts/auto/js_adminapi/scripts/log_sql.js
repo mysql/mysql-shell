@@ -27,6 +27,12 @@ var create_cluster_sql = [
     "CHANGE REPLICATION SOURCE TO SOURCE_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, SOURCE_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'",
 ];
 
+var create_cluster_adopt_sql = [
+    "DROP SCHEMA IF EXISTS `mysql_innodb_cluster_metadata`",
+    "CREATE DATABASE IF NOT EXISTS mysql_innodb_cluster_metadata DEFAULT CHARACTER SET utf8mb4",
+    "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'"
+];
+
 var add_instance_sql = [
     "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "show GLOBAL variables where `variable_name` in ('group_replication_ssl_mode')",
@@ -129,8 +135,10 @@ var remove_instance_sql = [
 var dissolve_sql = [
     "SELECT WAIT_FOR_EXECUTED_GTID_SET(*)",
     "DROP USER IF EXISTS '*'@'%'",
-    "DELETE from mysql_innodb_cluster_metadata.clusters",
+    "DROP SCHEMA IF EXISTS `mysql_innodb_cluster_metadata`",
     "STOP GROUP_REPLICATION",
+    "RESET REPLICA ALL FOR CHANNEL 'group_replication_applier'",
+    "RESET REPLICA ALL FOR CHANNEL 'group_replication_recovery'"
 ];
 
 var drop_metadata_sql = [
@@ -346,6 +354,20 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(remove_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(remove_instance_sql[2]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(remove_instance_sql[3]);
 
+//@<> WL#13294: drop metadata (dba.logSql = 0).
+session.runSql("SET GLOBAL super_read_only = 'OFF'");
+WIPE_SHELL_LOG();
+dba.dropMetadataSchema({force: true});
+EXPECT_SHELL_LOG_NOT_CONTAINS(drop_metadata_sql[0]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(drop_metadata_sql[1]);
+
+//@<> createCluster(adoptFromGR) (dba.logSql = 0).
+WIPE_SHELL_LOG();
+c = dba.createCluster('test', {adoptFromGR: true});
+EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_adopt_sql[0]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_adopt_sql[1]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_adopt_sql[2]);
+
 //@<> WL#13294: dissolve (dba.logSql = 0).
 WIPE_SHELL_LOG();
 c.dissolve();
@@ -353,13 +375,6 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(dissolve_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(dissolve_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(dissolve_sql[2]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(dissolve_sql[3]);
-
-//@<> WL#13294: drop metadata (dba.logSql = 0).
-session.runSql("SET GLOBAL super_read_only = 'OFF'");
-WIPE_SHELL_LOG();
-dba.dropMetadataSchema({force: true});
-EXPECT_SHELL_LOG_NOT_CONTAINS(drop_metadata_sql[0]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(drop_metadata_sql[1]);
 
 //@<> WL#13294: Clean-up (dba.logSql = 0).
 \option dba.logSql = 0
@@ -579,6 +594,20 @@ EXPECT_SHELL_LOG_CONTAINS(remove_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(remove_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(remove_instance_sql[3]);
 
+//@<> WL#13294: drop metadata (dba.logSql = 1).
+session.runSql("SET GLOBAL super_read_only = 'OFF'");
+WIPE_SHELL_LOG();
+dba.dropMetadataSchema({force: true});
+EXPECT_SHELL_LOG_NOT_CONTAINS(drop_metadata_sql[0]);
+EXPECT_SHELL_LOG_CONTAINS(drop_metadata_sql[1]);
+
+//@<> createCluster(adoptFromGR) (dba.logSql = 1).
+WIPE_SHELL_LOG();
+c = dba.createCluster('test', {adoptFromGR: true});
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_adopt_sql[0]);
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_adopt_sql[1]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_adopt_sql[2]);
+
 //@<> WL#13294: dissolve (dba.logSql = 1).
 WIPE_SHELL_LOG();
 c.dissolve();
@@ -586,13 +615,6 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(dissolve_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[3]);
-
-//@<> WL#13294: drop metadata (dba.logSql = 1).
-session.runSql("SET GLOBAL super_read_only = 'OFF'");
-WIPE_SHELL_LOG();
-dba.dropMetadataSchema({force: true});
-EXPECT_SHELL_LOG_NOT_CONTAINS(drop_metadata_sql[0]);
-EXPECT_SHELL_LOG_CONTAINS(drop_metadata_sql[1]);
 
 //@<> WL#13294: Clean-up (dba.logSql = 1).
 \option dba.logSql = 0
@@ -812,6 +834,20 @@ EXPECT_SHELL_LOG_CONTAINS(remove_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(remove_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(remove_instance_sql[3]);
 
+//@<> WL#13294: drop metadata (dba.logSql = 2).
+session.runSql("SET GLOBAL super_read_only = 'OFF'");
+WIPE_SHELL_LOG();
+dba.dropMetadataSchema({force: true});
+EXPECT_SHELL_LOG_CONTAINS(drop_metadata_sql[0]);
+EXPECT_SHELL_LOG_CONTAINS(drop_metadata_sql[1]);
+
+//@<> createCluster(adoptFromGR) (dba.logSql = 2).
+WIPE_SHELL_LOG();
+c = dba.createCluster('test', {adoptFromGR: true});
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_adopt_sql[0]);
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_adopt_sql[1]);
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_adopt_sql[2]);
+
 //@<> WL#13294: dissolve (dba.logSql = 2).
 WIPE_SHELL_LOG();
 c.dissolve();
@@ -819,13 +855,6 @@ EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(dissolve_sql[3]);
-
-//@<> WL#13294: drop metadata (dba.logSql = 2).
-session.runSql("SET GLOBAL super_read_only = 'OFF'");
-WIPE_SHELL_LOG();
-dba.dropMetadataSchema({force: true});
-EXPECT_SHELL_LOG_CONTAINS(drop_metadata_sql[0]);
-EXPECT_SHELL_LOG_CONTAINS(drop_metadata_sql[1]);
 
 //@<> WL#13294: Clean-up (dba.logSql = 2).
 \option dba.logSql = 0

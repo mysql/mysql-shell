@@ -53,7 +53,6 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-NOTE: Invalid Metadata schema found in target instance: re-creating new Metadata
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
@@ -74,7 +73,6 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Gr
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
-NOTE: Invalid Metadata schema found in target instance: re-creating new Metadata
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.

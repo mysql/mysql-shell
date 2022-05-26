@@ -545,7 +545,11 @@ function CHECK_REMOVED_CLUSTER(uris, pcluster, cluster_name) {
     var skip_replica_start = session.runSql("SELECT variable_value FROM performance_schema.persisted_variables WHERE variable_name = 'skip_replica_start'").fetchOne()[0];
     EXPECT_EQ("OFF", skip_replica_start, uri+".skip_replica_start");
 
-    session.close();
+    // check cluster replication user was removed
+    var unexpected_users = session.runSql("select user from mysql.user where user like 'mysql_innodb_cs_%' and user not in (select attributes->>'$.replicationAccountUser' u from mysql_innodb_cluster_metadata.clusters)").fetchAll();
+    EXPECT_EQ([], unexpected_users, "unexpected_cs_users");
+
+  session.close();
   }
 }
 

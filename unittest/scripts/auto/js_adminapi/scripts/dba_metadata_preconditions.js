@@ -73,7 +73,11 @@ prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, "", [[server_uuid1, se
 var cluster = dba.createCluster("sample");
 backup_metadata(__sandbox_uri1, metadata_current_file);
 
-cluster.dissolve({ force: true });
+var cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_name = 'sample'").fetchOne()[0];
+
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE cluster_id = '" + cluster_id +"'");
+session.runSql("DELETE from mysql_innodb_cluster_metadata.clusters WHERE cluster_id = '" + cluster_id + "'");
+session.runSql("STOP group_replication");
 session.runSql("SET GLOBAL super_read_only=0");
 
 // Calls an API function that should succeed and verifies the expected WARNING/NOTE if any
