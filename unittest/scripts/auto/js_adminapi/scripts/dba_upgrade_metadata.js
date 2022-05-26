@@ -20,7 +20,7 @@ cluster_admin_uri= "mysql://tst_admin:tst_pwd@" + __host + ":" + __mysql_sandbox
 //@<> upgradeMetadata without connection
 EXPECT_THROWS(function(){dba.upgradeMetadata()}, "An open session is required to perform this operation")
 
-// Session to be used through all the AAPI calls
+// Session to be used through all the API calls
 shell.connect(__sandbox_uri2)
 var server_uuid2 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
 var server_id2 = session.runSql("SELECT @@server_id").fetchOne()[0];
@@ -207,9 +207,9 @@ testutil.expectPrompt("Please select an option: ", "2")
 testutil.expectPrompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
 dba.upgradeMetadata({interactive:true})
 
-
 //@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.1.0, Data Verification
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
+
 // Marks the router as up to date, we are interested in all data migration verification
 test_session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes=JSON_OBJECT('version','8.0.19', 'ROEndpoint', 'mysqlro.sock', 'RWEndpoint', '6446', 'ROXEndpoint', 'mysqlrox.sock', 'RWXEndpoint', '')");
 test_session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes=JSON_INSERT(attributes, '$.adminType','whatever')");

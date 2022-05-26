@@ -69,7 +69,7 @@ testutil.dbugSet("");
 testutil.dbugSet("+d,dba_EMULATE_CURRENT_MD_1_0_1,dba_EMULATE_UNEXISTING_MD");
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 set_metadata_version(1, -1, 0);
-testutil.expectPrompt("Do you want to proceed with the upgrade (Yes/No) [y/N]: ", "n");
+testutil.expectPrompt("Do you want to proceed with the upgrade? [y/N]: ", "n");
 dba.upgradeMetadata({interactive:true});
 testutil.dbugSet("");
 
@@ -81,7 +81,7 @@ load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 set_metadata_version(1, -1, 0);
 // Router upgrade emulation requires router to have ID = 2
 session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET router_id = 2 WHERE router_id=1");
-testutil.expectPrompt("Do you want to proceed with the upgrade (Yes/No) [y/N]: ", "y")
+testutil.expectPrompt("Do you want to proceed with the upgrade? [y/N]: ", "y")
 testutil.expectPrompt("Please select an option: ", "1")
 dba.upgradeMetadata({interactive:true});
 testutil.dbugSet("");

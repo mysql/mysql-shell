@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,7 +128,11 @@ bool read_escape(const char *terminator, char *buffer, size_t buflen) {
 void query_cursor_position(int *row, int *column) {
   send_escape("\033[6n");
   char buffer[100];
-  if (read_escape("R", buffer, sizeof(buffer))) {
+  // Depending on the platform's implementation of sscanf this might cause a
+  // crash if uninitialized data is used. To avoid it we memset the buffer with
+  // null terminating char
+  memset(buffer, '\0', sizeof(char) * 100);
+  if (read_escape("R", buffer, sizeof(buffer) - 1)) {
     sscanf(buffer, "%i;%i", row, column);
   }
 }
