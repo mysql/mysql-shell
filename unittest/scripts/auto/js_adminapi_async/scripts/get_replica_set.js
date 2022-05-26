@@ -65,10 +65,18 @@ dba.getReplicaSet();
 shell.connect(__sandbox_uri2);
 dba.getReplicaSet();
 
-//@ Delete metadata for the instance (should fail) {VER(>=8.0.11)}
+//@<> Delete metadata for the instance (should fail) {VER(>=8.0.11)}
 shell.connect(__sandbox_uri1);
+
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances");
-dba.getReplicaSet();
+EXPECT_THROWS(function(){
+    dba.getReplicaSet();
+}, "This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata)");
+
+session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
+EXPECT_THROWS(function(){
+    dba.getReplicaSet();
+}, "This function is not available through a session to an instance belonging to an unmanaged asynchronous replication topology");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -149,6 +149,7 @@ session.runSql("CREATE USER missingprivileges@localhost");
 session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
 session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO missingprivileges@localhost");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO missingprivileges@localhost WITH GRANT OPTION;");
 session.runSql("SET SQL_LOG_BIN=1");
 var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
 var row = result.fetchOne();

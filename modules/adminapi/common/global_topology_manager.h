@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ class Instance;
 // Multiple clusters and replicasets should be handled in the same instance.
 class Global_topology_manager {
  public:
-  virtual ~Global_topology_manager() {}
+  virtual ~Global_topology_manager() = default;
 
   virtual void validate_adopt_cluster(const topology::Node **out_primary) = 0;
 

@@ -29,9 +29,7 @@
 
 //@# adopt with insufficient privs (should fail)
 ||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)
-|ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
-|ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
-||Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation (MYSQLSH 1227)
+||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)
 
 //@# adopt with existing old metadata, belongs to other (should fail)
 ||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)

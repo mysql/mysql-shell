@@ -20,7 +20,7 @@
 ||The label can not be greater than 256 characters.
 
 //@ Cluster: addInstance with interaction, error
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB Cluster
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
 NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty), but the cluster was configured to assume that incremental state recovery can correctly provision it in this case.

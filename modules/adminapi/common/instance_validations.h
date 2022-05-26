@@ -62,10 +62,10 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
 void validate_performance_schema_enabled(
     const mysqlshdk::mysql::IInstance &instance);
 
-TargetType::Type ensure_instance_not_belong_to_cluster(
-    const mysqlshdk::mysql::IInstance &instance,
+void ensure_instance_not_belong_to_cluster(
+    const std::shared_ptr<Instance> &instance,
     const std::shared_ptr<Instance> &cluster_instance,
-    bool *out_already_member = nullptr);
+    const std::string &cluster_id);
 
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,

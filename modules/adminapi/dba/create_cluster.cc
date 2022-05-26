@@ -364,7 +364,7 @@ void Create_cluster::prepare() {
       // Make sure the target instance does not already belong to a cluster.
       if (!m_retrying)
         mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-            *m_target_instance, m_target_instance);
+            m_target_instance, m_target_instance, {});
 
       // Get the address used by GR for the added instance (used in MD).
       m_address_in_metadata = m_target_instance->get_canonical_address();

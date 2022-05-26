@@ -27,10 +27,10 @@ session.runSql("REVOKE SELECT on *.* FROM 'test_user'@'%'");
 //NOTE: SELECT privileges required to access the metadata (version), otherwise another error is issued.
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'test_user'@'%'");
 
-// NOTE: This privilege is required othe the generated error will be:
+// NOTE: This privilege is required or the the generated error will be:
 //Dba.checkInstanceConfiguration: Unable to detect target instance state. Please check account privileges.
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'test_user'@'%'");
-
+//Dba.checkInstanceConfiguration: Unable to detect state for instance 'me7nw6-mac:3316'. Please check account privileges.
+session.runSql("GRANT SELECT ON `performance_schema`.* TO 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
 //TODO: Improve error message (more details for missing metadata privileges) and add test here for this error message.
@@ -73,6 +73,13 @@ session.runSql("CREATE USER 'no_privileges'@'%'");
 //NOTE: SELECT privileges required to access the metadata (version), otherwise another error is issued.
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privileges'@'%'");
 session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'no_privileges'@'%'");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'no_privileges'@'%' WITH GRANT OPTION;");
+session.runSql("GRANT SELECT ON `performance_schema`.`threads` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_status` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO 'no_privileges'@'%'");
 
 session.runSql("SET sql_log_bin = 1");
 
@@ -124,6 +131,13 @@ session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'admin_role
 session.runSql("GRANT 'admin_role'@'%' TO 'admin_test'@'%'");
 session.runSql("SET DEFAULT ROLE 'admin_role'@'%' to 'admin_test'@'%'");
 session.runSql("SET sql_log_bin = 1");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'admin_test'@'%' WITH GRANT OPTION;");
+session.runSql("GRANT SELECT ON `performance_schema`.`threads` TO 'admin_test'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO 'admin_test'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_status` TO 'admin_test'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status` TO 'admin_test'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO 'admin_test'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO 'admin_test'@'%'");
 
 //@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.0)}
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.

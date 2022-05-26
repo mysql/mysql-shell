@@ -179,6 +179,7 @@ session.runSql("CREATE USER missingprivileges@localhost");
 session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
 session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO missingprivileges@localhost");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO missingprivileges@localhost WITH GRANT OPTION;");
 session.runSql("SET SQL_LOG_BIN=1");
 var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
 var row = result.fetchOne();
@@ -297,6 +298,16 @@ session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privile
 // NOTE: This privilege is required othe the generated error will be:
 //Dba.configureLocalInstance: Unable to detect target instance state. Please check account privileges.
 session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'no_privileges'@'%'");
+// NOTE: These privileges are required or the the generated error will be:
+//Unable to detect state for instance 'me7nw6-mac:3326'. Please check account privileges.
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'no_privileges'@'%' WITH GRANT OPTION;");
+session.runSql("GRANT SELECT ON `performance_schema`.`threads` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_status` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO 'no_privileges'@'%'");
+session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO 'no_privileges'@'%'");
+
 session.runSql("SET sql_log_bin = 1");
 session.close();
 

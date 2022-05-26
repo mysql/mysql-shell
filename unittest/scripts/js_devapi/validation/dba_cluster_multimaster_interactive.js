@@ -89,7 +89,7 @@ one server failure.
 <Cluster:devCluster>
 
 //@ Cluster: addInstance with interaction, error
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB Cluster
 
 //@<OUT> Cluster: addInstance with interaction, ok
 Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...

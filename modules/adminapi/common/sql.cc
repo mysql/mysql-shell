@@ -85,7 +85,7 @@ TargetType::Type get_gr_instance_type(
   if (ret_val == TargetType::GroupReplication) {
     // In Metadata schema versions higher than 1.0.1
     // instances.mysql_server_uuid uses the collation ascii_general_ci which
-    // then when doing comparisons with the sysvar @@server_uuid will results
+    // then when doing comparisons with the sysvar @@server_uuid will result
     // in an illegal mix of collations. For that reason, we must do the right
     // cast of @@server_uuid to ascii_general_ci.
     // To work with all versions of the Metadata schema, we simply cast
@@ -136,7 +136,7 @@ TargetType::Type get_gr_instance_type(
 
       // In Metadata schema versions higher than 1.0.1
       // instances.mysql_server_uuid uses the collation ascii_general_ci which
-      // then when doing comparisons with the sysvar @@server_uuid will results
+      // then when doing comparisons with the sysvar @@server_uuid will result
       // in an illegal mix of collations. For that reason, we must do the right
       // cast of @@server_uuid to ascii_general_ci.
       // To work with all versions of the Metadata schema, we simply cast

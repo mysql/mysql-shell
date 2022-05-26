@@ -535,10 +535,11 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   bool check_metadata(mysqlshdk::utils::Version *out_version = nullptr,
                       Cluster_type *out_type = nullptr) const;
 
-  bool check_cluster_set(Instance *target_instance = nullptr,
-                         uint64_t *out_view_id = nullptr,
-                         std::string *out_cs_domain_name = nullptr,
-                         Cluster_set_id *out_cluster_set_id = nullptr) const;
+  bool check_cluster_set(
+      const mysqlshdk::mysql::IInstance *target_instance = nullptr,
+      uint64_t *out_view_id = nullptr,
+      std::string *out_cs_domain_name = nullptr,
+      Cluster_set_id *out_cluster_set_id = nullptr) const;
 
   bool supports_cluster_set() const;
 

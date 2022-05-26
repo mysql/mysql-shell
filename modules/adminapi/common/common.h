@@ -79,7 +79,8 @@ enum Type {
   AsyncReplicaSet = 1 << 5,
   InnoDBClusterSet = 1 << 6,
   InnoDBClusterSetOffline = 1 << 7,
-  Unknown = 1 << 8
+  AsyncReplication = 1 << 8,
+  Unknown = 1 << 9
 };
 }  // namespace TargetType
 
@@ -666,8 +667,9 @@ void handle_deprecated_option(const std::string &deprecated_name,
  * @param  target_instance The target instance
  * @return                 An TargetType::Type representing the instance type
  */
-TargetType::Type get_instance_type(const MetadataStorage &metadata,
-                                   Instance *target_instance = nullptr);
+TargetType::Type get_instance_type(
+    const MetadataStorage &metadata,
+    const mysqlshdk::mysql::IInstance &target_instance);
 
 /**
  * TODO

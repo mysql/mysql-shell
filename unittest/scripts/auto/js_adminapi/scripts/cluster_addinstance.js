@@ -596,6 +596,22 @@ cluster = dba.createCluster("sample", {gtidSetIsComplete: true});
 cluster.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY();
 
+//<> Adding an existing replica set should produce an error BUG#31964273 {VER(>=8.0.19)}
+cluster.removeInstance(__sandbox_uri2);
+
+shell.connect(__sandbox_uri2);
+EXPECT_NO_THROWS(function(){ dba.createReplicaSet("rs"); });
+
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster();
+EXPECT_THROWS(function(){
+    cluster.addInstance(__sandbox_uri2);
+}, `The instance '${hostname}:${__mysql_sandbox_port2}' is already part of an InnoDB ReplicaSet`);
+
+shell.connect(__sandbox_uri2);
+dba.dropMetadataSchema({force:true, clearReadOnly:true});
+session.runSql("RESET MASTER");
+
 //@<> Check if fails when GR local address isn't properly read {!__dbug_off}
 if (testutil.versionCheck(__version, "<", "8.0.21")) {
     testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
@@ -606,8 +622,6 @@ if (testutil.versionCheck(__version, "<", "8.0.21")) {
     EXPECT_STDERR_EMPTY();
 }
 else {
-    EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri2); });
-
     shell.connect(__sandbox_uri1);
     cluster = dba.getCluster();
 }

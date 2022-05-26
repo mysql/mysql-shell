@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,7 +94,8 @@ namespace topology {
 
 namespace {
 
-void load_instance_channels(Instance *instance, mysqlsh::dba::Instance *conn,
+void load_instance_channels(Instance *instance,
+                            const mysqlshdk::mysql::IInstance *conn,
                             const std::string &channel_name) {
   std::vector<mysqlshdk::mysql::Replication_channel> channels(
       mysqlshdk::mysql::get_incoming_channels(*conn));
@@ -276,7 +277,7 @@ Node_role Server::role() const {
     return Node_role::SECONDARY;
 }
 
-void Server::scan(mysqlsh::dba::Instance *conn,
+void Server::scan(const mysqlshdk::mysql::IInstance *conn,
                   const std::string &channel_name) {
   Instance &instance = m_members.front();
 
@@ -675,7 +676,8 @@ void Server_global_topology::check_servers(bool deep) {
  * - SHOW SLAVE HOSTS is unreliable in that it can show an entry for instances
  * that are not longer replicating from it. These ghost slaves must be ignored.
  */
-void Server_global_topology::discover_from_unmanaged(dba::Instance *instance) {
+void Server_global_topology::discover_from_unmanaged(
+    const mysqlshdk::mysql::IInstance *instance) {
   scan_instance_recursive(instance);
 }
 
@@ -704,26 +706,23 @@ Slave_check_status check_slave_channel(
 }  // namespace
 
 Server *Server_global_topology::scan_instance_recursive(
-    dba::Instance *instance) {
+    const mysqlshdk::mysql::IInstance *instance) {
   auto console = current_console();
   auto ipool = current_ipool();
 
   console->print_info("** Scanning state of instance " + instance->descr());
 
-  auto add_instance = [&](dba::Instance *new_instance) {
+  Server *server;
+  {
     Instance_metadata md;
-    md.label = new_instance->get_canonical_address();
-    md.uuid = new_instance->get_uuid();
-    md.endpoint = new_instance->get_canonical_address();
+    md.label = instance->get_canonical_address();
+    md.uuid = instance->get_uuid();
+    md.endpoint = instance->get_canonical_address();
 
-    Server &server = add_server(Cluster_metadata(), md);
-    server.instance_id = m_servers.size() + 1;
-    server.label = md.endpoint;
-
-    return &server;
-  };
-
-  Server *server = add_instance(instance);
+    server = &add_server(Cluster_metadata(), md);
+    server->instance_id = m_servers.size() + 1;
+    server->label = md.endpoint;
+  }
 
   // Query instance info and the list of its peers
   server->scan(instance, m_repl_channel_name);

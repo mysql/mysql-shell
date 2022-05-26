@@ -546,6 +546,7 @@ void Create_replica_cluster::prepare() {
         break;
       case TargetType::Standalone:
       case TargetType::StandaloneWithMetadata:
+      case TargetType::AsyncReplication:
         break;
       case TargetType::StandaloneInMetadata:
       case TargetType::InnoDBCluster:

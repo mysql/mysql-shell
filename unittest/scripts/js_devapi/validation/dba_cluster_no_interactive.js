@@ -10,7 +10,7 @@
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
 ||Invalid value for ipWhitelist: string value cannot be empty.
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB Cluster
 ||The label can not be empty.
 ||The label can only start with an alphanumeric or the '_' character.
 ||The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
