@@ -398,6 +398,54 @@ shcore::Value Status::applier_status(
   return shcore::Value(dict);
 }
 
+static constexpr const char *k_calculate_lag_query = R"*(
+SELECT
+    IF( /* IF  replication connection or sql thread is not running, we return
+           'null', replication isn't working properly
+        */
+        applier_coordinator_status.SERVICE_STATE = 'OFF'
+        OR conn_status.SERVICE_STATE = 'OFF',
+        'null',
+        IF(
+            /* When the last queued gtid and last applied gtid is the same,
+               then the applier applied everything in the queue
+               In addition when the applying transaction is 0 (e.g. due to
+               replication restart) we also have nothing to execute
+            */
+            GTID_SUBTRACT(conn_status.LAST_QUEUED_TRANSACTION,
+            applier_status.LAST_APPLIED_TRANSACTION) = ''
+            OR UNIX_TIMESTAMP(applier_status.APPLYING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP) = 0,
+            'applier_queue_applied',
+            /* Replication lag is the diff between now and the time it was
+               committed by its source
+            */
+            TIMEDIFF(
+                NOW(6),
+                applier_status.APPLYING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP
+            )
+        )
+    ) AS cluster_member_lag
+FROM
+    performance_schema.replication_connection_status AS conn_status
+    JOIN performance_schema.replication_applier_status_by_worker AS applier_status ON applier_status.channel_name = conn_status.channel_name
+    JOIN performance_schema.replication_applier_status_by_coordinator AS applier_coordinator_status ON applier_coordinator_status.channel_name = conn_status.channel_name
+WHERE
+    conn_status.channel_name = 'group_replication_applier'
+ORDER BY
+    /* As we have a row returned per worker thread, we need to obtain the
+       worker that is executing the oldest transaction to find replication lag.
+       Because workers can be idle, we have to put a lower priority on them,
+       hence the ordering by 0-EXECUTING, 1-IDLE first
+    */
+    IF(GTID_SUBTRACT(conn_status.LAST_QUEUED_TRANSACTION,
+      applier_status.LAST_APPLIED_TRANSACTION) = ''
+            OR UNIX_TIMESTAMP(applier_status.APPLYING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP) = 0,
+            '1-IDLE', '0-EXECUTING') ASC,
+    applier_status.APPLYING_TRANSACTION_IMMEDIATE_COMMIT_TIMESTAMP ASC
+LIMIT
+    1;
+)*";
+
 /**
  * Similar to collect_local_status(), but only includes basic/important
  * stats that should be displayed in the default output.
@@ -447,35 +495,15 @@ void Status::collect_basic_local_status(shcore::Dictionary_t dict,
         }
       }
     } else {
-      sql = "SELECT ";
-      sql +=
-          "IF(c.LAST_QUEUED_TRANSACTION=''"
-          " OR c.LAST_QUEUED_TRANSACTION=a.LAST_APPLIED_TRANSACTION"
-          " OR a.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP <"
-          "  a.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,"
-          "NULL, " TSDIFF("LAST_APPLIED_TRANSACTION",
-                          "ORIGINAL_COMMIT_TIMESTAMP",
-                          "END_APPLY_TIMESTAMP") ")";
-      sql += " AS LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME";
-      sql +=
-          " FROM performance_schema.replication_applier_status_by_worker a"
-          " JOIN performance_schema.replication_connection_status c"
-          "   ON a.channel_name = c.channel_name"
-          " WHERE a.channel_name = 'group_replication_applier'";
-
-      // this can return multiple rows per channel for
-      // multi-threaded applier, otherwise just one. If MT, we also
-      // get stuff in the coordinator table
-      auto result = instance.query(sql);
+      auto result = instance.query(k_calculate_lag_query);
       auto row = result->fetch_one_named();
       if (row) {
-        std::string lag =
-            row.get_string("LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME", "");
+        std::string lag = row.get_string("cluster_member_lag", "");
 
-        if (!lag.empty() && lag != "00:00:00.000000") {
-          (*dict)["replicationLag"] = shcore::Value(lag);
-        } else {
+        if (lag == "null" || lag.empty()) {
           (*dict)["replicationLag"] = shcore::Value::Null();
+        } else {
+          (*dict)["replicationLag"] = shcore::Value(lag);
         }
       }
     }
