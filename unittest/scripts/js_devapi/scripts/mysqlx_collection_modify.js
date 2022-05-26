@@ -110,6 +110,9 @@ crud = collection.modify('test = "2');
 //@# CollectionModify: Error conditions on set
 crud = collection.modify('some_filter').set();
 crud = collection.modify('some_filter').set(45, 'whatever');
+crud = collection.modify('some_filter').set('', 'whatever');
+crud = collection.modify('some_filter').set('a b', 'whatever');
+crud = collection.modify('some_filter').set('"string"', 'whatever');
 
 //@# CollectionModify: Error conditions on unset
 crud = collection.modify('some_filter').unset();
@@ -117,6 +120,8 @@ crud = collection.modify('some_filter').unset({});
 crud = collection.modify('some_filter').unset({}, '');
 crud = collection.modify('some_filter').unset(['name', 1]);
 crud = collection.modify('some_filter').unset('');
+crud = collection.modify('some_filter').unset('a b');
+crud = collection.modify('some_filter').unset('"string"');
 
 //@# CollectionModify: Error conditions on merge
 crud = collection.modify('some_filter').merge();
@@ -130,18 +135,24 @@ crud = collection.modify('some_filter').patch('');
 crud = collection.modify('some_filter').arrayInsert();
 crud = collection.modify('some_filter').arrayInsert(5, 'another');
 crud = collection.modify('some_filter').arrayInsert('', 'another');
+crud = collection.modify('some_filter').arrayInsert('a b', 'another');
+crud = collection.modify('some_filter').arrayInsert('"string"', 'another');
 crud = collection.modify('some_filter').arrayInsert('test', 'another');
 
 //@# CollectionModify: Error conditions on arrayAppend
 crud = collection.modify('some_filter').arrayAppend();
 crud = collection.modify('some_filter').arrayAppend({}, '');
 crud = collection.modify('some_filter').arrayAppend('', 45);
+crud = collection.modify('some_filter').arrayAppend('a b', 45);
+crud = collection.modify('some_filter').arrayAppend('"string"', 45);
 crud = collection.modify('some_filter').arrayAppend('data', mySession);
 
 //@# CollectionModify: Error conditions on arrayDelete
 crud = collection.modify('some_filter').arrayDelete();
 crud = collection.modify('some_filter').arrayDelete(5);
 crud = collection.modify('some_filter').arrayDelete('');
+crud = collection.modify('some_filter').arrayDelete('a b');
+crud = collection.modify('some_filter').arrayDelete('"string"');
 crud = collection.modify('some_filter').arrayDelete('test');
 
 //@# CollectionModify: Error conditions on sort
@@ -370,6 +381,26 @@ collection.find('gender="female"')
 
 //@ CollectionModify: Patch removing the _id field (WL10856-ET_25) {VER(>=8.0.4)}
 collection.modify('gender="female"').patch({_id:null})
+
+//@<> BUG#33795149 attribute name with spaces
+var col = schema.createCollection('collection2');
+col.add({ _id: '5C514FF38144957BE71111C04E0D1253', name: 'jack'}).execute();
+
+//@<OUT> BUG#33795149 - set() + backtick quotes
+col.modify("_id='5C514FF38144957BE71111C04E0D1253'").set("`name surname`", "jack doe");
+col.find();
+
+//@<OUT> BUG#33795149 - set() + doc path
+col.modify("_id='5C514FF38144957BE71111C04E0D1253'").set("$.'home address'", "NY");
+col.find();
+
+//@<OUT> BUG#33795149 - unset() + backtick quotes
+col.modify("_id='5C514FF38144957BE71111C04E0D1253'").unset("$.'name surname'");
+col.find();
+
+//@<OUT> BUG#33795149 - unset() + doc path
+col.modify("_id='5C514FF38144957BE71111C04E0D1253'").unset("`home address`", "NY");
+col.find();
 
 // Cleanup
 

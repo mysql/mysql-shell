@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include "orderby_parser.h"
 #include "proj_parser.h"
 
+#include <stdexcept>
 #include <string>
 
 namespace mysqlx {
@@ -38,15 +39,15 @@ inline Mysqlx::Expr::Expr *parse_collection_filter(
   return parser.expr().release();
 }
 
-inline void parse_document_path(const std::string &source,
-                                Mysqlx::Expr::ColumnIdentifier &colid) {
-  Expr_parser parser(source, true);
-  return parser.document_path(colid);
-}
-
 inline Mysqlx::Expr::Expr *parse_column_identifier(const std::string &source) {
   Expr_parser parser(source, true);
-  return parser.document_field().release();
+  auto expr = parser.document_field();
+
+  if (parser.tokens_available()) {
+    throw std::logic_error("Invalid document path");
+  }
+
+  return expr.release();
 }
 
 inline Mysqlx::Expr::Expr *parse_table_filter(

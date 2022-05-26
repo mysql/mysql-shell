@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -387,6 +387,10 @@ CollectionModify CollectionModify::set(str attribute, Value value) {}
 //@}
 std::shared_ptr<CollectionModify> CollectionModify::set(
     const std::string &attribute, shcore::Value value) {
+  if (attribute.empty()) {
+    throw std::logic_error("Invalid document path");
+  }
+
   set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, attribute, value);
 
   update_functions(F::operation);
