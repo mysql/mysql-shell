@@ -31,7 +31,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/mysql/user_privileges.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlshdk {
@@ -42,6 +45,8 @@ class IRow;
 }  // namespace mysqlshdk
 
 namespace mysqlsh {
+
+class Upgrade_check_output_formatter;
 
 struct Upgrade_issue {
   enum Level { ERROR = 0, WARNING, NOTICE };
@@ -58,17 +63,10 @@ struct Upgrade_issue {
 };
 
 struct Upgrade_check_options {
-  Upgrade_check_options() {}
-  Upgrade_check_options(const mysqlshdk::utils::Version &server_ver,
-                        const mysqlshdk::utils::Version &target_ver)
-      : server_version(server_ver), target_version(target_ver) {}
-
   static const shcore::Option_pack_def<Upgrade_check_options> &options();
 
-  mysqlshdk::utils::Version server_version;
   mysqlshdk::utils::Version target_version =
       mysqlshdk::utils::Version(MYSH_VERSION);
-  std::string server_os;
   std::string config_path;
   std::string output_format;
   mysqlshdk::utils::nullable<std::string> password;
@@ -81,11 +79,37 @@ std::string upgrade_issue_to_string(const Upgrade_issue &problem);
 
 class Upgrade_check {
  public:
-  using Creator = std::function<std::unique_ptr<Upgrade_check>(
-      const Upgrade_check_options &)>;
+  struct Upgrade_info {
+    mysqlshdk::utils::Version server_version;
+    std::string server_version_long;
+    mysqlshdk::utils::Version target_version;
+    std::string server_os;
+    std::string config_path;
+  };
 
-  using Collection = std::vector<
-      std::pair<std::forward_list<mysqlshdk::utils::Version>, Creator>>;
+  enum class Target {
+    INNODB_INTERNALS,
+    OBJECT_DEFINITIONS,
+    ENGINES,
+    TABLESPACES,
+    SYSTEM_VARIABLES,
+    AUTHENTICATION_PLUGINS,
+    MDS_SPECIFIC,
+    LAST,
+  };
+
+  using Target_flags = mysqlshdk::utils::Enum_set<Target, Target::LAST>;
+
+  using Creator =
+      std::function<std::unique_ptr<Upgrade_check>(const Upgrade_info &)>;
+
+  struct Creator_info {
+    std::forward_list<mysqlshdk::utils::Version> versions;
+    Creator creator;
+    Target target;
+  };
+
+  using Collection = std::vector<Creator_info>;
 
   class Check_configuration_error : public std::runtime_error {
    public:
@@ -95,32 +119,31 @@ class Upgrade_check {
 
   class Check_not_needed : public std::exception {};
 
-  static const mysqlshdk::utils::Version TRANSLATION_MODE;
-  static const mysqlshdk::utils::Version ALL_VERSIONS;
-
   template <class... Ts>
-  static bool register_check(Creator creator, Ts... params) {
+  static bool register_check(Creator creator, Target target, Ts... params) {
     std::forward_list<std::string> vs{params...};
     std::forward_list<mysqlshdk::utils::Version> vers;
     for (const auto &v : vs) vers.emplace_front(mysqlshdk::utils::Version(v));
-    s_available_checks.emplace_back(std::move(vers), creator);
+    s_available_checks.emplace_back(
+        Creator_info{std::move(vers), creator, target});
     return true;
   }
 
-  static bool register_check(Creator creator,
+  static bool register_check(Creator creator, Target target,
                              const mysqlshdk::utils::Version &ver) {
-    s_available_checks.emplace_back(
-        std::forward_list<mysqlshdk::utils::Version>{ver}, creator);
+    s_available_checks.emplace_back(Creator_info{
+        std::forward_list<mysqlshdk::utils::Version>{ver}, creator, target});
     return true;
   }
 
   static void register_manual_check(const char *ver, const char *name,
-                                    Upgrade_issue::Level level);
+                                    Upgrade_issue::Level level, Target target);
 
   static void prepare_translation_file(const char *filename);
 
   static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(
-      const Upgrade_check_options &options);
+      const Upgrade_info &info,
+      Target_flags flags = Target_flags::all().unset(Target::MDS_SPECIFIC));
 
   explicit Upgrade_check(const char *name) : m_name(name) {}
   virtual ~Upgrade_check() {}
@@ -133,8 +156,8 @@ class Upgrade_check {
   virtual bool is_runnable() const { return true; }
 
   virtual std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const Upgrade_check_options &options) = 0;
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info) = 0;
 
  protected:
   virtual const char *get_description_internal() const { return nullptr; }
@@ -151,7 +174,7 @@ class Upgrade_check {
 class Sql_upgrade_check : public Upgrade_check {
  public:
   static std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
-      const Upgrade_check_options &opts);
+      const Upgrade_info &info);
   static std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check();
   static std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check();
   static std::unique_ptr<Sql_upgrade_check> get_zerofill_check();
@@ -163,27 +186,25 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check();
   static std::unique_ptr<Sql_upgrade_check> get_enum_set_element_length_check();
   static std::unique_ptr<Sql_upgrade_check>
-  get_partitioned_tables_in_shared_tablespaces_check(
-      const Upgrade_check_options &opts);
+  get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info);
   static std::unique_ptr<Sql_upgrade_check> get_circular_directory_check();
   static std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
   static std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
   static std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
-      const Upgrade_check_options &opts);
+      const Upgrade_info &info);
   static std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
-      const Upgrade_check_options &opts);
+      const Upgrade_info &info);
 
   static std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check();
   static std::unique_ptr<Sql_upgrade_check> get_zero_dates_check();
   static std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
   static std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check(
-      const Upgrade_check_options &opts);
+      const Upgrade_info &info);
   static std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check();
   static std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check(
-      const Upgrade_check_options &opts);
+      const Upgrade_info &info);
   static std::unique_ptr<Sql_upgrade_check>
-  get_changed_functions_generated_columns_check(
-      const Upgrade_check_options &opts);
+  get_changed_functions_generated_columns_check(const Upgrade_info &info);
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
@@ -196,8 +217,8 @@ class Sql_upgrade_check : public Upgrade_check {
                         std::forward_list<std::string>());
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const Upgrade_check_options &options) override;
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info) override;
 
   const std::vector<std::string> &get_queries() const { return m_queries; }
 
@@ -230,8 +251,8 @@ class Config_check : public Upgrade_check {
                const char *title = "", const char *advice = "");
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const Upgrade_check_options &options) override;
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info) override;
 
  protected:
   const char *get_description_internal() const override {
@@ -255,8 +276,8 @@ class Check_table_command : public Upgrade_check {
   Check_table_command();
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> session,
-      const Upgrade_check_options &opts) override;
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info) override;
 
   Upgrade_issue::Level get_level() const override {
     throw std::runtime_error("Unimplemented");
@@ -279,8 +300,8 @@ class Manual_check : public Upgrade_check {
   bool is_runnable() const override { return false; }
 
   std::vector<Upgrade_issue> run(
-      std::shared_ptr<mysqlshdk::db::ISession> /* session */,
-      const Upgrade_check_options & /* options */) override {
+      const std::shared_ptr<mysqlshdk::db::ISession> & /*session*/,
+      const Upgrade_info & /*server_info*/) override {
     throw std::runtime_error("Manual check not meant to be executed");
   }
 
@@ -291,6 +312,64 @@ class Manual_check : public Upgrade_check {
 
   Upgrade_issue::Level m_level;
 };
+
+class Upgrade_check_config final {
+ public:
+  using Include_issue = std::function<bool(const Upgrade_issue &)>;
+
+  explicit Upgrade_check_config(const Upgrade_check_options &options);
+
+  const Upgrade_check::Upgrade_info &upgrade_info() const {
+    return m_upgrade_info;
+  }
+
+  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+  const std::shared_ptr<mysqlshdk::db::ISession> &session() const {
+    return m_session;
+  }
+
+  std::unique_ptr<Upgrade_check_output_formatter> formatter() const;
+
+  void set_user_privileges(
+      const mysqlshdk::mysql::User_privileges *privileges) {
+    m_privileges = privileges;
+  }
+
+  const mysqlshdk::mysql::User_privileges *user_privileges() const {
+    return m_privileges;
+  }
+
+  void set_issue_filter(const Include_issue &filter) { m_filter = filter; }
+
+  std::vector<Upgrade_issue> filter_issues(
+      std::vector<Upgrade_issue> &&issues) const;
+
+  void set_targets(Upgrade_check::Target_flags flags) {
+    m_target_flags = flags;
+  }
+
+  Upgrade_check::Target_flags targets() const { return m_target_flags; }
+
+ private:
+  Upgrade_check::Upgrade_info m_upgrade_info;
+  std::shared_ptr<mysqlshdk::db::ISession> m_session;
+  std::string m_output_format;
+  const mysqlshdk::mysql::User_privileges *m_privileges;
+  Include_issue m_filter;
+  Upgrade_check::Target_flags m_target_flags =
+      Upgrade_check::Target_flags::all().unset(
+          Upgrade_check::Target::MDS_SPECIFIC);
+};
+
+/**
+ * Checks if server is ready for upgrade.
+ *
+ * @param config upgrade configuration
+ *
+ * @returns true if server is eligible for upgrade (there were no errors)
+ */
+bool check_for_upgrade(const Upgrade_check_config &config);
 
 } /* namespace mysqlsh */
 

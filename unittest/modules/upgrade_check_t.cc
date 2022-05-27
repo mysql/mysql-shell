@@ -30,21 +30,41 @@
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 
+#define SKIP_IF_NOT_5_7_UP_TO(version)                                      \
+  do {                                                                      \
+    if (_target_server_version < Version(5, 7, 0) ||                        \
+        _target_server_version >= version) {                                \
+      SKIP_TEST(                                                            \
+          "This test requires running against MySQL server version [5.7-" + \
+          version.get_full() + ")");                                        \
+    }                                                                       \
+  } while (false)
+
 using Version = mysqlshdk::utils::Version;
 
 namespace mysqlsh {
 using mysqlshdk::db::Connection_options;
 
+namespace {
+
+Upgrade_check::Upgrade_info upgrade_info(const Version &server,
+                                         const Version &target) {
+  Upgrade_check::Upgrade_info si;
+
+  si.server_version = server;
+  si.target_version = target;
+
+  return si;
+}
+
+}  // namespace
+
 class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
  public:
   MySQL_upgrade_check_test()
-      : opts(_target_server_version, Version(MYSH_VERSION)) {}
+      : info(upgrade_info(_target_server_version, Version(MYSH_VERSION))) {}
 
  protected:
-  static void SetUpTestCase() {
-    auto session = mysqlshdk::db::mysql::Session::create();
-  }
-
   virtual void SetUp() {
     Shell_core_test_wrapper::SetUp();
     if (_target_server_version >= Version(5, 7, 0) ||
@@ -77,7 +97,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
   void EXPECT_ISSUES(Upgrade_check *check, const int no = -1) {
     try {
-      issues = check->run(session, opts);
+      issues = check->run(session, info);
     } catch (const std::exception &e) {
       puts("Exception runing check:");
       puts(e.what());
@@ -92,7 +112,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
   void EXPECT_NO_ISSUES(Upgrade_check *check) { EXPECT_ISSUES(check, 0); }
 
-  Upgrade_check_options opts;
+  Upgrade_check::Upgrade_info info;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string db;
   std::vector<mysqlsh::Upgrade_issue> issues;
@@ -103,41 +123,40 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   Version prev(current.get_major(), current.get_minor(),
                current.get_patch() - 1);
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
-                        Upgrade_check_options{Version("5.7"), Version("5.7")}),
+                        upgrade_info(Version("5.7"), Version("5.7"))),
                     std::invalid_argument, "This tool supports checking");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("5.6.11"), Version("8.0")}),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+                        upgrade_info(Version("5.6.11"), Version("8.0"))),
                     std::invalid_argument, "at least at version 5.7");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("5.7.19"), Version("8.1.0")}),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+                        upgrade_info(Version("5.7.19"), Version("8.1.0"))),
                     std::invalid_argument, "This tool supports checking");
   EXPECT_THROW_LIKE(
-      Upgrade_check::create_checklist(Upgrade_check_options{current, current}),
+      Upgrade_check::create_checklist(upgrade_info(current, current)),
       std::invalid_argument,
       "MySQL Shell cannot check MySQL server instances for upgrade if they are "
       "at a version the same as or higher than the MySQL Shell version.");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("8.0.12"), Version("8.0.12")}),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+                        upgrade_info(Version("8.0.12"), Version("8.0.12"))),
                     std::invalid_argument, "Target version must be greater");
   EXPECT_NO_THROW(Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7.19"), current}));
+      upgrade_info(Version("5.7.19"), current)));
   EXPECT_NO_THROW(Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7.17"), Version("8.0")}));
+      upgrade_info(Version("5.7.17"), Version("8.0"))));
   EXPECT_NO_THROW(Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7"), Version("8.0.12")}));
+      upgrade_info(Version("5.7"), Version("8.0.12"))));
 
   std::vector<std::unique_ptr<Upgrade_check>> checks;
-  EXPECT_NO_THROW(checks = Upgrade_check::create_checklist(
-                      Upgrade_check_options{prev, current}));
+  EXPECT_NO_THROW(
+      checks = Upgrade_check::create_checklist(upgrade_info(prev, current)));
   // Check for table command is there for every valid version as a last check
   EXPECT_FALSE(checks.empty());
   EXPECT_EQ(0, strcmp("checkTableOutput", checks.back()->get_name()));
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_old_temporal_check();
   EXPECT_NE(nullptr, check->get_doc_link());
@@ -146,11 +165,10 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
 }
 
 TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_reserved_keywords_check(opts);
+      Sql_upgrade_check::get_reserved_keywords_check(info);
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
@@ -190,15 +208,14 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_EQ("LEAD", issues[11].table);
 
   check = Sql_upgrade_check::get_reserved_keywords_check(
-      Upgrade_check_options{Version(5, 7, 0), Version(8, 0, 11)});
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+      upgrade_info(Version(5, 7, 0), Version(8, 0, 11)));
+  ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_EQ(10, issues.size());
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_utf8mb3_check();
@@ -216,9 +233,8 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
 }
 
 TEST_F(MySQL_upgrade_check_test, mysql_schema) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_mysql_schema_check();
   EXPECT_NO_ISSUES(check.get());
@@ -240,9 +256,8 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
 }
 
 TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("test_innodb_rowformat");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_innodb_rowformat_check();
@@ -256,9 +271,8 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
 }
 
 TEST_F(MySQL_upgrade_check_test, zerofill) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("aaa_test_zerofill_nondefaultwidth");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_zerofill_check();
@@ -288,9 +302,8 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
 }
 
 TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_foreign_key_length_check();
   EXPECT_NE(nullptr, check->get_doc_link());
@@ -299,9 +312,8 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
 }
 
 TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("aaa_test_maxdb_sql_mode");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_maxdb_sql_mode_flags_check();
@@ -316,14 +328,14 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   ASSERT_NO_THROW(session->execute(
       "CREATE FUNCTION TEST_MAXDB (s CHAR(20)) RETURNS CHAR(50) "
       "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_GT(issues.size(), issues_count);
   issues_count = issues.size();
   issues.clear();
   ASSERT_NO_THROW(
       session->execute("create trigger TR_MAXDB AFTER INSERT on Clone FOR "
                        "EACH ROW delete from Clone where COMPONENT<0;"));
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_GT(issues.size(), issues_count);
   issues_count = issues.size();
   issues.clear();
@@ -331,14 +343,13 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
       session->execute("CREATE EVENT EV_MAXDB ON SCHEDULE AT CURRENT_TIMESTAMP "
                        "+ INTERVAL 1 HOUR "
                        "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;"));
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_GT(issues.size(), issues_count);
 }
 
 TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("aaa_test_obsolete_sql_modes");
   ASSERT_NO_THROW(
       session->execute("create table Clone(COMPONENT integer, cube int);"));
@@ -377,15 +388,14 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
                            "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
                            "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;",
                            mode.c_str())));
-    ASSERT_NO_THROW(issues = check->run(session, opts));
+    ASSERT_NO_THROW(issues = check->run(session, info));
     ASSERT_GE(issues.size(), issues_count + 3);
   }
 }
 
 TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("aaa_test_enum_set_element_length");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_enum_set_element_length_check();
@@ -394,7 +404,7 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
       strcmp(
           "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
           check->get_doc_link()));
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  ASSERT_NO_THROW(issues = check->run(session, info));
   std::size_t original = issues.size();
 
   ASSERT_NO_THROW(session->execute(
@@ -432,13 +442,12 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
 }
 
 TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 13))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
+
   PrepareTestDatabase("aaa_test_partitioned_in_shared");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
-          opts);
+          info);
   EXPECT_NO_ISSUES(check.get());
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "mysql-nutshell.html#mysql-nutshell-removals",
@@ -456,10 +465,8 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
 }
 
 TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 17))
-    SKIP_TEST(
-        "This test requires running against MySQL server version 5.7-8.0.16");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 17));
+
   PrepareTestDatabase("aaa_circular_directory");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_circular_directory_check();
@@ -478,9 +485,8 @@ TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
 }
 
 TEST_F(MySQL_upgrade_check_test, removed_functions) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("aaa_test_removed_functions");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_removed_functions_check();
@@ -543,10 +549,8 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
 }
 
 TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 13))
-    SKIP_TEST(
-        "This test requires running against MySQL server version 5.7-8.0.12");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
+
   PrepareTestDatabase("aaa_test_group_by_asc");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_groupby_asc_syntax_check();
@@ -616,20 +620,17 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
 }
 
 TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 13))
-    SKIP_TEST(
-        "This test requires running against MySQL server version 5.7-8.0.13");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
   std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_removed_sys_log_vars_check(opts);
+      Sql_upgrade_check::get_removed_sys_log_vars_check(info);
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
                       "news-8-0-13.html#mysqld-8-0-13-logging",
                       check->get_doc_link()));
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
-        check->run(session, opts), Upgrade_check::Check_configuration_error,
+        check->run(session, info), Upgrade_check::Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
   } else {
@@ -647,10 +648,10 @@ TEST_F(MySQL_upgrade_check_test, configuration_check) {
                         {"again_not_there", "personalized msg"}},
                        Config_check::Mode::FLAG_DEFINED, Upgrade_issue::NOTICE,
                        "problem");
-  ASSERT_THROW(defined.run(session, opts),
+  ASSERT_THROW(defined.run(session, info),
                Upgrade_check::Check_configuration_error);
 
-  opts.config_path.assign(
+  info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
   EXPECT_ISSUES(&defined, 2);
   EXPECT_EQ("option_to_drop_with_no_value", issues[0].schema);
@@ -673,30 +674,27 @@ TEST_F(MySQL_upgrade_check_test, configuration_check) {
   EXPECT_EQ(Upgrade_issue::WARNING, issues[1].level);
   EXPECT_EQ("undefined", issues[1].description);
 
-  opts.config_path.clear();
+  info.config_path.clear();
 }
 
 TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 13))
-    SKIP_TEST(
-        "This test requires running against MySQL server version 5.7-8.0.13");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
   std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_removed_sys_vars_check(opts);
+      Sql_upgrade_check::get_removed_sys_vars_check(info);
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "added-deprecated-removed.html#optvars-removed",
                       check->get_doc_link()));
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
-        check->run(session, opts), Upgrade_check::Check_configuration_error,
+        check->run(session, info), Upgrade_check::Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
-    opts.config_path.assign(
+    info.config_path.assign(
         shcore::path::join_path(g_test_home, "data", "config", "uc.cnf"));
     EXPECT_ISSUES(check.get(), 2);
-    opts.config_path.clear();
+    info.config_path.clear();
     EXPECT_EQ("max_tmp_tables", issues[0].schema);
     EXPECT_EQ("query-cache-type", issues[1].schema);
   } else {
@@ -705,9 +703,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
 }
 
 TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   std::unique_ptr<Upgrade_check> check =
       Sql_upgrade_check::get_sys_vars_new_defaults_check();
@@ -715,21 +711,19 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
                       check->get_doc_link()));
 
   EXPECT_THROW_LIKE(
-      check->run(session, opts), Upgrade_check::Check_configuration_error,
+      check->run(session, info), Upgrade_check::Check_configuration_error,
       "To run this check requires full path to MySQL server configuration "
       "file to be specified at 'configPath' key of options dictionary");
-  opts.config_path.assign(
+  info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
   EXPECT_ISSUES(check.get(), 25);
   EXPECT_EQ("back_log", issues[0].schema);
   EXPECT_EQ("transaction_write_set_extraction", issues.back().schema);
-  opts.config_path.clear();
+  info.config_path.clear();
 }
 
 TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   // Preparing data for this check requires manipulating datadir by hand, we
   // only check here that queries run fine
@@ -810,9 +804,8 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
 }
 
 TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("mysql_non_native_partitioning");
   auto check = Sql_upgrade_check::get_nonnative_partitioning_check();
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
@@ -832,16 +825,16 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
 TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   const auto res = session->query("select UPPER(@@version_compile_os);");
   const auto compile_os = res->fetch_one()->get_string(0);
-  auto options = Upgrade_check_options(Version(5, 7, 25), Version(8, 0, 17));
-  options.server_os = compile_os;
+  auto si = upgrade_info(Version(5, 7, 25), Version(8, 0, 17));
+  si.server_os = compile_os;
 #if defined(WIN32)
-  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(options),
+  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(si),
                Upgrade_check::Check_not_needed);
 #else
   PrepareTestDatabase("fts_tablename");
-  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(opts),
+  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(info),
                Upgrade_check::Check_not_needed);
-  auto check = Sql_upgrade_check::get_fts_in_tablename_check(options);
+  auto check = Sql_upgrade_check::get_fts_in_tablename_check(si);
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -860,9 +853,8 @@ TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
 }
 
 TEST_F(MySQL_upgrade_check_test, check_table_command) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("mysql_check_table_test");
   Check_table_command check;
   EXPECT_NO_ISSUES(&check);
@@ -875,9 +867,8 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
 }
 
 TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   PrepareTestDatabase("mysql_zero_dates_check_test");
   auto check = Sql_upgrade_check::get_zero_dates_check();
   EXPECT_EQ(0, strcmp("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
@@ -900,9 +891,8 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
 }
 
 TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   auto check = Sql_upgrade_check::get_engine_mixup_check();
   EXPECT_NE(nullptr, strstr(check->get_description(),
                             "Rename the MyISAM table to a temporary name"));
@@ -913,12 +903,10 @@ TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
 }
 
 TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  Upgrade_check_options opt23(_target_server_version, Version(8, 0, 23));
-  auto check = Sql_upgrade_check::get_old_geometry_types_check(opt23);
+  const auto si23 = upgrade_info(_target_server_version, Version(8, 0, 23));
+  auto check = Sql_upgrade_check::get_old_geometry_types_check(si23);
   EXPECT_NE(nullptr, strstr(check->get_description(),
                             "The following columns are spatial data columns "
                             "created in MySQL Server version 5.6"));
@@ -927,14 +915,14 @@ TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
   // in 5.6 and upgraded to 5.7
   EXPECT_NO_ISSUES(check.get());
 
-  Upgrade_check_options opt24(_target_server_version, Version(8, 0, 24));
-  EXPECT_THROW(Sql_upgrade_check::get_old_geometry_types_check(opt24),
+  const auto si24 = upgrade_info(_target_server_version, Version(8, 0, 24));
+  EXPECT_THROW(Sql_upgrade_check::get_old_geometry_types_check(si24),
                Upgrade_check::Check_not_needed);
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
   auto manual = Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7.0"), Version("8.0.11")});
+      upgrade_info(Version("5.7.0"), Version("8.0.11")));
   manual.erase(std::remove_if(manual.begin(), manual.end(),
                               [](const std::unique_ptr<Upgrade_check> &c) {
                                 return c->is_runnable();
@@ -961,9 +949,8 @@ TEST_F(MySQL_upgrade_check_test, manual_checks) {
 }
 
 TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   auto mysql_connection_options = shcore::get_connection_options(_mysql_uri);
   _interactive_shell->connect(mysql_connection_options);
   Util util(_interactive_shell->shell_context().get());
@@ -988,12 +975,12 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   auto percent_connection_options = shcore::get_connection_options(percent_uri);
   // No privileges function should throw
   EXPECT_THROW(util.check_for_server_upgrade(percent_connection_options),
-               std::invalid_argument);
+               std::runtime_error);
 
   // Still not enough privileges
   EXPECT_NO_THROW(session->execute("grant SELECT on *.* to 'percent'@'%';"));
   EXPECT_THROW(util.check_for_server_upgrade(percent_connection_options),
-               std::invalid_argument);
+               std::runtime_error);
 
   // Privileges check out we should succeed
   EXPECT_NO_THROW(
@@ -1012,11 +999,8 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
 }
 
 TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(MYSH_VERSION))
-    SKIP_TEST(
-        "This test requires running against MySQL server version 5.7 up to but "
-        "not including " MYSH_VERSION);
+  SKIP_IF_NOT_5_7_UP_TO(Version(MYSH_VERSION));
+
   Util util(_interactive_shell->shell_context().get());
 
   // clear stdout/stderr garbage
@@ -1188,9 +1172,8 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
 }
 
 TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
-  if (_target_server_version < Version(5, 7, 0) ||
-      _target_server_version >= Version(8, 0, 0))
-    SKIP_TEST("This test requires running against MySQL server version 5.7");
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   int sb_port = 0;
   for (auto port : _mysql_sandbox_ports) {
     try {
@@ -1237,25 +1220,25 @@ TEST_F(MySQL_upgrade_check_test, convert_usage) {
     // upgrade to < 8.0.28 needs no check
     ASSERT_THROW(
         Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            Upgrade_check_options(Version(8, 0, 26), Version(8, 0, 27))),
+            upgrade_info(Version(8, 0, 26), Version(8, 0, 27))),
         Upgrade_check::Check_not_needed);
 
     // upgrade between >= 8.0.28 needs no check
     ASSERT_THROW(
         Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            Upgrade_check_options(Version(8, 0, 28), Version(8, 0, 29))),
+            upgrade_info(Version(8, 0, 28), Version(8, 0, 29))),
         Upgrade_check::Check_not_needed);
 
     ASSERT_NO_THROW(
         Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            Upgrade_check_options(Version(5, 7, 28), Version(8, 0, 28))));
+            upgrade_info(Version(5, 7, 28), Version(8, 0, 28))));
 
     ASSERT_NO_THROW(
         Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            Upgrade_check_options(Version(8, 0, 27), Version(8, 0, 29))));
+            upgrade_info(Version(8, 0, 27), Version(8, 0, 29))));
   }
 
-  auto options = Upgrade_check_options(Version(8, 0, 11), Version(8, 0, 28));
+  auto options = upgrade_info(Version(8, 0, 11), Version(8, 0, 28));
 
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_changed_functions_generated_columns_check(options);

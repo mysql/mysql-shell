@@ -1270,7 +1270,7 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
-    EXPECT_STDOUT_CONTAINS("NOTE: You can check for potential upgrade issues using util.check_for_server_upgrade().")
+    EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
 
 EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed())
 

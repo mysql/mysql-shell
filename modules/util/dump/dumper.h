@@ -355,6 +355,9 @@ class Dumper {
 
   std::string filename_for_data_dump(const std::string &filename) const;
 
+  // returns true in case of errors
+  bool check_for_upgrade_errors() const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;

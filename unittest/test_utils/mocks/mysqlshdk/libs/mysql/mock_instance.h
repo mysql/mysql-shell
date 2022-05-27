@@ -119,6 +119,13 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
     // method for now
     return {};
   }
+  std::unique_ptr<mysqlshdk::mysql::User_privileges>
+  get_current_user_privileges(
+      bool /* allow_skip_grants_user */) const override {
+    // gmock can't handle noncopyable return args... otoh we don't need this
+    // method for now
+    return {};
+  }
   MOCK_CONST_METHOD0(is_set_persist_supported,
                      mysqlshdk::utils::nullable<bool>());
   MOCK_CONST_METHOD1(

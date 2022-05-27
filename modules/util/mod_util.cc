@@ -55,10 +55,6 @@
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "rapidjson/document.h"
-#include "rapidjson/error/en.h"
-#include "rapidjson/prettywriter.h"
-#include "rapidjson/stringbuffer.h"
 
 namespace mysqlsh {
 REGISTER_HELP_GLOBAL_OBJECT(util, shellapi);
@@ -117,401 +113,6 @@ shcore::Value Util::get_member(const std::string &prop) const {
 
   return ret_val;
 }
-
-namespace {
-std::string format_upgrade_issue(const Upgrade_issue &problem) {
-  std::stringstream ss;
-  const char *item = "Schema";
-  ss << problem.schema;
-  if (!problem.table.empty()) {
-    item = "Table";
-    ss << "." << problem.table;
-    if (!problem.column.empty()) {
-      item = "Column";
-      ss << "." << problem.column;
-    }
-  }
-
-  return shcore::str_format("%-8s: %s (%s) - %s",
-                            Upgrade_issue::level_to_string(problem.level), item,
-                            ss.str().c_str(), problem.description.c_str());
-}
-
-class Upgrade_check_output_formatter {
- public:
-  static std::unique_ptr<Upgrade_check_output_formatter> get_formatter(
-      const std::string &format);
-
-  virtual ~Upgrade_check_output_formatter() {}
-
-  virtual void check_info(const std::string &server_addres,
-                          const std::string &server_version,
-                          const std::string &target_version) = 0;
-  virtual void check_results(const Upgrade_check &check,
-                             const std::vector<Upgrade_issue> &results) = 0;
-  virtual void check_error(const Upgrade_check &check, const char *description,
-                           bool runtime_error = true) = 0;
-  virtual void manual_check(const Upgrade_check &check) = 0;
-  virtual void summarize(int error, int warning, int notice,
-                         const std::string &text) = 0;
-};
-
-class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
- public:
-  Text_upgrade_checker_output() : m_console(mysqlsh::current_console()) {}
-
-  void check_info(const std::string &server_addres,
-                  const std::string &server_version,
-                  const std::string &target_version) override {
-    print_paragraph(
-        shcore::str_format("The MySQL server at %s, version %s, will now be "
-                           "checked for compatibility "
-                           "issues for upgrade to MySQL %s...",
-                           server_addres.c_str(), server_version.c_str(),
-                           target_version.c_str()),
-        0, 0);
-  }
-
-  void check_results(const Upgrade_check &check,
-                     const std::vector<Upgrade_issue> &results) override {
-    print_title(check.get_title());
-
-    std::function<std::string(const Upgrade_issue &)> issue_formater(
-        upgrade_issue_to_string);
-    if (results.empty()) {
-      print_paragraph("No issues found");
-    } else if (check.get_description() != nullptr) {
-      print_paragraph(check.get_description());
-      print_doc_links(check.get_doc_link());
-      m_console->println();
-    } else {
-      issue_formater = format_upgrade_issue;
-    }
-
-    for (const auto &issue : results) print_paragraph(issue_formater(issue));
-  }
-
-  void check_error(const Upgrade_check &check, const char *description,
-                   bool runtime_error = true) override {
-    print_title(check.get_title());
-    m_console->print("  ");
-    if (runtime_error) m_console->print_diag("Check failed: ");
-    m_console->println(description);
-    print_doc_links(check.get_doc_link());
-  }
-
-  void manual_check(const Upgrade_check &check) override {
-    print_title(check.get_title());
-    print_paragraph(check.get_description());
-    print_doc_links(check.get_doc_link());
-  }
-
-  void summarize(int error, int warning, int notice,
-                 const std::string &text) override {
-    m_console->println();
-    m_console->println(shcore::str_format("Errors:   %d", error));
-    m_console->println(shcore::str_format("Warnings: %d", warning));
-    m_console->println(shcore::str_format("Notices:  %d\n", notice));
-    m_console->println(text);
-  }
-
- private:
-  void print_title(const char *title) {
-    m_console->println();
-    print_paragraph(shcore::str_format("%d) %s", ++m_check_count, title), 0, 0);
-  }
-
-  void print_paragraph(const std::string &s, std::size_t base_indent = 2,
-                       std::size_t indent_by = 2) {
-    std::string indent(base_indent, ' ');
-    auto descr = shcore::str_break_into_lines(s, 80 - base_indent);
-    for (std::size_t i = 0; i < descr.size(); i++) {
-      m_console->println(indent + descr[i]);
-      if (i == 0) indent.append(std::string(indent_by, ' '));
-    }
-  }
-
-  void print_doc_links(const char *links) {
-    if (links != nullptr) {
-      std::string docs("More information:\n");
-      print_paragraph(docs + links);
-    }
-  }
-
-  int m_check_count = 0;
-  std::shared_ptr<IConsole> m_console;
-};
-
-class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
- public:
-  JSON_upgrade_checker_output()
-      : m_json_document(),
-        m_allocator(m_json_document.GetAllocator()),
-        m_checks(rapidjson::kArrayType),
-        m_manual_checks(rapidjson::kArrayType) {
-    m_json_document.SetObject();
-  }
-
-  void check_info(const std::string &server_addres,
-                  const std::string &server_version,
-                  const std::string &target_version) override {
-    rapidjson::Value addr;
-    addr.SetString(server_addres.c_str(), server_addres.length(), m_allocator);
-    m_json_document.AddMember("serverAddress", addr, m_allocator);
-
-    rapidjson::Value svr;
-    svr.SetString(server_version.c_str(), server_version.length(), m_allocator);
-    m_json_document.AddMember("serverVersion", svr, m_allocator);
-
-    rapidjson::Value tvr;
-    tvr.SetString(target_version.c_str(), target_version.length(), m_allocator);
-    m_json_document.AddMember("targetVersion", tvr, m_allocator);
-  }
-
-  void check_results(const Upgrade_check &check,
-                     const std::vector<Upgrade_issue> &results) override {
-    rapidjson::Value check_object(rapidjson::kObjectType);
-    rapidjson::Value id;
-    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
-                           m_allocator);
-    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
-                           m_allocator);
-    check_object.AddMember("status", rapidjson::StringRef("OK"), m_allocator);
-    if (!results.empty()) {
-      if (check.get_description() != nullptr)
-        check_object.AddMember("description",
-                               rapidjson::StringRef(check.get_description()),
-                               m_allocator);
-      if (check.get_doc_link() != nullptr)
-        check_object.AddMember("documentationLink",
-                               rapidjson::StringRef(check.get_doc_link()),
-                               m_allocator);
-    }
-
-    rapidjson::Value issues(rapidjson::kArrayType);
-    for (const auto &issue : results) {
-      if (issue.empty()) continue;
-      rapidjson::Value issue_object(rapidjson::kObjectType);
-      issue_object.AddMember(
-          "level",
-          rapidjson::StringRef(Upgrade_issue::level_to_string(issue.level)),
-          m_allocator);
-
-      std::string db_object = issue.get_db_object();
-      rapidjson::Value dbov;
-      dbov.SetString(db_object.c_str(), db_object.length(), m_allocator);
-      issue_object.AddMember("dbObject", dbov, m_allocator);
-
-      rapidjson::Value description;
-      description.SetString(issue.description.c_str(),
-                            issue.description.length(), m_allocator);
-      issue_object.AddMember("description", description, m_allocator);
-
-      issues.PushBack(issue_object, m_allocator);
-    }
-
-    check_object.AddMember("detectedProblems", issues, m_allocator);
-    m_checks.PushBack(check_object, m_allocator);
-  }
-
-  void check_error(const Upgrade_check &check, const char *description,
-                   bool runtime_error = true) override {
-    rapidjson::Value check_object(rapidjson::kObjectType);
-    rapidjson::Value id;
-    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
-                           m_allocator);
-    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
-                           m_allocator);
-    if (runtime_error)
-      check_object.AddMember("status", rapidjson::StringRef("ERROR"),
-                             m_allocator);
-    else
-      check_object.AddMember(
-          "status", rapidjson::StringRef("CONFIGURATION_ERROR"), m_allocator);
-
-    rapidjson::Value descr;
-    descr.SetString(description, strlen(description), m_allocator);
-    check_object.AddMember("description", descr, m_allocator);
-    if (check.get_doc_link() != nullptr)
-      check_object.AddMember("documentationLink",
-                             rapidjson::StringRef(check.get_doc_link()),
-                             m_allocator);
-
-    rapidjson::Value issues(rapidjson::kArrayType);
-    m_checks.PushBack(check_object, m_allocator);
-  }
-
-  void manual_check(const Upgrade_check &check) override {
-    rapidjson::Value check_object(rapidjson::kObjectType);
-    rapidjson::Value id;
-    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
-                           m_allocator);
-    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
-                           m_allocator);
-
-    check_object.AddMember("description",
-                           rapidjson::StringRef(check.get_description()),
-                           m_allocator);
-    if (check.get_doc_link() != nullptr)
-      check_object.AddMember("documentationLink",
-                             rapidjson::StringRef(check.get_doc_link()),
-                             m_allocator);
-    m_manual_checks.PushBack(check_object, m_allocator);
-  }
-
-  void summarize(int error, int warning, int notice,
-                 const std::string &text) override {
-    m_json_document.AddMember("errorCount", error, m_allocator);
-    m_json_document.AddMember("warningCount", warning, m_allocator);
-    m_json_document.AddMember("noticeCount", notice, m_allocator);
-
-    rapidjson::Value val;
-    val.SetString(text.c_str(), text.length(), m_allocator);
-    m_json_document.AddMember("summary", val, m_allocator);
-
-    m_json_document.AddMember("checksPerformed", m_checks, m_allocator);
-    m_json_document.AddMember("manualChecks", m_manual_checks, m_allocator);
-
-    rapidjson::StringBuffer buffer;
-    if (mysqlsh::current_shell_options()->get().wrap_json == "json/raw") {
-      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-      m_json_document.Accept(writer);
-    } else {
-      rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
-      m_json_document.Accept(writer);
-    }
-    mysqlsh::current_console()->raw_print(
-        buffer.GetString(), mysqlsh::Output_stream::STDOUT, false);
-    mysqlsh::current_console()->raw_print("\n", mysqlsh::Output_stream::STDOUT,
-                                          false);
-  }
-
- private:
-  rapidjson::Document m_json_document;
-  rapidjson::Document::AllocatorType &m_allocator;
-  rapidjson::Value m_checks;
-  rapidjson::Value m_manual_checks;
-};
-
-std::unique_ptr<Upgrade_check_output_formatter>
-Upgrade_check_output_formatter::get_formatter(const std::string &format) {
-  if (shcore::str_casecmp(format, "JSON") == 0)
-    return std::unique_ptr<Upgrade_check_output_formatter>(
-        new JSON_upgrade_checker_output());
-  else if (shcore::str_casecmp(format, "TEXT") != 0)
-    throw std::invalid_argument(
-        "Allowed values for outputFormat parameter are TEXT or JSON");
-
-  return std::unique_ptr<Upgrade_check_output_formatter>(
-      new Text_upgrade_checker_output());
-}
-
-void check_upgrade(const Connection_options &connection_options,
-                   const Upgrade_check_options &options) {
-  using mysqlshdk::utils::Version;
-
-  auto opts = options;
-
-  if (opts.output_format.empty()) {
-    opts.output_format =
-        shcore::str_beginswith(
-            mysqlsh::current_shell_options()->get().wrap_json, "json")
-            ? "JSON"
-            : "TEXT";
-  }
-
-  auto print =
-      Upgrade_check_output_formatter::get_formatter(opts.output_format);
-
-  const auto session = establish_session(
-      connection_options, current_shell_options()->get().wizards);
-
-  try {
-    std::string user;
-    std::string host;
-
-    mysqlshdk::mysql::Instance instance(session);
-    instance.get_current_user(&user, &host);
-
-    if (instance.get_user_privileges(user, host, true)
-            ->validate({"PROCESS", "RELOAD", "SELECT"})
-            .has_missing_privileges()) {
-      throw std::invalid_argument(
-          "The upgrade check needs to be performed by user with RELOAD, "
-          "PROCESS, and SELECT privileges.");
-    }
-  } catch (const std::runtime_error &e) {
-    log_error("Unable to check permissions: %s", e.what());
-  } catch (const std::invalid_argument &) {
-    throw;
-  } catch (const std::logic_error &e) {
-    throw std::runtime_error("Unable to get information about a user");
-  }
-
-  auto version_result = session->query(
-      "select @@version, @@version_comment, UPPER(@@version_compile_os);");
-  auto row = version_result->fetch_one();
-  if (row == nullptr) throw std::runtime_error("Unable to get server version");
-
-  opts.server_version = Version(row->get_string(0));
-  opts.server_os = row->get_string(2);
-
-  print->check_info(
-      connection_options.as_uri(mysqlshdk::db::uri::formats::only_transport()),
-      row->get_string(0) + " - " + row->get_string(1),
-      opts.target_version.get_base());
-
-  auto checklist = Upgrade_check::create_checklist(opts);
-
-  int errors = 0, warnings = 0, notices = 0;
-  const auto update_counts = [&errors, &warnings,
-                              &notices](Upgrade_issue::Level level) {
-    switch (level) {
-      case Upgrade_issue::ERROR:
-        errors++;
-        break;
-      case Upgrade_issue::WARNING:
-        warnings++;
-        break;
-      default:
-        notices++;
-        break;
-    }
-  };
-
-  for (auto &check : checklist)
-    if (check->is_runnable()) {
-      try {
-        std::vector<Upgrade_issue> issues = check->run(session, opts);
-        for (const auto &issue : issues) update_counts(issue.level);
-        print->check_results(*check, issues);
-      } catch (const Upgrade_check::Check_configuration_error &e) {
-        print->check_error(*check, e.what(), false);
-      } catch (const std::exception &e) {
-        print->check_error(*check, e.what());
-      }
-    } else {
-      update_counts(check->get_level());
-      print->manual_check(*check);
-    }
-
-  std::string summary;
-  if (errors > 0) {
-    summary = shcore::str_format(
-        "%i errors were found. Please correct these issues before upgrading "
-        "to avoid compatibility issues.",
-        errors);
-  } else if ((warnings > 0) || (notices > 0)) {
-    summary =
-        "No fatal errors were found that would prevent an upgrade, "
-        "but some potential issues were detected. Please ensure that the "
-        "reported issues are not significant before upgrading.";
-  } else {
-    summary = "No known compatibility errors or issues were found.";
-  }
-  print->summarize(errors, warnings, notices, summary);
-}
-}  // namespace
 
 REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_BRIEF,
@@ -580,7 +181,7 @@ None Util::check_for_server_upgrade(dict options);
 void Util::check_for_server_upgrade(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Option_pack_ref<Upgrade_check_options> &options) {
-  mysqlshdk::db::Connection_options connection = connection_options;
+  auto connection = connection_options;
   if (connection.has_data()) {
     if (!options->password.is_null()) {
       if (connection.has_password()) connection.clear_password();
@@ -593,9 +194,25 @@ void Util::check_for_server_upgrade(
           "specify the server URI as a parameter.");
     connection = _shell_core.get_dev_session()->get_connection_options();
   }
-  const auto &uc_options = *options;
 
-  check_upgrade(connection, uc_options);
+  const auto session =
+      establish_session(connection, current_shell_options()->get().wizards);
+  mysqlshdk::mysql::Instance instance(session);
+  std::unique_ptr<mysqlshdk::mysql::User_privileges> privileges;
+
+  try {
+    privileges = instance.get_current_user_privileges(true);
+  } catch (const std::runtime_error &e) {
+    log_error("Unable to check permissions: %s", e.what());
+  } catch (const std::logic_error &e) {
+    throw std::runtime_error("Unable to get information about a user");
+  }
+
+  Upgrade_check_config config{*options};
+  config.set_session(session);
+  config.set_user_privileges(privileges.get());
+
+  check_for_upgrade(config);
 }
 
 REGISTER_HELP_FUNCTION(importJson, util);

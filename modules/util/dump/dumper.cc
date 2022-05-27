@@ -69,6 +69,7 @@
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
+#include "modules/util/upgrade_check.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -2120,6 +2121,7 @@ void Dumper::validate_mds() const {
 
   const auto console = current_console();
   const auto version = m_options.mds_compatibility()->get_base();
+  Issue_status status = Issue_status::NONE;
 
   console->print_info(
       "Checking for compatibility with MySQL Database Service " + version);
@@ -2129,11 +2131,11 @@ void Dumper::validate_mds() const {
                         " detected, please consider upgrading to 8.0 first.");
 
     if (m_cache.server_is_5_7) {
-      console->print_note(
-          "You can check for potential upgrade issues using util." +
-          shcore::get_member_name("checkForServerUpgrade",
-                                  shcore::current_naming_style()) +
-          "().");
+      console->print_info("Checking for potential upgrade issues.");
+
+      if (check_for_upgrade_errors()) {
+        status = Issue_status::ERROR;
+      }
     }
   }
 
@@ -2146,8 +2148,6 @@ void Dumper::validate_mds() const {
   m_current_stage = m_progress_thread.start_stage(
       "Validating MDS compatibility", std::move(config));
   shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
-
-  Issue_status status = Issue_status::NONE;
 
   const auto issues = [&status](const auto &memory) {
     status = std::max(status, show_issues(memory->issues()));
@@ -3795,6 +3795,40 @@ std::string Dumper::filename_for_data_dump(const std::string &filename) const {
   }
 
   return result;
+}
+
+bool Dumper::check_for_upgrade_errors() const {
+  if (!m_options.mds_compatibility()) {
+    return false;
+  }
+
+  Upgrade_check_options options;
+  options.target_version = *m_options.mds_compatibility();
+  Upgrade_check_config config{options};
+
+  config.set_session(session());
+  config.set_user_privileges(m_user_privileges.get());
+  // we check engines even though MDS forces InnoDB, because "force_innodb"
+  // compatibility option is not going to be able to fix them
+  config.set_targets(
+      Upgrade_check::Target_flags(Upgrade_check::Target::OBJECT_DEFINITIONS) |
+      Upgrade_check::Target::ENGINES | Upgrade_check::Target::MDS_SPECIFIC);
+  config.set_issue_filter([this](const Upgrade_issue &issue) {
+    const auto schema = m_cache.schemas.find(issue.schema);
+
+    if (m_cache.schemas.end() != schema &&
+        (issue.table.empty() ||
+         schema->second.tables.find(issue.table) !=
+             schema->second.tables.end() ||
+         schema->second.views.find(issue.table) !=
+             schema->second.views.end())) {
+      return true;
+    }
+
+    return false;
+  });
+
+  return !check_for_upgrade(config);
 }
 
 }  // namespace dump
