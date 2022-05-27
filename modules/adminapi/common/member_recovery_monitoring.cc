@@ -531,17 +531,18 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
       new_instance->execute("START GROUP_REPLICATION");
     }
   }
+
+  // If a restart happened, use the new pointer. Otherwise, we must use the
+  // old pointer to not cause a segfault
+  if (!new_instance) {
+    new_instance = std::make_shared<mysqlsh::dba::Instance>(*instance);
+  }
+
   // Wait for clone recovery to finish
   while (!stop) {
     mysqlshdk::mysql::Clone_status status;
 
-    // If a restart happened, use the new pointer. Otherwise, we must use the
-    // old pointer to not cause a segfault
-    if (new_instance) {
-      status = mysqlshdk::mysql::check_clone_status(*new_instance, begin_time);
-    } else {
-      status = mysqlshdk::mysql::check_clone_status(*instance, begin_time);
-    }
+    status = mysqlshdk::mysql::check_clone_status(*new_instance, begin_time);
 
     try {
       progress.update(status);
