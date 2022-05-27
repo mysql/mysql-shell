@@ -24,7 +24,7 @@ set -e
 
 if [ "$1" = "purge" ]; then
         rm -rf /usr/lib/mysqlsh 2>/dev/null
-        echo "Deleting /usr/lib/mysqlsh"
+        echo "Deleted /usr/lib/mysqlsh"
 fi
 
 #DEBHELPER#
