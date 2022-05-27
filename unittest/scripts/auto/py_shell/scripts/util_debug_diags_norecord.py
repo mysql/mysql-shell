@@ -139,7 +139,7 @@ def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False
             else:
                 assert type(session_or_error) != str, f"{instance_id} = {session_or_error}"
                 CHECK_INSTANCE(session_or_error, zf, instance_id, expected_files_per_instance)
-                    
+
 def run_collect(uri, path, options={}, *, password="root", **kwargs):
     if not options:
         options = kwargs
@@ -179,6 +179,11 @@ session1.run_sql("grant select on performance_schema.* to nomd@'%'")
 run_collect(__sandbox_uri1, os.path.join(outdir,"diag0i.zip"), {"innodb_mutex":1})
 EXPECT_STDOUT_CONTAINS("debug.collectDiagnostics: Invalid options at Argument #2: innodb_mutex")
 EXPECT_NO_FILE(os.path.join(outdir,"diag0i.zip"))
+
+#@<> BUG#34048754 - 'path' set to an empty string should result in an error
+run_collect(__sandbox_uri1, "")
+EXPECT_STDOUT_CONTAINS("debug.collectDiagnostics: 'path' cannot be an empty string")
+EXPECT_NO_FILE(".zip")
 
 #@<> Regular instance
 shell.connect(__sandbox_uri1)

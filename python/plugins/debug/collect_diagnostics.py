@@ -479,6 +479,9 @@ def analyze_instance_data(zf, prefix, instance_info):
 def do_collect_diagnostics(session, path, orig_args, innodbMutex=False, allMembers=False,
                            schemaStats=False, slowQueries=False,
                            ignoreErrors=False):
+    if not path:
+        raise Error("'path' cannot be an empty string")
+
     if not path.lower().endswith(".zip"):
         if path.endswith("/") or (sys.platform == "win32" and path.endswith("\\")):
             path = os.path.join(path, default_filename())
