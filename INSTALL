@@ -61,7 +61,7 @@ Building the Shell
 2) Configure and Build
 Linux/OSX
        mkdir mysql-shell/bld
-       cd bld
+       cd mysql-shell/bld
        cmake .. \
             -DMYSQL_SOURCE_DIR=../../mysql-server\
             -DMYSQL_BUILD_DIR=../../mysql-server/bld\
