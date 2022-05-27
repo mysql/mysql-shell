@@ -1273,7 +1273,7 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
        "distinct "
        replace_in_SQL("substring_index(NAME, '/',1)")
        " as schema_name, "
-       replace_in_SQL("substring_index(substring_index(NAME, '/',-1),'#',1)")
+       replace_in_SQL("substring_index(substring_index(NAME, '/',-1),if(locate(BINARY '#P#', substring_index(NAME, '/',-1)), '#P#','#p#'),1)")
        " as table_name from "
        "information_schema.innodb_sys_tables where NAME like '%/%') A left "
        "join information_schema.tables I on A.table_name = I.table_name and "
