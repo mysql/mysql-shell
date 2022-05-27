@@ -5,7 +5,7 @@ Dependencies
 ============
 
 Mandatory
-- cmake 2.8.12 (note: if you're using a very recent version of cmake and it
+- cmake 3.5.1 (note: if you're using a very recent version of cmake and it
   doesn't work, try downgrading)
 - gcc 5/VisualStudio 2015/clang 8
 - MySQL client libraries built from sources
