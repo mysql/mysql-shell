@@ -11,6 +11,7 @@ Mandatory
 - MySQL client libraries built from sources
   (libmysqlclient, libmysqlxclient)
 - zip (gnuwin32 in windows)
+- libssh 0.9.2
 - python 3.7+
 
 Optional
