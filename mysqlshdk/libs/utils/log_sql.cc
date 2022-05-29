@@ -170,7 +170,7 @@ bool Log_sql::is_off() const { return m_log_sql_level == Log_level::OFF; }
 std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
                                         bool has_error) {
   // If --dba-log-sql != 0, then it has priority in Dba.* context
-  if (m_in_dba_context) {
+  if (m_num_dba_ctx > 0) {
     if (m_dba_log_sql >= 2) {
       return std::make_pair(true, false);
     }
@@ -202,30 +202,28 @@ std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
   return std::make_pair(false, false);
 }
 
-void Log_sql::push(const char *context) {
-  assert(context);
+void Log_sql::push(std::string_view context) {
   std::lock_guard lock(m_mutex);
 
   m_context_stack.emplace(std::string{context});
 
   // Track Dba.* context
-  if (is_dba_context(m_context_stack.top())) {
-    m_in_dba_context = true;
-  }
+  if (is_dba_context(context)) m_num_dba_ctx++;
 }
 
 void Log_sql::pop() {
   std::lock_guard lock(m_mutex);
 
   assert(!m_context_stack.empty());
-  if (!m_context_stack.empty()) {
-    m_context_stack.pop();
+  if (m_context_stack.empty()) return;
+
+  if (is_dba_context(m_context_stack.top())) {
+    assert(m_num_dba_ctx > 0);
+    m_num_dba_ctx--;
   }
 
-  // Track Dba.* context
-  if (m_context_stack.empty() || !is_dba_context(m_context_stack.top())) {
-    m_in_dba_context = false;
-  }
+  m_context_stack.pop();
+  assert(!m_context_stack.empty() || (m_num_dba_ctx == 0));
 }
 
 Log_sql::Log_level Log_sql::parse_log_level(const std::string &tag) {
