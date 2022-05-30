@@ -325,7 +325,7 @@ namespace mysqlsh {
 namespace dba {
 
 void leave_cluster(const mysqlsh::dba::Instance &instance,
-                   bool is_cluster_set_member, bool reset_repl_channels) {
+                   bool reset_member_actions, bool reset_repl_channels) {
   std::string instance_address = instance.get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
 
@@ -416,7 +416,7 @@ void leave_cluster(const mysqlsh::dba::Instance &instance,
   // if the instance belonged to a ClusterSet:
   //   - mysql_disable_super_read_only_if_primary
   //   - mysql_start_failover_channels_if_primary
-  if (is_cluster_set_member) {
+  if (reset_member_actions) {
     try {
       mysqlshdk::gr::reset_member_actions(instance);
     } catch (...) {

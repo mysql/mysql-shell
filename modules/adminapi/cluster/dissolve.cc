@@ -26,6 +26,7 @@
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -306,8 +307,10 @@ void Dissolve::prepare() {
     m_force = true;
   }
 
-  // Check if Cluster belongs to a ClusterSet
-  m_is_clusterset_member = m_cluster->is_cluster_set_member();
+  // Check if Cluster supports GR member actions to reset them if so
+  m_supports_member_actions =
+      m_cluster->get_lowest_instance_version() >= k_min_cs_version ? true
+                                                                   : false;
 }
 
 void Dissolve::remove_instance(const std::string &instance_address,
@@ -315,7 +318,7 @@ void Dissolve::remove_instance(const std::string &instance_address,
   try {
     // Stop Group Replication and reset (persist) GR variables.
     mysqlsh::dba::leave_cluster(*m_available_instances[instance_index],
-                                m_is_clusterset_member);
+                                m_supports_member_actions);
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
 
