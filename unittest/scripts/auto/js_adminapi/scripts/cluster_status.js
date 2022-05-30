@@ -311,6 +311,50 @@ session1.runSql("update mysql_innodb_cluster_metadata.instances set mysql_server
 var stat = cluster.status();
 println(stat);
 
+//@<> Check replicationLag values {VER(>=8.0.0)}
+function get_lags(lags) {
+  var stat = cluster.status();
+  println(stat);
+  lags.replication_lag1 = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port1]["replicationLag"];
+  lags.replication_lag2 = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["replicationLag"];
+  lags.replication_lag3 = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["replicationLag"];
+}
+
+let lags = { replication_lag1: null, replication_lag2: null, replication_lag3: null};
+
+get_lags(lags);
+
+// Cluster idle: "replicationLag": "applier_queue_applied"
+EXPECT_EQ(lags.replication_lag1, "applier_queue_applied");
+EXPECT_EQ(lags.replication_lag2, "applier_queue_applied");
+EXPECT_EQ(lags.replication_lag3, "applier_queue_applied");
+
+// group_replication_applier stopped: "replicationLag": "null"
+session3.runSql("STOP REPLICA SQL_THREAD FOR CHANNEL 'group_replication_applier'");
+
+get_lags(lags);
+
+EXPECT_EQ(lags.replication_lag1, "applier_queue_applied");
+EXPECT_EQ(lags.replication_lag2, "applier_queue_applied");
+EXPECT_EQ(lags.replication_lag3, null);
+
+session3.runSql("START REPLICA SQL_THREAD FOR CHANNEL 'group_replication_applier'");
+
+// simulate lag by doing a FTWRL
+session3.runSql("FLUSH TABLES WITH READ LOCK");
+session1.runSql("create schema lagging");
+
+get_lags(lags);
+
+EXPECT_EQ(lags.replication_lag1, "applier_queue_applied");
+EXPECT_EQ(lags.replication_lag2, "applier_queue_applied");
+
+var regexp = /[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}/;
+EXPECT_TRUE(lags.replication_lag3.match(regexp))
+
+// clear-up
+session3.runSql("UNLOCK TABLES");
+
 // BUG#32015164: MISSING INFORMATION ABOUT REQUIRED PARALLEL-APPLIERS SETTINGS ON UPGRADE SCNARIO
 // If a cluster member with a version >= 8.0.23 doesn't have parallel-appliers enabled, that information
 // must be included in 'instanceErrors'

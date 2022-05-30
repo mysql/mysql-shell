@@ -2669,6 +2669,35 @@ void Cluster_impl::drop_replication_users() {
       });
 }
 
+void Cluster_impl::wipe_all_replication_users() {
+  auto primary = get_primary_master();
+
+  // Get all recovery and clusterset replication accounts
+  std::vector<std::string> accounts_to_drop;
+
+  std::string rec_prefix =
+      std::string(mysqlshdk::gr::k_group_recovery_user_prefix) + "%";
+  std::string cs_prefix = std::string(k_cluster_set_async_user_name) + "%";
+
+  auto result = primary->queryf(
+      "SELECT user from mysql.user WHERE user LIKE ? OR user LIKE ?",
+      rec_prefix, cs_prefix);
+  while (auto row = result->fetch_one()) {
+    accounts_to_drop.push_back(row->get_string(0));
+  }
+
+  // Drop all accounts
+  for (const auto &account : accounts_to_drop) {
+    log_info("Removing account '%s'", account.c_str());
+    try {
+      mysqlshdk::mysql::drop_all_accounts_for_user(*primary, account);
+    } catch (const std::exception &e) {
+      mysqlsh::current_console()->print_warning(
+          "Error dropping accounts for user " + account + ": " + e.what());
+    }
+  }
+}
+
 bool Cluster_impl::contains_instance_with_address(
     const std::string &host_port) const {
   return get_metadata_storage()->is_instance_on_cluster(get_id(), host_port);

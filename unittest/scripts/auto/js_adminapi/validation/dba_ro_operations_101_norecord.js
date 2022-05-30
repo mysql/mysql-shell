@@ -34,7 +34,7 @@
                 "mode": "R/W",
                 "readReplicas": {},
 ?{VER(>=8.0.11)}
-                "replicationLag": null,
+                "replicationLag": [[*]],
 ?{}
                 "role": "HA",
                 "status": "ONLINE",

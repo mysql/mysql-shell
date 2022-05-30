@@ -224,6 +224,17 @@ class Cluster_impl : public Base_cluster_impl,
 
   void drop_replication_users();
 
+  /**
+   * Wipes out all replication users created/managed by the AdminAPI
+   *
+   * All accounts matching the format of users created by the AdminAPI are
+   * removed:
+   *
+   *   - mysql_innodb_cluster_%
+   *   - mysql_innodb_cs_%
+   */
+  void wipe_all_replication_users();
+
   bool contains_instance_with_address(const std::string &host_port) const;
 
   mysqlsh::dba::Instance *acquire_primary(

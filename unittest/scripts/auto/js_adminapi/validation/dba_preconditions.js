@@ -67,9 +67,6 @@
 //@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
 ||The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB Cluster and is reachable.
 
-//@ dissolve the cluster
-||
-
 //@ Dba_preconditions_standalone_with_metadata, get_cluster_fails
 ||This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata, and GR is not active)
 

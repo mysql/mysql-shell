@@ -305,6 +305,9 @@ void Dissolve::prepare() {
       (!m_skipped_instances.empty() || !m_sync_error_instances.empty())) {
     m_force = true;
   }
+
+  // Check if Cluster belongs to a ClusterSet
+  m_is_clusterset_member = m_cluster->is_cluster_set_member();
 }
 
 void Dissolve::remove_instance(const std::string &instance_address,
@@ -312,7 +315,7 @@ void Dissolve::remove_instance(const std::string &instance_address,
   try {
     // Stop Group Replication and reset (persist) GR variables.
     mysqlsh::dba::leave_cluster(*m_available_instances[instance_index],
-                                m_cluster->is_cluster_set_member());
+                                m_is_clusterset_member);
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
 
@@ -353,14 +356,14 @@ shcore::Value Dissolve::execute() {
     m_cluster->get_cluster_server()->set_sysvar("super_read_only", false);
   }
 
-  // JOB: Remove replication accounts used for recovery of GR.
-  // Note: This operation MUST be performed before leave-cluster to ensure
-  // that all changed are propagated to the online instances.
-  m_cluster->drop_replication_users();
+  // Remove replication accounts used for recovery of GR and ClusterSet
+  // replication accounts
+  // Note: This operation MUST be performed before leave-cluster to ensure that
+  // all changed are propagated to the online instances.
+  m_cluster->wipe_all_replication_users();
 
-  // Drop the cluster's metadata.
-  std::string cluster_name = m_cluster->get_name();
-  metadata->drop_cluster(cluster_name);
+  // Drop the metadata schema
+  metadata::uninstall(m_cluster->get_cluster_server());
 
   size_t primary_index = SIZE_MAX;
 
