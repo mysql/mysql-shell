@@ -123,7 +123,7 @@ validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
 //@<> rebootClusterFromCompleteOutage() on a standalone fenced cluster from all traffic
 shell.connect(__sandbox_uri1);
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]}); });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -237,7 +237,7 @@ validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
 
 //@<> rebootClusterFromCompleteOutage() on a primary fenced cluster from all traffic
 shell.connect(__sandbox_uri1);
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]}); });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE", true);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE", true);
 
@@ -259,7 +259,7 @@ validate_fenced_all_traffic([__sandbox_uri4, __sandbox_uri5]);
 
 //@<> rebootClusterFromCompleteOutage() on a fenced replica cluster from all traffic
 shell.connect(__sandbox_uri4);
-EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica", {rejoinInstances: [__endpoint5]}); });
+EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica"); });
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5], cluster, replicacluster);
 

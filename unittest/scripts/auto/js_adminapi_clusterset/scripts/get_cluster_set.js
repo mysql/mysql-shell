@@ -152,7 +152,7 @@ EXPECT_NE(clusterset, null);
 
 // Restore the primary cluster
 shell.connect(__sandbox_uri1);
-dba.rebootClusterFromCompleteOutage("cluster");
+dba.rebootClusterFromCompleteOutage("cluster", {force: true});
 
 //@<> dba.getClusterSet() from an invalidated Cluster must print a warning
 rc_to_invalidate = cs.createReplicaCluster(__sandbox_uri5, "replica_to_invalidate");
@@ -207,7 +207,7 @@ EXPECT_NE(clusterset, null);
 // Restore the primary cluster
 testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
-dba.rebootClusterFromCompleteOutage("cluster");
+dba.rebootClusterFromCompleteOutage("cluster", {force: true});
 
 // Stop the replication channel on the Replica Cluster
 var session3 = mysql.getSession(__sandbox_uri3);
@@ -225,9 +225,9 @@ shell.connect(__sandbox_uri3);
 EXPECT_NO_THROWS(function() {replica = dba.rebootClusterFromCompleteOutage(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
 EXPECT_NE(replica, null);
-EXPECT_EQ(replica.status()["groupInformationSourceMember"], __endpoint3);
-replica.status();
-EXPECT_EQ(replica.status()["metadataServer"], undefined); // undefined means the same as groupInformationSourceMember
+status = replica.status();
+EXPECT_EQ(status["groupInformationSourceMember"], __endpoint3);
+EXPECT_EQ(status["metadataServer"], undefined); // undefined means the same as groupInformationSourceMember
 
 //@<> dba.getClusterSet() on a instance that belongs to a Cluster that is no longer a ClusterSet member but its Metadata indicates that is
 EXPECT_THROWS_TYPE(function() {dba.getClusterSet();}, "Cluster is not part of a ClusterSet" , "MYSQLSH");

@@ -144,10 +144,8 @@ CHECK_CLUSTER_SET(session);
 
 // reboot cluster3 and check again
 shell.connect(__sandbox_uri5);
-
 c3 = dba.rebootClusterFromCompleteOutage();
 CHECK_INVALIDATED_CLUSTER([], c1, c3);
-
 EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 
 //@<> Test switchover to an invalidated cluster

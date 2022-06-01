@@ -334,10 +334,11 @@ void Base_cluster_impl::setup_account_common(
 
   // The pool is initialized with the metadata using the current session
   auto metadata = std::make_shared<MetadataStorage>(get_cluster_server());
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(options.interactive(), auth_opts);
-  ipool->set_metadata(metadata);
+
+  Scoped_instance_pool ipool(
+      metadata, options.interactive(),
+      Instance_pool::Auth_options{
+          get_cluster_server()->get_connection_options()});
 
   const auto primary_instance = acquire_primary();
   auto finally_primary =
@@ -417,10 +418,10 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
   check_preconditions("setInstanceOption");
 
   // Initialize pool with the metadata
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
-  ipool->set_metadata(get_metadata_storage());
+  Scoped_instance_pool ipool(
+      get_metadata_storage(), false,
+      Instance_pool::Auth_options{
+          get_cluster_server()->get_connection_options()});
 
   // make sure metadata session is using the primary
   acquire_primary();
@@ -460,10 +461,11 @@ void Base_cluster_impl::set_option(const std::string &option,
   check_preconditions("setOption", custom_precondition);
 
   // Initialize pool with the metadata
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
-  ipool->set_metadata(get_metadata_storage());
+
+  Scoped_instance_pool ipool(
+      get_metadata_storage(), false,
+      Instance_pool::Auth_options{
+          get_cluster_server()->get_connection_options()});
 
   // make sure metadata session is using the primary
   acquire_primary();

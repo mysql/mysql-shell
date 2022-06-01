@@ -100,7 +100,7 @@ shell.connect(__sandbox_uri1);
 // Enable offline_mode (BUG#33396423)
 session.runSql("SET GLOBAL offline_mode=1");
 
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances:[__sandbox_uri2]});
+cluster = dba.rebootClusterFromCompleteOutage("dev");
 
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
 
@@ -139,12 +139,23 @@ EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port2},${hostname}:${__mysql_sandbox
 EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port3}`, session2.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port2}`, session3.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 
-//@ Dba.rebootClusterFromCompleteOutage errors
-dba.rebootClusterFromCompleteOutage("");
-dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
-dba.rebootClusterFromCompleteOutage("dev2");
+//@<> Dba.rebootClusterFromCompleteOutage errors
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("");
+}, "The cluster with the name '' does not exist.");
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
+}, "Invalid options: invalidOpt");
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("dev2");
+}, "The cluster with the name 'dev2' does not exist.");
+
 // Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
-dba.rebootClusterFromCompleteOutage("dev");
+testutil.wipeAllOutput();
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("dev");
+}, "The Cluster is ONLINE");
+EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (ONLINE), '${hostname}:${__mysql_sandbox_port2}' (ONLINE), '${hostname}:${__mysql_sandbox_port3}' (ONLINE)`);
 
 // Connect to instance 1 to properly check status of other killed instances.
 session.close();
@@ -178,9 +189,11 @@ testutil.killSandbox(__mysql_sandbox_port3);
 // Will remain unreachable since there's no quorum to kick it off
 testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
-//@ Reboot cluster fails because instance is online and there is no quorum.
+//@<> Reboot cluster fails because instance is online and there is no quorum.
 // Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
-dba.rebootClusterFromCompleteOutage("dev");
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage();
+}, `The MySQL instance '${hostname}:${__mysql_sandbox_port1}' belongs to an InnoDB Cluster and is reachable. Please use <Cluster>.forceQuorumUsingPartitionOf() to restore from the quorum loss.`);
 
 // Kill instance 1
 testutil.killSandbox(__mysql_sandbox_port1);
@@ -200,44 +213,49 @@ cluster.disconnect();
 // Re-establish the connection to instance 1
 shell.connect(__sandbox_uri1);
 
-var instance2 = localhost + ':' + __mysql_sandbox_port2;
-var instance3 = hostname + ':' + __mysql_sandbox_port3;
+//@<> Dba.rebootClusterFromCompleteOutage error unreachable server
+EXPECT_THROWS(function () {
+    cluster = dba.rebootClusterFromCompleteOutage("dev");
+}, "Could not determine if Cluster is completely OFFLINE");
+EXPECT_OUTPUT_CONTAINS(`WARNING: One or more instances of the Cluster could not be reached and cannot be rejoined nor ensured to be OFFLINE: '${hostname}:${__mysql_sandbox_port3}'. Cluster may diverge and become inconsistent unless all instances are either reachable or certain to be OFFLINE and not accepting new transactions. You may use the 'force' option to bypass this check and proceed anyway.`);
 
-//@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance3]});
-
-//@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance2]});
-
-// Test both rejoinInstances and removeInstances on a single call
-//@ Dba.rebootClusterFromCompleteOutage success
-cluster = dba.rebootClusterFromCompleteOutage("dev", {user:'root', password:'root', rejoinInstances: [instance2], removeInstances: [instance3], clearReadOnly: true});
+//@<> Dba.rebootClusterFromCompleteOutage success
+EXPECT_NO_THROWS(function () { cluster = dba.rebootClusterFromCompleteOutage("dev", {force: true, user:'root', password:'root', clearReadOnly: true}); });
+EXPECT_OUTPUT_CONTAINS("The 'clearReadOnly' option is no longer used (it's deprecated): super_read_only is automatically cleared.");
+EXPECT_OUTPUT_CONTAINS("The 'user' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
+EXPECT_OUTPUT_CONTAINS("The 'password' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' was successfully rejoined to the cluster.`);
+EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
+// |WARNING: The user option is deprecated and will be removed in a future release. If not specified, the user name is taken from the active session.|
+// |WARNING: The password option is deprecated and will be removed in a future release. If not specified, the password is taken from the active session.|
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Confirm no new replication user was created on bootstrap member.
+//@<> Confirm no new replication user was created on bootstrap member.
 //Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
-print(has_new_rpl_users(rpl_users_rows) + "\n");
+EXPECT_EQ(false, has_new_rpl_users(rpl_users_rows));
 
 //@<> cluster status after reboot
 var status = cluster.status();
-EXPECT_EQ(2, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+status
+EXPECT_EQ(3, Object.keys(status["defaultReplicaSet"]["topology"]).length)
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
 EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 cluster.disconnect();
 session.close();
 
-//@<OUT> Confirm no new replication user was created on other rejoining member.
+//@<> Confirm no new replication user was created on other rejoining member.
 //Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
 shell.connect(__sandbox_uri2);
-print(has_new_rpl_users(rpl_users_rows) + "\n");
+EXPECT_EQ(false, has_new_rpl_users(rpl_users_rows));
 session.close();
 
-//@<> Reboot cluster needs to clear group_seeds because peer members could be unreachable
+//@<> Reboot cluster resets group_seeds because peer members could be unreachable
 // Bug #33389693 Can't reboot after total outage with group_seeds set
 shell.connect(__sandbox_uri2);
 session.runSql("stop group_replication");
@@ -247,18 +265,15 @@ session.runSql("stop group_replication");
 session.runSql("set global group_replication_group_seeds='127.0.0.1:"+__mysql_sandbox_gr_port2+",unreachable:1234'")
 
 shell.options.useWizards=0;
-c = dba.rebootClusterFromCompleteOutage("dev");
+c = dba.rebootClusterFromCompleteOutage("dev", {force: true});
 
-EXPECT_EQ("", session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port2},${hostname}:${__mysql_sandbox_gr_port3}`, session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 
-c.rejoinInstance(__sandbox_uri2);
 // ensure group_seeds has the correct value in each member
-shell.connect(__sandbox_uri1);
-EXPECT_EQ(hostname+":"+__mysql_sandbox_gr_port2, session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 shell.connect(__sandbox_uri2);
-EXPECT_EQ(hostname+":"+__mysql_sandbox_gr_port1, session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
+EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port1},${hostname}:${__mysql_sandbox_gr_port3}`, session.runSql("select @@group_replication_group_seeds").fetchOne()[0]);
 
-//@ Finalization
+//@<> Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

@@ -76,7 +76,7 @@ EXPECT_EQ("OK_NO_TOLERANCE", pc.status()["defaultReplicaSet"]["status"]);
 //@<> reboot
 session.runSql("stop group_replication");
 
-rc = dba.rebootClusterFromCompleteOutage();
+rc = dba.rebootClusterFromCompleteOutage("cluster2", {force: true});
 
 // Tests while primary cluster is OFFLINE
 //---------------------------------------

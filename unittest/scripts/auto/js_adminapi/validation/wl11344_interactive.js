@@ -19,8 +19,8 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@# FR1-TS-01 reboot cluster {VER(>=8.0.12)}
-|Restoring the cluster 'C' from complete outage...|
-|The cluster was successfully rebooted.|
+|Restoring the Cluster 'C' from complete outage...|
+|The Cluster was successfully rebooted.|
 |<Cluster:C>|
 
 //@<OUT> FR1-TS-01 check persisted variables {VER(>=8.0.12)}
@@ -184,8 +184,8 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@# FR1-TS-7 reboot cluster {VER(>=8.0.12)}
-|Restoring the cluster 'ClusterName' from complete outage...|
-|The cluster was successfully rebooted.|
+|Restoring the Cluster 'ClusterName' from complete outage...|
+|The Cluster was successfully rebooted.|
 |<Cluster:ClusterName>|
 
 //@<OUT> FR1-TS-7 check persisted variables {VER(>=8.0.12)}

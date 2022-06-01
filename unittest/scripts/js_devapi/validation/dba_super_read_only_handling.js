@@ -77,13 +77,9 @@ Cluster admin user 'testUser'@'%' created.
 ||
 
 //@# Reboot the cluster
-|Restoring the cluster 'sample' from complete outage...|
+|Restoring the Cluster 'sample' from complete outage...|
 
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was part of the cluster configuration.|
-|Would you like to rejoin it to the cluster? [y/N]: |
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was part of the cluster configuration.|
-|Would you like to rejoin it to the cluster? [y/N]: |
-|The cluster was successfully rebooted.|
+|The Cluster was successfully rebooted.|
 
 //@ Cleanup
 ||

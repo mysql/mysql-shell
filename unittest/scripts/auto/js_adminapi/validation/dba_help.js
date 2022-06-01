@@ -1001,10 +1001,16 @@ DESCRIPTION
       - user: The user used for the instances sessions required operations.
       - password: The password used for the instances sessions required
         operations.
-      - removeInstances: The list of instances to be removed from the cluster.
-      - rejoinInstances: The list of instances to be rejoined to the cluster.
       - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled
+        be disabled.
+      - force: boolean value to indicate that the operation must be executed
+        even if some members of the Cluster cannot be reached, or the primary
+        instance selected has a diverging or lower GTID_SET.
+      - dryRun: boolean value that if true, all validations and steps of the
+        command are executed, but no changes are actually made. An exception
+        will be thrown when finished.
+      - primary: Instance definition representing the instance that must be
+        selected as the primary.
       - switchCommunicationStack: The Group Replication protocol stack to be
         used by the Cluster after the reboot.
       - ipAllowList: The list of hosts allowed to connect to the instance for
@@ -1056,15 +1062,11 @@ DESCRIPTION
 
       ATTENTION: The password option will be removed in a future release.
 
-      This function reboots a cluster from complete outage. It picks the
-      instance the MySQL Shell is connected to as new seed instance and
-      recovers the cluster. Optionally it also updates the cluster
-      configuration based on user provided options.
-
-      NOTE: When used with a metadata version lower than the one supported by
-            this version of the Shell, the removeInstances option is NOT
-            allowed, as in such scenario, no changes to the metadata are
-            allowed.
+      This function reboots a cluster from complete outage. It obtains the
+      Cluster information from the instance MySQL Shell is connected to and
+      uses the most up-to-date instance in regards to transactions as new seed
+      instance to recover the cluster. The remaining Cluster members are
+      automatically rejoined.
 
       On success, the restored cluster object is returned by the function.
 
@@ -1075,6 +1077,9 @@ DESCRIPTION
 
       NOTE: The user and password options are no longer used, the connection
             data is taken from the active shell session.
+      
+      NOTE: The clearReadOnly option is no longer used, super_read_only is
+            automatically cleared.
 
 //@<OUT> Start Sandbox
 NAME

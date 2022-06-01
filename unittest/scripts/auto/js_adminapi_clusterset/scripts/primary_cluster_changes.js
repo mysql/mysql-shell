@@ -73,7 +73,7 @@ EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", pc.status()["defaultReplicaSet"]["status"])
 //@<> reboot
 session.runSql("stop group_replication");
 
-pc = dba.rebootClusterFromCompleteOutage();
+pc = dba.rebootClusterFromCompleteOutage("cluster1", {force: true});
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

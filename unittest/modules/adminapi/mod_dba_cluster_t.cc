@@ -144,12 +144,12 @@ TEST_F(Dba_cluster_test, bug28219398) {
 
   try {
     {
+      mysqlsh::dba::Scoped_instance_pool ipool(
+          nullptr, false,
+          mysqlsh::dba::Instance_pool::Auth_options{
+              md_session->get_connection_options()});
+
       mysqlsh::dba::Group_replication_options gr_opts;
-
-      mysqlsh::dba::Instance_pool::Auth_options auth_opts;
-      auth_opts.get(md_session->get_connection_options());
-      mysqlsh::dba::Scoped_instance_pool ipool(false, auth_opts);
-
       gr_opts.recovery_credentials = mysqlshdk::mysql::Auth_options();
       gr_opts.recovery_credentials->user = replication_user;
       gr_opts.recovery_credentials->password = replication_pwd;

@@ -339,9 +339,10 @@ void Cluster::add_instance(
     instance_def.set_password(*(options->password));
   }
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(options->interactive(), auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, options->interactive(),
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   // Validate the label value.
   if (!options->label.is_null()) {
@@ -452,9 +453,10 @@ void Cluster::rejoin_instance(
 
   m_impl->check_preconditions("rejoinInstance");
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(options->interactive(), auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, options->interactive(),
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   // Rejoin the Instance to the Cluster
   m_impl->rejoin_instance(instance_def, options->gr_options,
@@ -518,9 +520,10 @@ void Cluster::remove_instance(
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(options->interactive(), auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, options->interactive(),
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   // Remove the Instance from the Cluster
   m_impl->remove_instance(instance_def, *options);
@@ -622,9 +625,10 @@ shcore::Value Cluster::status(
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, false,
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   return m_impl->status(options->extended);
 }
@@ -710,9 +714,10 @@ void Cluster::dissolve(
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(options->interactive(), auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, options->interactive(),
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   m_impl->dissolve(options->force, options->interactive());
 
@@ -823,9 +828,10 @@ void Cluster::rescan(
     const shcore::Option_pack_ref<cluster::Rescan_options> &options) {
   assert_valid("rescan");
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, false,
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   m_impl->rescan(*options);
 }
@@ -962,9 +968,10 @@ shcore::Value Cluster::check_instance_state(
     const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, false,
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   return m_impl->check_instance_state(instance_def);
 }
@@ -1296,9 +1303,10 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
   check_function_preconditions("Cluster.removeRouterMetadata", metadadata,
                                target_instance);
 
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, false,
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   m_impl->acquire_primary();
   auto finally_primary =
@@ -1634,9 +1642,10 @@ shcore::Value Cluster::create_cluster_set(
     const std::string &domain_name,
     const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
         &options) {
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(false, auth_opts);
+  Scoped_instance_pool ipool(
+      nullptr, false,
+      Instance_pool::Auth_options{
+          m_impl->get_cluster_server()->get_connection_options()});
 
   return m_impl->create_cluster_set(domain_name, *options);
 }

@@ -125,7 +125,7 @@ EXPECT_EQ(1, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0], "
 
 //@<> prepare for adopt test (BUG#31238233)
 shell.connect(__sandbox_uri2);
-c = dba.rebootClusterFromCompleteOutage("newcluster", {rejoinInstances: ["localhost:"+__mysql_sandbox_port1]});
+c = dba.rebootClusterFromCompleteOutage("newcluster");
 
 shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"));
 

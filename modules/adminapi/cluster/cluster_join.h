@@ -39,7 +39,10 @@ namespace cluster {
 
 class Cluster_join {
  public:
-  Cluster_join(Cluster_impl *cluster, mysqlsh::dba::Instance *primary_instance,
+  enum class Intent { Rejoin, Reboot };
+
+  Cluster_join(const Cluster_impl *cluster,
+               const mysqlsh::dba::Instance *primary_instance,
                const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
                const Group_replication_options &gr_options,
                const Clone_options &clone_options, bool interactive,
@@ -67,8 +70,10 @@ class Cluster_join {
   void prepare_join(
       const mysqlshdk::utils::nullable<std::string> &instance_label);
 
-  bool check_rejoinable(bool *out_uuid_mistmatch = nullptr);
-  bool prepare_rejoin(bool *out_uuid_mistmatch = nullptr);
+  bool check_rejoinable(bool *out_uuid_mistmatch = nullptr,
+                        Intent intent = Intent::Rejoin);
+  bool prepare_rejoin(bool *out_uuid_mistmatch = nullptr,
+                      Intent intent = Intent::Rejoin);
 
   void prepare_reboot();
 
@@ -88,7 +93,7 @@ class Cluster_join {
    * will be reset.
    */
   void join(Recovery_progress_style wait_recovery);
-  void rejoin();
+  void rejoin(bool ignore_cluster_set = false);
   void reboot();
 
  private:
@@ -190,8 +195,8 @@ class Cluster_join {
   void validate_add_rejoin_options() const;
 
  private:
-  Cluster_impl *m_cluster = nullptr;
-  mysqlsh::dba::Instance *m_primary_instance;
+  const Cluster_impl *m_cluster = nullptr;
+  const mysqlsh::dba::Instance *m_primary_instance = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   Group_replication_options m_gr_opts;
   std::string m_account_host;

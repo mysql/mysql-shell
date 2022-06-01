@@ -127,6 +127,7 @@ file(GLOB api_module_SOURCES
       "adminapi/dba/configure_instance.cc"
       "adminapi/dba/create_cluster.cc"
       "adminapi/dba/restore_cluster.cc"
+      "adminapi/dba/reboot_cluster_from_complete_outage.cc"
       "adminapi/dba/upgrade_metadata.cc"
       "adminapi/dba/api_options.cc"
       "adminapi/cluster_set/api_options.cc"

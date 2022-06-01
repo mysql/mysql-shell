@@ -524,7 +524,7 @@ void Star_global_topology_manager::validate_force_primary(
   console->print_info("* Checking transaction set status");
 
   // this will return instances that have the most up-to-date GTID sets
-  gtid_info = filter_primary_candidates(*master, gtid_info);
+  gtid_info = filter_primary_candidates(*master, gtid_info, {});
 
   // check if the selected master is among the candidates
   bool ok = false;

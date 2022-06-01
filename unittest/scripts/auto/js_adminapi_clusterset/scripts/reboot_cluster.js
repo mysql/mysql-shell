@@ -36,15 +36,14 @@ testutil.startSandbox(__mysql_sandbox_port6);
 
 shell.connect(__sandbox_uri4);
 
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]:", "y");
-testutil.expectPrompt("Would you like to remove it from the cluster's metadata? [y/N]:", "n");
-EXPECT_NO_THROWS(function() {replicacluster = dba.rebootClusterFromCompleteOutage("replica"); })
+EXPECT_NO_THROWS(function() {replicacluster = dba.rebootClusterFromCompleteOutage("replica", {force: true}); })
 
 // Check that the cluster rejoined the ClusterSet
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri6], cluster, replicacluster);
 
-//@<> Rebooting from complete outage a REPLICA Cluster using the options 'rejoinInstances' and 'removeInstances'
+//@<> Rebooting from complete outage a REPLICA Cluster
 shell.options.useWizards=0
+
 disable_auto_rejoin(__mysql_sandbox_port4);
 disable_auto_rejoin(__mysql_sandbox_port6);
 
@@ -56,7 +55,7 @@ testutil.startSandbox(__mysql_sandbox_port6);
 
 shell.connect(__sandbox_uri4);
 
-EXPECT_NO_THROWS(function() {replicacluster = dba.rebootClusterFromCompleteOutage("replica", {rejoinInstances: [__endpoint6], removeInstances: [__endpoint5]}); })
+EXPECT_NO_THROWS(function() {replicacluster = dba.rebootClusterFromCompleteOutage("replica", {force: true}); })
 
 // Check that the cluster rejoined the ClusterSet
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri6], cluster, replicacluster);
@@ -82,12 +81,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
-//@<> Rebooting from complete outage a PRIMARY Cluster that has been invalidated using the options 'rejoinInstances' and 'removeInstances' (must fail)
-EXPECT_THROWS_TYPE(function(){ former_primary = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint3], removeInstances: [__endpoint2]}); }, "removeInstances and/or rejoinInstances options cannot be used for Invalidated Clusters", "ArgumentError");
-EXPECT_OUTPUT_CONTAINS("Please add or remove the instances after the Cluster is rejoined to the ClusterSet");
-EXPECT_OUTPUT_CONTAINS("ERROR: Cannot proceed using 'removeInstances' and/or 'rejoinInstances': The Cluster is INVALIDATED");
-
-//@<> Rebooting from complete outage a PRIMARY Cluster that has been invalidated without the options 'rejoinInstances' and 'removeInstances' (OK)
+//@<> Rebooting from complete outage a PRIMARY Cluster that has been invalidated (OK)
 EXPECT_NO_THROWS(function(){ former_primary = dba.rebootClusterFromCompleteOutage("cluster"); });
 
 EXPECT_OUTPUT_CONTAINS("* Waiting for seed instance to become ONLINE...");
@@ -141,9 +135,6 @@ shell.connect(__sandbox_uri4);
 shell.options.useWizards=1
 EXPECT_NO_THROWS(function(){ former_primary = dba.rebootClusterFromCompleteOutage("replica"); });
 testutil.assertNoPrompts();
-
-EXPECT_OUTPUT_CONTAINS("The instance '<<<__endpoint6>>>' was part of the cluster configuration but the Cluster is invalidated. Please rejoin the instance after the Cluster is rejoined to the ClusterSet");
-EXPECT_OUTPUT_CONTAINS("The instance '<<<__endpoint2>>>' was part of the cluster configuration but the Cluster is invalidated. Please rejoin the instance after the Cluster is rejoined to the ClusterSet");
 
 // Rejoin the Cluster back to the ClusterSet
 EXPECT_NO_THROWS(function(){ cs.rejoinCluster("replica"); });

@@ -843,8 +843,6 @@ String ReplicaSet::removeRouterMetadata(RouterDef routerDef) {}
 str ReplicaSet::remove_router_metadata(RouterDef routerDef) {}
 #endif
 void ReplicaSet::remove_router_metadata(const std::string &router_def) {
-  bool interactive = current_shell_options()->get().wizards;
-
   // Throw an error if the replicaset has already been dissolved
   assert_valid("removeRouterMetadata");
 
@@ -856,10 +854,9 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
                                target_instance);
 
   // Initialized Instance pool with the metadata from the current session.
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
-  ipool->set_metadata(metadata);
+  Scoped_instance_pool ipool(
+      metadata, current_shell_options()->get().wizards,
+      Instance_pool::Auth_options{target_instance->get_connection_options()});
 
   // Acquire the primary to update the metadata on it.
   // NOTE: Acquire a shared lock on the primary. The metadata instance (primary)

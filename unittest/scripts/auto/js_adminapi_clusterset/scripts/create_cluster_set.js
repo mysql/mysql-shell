@@ -112,7 +112,7 @@ testutil.startSandbox(__mysql_sandbox_port1)
 
 shell.connect(__sandbox_uri1);
 
-cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]});
+cluster = dba.rebootClusterFromCompleteOutage("cluster");
 
 var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_EQ(view_change_uuid, "AUTOMATIC");
@@ -141,7 +141,7 @@ testutil.startSandbox(__mysql_sandbox_port1)
 
 shell.connect(__sandbox_uri1);
 
-cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]});
+cluster = dba.rebootClusterFromCompleteOutage("cluster");
 
 //@<> Create ClusterSet - dryRun
 EXPECT_NO_THROWS(function(){cs = cluster.createClusterSet("testCS", {dryRun: 1})});

@@ -71,14 +71,19 @@ dba.createCluster("duplicate");
 //@# Dba_preconditions_innodb, drop_metadata_schema_fails
 dba.dropMetadataSchema({});
 
-//@# Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
+//@<> Dba_preconditions_innodb, reboot_cluster_from_complete_outage_fails
 //Using adoptFromGR option when we create a cluster, means that the hostname
 //of the machine will be added to the metadata, instead of localhost, so we
 //must use that hostname on the session
 session.close();
 var uri = "mysql://root:root@"+ hostname + ":" + __mysql_sandbox_port1;
 shell.connect(uri);
-dba.rebootClusterFromCompleteOutage("bla");
+
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("bla");
+}, "The Cluster is ONLINE");
+EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (ONLINE)`);
+
 session.close();
 
 //@<> remove the cluster's metadata

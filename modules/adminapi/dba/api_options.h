@@ -157,17 +157,25 @@ struct Reboot_cluster_options {
   static const shcore::Option_pack_def<Reboot_cluster_options> &options();
   void check_option_values(const mysqlshdk::utils::Version &version,
                            int canonical_port, const std::string &comm_stack);
-  void set_user(const std::string &option, const std::string &value);
-  void set_password(const std::string &option, const std::string &value);
+  void set_user_passwd(const std::string &option, const std::string &value);
   void set_clear_read_only(bool value);
+  void set_primary(std::string value);
   void set_switch_communication_stack(const std::string &value);
 
-  std::vector<std::string> remove_instances;
-  std::vector<std::string> rejoin_instances;
-  mysqlshdk::null_bool clear_read_only;
-  mysqlshdk::null_string user;
-  mysqlshdk::null_string password;
-  mysqlshdk::null_string switch_communication_stack;
+  bool get_force(bool default_value = false) const noexcept {
+    return force.value_or(default_value);
+  }
+  bool get_dry_run(bool default_value = false) const noexcept {
+    return dry_run.value_or(default_value);
+  }
+  std::string get_primary(std::string default_value = {}) const noexcept {
+    return primary.value_or(std::move(default_value));
+  }
+
+  std::optional<bool> force;
+  std::optional<bool> dry_run;
+  std::optional<std::string> primary;
+  std::optional<std::string> switch_communication_stack;
   Reboot_group_replication_options gr_options;
 };
 

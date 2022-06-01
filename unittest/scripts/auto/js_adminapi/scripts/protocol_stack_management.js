@@ -165,7 +165,7 @@ check_gr_settings(cluster, [__endpoint1, __endpoint2], "MYSQL");
 shutdown_cluster(cluster);
 shell.connect(__sandbox_uri1);
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [__endpoint2]}) });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test") });
 
 if (__version_num < 80027) {
   check_gr_settings(cluster, [__endpoint1, __endpoint2], "XCOM");
@@ -227,11 +227,16 @@ EXPECT_THROWS_TYPE(function() { dba.rebootClusterFromCompleteOutage("test", {swi
 
 //@<> Attempt to switch the communication stack while rebooting a cluster but with unreachable members (must fail) {VER(>=8.0.27)}
 testutil.stopSandbox(__mysql_sandbox_port2);
-EXPECT_THROWS_TYPE(function() { dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "mysql"}) }, `Unable to switch the communication stack. The following instances: '${__endpoint2}' are unreachable.`, "RuntimeError");
+
+EXPECT_THROWS(function() {
+  dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "mysql"});
+}, "Could not determine if Cluster is completely OFFLINE");
+EXPECT_OUTPUT_CONTAINS(`WARNING: One or more instances of the Cluster could not be reached and cannot be rejoined nor ensured to be OFFLINE: '${hostname}:${__mysql_sandbox_port2}'. Cluster may diverge and become inconsistent unless all instances are either reachable or certain to be OFFLINE and not accepting new transactions. You may use the 'force' option to bypass this check and proceed anyway.`);
+
 testutil.startSandbox(__mysql_sandbox_port2);
 
 //@<> Switch the communication stack while rebooting a cluster from complete outage (switch to XCOM) {VER(>=8.0.27)}
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [__endpoint2], switchCommunicationStack: "XCOM"}) });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "XCOM"}) });
 
 check_gr_settings(cluster, [__endpoint1, __endpoint2], "XCOM");
 
@@ -239,7 +244,7 @@ check_gr_settings(cluster, [__endpoint1, __endpoint2], "XCOM");
 shutdown_cluster(cluster);
 shell.connect(__sandbox_uri1);
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [__endpoint2], switchCommunicationStack: "mySqL"}) });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "mySqL"}) });
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -260,7 +265,7 @@ shell.connect(__sandbox_uri1);
 var __cfg_local_address = localhost + ":" + (__mysql_sandbox_port3*10+1);
 var __allow_list = "localhost," + hostname_ip;
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [__endpoint2], switchCommunicationStack: "XCOM", localAddress: __cfg_local_address, ipAllowlist: __allow_list}) });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "XCOM", localAddress: __cfg_local_address, ipAllowlist: __allow_list}) });
 
 EXPECT_OUTPUT_CONTAINS("WARNING: The value used for 'localAddress' only applies to the current session instance (seed). If the values generated automatically for other rejoining Cluster members are not valid, please use <Cluster>.rejoinInstance() with the 'localAddress' option.");
 
@@ -272,7 +277,7 @@ shell.connect(__sandbox_uri1);
 
 var __cfg_local_address = localhost + ":" + __mysql_sandbox_port1;
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [__endpoint2], switchCommunicationStack: "MYSQL", localAddress: __cfg_local_address}) });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "MYSQL", localAddress: __cfg_local_address}) });
 
 EXPECT_OUTPUT_CONTAINS("WARNING: The value used for 'localAddress' only applies to the current session instance (seed). If the values generated automatically for other rejoining Cluster members are not valid, please use <Cluster>.rejoinInstance() with the 'localAddress' option.");
 
@@ -282,11 +287,13 @@ check_gr_settings(cluster, [__endpoint1, __endpoint2], "MYSQL", __cfg_local_addr
 shutdown_cluster(cluster);
 shell.connect(__sandbox_uri1);
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "XCOM"}) });
+testutil.killSandbox(__mysql_sandbox_port2); //to prevent instance from joining
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "XCOM", force: true}) });
+testutil.startSandbox(__mysql_sandbox_port2);
 
 check_gr_settings(cluster, [__endpoint1], "XCOM");
 
-var __cfg_local_address = localhost + ":" + __mysql_sandbox_port4;
+var __cfg_local_address = hostname + ":" + __mysql_sandbox_port4;
 // Test the usage of localAddress in rejoinInstance too
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint2, {localAddress: __cfg_local_address}); });
 

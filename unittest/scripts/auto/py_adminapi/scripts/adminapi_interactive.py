@@ -302,8 +302,6 @@ shell.connect({'host': hostname, 'port': __mysql_sandbox_port1, 'user': 'myAdmin
 c = dba.get_cluster()
 
 #@ Reboot cluster from complete outage
-testutil.expect_prompt("Would you like to rejoin it to the cluster?", "y")
-testutil.expect_prompt("Would you like to rejoin it to the cluster?", "y")
 c = dba.reboot_cluster_from_complete_outage()
 testutil.wait_member_state(__mysql_sandbox_port2, "ONLINE")
 testutil.wait_member_state(__mysql_sandbox_port3, "ONLINE")

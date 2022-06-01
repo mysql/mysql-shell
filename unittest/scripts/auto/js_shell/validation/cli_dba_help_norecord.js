@@ -460,14 +460,19 @@ RETURNS
       The rebooted cluster object.
 
 OPTIONS
---removeInstances=<str list>
-            The list of instances to be removed from the cluster.
+--force=<bool>
+            Boolean value to indicate that the operation must be executed even
+            if some members of the Cluster cannot be reached, or the primary
+            instance selected has a diverging or lower GTID_SET.
 
---rejoinInstances=<str list>
-            The list of instances to be rejoined to the cluster.
+--dryRun=<bool>
+            Boolean value that if true, all validations and steps of the
+            command are executed, but no changes are actually made. An
+            exception will be thrown when finished.
 
---clearReadOnly=<bool>
-            Boolean value used to confirm that super_read_only must be disabled
+--primary=<str>
+            Instance definition representing the instance that must be selected
+            as the primary.
 
 //@<OUT> CLI dba start-sandbox-instance --help
 NAME

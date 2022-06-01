@@ -588,7 +588,9 @@ struct Instance_gtid_info {
  */
 std::vector<Instance_gtid_info> filter_primary_candidates(
     const mysqlshdk::mysql::IInstance &server,
-    const std::vector<Instance_gtid_info> &gtid_info);
+    const std::vector<Instance_gtid_info> &gtid_info,
+    const std::function<bool(const Instance_gtid_info &,
+                             const Instance_gtid_info &)> &on_conflit);
 
 /**
  * Ensures that the replication channel is either ON or OFF without errors.

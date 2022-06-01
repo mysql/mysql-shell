@@ -91,6 +91,10 @@ EXPECT_NO_THROWS(function() { cluster.switchToSinglePrimaryMode(hostname_caps + 
 EXPECT_NO_THROWS(function() { cluster.switchToSinglePrimaryMode(hostname_caps + ":" + __mysql_sandbox_port1); });
 
 //@<> Test dba.rebootClusterFromCompleteOutage
+
+dba.configureLocalInstance(__sandbox_uri1);
+dba.configureLocalInstance(__sandbox_uri2);
+
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 
@@ -104,7 +108,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
-cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [hostname + ":" + __mysql_sandbox_port2]});
+cluster = dba.rebootClusterFromCompleteOutage("cluster");
 
 //@<> cluster.removeRouterMetadata
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];

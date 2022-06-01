@@ -48,10 +48,16 @@ var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 
-//@ Dba.rebootClusterFromCompleteOutage errors
+//@<> Dba.rebootClusterFromCompleteOutage errors
 // Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
-dba.rebootClusterFromCompleteOutage("dev");
-dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
+EXPECT_THROWS(function() {
+  dba.rebootClusterFromCompleteOutage("dev");
+}, "The Cluster is ONLINE");
+EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (ONLINE), '${hostname}:${__mysql_sandbox_port2}' (ONLINE), '${hostname}:${__mysql_sandbox_port3}' (ONLINE)`);
+
+EXPECT_THROWS(function() {
+  dba.rebootClusterFromCompleteOutage("dev", {invalidOpt: "foobar"});
+}, "Argument #2: Invalid options: invalidOpt");
 
 // Kill all the instances
 session.close();
@@ -92,29 +98,27 @@ cluster.disconnect();
 // Re-establish the connection to instance 1
 shell.connect(__sandbox_uri1);
 
-var instance2 = localhost + ':' + __mysql_sandbox_port2;
-var instance3 = hostname + ':' + __mysql_sandbox_port3;
+//@<> Dba.rebootClusterFromCompleteOutage error unreachable server
+EXPECT_THROWS(function () {
+  cluster = dba.rebootClusterFromCompleteOutage("dev");
+}, "Could not determine if Cluster is completely OFFLINE");
+EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (OFFLINE), '${hostname}:${__mysql_sandbox_port2}' (OFFLINE), '${hostname}:${__mysql_sandbox_port3}' (UNREACHABLE)`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: One or more instances of the Cluster could not be reached and cannot be rejoined nor ensured to be OFFLINE: '${hostname}:${__mysql_sandbox_port3}'. Cluster may diverge and become inconsistent unless all instances are either reachable or certain to be OFFLINE and not accepting new transactions. You may use the 'force' option to bypass this check and proceed anyway.`);
 
-//@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance3]});
-
-//@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance2]});
-
-//@ Dba.rebootClusterFromCompleteOutage success
-// The answers to the prompts of the rebootCluster command
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
-testutil.expectPrompt("Would you like to remove it from the cluster's metadata? [y/N]: ", "y");
-
-cluster = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: true});
+//@<> Dba.rebootClusterFromCompleteOutage success
+EXPECT_NO_THROWS(function () { cluster = dba.rebootClusterFromCompleteOutage("dev", {force: true}); });
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' was successfully rejoined to the cluster.`);
+EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> cluster status after reboot
 var status = cluster.status();
+EXPECT_EQ(3, Object.keys(status["defaultReplicaSet"]["topology"]).length)
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
 EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
@@ -123,25 +127,20 @@ testutil.startSandbox(__mysql_sandbox_port3);
 
 // Add instance 3 back to the cluster
 testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root');
-uri2 = hostname + ":"  + __mysql_sandbox_port2;
-uri3 = hostname + ":"  + __mysql_sandbox_port3;
 
-//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11) && VER(<8.0.27)}
-// if server version is greater than 8.0.11 then the GR settings will be
-// persisted on instance 3 and it will rejoin the cluster that has been
-// rebooted. We just need to add it back to the metadata.
-testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
-cluster.rescan();
+//@<> Because dba.rebootClusterFromCompleteOutage was forced, we have to include instance 3 manually {VER(>=8.0.11)}
+cluster.rejoinInstance(__sandbox_uri3);
 
-//@<> addInstance() to add the instance back to the cluster {VER(>=8.0.27)}
-//NOTE: restarting the instance to trigger GR auto-rejoin won't work because the recovery accounts changed at rebootCluster() when using MySQL comm stack and, on top of that, it will hit BUG#24809604 leaving the group completely blocked
-cluster.addInstance(__sandbox_uri3);
+var status = cluster.status();
+status_instance_3 = status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"];
+EXPECT_EQ(true, (status_instance_3 == "RECOVERING") ||  (status_instance_3 == "ONLINE"));
 
 //@ Add instance 3 back to the cluster {VER(<8.0.11)}
 // if server version is smaller than 8.0.11 then no GR settings will be persisted
 // on instance 3, such as gr_start_on_boot and gr_group_seeds so it will not
 // automatically rejoin the cluster. We need to manually add it back.
-cluster.addInstance(__sandbox_uri3);
+cluster.rejoinInstance(__sandbox_uri3)
+// cluster.addInstance(__sandbox_uri3);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
@@ -163,7 +162,6 @@ session2.runSql("stop group_replication");
 session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("stop group_replication");
 
-
 //@<> Re-establish the connection to instance 1
 shell.connect(__sandbox_uri1);
 
@@ -173,15 +171,15 @@ cluster.disconnect();
 // enable super-read-only to make sure it is automatically disabled by rebootCluster
 // also checking that clearReadOnly flag has been deprecated.
 set_sysvar(session, "super_read_only", 1);
-cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, uri3], clearReadOnly: false});
+cluster = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: false});
 
 // TODO(alfredo) - reboot should internally wait for sro to be cleared, but it doesn't right now, so we keep checking for up to 3s
-i = 30;
-while(i>0) {
-  get_sysvar(session, "super_read_only");
-  i--;
-  os.sleep(0.1);
-}
+// i = 30;
+// while(i>0) {
+//   get_sysvar(session, "super_read_only");
+//   i--;
+//   os.sleep(0.1);
+// }
 
 EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 session.close();

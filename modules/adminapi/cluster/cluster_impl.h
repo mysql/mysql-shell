@@ -75,8 +75,8 @@ using Instance_md_and_gr_member =
 class Cluster_set_impl;
 class ClusterSet;
 
-class Cluster_impl : public Base_cluster_impl,
-                     public shcore::NotificationObserver {
+class Cluster_impl final : public Base_cluster_impl,
+                           public shcore::NotificationObserver {
  public:
   friend class Cluster;
 
@@ -134,7 +134,7 @@ class Cluster_impl : public Base_cluster_impl,
       const clusterset::Create_cluster_set_options &options);
 
   std::shared_ptr<Cluster_set_impl> get_cluster_set(
-      bool print_warnings = false);
+      bool print_warnings = false) const;
 
   Cluster_availability cluster_availability() const { return m_availability; }
 
@@ -190,7 +190,7 @@ class Cluster_impl : public Base_cluster_impl,
   create_replication_user(mysqlshdk::mysql::IInstance *target,
                           bool only_on_target = false,
                           mysqlshdk::mysql::Auth_options creds = {},
-                          bool print_recreate_node = true);
+                          bool print_recreate_node = true) const;
 
   /**
    * Reset the password of the recovery_account or the target instance's
@@ -202,9 +202,10 @@ class Cluster_impl : public Base_cluster_impl,
    *                         target_instance recovery account
    * @param hosts            List of hosts on which the password must be reset
    */
-  void reset_recovery_password(const std::shared_ptr<Instance> &target,
-                               const std::string &recovery_account = "",
-                               const std::vector<std::string> &hosts = {});
+  void reset_recovery_password(
+      const std::shared_ptr<Instance> &target,
+      const std::string &recovery_account = "",
+      const std::vector<std::string> &hosts = {}) const;
 
   /**
    * Recreate the recovery replication account for the instance instance
@@ -215,7 +216,7 @@ class Cluster_impl : public Base_cluster_impl,
    * @param target          Target instance
    */
   std::pair<std::string, std::string> recreate_replication_user(
-      const std::shared_ptr<Instance> &target);
+      const std::shared_ptr<Instance> &target) const;
 
   bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
                              const std::string &endpoint = "",
@@ -236,6 +237,8 @@ class Cluster_impl : public Base_cluster_impl,
   void wipe_all_replication_users();
 
   bool contains_instance_with_address(const std::string &host_port) const;
+
+  mysqlsh::dba::Instance *acquire_primary(bool ignore_cluster_set);
 
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
@@ -322,7 +325,7 @@ class Cluster_impl : public Base_cluster_impl,
    * @return size_t with the number of instances on which the update process
    * failed
    */
-  size_t setup_clone_plugin(bool enable_clone);
+  size_t setup_clone_plugin(bool enable_clone) const;
 
   void execute_in_members(
       const std::vector<mysqlshdk::gr::Member_state> &states,
@@ -346,7 +349,7 @@ class Cluster_impl : public Base_cluster_impl,
   /**
    * Get the primary instance address.
    *
-   * This funtion retrieves the address of a primary instance in the
+   * This function retrieves the address of a primary instance in the
    * cluster. In single primary mode, only one instance is the primary and
    * its address is returned, otherwise it is assumed that multi primary mode
    * is used. In multi primary mode, the address of any available instance
@@ -396,7 +399,7 @@ class Cluster_impl : public Base_cluster_impl,
    * to update the server_id attribute on the instances table.
    */
   void ensure_metadata_has_server_id(
-      const mysqlshdk::mysql::IInstance &target_instance);
+      const mysqlshdk::mysql::IInstance &target_instance) const;
 
   /**
    * Checks for missing metadata recovery account entries, and fix them using
@@ -470,7 +473,7 @@ class Cluster_impl : public Base_cluster_impl,
    * @param target_instance Target instance rejoining the cluster
    */
   void validate_rejoin_gtid_consistency(
-      const mysqlshdk::mysql::IInstance &target_instance);
+      const mysqlshdk::mysql::IInstance &target_instance) const;
 
   /**
    * Enables super_read_only in the whole Cluster
@@ -498,6 +501,8 @@ class Cluster_impl : public Base_cluster_impl,
 
   bool is_cluster_set_remove_pending() const { return m_cs_md_remove_pending; }
 
+  std::shared_ptr<Cluster_set_impl> check_and_get_cluster_set_for_cluster();
+
   /**
    * Reset the password for the Cluster's replication account in use for the
    * ClusterSet replication channel
@@ -506,7 +511,7 @@ class Cluster_impl : public Base_cluster_impl,
    * generated password
    */
   // XXX removethis
-  mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user();
+  mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user() const;
 
   void update_replication_allowed_host(const std::string &host);
 

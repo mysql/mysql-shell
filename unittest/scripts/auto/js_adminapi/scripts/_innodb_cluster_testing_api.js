@@ -87,9 +87,6 @@ exports.test_cluster_reboot_cluster_using_from_complete_outage = function(ports)
         asession.close();
     }
 
-    if (shell.options.useWizards) {
-        testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
-    }
     cluster = dba.rebootClusterFromCompleteOutage();
 
     if (!shell.options.useWizards) {

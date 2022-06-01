@@ -62,7 +62,7 @@ namespace cluster {
 constexpr const int k_recovery_start_timeout = 30;
 
 Cluster_join::Cluster_join(
-    Cluster_impl *cluster, mysqlsh::dba::Instance *primary_instance,
+    const Cluster_impl *cluster, const mysqlsh::dba::Instance *primary_instance,
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const Group_replication_options &gr_options,
     const Clone_options &clone_options, bool interactive,
@@ -837,7 +837,7 @@ void ensure_not_auto_rejoining(Instance *instance) {
 
 }  // namespace
 
-bool Cluster_join::check_rejoinable(bool *out_uuid_mistmatch) {
+bool Cluster_join::check_rejoinable(bool *out_uuid_mistmatch, Intent intent) {
   // Check if the instance is part of the Metadata
   auto status = validate_instance_rejoinable(
       *m_target_instance, m_cluster->get_metadata_storage(),
@@ -850,17 +850,35 @@ bool Cluster_join::check_rejoinable(bool *out_uuid_mistmatch) {
           "does not belong to the cluster: '" + m_cluster->get_name() + "'.");
 
     case Instance_rejoinability::ONLINE:
-      current_console()->print_note(
-          m_target_instance->descr() +
-          " is already an active (ONLINE) member of cluster '" +
-          m_cluster->get_name() + "'.");
+      switch (intent) {
+        case Intent::Rejoin:
+          current_console()->print_note(
+              m_target_instance->descr() +
+              " is already an active (ONLINE) member of cluster '" +
+              m_cluster->get_name() + "'.");
+          break;
+        case Intent::Reboot:
+          current_console()->print_note(m_target_instance->descr() +
+                                        " already rejoined the cluster '" +
+                                        m_cluster->get_name() + "'.");
+          break;
+      }
       return false;
 
     case Instance_rejoinability::RECOVERING:
-      current_console()->print_note(
-          m_target_instance->descr() +
-          " is already an active (RECOVERING) member of cluster '" +
-          m_cluster->get_name() + "'.");
+      switch (intent) {
+        case Intent::Rejoin:
+          current_console()->print_note(
+              m_target_instance->descr() +
+              " is already an active (RECOVERING) member of cluster '" +
+              m_cluster->get_name() + "'.");
+          break;
+        case Intent::Reboot:
+          current_console()->print_note(
+              m_target_instance->descr() + " already rejoined the cluster '" +
+              m_cluster->get_name() + "' and is recovering.");
+          break;
+      }
       return false;
 
     case Instance_rejoinability::REJOINABLE:
@@ -918,6 +936,18 @@ void Cluster_join::prepare_reboot() {
   }
 
   check_instance_configuration(checks::Check_type::BOOTSTRAP);
+
+  if (get_executed_gtid_set(*m_target_instance).empty()) {
+    current_console()->print_note(
+        "The target instance '" + m_target_instance->descr() +
+        "' has not been pre-provisioned (GTID set is empty). The "
+        "Shell is unable to determine whether the instance has "
+        "pre-existing data that would be overwritten.");
+
+    throw shcore::Exception("The instance '" + m_target_instance->descr() +
+                                "' has an empty GTID set.",
+                            SHERR_DBA_GTID_SYNC_ERROR);
+  }
 }
 
 void Cluster_join::prepare_join(
@@ -972,13 +1002,13 @@ void Cluster_join::prepare_join(
   }
 }
 
-bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch) {
+bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch, Intent intent) {
   // Validate the options used
   validate_add_rejoin_options();
 
   m_is_autorejoining = check_auto_rejoining(m_target_instance.get());
 
-  if (!check_rejoinable(out_uuid_mistmatch)) return false;
+  if (!check_rejoinable(out_uuid_mistmatch, intent)) return false;
 
   // Verify whether the instance supports the communication stack in use in the
   // Cluster and set it in the options handler
@@ -1533,7 +1563,7 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
   }
 }
 
-void Cluster_join::rejoin() {
+void Cluster_join::rejoin(bool ignore_cluster_set) {
   auto console = current_console();
 
   // Set a Config object for the target instance (required to configure GR).
@@ -1562,9 +1592,8 @@ void Cluster_join::rejoin() {
   // enable skip_slave_start if the cluster belongs to a ClusterSet, and
   // configure the managed replication channel if the cluster is a
   // replica.
-  if (m_cluster->is_cluster_set_member()) {
+  if (!ignore_cluster_set && m_cluster->is_cluster_set_member())
     configure_cluster_set_member();
-  }
 
   // TODO(alfredo) - when clone support is added to rejoin, join() can
   // probably be simplified into create repl user + rejoin() + update metadata

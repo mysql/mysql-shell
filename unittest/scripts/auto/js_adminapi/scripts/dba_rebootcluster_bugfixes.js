@@ -75,8 +75,23 @@ testutil.startSandbox(__mysql_sandbox_port1);
 //@ BUG29265869 - connect to instance.
 shell.connect(__sandbox_uri1);
 
-//@ BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown.
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+//@<> BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown.
+var c = dba.rebootClusterFromCompleteOutage("test");
+
+if (testutil.versionCheck(__version, "<", "8.0.11")){
+  EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+* Waiting for seed instance to become ONLINE...
+${hostname}:${__mysql_sandbox_port1} was restored.`);
+
+  EXPECT_OUTPUT_CONTAINS_MULTILINE(`Rejoining instance '${hostname}:${__mysql_sandbox_port2}' to cluster 'test'...
+
+WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+The instance '${hostname}:${__mysql_sandbox_port2}' was successfully rejoined to the cluster.`);
+}
+else {
+  EXPECT_OUTPUT_NOT_CONTAINS(`ONLINE
+ONLINE`);
+}
 
 // Waiting for the instances to become online
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -162,7 +177,7 @@ session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 session.runSql("CHANGE MASTER TO MASTER_HOST='test', MASTER_PORT=3306, MASTER_USER='foo', MASTER_PASSWORD='bar'");
 
 //@ BUG#29305551: Reboot cluster from complete outage must fail if async replication is configured on the target instance
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+var c = dba.rebootClusterFromCompleteOutage("test");
 
 //@<> BUG#29305551: clean-up for the next test
 session.runSql("RESET SLAVE ALL");
@@ -179,7 +194,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 //@ Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail
 shell.connect(__sandbox_uri1);
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+var c = dba.rebootClusterFromCompleteOutage("test");
 c.status();
 
 // BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
@@ -192,7 +207,7 @@ session.runSql("STOP SLAVE");
 
 //@ Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail with channels stopped
 shell.connect(__sandbox_uri1);
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+var c = dba.rebootClusterFromCompleteOutage("test");
 c.status();
 
 //@<> BUG#29305551: Finalization
@@ -272,23 +287,23 @@ session2.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM pe
 println("transactions at sb3:");
 session3.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
 
-// try reboot while connected to sb3 (should fail)
+// try reboot while connected to sb3 (should work with an automatic switch to sb2)
 shell.connect(__sandbox_uri3);
-EXPECT_THROWS(function(){dba.rebootClusterFromCompleteOutage("test");}, "The active session instance ("+hostname+":"+__mysql_sandbox_port3+") isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '"+hostname+":"+__mysql_sandbox_port2+"'.");
-
-// try reboot while connected to sb2 (should pass)
-shell.connect(__sandbox_uri2);
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances:[__sandbox_uri3]});
-c.status();
-
-session.runSql("stop group_replication"); // stop at sb1
+EXPECT_NO_THROWS(function(){ dba.rebootClusterFromCompleteOutage("test", {force:true}); });
+EXPECT_OUTPUT_CONTAINS(`Switching over to instance '${hostname}:${__mysql_sandbox_port2}' (which has the highest GTID set), to be used as seed.`);
 
 //@ Reboot cluster from complete outage, seed runs async replication = should pass
+shell.connect(__sandbox_uri2);
+var c = dba.getCluster("test");
+c.status();
+
+session.runSql("stop group_replication"); // stop at sb2
+
 session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("stop group_replication");
 
 shell.connect(__sandbox_uri2);
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: []});
+var c = dba.rebootClusterFromCompleteOutage("test", {force: true});
 
 //@<> BUG#31673163: Finalization
 session.close();
@@ -307,7 +322,6 @@ var c = dba.createCluster("test", {gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
 
 //@<> BUG30501978 - Persist GR settings for 5.7. {VER(<8.0.0)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
@@ -334,36 +348,44 @@ session2.runSql("CREATE DATABASE ERRANTDB2");
 // GTIds do not match
 EXPECT_NE(session1.runSql("SELECT @@GLOBAL.gtid_executed"), session2.runSql("SELECT @@GLOBAL.gtid_executed"));
 
-//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
-shell.connect(__sandbox_uri1);
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+//@<> BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
 
-//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
 // Insert transactions so that neither instance contains all of the gtids of the other
 session1.runSql("SET GLOBAL super_read_only=0");
 session1.runSql("CREATE DATABASE ERRANTDB1");
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 
-//@<> BUG#32112864 - REBOOTCLUSTERFROMCOMPLETEOUTAGE() DOES NOT EXCLUDE INSTANCES IF IN OPTION "REMOVEINSTANCES" LIST
-EXPECT_NO_THROWS(function(){var c = dba.rebootClusterFromCompleteOutage("test", {removeInstances: [uri2]})});
+shell.connect(__sandbox_uri1);
+EXPECT_THROWS(function(){ dba.rebootClusterFromCompleteOutage("test"); }, "To reboot a Cluster with GTID conflits, both the 'force' and 'primary' options must be used to proceed with the command and to explicitly pick a new seed instance.");
+EXPECT_OUTPUT_CONTAINS(`WARNING: Detected GTID conflits between instances: '${hostname}:${__mysql_sandbox_port1}', '${hostname}:${__mysql_sandbox_port2}'`);
 
-//@<> Verify instance2 was removed from the cluster
-EXPECT_FALSE(exist_in_metadata_schema(__mysql_sandbox_port2));
+EXPECT_NO_THROWS(function(){ dba.rebootClusterFromCompleteOutage("test", {force: true, primary: hostname + ":" + __mysql_sandbox_port1 }); });
 
-//@<> Clean instance 2 errant transactions
+//@<> reboot doesn't change topology so instance2 must still be there
+EXPECT_TRUE(exist_in_metadata_schema(__mysql_sandbox_port2));
+
+//@<> Add instance2 back to the cluster
+c = dba.getCluster("test");
+c.status();
+c.removeInstance(__sandbox_uri2, {force: true});
+
+// clean instance 2 errant transactions
 session2.runSql("DROP DATABASE ERRANTDB2");
 session2.runSql("RESET MASTER");
 
-//@<> Add instance2 back to the cluster
 c.addInstance(__sandbox_uri2);
 
-//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying to run rejoinInstance
+//@<> BUG30501978 - Reboot cluster from complete outage fails with informative message
 session1.runSql("STOP group_replication");
 session2.runSql("STOP group_replication");
 session1.runSql("FLUSH BINARY LOGS");
 session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 session2.runSql("RESET MASTER");
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+EXPECT_THROWS(function(){ 
+  dba.rebootClusterFromCompleteOutage("test");
+}, `The instance '${hostname}:${__mysql_sandbox_port2}' has an incompatible GTID set with the seed instance '${hostname}:${__mysql_sandbox_port1}' (former has missing transactions). If you wish to proceed, the 'force' option must be explicitly set.`);
+
+EXPECT_NO_THROWS(function(){ dba.rebootClusterFromCompleteOutage("test", {force: true}); });
+EXPECT_OUTPUT_CONTAINS(`Not rejoining instance '${hostname}:${__mysql_sandbox_port2}' because its GTID set isn't compatible with '${hostname}:${__mysql_sandbox_port1}'`);
 
 //@<> BUG30501978: Cleanup
 session.close();

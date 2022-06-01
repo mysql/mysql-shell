@@ -250,7 +250,7 @@ Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
 
   for (const auto &m : cs_members) {
     if (m.primary_cluster) {
-      log_debug("Primary cluster is %s", m.cluster.cluster_name.c_str());
+      log_debug("Primary cluster is '%s'", m.cluster.cluster_name.c_str());
       return m;
     }
   }
@@ -299,7 +299,7 @@ bool Cluster_set_impl::reconnect_target_if_invalidated() {
   }
 
   log_debug(
-      "Checking if primary cluster %s (id=%s, view_id_generation=%x) has the "
+      "Checking if primary cluster '%s' (id=%s, view_id_generation=%x) has the "
       "most recent clusterset metadata",
       get_primary_cluster()->get_name().c_str(), cs.id.c_str(),
       cluster_set_view_id_generation(primary_view_id));
@@ -1629,8 +1629,8 @@ void Cluster_set_impl::ensure_replica_settings(Cluster_impl *replica,
   replica->execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE},
       replica->get_cluster_server()->get_connection_options(), {},
-      [=](const std::shared_ptr<Instance> &instance,
-          const mysqlshdk::gr::Member &) {
+      [dry_run](const std::shared_ptr<Instance> &instance,
+                const mysqlshdk::gr::Member &) {
         if (!instance->get_sysvar_bool("super_read_only").get_safe()) {
           log_info("Enabling super_read_only at '%s'",
                    instance->descr().c_str());
@@ -2690,11 +2690,10 @@ void Cluster_set_impl::ensure_transaction_set_consistent(
 
 void Cluster_set_impl::rejoin_cluster(
     const std::string &cluster_name,
-    const clusterset::Rejoin_cluster_options &options) {
+    const clusterset::Rejoin_cluster_options &options, bool allow_unavailable) {
   check_preconditions("rejoinCluster");
 
   auto console = current_console();
-
   console->print_info("Rejoining cluster '" + cluster_name +
                       "' to the clusterset");
 
@@ -2705,7 +2704,7 @@ void Cluster_set_impl::rejoin_cluster(
   auto primary_cluster = get_primary_cluster();
   std::shared_ptr<Cluster_impl> rejoining_cluster;
   try {
-    rejoining_cluster = get_cluster(cluster_name, false, true);
+    rejoining_cluster = get_cluster(cluster_name, allow_unavailable, true);
   } catch (const shcore::Exception &e) {
     console->print_error("Could not reach cluster '" + cluster_name +
                          "': " + e.format());

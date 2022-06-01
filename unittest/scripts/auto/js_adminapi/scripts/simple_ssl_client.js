@@ -128,8 +128,7 @@ session2.runSql("stop group_replication");
 session1.runSql("stop group_replication");
 
 shell.connect(ssl_sandbox_uri1);
-cluster = dba.rebootClusterFromCompleteOutage("clus", {rejoinInstances: ["localhost:"+__mysql_sandbox_port2, "localhost:"+__mysql_sandbox_port3]});
-
+cluster = dba.rebootClusterFromCompleteOutage("clus");
 cluster.status();
 
 //@ rescan

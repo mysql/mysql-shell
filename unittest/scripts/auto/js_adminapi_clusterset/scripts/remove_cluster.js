@@ -256,9 +256,7 @@ clusterset.removeCluster("replicacluster", {force:1});
 
 shell.connect(__sandbox_uri4);
 rc = dba.rebootClusterFromCompleteOutage();
-
-// reboot should also check for bogus metadata
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
+EXPECT_OUTPUT_NOT_CONTAINS("Rejoining Cluster into its original ClusterSet..."); // since the cluster is INVALIDATED, it won't join the set
 
 //@<> getCluster() from the invalidated PC after reboot
 // (Bug#33166307)

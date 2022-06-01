@@ -27,7 +27,7 @@ shell.connect(__sandbox_uri1);
 var uri2 = localhost + ":" + __mysql_sandbox_port2;
 var uri3 = localhost + ":" + __mysql_sandbox_port3;
 var uri1 = localhost + ":" + __mysql_sandbox_port1;
-c = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [uri2, uri3]});
+c = dba.rebootClusterFromCompleteOutage("cluster");
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -64,7 +64,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Reboot cluster from complete outage using another member
 shell.connect(__sandbox_uri2);
-c = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [uri1, uri3]});
+c = dba.rebootClusterFromCompleteOutage("cluster");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");

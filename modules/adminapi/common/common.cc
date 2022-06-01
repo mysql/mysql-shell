@@ -1560,32 +1560,36 @@ std::string resolve_gr_local_address(
 
 std::vector<Instance_gtid_info> filter_primary_candidates(
     const mysqlshdk::mysql::IInstance &server,
-    const std::vector<Instance_gtid_info> &gtid_info) {
+    const std::vector<Instance_gtid_info> &gtid_info,
+    const std::function<bool(const Instance_gtid_info &,
+                             const Instance_gtid_info &)> &on_conflit) {
   using mysqlshdk::mysql::Gtid_set_relation;
+
+  if (gtid_info.empty()) return {};
 
   std::vector<Instance_gtid_info> candidates;
 
-  if (gtid_info.empty()) return candidates;
-
-  const Instance_gtid_info *freshest_instance = nullptr;
+  const Instance_gtid_info *freshest_instance = &gtid_info[0];
+  candidates.push_back(gtid_info[0]);
 
   for (const auto &inst : gtid_info) {
-    Gtid_set_relation rel;
+    if (freshest_instance == &inst) continue;  // ignore the first
 
-    if (!freshest_instance)
-      rel = Gtid_set_relation::CONTAINED;
-    else
-      rel = mysqlshdk::mysql::compare_gtid_sets(
-          server, freshest_instance->gtid_executed, inst.gtid_executed);
+    auto rel = mysqlshdk::mysql::compare_gtid_sets(
+        server, freshest_instance->gtid_executed, inst.gtid_executed);
 
     switch (rel) {
       // Conflicting GTID sets
       case Gtid_set_relation::DISJOINT:
       case Gtid_set_relation::INTERSECTS:
-        throw shcore::Exception("Conflicting transaction sets between " +
-                                    freshest_instance->server + " and " +
-                                    inst.server,
-                                SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+        if (!on_conflit)
+          throw shcore::Exception("Conflicting transaction sets between " +
+                                      freshest_instance->server + " and " +
+                                      inst.server,
+                                  SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+
+        if (!on_conflit(*freshest_instance, inst)) return candidates;
+        break;
 
       case Gtid_set_relation::CONTAINED:
         // this has more transactions than the best candidate

@@ -89,7 +89,7 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri2, __sandbox_uri3], cluster, replica);
 shutdown_cluster(replica);
 shell.connect(__sandbox_uri2);
 
-EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {rejoinInstances: [__endpoint3]}) });
+EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2") });
 
 check_gr_settings(replica, [__endpoint2, __endpoint3], "MYSQL");
 CHECK_REPLICA_CLUSTER([__sandbox_uri2, __sandbox_uri3], cluster, replica);
@@ -104,7 +104,7 @@ shutdown_cluster(replica);
 shell.connect(__sandbox_uri2);
 
 //@<> Switch the communication stack while rebooting a cluster from complete outage (switch to XCOM)
-EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {rejoinInstances: [__endpoint3], switchCommunicationStack: "XCOM"}) });
+EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {switchCommunicationStack: "XCOM"}) });
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -115,7 +115,7 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri2, __sandbox_uri3], cluster, replica);
 shutdown_cluster(replica);
 shell.connect(__sandbox_uri2);
 
-EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {rejoinInstances: [__endpoint3], switchCommunicationStack: "mySqL"}) });
+EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {switchCommunicationStack: "mySqL"}) });
 
 check_gr_settings(replica, [__endpoint2, __endpoint3], "MYSQL");
 CHECK_REPLICA_CLUSTER([__sandbox_uri2, __sandbox_uri3], cluster, replica);
@@ -141,7 +141,7 @@ shell.connect(__sandbox_uri3);
 var __cfg_local_address = localhost + ":" + (__mysql_sandbox_port5*10+1);
 var __allow_list = "localhost," + hostname_ip;
 
-EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {rejoinInstances: [__endpoint4], switchCommunicationStack: "XCOM", localAddress: __cfg_local_address, ipAllowlist: __allow_list}) });
+EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {switchCommunicationStack: "XCOM", localAddress: __cfg_local_address, ipAllowlist: __allow_list}) });
 
 check_gr_settings(replica, [__endpoint3, __endpoint4], "XCOM", __cfg_local_address, __allow_list);
 CHECK_PRIMARY_CLUSTER([__sandbox_uri3, __sandbox_uri4], replica);
@@ -152,7 +152,7 @@ shell.connect(__sandbox_uri3);
 
 var __cfg_local_address = localhost + ":" + __mysql_sandbox_port3;
 
-EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {rejoinInstances: [__endpoint4], switchCommunicationStack: "MYSQL", localAddress: __cfg_local_address}) });
+EXPECT_NO_THROWS(function() { replica = dba.rebootClusterFromCompleteOutage("replica2", {switchCommunicationStack: "MYSQL", localAddress: __cfg_local_address}) });
 
 check_gr_settings(replica, [__endpoint3, __endpoint4], "MYSQL", __cfg_local_address);
 CHECK_PRIMARY_CLUSTER([__sandbox_uri3, __sandbox_uri4], replica);

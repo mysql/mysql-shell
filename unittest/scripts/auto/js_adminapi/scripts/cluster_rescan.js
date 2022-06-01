@@ -101,7 +101,7 @@ function reboot_with_view_change_uuid_default(cluster) {
         instances.splice(index, 1);
     }
 
-    cluster = dba.rebootClusterFromCompleteOutage(cluster_name, {rejoinInstances: [instances.join(",")]});
+    cluster = dba.rebootClusterFromCompleteOutage(cluster_name);
 }
 
 //@ Initialize.
@@ -668,7 +668,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
-cluster = dba.rebootClusterFromCompleteOutage("c", {rejoinInstances: [__endpoint2]});
+cluster = dba.rebootClusterFromCompleteOutage("c");
 
 var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_NE(view_change_uuid, "AUTOMATIC");
@@ -693,7 +693,7 @@ session.runSql("stop group_replication");
 shell.connect(__sandbox_uri1);
 session.runSql("stop group_replication");
 
-cluster = dba.rebootClusterFromCompleteOutage("c", {rejoinInstances: [__endpoint2]});
+cluster = dba.rebootClusterFromCompleteOutage("c");
 
 var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_NE(view_change_uuid, "AUTOMATIC");
@@ -736,7 +736,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
-cluster = dba.rebootClusterFromCompleteOutage("c", {rejoinInstances: [__endpoint2]});
+cluster = dba.rebootClusterFromCompleteOutage("c");
 
 var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_NE(view_change_uuid, "AUTOMATIC");

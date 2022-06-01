@@ -66,7 +66,7 @@ ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' curren
 Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@ Dba_reboot_cluster.clear_read_only automatically disabled and clearReadOnly deprecated
-|WARNING: The clearReadOnly option is deprecated. The super_read_only mode is now automatically cleared.|
+|WARNING: The 'clearReadOnly' option is no longer used (it's deprecated): super_read_only is automatically cleared.|
 
 //@ Check super read only was disabled after rebootClusterFromCompleteOutage
 ||

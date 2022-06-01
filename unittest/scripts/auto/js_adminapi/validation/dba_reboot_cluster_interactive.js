@@ -19,27 +19,11 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured for use
 
 The instance cluster settings were successfully persisted.
 
-//@ Dba.rebootClusterFromCompleteOutage errors
-||The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
-||Invalid options: invalidOpt
-
-//@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
-||The following instances: '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' were specified in the rejoinInstances list but are not reachable.
-
-//@ Dba.rebootClusterFromCompleteOutage error cannot use same server on both rejoinInstances and removeInstances list
-||The following instances: 'localhost:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
-
-//@ Dba.rebootClusterFromCompleteOutage success
-|The cluster was successfully rebooted.|
-
-//@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11)}
-||
-
 //@ Add instance 3 back to the cluster {VER(<=8.0.11)}
 ||
 
 //@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
-|The cluster was successfully rebooted.|
+|The Cluster was successfully rebooted.|
 
 //@ Finalization
 ||

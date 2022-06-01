@@ -183,15 +183,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const mysqlshdk::null_string &cluster_name = {},
       const shcore::Option_pack_ref<Reboot_cluster_options> &options = {});
 
-  std::vector<std::pair<Instance_metadata, std::string>>
-  validate_instances_status_reboot_cluster(
-      Cluster_impl *cluster,
-      const mysqlshdk::mysql::IInstance &target_instance);
-  void validate_instances_gtid_reboot_cluster(
-      std::shared_ptr<Cluster> cluster, const Reboot_cluster_options &options,
-      const mysqlshdk::mysql::IInstance &target_instance,
-      const std::vector<std::string> &instances_to_skip);
-
   // ReplicaSets
 
   shcore::Value create_replica_set(
@@ -211,12 +202,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   std::shared_ptr<ShellBaseSession> m_session;
 
   void init();
-
-  void find_real_cluster_set_primary(
-      const std::shared_ptr<Cluster_set_impl> &cs) const;
-
-  std::shared_ptr<Cluster_set_impl> check_and_get_cluster_set_for_cluster(
-      const std::shared_ptr<Cluster_impl> &cluster) const;
 
  private:
   ProvisioningInterface _provisioning_interface;

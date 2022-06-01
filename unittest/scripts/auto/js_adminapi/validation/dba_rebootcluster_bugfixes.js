@@ -468,24 +468,6 @@
 //@ BUG29265869 - connect to instance.
 ||
 
-//@<OUT> BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown. {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-* Waiting for seed instance to become ONLINE...
-<<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.
-Rejoining '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster.
-Validating instance configuration at <<<hostname>>>:<<<__mysql_sandbox_port2>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-
-Instance configuration is suitable.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-
-//@<OUT> BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown. {VER(>=8.0.11)}
-ONLINE
-ONLINE
-
 //@<OUT> BUG29265869 - Show cluster options after reboot. {VER(>=8.0.17)}
 {
     "clusterName": "test",
@@ -945,13 +927,3 @@ Dba.rebootClusterFromCompleteOutage: The instance '<<<hostname>>>:<<<__mysql_san
 
 //@# Reboot cluster from complete outage, seed runs async replication = should pass
 |<<<hostname>>>:<<<__mysql_sandbox_port2>>> was restored.|
-
-//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
-||The active session instance (<<<hostname>>>:<<<__mysql_sandbox_port1>>>) isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
-
-//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
-||Conflicting transaction sets between <<<hostname>>>:<<<__mysql_sandbox_port1>>> and <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-
-//@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying to run rejoinInstance
-|ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it is missing transactions that were purged from all cluster members.|
-|Unable to rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster but the dba.rebootClusterFromCompleteOutage() operation will continue.|

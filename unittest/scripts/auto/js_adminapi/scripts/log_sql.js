@@ -335,9 +335,7 @@ session.runSql("STOP GROUP_REPLICATION");
 
 //@<> WL#13294: reboot cluster (dba.logSql = 0).
 WIPE_SHELL_LOG();
-var instance2 = hostname + ':' + __mysql_sandbox_port2;
-var instance3 = hostname + ':' + __mysql_sandbox_port3;
-c = dba.rebootClusterFromCompleteOutage("test_cluster", {rejoinInstances: [instance2, instance3]});
+c = dba.rebootClusterFromCompleteOutage("test_cluster");
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[2]);
@@ -575,9 +573,7 @@ session.runSql("STOP GROUP_REPLICATION");
 
 //@<> WL#13294: reboot cluster (dba.logSql = 1).
 WIPE_SHELL_LOG();
-var instance2 = hostname + ':' + __mysql_sandbox_port2;
-var instance3 = hostname + ':' + __mysql_sandbox_port3;
-c = dba.rebootClusterFromCompleteOutage("test_cluster", {rejoinInstances: [instance2, instance3]});
+c = dba.rebootClusterFromCompleteOutage("test_cluster");
 EXPECT_SHELL_LOG_NOT_CONTAINS(reboot_cluster_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[2]);
@@ -815,9 +811,7 @@ session.runSql("STOP GROUP_REPLICATION");
 
 //@<> WL#13294: reboot cluster (dba.logSql = 2).
 WIPE_SHELL_LOG();
-var instance2 = hostname + ':' + __mysql_sandbox_port2;
-var instance3 = hostname + ':' + __mysql_sandbox_port3;
-c = dba.rebootClusterFromCompleteOutage("test_cluster", {rejoinInstances: [instance2, instance3]});
+c = dba.rebootClusterFromCompleteOutage("test_cluster");
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(reboot_cluster_sql[2]);

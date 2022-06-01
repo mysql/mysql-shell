@@ -224,17 +224,6 @@ void Create_cluster_options::set_clear_read_only(bool value) {
   clear_read_only = value;
 }
 
-void Reboot_cluster_options::set_switch_communication_stack(
-    const std::string &value) {
-  switch_communication_stack = shcore::str_upper(shcore::str_strip(value));
-
-  if (switch_communication_stack->empty()) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.",
-        kSwitchCommunicationStack));
-  }
-}
-
 const shcore::Option_pack_def<Create_replicaset_options>
     &Create_replicaset_options::options() {
   static const auto opts =
@@ -276,22 +265,19 @@ const shcore::Option_pack_def<Reboot_cluster_options>
     &Reboot_cluster_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Reboot_cluster_options>()
-          .optional(kRemoveInstances, &Reboot_cluster_options::remove_instances)
-          .optional(kRejoinInstances, &Reboot_cluster_options::rejoin_instances)
+          .optional(kForce, &Reboot_cluster_options::force)
+          .optional(kDryRun, &Reboot_cluster_options::dry_run)
+          .optional("primary", &Reboot_cluster_options::set_primary)
           .optional(kClearReadOnly,
-                    &Reboot_cluster_options::set_clear_read_only)
-          .optional(mysqlshdk::db::kUser, &Reboot_cluster_options::set_user, "",
+                    &Reboot_cluster_options::set_clear_read_only, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
                     shcore::Option_scope::DEPRECATED)
-          .optional(mysqlshdk::db::kDbUser, &Reboot_cluster_options::set_user,
-                    "", shcore::Option_extract_mode::CASE_INSENSITIVE,
+          .optional(mysqlshdk::db::kUser,
+                    &Reboot_cluster_options::set_user_passwd, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
                     shcore::Option_scope::DEPRECATED)
           .optional(mysqlshdk::db::kPassword,
-                    &Reboot_cluster_options::set_password, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
-          .optional(mysqlshdk::db::kDbPassword,
-                    &Reboot_cluster_options::set_password, "",
+                    &Reboot_cluster_options::set_user_passwd, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
                     shcore::Option_scope::DEPRECATED)
           .optional(kSwitchCommunicationStack,
@@ -307,77 +293,84 @@ void Reboot_cluster_options::check_option_values(
     const std::string &comm_stack) {
   // The switchCommunicationStack option must be allowed only if the target
   // server version is >= 8.0.27
-  if (!switch_communication_stack.is_null()) {
-    if (version < k_mysql_communication_stack_initial_version) {
-      throw shcore::Exception::runtime_error(shcore::str_format(
-          "Option '%s' not supported on target server version: '%s'",
-          kSwitchCommunicationStack, version.get_full().c_str()));
-    }
+  if (switch_communication_stack &&
+      (version < k_mysql_communication_stack_initial_version)) {
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kSwitchCommunicationStack, version.get_full().c_str()));
   }
 
   // Using switchCommunicationStack set to 'mysql' and ipAllowlist at the same
   // time is forbidden
-  if (switch_communication_stack.get_safe() == kCommunicationStackMySQL &&
+  if (switch_communication_stack.value_or("") == kCommunicationStackMySQL &&
       !gr_options.ip_allowlist.is_null()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Cannot use '%s' when setting the '%s' option to '%s'", kIpAllowlist,
         kSwitchCommunicationStack, kCommunicationStackMySQL));
   }
 
-  if (switch_communication_stack.is_null() &&
-      comm_stack == kCommunicationStackMySQL &&
+  if (!switch_communication_stack && comm_stack == kCommunicationStackMySQL &&
       !gr_options.ip_allowlist.is_null()) {
     throw shcore::Exception::argument_error(shcore::str_format(
-        "Cannot use '%s' when the Cluster's communication stack is "
-        "'%s'",
+        "Cannot use '%s' when the Cluster's communication stack is '%s'",
         gr_options.ip_allowlist_option_name.c_str(), kCommunicationStackMySQL));
   }
 
   // Validate the usage of the localAddress option
   if (!gr_options.local_address.is_null()) {
     validate_local_address_option(gr_options.local_address.get_safe(),
-                                  switch_communication_stack.get_safe(),
+                                  switch_communication_stack.value_or(""),
                                   canonical_port);
   }
 }
 
-void Reboot_cluster_options::set_user(const std::string &option,
-                                      const std::string &value) {
-  if (option == mysqlshdk::db::kDbUser) {
-    handle_deprecated_option(mysqlshdk::db::kDbUser, mysqlshdk::db::kUser,
-                             !user.is_null(), true);
-  } else if (option == mysqlshdk::db::kUser) {
-    handle_deprecated_option(
-        mysqlshdk::db::kUser, "", false, false,
-        "If not specified, the user name is taken from the active session.");
-  }
-
-  user = value;
-}
-
-void Reboot_cluster_options::set_password(const std::string &option,
-                                          const std::string &value) {
-  if (option == mysqlshdk::db::kDbPassword) {
-    handle_deprecated_option(mysqlshdk::db::kDbPassword,
-                             mysqlshdk::db::kPassword, !user.is_null(), true);
-  } else if (option == mysqlshdk::db::kPassword) {
-    handle_deprecated_option(
-        mysqlshdk::db::kPassword, "", false, false,
-        "If not specified, the password is taken from the active session.");
-  }
-
-  password = value;
-}
-
-void Reboot_cluster_options::set_clear_read_only(bool value) {
+void Reboot_cluster_options::set_user_passwd(const std::string &option,
+                                             const std::string &) {
   auto console = current_console();
-  console->print_warning(
-      shcore::str_format("The %s option is deprecated. The super_read_only "
-                         "mode is now automatically cleared.",
-                         kClearReadOnly));
-  console->print_info();
 
-  clear_read_only = value;
+  console->print_warning(shcore::str_format(
+      "The '%s' option is no longer used (it's deprecated): the connection "
+      "data is taken from the active shell session.",
+      option.c_str()));
+  console->print_info();
+}
+
+void Reboot_cluster_options::set_clear_read_only(bool) {
+  auto console = current_console();
+  console->print_warning(shcore::str_format(
+      "The '%s' option is no longer used (it's deprecated): super_read_only is "
+      "automatically cleared.",
+      kClearReadOnly));
+  console->print_info();
+}
+
+void Reboot_cluster_options::set_primary(std::string value) {
+  try {
+    auto cnx_opt = mysqlsh::get_connection_options(shcore::Value{value});
+
+    if (cnx_opt.get_host().empty())
+      throw shcore::Exception::argument_error("host cannot be empty.");
+    else if (!cnx_opt.has_port())
+      throw shcore::Exception::argument_error("port is missing.");
+
+  } catch (const std::exception &err) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value '%s' for 'primary' option: %s",
+                           value.c_str(), err.what()));
+  }
+
+  primary = std::move(value);
+}
+
+void Reboot_cluster_options::set_switch_communication_stack(
+    const std::string &value) {
+  switch_communication_stack = shcore::str_upper(shcore::str_strip(value));
+
+  if (switch_communication_stack->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s', string value cannot be empty.",
+        kSwitchCommunicationStack));
+  }
 }
 
 const shcore::Option_pack_def<Upgrade_metadata_options>

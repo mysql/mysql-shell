@@ -340,7 +340,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
     member.uuid = row.get_string("member_id");
     member.state = to_member_state(row.get_string("member_state"));
     member.host = row.get_string("member_host");
-    member.port = row.get_int("member_port");
+    member.port = row.get_int("member_port", 0);
     member.role = to_member_role(row.get_string("member_role"));
     member.version = row.get_string("member_version", "");
     if (out_group_view_id && !row.is_null("view_id")) {

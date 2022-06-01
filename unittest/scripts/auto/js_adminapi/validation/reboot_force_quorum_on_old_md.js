@@ -3,11 +3,11 @@ Dba.upgradeMetadata: This function is not available through a session to a stand
 
 //@<OUT> Testing rebootClusterFromCompleteOutage
 WARNING: The cluster will be rebooted as configured on the metadata, however, no change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.
-
-Restoring the cluster 'sample' from complete outage...
+Restoring the Cluster 'sample' from complete outage...
 ${*}
 <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.
-Rejoining '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster.
+${*}
+Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to cluster 'sample'...
 ${*}
 {
     "clusterName": "sample",

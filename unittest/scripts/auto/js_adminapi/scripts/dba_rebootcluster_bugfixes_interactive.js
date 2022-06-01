@@ -67,13 +67,8 @@ testutil.startSandbox(__mysql_sandbox_port3);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port1);
 
-// Reboot cluster from complete outage, not specifying the name
-
-shell.connect(__sandbox_uri1);
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
-
 //@ Reboot cluster from complete outage, not specifying the name
+shell.connect(__sandbox_uri1);
 var c = dba.rebootClusterFromCompleteOutage();
 
 // Waiting for the instances to become online
@@ -121,7 +116,6 @@ dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycn
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
-
 //@<> BUG#29305551: Reset gr_start_on_boot on all instances
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
@@ -163,8 +157,6 @@ session.close();
 
 //@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
 shell.connect(__sandbox_uri1);
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
 var c = dba.rebootClusterFromCompleteOutage("test");
 
 // Waiting for the instances to become online
@@ -184,8 +176,6 @@ session2.runSql("STOP SLAVE");
 
 //@ BUG#32197197 - Reboot cluster from complete outage, rejoin fails with channels stopped
 shell.connect(__sandbox_uri1);
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
 var c = dba.rebootClusterFromCompleteOutage("test");
 
 // Waiting for the instances to become online
@@ -201,8 +191,6 @@ session3.runSql("STOP group_replication;")
 session3.runSql("SET GLOBAL super_read_only=0");
 session3.runSql("CREATE DATABASE ERRANTDB2");
 
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "n");
-testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "n");
 EXPECT_NO_THROWS(function(){var c = dba.rebootClusterFromCompleteOutage("test")});
 
 //@ BUG#29305551: Finalization

@@ -139,7 +139,8 @@ testutil.startSandbox(__mysql_sandbox_port2)
 shell.connect(__sandbox_uri2);
 
 EXPECT_NO_THROWS(function(){ rebooted_cluster = dba.rebootClusterFromCompleteOutage(); });
-EXPECT_NE(rebooted_cluster, null);
+EXPECT_OUTPUT_CONTAINS("WARNING: Unable to rejoin Cluster to the ClusterSet (primary Cluster is unreachable). Please call ClusterSet.rejoinCluster() to manually rejoin this Cluster back into the ClusterSet.");
+rebooted_cluster.status();
 
 //@<> Cleanup
 scene.destroy();

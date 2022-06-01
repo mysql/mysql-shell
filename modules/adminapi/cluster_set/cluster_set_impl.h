@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,7 +77,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   void remove_cluster(const std::string &cluster_name,
                       const clusterset::Remove_cluster_options &options);
   void rejoin_cluster(const std::string &cluster_name,
-                      const clusterset::Rejoin_cluster_options &options);
+                      const clusterset::Rejoin_cluster_options &options,
+                      bool allow_unavailable = false);
+
   void set_primary_cluster(
       const std::string &cluster,
       const clusterset::Set_primary_cluster_options &options);

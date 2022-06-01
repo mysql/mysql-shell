@@ -45,7 +45,7 @@ class Node;
 
 class MetadataStorage;
 class Instance_pool;
-class Instance : public mysqlshdk::mysql::Instance {
+class Instance final : public mysqlshdk::mysql::Instance {
  public:
   // Simplified interface for creating Instances when a pool is not available
 
@@ -59,7 +59,7 @@ class Instance : public mysqlshdk::mysql::Instance {
       const mysqlshdk::db::Connection_options &copts, bool interactive = false);
 
  public:
-  Instance() {}
+  Instance() = default;
 
   // Wrap a session object. release() will not be effective.
   explicit Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session);
@@ -73,7 +73,7 @@ class Instance : public mysqlshdk::mysql::Instance {
   // to someone else. Ownership of the instance still belongs to the pool.
   // Call it when keeping a reference to an Instance that obtained from
   // elsewhere.
-  void retain();
+  void retain() noexcept;
 
   // Decrement retain count of the instance. Once the count goes to 0,
   // it will be returned to the pool, which can give it to someone else or
@@ -170,9 +170,10 @@ class Instance : public mysqlshdk::mysql::Instance {
                bool skip_fail_install_warn = false);
 };
 
-class Scoped_instance_list {
+class Scoped_instance_list final {
  public:
-  explicit Scoped_instance_list(std::list<std::shared_ptr<Instance>> &&l)
+  explicit Scoped_instance_list(
+      std::list<std::shared_ptr<Instance>> &&l) noexcept
       : m_list(std::move(l)) {}
 
   ~Scoped_instance_list() {
@@ -187,14 +188,15 @@ class Scoped_instance_list {
   std::list<std::shared_ptr<Instance>> m_list;
 };
 
-struct Scoped_instance {
-  Scoped_instance() {}
+struct Scoped_instance final {
+  Scoped_instance() = default;
 
-  Scoped_instance(const Scoped_instance &copy) : ptr(copy.ptr) {
+  Scoped_instance(const Scoped_instance &copy) noexcept : ptr(copy.ptr) {
     if (ptr) ptr->retain();
   }
 
-  explicit Scoped_instance(const std::shared_ptr<Instance> &i) : ptr(i) {}
+  explicit Scoped_instance(std::shared_ptr<Instance> i) noexcept
+      : ptr(std::move(i)) {}
 
   void operator=(const Scoped_instance &si) {
     if (ptr) ptr->release();
@@ -206,14 +208,14 @@ struct Scoped_instance {
     if (ptr) ptr->release();
   }
 
-  operator bool() const { return ptr.get() != nullptr; }
-  operator std::shared_ptr<Instance>() const { return ptr; }
-  operator Instance &() const { return *ptr.get(); }
+  explicit operator bool() const noexcept { return ptr.operator bool(); }
+  operator std::shared_ptr<Instance>() const noexcept { return ptr; }
+  operator Instance &() const noexcept { return *ptr.get(); }
 
-  Instance *operator->() const { return ptr.get(); }
-  Instance &operator*() const { return *ptr.get(); }
+  Instance *operator->() const noexcept { return ptr.get(); }
+  Instance &operator*() const noexcept { return *ptr.get(); }
 
-  Instance *get() const { return ptr.get(); }
+  Instance *get() const noexcept { return ptr.get(); }
 
   std::shared_ptr<Instance> ptr;
 };
@@ -226,17 +228,17 @@ struct Scoped_instance {
  * acquired, automatically creating or recycling them as needed. All sessions
  * are closed when the pool is destroyed (after the task is done).
  */
-class Instance_pool {
+class Instance_pool final {
  public:
   using Auth_options = mysqlshdk::mysql::Auth_options;
 
   explicit Instance_pool(bool allow_password_prompt);
 
-  void set_default_auth_options(const Auth_options &auth_opts);
+  void set_default_auth_options(Auth_options auth_opts);
 
   const Auth_options &default_auth_opts() const { return m_default_auth_opts; }
 
-  void set_metadata(const std::shared_ptr<MetadataStorage> &md);
+  void set_metadata(std::shared_ptr<MetadataStorage> md);
 
   std::shared_ptr<MetadataStorage> get_metadata() { return m_metadata; }
 
@@ -334,32 +336,25 @@ class Instance_pool {
  * The current active pool can be accessed globally through the
  * current_ipool() method.
  */
-class Scoped_instance_pool {
+class Scoped_instance_pool final {
  public:
-  explicit Scoped_instance_pool(const std::shared_ptr<Instance_pool> &pool);
+  explicit Scoped_instance_pool(std::shared_ptr<Instance_pool> pool);
 
-  Scoped_instance_pool(const std::shared_ptr<MetadataStorage> &metadata,
-                       bool interactive,
-                       const Instance_pool::Auth_options &def_auth)
+  Scoped_instance_pool(std::shared_ptr<MetadataStorage> metadata,
+                       bool interactive, Instance_pool::Auth_options def_auth)
       : Scoped_instance_pool(std::make_shared<Instance_pool>(interactive)) {
-    m_pool->set_metadata(metadata);
-    m_pool->set_default_auth_options(def_auth);
+    m_pool->set_metadata(std::move(metadata));
+    m_pool->set_default_auth_options(std::move(def_auth));
   }
 
-  Scoped_instance_pool(bool interactive,
-                       const Instance_pool::Auth_options &def_auth)
-      : Scoped_instance_pool(std::make_shared<Instance_pool>(interactive)) {
-    m_pool->set_default_auth_options(def_auth);
-  }
-
-  ~Scoped_instance_pool();
+  ~Scoped_instance_pool() noexcept;
 
   Scoped_instance_pool(const Scoped_instance_pool &) = delete;
   Scoped_instance_pool(Scoped_instance_pool &&) = delete;
   Scoped_instance_pool &operator=(const Scoped_instance_pool &) = delete;
   Scoped_instance_pool &operator=(Scoped_instance_pool &&) = delete;
 
-  std::shared_ptr<Instance_pool> get() const;
+  std::shared_ptr<Instance_pool> get() const noexcept { return m_pool; }
 
   Instance_pool *operator->() { return m_pool.get(); }
   Instance_pool &operator*() { return *m_pool.get(); }

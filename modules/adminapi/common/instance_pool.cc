@@ -149,7 +149,7 @@ Instance::Instance(Instance_pool *owner,
                    const std::shared_ptr<mysqlshdk::db::ISession> &session)
     : mysqlshdk::mysql::Instance(session), m_pool(owner) {}
 
-void Instance::retain() {
+void Instance::retain() noexcept {
   DBUG_TRACE;
 
   if (m_retain_count > -1) m_retain_count++;
@@ -433,8 +433,8 @@ Instance_pool::~Instance_pool() {
   m_pool.clear();
 }
 
-void Instance_pool::set_default_auth_options(const Auth_options &opts) {
-  m_default_auth_opts = opts;
+void Instance_pool::set_default_auth_options(Auth_options opts) {
+  m_default_auth_opts = std::move(opts);
 }
 
 void Instance_pool::set_auth_opts(const Auth_options &auth,
@@ -448,10 +448,10 @@ void Instance_pool::set_auth_opts(const Auth_options &auth,
   }
 }
 
-void Instance_pool::set_metadata(const std::shared_ptr<MetadataStorage> &md) {
+void Instance_pool::set_metadata(std::shared_ptr<MetadataStorage> md) {
   DBUG_TRACE;
 
-  m_metadata = md;
+  m_metadata = std::move(md);
   if (m_metadata) refresh_metadata_cache();
 }
 
@@ -511,17 +511,24 @@ void Instance_pool::refresh_metadata_cache() {
   DBUG_TRACE;
   if (!m_metadata) throw std::logic_error("metadata object not set");
 
-  log_debug("Refreshing metadata cache from %s",
+  log_debug("Refreshing metadata cache from '%s'",
             m_metadata->get_md_server()->descr().c_str());
   m_mdcache->instances = m_metadata->get_all_instances();
   m_mdcache->clusters = m_metadata->get_all_clusters(true);
 
   for (const auto &i : m_mdcache->instances) {
-    log_debug("I) %s %s", i.label.c_str(), i.endpoint.c_str());
+    auto it = std::find_if(
+        m_mdcache->clusters.begin(), m_mdcache->clusters.end(),
+        [&i](const auto &c) { return (c.cluster_id == i.cluster_id); });
+    if (it == m_mdcache->clusters.end())
+      log_debug("I) %s %s", i.label.c_str(), i.endpoint.c_str());
+    else
+      log_debug("I) %s %s (%s)", i.label.c_str(), i.endpoint.c_str(),
+                it->cluster_name.c_str());
   }
 
   for (const auto &i : m_mdcache->clusters) {
-    log_debug("C) %s %s", i.group_name.c_str(), i.cluster_name.c_str());
+    log_debug("C) %s '%s'", i.group_name.c_str(), i.cluster_name.c_str());
   }
   log_debug("DONE!");
 }
@@ -1136,16 +1143,13 @@ Scoped_storage<Instance_pool> g_ipool_storage;
 
 }  // namespace
 
-Scoped_instance_pool::Scoped_instance_pool(
-    const std::shared_ptr<Instance_pool> &ipool)
-    : m_pool{ipool} {
+Scoped_instance_pool::Scoped_instance_pool(std::shared_ptr<Instance_pool> ipool)
+    : m_pool{std::move(ipool)} {
   g_ipool_storage.push(m_pool);
 }
 
-Scoped_instance_pool::~Scoped_instance_pool() { g_ipool_storage.pop(m_pool); }
-
-std::shared_ptr<Instance_pool> Scoped_instance_pool::get() const {
-  return m_pool;
+Scoped_instance_pool::~Scoped_instance_pool() noexcept {
+  g_ipool_storage.pop(m_pool);
 }
 
 std::shared_ptr<Instance_pool> current_ipool() {

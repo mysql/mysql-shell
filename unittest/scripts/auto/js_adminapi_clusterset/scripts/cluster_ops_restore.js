@@ -153,7 +153,7 @@ testutil.startSandbox(__mysql_sandbox_port4)
 
 shell.connect(__sandbox_uri1);
 
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint4]}); });
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 
 //@<> Rebooting from complete outage a REPLICA Cluster with PRIMARY OK
 disable_auto_rejoin(__mysql_sandbox_port3);
@@ -172,7 +172,7 @@ shell.connect(__sandbox_uri3);
 // BUG#33223867: dba.rebootClusterFromCompleteOutage() is failing for replica cluster in CS
 // When using the rejoinInstances option in rebootCluster*() of a Replica Cluster, the command would fail since it wouldn't wait
 // for the seed instance to become ONLINE within the group before trying to rejoin the remaining instances
-EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica", {rejoinInstances: [__endpoint5]})});
+EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica"); });
 EXPECT_OUTPUT_CONTAINS("* Waiting for seed instance to become ONLINE...");
 
 var sro3 = session.runSql("select @@global.super_read_only").fetchOne()[0];
@@ -218,6 +218,7 @@ testutil.startSandbox(__mysql_sandbox_port4)
 shell.connect(__sandbox_uri3);
 
 EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica"); });
+EXPECT_OUTPUT_CONTAINS("WARNING: Unable to rejoin Cluster to the ClusterSet (primary Cluster is unreachable). Please call ClusterSet.rejoinCluster() to manually rejoin this Cluster back into the ClusterSet.");
 
 var sro3 = session.runSql("select @@global.super_read_only").fetchOne()[0];
 EXPECT_EQ(1, sro3);

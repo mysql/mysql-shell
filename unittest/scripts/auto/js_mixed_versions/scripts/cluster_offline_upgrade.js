@@ -140,9 +140,9 @@ for (i = 1; i <= 2; i++) {
 shell.connect(__sandbox_admin_uri1);
 // Switch the communication stack if >= 8.0.27
 if (__version_num >= 80027) {
-    cluster = dba.rebootClusterFromCompleteOutage("mycluster", {switchCommunicationStack: "mysql", rejoinInstances: [__endpoint2]});
+    cluster = dba.rebootClusterFromCompleteOutage("mycluster", {switchCommunicationStack: "mysql"});
 } else {
-    cluster = dba.rebootClusterFromCompleteOutage("mycluster", {rejoinInstances: [__endpoint2]});
+    cluster = dba.rebootClusterFromCompleteOutage("mycluster");
 }
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
