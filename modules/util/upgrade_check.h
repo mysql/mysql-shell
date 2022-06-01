@@ -199,6 +199,8 @@ class Sql_upgrade_check : public Upgrade_check {
       std::shared_ptr<mysqlshdk::db::ISession> session,
       const Upgrade_check_options &options) override;
 
+  const std::vector<std::string> &get_queries() const { return m_queries; }
+
  protected:
   virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
   const char *get_description_internal() const override;

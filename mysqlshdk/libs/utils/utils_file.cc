@@ -298,10 +298,11 @@ std::string get_library_folder() {
 #ifdef HAVE_LIBEXEC_DIR
 std::string get_libexec_folder() {
   std::string path =
-      shcore::path::join_path(get_mysqlx_home_path(), "libexec", "mysqlsh");
+      shcore::path::join_path(get_mysqlx_home_path(), LIBEXECDIR, "mysqlsh");
   if (!shcore::path::exists(path))
     throw std::runtime_error(
-        path + ": libexec folder not found, shell installation likely invalid");
+        path + ": " + LIBEXECDIR +
+        " folder not found, shell installation likely invalid");
 
   return path;
 }

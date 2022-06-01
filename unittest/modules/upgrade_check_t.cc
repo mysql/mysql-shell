@@ -28,6 +28,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 
 using Version = mysqlshdk::utils::Version;
 
@@ -746,7 +747,66 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
       "values less than ('2019-02-22 10:17:03'), partition p2 values less than "
       "(maxvalue));"));
 
-  EXPECT_NO_ISSUES(check.get());
+  // List of file names that cause problem on windows, when they are used in
+  // schemas or tables, such names are are registered in i_s.innodb_sys_tables
+  // by appending @@@ but not in i_s.tables
+  std::vector<std::string> reserved_names = {
+      "CLOCK$", "CON",  "PRN",  "AUX",  "NUL",  "COM1", "COM2", "COM3",
+      "COM4",   "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+      "LPT3",   "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"};
+  for (const auto &schema_name : reserved_names) {
+    PrepareTestDatabase(schema_name);
+    for (const auto &table_name : reserved_names) {
+      EXPECT_NO_THROW(
+          session->execute("create table `" + table_name + "` (i integer);"));
+    }
+  }
+
+  // NOTE: Due to the impossibility of setting the state for some scenarios
+  // (server crash required and inability to insert records into the
+  // innodb_sy_table) the following test will exercise the query used on this
+  // check on a test schema, to make sure it returns the correct table name in
+  // the following scenarios (orphan tables in all cases):
+  // - Normal Table
+  // - Temporary Table
+  // - Partitioned Table (Non Windows)
+  // - Partitioned Table (Windows)
+
+  // Creates the test schema with a copy of the required tables
+  PrepareTestDatabase("orphan_table_query_test");
+  EXPECT_NO_THROW(
+      session->execute("create table innodb_sys_tables as select * from "
+                       "information_schema.innodb_sys_tables"));
+  EXPECT_NO_THROW(session->execute(
+      "create table tables as select * from information_schema.tables"));
+
+  // Inserts the orphan table records in the fake innodb_sys_tables
+  EXPECT_NO_THROW(session->execute(
+      "insert into innodb_sys_tables values"
+      "(1, 'test1/normal', 1, 1, 1, 'Barracuda', 'Dynamic', 0, 'Single'),"
+      "(2, 'test2/#sql2-65bb-2', 1, 1, 1, 'Barracuda', 'Dynamic', 0, 'Single'),"
+      "(3, 'test3/partitioned#P#p1', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
+      "'Single'),"
+      "(4, 'test4/partitionedWin#p#p1', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
+      "'Single')"));
+
+  // Gets the query from the check, and tweaks is to use a test schema and adds
+  // order by clause for test consistency
+  std::string query = check->get_queries().at(0);
+  query = shcore::str_replace(query, "information_schema",
+                              "orphan_table_query_test");
+  query.pop_back();
+  query += " order by schema_name";
+  auto result = session->query(query);
+
+  // Validates the table names are retrieved as expected on each case
+  std::vector<std::string> expected = {"normal", "#sql2-65bb-2", "partitioned",
+                                       "partitionedWin"};
+
+  for (const auto &table : expected) {
+    auto row = result->fetch_one();
+    EXPECT_STREQ(table.c_str(), row->get_string(1).c_str());
+  }
 }
 
 TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {

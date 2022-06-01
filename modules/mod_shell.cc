@@ -1184,10 +1184,13 @@ bool Shell::reconnect() {
   bool ret_val = false;
 
   try {
-    _shell_core->get_dev_session()->reconnect();
-    ret_val = true;
+    const auto session = _shell_core->get_dev_session();
+
+    if (session) {
+      session->reconnect();
+      ret_val = true;
+    }
   } catch (const shcore::Exception &e) {
-    ret_val = false;
   }
 
   return ret_val;
