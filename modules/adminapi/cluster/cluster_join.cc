@@ -323,6 +323,49 @@ void Cluster_join::store_cloned_replication_account() const {
       recovery_user, recovery_user_host);
 }
 
+void Cluster_join::store_local_replication_account() const {
+  // Insert the recovery account created for the joining member in all
+  // cluster instances and also itself
+  //
+  // This is required when using clone with waitRecovery zero and the commStack
+  // in use by the Cluster is MySQL.
+  // The reason is that with this commStack when an instance joins the Cluster
+  // the recovery account created for it is set to be used by the replication
+  // channel in all Cluster members and itself. Only when the whole joining
+  // process finishes the command can reconfigure the recovery account in every
+  // single active member of the cluster to use its own GR recovery replication
+  // credentials and not the one that was created for the joining instance.
+  // However, when waitRecovery is zero this cannot be done. To avoid
+  // removeInstance() dropping an account still in use, we must insert it in the
+  // MD schema for every cluster member (similar to what's done in
+  // store_cloned_replication_account()).
+  log_debug("Adding joining member recovery account to metadata");
+  m_cluster->execute_in_members(
+      [this](const std::shared_ptr<Instance> &instance,
+             const Instance_md_and_gr_member &info) {
+        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
+          try {
+            m_cluster->get_metadata_storage()->update_instance_repl_account(
+                instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+                m_gr_opts.recovery_credentials->user, m_account_host);
+          } catch (const std::exception &e) {
+            log_info(
+                "Failed updating Metatada of '%s' to include the recovery "
+                "account of the joining member",
+                instance->descr().c_str());
+          }
+        }
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
+
+  m_cluster->get_metadata_storage()->update_instance_repl_account(
+      m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+      m_gr_opts.recovery_credentials->user, m_account_host);
+}
+
 void Cluster_join::restore_group_replication_account() const {
   // See note in store_cloned_replication_account()
   std::string source_term = mysqlshdk::mysql::get_replication_source_keyword(
@@ -1390,7 +1433,12 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
 
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
-        store_cloned_replication_account();
+        if (m_comm_stack == kCommunicationStackMySQL &&
+            progress_style == Recovery_progress_style::NOWAIT) {
+          store_local_replication_account();
+        } else {
+          store_cloned_replication_account();
+        }
       }
     }
 
@@ -1438,7 +1486,14 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
     //
     // 5) server1 goes offline and restarts
     //  recovery kicks-in, using mysql_innodb_cluster_1 -> OK
-    if (m_comm_stack == kCommunicationStackMySQL) {
+    //
+    // NOTE: if waitRecovery is zero we cannot do it because
+    // restore_recovery_account_all_members() will happen before clone has
+    // finished so the credentials for the replication channel (that are cloned
+    // to the instance joining) won't match since they were already reset in the
+    // Cluster by restore_recovery_account_all_members().
+    if (m_comm_stack == kCommunicationStackMySQL &&
+        progress_style != Recovery_progress_style::NOWAIT) {
       restore_recovery_account_all_members();
     }
 
@@ -1523,6 +1578,12 @@ void Cluster_join::rejoin() {
       m_cluster->get_metadata_storage()->get_cluster_size(m_cluster->get_id()) -
       1;
 
+  // we need a point in time as close as possible, but still earlier than
+  // when recovery starts to monitor the recovery phase. The timestamp
+  // resolution is timestamp(3) irrespective of platform
+  std::string join_begin_time =
+      m_target_instance->queryf_one_string(0, "", "SELECT NOW(3)");
+
   // If using 'MySQL' communication stack, the account must already
   // exist in the rejoining member since authentication is based on MySQL
   // credentials so the account must exist in both ends before GR
@@ -1548,6 +1609,18 @@ void Cluster_join::rejoin() {
                              cluster_count, cfg.get());
 
   if (m_comm_stack == kCommunicationStackMySQL) {
+    // We cannot call restore_recovery_account_all_members() without knowing
+    // whether recovery has started already, otherwise, the credentials for
+    // the replication channel won't match since they were already reset in the
+    // Cluster. So we must wait for recovery to start before restoring the
+    // recovery accounts.
+    //
+    // TODO(anyone): whenever clone support is added to rejoinInstance() the
+    // call to wait_recovery_start can be removed since wait_recovery() will be
+    // used, regardless of the communication stack.
+    wait_recovery_start(m_target_instance->get_connection_options(),
+                        join_begin_time, k_recovery_start_timeout);
+
     restore_recovery_account_all_members();
   }
 
@@ -1578,8 +1651,8 @@ void Cluster_join::reboot() {
   //
   // For those reasons, we must simply re-create the recovery account
   if (m_gr_opts.communication_stack.get_safe() == kCommunicationStackMySQL) {
-    // If it's a Replica cluster, we must disable the binary logging and ensure
-    // the are created later
+    // If it's a Replica cluster, we must disable the binary logging and
+    // ensure the are created later
     if (m_cluster->is_cluster_set_member() &&
         !m_cluster->is_primary_cluster()) {
       m_target_instance->execute("SET session sql_log_bin = 0");
@@ -1665,10 +1738,10 @@ void Cluster_join::reboot() {
         m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
         repl_account.user, repl_account_host);
 
-    // Set the allowlist to 'AUTOMATIC' to ensure no older values are used since
-    // reboot will re-use the values persisted in the instance
-    // NOTE: AUTOMATIC because there's no other allowed value when using the
-    // 'MySQL' communication stack
+    // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
+    // since reboot will re-use the values persisted in the instance NOTE:
+    // AUTOMATIC because there's no other allowed value when using the 'MySQL'
+    // communication stack
     m_gr_opts.ip_allowlist = "AUTOMATIC";
   }
 

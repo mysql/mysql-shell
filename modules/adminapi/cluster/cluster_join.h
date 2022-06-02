@@ -125,6 +125,7 @@ class Cluster_join {
   void log_used_gr_options();
   void ensure_unique_server_id() const;
   void store_cloned_replication_account() const;
+  void store_local_replication_account() const;
   void restore_group_replication_account() const;
   void check_cluster_members_limit() const;
 
