@@ -786,11 +786,12 @@ class Dumper::Table_worker final {
 
     const auto row_count = [&info, &comment, this](const auto begin,
                                                    const auto end) {
-      return query("EXPLAIN SELECT COUNT(*) FROM " + info.table->quoted_name +
-                   info.partition + where(between(info, begin, end)) +
-                   info.order_by + comment)
-          ->fetch_one_or_throw()
-          ->get_uint(info.explain_rows_idx);
+      return to_uint64_t(query("EXPLAIN SELECT COUNT(*) FROM " +
+                               info.table->quoted_name + info.partition +
+                               where(between(info, begin, end)) +
+                               info.order_by + comment)
+                             ->fetch_one_or_throw()
+                             ->get_as_string(info.explain_rows_idx));
     };
 
     while (delta > info.accuracy && retry < k_chunker_retries) {
