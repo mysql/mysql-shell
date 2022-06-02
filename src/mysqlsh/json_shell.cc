@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ void Json_shell::process_line(const std::string &line) {
       if (doc["execute"].IsString()) {
         std::string data = doc["execute"].GetString();
         log_debug2("CODE:\n%s", data.c_str());
-        std::vector<std::string> lines = shcore::split_string(data, "\\n");
+        std::vector<std::string> lines = shcore::split_string(data, "\n");
         for (const auto &code : lines) {
           Mysql_shell::process_line(code);
         }

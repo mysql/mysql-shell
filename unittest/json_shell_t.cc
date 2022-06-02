@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,21 +160,21 @@ TEST(Json_shell, incomplete_javascript) {
           R"*(function sample() {
         print("sample");
       )*",
-          "{\"error\":\"SyntaxError: Unexpected end of input at (shell):4:1"},
+          "{\"error\":\"SyntaxError: Unexpected end of input at (shell):2:1"},
       {
           R"*(function sample() {
         print("sample";
         }
       )*",
           "{\"error\":\"SyntaxError: missing ) after argument list at "
-          "(shell):2:15"},
+          "(shell):1:15"},
       {
           R"*(function sample() {
         print("sample);
         }
       )*",
           "{\"error\":\"SyntaxError: Invalid or unexpected token at "
-          "(shell):2:15"},
+          "(shell):1:15"},
   };  // namespace mysqlsh
 
   for (const auto &input : invalid_inputs) {
@@ -188,7 +188,7 @@ TEST(Json_shell, incomplete_javascript) {
     shell.process_line(doc.str());
     SCOPED_TRACE("Testing: " + std::get<0>(input));
     EXPECT_THAT(capture, ::testing::HasSubstr(std::get<1>(input)));
-    capture.clear();
+    capture = "";
   }
 
   current_console()->remove_print_handler(&handler);
@@ -290,7 +290,9 @@ where user = 'weirdo)*",
 }
 
 TEST(Json_shell, js_completed_without_new_line) {
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_interactive(true);
+  mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\js\"}"});
 
   std::string capture;
@@ -320,7 +322,9 @@ TEST(Json_shell, js_completed_without_new_line) {
 }
 
 TEST(Json_shell, py_completed_without_new_line) {
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_interactive(true);
+  mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\py\"}"});
 
   std::string capture;
@@ -380,4 +384,35 @@ TEST(Json_shell, sql_completed_without_delimiter) {
   shell.process_line({"{\"execute\":\"\\\\disconnect\"}"});
 }
 
+TEST(Json_shell, multiline_handling) {
+  auto options = std::make_shared<Shell_options>();
+  options->set_interactive(true);
+  mysqlsh::Json_shell shell(options);
+  shell.process_line({"{\"execute\":\"\\\\py\"}"});
+
+  std::string capture;
+  shcore::Interpreter_print_handler handler{&capture, print_capture,
+                                            print_capture, print_capture};
+  current_console()->add_print_handler(&handler);
+
+  // The processing of the following function will make the shell enter in
+  // multiline mode, expecting for an empty line to get out, however, the
+  // JSON_shell expects complete statements so it will force the execution of
+  // the code, exiting the multiline mode and letting the shell ready for the
+  // next command
+  shcore::JSON_dumper doc;
+  doc.start_object();
+  doc.append_string("execute");
+  doc.append_string(R"*(print("first\nprint\ncall")
+print("second-print-call"))*");
+  doc.end_object();
+  capture.clear();
+
+  // No errors and the function is properly defined
+  shell.process_line(doc.str());
+  EXPECT_THAT(capture,
+              ::testing::HasSubstr("{\"info\":\"first\\nprint\\ncall\"}"));
+  EXPECT_THAT(capture,
+              ::testing::HasSubstr("{\"info\":\"second-print-call\"}"));
+}
 }  // namespace mysqlsh
