@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -292,10 +292,11 @@ class Load_progress_log final {
 
   void end_table_chunk(const std::string &schema, const std::string &table,
                        const std::string &partition, ssize_t index,
-                       size_t bytes_loaded, size_t raw_bytes_loaded) {
+                       size_t bytes_loaded, size_t raw_bytes_loaded,
+                       size_t rows_loaded) {
     if (table_chunk_status(schema, table, partition, index) != Status::DONE)
       log_chunk_finished(schema, table, partition, index, bytes_loaded,
-                         raw_bytes_loaded);
+                         raw_bytes_loaded, rows_loaded);
   }
 
   void start_table_subchunk(const std::string &schema, const std::string &table,
@@ -396,10 +397,12 @@ class Load_progress_log final {
 
   void log_chunk_finished(const std::string &schema, const std::string &table,
                           const std::string &partition, ssize_t chunk_index,
-                          size_t bytes_loaded, size_t raw_bytes_loaded) {
+                          size_t bytes_loaded, size_t raw_bytes_loaded,
+                          size_t rows_loaded) {
     log_chunk(true, schema, table, partition, chunk_index, [&](Dumper *json) {
       json->append_uint64("bytes", bytes_loaded);
       json->append_uint64("raw_bytes", raw_bytes_loaded);
+      json->append_uint64("rows", rows_loaded);
     });
   }
 
