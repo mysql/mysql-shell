@@ -115,7 +115,7 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
-        "status": "OK_NO_TOLERANCE",
+        "status": "OK_NO_TOLERANCE_PARTIAL",
         "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
@@ -166,7 +166,7 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
-        "status": "OK_NO_TOLERANCE",
+        "status": "OK_NO_TOLERANCE_PARTIAL",
         "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {

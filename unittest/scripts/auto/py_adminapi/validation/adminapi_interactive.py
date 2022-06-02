@@ -737,7 +737,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "DISABLED",
-        "status": "OK_NO_TOLERANCE",
+        "status": "OK_NO_TOLERANCE_PARTIAL",
         "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {

@@ -193,7 +193,10 @@ shcore::Dictionary_t Status::check_group_status(
 
       desc_status = "Cluster was invalidated by the ClusterSet it belongs to.";
     } else if (number_of_failures_tolerated == 0) {
-      rs_status = Cluster_status::OK_NO_TOLERANCE;
+      if (missing_from_group > 0 || total_in_group != quorum_size)
+        rs_status = Cluster_status::OK_NO_TOLERANCE_PARTIAL;
+      else
+        rs_status = Cluster_status::OK_NO_TOLERANCE;
 
       desc_status = "Cluster is NOT tolerant to any failures.";
     } else {

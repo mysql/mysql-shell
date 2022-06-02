@@ -338,7 +338,7 @@ false
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
+        "status": "OK_NO_TOLERANCE_PARTIAL",
         "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {

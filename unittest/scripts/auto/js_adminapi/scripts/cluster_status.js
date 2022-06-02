@@ -5,6 +5,11 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 
+if (testutil.versionCheck(__version, "<", "8.0.0")) {
+  testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+  var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
+}
+
 shell.connect(__sandbox_uri1);
 
 var cluster;
@@ -462,6 +467,20 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Status cluster after adding R/O instance back
 cluster.status()
+
+//@<> Check for OK_NO_TOLERANCE_PARTIAL (BUG#33989031)
+if (testutil.versionCheck(__version, "<", "8.0.0"))
+  dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: mycnf3});
+
+testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
+
+status = cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["status"], "OK_NO_TOLERANCE_PARTIAL")
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["status"], "(MISSING)")
+
+testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> Execute status from a read-only member of the cluster
 cluster.disconnect();
