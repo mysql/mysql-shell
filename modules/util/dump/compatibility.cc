@@ -1600,5 +1600,61 @@ std::string strip_default_role(const std::string &create_user,
   return ret;
 }
 
+bool contains_sensitive_information(const std::string &statement) {
+  // skip quoted strings, we're not interested in these
+  SQL_iterator it(statement);
+
+  while (it) {
+    const auto token = it.next_token();
+
+    if (shcore::str_caseeq_mv(token, "IDENTIFIED", "PASSWORD")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+std::string replace_quoted_strings(const std::string &statement,
+                                   std::string_view replacement,
+                                   std::vector<std::string> *replaced) {
+  assert(replaced);
+
+  replaced->clear();
+
+  std::string rewritten;
+  SQL_iterator it(statement, 0, false);
+  const auto starts_with_quote = [](std::string_view s) {
+    return '\'' == s[0] || '"' == s[0];
+  };
+  const auto needs_quotes = !starts_with_quote(replacement);
+
+  while (it) {
+    auto token = it.next_token();
+
+    if (starts_with_quote(token)) {
+      if (needs_quotes) {
+        rewritten += '"';
+      }
+
+      rewritten += replacement;
+
+      if (needs_quotes) {
+        rewritten += '"';
+      }
+
+      replaced->emplace_back(std::move(token));
+    } else {
+      rewritten += token;
+    }
+
+    if (std::isspace(statement[it.position()])) {
+      rewritten += ' ';
+    }
+  }
+
+  return rewritten;
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

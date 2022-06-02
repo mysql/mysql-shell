@@ -152,8 +152,7 @@ void add_invisible_pk(std::string *script, const std::string &key) {
 }
 
 void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
-                       const std::string_view &stmt,
-                       const std::string &error_prefix) {
+                       std::string_view stmt, const std::string &error_prefix) {
   assert(!error_prefix.empty());
 
   constexpr uint32_t k_max_retry_time = 5 * 60 * 1000;  // 5 minutes
@@ -165,12 +164,25 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
       session->executes(stmt.data(), stmt.length());
       return;
     } catch (const mysqlshdk::db::Error &e) {
-      log_info("Error executing SQL: %s:\n%.*s", e.format().c_str(),
-               static_cast<int>(stmt.length()), stmt.data());
+      const std::string stmt_str{stmt};
+      const auto sensitive =
+          compatibility::contains_sensitive_information(stmt_str);
+      constexpr std::string_view replacement = "'****'";
+      std::vector<std::string> replaced;
+      const auto &query = sensitive ? compatibility::replace_quoted_strings(
+                                          stmt_str, replacement, &replaced)
+                                    : stmt_str;
+      auto error = e.format();
+
+      for (const auto &replace : replaced) {
+        error = shcore::str_replace(error, replace, replacement);
+      }
+
+      log_info("Error executing SQL: %s:\n%s", error.c_str(), query.c_str());
 
       if (ER_LOCK_DEADLOCK == e.code() && total_sleep_time < k_max_retry_time) {
-        current_console()->print_note(
-            error_prefix + ", will retry after delay: " + e.format());
+        current_console()->print_note(error_prefix +
+                                      ", will retry after delay: " + error);
 
         if (total_sleep_time + sleep_time > k_max_retry_time) {
           sleep_time = k_max_retry_time - total_sleep_time;
@@ -182,8 +194,7 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
         sleep_time *= 2;
       } else {
         current_console()->print_error(shcore::str_format(
-            "%s: %s: %.*s", error_prefix.c_str(), e.format().c_str(),
-            static_cast<int>(stmt.length()), stmt.data()));
+            "%s: %s: %s", error_prefix.c_str(), error.c_str(), query.c_str()));
         throw;
       }
     }

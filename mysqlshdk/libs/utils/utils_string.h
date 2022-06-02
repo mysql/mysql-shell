@@ -385,9 +385,8 @@ inline std::string str_join(
   return str_join(container.begin(), container.end(), sep, f);
 }
 
-std::string SHCORE_PUBLIC str_replace(const std::string &s,
-                                      const std::string &from,
-                                      const std::string &to);
+std::string SHCORE_PUBLIC str_replace(std::string_view s, std::string_view from,
+                                      std::string_view to);
 
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
 std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);

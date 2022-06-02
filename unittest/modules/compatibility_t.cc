@@ -2462,5 +2462,39 @@ TEST_F(Compatibility_test, strip_default_role) {
       "UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE");
 }
 
+TEST_F(Compatibility_test, contains_sensitive_information) {
+  EXPECT_TRUE(
+      contains_sensitive_information("CREATE USER tmp IDENTIFIEd BY 'pwd'"));
+  EXPECT_TRUE(contains_sensitive_information("SET PASSWORd = 'pwd'"));
+  EXPECT_FALSE(contains_sensitive_information(""));
+  EXPECT_FALSE(contains_sensitive_information("SELECT 'password'"));
+  EXPECT_FALSE(contains_sensitive_information("SELECT \"IDENTIFIED\""));
+}
+
+TEST_F(Compatibility_test, replace_quoted_strings) {
+  const auto EXPECT = [](const std::string &statement,
+                         std::string_view replacement,
+                         const std::string &expected_result,
+                         const std::vector<std::string> &expected_replaced) {
+    SCOPED_TRACE(statement);
+
+    std::vector<std::string> replaced;
+    EXPECT_EQ(expected_result,
+              replace_quoted_strings(statement, replacement, &replaced));
+    EXPECT_EQ(expected_replaced, replaced);
+  };
+
+  EXPECT("", "<secret>", "", {});
+  EXPECT("INSERT INTO s.`t1` VALUES (\"one\", 'two', three, 4)", "<secret>",
+         "INSERT INTO s.`t1` VALUES (\"<secret>\", \"<secret>\", three, 4)",
+         {"\"one\"", "'two'"});
+  EXPECT("INSERT INTO s.`t2` VALUES (\"one\", 'two', three, 4)", "'<secret>'",
+         "INSERT INTO s.`t2` VALUES ('<secret>', '<secret>', three, 4)",
+         {"\"one\"", "'two'"});
+  EXPECT("INSERT INTO s.`t3` VALUES (\"one\", 'two', three, 4)", "\"<secret>\"",
+         "INSERT INTO s.`t3` VALUES (\"<secret>\", \"<secret>\", three, 4)",
+         {"\"one\"", "'two'"});
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

@@ -2174,6 +2174,42 @@ EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.loadDump\(\): tid=\d+: MySQL Er
 #@<> BUG#33788895 - cleanup
 shell.options["logSql"] = old_log_sql
 
+#@<> BUG#34141432 - shell may expose sensitive information via error messages
+# constants
+dump_dir = os.path.join(outdir, "bug_34141432")
+
+# dump users and DDL, we're not interested in data
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "ddlOnly": True, "showProgress": False }), "Dump should not fail")
+
+# overwrite the users file with malformed CREATE USER statement
+testutil.create_file(os.path.join(dump_dir, "@.users.sql"), """
+-- MySQLShell dump 2.0.1  Distrib Ver 8.0.30 for Linux on x86_64 - for MySQL 8.0.30 (Source distribution), for Linux (x86_64)
+--
+-- Host: localhost
+-- ------------------------------------------------------
+-- Server version	8.0.30
+--
+-- Dumping user accounts
+--
+
+-- begin user 'airportdb'@'%'
+CREATE USER IF NOT EXISTS `airportdb`@`%` IDENTIFIED WITH 'mysql_native_password' USING '*AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+-- end user 'airportdb'@'%'
+
+-- begin grants 'airportdb'@'%'
+GRANT SELECT, INSERT, UPDATE, DELETE ON *.* TO `airportdb`@`%` WITH GRANT OPTION;
+-- end grants 'airportdb'@'%'
+
+-- End of dumping user accounts
+""")
+
+# load users, it should fail as CREATE USER statement has a syntax error, but password should not be exposed
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "You have an error in your SQL syntax")
+EXPECT_STDOUT_NOT_CONTAINS("AA")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
