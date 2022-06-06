@@ -69,6 +69,7 @@ file(GLOB api_module_SOURCES
       "util/json_importer.cc"
       "util/mod_util.cc"
       "util/upgrade_check.cc"
+      "util/upgrade_check_formatter.cc"
       "mod_mysql.cc"
       "mod_mysql_*.cc"
       "mod_mysqlsh.cc"

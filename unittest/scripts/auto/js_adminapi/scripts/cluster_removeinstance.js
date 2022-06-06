@@ -315,6 +315,8 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, se
 shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {expelTimeout: 0});
 
+var comm_stack = c.status({extended: 1})["defaultReplicaSet"]["communicationStack"];
+
 //@<> WL#13208: Add instance 2 using clone {VER(>=8.0.17)}
 c.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
 
@@ -567,12 +569,20 @@ c.removeInstance(__sandbox_uri1);
 c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
-//   Recovery Accounts
+//   Recovery Accounts (commStack XCOM)
 //   |------------|---------------------------|---------------------------|
 //   |////////////| recovery account in use   | recovery account in md    |
 //   |____________|___________________________|___________________________|
 // RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
 // RO| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+//   |------------|---------------------------|---------------------------|
+
+//   Recovery Accounts (commStack MYSQL)
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 2 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
+// RO| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
 //   |------------|---------------------------|---------------------------|
 
 // Get the recovery user created for instance 1 (mysql_innodb_cluster_1111)
@@ -600,7 +610,9 @@ var all_users = get_all_users(session);
 EXPECT_TRUE(users_in_use.includes(recovery_account));
 
 // Validate that the recovery account generated for the instance was dropped from the cluster
-EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+if (comm_stack == "XCOM") {
+  EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+}
 
 // Add instance 1 back with clone and waitRecovery:0 so that the recovery
 // account is not updated and the one from the seed is used by the target instance
@@ -608,12 +620,20 @@ testutil.startSandbox(__mysql_sandbox_port1);
 c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
-//   Recovery Accounts
+//   Recovery Accounts (commStack XCOM)
 //   |------------|---------------------------|---------------------------|
 //   |////////////| recovery account in use   | recovery account in md    |
 //   |____________|___________________________|___________________________|
 // RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
 // RO| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+//   |------------|---------------------------|---------------------------|
+
+//   Recovery Accounts (commStack MYSQL)
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 2 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
+// RO| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
 //   |------------|---------------------------|---------------------------|
 
 // Stop GR on instance 1, leaving it reachable
@@ -636,7 +656,9 @@ var users_in_use = get_all_recovery_accounts(session);
 EXPECT_TRUE(users_in_use.includes(recovery_account));
 
 // Validate that the recovery account generated for the instance was dropped from the cluster
-EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+if (comm_stack == "XCOM") {
+  EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
+}
 
 // Add instance 1 back to the cluster
 c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
@@ -645,12 +667,20 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 // Change the primary to instance 1
 c.setPrimaryInstance(__sandbox_uri1);
 
-//   Recovery Accounts
+//   Recovery Accounts (commStack XCOM)
 //   |------------|---------------------------|---------------------------|
 //   |////////////| recovery account in use   | recovery account in md    |
 //   |____________|___________________________|___________________________|
 // RW| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
 // RO| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
+//   |------------|---------------------------|---------------------------|
+
+//   Recovery Accounts (commStack MYSQL)
+//   |------------|---------------------------|---------------------------|
+//   |////////////| recovery account in use   | recovery account in md    |
+//   |____________|___________________________|___________________________|
+// RW| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
+// RO| instance 2 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
 //   |------------|---------------------------|---------------------------|
 
 // Remove instance 2 from the cluster

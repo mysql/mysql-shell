@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -621,21 +621,22 @@ Result TableUpdate::execute() {}
 #endif
 //@}
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
 
+  std::shared_ptr<mysqlsh::mysqlx::Result> result;
   try {
-    result.reset(new mysqlx::Result(safe_exec([this]() {
+    result = std::make_shared<mysqlx::Result>(safe_exec([this]() {
       update_limits();
       insert_bound_values(message_.mutable_args());
       return session()->session()->execute_crud(message_);
-    })));
+    }));
 
     update_functions(F::execute);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
-  return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
+  return result ? shcore::Value::wrap(std::move(result))
+                : shcore::Value::Null();
 }
 
 void TableUpdate::set_prepared_stmt() {

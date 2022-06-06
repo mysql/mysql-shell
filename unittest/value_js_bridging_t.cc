@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,8 +170,8 @@ class Environment {
 
     js = new JScript_context(&reg);
 
-    js->set_global(
-        "sys", shcore::Value::wrap<mysqlsh::Sys>(new mysqlsh::Sys(nullptr)));
+    js->set_global("sys", shcore::Value::wrap<mysqlsh::Sys>(
+                              std::make_shared<mysqlsh::Sys>(nullptr)));
   }
 
   ~Environment() { delete js; }

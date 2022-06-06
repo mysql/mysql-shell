@@ -68,7 +68,7 @@ pc = dba.getCluster();
 EXPECT_EQ("NO_QUORUM", pc.status()["defaultReplicaSet"]["status"]);
 
 pc.forceQuorumUsingPartitionOf(__sandbox_uri3);
-EXPECT_EQ("OK_NO_TOLERANCE", pc.status()["defaultReplicaSet"]["status"]);
+EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", pc.status()["defaultReplicaSet"]["status"]);
 
 //@<> reboot
 session.runSql("stop group_replication");

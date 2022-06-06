@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -397,19 +397,21 @@ Result TableInsert::execute() {}
 #endif
 //@}
 shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
-  std::unique_ptr<mysqlsh::mysqlx::Result> result;
   args.ensure_count(0, get_function_name("execute").c_str());
+
+  std::shared_ptr<mysqlsh::mysqlx::Result> result;
   try {
     if (message_.mutable_row()->size()) {
-      result.reset(new mysqlsh::mysqlx::Result(safe_exec(
-          [this]() { return session()->session()->execute_crud(message_); })));
+      result = std::make_shared<mysqlsh::mysqlx::Result>(safe_exec(
+          [this]() { return session()->session()->execute_crud(message_); }));
     } else {
-      result.reset(new mysqlsh::mysqlx::Result({}));
+      result = std::make_shared<mysqlsh::mysqlx::Result>(nullptr);
     }
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
-  return result ? shcore::Value::wrap(result.release()) : shcore::Value::Null();
+  return result ? shcore::Value::wrap(std::move(result))
+                : shcore::Value::Null();
 }
 
 }  // namespace mysqlx

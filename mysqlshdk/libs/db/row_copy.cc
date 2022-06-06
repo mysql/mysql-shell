@@ -57,8 +57,6 @@ namespace db {
   if (!(TYPE_CHECK))                                                          \
     throw FIELD_ERROR1(index, "field type is %s", to_string(ftype).c_str());
 
-Mem_row::Mem_row() {}
-
 Row_copy::Row_copy(const IRow &row) {
   _data = std::make_shared<Data>();
   _data->types.reserve(row.num_fields());
@@ -129,15 +127,6 @@ Row_copy::Row_copy(const IRow &row) {
         break;
     }
   }
-}
-
-Mem_row::Mem_row(const Mem_row &row) : IRow() { _data = row._data; }
-
-Mem_row &Mem_row::operator=(const Mem_row &row) {
-  if (this != &row) {
-    _data = row._data;
-  }
-  return *this;
 }
 
 Type Mem_row::get_type(uint32_t index) const {
@@ -323,6 +312,5 @@ void Mem_row::add_field(Type type) {
   _data->fields.push_back(nullptr);
 }
 
-Mutable_row::~Mutable_row() {}
 }  // namespace db
 }  // namespace mysqlshdk

@@ -179,6 +179,7 @@ class Dump_loader {
 
       size_t bytes_loaded = 0;
       size_t raw_bytes_loaded = 0;
+      size_t rows_loaded = 0;
 
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
@@ -354,7 +355,8 @@ class Dump_loader {
                            const std::string &partition, ssize_t index);
   void on_chunk_load_end(const std::string &schema, const std::string &table,
                          const std::string &partition, ssize_t index,
-                         size_t bytes_loaded, size_t raw_bytes_loaded);
+                         size_t bytes_loaded, size_t raw_bytes_loaded,
+                         size_t rows_loaded);
 
   void on_subchunk_load_start(const std::string &schema,
                               const std::string &table,

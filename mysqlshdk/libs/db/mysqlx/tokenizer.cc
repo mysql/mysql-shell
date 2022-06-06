@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -514,7 +514,7 @@ void Tokenizer::assert_tok_position() {
     throw Parser_error("Unexpected end of expression.");
 }
 
-bool Tokenizer::tokens_available() { return _pos < _tokens.size(); }
+bool Tokenizer::tokens_available() const { return _pos < _tokens.size(); }
 
 bool Tokenizer::is_interval_units_type() {
   assert_tok_position();

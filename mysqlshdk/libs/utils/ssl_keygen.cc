@@ -48,6 +48,14 @@
 namespace shcore {
 namespace ssl {
 namespace {
+
+struct SSLInit {
+  std::once_flag flag;
+  SSLInit() {
+    std::call_once(flag, []() { SSL_library_init(); });
+  }
+} s_ssl_init;
+
 using BN_ptr = std::unique_ptr<BIGNUM, decltype(&::BN_free)>;
 #if OPENSSL_VERSION_NUMBER < 0x30000000L /* 3.0.x */
 using RSA_ptr = std::unique_ptr<RSA, decltype(&::RSA_free)>;
@@ -126,8 +134,6 @@ std::string get_fingerprint(EVP_PKEY *key_ptr) {
 }
 
 }  // namespace
-
-void init() { SSL_library_init(); }
 
 std::string load_private_key(const std::string &path, Password_callback pwd_cb,
                              void *user_data) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,8 @@ class Expr_parser {
     return _tokenizer.begin();
   }
   std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
+
+  bool tokens_available() const { return _tokenizer.tokens_available(); }
 
  protected:
   struct operator_list {

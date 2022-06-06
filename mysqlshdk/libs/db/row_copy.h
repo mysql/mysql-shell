@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #ifndef MYSQLSHDK_LIBS_DB_ROW_COPY_H_
 #define MYSQLSHDK_LIBS_DB_ROW_COPY_H_
 
+#include <cassert>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -40,10 +41,12 @@ namespace db {
 
 class SHCORE_PUBLIC Mem_row : public IRow {
  public:
-  Mem_row();
-  Mem_row(const Mem_row &row);
-  Mem_row &operator=(const Mem_row &row);
-  virtual ~Mem_row() {}
+  Mem_row() = default;
+  Mem_row(const Mem_row &) = delete;
+  Mem_row &operator=(const Mem_row &) = delete;
+  Mem_row(Mem_row &&) = default;
+  Mem_row &operator=(Mem_row &&) = default;
+  virtual ~Mem_row() = default;
 
   uint32_t num_fields() const override;
 
@@ -71,21 +74,22 @@ class SHCORE_PUBLIC Mem_row : public IRow {
   void add_field(Type type, uint32_t offset);
 
  protected:
-  class Field_data_ {
-   public:
-    virtual ~Field_data_() {}
+  struct Field_data_ {
+    virtual ~Field_data_() = default;
   };
 
   template <typename T>
-  class Field_data : public Field_data_ {
-   public:
+  struct Field_data : public Field_data_ {
     explicit Field_data(const T &v) : value(v) {}
-    explicit Field_data(T &&v) : value(std::move(v)) {}
+    explicit Field_data(T &&v) noexcept : value(std::move(v)) {}
     T value;
   };
 
   template <typename T>
-  const T &get(int field) const {
+  const T &get(size_t field) const {
+    assert(field < _data->fields.size());
+    if (field >= _data->fields.size())
+      throw std::invalid_argument("Attempt to access invalid field");
     return static_cast<Field_data<T> *>(_data->fields[field].get())->value;
   }
 
@@ -93,10 +97,9 @@ class SHCORE_PUBLIC Mem_row : public IRow {
     std::vector<Type> types;
     std::vector<std::unique_ptr<Field_data_>> fields;
 
-    Data() {}
-
-    explicit Data(const std::vector<Type> &types_)
-        : types(types_), fields(types_.size()) {}
+    Data() = default;
+    explicit Data(std::vector<Type> types_)
+        : types(std::move(types_)), fields(types.size()) {}
   };
   std::shared_ptr<Data> _data;
   mutable std::string m_raw_data_cache;
@@ -111,11 +114,15 @@ class SHCORE_PUBLIC Mem_row : public IRow {
  */
 class SHCORE_PUBLIC Row_copy : public Mem_row {
  public:
+  Row_copy() = default;
+  virtual ~Row_copy() = default;
+
+  Row_copy(const Row_copy &row) = delete;
+  Row_copy &operator=(const Row_copy &row) = delete;
+  Row_copy(Row_copy &&) = default;
+  Row_copy &operator=(Row_copy &&) = default;
+
   explicit Row_copy(const IRow &row);
-
-  Row_copy() {}
-
-  virtual ~Row_copy() {}
 };
 
 /**
@@ -196,7 +203,7 @@ class SHCORE_PUBLIC Mutable_row : public Mem_row {
     set_row_values(std::forward<Args>(args)...);
   }
 
-  virtual ~Mutable_row();
+  virtual ~Mutable_row() = default;
 };
 
 }  // namespace db

@@ -63,12 +63,17 @@
 //@# CollectionModify: Error conditions on set
 ||CollectionModify.set: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.set: Argument #1 is expected to be a string
+||CollectionModify.set: Invalid document path
+||CollectionModify.set: Invalid document path
+||CollectionModify.set: Invalid document path
 
 //@# CollectionModify: Error conditions on unset
 ||CollectionModify.unset: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionModify.unset: Argument #1 is expected to be either string or list of strings
 ||CollectionModify.unset: Argument #1 is expected to be a string
 ||CollectionModify.unset: Element #2 is expected to be a string
+||CollectionModify.unset: Invalid document path
+||CollectionModify.unset: Invalid document path
 ||CollectionModify.unset: Invalid document path
 
 //@# CollectionModify: Error conditions on merge
@@ -83,17 +88,23 @@
 ||CollectionModify.arrayInsert: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.arrayInsert: Argument #1 is expected to be a string
 ||CollectionModify.arrayInsert: Invalid document path
+||CollectionModify.arrayInsert: Invalid document path
+||CollectionModify.arrayInsert: Invalid document path
 ||CollectionModify.arrayInsert: An array document path must be specified
 
 //@# CollectionModify: Error conditions on arrayAppend
 ||CollectionModify.arrayAppend: Invalid number of arguments, expected 2 but got 0
 ||CollectionModify.arrayAppend: Argument #1 is expected to be a string
 ||CollectionModify.arrayAppend: Invalid document path
+||CollectionModify.arrayAppend: Invalid document path
+||CollectionModify.arrayAppend: Invalid document path
 ||CollectionModify.arrayAppend: Unsupported value received: <Session:
 
 //@# CollectionModify: Error conditions on arrayDelete
 ||CollectionModify.arrayDelete: Invalid number of arguments, expected 1 but got
 ||CollectionModify.arrayDelete: Argument #1 is expected to be a string
+||CollectionModify.arrayDelete: Invalid document path
+||CollectionModify.arrayDelete: Invalid document path
 ||CollectionModify.arrayDelete: Invalid document path
 ||CollectionModify.arrayDelete: An array document path must be specified
 
@@ -788,3 +799,31 @@
 
 //@ CollectionModify: Patch removing the _id field (WL10856-ET_25)
 |Query OK, 0 items affected|
+
+//@<OUT> BUG#33795149 - set() + backtick quotes
+{
+    "_id": "5C514FF38144957BE71111C04E0D1253",
+    "name": "jack",
+    "name surname": "jack doe"
+}
+
+//@<OUT> BUG#33795149 - set() + doc path
+{
+    "_id": "5C514FF38144957BE71111C04E0D1253",
+    "name": "jack",
+    "home address": "NY",
+    "name surname": "jack doe"
+}
+
+//@<OUT> BUG#33795149 - unset() + backtick quotes
+{
+    "_id": "5C514FF38144957BE71111C04E0D1253",
+    "name": "jack",
+    "home address": "NY"
+}
+
+//@<OUT> BUG#33795149 - unset() + doc path
+{
+    "_id": "5C514FF38144957BE71111C04E0D1253",
+    "name": "jack"
+}

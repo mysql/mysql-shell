@@ -343,7 +343,9 @@ int object_compare(PyShObjObject *self, PyShObjObject *other) {
 PyObject *object_rich_compare(PyShObjObject *self, PyObject *other, int op);
 
 PyObject *object_printable(PyShObjObject *self) {
-  Value object((*self->object));
+  if (!self->object) return nullptr;
+
+  Value object(*self->object);
   std::string format = mysqlsh::current_shell_options()->get().wrap_json;
 
   if (format.find("json") == 0)

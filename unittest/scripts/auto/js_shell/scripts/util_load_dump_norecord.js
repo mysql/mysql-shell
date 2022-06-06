@@ -47,10 +47,13 @@ function check_load_progress(path) {
       table_ddl[key]=entry.done;
     } else if(entry.op=="TABLE-DATA") {
       key=entry.schema+"."+entry.table+"."+entry.chunk+"."+entry.partition;
-      if(entry.done)
+      if(entry.done) {
         EXPECT_TRUE(table_data[key]==false);
-      else
+        // BUG#34201239
+        EXPECT_TRUE(entry.rows !== undefined);
+      } else {
         EXPECT_TRUE(table_data[key]===undefined);
+      }
       table_data[key]=entry.done;
     } else {
       continue;

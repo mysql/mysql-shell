@@ -800,10 +800,11 @@ void Dump_loader::Worker::Load_chunk_task::load(
     std::rethrow_exception(loader->m_thread_exceptions[id()]);
 
   bytes_loaded = m_bytes_to_skip + stats.total_bytes;
+  rows_loaded = stats.total_records;
   loader->m_num_raw_bytes_loaded += raw_bytes_loaded;
 
   loader->m_num_chunks_loaded += 1;
-  loader->m_num_rows_loaded += stats.total_records;
+  loader->m_num_rows_loaded += rows_loaded;
   loader->m_num_warnings += stats.total_warnings;
 }
 
@@ -1600,7 +1601,7 @@ size_t Dump_loader::handle_worker_events(
 
         on_chunk_load_end(task->schema(), task->table(), task->partition(),
                           task->chunk_index(), task->bytes_loaded,
-                          task->raw_bytes_loaded);
+                          task->raw_bytes_loaded, task->rows_loaded);
         break;
       }
 
@@ -2890,9 +2891,10 @@ void Dump_loader::on_chunk_load_end(const std::string &schema,
                                     const std::string &table,
                                     const std::string &partition, ssize_t index,
                                     size_t bytes_loaded,
-                                    size_t raw_bytes_loaded) {
+                                    size_t raw_bytes_loaded,
+                                    size_t rows_loaded) {
   m_load_log->end_table_chunk(schema, table, partition, index, bytes_loaded,
-                              raw_bytes_loaded);
+                              raw_bytes_loaded, rows_loaded);
 
   m_unique_tables_loaded.insert(
       schema_table_object_key(schema, table, partition));

@@ -234,6 +234,11 @@ EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have be
 EXPECT_NO_THROWS(function() {c = dba.getCluster(); });
 
 // Dissolve the Cluster and verify all accounts and metadata are dropped (BUG#33239404)
+
+// Verify that the member actions are reset to the defaults too. The scenario on which the member actions wouldn't be reset is the one on which a Cluster is removed from a ClusterSet using the force option because it's unreachable. In this test-suite we cannot do that and since removeCluster() can contact the cluster to be removed it will reset the member actions. So to simulate that, we manually change the values of the member actions
+session4.runSql("SELECT group_replication_disable_member_action('mysql_start_failover_channels_if_primary', 'AFTER_PRIMARY_ELECTION')");
+session4.runSql("SELECT group_replication_disable_member_action('mysql_disable_super_read_only_if_primary', 'AFTER_PRIMARY_ELECTION')");
+
 c.dissolve();
 CHECK_DISSOLVED_CLUSTER(session);
 

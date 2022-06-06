@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -245,7 +245,7 @@ class Base_progress : public IProgress {
   std::string m_items_abbrev;
   std::string m_item_singular;
   std::string m_item_plural;
-  bool m_space_before_item;
+  bool m_space_before_item = true;
   bool m_total_is_approx = false;
 };
 

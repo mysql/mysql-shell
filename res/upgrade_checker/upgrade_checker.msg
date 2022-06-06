@@ -310,6 +310,22 @@ may impact you.
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication
 
+* defaultAuthenticationPluginMds.title
+New default authentication plugin considerations
+
+* defaultAuthenticationPluginMds.description
+# Warning
+Warning: The new default authentication plugin 'caching_sha2_password' offers more secure password
+hashing than previously used 'mysql_native_password' (and consequent improved client connection
+authentication). However, it also has compatibility implications that may affect existing MySQL
+installations.  If your MySQL installation must serve pre-8.0 clients, you may encounter
+compatibility issues after upgrading unless newly created accounts are created
+to use 'mysql_native_password'.
+
+* defaultAuthenticationPluginMds.docLink
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication
+
 * changedFunctionsInGeneratedColumnsCheck.title
 # Indexes on functions with changed semantics
 

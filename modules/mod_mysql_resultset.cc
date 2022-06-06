@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -534,7 +534,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
     if (_result) {
       while (std::unique_ptr<mysqlshdk::db::Warning> warning =
                  _result->fetch_one_warning()) {
-        mysqlsh::Row *warning_row = new mysqlsh::Row();
+        auto warning_row = std::make_shared<mysqlsh::Row>();
         switch (warning->level) {
           case mysqlshdk::db::Warning::Level::Note:
             warning_row->add_item("level", shcore::Value("Note"));
@@ -549,7 +549,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
         warning_row->add_item("code", shcore::Value(warning->code));
         warning_row->add_item("message", shcore::Value(warning->msg));
 
-        array->push_back(shcore::Value::wrap(warning_row));
+        array->push_back(shcore::Value::wrap(std::move(warning_row)));
       }
     }
 

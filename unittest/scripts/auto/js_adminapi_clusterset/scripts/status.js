@@ -359,6 +359,23 @@ EXPECT_EQ(["WARNING: Instance is NOT the global PRIMARY but super_read_only opti
 
 session5.runSql("set global super_read_only=1");
 
+//@<> Check for OK_NO_TOLERANCE_PARTIAL (BUG#33989031)
+c2.addInstance(__sandbox_uri2);
+
+var s = cs.status({extended:1});
+EXPECT_EQ("ONLINE", cluster2(s)["topology"][__address2h]["status"]);
+EXPECT_EQ("OK", cluster2(s)["status"]);
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+
+var s = cs.status({extended:1});
+EXPECT_EQ("(MISSING)", cluster2(s)["topology"][__address2h]["status"]);
+EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", cluster2(s)["status"]);
+
+testutil.startSandbox(__mysql_sandbox_port2);
+c2.removeInstance(__sandbox_uri2, {force: true});
+
 // Cluster Statuses
 // ----------------
 
@@ -393,7 +410,7 @@ EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
-EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
+EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", cluster2(s)["status"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ(["NOTE: group_replication is stopped."], instance5(s)["instanceErrors"]);

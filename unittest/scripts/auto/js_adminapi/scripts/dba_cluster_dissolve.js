@@ -134,6 +134,10 @@ testutil.waitMemberTransactions(__mysql_sandbox_port3);
 var cluster_id = get_cluster_id('single');
 var replicaset_ids = get_replicaset_ids(cluster_id);
 
+//@<> Change the defaults of GR member actions {VER(>=8.0.27)}
+session.runSql("SELECT group_replication_disable_member_action('mysql_start_failover_channels_if_primary', 'AFTER_PRIMARY_ELECTION')");
+session.runSql("SELECT group_replication_disable_member_action('mysql_disable_super_read_only_if_primary', 'AFTER_PRIMARY_ELECTION')");
+
 //@<> Success dissolving single-primary cluster
 // WL11889 FR3_01: force option not needed to remove cluster.
 // Regression for BUG#27837231: useless 'force' parameter for dissolve

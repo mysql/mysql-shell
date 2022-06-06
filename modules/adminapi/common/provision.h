@@ -52,13 +52,13 @@ namespace dba {
  *       variables on the instance itself.
  *
  * @param instance target Instance object to remove from the cluster.
- * @param is_cluster_set_member Boolean value to indicate if the instance was
- * part of a ClusterSet or not
+ * @param reset_member_actions Boolean value to indicate if the Group
+ * Replication member actions should be reset
  * @param reset_repl_channels Boolean value to indicate if the internal Group
  * Replication channel must be reset
  */
 void leave_cluster(const mysqlsh::dba::Instance &instance,
-                   bool is_cluster_set_member = false,
+                   bool reset_member_actions = false,
                    bool reset_repl_channels = true);
 
 /**

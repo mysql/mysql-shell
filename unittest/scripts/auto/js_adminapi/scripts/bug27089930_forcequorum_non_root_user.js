@@ -54,7 +54,7 @@ cluster.forceQuorumUsingPartitionOf(admin_user_uri1);
 
 //@<> Show cluster status.
 var status = cluster.status();
-EXPECT_EQ("OK_NO_TOLERANCE", status["defaultReplicaSet"]["status"])
+EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", status["defaultReplicaSet"]["status"])
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
 EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])

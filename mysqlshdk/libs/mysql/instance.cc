@@ -629,6 +629,16 @@ std::unique_ptr<User_privileges> Instance::get_user_privileges(
                                            allow_skip_grants_user);
 }
 
+std::unique_ptr<User_privileges> Instance::get_current_user_privileges(
+    bool allow_skip_grants_user) const {
+  std::string user;
+  std::string host;
+
+  get_current_user(&user, &host);
+
+  return get_user_privileges(user, host, allow_skip_grants_user);
+}
+
 bool Instance::is_read_only(bool super) const {
   // Check if the member is not read_only
   std::shared_ptr<mysqlshdk::db::IResult> result(

@@ -151,7 +151,8 @@ void Session::init() {
 
   // Prepares the cache handling
   auto generator = [this](const std::string &name) {
-    return shcore::Value::wrap<Schema>(new Schema(shared_from_this(), name));
+    return shcore::Value::wrap<Schema>(
+        std::make_shared<Schema>(shared_from_this(), name));
   };
   update_schema_cache = [generator, this](const std::string &name,
                                           bool /* exists */) {

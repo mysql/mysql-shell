@@ -702,11 +702,13 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
 
         case Type::Date:
         case Type::DateTime:
-          v = Value::wrap(new Date(Date::unrepr(row.get_string(i))));
+          v = Value::wrap(
+              std::make_shared<Date>(Date::unrepr(row.get_string(i))));
           break;
 
         case Type::Time:
-          v = Value::wrap(new Date(Date::unrepr(row.get_string(i))));
+          v = Value::wrap(
+              std::make_shared<Date>(Date::unrepr(row.get_string(i))));
           break;
 
         case Type::Bit:

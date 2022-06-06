@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -155,7 +155,7 @@ class Tokenizer {
   int get_token_pos() { return static_cast<int>(_pos); }
   const Token &consume_any_token();
   void assert_tok_position();
-  bool tokens_available();
+  bool tokens_available() const;
   bool is_interval_units_type();
   bool is_type_within_set(const std::set<Token::Type> &types);
 

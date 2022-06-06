@@ -55,11 +55,7 @@ class Decrypt_error : public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;
 };
-/**
- * Initializes the SSL library, must be called once before the rest
- * of the functions on this file are called.
- */
-void init();
+
 /**
  * Creates a private and public key pair.
  *

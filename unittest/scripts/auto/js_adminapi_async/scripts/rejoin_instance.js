@@ -307,6 +307,39 @@ rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDo
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
 // EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);
 
+//@<> Check if rejoining an instance with a different server_uuid updates the UUID and also doesn't crash (BUG #34038210)
+
+// first try should fail
+
+testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "server_uuid", "5ef81566-9395-11e9-87e9-333333333302");
+testutil.startSandbox(__mysql_sandbox_port3);
+
+EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333333", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
+
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox3, {recoveryMethod:"clone"});
+}, `Invalid status to execute operation, ${hostname_ip}:${__mysql_sandbox_port3} is ONLINE`);
+
+EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333333", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name= ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
+
+//repeat but successfull
+
+testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "server_uuid", "5ef81566-9395-11e9-87e9-333333333303");
+testutil.startSandbox(__mysql_sandbox_port3);
+
+EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333333", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name= ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
+
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+s = rs.status();
+EXPECT_EQ(s.replicaSet.topology[`${hostname_ip}:${__mysql_sandbox_port3}`].status, "OFFLINE");
+
+EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox3, {recoveryMethod:"clone"}); });
+
+EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333303", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name= ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
+
 //@<> Cleanup.
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

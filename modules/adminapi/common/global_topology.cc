@@ -407,6 +407,16 @@ const Node *Global_topology::try_get_node_for_uuid(
   return nullptr;
 }
 
+const Node *Global_topology::try_get_node_for_endpoint(
+    std::string_view endpoint) const {
+  for (auto g : nodes()) {
+    for (const auto &i : g->members()) {
+      if (i.endpoint == endpoint) return g;
+    }
+  }
+  return nullptr;
+}
+
 const Node *Global_topology::get_primary_master_node() const {
   assert(is_single_active());
 

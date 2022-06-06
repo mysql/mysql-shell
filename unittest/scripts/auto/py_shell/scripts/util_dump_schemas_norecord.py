@@ -1191,7 +1191,7 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
-    EXPECT_STDOUT_CONTAINS("NOTE: You can check for potential upgrade issues using util.check_for_server_upgrade().")
+    EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
 
 EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed())
 
@@ -2109,6 +2109,34 @@ EXPECT_STDOUT_NOT_CONTAINS("`b`.`T`")
 dump_with_conflicts({ "includeTriggers": [ "a.t.t", "a.t1.t" ], "excludeTriggers": [ "a.t" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which is excluded by the value of the excludeTriggers option: `a`.`t`.")
 EXPECT_STDOUT_NOT_CONTAINS("`a`.`t1`")
+
+#@<> BUG#34052980 run upgrade checker if server is 5.7 and ocimds option is used {VER(<8.0.0)}
+# setup
+wipeout_server(session)
+tested_schema = "test_schema"
+tested_table = "test_table"
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (a int primary key, e enum('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeeeeee'))", [ tested_schema, tested_table ])
+session.run_sql("CREATE TABLE !.not_so_large (a int primary key, e enum('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccccccccc','ccccccccccccccccccccccccccccccccccccffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeeeeee', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'))", [ tested_schema ])
+
+# dumping the whole schema should fail
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", [ tested_schema ], test_output_absolute, { "ocimds": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"""
+8) ENUM/SET column definitions containing elements longer than 255 characters
+  Error: The following columns are defined as either ENUM or SET and contain at
+    least one element longer that 255 characters. They need to be altered so that
+    all elements fit into the 255 characters limit.
+  More information:
+    https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
+
+  {tested_schema}.{tested_table}.e - ENUM contains element longer than 255 characters
+""")
+EXPECT_STDOUT_CONTAINS("ERROR: 1 errors were found. Please correct these issues before upgrading to avoid compatibility issues.")
+
+# dumping without the problematic table should succeed
+WIPE_OUTPUT()
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "excludeTables": [ f"{tested_schema}.{tested_table}" ], "ocimds": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("NOTE: No fatal errors were found that would prevent an upgrade, but some potential issues were detected. Please ensure that the reported issues are not significant before upgrading.")
 
 #@<> Cleanup
 drop_all_schemas()

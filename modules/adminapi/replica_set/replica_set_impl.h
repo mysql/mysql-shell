@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -204,6 +204,7 @@ class Replica_set_impl : public Base_cluster_impl {
 
   void invalidate_handle();
 
+  void ensure_metadata_has_server_uuid(const mysqlsh::dba::Instance &instance);
   void ensure_compatible_donor(const std::string &instance_def,
                                mysqlshdk::mysql::IInstance *recipient);
 
