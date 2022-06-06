@@ -39,31 +39,17 @@ extern const std::set<std::string> k_mysqlaas_allowed_privileges;
 extern const std::set<std::string> k_mysqlaas_allowed_authentication_plugins;
 
 struct Deferred_statements {
-  struct Index_info {
-    std::vector<std::string> fulltext;
-    std::vector<std::string> spatial;
-    std::vector<std::string> regular;
-    bool has_virtual_columns = false;
-
-    bool empty() const {
-      return regular.empty() && fulltext.empty() && spatial.empty();
-    }
-
-    std::size_t size() const {
-      return regular.size() + fulltext.size() + spatial.size();
-    }
-  };
-
   std::string rewritten;
-  Index_info index_info;
-  std::vector<std::string> foreign_keys;
+  std::vector<std::string> fulltext_indexes;
+  std::vector<std::string> indexes;
+  std::vector<std::string> fks;
   std::string secondary_engine;
 
-  bool has_alters() const {
-    return !index_info.empty() || !foreign_keys.empty();
+  bool has_indexes() const {
+    return !fulltext_indexes.empty() || !indexes.empty() || !fks.empty();
   }
 
-  bool empty() const { return !has_alters() && secondary_engine.empty(); }
+  bool empty() const { return !has_indexes() && secondary_engine.empty(); }
 };
 
 /// Checks grant statement for presence of privileges, returns found ones.

@@ -27,8 +27,6 @@
 
 #include <algorithm>
 #include <cinttypes>
-#include <iterator>
-#include <list>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -154,8 +152,7 @@ void add_invisible_pk(std::string *script, const std::string &key) {
 }
 
 void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
-                       std::string_view stmt, const std::string &error_prefix,
-                       int silent_error = -1) {
+                       std::string_view stmt, const std::string &error_prefix) {
   assert(!error_prefix.empty());
 
   constexpr uint32_t k_max_retry_time = 5 * 60 * 1000;  // 5 minutes
@@ -196,12 +193,8 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
         total_sleep_time += sleep_time;
         sleep_time *= 2;
       } else {
-        if (silent_error != e.code()) {
-          current_console()->print_error(
-              shcore::str_format("%s: %s: %s", error_prefix.c_str(),
-                                 error.c_str(), query.c_str()));
-        }
-
+        current_console()->print_error(shcore::str_format(
+            "%s: %s: %s", error_prefix.c_str(), error.c_str(), query.c_str()));
         throw;
       }
     }
@@ -495,17 +488,13 @@ void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
         }
       };
 
-      remove_duplicates(recreated.index_info.fulltext,
-                        &m_deferred_statements->index_info.fulltext);
-      remove_duplicates(recreated.index_info.spatial,
-                        &m_deferred_statements->index_info.spatial);
-      remove_duplicates(recreated.index_info.regular,
-                        &m_deferred_statements->index_info.regular);
-      remove_duplicates(recreated.foreign_keys,
-                        &m_deferred_statements->foreign_keys);
+      remove_duplicates(recreated.fulltext_indexes,
+                        &m_deferred_statements->fulltext_indexes);
+      remove_duplicates(recreated.indexes, &m_deferred_statements->indexes);
+      remove_duplicates(recreated.fks, &m_deferred_statements->fks);
 
       if (!recreated.secondary_engine.empty()) {
-        if (m_deferred_statements->has_alters()) {
+        if (m_deferred_statements->has_indexes()) {
           // recreated table already has a secondary engine (possibly table was
           // modified by the user), but not all indexes were applied, we're
           // unable to continue, as ALTER TABLE statements will fail
@@ -541,7 +530,7 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
           key().c_str(),
           (m_placeholder
                ? " (placeholder for view)"
-               : (m_deferred_statements && m_deferred_statements->has_alters()
+               : (m_deferred_statements && m_deferred_statements->has_indexes()
                       ? " (indexes removed for deferred creation)"
                       : "")));
       if (!loader->m_options.dry_run()) {
@@ -874,13 +863,14 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 bool Dump_loader::Worker::Index_recreation_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will recreate %zu indexes for table %s", id(),
-            m_indexes->size(), key().c_str());
+  log_debug("worker%zu will recreate %zu indexes for table `%s`.`%s`", id(),
+            m_queries.size(), schema().c_str(), table().c_str());
 
   const auto console = current_console();
 
-  if (!m_indexes->empty())
-    log_info("[Worker%03zu] Recreating indexes for %s", id(), key().c_str());
+  if (!m_queries.empty())
+    log_info("[Worker%03zu] Recreating indexes for `%s`.`%s`", id(),
+             schema().c_str(), table().c_str());
 
   loader->post_worker_event(worker, Worker_event::INDEX_START);
 
@@ -890,98 +880,28 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
     shcore::on_leave_scope cleanup(
         [loader]() { loader->m_num_threads_recreating_indexes--; });
 
-    // for the analysis of various index types and their impact on the parallel
-    // index creation see: BUG#33976718
-    std::list<std::vector<std::string_view>> batches;
-
-    {
-      const auto append = [](const std::vector<std::string> &what,
-                             std::vector<std::string_view> *where) {
-        where->insert(where->end(), what.begin(), what.end());
-      };
-      auto &first_batch = batches.emplace_back();
-
-      append(m_indexes->fulltext, &first_batch);
-
-      if (!m_indexes->spatial.empty()) {
-        // we load all indexes at once if:
-        //  - server does not support parallel index creation
-        auto single_batch =
-            loader->m_options.target_server_version() < Version(8, 0, 27);
-        //  - table has a virtual column
-        single_batch |= m_indexes->has_virtual_columns;
-        //  - table has a fulltext index
-        single_batch |= !m_indexes->fulltext.empty();
-
-        // if server supports parallel index creation and table does not have
-        // virtual columns or fulltext indexes, we add spatial indexes in
-        // another batch
-        append(m_indexes->spatial,
-               single_batch ? &first_batch : &batches.emplace_back());
-      }
-
-      append(m_indexes->regular, &first_batch);
-    }
-
     try {
-      auto current = batches.begin();
-      const auto end = batches.end();
-
-      while (end != current) {
-        auto query = "ALTER TABLE " + key() + " ";
-
-        for (const auto &definition : *current) {
-          query += "ADD ";
-          query += definition;
-          query += ',';
-        }
-
-        // remove last comma
-        query.pop_back();
-
-        auto retry = false;
-
+      for (const auto &query : m_queries) {
         try {
           execute_statement(
-              session, query, "While recreating indexes for table " + key(),
-              current->size() <= 1 ? -1 : ER_TEMP_FILE_WRITE_FAILURE);
-          loader->m_indexes_recreated += current->size();
+              session, query,
+              "While recreating indexes for table `" + m_table + "`");
+          ++loader->m_indexes_recreated;
         } catch (const shcore::Error &e) {
-          if (e.code() == ER_TEMP_FILE_WRITE_FAILURE) {
-            if (current->size() <= 1) {
-              // we cannot split any more, report the error
-              throw;
-            } else {
-              log_info(
-                  "Failed to add indexes: the innodb_tmpdir is full, failed "
-                  "query: %s",
-                  query.c_str());
-
-              // split this batch in two and retry
-              const auto new_size = current->size() / 2;
-              std::vector<std::string_view> new_batch;
-
-              std::move(std::next(current->begin(), new_size), current->end(),
-                        std::back_inserter(new_batch));
-              current->resize(new_size);
-              batches.insert(std::next(current), std::move(new_batch));
-              retry = true;
-              ++loader->m_num_index_retries;
-            }
+          // Deadlocks and duplicate key errors should not happen but if they
+          // do they can be ignored at least for a while
+          if (e.code() == ER_DUP_KEYNAME) {
+            console->print_note("Index already existed for query: " + query);
           } else {
             throw;
           }
-        }
-
-        if (!retry) {
-          ++current;
         }
       }
     } catch (const std::exception &e) {
       handle_current_exception(
           worker, loader,
-          shcore::str_format("While recreating indexes for table %s: %s",
-                             key().c_str(), e.what()));
+          shcore::str_format("While recreating indexes for table `%s`.`%s`: %s",
+                             schema().c_str(), table().c_str(), e.what()));
       return false;
     }
   }
@@ -1069,7 +989,7 @@ void Dump_loader::Worker::load_chunk_file(
 
 void Dump_loader::Worker::recreate_indexes(
     const std::string &schema, const std::string &table,
-    compatibility::Deferred_statements::Index_info *indexes) {
+    const std::vector<std::string> &indexes) {
   log_debug("Recreating indexes for `%s`.`%s`", schema.c_str(), table.c_str());
   assert(!schema.empty());
   assert(!table.empty());
@@ -1804,12 +1724,12 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
         return true;
       };
 
-      compatibility::Deferred_statements::Index_info *indexes = nullptr;
+      std::vector<std::string> *indexes = nullptr;
 
       if (m_dump->next_deferred_index(&schema, &table, &indexes,
                                       load_finished)) {
         assert(indexes != nullptr);
-        worker->recreate_indexes(schema, table, indexes);
+        worker->recreate_indexes(schema, table, *indexes);
         return true;
       }
     }
@@ -1927,12 +1847,6 @@ void Dump_loader::show_summary() {
   } else {
     console->print_info(shcore::str_format(
         "%zi warnings were reported during the load.", m_num_warnings.load()));
-  }
-
-  if (m_num_index_retries) {
-    console->print_info(
-        shcore::str_format("There were %zi retries to create indexes.",
-                           m_num_index_retries.load()));
   }
 }
 

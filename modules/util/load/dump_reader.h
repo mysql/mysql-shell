@@ -157,7 +157,7 @@ class Dump_reader {
 
   bool next_deferred_index(
       std::string *out_schema, std::string *out_table,
-      compatibility::Deferred_statements::Index_info **out_indexes,
+      std::vector<std::string> **out_indexes,
       const std::function<bool(const std::vector<std::string> &)>
           &load_finished);
 
@@ -310,7 +310,7 @@ class Dump_reader {
     bool sql_seen = false;
 
     shcore::Dictionary_t options = nullptr;
-    compatibility::Deferred_statements::Index_info indexes;
+    std::vector<std::string> indexes;
     bool indexes_done = true;
     std::vector<Histogram> histograms;
     bool analyze_done = false;
@@ -347,7 +347,7 @@ class Dump_reader {
     std::vector<std::string> function_names;
     std::vector<std::string> procedure_names;
     std::vector<std::string> event_names;
-    std::vector<std::string> foreign_key_queries;
+    std::vector<std::string> fk_queries;
     std::vector<std::string> queries_on_schema_end;
 
     volatile bool md_loaded = false;
