@@ -849,6 +849,7 @@ SET(INSTALL_LIBDIR "lib/mysqlsh")
 SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
 SET(INSTALL_DOCDIR "share/mysqlsh/Docs")
+SET(INSTALL_MANDIR "share/man")
 
 ##
 ## Binary location
@@ -1061,6 +1062,10 @@ ADD_SUBDIRECTORY(src)
 add_subdirectory(samples)
 add_subdirectory(mysql-secret-store)
 add_subdirectory(tests/bench)
+
+IF(UNIX)
+  ADD_SUBDIRECTORY(man)
+ENDIF()
 
 CHECK_STAN_OPTIONS()
 
