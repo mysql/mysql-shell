@@ -183,6 +183,8 @@ void ReplicaSet::assert_valid(const std::string &option_name) const {
 
 shcore::Value ReplicaSet::execute_with_pool(
     const std::function<shcore::Value()> &f, bool interactive) {
+  impl()->get_metadata_storage()->invalidate_cached();
+
   while (true) {
     Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
                                      interactive,
@@ -801,19 +803,15 @@ str ReplicaSet::list_routers(dict options) {}
 #endif
 shcore::Dictionary_t ReplicaSet::list_routers(
     const shcore::Option_pack_ref<List_routers_options> &options) {
-  // Throw an error if the cluster has already been dissolved
+  // Throw an error if the replicaset has already been dissolved
   assert_valid("listRouters");
 
-  auto target_instance = m_impl->get_cluster_server();
-  auto metadata = m_impl->get_metadata_storage();
-
-  // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("ReplicaSet.listRouters", metadata,
-                               target_instance);
-
-  auto ret_val = m_impl->list_routers(options->only_upgrade_required);
-
-  return ret_val.as_map();
+  return execute_with_pool(
+             [&]() {
+               return impl()->list_routers(options->only_upgrade_required);
+             },
+             false)
+      .as_map();
 }
 
 REGISTER_HELP_FUNCTION(removeRouterMetadata, ReplicaSet);
@@ -846,31 +844,12 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
   // Throw an error if the replicaset has already been dissolved
   assert_valid("removeRouterMetadata");
 
-  auto target_instance = m_impl->get_cluster_server();
-  auto metadata = m_impl->get_metadata_storage();
-
-  // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("ReplicaSet.removeRouterMetadata", metadata,
-                               target_instance);
-
-  // Initialized Instance pool with the metadata from the current session.
-  Scoped_instance_pool ipool(
-      metadata, current_shell_options()->get().wizards,
-      Instance_pool::Auth_options{target_instance->get_connection_options()});
-
-  // Acquire the primary to update the metadata on it.
-  // NOTE: Acquire a shared lock on the primary. The metadata instance (primary)
-  // can be "shared" by other operations executing concurrently on other
-  // instances.
-  auto active_master =
-      m_impl->acquire_primary(mysqlshdk::mysql::Lock_mode::SHARED);
-  auto finally = shcore::on_leave_scope(
-      [&active_master, this]() { m_impl->release_primary(active_master); });
-
-  if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
-    throw shcore::Exception::argument_error("Invalid router instance '" +
-                                            router_def + "'");
-  }
+  execute_with_pool(
+      [&]() {
+        impl()->remove_router_metadata(router_def);
+        return shcore::Value();
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, ReplicaSet);
@@ -938,7 +917,12 @@ void ReplicaSet::setup_admin_account(
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  m_impl->setup_admin_account(username, host, *options);
+  execute_with_pool(
+      [&]() {
+        impl()->setup_admin_account(username, host, *options);
+        return shcore::Value();
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(setupRouterAccount, ReplicaSet);
@@ -1005,7 +989,12 @@ void ReplicaSet::setup_router_account(
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  m_impl->setup_router_account(username, host, *options);
+  execute_with_pool(
+      [&]() {
+        impl()->setup_router_account(username, host, *options);
+        return shcore::Value();
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(options, ReplicaSet);
@@ -1071,7 +1060,12 @@ void ReplicaSet::set_option(const std::string &option,
                             const shcore::Value &value) {
   assert_valid("setOption");
 
-  m_impl->set_option(option, value);
+  execute_with_pool(
+      [&]() {
+        impl()->set_option(option, value);
+        return shcore::Value();
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(setInstanceOption, ReplicaSet);
@@ -1110,8 +1104,13 @@ void ReplicaSet::set_instance_option(const std::string &instance_def,
                                      const shcore::Value &value) {
   assert_valid("setInstanceOption");
 
-  // Set the option in the Default ReplicaSet
-  m_impl->set_instance_option(instance_def, option, value);
+  execute_with_pool(
+      [&]() {
+        // Set the option in the Default ReplicaSet
+        impl()->set_instance_option(instance_def, option, value);
+        return shcore::Value();
+      },
+      false);
 }
 
 }  // namespace dba

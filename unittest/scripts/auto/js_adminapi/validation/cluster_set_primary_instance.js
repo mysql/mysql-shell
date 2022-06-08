@@ -32,8 +32,6 @@ Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY 
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was switched from SECONDARY to PRIMARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' remains SECONDARY.
 
-WARNING: The cluster internal session is not the primary member anymore. For cluster management operations please obtain a fresh cluster handle using dba.getCluster().
-
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully elected as primary.
 
 //@<OUT> WL#12052: Set new primary 2 {VER(>=8.0.13)}
@@ -42,8 +40,6 @@ Setting instance 'localhost:<<<__mysql_sandbox_port3>>>' as the primary instance
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' remains SECONDARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was switched from PRIMARY to SECONDARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was switched from SECONDARY to PRIMARY.
-
-WARNING: The cluster internal session is not the primary member anymore. For cluster management operations please obtain a fresh cluster handle using dba.getCluster().
 
 The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully elected as primary.
 
@@ -87,7 +83,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully elected as
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>"
 }
 
 //@ Finalization

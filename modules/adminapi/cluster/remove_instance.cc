@@ -127,6 +127,9 @@ void Remove_instance::undo_remove_instance_metadata(
     const Instance_metadata &instance_def) {
   log_debug("Reverting instance removal from metadata");
   m_cluster->get_metadata_storage()->insert_instance(instance_def);
+
+  // Recreate the recovery account previously removed too
+  m_cluster->recreate_replication_user(m_target_instance);
 }
 
 bool Remove_instance::prompt_to_force_remove() {
@@ -510,7 +513,7 @@ shcore::Value Remove_instance::execute() {
   // removed instance don't look like errant transactions if they're added to
   // a different replica cluster
   if (m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster()) {
-    auto cs = m_cluster->get_cluster_set();
+    auto cs = m_cluster->get_cluster_set_object();
 
     cs->reconcile_view_change_gtids(m_cluster->get_cluster_server().get());
   }
@@ -607,8 +610,6 @@ shcore::Value Remove_instance::execute() {
       m_cluster->sync_transactions(*m_cluster->get_primary_master(),
                                    k_clusterset_async_channel_name, 0);
 
-      auto cs = m_cluster->get_cluster_set();
-
       if (!m_cluster->is_primary_cluster()) {
         // Reset the clusterset replication channel
         remove_channel(m_target_instance.get(), k_clusterset_async_channel_name,
@@ -675,6 +676,30 @@ shcore::Value Remove_instance::execute() {
       }
       // If force is used do not add the instance back to the metadata,
       // and ignore any leave-cluster error.
+    }
+  } else {
+    // When removing the primary, we must set m_cluster_server to one of the
+    // secondaries to ensure acquire_primary() can get the newest primary and
+    // update the topology view
+    auto cluster_instances = m_cluster->get_instances();
+
+    for (const auto &i : cluster_instances) {
+      // skip the target
+      if (i.uuid == m_target_instance->get_uuid()) continue;
+
+      try {
+        log_info("Opening a new session to the instance: %s",
+                 i.endpoint.c_str());
+        Scoped_instance instance(
+            m_cluster->connect_target_instance(i.endpoint, false, false));
+
+        // Set it as the new m_cluster_server
+        m_cluster->set_target_server(instance);
+
+        break;
+      } catch (const shcore::Error &e) {
+        continue;
+      }
     }
   }
 

@@ -206,6 +206,19 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
  private:
   std::shared_ptr<Cluster_impl> m_impl;
   bool m_invalidated = false;
+
+  template <typename TCallback>
+  auto execute_with_pool(TCallback &&f, bool interactive) {
+    // Invalidate the cached metadata state
+    impl()->get_metadata_storage()->invalidate_cached();
+
+    // Init the connection pool
+    Scoped_instance_pool ipool(
+        interactive,
+        Instance_pool::Auth_options(impl()->default_admin_credentials()));
+
+    return f();
+  }
 };
 
 }  // namespace dba

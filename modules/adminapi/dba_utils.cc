@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,6 +130,7 @@ std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
                                     Cluster_type *out_type) {
   MetadataStorage md{instance};
   mysqlshdk::utils::Version version;
+  std::string member_uuid;
 
   if (!md.check_version(&version)) {
     throw shcore::Exception(
@@ -151,18 +152,60 @@ std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
     *out_type = type;
   }
 
-  const auto member_uuid =
-      Cluster_type::GROUP_REPLICATION == type
-          ? find_cluster_member_uri_of_role(
-                instance,
-                secondary ? mysqlshdk::gr::Member_role::SECONDARY
-                          : mysqlshdk::gr::Member_role::PRIMARY,
-                out_single_primary)
-          : find_replicaset_member_uri_of_role(
-                instance,
-                secondary ? topology::Node_role::SECONDARY
-                          : topology::Node_role::PRIMARY,
-                out_single_primary);
+  // Check if GR is active or not on the target instance. If not active the
+  // instance is (MISSING) (we've already verified above if belongs to a
+  // Cluster) so we must use another member from the Cluster
+  if (type == Cluster_type::GROUP_REPLICATION) {
+    if (mysqlshdk::gr::get_member_state(*instance) ==
+        mysqlshdk::gr::Member_state::OFFLINE) {
+      // Get all instances of the Cluster, as registered in the Metadata
+      std::vector<Instance_metadata> cluster_members = md.get_all_instances();
+
+      for (const auto &member : cluster_members) {
+        // Same as the original instance, skip it
+        if (member.uuid == instance_uuid) continue;
+
+        // Connect to the member
+        mysqlshdk::db::Connection_options copts(member.endpoint);
+        copts.set_login_options_from(instance->get_connection_options());
+        std::shared_ptr<Instance> new_instance;
+
+        // Try to connect to the member, if it fails (e.g. unreachable) skip it
+        try {
+          new_instance = Instance::connect(copts);
+        } catch (const std::exception &e) {
+          log_debug("Could not open a connection to %s: %s",
+                    member.endpoint.c_str(), e.what());
+          continue;
+        }
+
+        // Verify if GR is active on the instance, if not skip it
+        if (mysqlshdk::gr::get_member_state(*new_instance) ==
+            mysqlshdk::gr::Member_state::OFFLINE)
+          continue;
+
+        member_uuid = find_cluster_member_uri_of_role(
+            new_instance,
+            secondary ? mysqlshdk::gr::Member_role::SECONDARY
+                      : mysqlshdk::gr::Member_role::PRIMARY,
+            out_single_primary);
+
+        break;
+      }
+    } else {
+      member_uuid = find_cluster_member_uri_of_role(
+          instance,
+          secondary ? mysqlshdk::gr::Member_role::SECONDARY
+                    : mysqlshdk::gr::Member_role::PRIMARY,
+          out_single_primary);
+    }
+  } else {
+    member_uuid = find_replicaset_member_uri_of_role(
+        instance,
+        secondary ? topology::Node_role::SECONDARY
+                  : topology::Node_role::PRIMARY,
+        out_single_primary);
+  }
 
   if (instance_uuid == member_uuid) {
     return instance->get_connection_options().uri_endpoint();

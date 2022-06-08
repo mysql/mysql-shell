@@ -73,7 +73,7 @@
 }
 
 //@# disconnect the cluster object
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle.
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle.
 
 //@ SP - getCluster() on primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
@@ -83,53 +83,53 @@
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SP - getCluster() on primary with connectToPrimary: true
+//@ SP - getCluster() on primary with connectToPrimary: true: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SP - getCluster() on secondary with connectToPrimary: true
+//@ SP - getCluster() on secondary with connectToPrimary: true: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SP - getCluster() on primary with connectToPrimary: false
+//@ SP - getCluster() on primary with connectToPrimary: false: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SP - getCluster() on secondary with connectToPrimary: false
+//@ SP - getCluster() on secondary with connectToPrimary: false: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX - getCluster() on session to primary
+//@ SPX - getCluster() on session to primary: true: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX - getCluster() on session to secondary
+//@ SPX - getCluster() on session to secondary: true: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX - getCluster() on session to primary (no redirect)
+//@ SPX - getCluster() on session to primary: false: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX - getCluster() on session to secondary (no redirect)
+//@ SPX - getCluster() on session to secondary: false: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX implicit - getCluster() on session to primary
+//@ SPX implicit - getCluster() on session to primary: true: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX implicit - getCluster() on session to secondary
+//@ SPX implicit - getCluster() on session to secondary: true: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX implicit - getCluster() on session to primary (no redirect)
+//@ SPX implicit - getCluster() on session to primary: false: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
-//@ SPX implicit - getCluster() on session to secondary (no redirect)
+//@ SPX implicit - getCluster() on session to secondary: false: deprecated - auto-redirect to primary
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with no options and ensure it will connect to the specified member
 |TCP port:                     <<<__mysql_sandbox_port1>>>|

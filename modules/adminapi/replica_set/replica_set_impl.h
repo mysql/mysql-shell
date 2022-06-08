@@ -112,6 +112,8 @@ class Replica_set_impl : public Base_cluster_impl {
 
   shcore::Value list_routers(bool only_upgrade_required) override;
 
+  void remove_router_metadata(const std::string &router) override;
+
   void setup_admin_account(const std::string &username, const std::string &host,
                            const Setup_account_options &options) override;
 
@@ -229,6 +231,10 @@ class Replica_set_impl : public Base_cluster_impl {
   shcore::Dictionary_t get_topology_options();
 
   void update_replication_allowed_host(const std::string &host);
+
+  void check_preconditions_and_primary_availability(
+      const std::string &function_name,
+      bool throw_if_primary_unavailable = true);
 
   Global_topology_type m_topology_type;
 };

@@ -80,7 +80,7 @@ FUNCTIONS
             Drops the Metadata Schema.
 
       get_cluster([name][, options])
-            Retrieves a cluster from the Metadata Store.
+            Returns an object representing a Cluster.
 
       get_cluster_set()
             Returns an object representing a ClusterSet.
@@ -862,28 +862,31 @@ DESCRIPTION
 
 #@<OUT> dba.get_cluster
 NAME
-      get_cluster - Retrieves a cluster from the Metadata Store.
+      get_cluster - Returns an object representing a Cluster.
 
 SYNTAX
       dba.get_cluster([name][, options])
 
 WHERE
-      name: Parameter to specify the name of the cluster to be returned.
+      name: Parameter to specify the name of the Cluster to be returned.
       options: Dictionary with additional options.
 
 RETURNS
-      The cluster object identified by the given name or the default cluster.
+      The Cluster object identified by the given name or the default Cluster.
 
 DESCRIPTION
-      If name is not specified or is null, the default cluster will be
+      If name is not specified or is null, the default Cluster will be
       returned.
 
-      If name is specified, and no cluster with the indicated name is found, an
+      If name is specified, and no Cluster with the indicated name is found, an
       error will be raised.
 
-      The options dictionary accepts the connectToPrimary option, which
-      defaults to true and indicates the shell to automatically connect to the
-      primary member of the cluster.
+      The options dictionary may contain the following attributes:
+
+      - connectToPrimary: boolean value used to indicate if Shell should
+        automatically connect to the primary member of the Cluster or not.
+        Deprecated and ignored, Shell will attempt to connect to the primary by
+        default and fallback to a secondary when not possible.
 
 #@<OUT> dba.get_replica_set
 NAME

@@ -3,13 +3,13 @@
 
 // The basic test pattern is:
 // positive case:
-// getCluster({connectToPrimary:false}) while connected to a secondary
-// perform operation
+// getCluster() while connected to a secondary perform operation
+//   - shell should automatically find the primary and connect to it
 //
 // negative case:
-// make primary unconnectable (change root password)
-// getCluster({connectToPrimary:false}) while connected to a secondary
-// perform operation
+// make primary unconnectable (change root password) while connected to a
+// secondary perform operation
+//   - shell should fallback to a secondary member
 
 //@<> Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
@@ -32,13 +32,13 @@ cluster.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
 //@<> checkInstanceState
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.checkInstanceState(__sandbox_uri3);
 
 //@<> addInstance using clone recovery {VER(>=8.0.17)}
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.addInstance(__sandbox_uri3, {recoveryMethod:'clone'});
 
@@ -49,19 +49,19 @@ cluster.removeInstance(__sandbox_uri3);
 
 //@<> addInstance using incremental recovery
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
 
 //@<> removeInstance
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.removeInstance(__sandbox_uri3);
 
 //@<> setPrimaryInstance {VER(>=8.0.0)}
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.setPrimaryInstance(__sandbox_uri2);
 
@@ -72,7 +72,7 @@ cluster.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
 session3.runSql("STOP group_replication");
 
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.rejoinInstance(__sandbox_uri3);
 
@@ -82,7 +82,7 @@ cluster.status();
 
 //@<> setOption
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.setOption("clusterName", "clooster");
 
@@ -92,25 +92,25 @@ custom_weigth=50;
 custom_weigth=20;
 
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.setInstanceOption(__sandbox_uri1, "memberWeight", custom_weigth);
 
 //@<> options
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.options();
 
 //@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.switchToMultiPrimaryMode();
 
 //@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.switchToSinglePrimaryMode();
 
@@ -121,7 +121,7 @@ cluster.setPrimaryInstance(__sandbox_uri1);
 session1.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port3]);
 
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.rescan({addInstances:"auto"});
 
@@ -131,13 +131,13 @@ session1.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '
 session1.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
 
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.listRouters();
 
 //@<> removeRouterMetadata
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.removeRouterMetadata("routerhost1::system");
 
@@ -145,7 +145,7 @@ cluster.listRouters();
 
 //@<> dissolve
 shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
+cluster = dba.getCluster();
 
 cluster.dissolve();
 
@@ -187,121 +187,70 @@ run_nolog(session1, "alter user root@'localhost' account lock");
 shell.connect("root2:@localhost:"+__mysql_sandbox_port1);
 cluster2= dba.getCluster();
 
-
 //@<> checkInstanceState (no primary, should fail)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.checkInstanceState(__sandbox_uri3)}, "Access denied for user 'root'@'localhost'. Account is locked.");
 
 //@<> addInstance using clone recovery (no primary, should fail) {VER(>=8.0.17)}
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.addInstance(__sandbox_uri3, {recoveryMethod:'clone'})}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
 
 //@<> addInstance using incremental recovery (no primary, should fail)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'})}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
 
 //@<> removeInstance (no primary, should fail)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri2)}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
+EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to instance '127.0.0.1:"+__mysql_sandbox_port1+"'. Please verify connection credentials and make sure the instance is available.");
+EXPECT_OUTPUT_CONTAINS("ERROR: Could not update remaining cluster members after removing '"+__sandbox2+"': Access denied for user 'root'@'localhost'. Account is locked.");
 
 //@<> setPrimaryInstance (no primary, should fail) {VER(>=8.0.0)}
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
-EXPECT_THROWS(function(){cluster.setPrimaryInstance(__sandbox_uri2)}, "Access denied for user 'root'@'localhost'. Account is locked.");
+EXPECT_THROWS(function(){cluster.setPrimaryInstance(__sandbox_uri2)}, "This operation requires all the cluster members to be ONLINE");
 
 //@<> rejoinInstance (no primary, should fail)
 cluster2.addInstance("localhost:"+__mysql_sandbox_port3, {recoveryMethod:'incremental'});
 session3.runSql("STOP group_replication");
 
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.rejoinInstance(__sandbox_uri3)}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
 
 cluster2.rejoinInstance("localhost:"+__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 cluster.status();
 
 //@<> setOption (no primary, should fail)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
-EXPECT_THROWS(function(){cluster.setOption("clusterName", "clooster")}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
+EXPECT_THROWS(function(){cluster.setOption("clusterName", "clooster")}, "This operation requires all the cluster members to be ONLINE");
 
 custom_weigth=50;
 
 //@<> setInstanceOption (no primary, should fail) {VER(>=8.0.0)}
 custom_weigth=20;
 
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.setInstanceOption(__sandbox_uri1, "memberWeight", custom_weigth)}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
+EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to the target instance '"+__sandbox1+"'. Please verify the connection settings, make sure the instance is available and try again.");
 
 //@<> options (no primary, should pass)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 cluster.options();
 
 //@<> switchToMultiPrimaryMode (no primary, should fail) {VER(>=8.0.0)}
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
-EXPECT_THROWS(function(){cluster.switchToMultiPrimaryMode()}, "Access denied for user 'root'@'localhost'. Account is locked.");
+EXPECT_THROWS(function(){cluster.switchToMultiPrimaryMode()}, "This operation requires all the cluster members to be ONLINE");
 
 //@<> switchToSinglePrimaryMode (no primary, should fail) {VER(>=8.0.0)}
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
-EXPECT_THROWS(function(){cluster.switchToSinglePrimaryMode()}, "Access denied for user 'root'@'localhost'. Account is locked.");
+EXPECT_THROWS(function(){cluster.switchToSinglePrimaryMode()}, "This operation requires all the cluster members to be ONLINE");
 
 //@<> rescan (no primary, should fail)
 // delete sb3 from the metadata so that rescan picks it up
 session1.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port3]);
 
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.rescan({addInstances:"auto"})}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
 
 //@<> listRouters (no primary, should pass)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 cluster.listRouters();
 
-//@<> removeRouterMetadata (no primary, should fail)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
-EXPECT_THROWS(function(){cluster.removeRouterMetadata("routerhost1::system")}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
+//@<> removeRouterMetadata (no primary, should pass)
+EXPECT_NO_THROWS(function(){cluster.removeRouterMetadata("routerhost1::system")});
 
 cluster.listRouters();
 
 //@<> dissolve (no primary, should fail)
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster(null, {connectToPrimary:false});
-
 EXPECT_THROWS(function(){cluster.dissolve()}, "Access denied for user 'root'@'localhost'. Account is locked.");
-EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance at 127.0.0.1:"+__mysql_sandbox_port1+" could not be established to perform this action.");
+EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to instance '127.0.0.1:"+__mysql_sandbox_port1+"'. Please verify connection credentials and make sure the instance is available.");
 
 //@<> Cleanup
 run_nolog(session1, "alter user root@'%' account unlock");

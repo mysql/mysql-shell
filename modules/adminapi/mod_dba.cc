@@ -943,21 +943,25 @@ std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
 // Documentation of the getCluster function
 REGISTER_HELP_FUNCTION(getCluster, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_GETCLUSTER, R"*(
-Retrieves a cluster from the Metadata Store.
+Returns an object representing a Cluster.
 
-@param name Optional parameter to specify the name of the cluster to be returned.
+@param name Optional parameter to specify the name of the Cluster to be
+returned.
 @param options Optional dictionary with additional options.
 
-@returns The cluster object identified by the given name or the default cluster.
+@returns The Cluster object identified by the given name or the default Cluster.
 
-If name is not specified or is null, the default cluster will be returned.
+If name is not specified or is null, the default Cluster will be returned.
 
-If name is specified, and no cluster with the indicated name is found, an
+If name is specified, and no Cluster with the indicated name is found, an
 error will be raised.
 
-The options dictionary accepts the connectToPrimary option,
-which defaults to true and indicates the shell to automatically
-connect to the primary member of the cluster.
+The options dictionary may contain the following attributes:
+
+@li connectToPrimary: boolean value used to indicate if Shell should
+automatically connect to the primary member of the Cluster or not. Deprecated
+and ignored, Shell will attempt to connect to the primary by default and
+fallback to a secondary when not possible.
 )*");
 /**
  * $(DBA_GETCLUSTER_BRIEF)
@@ -973,7 +977,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     const mysqlshdk::null_string &cluster_name,
     const shcore::Dictionary_t &options) const {
   std::shared_ptr<Instance> target_member, group_server;
-  std::shared_ptr<MetadataStorage> metadata;
+  std::shared_ptr<MetadataStorage> metadata, metadata_at_target;
 
   auto console = mysqlsh::current_console();
 
@@ -983,21 +987,31 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
     target_member = connect_to_target_member();
 
-    if (target_member) {
-      metadata = std::make_shared<MetadataStorage>(target_member);
+    if (!target_member) {
+      // An open session is required
+      throw shcore::Exception::runtime_error(
+          "An open session is required to perform this operation.");
     }
+
+    metadata = std::make_shared<MetadataStorage>(target_member);
+
+    metadata_at_target = metadata;
+
+    // Init the connection pool
+    Scoped_instance_pool ipool(current_shell_options()->get().wizards,
+                               target_member->get_connection_options());
 
     check_function_preconditions("Dba.getCluster", metadata, target_member);
 
-    if (options) {
-      Unpack_options(options)
-          .optional("connectToPrimary", &connect_to_primary)
-          .end();
-
-      if (options->has_key("connectToPrimary")) {
-        fallback_to_anything = false;
-      }
+    if (options && options->has_key("connectToPrimary")) {
+      console->print_warning(
+          "Option 'connectToPrimary' is deprecated and it will "
+          "be removed in a future release. Shell will attempt to connect to "
+          "the primary member of the Cluster by default and fallback to a "
+          "secondary when not possible");
     }
+
+    connect_to_primary = true;
 
     // This will throw if not a cluster member
     try {
@@ -1027,9 +1041,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       }
     }
 
-    Scoped_instance_pool ipool(
-        metadata, current_shell_options()->get().wizards,
-        Instance_pool::Auth_options(group_server->get_connection_options()));
+    ipool->set_metadata(metadata);
 
     if (current_shell_options()->get().wizards) {
       auto state = get_cluster_check_info(*metadata);
@@ -1089,9 +1101,6 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       // warning and obtain the Cluster object from its own Metadata.
       // If not, we must error out right away.
       if (target_member) {
-        std::shared_ptr<MetadataStorage> metadata_at_target =
-            std::make_shared<MetadataStorage>(target_member);
-
         auto cluster =
             get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
                         metadata_at_target, group_server);
@@ -1368,11 +1377,18 @@ shcore::Value Dba::create_cluster(
   // outside the managed cluster, then this will have to be updated.
   connect_to_target_group({}, &metadata, &group_server, false);
 
+  // Init the connection pool
+  Scoped_instance_pool ipool(
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(group_server->get_connection_options()));
+
   // Check preconditions.
   Cluster_check_info state;
   try {
     state = check_function_preconditions("Dba.createCluster", metadata,
                                          group_server);
+
+    ipool->set_metadata(metadata);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
       /*
@@ -1454,34 +1470,27 @@ void Dba::drop_metadata_schema(
   auto instance = connect_to_target_member();
   std::shared_ptr<MetadataStorage> metadata;
 
-  if (instance) {
-    metadata = std::make_shared<MetadataStorage>(instance);
+  // An open session is required
+  if (!instance) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
   }
 
-  auto state = check_function_preconditions("Dba.dropMetadataSchema", metadata,
-                                            instance);
+  metadata = std::make_shared<MetadataStorage>(instance);
+
+  // Init the connection pool
+  Scoped_instance_pool ipool(
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(instance->get_connection_options()));
+
+  auto primary = check_preconditions("Dba.dropMetadataSchema", instance);
+
+  if (primary) {
+    metadata = std::make_shared<MetadataStorage>(primary);
+    ipool->set_metadata(metadata);
+  }
 
   bool interactive = current_shell_options()->get().wizards;
-
-  // The drop operation is only allowed on members of an InnoDB Cluster or a
-  // Replica Set, and only for online members that are either RW or RO, however
-  // if it is RO we need to get to a primary instance to perform the operation
-  if (state.source_state == ManagedInstance::OnlineRO) {
-    if (state.source_type == TargetType::InnoDBCluster) {
-      connect_to_target_group({}, &metadata, nullptr, true);
-    } else {
-      Scoped_instance_pool ipool(
-          metadata, interactive,
-          Instance_pool::Auth_options{instance->get_connection_options()});
-
-      auto rs = get_replica_set(metadata, instance);
-
-      rs->acquire_primary();
-      auto finally = shcore::on_leave_scope([&rs]() { rs->release_primary(); });
-
-      metadata = ipool->get_metadata();
-    }
-  }
 
   instance = metadata->get_md_server();
 
@@ -1603,12 +1612,21 @@ shcore::Value Dba::check_instance_configuration(
     instance = connect_to_target_member();
   }
 
-  if (instance) {
-    metadata = std::make_shared<MetadataStorage>(instance);
+  if (!instance) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
   }
 
-  check_function_preconditions("Dba.checkInstanceConfiguration", metadata,
-                               instance);
+  metadata = std::make_shared<MetadataStorage>(instance);
+
+  // Init the connection pool
+  Scoped_instance_pool ipool(
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(instance->get_connection_options()));
+
+  check_preconditions("Dba.checkInstanceConfiguration", instance);
+
+  ipool->set_metadata(metadata);
 
   // Get the Connection_options
   Connection_options coptions = instance->get_connection_options();
@@ -1656,11 +1674,21 @@ std::shared_ptr<ReplicaSet> Dba::get_replica_set() {
   const auto target_server = connect_to_target_member();
   std::shared_ptr<MetadataStorage> metadata;
 
-  if (target_server) {
-    metadata = std::make_shared<MetadataStorage>(target_server);
+  if (!target_server) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
   }
 
-  check_function_preconditions("Dba.getReplicaSet", metadata, target_server);
+  metadata = std::make_shared<MetadataStorage>(target_server);
+
+  // Init the connection pool
+  Scoped_instance_pool ipool(
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(target_server->get_connection_options()));
+
+  check_preconditions("Dba.getReplicaSet", target_server);
+
+  ipool->set_metadata(metadata);
 
   const auto rs = get_replica_set(metadata, target_server);
 
@@ -1812,9 +1840,9 @@ shcore::Value Dba::create_replica_set(
     throw shcore::Exception::mysql_error_with_code(dberr.what(), dberr.code());
   }
 
-  Scoped_instance_pool ipool(
-      nullptr, options->interactive(),
-      Instance_pool::Auth_options{target_server->get_connection_options()});
+  // Init the connection pool
+  Scoped_instance_pool ipool(current_shell_options()->get().wizards,
+                             target_server->get_connection_options());
 
   auto topology_type = Global_topology_type::SINGLE_PRIMARY_TREE;
 
@@ -1855,9 +1883,9 @@ for failover with <<<forcePrimaryCluster>>>().
  * $(DBA_GETCLUSTERSET)
  */
 #if DOXYGEN_JS
-ReplicaSet Dba::getClusterSet() {}
+ClusterSet Dba::getClusterSet() {}
 #elif DOXYGEN_PY
-ReplicaSet Dba::get_cluster_set() {}
+ClusterSet Dba::get_cluster_set() {}
 #endif
 std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
   const auto target_server = connect_to_target_member();
@@ -1869,6 +1897,10 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
   }
 
   check_function_preconditions("Dba.getClusterSet", metadata, target_server);
+
+  // Init the connection pool
+  Scoped_instance_pool ipool(metadata, current_shell_options()->get().wizards,
+                             target_server->get_connection_options());
 
   // Validate if the target instance is a member of an InnoDB Cluster
   Cluster_metadata cluster_md;
@@ -2325,9 +2357,17 @@ void Dba::do_configure_instance(
     target_instance = connect_to_target_member();
   }
 
-  if (target_instance) {
-    metadata = std::make_shared<MetadataStorage>(target_instance);
+  if (!target_instance) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
   }
+
+  metadata = std::make_shared<MetadataStorage>(target_instance);
+
+  // Init the connection pool
+  Scoped_instance_pool ipool(
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(target_instance->get_connection_options()));
 
   // Check the function preconditions
   if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {
@@ -2338,6 +2378,8 @@ void Dba::do_configure_instance(
         options.local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
         metadata, target_instance);
   }
+
+  ipool->set_metadata(metadata);
 
   auto warnings_callback = [](const std::string &sql, int code,
                               const std::string &level,
@@ -2358,10 +2400,6 @@ void Dba::do_configure_instance(
 
   // Add the warnings callback
   target_instance->register_warnings_callback(warnings_callback);
-
-  Scoped_instance_pool ipool(
-      nullptr, options.interactive(),
-      Instance_pool::Auth_options{target_instance->get_connection_options()});
 
   {
     // Call the API
@@ -2730,33 +2768,26 @@ void Dba::upgrade_metadata(
   auto instance = connect_to_target_member();
   std::shared_ptr<MetadataStorage> metadata;
 
-  if (instance) {
-    metadata = std::make_shared<MetadataStorage>(instance);
+  if (!instance) {
+    // An open session is required
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
   }
 
-  auto state =
-      check_function_preconditions("Dba.upgradeMetadata", metadata, instance);
+  metadata = std::make_shared<MetadataStorage>(instance);
 
-  // The pool is initialized with the metadata using the current session
-
+  // Init the connection pool
   Scoped_instance_pool ipool(
-      metadata, options->interactive(),
-      Instance_pool::Auth_options{instance->get_connection_options()});
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(instance->get_connection_options()));
 
-  // If it happens we are on a RO instance, we update the metadata to make it
-  // use a session to the PRIMARY of the IDC/RSET
-  if (state.source_state == ManagedInstance::OnlineRO) {
-    if (state.source_type == TargetType::InnoDBCluster) {
-      connect_to_target_group({}, &metadata, nullptr, true);
-    } else {
-      auto rs = get_replica_set(metadata, instance);
+  auto primary = check_preconditions("Dba.upgradeMetadata", instance);
 
-      rs->acquire_primary();
-      auto finally = shcore::on_leave_scope([&rs]() { rs->release_primary(); });
-
-      metadata = ipool->get_metadata();
-    }
+  if (primary) {
+    metadata = std::make_shared<MetadataStorage>(primary);
   }
+
+  ipool->set_metadata(metadata);
 
   Upgrade_metadata op_upgrade(metadata, options->interactive(),
                               options->dry_run);
@@ -2767,6 +2798,55 @@ void Dba::upgrade_metadata(
   op_upgrade.prepare();
 
   op_upgrade.execute();
+}
+
+std::shared_ptr<Instance> Dba::check_preconditions(
+    const std::string &function_name,
+    const std::shared_ptr<Instance> &group_server,
+    const Function_availability *custom_func_avail) {
+  bool primary_available = true;
+  std::shared_ptr<Instance> primary;
+
+  auto metadata = std::make_shared<MetadataStorage>(group_server);
+
+  auto state = get_cluster_check_info(*metadata, group_server.get(), false);
+
+  try {
+    current_ipool()->set_metadata(metadata);
+
+    if (state.source_type == TargetType::InnoDBCluster ||
+        state.source_type == TargetType::InnoDBClusterSet) {
+      auto cluster = get_cluster({}, metadata, group_server);
+
+      auto primary_member = cluster->impl()->acquire_primary();
+
+      if (primary_member) {
+        primary = std::make_shared<Instance>(*primary_member);
+      }
+
+      metadata = cluster->impl()->get_metadata_storage();
+    } else if (state.source_type == TargetType::AsyncReplicaSet) {
+      auto rs = get_replica_set(metadata, group_server);
+
+      primary = std::make_shared<Instance>(*rs->acquire_primary());
+
+      metadata = rs->get_metadata_storage();
+    }
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE ||
+        e.code() == SHERR_DBA_GROUP_HAS_NO_PRIMARY) {
+      primary_available = false;
+    } else if (shcore::str_beginswith(
+                   e.what(), "Failed to execute query on Metadata server")) {
+      log_debug("Unable to query Metadata schema: %s", e.what());
+      primary_available = false;
+    }
+  }
+
+  check_function_preconditions(function_name, metadata, group_server,
+                               primary_available, custom_func_avail);
+
+  return primary;
 }
 
 }  // namespace dba

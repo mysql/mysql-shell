@@ -307,6 +307,7 @@ void check_cluster_consistency(
 
 shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
                                         uint64_t extended) {
+  assert(cluster_set);
   shcore::Dictionary_t dict = shcore::make_dict();
 
   dict->set("domainName", shcore::Value(cluster_set->get_name()));
@@ -485,6 +486,8 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
 }
 
 shcore::Dictionary_t cluster_set_describe(Cluster_set_impl *cluster_set) {
+  assert(cluster_set);
+
   auto cluster_description = [](const Cluster_set_member_metadata &mmd,
                                 Cluster_impl *cluster) {
     shcore::Dictionary_t description = cluster->cluster_describe().as_map();

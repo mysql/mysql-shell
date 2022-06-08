@@ -119,10 +119,28 @@ void ClusterSet::init() {
 
 void ClusterSet::assert_valid(const std::string &function_name) {
   std::string name;
+  bool obj_disconnected = false;
 
-  if (function_name == "disconnect") return;
+  if (function_name == "disconnect" || function_name == "name") return;
 
-  if (!m_impl->get_cluster_server()) {
+  if (!impl()->get_cluster_server() ||
+      !impl()->get_cluster_server()->get_session() ||
+      !impl()->get_cluster_server()->get_session()->is_open()) {
+    obj_disconnected = true;
+  } else {
+    // Check if the server is still reachable even though the session is open
+    try {
+      impl()->get_cluster_server()->execute("select 1");
+    } catch (const shcore::Error &e) {
+      if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+        obj_disconnected = true;
+      } else {
+        throw;
+      }
+    }
+  }
+
+  if (obj_disconnected) {
     throw shcore::Exception::runtime_error(
         "The ClusterSet object is disconnected. Please use "
         "dba." +
@@ -359,11 +377,6 @@ shcore::Value ClusterSet::create_replica_cluster(
         &options) {
   assert_valid("createReplicaCluster");
 
-  bool interactive = current_shell_options()->get().wizards;
-
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(), interactive,
-                                   impl()->default_admin_credentials());
-
   // Init progress_style
   Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
 
@@ -375,10 +388,12 @@ shcore::Value ClusterSet::create_replica_cluster(
     progress_style = Recovery_progress_style::PROGRESSBAR;
   }
 
-  auto res = impl()->create_replica_cluster(instance_def, cluster_name,
-                                            progress_style, *options);
-
-  return res;
+  return execute_with_pool(
+      [&]() {
+        return impl()->create_replica_cluster(instance_def, cluster_name,
+                                              progress_style, *options);
+      },
+      false);
 }
 
 // Documentation of the removeCluster function
@@ -437,12 +452,8 @@ void ClusterSet::remove_cluster(
         &options) {
   assert_valid("removeCluster");
 
-  bool interactive = current_shell_options()->get().wizards;
-
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(), interactive,
-                                   impl()->default_admin_credentials());
-
-  impl()->remove_cluster(cluster_name, *options);
+  return execute_with_pool(
+      [&]() { impl()->remove_cluster(cluster_name, *options); }, false);
 }
 
 // Documentation of the status function
@@ -497,13 +508,12 @@ shcore::Value ClusterSet::status(
     const shcore::Option_pack_ref<clusterset::Status_options> &options) {
   assert_valid("status");
 
-  impl()->connect_primary();
-
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  return shcore::Value(impl()->status(options->extended));
+  return execute_with_pool(
+      [&]() {
+        impl()->connect_primary();
+        return shcore::Value(impl()->status(options->extended));
+      },
+      false);
 }
 
 // Documentation of the describe function
@@ -549,13 +559,12 @@ str ClusterSet::describe();
 shcore::Value ClusterSet::describe() {
   assert_valid("describe");
 
-  impl()->connect_primary();
-
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  return shcore::Value(impl()->describe());
+  return execute_with_pool(
+      [&]() {
+        impl()->connect_primary();
+        return shcore::Value(impl()->describe());
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(setPrimaryCluster, ClusterSet);
@@ -626,11 +635,8 @@ void ClusterSet::set_primary_cluster(
         &options) {
   assert_valid("setPrimaryCluster");
 
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  impl()->set_primary_cluster(cluster_name, *options);
+  return execute_with_pool(
+      [&]() { impl()->set_primary_cluster(cluster_name, *options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(forcePrimaryCluster, ClusterSet);
@@ -725,11 +731,8 @@ void ClusterSet::force_primary_cluster(
         &options) {
   assert_valid("forcePrimaryCluster");
 
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  impl()->force_primary_cluster(cluster_name, *options);
+  return execute_with_pool(
+      [&]() { impl()->force_primary_cluster(cluster_name, *options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(rejoinCluster, ClusterSet);
@@ -789,11 +792,8 @@ void ClusterSet::rejoin_cluster(
         &options) {
   assert_valid("rejoinCluster");
 
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  impl()->rejoin_cluster(cluster_name, *options);
+  return execute_with_pool(
+      [&]() { impl()->rejoin_cluster(cluster_name, *options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(options, ClusterSet);
@@ -820,7 +820,7 @@ shcore::Value ClusterSet::options() {
   // Throw an error if the clusterset is invalid
   assert_valid("options");
 
-  return impl()->options();
+  return execute_with_pool([&]() { return impl()->options(); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setOption, ClusterSet);
@@ -856,7 +856,7 @@ void ClusterSet::set_option(const std::string &option,
                             const shcore::Value &value) {
   assert_valid("setOption");
 
-  impl()->set_option(option, value);
+  return execute_with_pool([&]() { impl()->set_option(option, value); }, false);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, ClusterSet);
@@ -882,11 +882,8 @@ Dictionary ClusterSet::listRouters(String router) {}
 dict ClusterSet::list_routers(str router) {}
 #endif
 shcore::Value ClusterSet::list_routers(const std::string &router) {
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  return impl()->list_routers(router);
+  return execute_with_pool([&]() { return impl()->list_routers(router); },
+                           false);
 }
 
 REGISTER_HELP_FUNCTION(setRoutingOption, ClusterSet);
@@ -927,11 +924,8 @@ None ClusterSet::set_routing_option(str option, str value) {}
 #endif
 void ClusterSet::set_routing_option(const std::string &option,
                                     const shcore::Value &value) {
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  impl()->set_routing_option("", option, value);
+  return execute_with_pool(
+      [&]() { impl()->set_routing_option("", option, value); }, false);
 }
 
 /**
@@ -949,7 +943,9 @@ void ClusterSet::set_routing_option(const std::string &router,
                                     const std::string &option,
                                     const shcore::Value &value) {
   assert_valid("setRoutingOption");
-  m_impl->set_routing_option(router, option, value);
+
+  return execute_with_pool(
+      [&]() { impl()->set_routing_option(router, option, value); }, false);
 }
 
 REGISTER_HELP_FUNCTION(routingOptions, ClusterSet);
@@ -958,10 +954,10 @@ Lists the ClusterSet Routers configuration options.
 
 @param router Optional identifier of the router instance to query for the options.
 
-@returns A JSON object describing the configuration options of all router 
+@returns A JSON object describing the configuration options of all router
 instances of the ClusterSet and its global options or just the given Router.
 
-This function lists the Router configuration options of all Routers of the 
+This function lists the Router configuration options of all Routers of the
 ClusterSet or the target Router.
 )*");
 
@@ -976,11 +972,8 @@ Dictionary ClusterSet::routingOptions(String router) {}
 dict ClusterSet::routing_options(str router) {}
 #endif
 shcore::Value ClusterSet::routing_options(const std::string &router) {
-  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                   current_shell_options()->get().wizards,
-                                   impl()->default_admin_credentials());
-
-  return impl()->routing_options(router);
+  return execute_with_pool([&]() { return impl()->routing_options(router); },
+                           false);
 }
 
 }  // namespace dba

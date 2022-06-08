@@ -117,10 +117,10 @@ EXPECT_THROWS(function(){ cs.removeCluster("replica"); }, "The InnoDB Cluster is
 EXPECT_NO_THROWS(function(){ rc.setPrimaryInstance(__sandbox_uri3); });
 
 //@<> setPrimaryCluster should fail without a primary
-EXPECT_THROWS(function(){ cs.setPrimaryCluster("replica2"); }, "Could not connect to any ONLINE member of Primary Cluster 'cluster'");
+EXPECT_THROWS(function(){ cs.setPrimaryCluster("replica2"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
 
 //@<> rejoinCluster on a replica should fail without a primary
-EXPECT_THROWS(function(){ cs.rejoinCluster("replica2"); }, "Could not connect to any ONLINE member of Primary Cluster 'cluster'");
+EXPECT_THROWS(function(){ cs.rejoinCluster("replica2"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
 
 //@<> Rebooting from complete outage a REPLICA Cluster when PRIMARY is OFFLINE should not be blocked
 

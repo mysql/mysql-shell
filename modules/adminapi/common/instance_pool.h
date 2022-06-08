@@ -347,6 +347,12 @@ class Scoped_instance_pool final {
     m_pool->set_default_auth_options(std::move(def_auth));
   }
 
+  Scoped_instance_pool(bool interactive,
+                       const Instance_pool::Auth_options &def_auth)
+      : Scoped_instance_pool(std::make_shared<Instance_pool>(interactive)) {
+    m_pool->set_default_auth_options(def_auth);
+  }
+
   ~Scoped_instance_pool() noexcept;
 
   Scoped_instance_pool(const Scoped_instance_pool &) = delete;

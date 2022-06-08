@@ -101,16 +101,40 @@ void Base_cluster_impl::target_server_invalidated() {
   }
 }
 
-Cluster_check_info Base_cluster_impl::check_preconditions(
+void Base_cluster_impl::check_preconditions(
     const std::string &function_name,
     Function_availability *custom_func_avail) {
   log_debug("Checking '%s' preconditions.", function_name.c_str());
+  bool primary_available = false;
 
   // Makes sure the metadata state is re-loaded on each API call
   m_metadata_storage->invalidate_cached();
-  return check_function_preconditions(
-      api_class(get_type()) + "." + function_name, get_metadata_storage(),
-      get_cluster_server(), custom_func_avail);
+
+  // Makes sure the primary master is reset before acquiring it on each API call
+  m_primary_master.reset();
+
+  try {
+    current_ipool()->set_metadata(get_metadata_storage());
+    acquire_primary();
+    primary_available = true;
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+      log_debug(
+          "Cluster has no quorum and cannot process write transactions: %s",
+          e.what());
+    } else if (e.code() == SHERR_DBA_GROUP_MEMBER_NOT_ONLINE) {
+      log_debug("No PRIMARY member available: %s", e.what());
+    } else if (shcore::str_beginswith(
+                   e.what(), "Failed to execute query on Metadata server")) {
+      log_debug("Unable to query Metadata schema: %s", e.what());
+    } else {
+      throw;
+    }
+  }
+
+  check_function_preconditions(api_class(get_type()) + "." + function_name,
+                               get_metadata_storage(), get_cluster_server(),
+                               primary_available, custom_func_avail);
 }
 
 bool Base_cluster_impl::get_gtid_set_is_complete() const {
@@ -335,12 +359,7 @@ void Base_cluster_impl::setup_account_common(
   // The pool is initialized with the metadata using the current session
   auto metadata = std::make_shared<MetadataStorage>(get_cluster_server());
 
-  Scoped_instance_pool ipool(
-      metadata, options.interactive(),
-      Instance_pool::Auth_options{
-          get_cluster_server()->get_connection_options()});
-
-  const auto primary_instance = acquire_primary();
+  const auto primary_instance = get_primary_master();
   auto finally_primary =
       shcore::on_leave_scope([this]() { release_primary(); });
 
@@ -387,6 +406,13 @@ void Base_cluster_impl::setup_router_account(
   setup_account_common(username, host, options, Setup_account_type::ROUTER);
 }
 
+void Base_cluster_impl::remove_router_metadata(const std::string &router) {
+  if (!get_metadata_storage()->remove_router(router)) {
+    throw shcore::Exception::argument_error("Invalid router instance '" +
+                                            router + "'");
+  }
+}
+
 void Base_cluster_impl::set_instance_tag(const std::string &instance_def,
                                          const std::string &option,
                                          const shcore::Value &value) {
@@ -417,17 +443,6 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
                                             const shcore::Value &value) {
   check_preconditions("setInstanceOption");
 
-  // Initialize pool with the metadata
-  Scoped_instance_pool ipool(
-      get_metadata_storage(), false,
-      Instance_pool::Auth_options{
-          get_cluster_server()->get_connection_options()});
-
-  // make sure metadata session is using the primary
-  acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
-
   std::string opt_namespace, opt;
   shcore::Value val;
   std::tie(opt_namespace, opt, val) =
@@ -446,7 +461,6 @@ void Base_cluster_impl::set_option(const std::string &option,
       k_min_gr_version,
       TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
       ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-      ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
       {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}};
 
   std::string opt_namespace, opt;
@@ -459,13 +473,6 @@ void Base_cluster_impl::set_option(const std::string &option,
     custom_precondition = &custom_func_avail;
   }
   check_preconditions("setOption", custom_precondition);
-
-  // Initialize pool with the metadata
-
-  Scoped_instance_pool ipool(
-      get_metadata_storage(), false,
-      Instance_pool::Auth_options{
-          get_cluster_server()->get_connection_options()});
 
   // make sure metadata session is using the primary
   acquire_primary();

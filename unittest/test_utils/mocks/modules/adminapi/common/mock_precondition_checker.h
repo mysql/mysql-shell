@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,14 +38,19 @@ class Mock_precondition_checker : public mysqlsh::dba::Precondition_checker {
  public:
   explicit Mock_precondition_checker(
       const std::shared_ptr<mysqlsh::dba::MetadataStorage> &metadata,
-      const std::shared_ptr<mysqlsh::dba::Instance> &group_server);
+      const std::shared_ptr<mysqlsh::dba::Instance> &group_server,
+      bool primary_available);
   virtual ~Mock_precondition_checker() {}
 
-  MOCK_METHOD0(get_cluster_global_state, mysqlsh::dba::Cluster_global_status());
+  MOCK_METHOD0(get_cluster_global_state,
+               std::pair<mysqlsh::dba::Cluster_global_status,
+                         mysqlsh::dba::Cluster_availability>());
   MOCK_METHOD0(get_cluster_status, mysqlsh::dba::Cluster_status());
 
  private:
-  mysqlsh::dba::Cluster_global_status def_get_cluster_global_state();
+  std::pair<mysqlsh::dba::Cluster_global_status,
+            mysqlsh::dba::Cluster_availability>
+  def_get_cluster_global_state();
   mysqlsh::dba::Cluster_status def_get_cluster_status();
 };
 }  // namespace testing

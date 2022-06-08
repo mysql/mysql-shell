@@ -398,7 +398,6 @@ The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.
 
 //@ Cluster: no operations can be done on an offline cluster
-||Can't access object member 'name' on an offline cluster
 ||Can't call function 'addInstance' on an offline cluster
 ||Can't call function 'checkInstanceState' on an offline cluster
 ||Can't call function 'describe' on an offline cluster
@@ -410,7 +409,7 @@ Replication was disabled but user data was left intact.
 ||Can't call function 'rescan' on an offline cluster
 ||Can't call function 'status' on an offline cluster
 ||Can't call function 'listRouters' on an offline cluster
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
 
 //@ Cluster: disconnect() is ok on an offline cluster
 ||

@@ -104,7 +104,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   void disconnect() override;
 
   mysqlsh::dba::Instance *connect_primary();
-  bool reconnect_target_if_invalidated();
+  bool reconnect_target_if_invalidated(bool print_warnings = true);
 
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,

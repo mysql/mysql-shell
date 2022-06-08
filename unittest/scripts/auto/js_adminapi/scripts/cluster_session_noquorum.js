@@ -31,10 +31,10 @@ var cluster = dba.getCluster();
 cluster.status();
 cluster.disconnect();
 
-//@# getCluster() and connectToPrimary:true (fail)
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+//@<> getCluster() and connectToPrimary:true (OK: deprecated: auto-redirect primary)
+EXPECT_NO_THROWS(function() { cluster = dba.getCluster(null, {connectToPrimary:true}); });
 
-//@<OUT> getCluster() and connectToPrimary:false (succeed)
+//@<OUT> getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
 var cluster = dba.getCluster(null, {connectToPrimary:false});
 cluster.status();
 cluster.disconnect();
@@ -79,10 +79,10 @@ var cluster = dba.getCluster();
 cluster.status();
 
 cluster.disconnect();
-//@# 2 getCluster() and connectToPrimary:true (fail)
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+//@<> 2 getCluster() and connectToPrimary:true (OK: deprecated: auto-redirect primary)
+EXPECT_NO_THROWS(function() { cluster = dba.getCluster(null, {connectToPrimary:true}); });
 
-//@<OUT> 2 getCluster() and connectToPrimary:false (succeed)
+//@<OUT> 2 getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
 var cluster = dba.getCluster(null, {connectToPrimary:false});
 cluster.status();
 

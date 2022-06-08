@@ -63,7 +63,6 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("cluster", {dryRun: true}); });
 EXPECT_OUTPUT_CONTAINS("NOTE: dryRun option was specified. Validations will be executed, but no changes will be applied.");
-EXPECT_OUTPUT_CONTAINS(`NOTE: Instance ${hostname}:${__mysql_sandbox_port4} has more recent metadata than ${hostname}:${__mysql_sandbox_port1} (generation 1 vs 0), which suggests cluster has been invalidated`);
 EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_CONTAINS("dryRun finished.");
 EXPECT_OUTPUT_NOT_CONTAINS("The Cluster was successfully rebooted.");
@@ -71,25 +70,24 @@ EXPECT_OUTPUT_NOT_CONTAINS("The Cluster was successfully rebooted.");
 testutil.wipeAllOutput();
 
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("cluster"); });
-EXPECT_OUTPUT_CONTAINS(`NOTE: Instance ${hostname}:${__mysql_sandbox_port4} has more recent metadata than ${hostname}:${__mysql_sandbox_port1} (generation 1 vs 0), which suggests cluster has been invalidated`);
 EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
 EXPECT_OUTPUT_NOT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
 
 status = old_primary.status();
-EXPECT_EQ("Cluster is NOT tolerant to any failures. 2 members are not active.", status["defaultReplicaSet"]["statusText"]);
+EXPECT_EQ("Cluster was invalidated by the ClusterSet it belongs to. 2 members are not active.", status["defaultReplicaSet"]["statusText"]);
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"]);
 
 // put the cluster back
 testutil.startSandbox(__mysql_sandbox_port3);
 
-EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri2); });
-EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri3); });
-
 shell.connect(__sandbox_uri4);
 
 cs = dba.getClusterSet();
 cs.rejoinCluster("cluster");
+
+EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri2); });
+EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri3); });
 
 cluster = dba.getCluster();
 
@@ -326,12 +324,14 @@ EXPECT_OUTPUT_CONTAINS("WARNING: Unable to rejoin Cluster to the ClusterSet beca
 
 testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
+wait_channel_ready(session, __mysql_sandbox_port4, "clusterset_replication");
+testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 
 //reset cluster set
 
 shell.connect(__sandbox_uri1);
 cset = dba.getClusterSet();
-cset.removeCluster("replica", {force: true});
+cset.removeCluster("replica");
 
 shell.connect(__sandbox_uri6);
 reset_instance(session);

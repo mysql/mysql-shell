@@ -132,8 +132,8 @@ struct Function_availability {
   mysqlshdk::utils::Version min_version;
   int instance_config_state;
   ReplicationQuorum::State cluster_status;
-  int instance_status;
   std::vector<Metadata_state_action> metadata_state_actions = {};
+  bool primary_required = true;
   // Defines the global state in which the operation is allowed
   // Empty indicates the operation is not allowed for instances in a cluster set
   Cluster_global_status_mask cluster_set_state = {};

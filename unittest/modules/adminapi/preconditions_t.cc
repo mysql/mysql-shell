@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,7 @@ class Preconditions : public Shell_core_test_wrapper {
   void SetUp() {
     Shell_core_test_wrapper::SetUp();
 
+    bool m_primary_available = true;
     m_mock_session = std::make_shared<testing::Mock_session>();
     m_mock_instance = std::make_shared<mysqlsh::dba::Instance>(m_mock_session);
     m_mock_session->expect_query(
@@ -61,7 +62,7 @@ class Preconditions : public Shell_core_test_wrapper {
     //    m_preconditions =
     //        std::make_shared<mysqlsh::dba::Precondition_checker>(*m_metadata);
     m_preconditions = std::make_shared<mysqlsh::dba::Precondition_checker>(
-        m_mock_metadata, m_mock_instance);
+        m_mock_metadata, m_mock_instance, m_primary_available);
   }
 
   void TearDown() { Shell_core_test_wrapper::TearDown(); }
@@ -206,7 +207,7 @@ TEST_F(Preconditions, check_instance_configuration_preconditions_errors) {
        "that belongs to an InnoDB ClusterSet"},
   };
 
-  Precondition_checker checker(m_mock_metadata, m_mock_instance);
+  Precondition_checker checker(m_mock_metadata, m_mock_instance, true);
   for (const auto &validation : validations) {
     // Validates the errors
     EXPECT_THROW_LIKE(checker.check_instance_configuration_preconditions(
@@ -227,61 +228,45 @@ TEST_F(Preconditions, check_instance_configuration_preconditions_errors) {
   }
 }
 
-TEST_F(Preconditions, check_managed_instance_status_preconditions_errors) {
+TEST_F(Preconditions, check_managed_instance_status_preconditions) {
   struct Invalid_states {
-    mysqlsh::dba::ManagedInstance::State instance_state;
+    mysqlsh::dba::ReplicationQuorum::State instance_quorum_state;
+    bool primary_req;
     std::string error;
   };
 
-  std::vector<Invalid_states> validations = {
-      {mysqlsh::dba::ManagedInstance::OnlineRO,
-       "This function is not available through a session to a read only "
-       "instance"},
-      {mysqlsh::dba::ManagedInstance::Offline,
-       "This function is not available through a session to an offline "
-       "instance"},
-      {mysqlsh::dba::ManagedInstance::Error,
-       "This function is not available through a session to an instance in "
-       "error state"},
-      {mysqlsh::dba::ManagedInstance::Recovering,
-       "This function is not available through a session to a recovering "
-       "instance"},
-      {mysqlsh::dba::ManagedInstance::Unreachable,
-       "This function is not available through a session to an unreachable "
-       "instance"}};
+  // ERRORS
+  std::vector<Invalid_states> validations_errors = {
+      {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Normal),
+       true, "This operation requires a PRIMARY instance available"},
+      {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Quorumless),
+       true, "There is no quorum to perform the operation"}};
 
-  Precondition_checker checker(m_mock_metadata, m_mock_instance);
-  for (const auto &validation : validations) {
+  Precondition_checker checker(m_mock_metadata, m_mock_instance, false);
+  for (const auto &validation : validations_errors) {
     // Validates the errors
-    EXPECT_THROW_LIKE(checker.check_managed_instance_status_preconditions(
-                          validation.instance_state, 0),
-                      shcore::Exception, validation.error);
+    EXPECT_THROW_LIKE(
+        checker.check_managed_instance_status_preconditions(
+            validation.instance_quorum_state, validation.primary_req),
+        shcore::Exception, validation.error);
   }
-}
 
-TEST_F(Preconditions, check_managed_instance_status_preconditions) {
-  std::vector<mysqlsh::dba::ManagedInstance::State> managed_instance_states{
-      mysqlsh::dba::ManagedInstance::OnlineRO,
-      mysqlsh::dba::ManagedInstance::Offline,
-      mysqlsh::dba::ManagedInstance::Error,
-      mysqlsh::dba::ManagedInstance::Recovering,
-      mysqlsh::dba::ManagedInstance::Unreachable};
+  // SUCESS
+  std::vector<Invalid_states> validations_success = {
+      {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Normal),
+       true, ""},
+      {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Quorumless),
+       true, ""}};
 
-  Precondition_checker checker(m_mock_metadata, m_mock_instance);
-  for (const auto &precondition : Precondition_checker::s_preconditions) {
-    for (auto instance_status : managed_instance_states) {
-      if (instance_status & precondition.second.instance_status) {
-        EXPECT_NO_THROW(checker.check_managed_instance_status_preconditions(
-            instance_status, precondition.second.instance_status));
-        SCOPED_TRACE("Unexpected failure!");
-        SCOPED_TRACE(precondition.first);
-      } else {
-        EXPECT_ANY_THROW(checker.check_managed_instance_status_preconditions(
-            instance_status, precondition.second.instance_status));
-        SCOPED_TRACE("Unexpected success!");
-        SCOPED_TRACE(precondition.first);
-      }
-    }
+  checker = Precondition_checker(m_mock_metadata, m_mock_instance, true);
+  for (const auto &validation : validations_success) {
+    // Validates the errors
+    EXPECT_NO_THROW(checker.check_managed_instance_status_preconditions(
+        validation.instance_quorum_state, validation.primary_req));
   }
 }
 
@@ -314,7 +299,7 @@ TEST_F(Preconditions, check_quorum_state_preconditions_errors) {
        0,
        "Unable to perform the operation on a dead InnoDB cluster"}};
 
-  Precondition_checker checker(m_mock_metadata, m_mock_instance);
+  Precondition_checker checker(m_mock_metadata, m_mock_instance, true);
   for (const auto &validation : validations) {
     // Validates the errors
     EXPECT_THROW_LIKE(checker.check_quorum_state_preconditions(
@@ -343,7 +328,7 @@ TEST_F(Preconditions, check_quorum_state_preconditions) {
           ReplicationQuorum::States::Quorumless),
       mysqlsh::dba::ReplicationQuorum::State(ReplicationQuorum::States::Dead)};
 
-  Precondition_checker checker(m_mock_metadata, m_mock_instance);
+  Precondition_checker checker(m_mock_metadata, m_mock_instance, true);
   for (const auto &precondition : Precondition_checker::s_preconditions) {
     for (auto quorum_state : quorum_states) {
       if (quorum_state.matches_any(precondition.second.cluster_status)) {
@@ -367,10 +352,16 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
     std::string error;
   };
 
-  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance);
+  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance,
+                                             true);
+
+  std::pair<mysqlsh::dba::Cluster_global_status,
+            mysqlsh::dba::Cluster_availability>
+      global_state{mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED,
+                   mysqlsh::dba::Cluster_availability::ONLINE};
 
   EXPECT_CALL(checker, get_cluster_global_state())
-      .WillOnce(Return(mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED));
+      .WillOnce(Return(global_state));
 
   Invalid_states validation = {
       mysqlsh::dba::Cluster_global_status_mask(
@@ -379,7 +370,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
       "state of " +
           to_string(mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED) +
           " within the ClusterSet. Operation is not possible when in that "
-          "state "};
+          "state"};
 
   EXPECT_THROW_LIKE(
       checker.check_cluster_set_preconditions(validation.allowed_states),
@@ -392,10 +383,13 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
       "state of " +
           to_string(mysqlsh::dba::Cluster_global_status::NOT_OK) +
           " within the ClusterSet. Operation is not possible when in that "
-          "state "};
+          "state"};
+
+  global_state = {mysqlsh::dba::Cluster_global_status::NOT_OK,
+                  mysqlsh::dba::Cluster_availability::ONLINE};
 
   EXPECT_CALL(checker, get_cluster_global_state())
-      .WillOnce(Return(mysqlsh::dba::Cluster_global_status::NOT_OK));
+      .WillOnce(Return(global_state));
 
   EXPECT_THROW_LIKE(
       checker.check_cluster_set_preconditions(validation.allowed_states),
@@ -406,14 +400,23 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
 }
 
 TEST_F(Preconditions, check_cluster_set_preconditions) {
-  std::vector<mysqlsh::dba::Cluster_global_status> global_cluster_states{
-      mysqlsh::dba::Cluster_global_status::OK,
-      mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED,
-      mysqlsh::dba::Cluster_global_status::OK_NOT_CONSISTENT,
-      mysqlsh::dba::Cluster_global_status::OK_NOT_REPLICATING,
-      mysqlsh::dba::Cluster_global_status::UNKNOWN,
-      mysqlsh::dba::Cluster_global_status::NOT_OK,
-      mysqlsh::dba::Cluster_global_status::INVALIDATED};
+  std::vector<std::pair<mysqlsh::dba::Cluster_global_status,
+                        mysqlsh::dba::Cluster_availability>>
+      global_cluster_states{
+          {mysqlsh::dba::Cluster_global_status::OK,
+           mysqlsh::dba::Cluster_availability::ONLINE},
+          {mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED,
+           mysqlsh::dba::Cluster_availability::ONLINE},
+          {mysqlsh::dba::Cluster_global_status::OK_NOT_CONSISTENT,
+           mysqlsh::dba::Cluster_availability::ONLINE},
+          {mysqlsh::dba::Cluster_global_status::OK_NOT_REPLICATING,
+           mysqlsh::dba::Cluster_availability::ONLINE},
+          {mysqlsh::dba::Cluster_global_status::UNKNOWN,
+           mysqlsh::dba::Cluster_availability::ONLINE},
+          {mysqlsh::dba::Cluster_global_status::NOT_OK,
+           mysqlsh::dba::Cluster_availability::ONLINE},
+          {mysqlsh::dba::Cluster_global_status::INVALIDATED,
+           mysqlsh::dba::Cluster_availability::ONLINE}};
 
   std::set<std::string> cset_exclusive_expected = {
       "Cluster.fenceWrites",      "Cluster.getClusterSet",
@@ -464,7 +467,8 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
   std::set<std::string> cset_always_allowed;
   std::set<std::string> cset_sometimes_allowed;
 
-  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance);
+  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance,
+                                             true);
   for (const auto &precondition : Precondition_checker::s_preconditions) {
     // Functions that are exclusive to ClusterSets
     bool cluster_set_exclusive =
@@ -508,10 +512,10 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       //     precondition.second.cluster_set_state));
     } else if (is_allowed_clusterset) {
       cset_sometimes_allowed.insert(precondition.first);
-      for (const auto global_state : global_cluster_states) {
+      for (const auto &global_state : global_cluster_states) {
         EXPECT_CALL(checker, get_cluster_global_state())
             .WillOnce(Return(global_state));
-        if (precondition.second.cluster_set_state.is_set(global_state)) {
+        if (precondition.second.cluster_set_state.is_set(global_state.first)) {
           EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
               precondition.second.cluster_set_state));
         } else {
@@ -535,7 +539,8 @@ TEST_F(Preconditions, check_cluster_fenced_preconditions) {
     std::string error;
   };
 
-  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance);
+  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance,
+                                             true);
 
   EXPECT_CALL(checker, get_cluster_status())
       .WillOnce(Return(mysqlsh::dba::Cluster_status::FENCED_WRITES));

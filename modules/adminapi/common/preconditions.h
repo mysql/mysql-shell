@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,13 +71,21 @@ const Cluster_global_status_mask kClusterGlobalStateAnyOkorNotOk =
         .set(Cluster_global_status::OK_MISCONFIGURED)
         .set(Cluster_global_status::NOT_OK);
 
+const Cluster_global_status_mask kClusterGlobalStateAnyOkorInvalidated =
+    Cluster_global_status_mask(Cluster_global_status::OK)
+        .set(Cluster_global_status::OK_NOT_REPLICATING)
+        .set(Cluster_global_status::OK_NOT_CONSISTENT)
+        .set(Cluster_global_status::OK_MISCONFIGURED)
+        .set(Cluster_global_status::INVALIDATED);
+
 const Cluster_global_status_mask kClusterGlobalStateAny =
     Cluster_global_status_mask::any();
 
 class Precondition_checker {
  public:
   Precondition_checker(const std::shared_ptr<MetadataStorage> &metadata,
-                       const std::shared_ptr<Instance> &group_server);
+                       const std::shared_ptr<Instance> &group_server,
+                       bool primary_available);
   Cluster_check_info check_preconditions(
       const std::string &function_name,
       const Function_availability *custom_func_avail = nullptr);
@@ -106,8 +114,8 @@ class Precondition_checker {
   void check_instance_configuration_preconditions(
       mysqlsh::dba::TargetType::Type instance_type, int allowed_types) const;
   void check_managed_instance_status_preconditions(
-      mysqlsh::dba::ManagedInstance::State instance_state,
-      int allowed_states) const;
+      mysqlsh::dba::ReplicationQuorum::State instance_quorum_state,
+      bool primary_req) const;
   void check_quorum_state_preconditions(
       mysqlsh::dba::ReplicationQuorum::State instance_quorum_state,
       mysqlsh::dba::ReplicationQuorum::State allowed_states) const;
@@ -116,11 +124,13 @@ class Precondition_checker {
   void check_cluster_fenced_preconditions(bool allowed_on_fenced);
 
  protected:
-  virtual Cluster_global_status get_cluster_global_state();
+  virtual std::pair<Cluster_global_status, Cluster_availability>
+  get_cluster_global_state();
   virtual Cluster_status get_cluster_status();
 
   std::shared_ptr<MetadataStorage> m_metadata;
   std::shared_ptr<Instance> m_group_server;
+  bool m_primary_available;
 };
 
 // NOTE: BUG#30628479 is applicable to all the API functions and the root
@@ -132,6 +142,7 @@ Cluster_check_info check_function_preconditions(
     const std::string &function_name,
     const std::shared_ptr<MetadataStorage> &metadata,
     const std::shared_ptr<Instance> &group_server,
+    bool primary_available = false,
     const Function_availability *custom_func_avail = nullptr);
 
 }  // namespace dba

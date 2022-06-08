@@ -314,10 +314,11 @@ bool MetadataStorage::check_version(
     try {
       m_md_state = mysqlsh::dba::metadata::check_installed_schema_version(
           m_md_server, &m_md_version, &m_real_md_version, &m_md_version_schema);
-    } catch (const shcore::Exception &e) {
+    } catch (const shcore::Error &e) {
       throw shcore::Exception::mysql_error_with_code(
-          shcore::str_format("Error querying metadata server at %s: %s",
-                             m_md_server->descr().c_str(), e.what()),
+          shcore::str_format(
+              "Failed to execute query on Metadata server %s: %s",
+              m_md_server->descr().c_str(), e.what()),
           e.code());
     }
   }
@@ -778,14 +779,18 @@ bool MetadataStorage::get_cluster_for_cluster_name(
  * must be to the current primary cluster.
  */
 Cluster_id MetadataStorage::create_cluster_record(Cluster_impl *cluster,
-                                                  bool adopted) {
+                                                  bool adopted, bool recreate) {
   Cluster_id cluster_id;
 
   try {
-    auto result = execute_sqlf("SELECT uuid()");
-    cluster_id = result->fetch_one_or_throw()->get_string(0);
+    if (!recreate) {
+      auto res = execute_sqlf("SELECT uuid()");
+      cluster_id = res->fetch_one_or_throw()->get_string(0);
+    } else {
+      cluster_id = cluster->get_id();
+    }
 
-    result = execute_sqlf(
+    auto result = execute_sqlf(
         "INSERT INTO mysql_innodb_cluster_metadata.clusters "
         "(cluster_id, cluster_name, description,"
         " cluster_type, primary_mode, attributes)"

@@ -849,7 +849,7 @@ shcore::Value Create_cluster::execute() {
     undo_list.push_front([&trx]() { trx.rollback(); });
 
     metadata->create_cluster_record(cluster_impl.get(),
-                                    m_options.get_adopt_from_gr());
+                                    m_options.get_adopt_from_gr(), false);
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_replication_allowed_host,

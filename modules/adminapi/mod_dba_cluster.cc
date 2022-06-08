@@ -85,14 +85,14 @@ Cluster::~Cluster() { DEBUG_OBJ_DEALLOC(Cluster); }
 
 std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
                                    int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + m_impl->get_name() + ">");
+  s_out.append("<" + class_name() + ":" + impl()->get_name() + ">");
   return s_out;
 }
 
 void Cluster::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();
   dumper.append_string("class", class_name());
-  dumper.append_string("name", m_impl->get_name());
+  dumper.append_string("name", impl()->get_name());
   dumper.end_object();
 }
 
@@ -184,7 +184,7 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
   assert_valid(prop);
 
   if (prop == "name")
-    ret_val = shcore::Value(m_impl->get_name());
+    ret_val = shcore::Value(impl()->get_name());
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
   return ret_val;
@@ -192,8 +192,9 @@ shcore::Value Cluster::get_member(const std::string &prop) const {
 
 void Cluster::assert_valid(const std::string &option_name) const {
   std::string name;
+  bool obj_disconnected = false;
 
-  if (option_name == "disconnect") return;
+  if (option_name == "disconnect" || option_name == "name") return;
 
   if (has_member(option_name) && m_invalidated) {
     if (has_method(option_name)) {
@@ -208,11 +209,29 @@ void Cluster::assert_valid(const std::string &option_name) const {
                                              name + "' on an offline cluster");
     }
   }
-  if (!m_impl->get_cluster_server()) {
+
+  if (!impl()->get_cluster_server() ||
+      !impl()->get_cluster_server()->get_session() ||
+      !impl()->get_cluster_server()->get_session()->is_open()) {
+    obj_disconnected = true;
+  } else {
+    // Check if the server is still reachable even though the session is open
+    try {
+      impl()->get_cluster_server()->execute("select 1");
+    } catch (const shcore::Error &e) {
+      if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+        obj_disconnected = true;
+      } else {
+        throw;
+      }
+    }
+  }
+
+  if (obj_disconnected) {
     throw shcore::Exception::runtime_error(
         "The cluster object is disconnected. Please use dba." +
         get_function_name("getCluster", false) +
-        " to obtain a fresh cluster handle.");
+        "() to obtain a fresh cluster handle.");
   }
 }
 
@@ -339,17 +358,12 @@ void Cluster::add_instance(
     instance_def.set_password(*(options->password));
   }
 
-  Scoped_instance_pool ipool(
-      nullptr, options->interactive(),
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
   // Validate the label value.
   if (!options->label.is_null()) {
     mysqlsh::dba::validate_label(*(options->label));
 
-    if (!m_impl->get_metadata_storage()->is_instance_label_unique(
-            m_impl->get_id(), *(options->label))) {
+    if (!impl()->get_metadata_storage()->is_instance_label_unique(
+            impl()->get_id(), *(options->label))) {
       throw shcore::Exception::argument_error(
           "An instance with label '" + *(options->label) +
           "' is already part of this InnoDB cluster");
@@ -369,8 +383,12 @@ void Cluster::add_instance(
     progress_style = Recovery_progress_style::PROGRESSBAR;
   }
 
-  // Add the Instance to the Cluster
-  m_impl->add_instance(instance_def, *options, progress_style);
+  return execute_with_pool(
+      [&]() {
+        // Add the Instance to the Cluster
+        impl()->add_instance(instance_def, *options, progress_style);
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);
@@ -441,6 +459,9 @@ Dict Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 void Cluster::rejoin_instance(
     const Connection_options &instance_def_,
     const shcore::Option_pack_ref<cluster::Rejoin_instance_options> &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("rejoinInstance");
+
   auto instance_def = instance_def_;
 
   if (!options->password.is_null()) {
@@ -448,19 +469,13 @@ void Cluster::rejoin_instance(
     instance_def.set_password(*(options->password));
   }
 
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("rejoinInstance");
-
-  m_impl->check_preconditions("rejoinInstance");
-
-  Scoped_instance_pool ipool(
-      nullptr, options->interactive(),
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  // Rejoin the Instance to the Cluster
-  m_impl->rejoin_instance(instance_def, options->gr_options,
-                          options->interactive(), false, {});
+  return execute_with_pool(
+      [&]() {
+        // Rejoin the Instance to the Cluster
+        impl()->rejoin_instance(instance_def, options->gr_options,
+                                options->interactive(), false, {});
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, Cluster);
@@ -520,13 +535,12 @@ void Cluster::remove_instance(
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
-  Scoped_instance_pool ipool(
-      nullptr, options->interactive(),
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  // Remove the Instance from the Cluster
-  m_impl->remove_instance(instance_def, *options);
+  return execute_with_pool(
+      [&]() {
+        // Remove the Instance from the Cluster
+        impl()->remove_instance(instance_def, *options);
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
@@ -573,7 +587,7 @@ shcore::Value Cluster::describe(void) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("describe");
 
-  return m_impl->describe();
+  return execute_with_pool([&]() { return impl()->describe(); }, false);
 }
 
 REGISTER_HELP_FUNCTION(status, Cluster);
@@ -625,12 +639,8 @@ shcore::Value Cluster::status(
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
-  Scoped_instance_pool ipool(
-      nullptr, false,
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  return m_impl->status(options->extended);
+  return execute_with_pool([&]() { return impl()->status(options->extended); },
+                           false);
 }
 
 REGISTER_HELP_FUNCTION(options, Cluster);
@@ -665,7 +675,8 @@ shcore::Value Cluster::options(
   // Throw an error if the cluster has already been dissolved
   assert_valid("options");
 
-  return m_impl->options(options->all);
+  return execute_with_pool([&]() { return impl()->options(options->all); },
+                           false);
 }
 
 REGISTER_HELP_FUNCTION(dissolve, Cluster);
@@ -714,15 +725,13 @@ void Cluster::dissolve(
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
-  Scoped_instance_pool ipool(
-      nullptr, options->interactive(),
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  m_impl->dissolve(options->force, options->interactive());
-
-  // Set the flag, marking this cluster instance as invalid.
-  invalidate();
+  return execute_with_pool(
+      [&]() {
+        impl()->dissolve(options->force, options->interactive());
+        // Set the flag, marking this cluster instance as invalid.
+        invalidate();
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(resetRecoveryAccountsPassword, Cluster);
@@ -770,8 +779,12 @@ void Cluster::reset_recovery_accounts_password(
   // Throw an error if the cluster has already been dissolved
   assert_valid("resetRecoveryAccountsPassword");
 
-  // Reset the recovery passwords.
-  m_impl->reset_recovery_password(options->force, options->interactive());
+  return execute_with_pool(
+      [&]() {
+        // Reset the recovery passwords.
+        impl()->reset_recovery_password(options->force, options->interactive());
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
@@ -828,12 +841,7 @@ void Cluster::rescan(
     const shcore::Option_pack_ref<cluster::Rescan_options> &options) {
   assert_valid("rescan");
 
-  Scoped_instance_pool ipool(
-      nullptr, false,
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  m_impl->rescan(*options);
+  return execute_with_pool([&]() { impl()->rescan(*options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);
@@ -857,7 +865,7 @@ Undefined Cluster::disconnect() {}
 None Cluster::disconnect() {}
 #endif
 
-void Cluster::disconnect() { m_impl->disconnect(); }
+void Cluster::disconnect() { impl()->disconnect(); }
 
 REGISTER_HELP_FUNCTION(forceQuorumUsingPartitionOf, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FORCEQUORUMUSINGPARTITIONOF, R"*(
@@ -914,7 +922,11 @@ void Cluster::force_quorum_using_partition_of(
 
   bool interactive = current_shell_options()->get().wizards;
 
-  m_impl->force_quorum_using_partition_of(instance_def, interactive);
+  return execute_with_pool(
+      [&]() {
+        impl()->force_quorum_using_partition_of(instance_def, interactive);
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
@@ -968,12 +980,8 @@ shcore::Value Cluster::check_instance_state(
     const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
 
-  Scoped_instance_pool ipool(
-      nullptr, false,
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  return m_impl->check_instance_state(instance_def);
+  return execute_with_pool(
+      [&]() { return impl()->check_instance_state(instance_def); }, false);
 }
 
 REGISTER_HELP_FUNCTION(switchToSinglePrimaryMode, Cluster);
@@ -1014,8 +1022,12 @@ void Cluster::switch_to_single_primary_mode(
     const Connection_options &instance_def) {
   assert_valid("switchToSinglePrimaryMode");
 
-  // Switch to single-primary mode
-  m_impl->switch_to_single_primary_mode(instance_def);
+  return execute_with_pool(
+      [&]() {
+        // Switch to single-primary mode
+        impl()->switch_to_single_primary_mode(instance_def);
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(switchToMultiPrimaryMode, Cluster);
@@ -1042,8 +1054,12 @@ None Cluster::switch_to_multi_primary_mode() {}
 void Cluster::switch_to_multi_primary_mode(void) {
   assert_valid("switchToMultiPrimaryMode");
 
-  // Switch to single-primary mode
-  m_impl->switch_to_multi_primary_mode();
+  return execute_with_pool(
+      [&]() {
+        // Switch to multi-primary mode
+        impl()->switch_to_multi_primary_mode();
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(setPrimaryInstance, Cluster);
@@ -1092,7 +1108,12 @@ void Cluster::set_primary_instance(
         &options) {
   assert_valid("setPrimaryInstance");
 
-  m_impl->set_primary_instance(instance_def, *options);
+  return execute_with_pool(
+      [&]() {
+        // Set primary-instance
+        impl()->set_primary_instance(instance_def, *options);
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(setOption, Cluster);
@@ -1158,7 +1179,7 @@ void Cluster::set_option(const std::string &option,
                          const shcore::Value &value) {
   assert_valid("setOption");
 
-  m_impl->set_option(option, value);
+  return execute_with_pool([&]() { impl()->set_option(option, value); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setInstanceOption, Cluster);
@@ -1213,8 +1234,12 @@ void Cluster::set_instance_option(const Connection_options &instance_def,
                                   const shcore::Value &value) {
   assert_valid("setInstanceOption");
 
-  // Set the option in the Default ReplicaSet
-  m_impl->set_instance_option(instance_def.as_uri(), option, value);
+  return execute_with_pool(
+      [&]() {
+        // Set the option in the Default ReplicaSet
+        impl()->set_instance_option(instance_def.as_uri(), option, value);
+      },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, Cluster);
@@ -1254,14 +1279,9 @@ shcore::Dictionary_t Cluster::list_routers(
   // Throw an error if the cluster has already been dissolved
   assert_valid("listRouters");
 
-  auto target_instance = m_impl->get_cluster_server();
-  auto metadadata = m_impl->get_metadata_storage();
-
-  // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("Cluster.listRouters", metadadata,
-                               target_instance);
-
-  auto ret_val = m_impl->list_routers(options->only_upgrade_required);
+  auto ret_val = execute_with_pool(
+      [&]() { return impl()->list_routers(options->only_upgrade_required); },
+      false);
 
   return ret_val.as_map();
 }
@@ -1296,26 +1316,8 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeRouterMetadata");
 
-  auto target_instance = m_impl->get_cluster_server();
-  auto metadadata = m_impl->get_metadata_storage();
-
-  // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("Cluster.removeRouterMetadata", metadadata,
-                               target_instance);
-
-  Scoped_instance_pool ipool(
-      nullptr, false,
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  m_impl->acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { m_impl->release_primary(); });
-
-  if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
-    throw shcore::Exception::argument_error("Invalid router instance '" +
-                                            router_def + "'");
-  }
+  return execute_with_pool(
+      [&]() { impl()->remove_router_metadata(router_def); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, Cluster);
@@ -1383,7 +1385,8 @@ void Cluster::setup_admin_account(
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  m_impl->setup_admin_account(username, host, *options);
+  return execute_with_pool(
+      [&]() { impl()->setup_admin_account(username, host, *options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setupRouterAccount, Cluster);
@@ -1450,7 +1453,8 @@ void Cluster::setup_router_account(
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  m_impl->setup_router_account(username, host, *options);
+  return execute_with_pool(
+      [&]() { impl()->setup_router_account(username, host, *options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(fenceAllTraffic, Cluster);
@@ -1484,7 +1488,7 @@ None Cluster::fence_all_traffic() {}
 void Cluster::fence_all_traffic() {
   assert_valid("fenceAllTraffic");
 
-  m_impl->fence_all_traffic();
+  return execute_with_pool([&]() { impl()->fence_all_traffic(); }, false);
 
   // Invalidate the cluster object
   invalidate();
@@ -1522,7 +1526,7 @@ None Cluster::fence_writes() {}
 void Cluster::fence_writes() {
   assert_valid("fenceWrites");
 
-  m_impl->fence_writes();
+  return execute_with_pool([&]() { impl()->fence_writes(); }, false);
 }
 
 REGISTER_HELP_FUNCTION(unfenceWrites, Cluster);
@@ -1551,7 +1555,7 @@ None Cluster::unfence_writes() {}
 void Cluster::unfence_writes() {
   assert_valid("unfenceWrites");
 
-  m_impl->unfence_writes();
+  return execute_with_pool([&]() { impl()->unfence_writes(); }, false);
 }
 
 REGISTER_HELP_FUNCTION(createClusterSet, Cluster);
@@ -1642,12 +1646,9 @@ shcore::Value Cluster::create_cluster_set(
     const std::string &domain_name,
     const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
         &options) {
-  Scoped_instance_pool ipool(
-      nullptr, false,
-      Instance_pool::Auth_options{
-          m_impl->get_cluster_server()->get_connection_options()});
-
-  return m_impl->create_cluster_set(domain_name, *options);
+  return execute_with_pool(
+      [&]() { return impl()->create_cluster_set(domain_name, *options); },
+      false);
 }
 
 REGISTER_HELP_FUNCTION(getClusterSet, Cluster);
@@ -1678,35 +1679,15 @@ ReplicaSet Cluster::getClusterSet() {}
 ReplicaSet Cluster::get_cluster_set() {}
 #endif
 std::shared_ptr<ClusterSet> Cluster::get_cluster_set() {
-  m_impl->check_preconditions("getClusterSet");
+  assert_valid("getClusterSet");
 
-  auto cs = m_impl->get_cluster_set();
+  // Init the connection pool
+  impl()->get_metadata_storage()->invalidate_cached();
+  Scoped_instance_pool ipool(
+      impl()->get_metadata_storage(), false,
+      Instance_pool::Auth_options(impl()->default_admin_credentials()));
 
-  // Check if the target Cluster is invalidated
-  if (impl()->is_invalidated()) {
-    mysqlsh::current_console()->print_warning(
-        "Cluster '" + impl()->get_name() +
-        "' was INVALIDATED and must be removed from the ClusterSet.");
-  }
-
-  // Check if the target Cluster still belongs to the ClusterSet
-  Cluster_set_member_metadata cluster_member_md;
-  if (!cs->get_metadata_storage()->get_cluster_set_member(impl()->get_id(),
-                                                          &cluster_member_md)) {
-    current_console()->print_error("The Cluster '" + impl()->get_name() +
-                                   "' appears to have been removed from "
-                                   "the ClusterSet '" +
-                                   cs->get_name() +
-                                   "', however its own metadata copy wasn't "
-                                   "properly updated during the removal");
-
-    throw shcore::Exception("The cluster '" + impl()->get_name() +
-                                "' is not a part of the ClusterSet '" +
-                                cs->get_name() + "'",
-                            SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
-  }
-
-  return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
+  return impl()->get_cluster_set();
 }
 
 }  // namespace dba

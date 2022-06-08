@@ -212,15 +212,6 @@ void Topology_configuration_command::print_cluster_members_role_changes() {
   }
 
   console->print_info();
-
-  // Warn the user if the current active session is not to the primary anymore
-  if (!mysqlshdk::gr::is_primary(*m_cluster_session_instance)) {
-    console->print_warning(
-        "The cluster internal session is not the primary member "
-        "anymore. For cluster management operations please obtain a "
-        "fresh cluster handle using dba.<<<getCluster>>>().");
-    console->print_info();
-  }
 }
 
 void Topology_configuration_command::prepare() {

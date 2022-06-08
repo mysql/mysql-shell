@@ -835,9 +835,9 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
 //@<> MD1 - disconnected cluster object
 cluster.disconnect();
 
-EXPECT_THROWS_TYPE(function() { cluster.listRouters(); }, "The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle.", "RuntimeError");
+EXPECT_THROWS_TYPE(function() { cluster.listRouters(); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle.", "RuntimeError");
 
-EXPECT_THROWS_TYPE(function() { cluster.removeRouterMetadata(""); }, "The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle.", "RuntimeError");
+EXPECT_THROWS_TYPE(function() { cluster.removeRouterMetadata(""); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle.", "RuntimeError");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

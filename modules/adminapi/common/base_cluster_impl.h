@@ -92,9 +92,8 @@ class Base_cluster_impl {
     return m_primary_master;
   }
 
-  virtual Cluster_check_info check_preconditions(
-      const std::string &function_name,
-      Function_availability *custom_func_avail = nullptr);
+  void check_preconditions(const std::string &function_name,
+                           Function_availability *custom_func_avail = nullptr);
 
   std::shared_ptr<MetadataStorage> get_metadata_storage() const {
     return m_metadata_storage;
@@ -121,6 +120,8 @@ class Base_cluster_impl {
   virtual void setup_router_account(const std::string &username,
                                     const std::string &host,
                                     const Setup_account_options &options);
+
+  virtual void remove_router_metadata(const std::string &router);
 
   void set_instance_tag(const std::string &instance_def,
                         const std::string &option, const shcore::Value &value);

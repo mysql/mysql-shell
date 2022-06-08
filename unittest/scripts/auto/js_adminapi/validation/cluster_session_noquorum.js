@@ -74,11 +74,7 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@# getCluster() and connectToPrimary:true (fail)
-||Unable to find a cluster PRIMARY member from the active shell session because the cluster has too many UNREACHABLE members and no quorum is possible.
-||Use Dba.getCluster(null, {connectToPrimary:false}) to get a read-only cluster handle. (RuntimeError)
-
-//@<OUT> getCluster() and connectToPrimary:false (succeed)
+//@<OUT> getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
 {
     "clusterName": "dev",
     "defaultReplicaSet": {
@@ -192,11 +188,7 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
-//@# 2 getCluster() and connectToPrimary:true (fail)
-||Unable to find a cluster PRIMARY member from the active shell session because the cluster has too many UNREACHABLE members and no quorum is possible.
-||Use Dba.getCluster(null, {connectToPrimary:false}) to get a read-only cluster handle. (RuntimeError)
-
-//@<OUT> 2 getCluster() and connectToPrimary:false (succeed)
+//@<OUT> 2 getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
 {
     "clusterName": "dev",
     "defaultReplicaSet": {

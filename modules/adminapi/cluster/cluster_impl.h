@@ -113,6 +113,7 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value options(const bool all);
   shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
+  void remove_router_metadata(const std::string &router) override;
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
   void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
@@ -132,11 +133,11 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value create_cluster_set(
       const std::string &domain_name,
       const clusterset::Create_cluster_set_options &options);
-
-  std::shared_ptr<Cluster_set_impl> get_cluster_set(
-      bool print_warnings = false) const;
+  std::shared_ptr<ClusterSet> get_cluster_set();
 
   Cluster_availability cluster_availability() const { return m_availability; }
+
+  void check_cluster_online();
 
   // Class functions
   void sanity_check() const;
@@ -237,8 +238,6 @@ class Cluster_impl final : public Base_cluster_impl,
   void wipe_all_replication_users();
 
   bool contains_instance_with_address(const std::string &host_port) const;
-
-  mysqlsh::dba::Instance *acquire_primary(bool ignore_cluster_set);
 
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
@@ -493,15 +492,16 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void invalidate_cluster_set_metadata_cache();
 
-  void refresh_metadata_session();
-
   void set_cluster_set_remove_pending(bool flag) {
     m_cs_md_remove_pending = flag;
   }
 
+  std::shared_ptr<Cluster_set_impl> check_and_get_cluster_set_for_cluster();
+
   bool is_cluster_set_remove_pending() const { return m_cs_md_remove_pending; }
 
-  std::shared_ptr<Cluster_set_impl> check_and_get_cluster_set_for_cluster();
+  std::shared_ptr<Cluster_set_impl> get_cluster_set_object(
+      bool print_warnings = false);
 
   /**
    * Reset the password for the Cluster's replication account in use for the
@@ -534,6 +534,8 @@ class Cluster_impl final : public Base_cluster_impl,
   void handle_notification(const std::string &name,
                            const shcore::Object_bridge_ref &sender,
                            shcore::Value::Map_type_ref data) override;
+
+  void find_real_cluster_set_primary(Cluster_set_impl *cs) const;
 
   std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =

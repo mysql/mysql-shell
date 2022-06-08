@@ -97,13 +97,13 @@ var singleSession2 = session;
 //testutil.expectEq(2, row[1]);
 
 single.disconnect();
-//@ Get the cluster back
-// don't redirect to primary, since we're killing it
-var single = dba.getCluster(null, {connectToPrimary:false});
 
 // Kill the seed instance
 testutil.killSandbox(__mysql_sandbox_port1);
 testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING),UNREACHABLE");
+
+//@ Get the cluster back
+var single = dba.getCluster();
 
 //@ Restore the quorum
 single.forceQuorumUsingPartitionOf({host: localhost, port: __mysql_sandbox_port2, user: 'root', password:'root'});

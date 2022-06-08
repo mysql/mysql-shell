@@ -153,6 +153,16 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   std::shared_ptr<Cluster_set_impl> m_impl;
 
   void assert_valid(const std::string &function_name);
+
+  template <typename TCallback>
+  auto execute_with_pool(TCallback &&f, bool interactive) {
+    // Init the connection pool
+    Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                     interactive,
+                                     impl()->default_admin_credentials());
+
+    return f();
+  }
 };
 
 }  // namespace dba

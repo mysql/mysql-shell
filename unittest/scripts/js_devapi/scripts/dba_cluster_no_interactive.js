@@ -229,7 +229,6 @@ Cluster.dissolve({force: "whatever"});
 Cluster.dissolve({force: true});
 
 //@ Cluster: no operations can be done on a dissolved cluster
-Cluster.name;
 Cluster.addInstance();
 Cluster.checkInstanceState();
 Cluster.describe();

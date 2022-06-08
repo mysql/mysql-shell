@@ -113,15 +113,15 @@ Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> no
 ||
 
 //@ Cluster: no operations can be done on a disconnected cluster
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
-||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
+||The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle. (RuntimeError)
 
 //@ Connecting to new master
 ||
@@ -211,7 +211,6 @@ Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> no
 ||
 
 //@ Cluster: no operations can be done on a dissolved cluster
-||Can't access object member 'name' on an offline cluster
 ||Can't call function 'addInstance' on an offline cluster
 ||Can't call function 'checkInstanceState' on an offline cluster
 ||Can't call function 'describe' on an offline cluster

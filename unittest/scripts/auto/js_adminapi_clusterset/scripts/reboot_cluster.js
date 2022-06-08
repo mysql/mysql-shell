@@ -85,7 +85,7 @@ shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function(){ former_primary = dba.rebootClusterFromCompleteOutage("cluster"); });
 
 EXPECT_OUTPUT_CONTAINS("* Waiting for seed instance to become ONLINE...");
-CHECK_PRIMARY_CLUSTER([__sandbox_uri1], former_primary);
+CHECK_INVALIDATED_CLUSTER([__sandbox_uri1], cluster, former_primary);
 
 //@<> Rejoin the former PRIMARY Cluster back to the ClusterSet
 EXPECT_NO_THROWS(function(){ cs.rejoinCluster("cluster"); });

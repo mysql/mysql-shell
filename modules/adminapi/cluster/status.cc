@@ -1673,7 +1673,7 @@ shcore::Value Status::execute() {
     auto cluster_cpy = std::make_unique<Cluster_impl>(m_cluster);
 
     Cluster_channel_status ch_status =
-        cluster_cpy->get_cluster_set()->get_replication_channel_status(
+        cluster_cpy->get_cluster_set_object()->get_replication_channel_status(
             m_cluster);
 
     // If the Cluster is a Replica, add the status right away

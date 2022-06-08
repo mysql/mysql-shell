@@ -41,7 +41,7 @@ class Cluster_join {
  public:
   enum class Intent { Rejoin, Reboot };
 
-  Cluster_join(const Cluster_impl *cluster,
+  Cluster_join(Cluster_impl *cluster,
                const mysqlsh::dba::Instance *primary_instance,
                const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
                const Group_replication_options &gr_options,
@@ -195,7 +195,7 @@ class Cluster_join {
   void validate_add_rejoin_options() const;
 
  private:
-  const Cluster_impl *m_cluster = nullptr;
+  Cluster_impl *m_cluster = nullptr;
   const mysqlsh::dba::Instance *m_primary_instance = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   Group_replication_options m_gr_opts;

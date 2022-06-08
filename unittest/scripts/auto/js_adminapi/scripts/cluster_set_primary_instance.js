@@ -129,7 +129,6 @@ session2.runSql("CREATE TABLE t1 (a int, PRIMARY KEY(a))");
 session2.runSql("START TRANSACTION");
 session2.runSql("INSERT INTO t1 VALUES(1)");
 
-cluster = dba.getCluster()
 EXPECT_NO_THROWS(function() {
     cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port1, {runningTransactionsTimeout: 0});
 });
@@ -154,7 +153,6 @@ do {
     r = session.runSql("SHOW SLAVE STATUS").fetchOne();
 } while (r.Slave_IO_Running == 'Connecting')
 
-cluster = dba.getCluster()
 EXPECT_THROWS(function() {
     cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port2);
 }, "Instance cannot be set as primary");

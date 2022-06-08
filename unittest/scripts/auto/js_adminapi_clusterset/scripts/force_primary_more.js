@@ -42,7 +42,6 @@ cs.forcePrimaryCluster("cluster2");
 testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 c1 = dba.rebootClusterFromCompleteOutage();
-cs = dba.getClusterSet();
 cs.rejoinCluster("cluster1");
 cs.setPrimaryCluster("cluster1");
 
@@ -53,14 +52,12 @@ c2.setPrimaryInstance(__sandbox_uri3);
 testutil.stopSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri2);
-cs = dba.getClusterSet();
 cs.forcePrimaryCluster("cluster2");
 
 //@<> failover to cluster2 after cluster primary change (restore)
 testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 c1 = dba.rebootClusterFromCompleteOutage();
-cs = dba.getClusterSet();
 cs.rejoinCluster("cluster1");
 cs.setPrimaryCluster("cluster1");
 
@@ -80,7 +77,6 @@ shell.connect(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
 shell.connect(__sandbox_uri4);
-cs = dba.getClusterSet();
 EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1");}, "PRIMARY cluster 'cluster2' is in state NO_QUORUM but can still be restored");
 EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2");}, "PRIMARY cluster 'cluster2' is in state NO_QUORUM but can still be restored");
 EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster3");}, "PRIMARY cluster 'cluster2' is in state NO_QUORUM but can still be restored");
@@ -107,6 +103,7 @@ cs.status();
 
 session2.runSql("stop group_replication");
 
+shell.connect(__sandbox_uri4);
 cs = dba.getClusterSet();
 
 cs.status({extended:1});

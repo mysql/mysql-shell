@@ -698,6 +698,7 @@ void Create_replica_cluster::prepare() {
 shcore::Value Create_replica_cluster::execute() {
   auto console = mysqlsh::current_console();
   shcore::Value ret_val;
+  bool sync_transactions_revert = false;
   shcore::Scoped_callback_list undo_list;
   Async_replication_options ar_options;
 
@@ -720,11 +721,17 @@ shcore::Value Create_replica_cluster::execute() {
               m_target_instance.get(), "", m_options.dry_run);
 
       if (!m_options.dry_run) {
-        undo_list.push_front([=]() {
+        undo_list.push_front([=, &sync_transactions_revert]() {
           log_info("Revert: Dropping replication account '%s'",
                    ar_options.repl_credentials->user.c_str());
           m_cluster_set->get_primary_master()->drop_user(
               ar_options.repl_credentials->user, "%", true);
+
+          if (sync_transactions_revert) {
+            m_cluster_set->sync_transactions(*m_target_instance.get(),
+                                             {k_clusterset_async_channel_name},
+                                             m_options.timeout);
+          }
         });
       }
     }
@@ -789,6 +796,9 @@ shcore::Value Create_replica_cluster::execute() {
 
     m_cluster_set->update_replica(m_target_instance.get(), m_primary_instance,
                                   ar_options, true, m_options.dry_run);
+
+    // Channel is up, enable transaction sync on revert
+    sync_transactions_revert = true;
 
     // NOTE: This should be done last to allow changes to be replicated
     undo_list.push_back([=]() {

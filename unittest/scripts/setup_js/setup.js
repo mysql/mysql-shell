@@ -114,14 +114,14 @@ function genlog_filter_reads(logs, pattern) {
     for (log of logs) {
       sql = log["sql"];
       if (pattern === undefined) {
-        if (sql.match(/select.*from.*/i) ||
+        if (sql.match("select 1") || sql.match(/select.*from.*/i) ||
             sql.match(/(show|begin|start transaction|rollback|.*@@hostname|.*@@server_uuid|select.*gtid)/i) ||
             sql.match(/set (session|@)/i)) {
         } else {
           out.push(log);
         }
       } else {
-        if (sql.match(pattern)) {
+        if (sql.match(pattern) || sql.match("select 1")) {
         } else {
           out.push(log);
         }

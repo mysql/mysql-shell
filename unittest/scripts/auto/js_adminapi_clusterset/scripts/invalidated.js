@@ -49,12 +49,8 @@ cs.setPrimaryCluster("cluster4");
 
 // c1=sb1, c2=sb2, c3=sb3,sb5, c4=sb4
 
-// Topology as seen from cluster3 and cluster4:
+// Topology:
 //    cluster1=invalidated, cluster2=invalidated, cluster3=replica, cluster4=primary
-// Topology as seen from cluster2:
-//    cluster1=invalidated, cluster2=primary, cluster3=replica, cluster4=replica
-// Topology as seen from cluster1:
-//    cluster1=primary, cluster2=replica, cluster3=replica
 
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -109,15 +105,8 @@ EXPECT_EQ("INVALIDATED", s["clusters"]["cluster2"]["globalStatus"]);
 EXPECT_EQ("OK", s["clusters"]["cluster3"]["globalStatus"]);
 EXPECT_EQ("OK", s["clusters"]["cluster4"]["globalStatus"]);
 
-//@<> getClusterSet() from c1 while cluster3 is down
-// cluster4 doesn't exist for c1, but it should be discovered via c2
-
-
 //@<> getClusterSet() from c1 while cluster3 and cluster4 are down
-// should think that cluster2 is the primary and cluster1 is invalidated
-
-// This is not ideal, but is the expected behaviour given the limitations.
-
+// should determine that cluster4 is the primary and cluster1 and cluster 2 are invalidated
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.stopSandbox(__mysql_sandbox_port4);
 testutil.stopSandbox(__mysql_sandbox_port5);

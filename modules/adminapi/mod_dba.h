@@ -197,11 +197,18 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   // ClusterSet
   std::shared_ptr<ClusterSet> get_cluster_set();
 
+  std::shared_ptr<Instance> check_preconditions(
+      const std::string &function_name,
+      const std::shared_ptr<Instance> &group_server,
+      const Function_availability *custom_func_avail = nullptr);
+
  protected:
   shcore::IShell_core *_shell_core = nullptr;
   std::shared_ptr<ShellBaseSession> m_session;
 
   void init();
+
+  void find_real_cluster_set_primary(Cluster_set_impl *cs) const;
 
  private:
   ProvisioningInterface _provisioning_interface;

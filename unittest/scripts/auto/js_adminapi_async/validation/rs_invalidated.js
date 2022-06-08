@@ -217,7 +217,7 @@
 ||<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
 
 //@# forcePrimary with new rs while there's already a primary (should fail)
-||PRIMARY still available (MYSQLSH 51116)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
 
 //@<OUT> status
 {

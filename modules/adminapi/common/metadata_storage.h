@@ -179,7 +179,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   bool check_all_members_online() const;
 
-  virtual Cluster_id create_cluster_record(Cluster_impl *cluster, bool adopted);
+  virtual Cluster_id create_cluster_record(Cluster_impl *cluster, bool adopted,
+                                           bool recreate);
 
   virtual Cluster_id create_async_cluster_record(Replica_set_impl *cluster,
                                                  bool adopted);

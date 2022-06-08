@@ -31,7 +31,7 @@ EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS", {invalidOption:
 
 //@<> On a disconnected Cluster
 cluster.disconnect();
-EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS")}, "The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS")}, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle.", "RuntimeError");
 cluster = dba.getCluster()
 
 // Preconditions to become a ClusterSet

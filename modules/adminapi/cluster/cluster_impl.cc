@@ -79,20 +79,6 @@
 namespace mysqlsh {
 namespace dba {
 
-namespace {
-void find_real_cluster_set_primary(Cluster_set_impl &cs) {
-  for (;;) {
-    cs.connect_primary();
-
-    Instance_pool::Auth_options auth_opts;
-    auth_opts.get(cs.get_cluster_server()->get_connection_options());
-    Scoped_instance_pool ipool(cs.get_metadata_storage(), false, auth_opts);
-
-    if (!cs.reconnect_target_if_invalidated()) break;
-  }
-}
-}  // namespace
-
 Cluster_impl::Cluster_impl(
     const std::shared_ptr<Cluster_set_impl> &cluster_set,
     const Cluster_metadata &metadata,
@@ -147,8 +133,22 @@ void Cluster_impl::sanity_check() const {
     verify_topology_type_change();
 }
 
+void Cluster_impl::find_real_cluster_set_primary(Cluster_set_impl *cs) const {
+  assert(cs);
+
+  for (;;) {
+    if (!m_primary_master || !cs->get_primary_cluster()) {
+      cs->connect_primary();
+    }
+
+    if (!cs->reconnect_target_if_invalidated(false)) {
+      break;
+    }
+  }
+}
+
 /*
- * Verify if the topology type changed and issue an error if needed.
+ * Verify if the topology type changed and issue an error if needed
  */
 void Cluster_impl::verify_topology_type_change() const {
   // TODO(alfredo) - this should be replaced by a clusterErrors node in
@@ -1079,10 +1079,6 @@ void Cluster_impl::add_instance(
     Recovery_progress_style progress_style) {
   check_preconditions("addInstance");
 
-  acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
-
   Scoped_instance target(connect_target_instance(instance_def, true, true));
   cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
                                options.gr_options, options.clone_options,
@@ -1116,11 +1112,9 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
                                    bool skip_precondition_check,
                                    std::optional<bool> switch_comm_stack) {
   // rejoin the Instance to the Cluster
-  if (!skip_precondition_check) check_preconditions("rejoinInstance");
-
-  acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
+  if (!skip_precondition_check) {
+    check_preconditions("rejoinInstance");
+  }
 
   Scoped_instance target(connect_target_instance(instance_def, true));
   cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
@@ -1145,10 +1139,6 @@ void Cluster_impl::remove_instance(
     const Connection_options &instance_def,
     const cluster::Remove_instance_options &options) {
   check_preconditions("removeInstance");
-
-  acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
 
   // Create the remove_instance command and execute it.
   cluster::Remove_instance op_remove_instance(instance_def, options, this);
@@ -1470,8 +1460,6 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
 }
 
 shcore::Value Cluster_impl::cluster_status(int64_t extended) {
-  refresh_metadata_session();
-
   // Create the Cluster_status command and execute it.
   cluster::Status op_status(*this, extended);
   // Always execute finish when leaving "try catch".
@@ -1490,11 +1478,12 @@ shcore::Value Cluster_impl::status(int64_t extended) {
 }
 
 shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
+  check_preconditions("listRouters");
+
   if (is_cluster_set_member()) {
-    auto cs = get_cluster_set();
     current_console()->print_error(
         "Cluster '" + get_name() + "' is a member of ClusterSet '" +
-        cs->get_name() +
+        get_cluster_set_object()->get_name() +
         "', use <ClusterSet>.<<<listRouters>>>() to list "
         "the ClusterSet Router instances");
     throw shcore::Exception::runtime_error(
@@ -1508,6 +1497,12 @@ shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
                                    only_upgrade_required);
 
   return shcore::Value(dict);
+}
+
+void Cluster_impl::remove_router_metadata(const std::string &router) {
+  check_preconditions("removeRouterMetadata");
+
+  Base_cluster_impl::remove_router_metadata(router);
 }
 
 void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
@@ -1551,7 +1546,6 @@ void Cluster_impl::enable_super_read_only_globally() const {
 
 void Cluster_impl::fence_all_traffic() {
   check_preconditions("fenceAllTraffic");
-  acquire_primary();
 
   auto console = mysqlsh::current_console();
   console->print_info("The Cluster '" + get_name() +
@@ -1610,7 +1604,6 @@ void Cluster_impl::fence_all_traffic() {
 
 void Cluster_impl::fence_writes() {
   check_preconditions("fenceWrites");
-  acquire_primary();
 
   auto console = mysqlsh::current_console();
 
@@ -1627,7 +1620,7 @@ void Cluster_impl::fence_writes() {
 
     throw shcore::Exception("The Cluster '" + cluster_name +
                                 "' is a REPLICA Cluster of the ClusterSet '" +
-                                get_cluster_set()->get_name() + "'",
+                                get_cluster_set_object()->get_name() + "'",
                             SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);
   }
 
@@ -1657,7 +1650,6 @@ void Cluster_impl::fence_writes() {
 
 void Cluster_impl::unfence_writes() {
   check_preconditions("unfenceWrites");
-  acquire_primary();
 
   auto console = mysqlsh::current_console();
 
@@ -1791,8 +1783,75 @@ shcore::Value Cluster_impl::create_cluster_set(
   return Cluster_set_impl::create_cluster_set(this, domain_name, options);
 }
 
-std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
-    bool print_warnings) const {
+std::shared_ptr<ClusterSet> Cluster_impl::get_cluster_set() {
+  check_preconditions("getClusterSet");
+
+  auto cs = get_cluster_set_object();
+
+  // Check if the target Cluster is invalidated
+  if (is_invalidated()) {
+    mysqlsh::current_console()->print_warning(
+        "Cluster '" + get_name() +
+        "' was INVALIDATED and must be removed from the ClusterSet.");
+  }
+
+  // Check if the target Cluster still belongs to the ClusterSet
+  Cluster_set_member_metadata cluster_member_md;
+  if (!cs->get_metadata_storage()->get_cluster_set_member(get_id(),
+                                                          &cluster_member_md)) {
+    current_console()->print_error("The Cluster '" + get_name() +
+                                   "' appears to have been removed from "
+                                   "the ClusterSet '" +
+                                   cs->get_name() +
+                                   "', however its own metadata copy wasn't "
+                                   "properly updated during the removal");
+
+    throw shcore::Exception("The cluster '" + get_name() +
+                                "' is not a part of the ClusterSet '" +
+                                cs->get_name() + "'",
+                            SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
+  }
+
+  return std::make_shared<ClusterSet>(cs);
+}
+
+void Cluster_impl::check_cluster_online() {
+  std::string role = is_primary_cluster() ? "Primary Cluster" : "Cluster";
+
+  switch (cluster_availability()) {
+    case Cluster_availability::ONLINE:
+      break;
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+      throw shcore::Exception(
+          "Could not connect to PRIMARY of " + role + " '" + get_name() + "'",
+          SHERR_DBA_CLUSTER_PRIMARY_UNAVAILABLE);
+
+    case Cluster_availability::OFFLINE:
+      throw shcore::Exception(
+          "All members of " + role + " '" + get_name() + "' are OFFLINE",
+          SHERR_DBA_GROUP_OFFLINE);
+
+    case Cluster_availability::SOME_UNREACHABLE:
+      throw shcore::Exception(
+          "All reachable members of " + role + " '" + get_name() +
+              "' are OFFLINE, but there are some unreachable members that "
+              "could be ONLINE",
+          SHERR_DBA_GROUP_OFFLINE);
+
+    case Cluster_availability::NO_QUORUM:
+      throw shcore::Exception("Could not connect to an ONLINE member of " +
+                                  role + " '" + get_name() + "' within quorum",
+                              SHERR_DBA_GROUP_HAS_NO_QUORUM);
+
+    case Cluster_availability::UNREACHABLE:
+      throw shcore::Exception("Could not connect to any ONLINE member of " +
+                                  role + " '" + get_name() + "'",
+                              SHERR_DBA_GROUP_UNREACHABLE);
+  }
+}
+
+std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
+    bool print_warnings) {
   if (m_cs_md_remove_pending) {
     throw shcore::Exception("Cluster is not part of a ClusterSet",
                             SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
@@ -1804,10 +1863,12 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
   // as long as the target instance is a reachable member of an InnoDB Cluster
   // that is part of a ClusterSet.
   Cluster_metadata cluster_md = get_metadata();
+  auto cluster_id = cluster_md.cluster_id;
+
+  Cluster_set_metadata cset_md;
   auto metadata = get_metadata_storage();
 
   // Get the ClusterSet metadata handle
-  Cluster_set_metadata cset_md;
   if (!metadata->get_cluster_set(cluster_md.cluster_set_id, false, &cset_md,
                                  nullptr)) {
     throw shcore::Exception("No metadata found for the ClusterSet that " +
@@ -1819,8 +1880,11 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
                                                metadata);
 
   // Acquire primary
+  cs->acquire_primary();
+
   try {
-    cs->acquire_primary();
+    // Verify the Primary Cluster's availability
+    cs->get_primary_cluster()->check_cluster_online();
   } catch (const shcore::Exception &e) {
     auto console = current_console();
     if (e.code() == SHERR_DBA_GROUP_HAS_NO_PRIMARY ||
@@ -1904,10 +1968,6 @@ void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
     }
   }
 
-  acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
-
   // Dissolve the Cluster
   try {
     // Create the Dissolve command and execute it.
@@ -1926,8 +1986,19 @@ void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
 
 void Cluster_impl::force_quorum_using_partition_of(
     const Connection_options &instance_def, const bool interactive) {
-  check_preconditions("forceQuorumUsingPartitionOf");
   std::shared_ptr<Instance> target_instance;
+  std::string instance_address =
+      instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport());
+
+  try {
+    log_info("Opening a new session to the partition instance %s",
+             instance_address.c_str());
+    target_instance =
+        Instance::connect(instance_def, current_shell_options()->get().wizards);
+  }
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_address)
+
+  check_preconditions("forceQuorumUsingPartitionOf");
   const auto console = current_console();
 
   std::vector<Instance_metadata> online_instances = get_active_instances();
@@ -1960,22 +2031,11 @@ void Cluster_impl::force_quorum_using_partition_of(
     console->print_info();
   }
 
-  std::string instance_address =
-      instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport());
-
   // TODO(miguel): test if there's already quorum and add a 'force' option to
   // be used if so
 
   // TODO(miguel): test if the instance if part of the current cluster, for
   // the scenario of restoring a cluster quorum from another
-
-  try {
-    log_info("Opening a new session to the partition instance %s",
-             instance_address.c_str());
-    target_instance =
-        Instance::connect(instance_def, current_shell_options()->get().wizards);
-  }
-  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_address)
 
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the
@@ -2127,7 +2187,7 @@ void Cluster_impl::force_quorum_using_partition_of(
   // If this is a REPLICA Cluster of a ClusterSet, ensure SRO is enabled on all
   // members
   if (is_cluster_set_member() && !is_primary_cluster()) {
-    auto cs = get_cluster_set();
+    auto cs = get_cluster_set_object();
     cs->ensure_replica_settings(this, false);
   }
 
@@ -2148,10 +2208,6 @@ void Cluster_impl::force_quorum_using_partition_of(
 
 void Cluster_impl::rescan(const cluster::Rescan_options &options) {
   check_preconditions("rescan");
-
-  acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
 
   // Create the rescan command and execute it.
   cluster::Rescan op_rescan(options, this);
@@ -2712,103 +2768,6 @@ bool Cluster_impl::contains_instance_with_address(
   return get_metadata_storage()->is_instance_on_cluster(get_id(), host_port);
 }
 
-mysqlsh::dba::Instance *Cluster_impl::acquire_primary(bool ignore_cluster_set) {
-  if (!m_cluster_server) return nullptr;
-
-  // clear cached clusterset related metadata
-  m_cs_md.cluster_set_id.clear();
-
-  // Get the Metadata state and return right away if the Metadata is
-  // nonexisting, upgrading, or the setup failed
-  //
-  // TODO(anyone) In such scenarios, there will be a double-check for the
-  // Metadata state. This should be refactored.
-  switch (m_metadata_storage->state()) {
-    case metadata::State::FAILED_SETUP:
-    case metadata::State::FAILED_UPGRADE:
-    case metadata::State::NONEXISTING:
-    case metadata::State::UPGRADING:
-      return m_cluster_server.get();
-    default:
-      break;
-  }
-
-  // Ensure m_cluster_server points to the PRIMARY of the group
-  std::string primary_url;
-  try {
-    primary_url = find_primary_member_uri(m_cluster_server, false, nullptr);
-
-    if (primary_url.empty()) {
-      // Shouldn't happen, because validation for PRIMARY is done first
-      throw std::logic_error("No PRIMARY member found for cluster " +
-                             get_name());
-    } else if (!mysqlshdk::utils::are_endpoints_equal(
-                   primary_url,
-                   m_cluster_server->get_connection_options().uri_endpoint())) {
-      mysqlshdk::db::Connection_options copts(primary_url);
-      log_info("Connecting to %s...", primary_url.c_str());
-      copts.set_login_options_from(m_cluster_server->get_connection_options());
-
-      m_cluster_server = Instance::connect(copts);
-      m_primary_master = m_cluster_server;
-
-      m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
-    } else {
-      if (!m_primary_master) {
-        m_primary_master = m_cluster_server;
-        m_metadata_storage =
-            std::make_shared<MetadataStorage>(m_primary_master);
-      }
-    }
-  } catch (...) {
-    if (!primary_url.empty()) {
-      current_console()->print_error(
-          "A connection to the PRIMARY instance at " + primary_url +
-          " could not be established to perform this action.");
-    }
-
-    throw;
-  }
-
-  if (!ignore_cluster_set) {
-    // Check if the Cluster belongs to a ClusterSet
-    if (is_cluster_set_member()) {
-      auto cs = get_cluster_set(true);
-
-      if (auto cs_primary_master = cs->get_primary_master()) {
-        // Check if the ClusterSet Primary is different than the Cluster's one
-        auto cs_primary_master_url =
-            cs_primary_master->get_connection_options().uri_endpoint();
-
-        // The ClusterSet Primary is different, establish a connection to it to
-        // set it as the Cluster's primary
-        if (!m_primary_master ||
-            !mysqlshdk::utils::are_endpoints_equal(
-                m_primary_master->get_connection_options().uri_endpoint(),
-                cs_primary_master_url)) {
-          mysqlshdk::db::Connection_options copts(cs_primary_master_url);
-          log_info("Connecting to %s...", cs_primary_master_url.c_str());
-          copts.set_login_options_from(
-              cs_primary_master->get_connection_options());
-
-          m_primary_master = Instance::connect(copts);
-        }
-      } else {
-        // If there's no global primary master, the PRIMARY Cluster is down
-        m_primary_master = nullptr;
-      }
-    } else {
-      log_debug("Cluster does not belong to a ClusterSet");
-    }
-  }
-
-  if (m_primary_master &&
-      m_metadata_storage->get_md_server() != m_primary_master) {
-    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
-  }
-
-  return m_primary_master.get();
-}
 /*
  * Ensures the cluster object (and metadata) can perform update operations and
  * returns a session to the PRIMARY.
@@ -2827,7 +2786,139 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(bool ignore_cluster_set) {
 mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     mysqlshdk::mysql::Lock_mode /*mode*/,
     const std::string & /*skip_lock_uuid*/) {
-  return acquire_primary(false);
+  auto console = current_console();
+
+  if (!m_cluster_server) {
+    return nullptr;
+  }
+
+  // clear cached clusterset related metadata
+  m_cs_md.cluster_set_id.clear();
+
+  std::string uuid = m_cluster_server->get_uuid();
+  std::string primary_url;
+
+  // Get the Metadata state and return right away if the Metadata is
+  // nonexisting, upgrading, or the setup failed
+  //
+  // TODO(anyone) In such scenarios, there will be a double-check for the
+  // Metadata state. This should be refactored.
+  metadata::State md_state = m_metadata_storage->state();
+
+  if (md_state == metadata::State::FAILED_SETUP ||
+      md_state == metadata::State::FAILED_UPGRADE ||
+      md_state == metadata::State::NONEXISTING ||
+      md_state == metadata::State::UPGRADING) {
+    return m_cluster_server.get();
+  }
+
+  // Ensure m_cluster_server points to the PRIMARY of the group
+  try {
+    primary_url = find_primary_member_uri(m_cluster_server, false, nullptr);
+
+    if (primary_url.empty()) {
+      // Might happen and it should be possible to check the Cluster's status in
+      // such situation
+      console->print_info("No PRIMARY member found for cluster '" + get_name() +
+                          "'");
+    } else if (!mysqlshdk::utils::are_endpoints_equal(
+                   primary_url,
+                   m_cluster_server->get_connection_options().uri_endpoint())) {
+      mysqlshdk::db::Connection_options copts(primary_url);
+      log_info("Connecting to %s...", primary_url.c_str());
+      copts.set_login_options_from(m_cluster_server->get_connection_options());
+
+      auto new_primary = Instance::connect(copts);
+
+      // Check if GR is active or not. If not active or in error state, throw an
+      // exception and leave the attributes unchanged.
+      // This may happen when a failover is happening at the moment
+      auto instance_state = mysqlshdk::gr::get_member_state(*new_primary);
+
+      if (instance_state == mysqlshdk::gr::Member_state::OFFLINE ||
+          instance_state == mysqlshdk::gr::Member_state::ERROR) {
+        primary_url.clear();
+        throw shcore::Exception("PRIMARY instance is not ONLINE",
+                                SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
+      } else {
+        m_cluster_server = new_primary;
+        m_primary_master = m_cluster_server;
+      }
+    } else {
+      if (!m_primary_master) {
+        m_primary_master = m_cluster_server;
+      }
+    }
+  } catch (...) {
+    if (!primary_url.empty()) {
+      console->print_error("A connection to the PRIMARY instance at " +
+                           primary_url +
+                           " could not be established to perform this action.");
+    }
+
+    throw;
+  }
+
+  // Check if the Cluster belongs to a ClusterSet
+  if (is_cluster_set_member()) {
+    auto cs = get_cluster_set_object(true);
+
+    if (auto cs_primary_master = cs->get_primary_master()) {
+      // Check if the ClusterSet Primary is different than the Cluster's one
+      auto cs_primary_master_url =
+          cs_primary_master->get_connection_options().uri_endpoint();
+
+      // The ClusterSet Primary is different, establish a connection to it to
+      // set it as the Cluster's primary
+      if (!m_primary_master ||
+          m_primary_master->get_connection_options().uri_endpoint() !=
+              cs_primary_master_url) {
+        mysqlshdk::db::Connection_options copts(cs_primary_master_url);
+        log_info("Connecting to %s...", cs_primary_master_url.c_str());
+        copts.set_login_options_from(
+            cs_primary_master->get_connection_options());
+
+        m_primary_master = Instance::connect(copts);
+        m_metadata_storage =
+            std::make_shared<MetadataStorage>(m_primary_master);
+      }
+
+      // if we think we're the primary cluster, try connecting to replica
+      // clusters and look for a newer view_id generation, in case we got
+      // failed over from and invalidated
+      if (is_primary_cluster()) {
+        find_real_cluster_set_primary(cs.get());
+
+        auto pc = cs->get_primary_cluster();
+        // If the real PC is different, it means this Cluster is INVALIDATED
+
+        if (pc->get_id() != get_id()) {
+          // Set m_primary_master to the actual Primary of the Primary Cluster
+          m_primary_master = pc->get_primary_master();
+        }
+      }
+    } else {
+      // If there's no global primary master, the PRIMARY Cluster is down
+      m_primary_master = nullptr;
+    }
+  } else {
+    log_debug("Cluster does not belong to a ClusterSet");
+  }
+
+  if (m_primary_master &&
+      m_metadata_storage->get_md_server() != m_primary_master) {
+    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
+
+    if (is_cluster_set_member()) {
+      // Update the Cluster's Cluster_set_member_metadata data according to the
+      // Correct Metadata
+      // Note: This also marks the cluster as invalidated. That info might be
+      // required later on
+      m_metadata_storage->get_cluster_set_member(get_id(), &m_cs_md);
+    }
+  }
+
+  return m_primary_master.get();
 }
 
 Cluster_metadata Cluster_impl::get_metadata() const {
@@ -2840,20 +2931,11 @@ Cluster_metadata Cluster_impl::get_metadata() const {
   return cmd;
 }
 
-void Cluster_impl::refresh_metadata_session() {
-  if (is_cluster_set_member()) {
-    try {
-      acquire_primary();
-    } catch (...) {
-      log_warning("Could not acquire PRIMARY: %s",
-                  format_active_exception().c_str());
-    }
-  }
-}
-
 std::shared_ptr<Cluster_set_impl>
 Cluster_impl::check_and_get_cluster_set_for_cluster() {
-  auto cs = get_cluster_set(true);
+  auto cs = get_cluster_set_object(true);
+
+  current_ipool()->set_metadata(cs->get_metadata_storage());
 
   if (is_invalidated()) {
     current_console()->print_warning(
@@ -2867,7 +2949,7 @@ Cluster_impl::check_and_get_cluster_set_for_cluster() {
   // clusters and look for a newer view_id generation, in case we got
   // failed over from and invalidated
   if (is_primary_cluster()) {
-    find_real_cluster_set_primary(*cs);
+    find_real_cluster_set_primary(cs.get());
 
     auto pc = cs->get_primary_cluster();
 

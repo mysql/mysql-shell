@@ -99,14 +99,14 @@ void check_instance_type(const mysqlshdk::mysql::IInstance &instance,
 }
 
 void find_real_cluster_set_primary(Cluster_set_impl *cs) {
+  assert(cs);
+
   for (;;) {
     cs->connect_primary();
 
-    Instance_pool::Auth_options auth_opts;
-    auth_opts.get(cs->get_cluster_server()->get_connection_options());
-    Scoped_instance_pool ipool(cs->get_metadata_storage(), false, auth_opts);
-
-    if (!cs->reconnect_target_if_invalidated()) break;
+    if (!cs->reconnect_target_if_invalidated()) {
+      break;
+    }
   }
 }
 
@@ -431,12 +431,12 @@ void reboot_seed(
  * Rejoins all valid instances back into the cluster.
  */
 void rejoin_instances(
-    const Cluster_impl &cluster_impl, const Instance &target_instance,
+    Cluster_impl *cluster_impl, const Instance &target_instance,
     const std::vector<std::shared_ptr<Instance>> &instances,
     const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
   const auto console = current_console();
 
-  auto removed_from_set = cluster_impl.is_cluster_set_remove_pending();
+  auto removed_from_set = cluster_impl->is_cluster_set_remove_pending();
 
   for (const auto &instance : instances) {
     // ignore seed
@@ -477,7 +477,7 @@ void rejoin_instances(
         gr_options.ip_allowlist = options->gr_options.ip_allowlist;
 
       cluster::Cluster_join joiner(
-          &cluster_impl, &target_instance, instance, gr_options, {}, false,
+          cluster_impl, &target_instance, instance, gr_options, {}, false,
           static_cast<bool>(options->switch_communication_stack));
 
       bool uuid_mistmatch = false;
@@ -485,7 +485,7 @@ void rejoin_instances(
                                 cluster::Cluster_join::Intent::Reboot))
         joiner.rejoin(true);
 
-      if (uuid_mistmatch) cluster_impl.update_metadata_for_instance(*instance);
+      if (uuid_mistmatch) cluster_impl->update_metadata_for_instance(*instance);
 
     } catch (const shcore::Error &e) {
       console->print_warning(instance->descr() + ": " + e.format());
@@ -511,7 +511,7 @@ void rejoin_instances(
 
   // Verification step to ensure the server_id is an attribute on all
   // the instances of the cluster
-  cluster_impl.ensure_metadata_has_server_id(target_instance);
+  cluster_impl->ensure_metadata_has_server_id(target_instance);
 }
 
 /*
@@ -527,7 +527,7 @@ Cluster_set_info retrieve_cs_info(Cluster_impl *cluster) {
 
   if (!cs_info.is_member) return cs_info;
 
-  auto cs = cluster->get_cluster_set();
+  auto cs = cluster->get_cluster_set_object();
 
   if (cs_info.is_primary) {
     find_real_cluster_set_primary(cs.get());
@@ -1017,7 +1017,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
       }
     }
 
-    rejoin_instances(*cluster_impl, *target_instance, instances, options);
+    rejoin_instances(cluster_impl.get(), *target_instance, instances, options);
   }
 
   // if the cluster is part of a set
@@ -1050,6 +1050,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
               cluster_impl->check_and_get_cluster_set_for_cluster();
 
           if (cluster_set_impl) {
+            cluster_set_impl->get_primary_cluster()->check_cluster_online();
+
             cluster_set_impl->rejoin_cluster(cluster_impl->get_name(), {},
                                              false);
 

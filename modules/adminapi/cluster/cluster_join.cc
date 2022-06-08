@@ -62,7 +62,7 @@ namespace cluster {
 constexpr const int k_recovery_start_timeout = 30;
 
 Cluster_join::Cluster_join(
-    const Cluster_impl *cluster, const mysqlsh::dba::Instance *primary_instance,
+    Cluster_impl *cluster, const mysqlsh::dba::Instance *primary_instance,
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const Group_replication_options &gr_options,
     const Clone_options &clone_options, bool interactive,
@@ -478,7 +478,7 @@ void Cluster_join::configure_cluster_set_member() {
     m_cluster->sync_transactions(*m_primary_instance,
                                  k_clusterset_async_channel_name, 0);
 
-    auto cs = m_cluster->get_cluster_set();
+    auto cs = m_cluster->get_cluster_set_object();
 
     auto ar_options = cs->get_clusterset_replication_options();
 

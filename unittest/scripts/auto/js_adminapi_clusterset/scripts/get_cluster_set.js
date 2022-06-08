@@ -152,10 +152,11 @@ EXPECT_NE(clusterset, null);
 
 // Restore the primary cluster
 shell.connect(__sandbox_uri1);
-dba.rebootClusterFromCompleteOutage("cluster", {force: true});
+cluster = dba.rebootClusterFromCompleteOutage("cluster", {force: true});
 
 //@<> dba.getClusterSet() from an invalidated Cluster must print a warning
 rc_to_invalidate = cs.createReplicaCluster(__sandbox_uri5, "replica_to_invalidate");
+
 invalidate_cluster(rc_to_invalidate, cluster);
 shell.connect(__sandbox_uri5);
 EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });

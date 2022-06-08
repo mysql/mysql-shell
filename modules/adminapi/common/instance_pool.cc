@@ -874,7 +874,11 @@ Instance_pool::try_connect_cluster_primary_with_fallback(
     Cluster_availability *out_cluster_availability) {
   DBUG_TRACE;
 
-  refresh_metadata_cache();
+  // The metadata is refreshed when the pool is instantiated (with every
+  // command call), refresh again only if the instances/clusters cache is empty
+  if (m_mdcache->instances.empty() || m_mdcache->clusters.empty()) {
+    refresh_metadata_cache();
+  }
 
   auto cluster_md = m_mdcache->try_get_cluster(cluster_id);
   if (!cluster_md) {

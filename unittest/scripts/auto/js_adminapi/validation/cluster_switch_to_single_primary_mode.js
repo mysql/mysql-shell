@@ -139,8 +139,6 @@ Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY 
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' remains PRIMARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was switched from PRIMARY to SECONDARY.
 
-WARNING: The cluster internal session is not the primary member anymore. For cluster management operations please obtain a fresh cluster handle using dba.getCluster().
-
 WARNING: Existing connections that expected a R/W connection must be disconnected, i.e. instances that became SECONDARY.
 
 The cluster successfully switched to Single-Primary mode.

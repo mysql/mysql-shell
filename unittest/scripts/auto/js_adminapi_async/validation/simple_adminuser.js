@@ -130,8 +130,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 //@# forcePrimaryInstance (prepare)
-|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port3)>>>'|
-|WARNING: MYSQLSH 51118: PRIMARY instance is unavailable|
+|WARNING: Unable to connect to the PRIMARY of the replicaset myrs: MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port3)>>>'|
 |        "status": "UNAVAILABLE", |
 
 //@<OUT> forcePrimaryInstance
