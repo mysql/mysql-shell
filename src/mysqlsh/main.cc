@@ -25,6 +25,7 @@
 #include "modules/util/json_importer.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlsh/json_shell.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/interrupt_helper.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/textui/textui.h"

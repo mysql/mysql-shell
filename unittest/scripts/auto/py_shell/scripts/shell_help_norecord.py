@@ -16,6 +16,16 @@ shell.help('add_extension_object_member')
 #@ global help for add_extension_object_member[USE:shell.add_extension_object_member]
 \help Shell.add_extension_object_member
 
+#@ shell.auto_complete_sql
+# WL13397-TSFR_2_1
+shell.help('auto_complete_sql')
+
+#@ global ? for auto_complete_sql [USE:shell.auto_complete_sql]
+\? Shell.auto_complete_sql
+
+#@ global help for auto_complete_sql [USE:shell.auto_complete_sql]
+\help Shell.auto_complete_sql
+
 #@ shell.connect
 shell.help('connect')
 

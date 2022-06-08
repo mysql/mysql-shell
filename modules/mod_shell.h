@@ -33,6 +33,7 @@
 #include "modules/mod_shell_options.h"
 #include "modules/mod_shell_reports.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/parser/code-completion/mysql_code_completion_api.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_prompt_options.h"
 #include "scripting/types_cpp.h"
@@ -122,6 +123,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
                                      Dictionary definition);
   Undefined registerGlobal(String name, Object object, Dictionary definition);
   Integer dumpRows(ShellBaseResult result, String format);
+  Dictionary autoCompleteSql(String statement, Dictionary options);
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
@@ -154,6 +156,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
                                         dict definition);
   Undefined register_global(str name, Object object, dict definition);
   int dump_rows(ShellBaseResult result, str format);
+  dict auto_complete_sql(str statement, dict options);
 #endif
 
   shcore::Array_t list_credential_helpers();
@@ -199,6 +202,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
   int dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
                 const std::string &format);
+
+  shcore::Dictionary_t auto_complete_sql(
+      const std::string &statement,
+      const shcore::Option_pack_ref<mysqlshdk::Auto_complete_sql_options>
+          &options) const;
 
  protected:
   void init();

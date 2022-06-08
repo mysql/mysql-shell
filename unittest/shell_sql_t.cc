@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -141,7 +141,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
 
   // Caching the partial statements is now internal
   // we just send whatever is remaining for the query to execute
-  query = "databases";
+  query.append("databases");
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
@@ -151,7 +151,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = ";";
+  query.append(";");
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
@@ -171,7 +171,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   // Prompt changes to multiline mode
   EXPECT_EQ(Input_state::Ok, state);
 
-  query = "show";
+  query.append("show");
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
@@ -183,7 +183,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
 
   // Caching the partial statements is now internal
   // we just send whatever is remaining for the query to execute
-  query = "databases";
+  query.append("databases");
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
@@ -193,7 +193,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = "%%%";
+  query.append("%%%");
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
@@ -203,7 +203,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
   EXPECT_EQ("show\ndatabases\n%%%", env.shell_sql->get_handled_input());
   EXPECT_EQ("", env.shell_sql->get_continued_input_context());
 
-  query = "delimiter ;";
+  query.append("delimiter ;");
   handle_input(query, state);
 
   // Nothing is executed until the delimiter is reached and the prompt changes
@@ -225,7 +225,7 @@ TEST_F(Shell_sql_test, multiple_statements_continued) {
   EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = "databases;";
+  query.append("databases;");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -244,7 +244,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = "databases;\nshow";
+  query.append("databases;\nshow");
   handle_input(query, state);
 
   // Being global multiline make sthe statement to be executed right away
@@ -252,7 +252,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
   EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = "databases;";
+  query.append("databases;");
   handle_input(query, state);
 
   // Being global multiline make sthe statement to be executed right away
@@ -275,7 +275,7 @@ TEST_F(Shell_sql_test, multiple_statements_and_continued) {
   EXPECT_EQ("show databases;select 1;", env.shell_sql->get_handled_input());
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = "databases;";
+  query.append("databases;");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -289,18 +289,18 @@ TEST_F(Shell_sql_test, multiline_comment) {
   handle_input(query, state);
 
   EXPECT_EQ(Input_state::ContinuedSingle, state);
-  EXPECT_EQ("", query);
+  EXPECT_EQ("/*\n", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
-  query = "this was a multiline comment";
+  query.append("this was a multiline comment");
   handle_input(query, state);
   EXPECT_EQ(Input_state::ContinuedSingle, state);
-  EXPECT_EQ("", query);
+  EXPECT_EQ("/*\nthis was a multiline comment\n", query);
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
-  query = "*/;";
+  query.append("*/;");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -319,7 +319,7 @@ TEST_F(Shell_sql_test, multiline_single_quote_continued_string) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("'", env.shell_sql->get_continued_input_context());
 
-  query = "world';";
+  query.append("world';");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -337,7 +337,7 @@ TEST_F(Shell_sql_test, multiline_double_quote_continued_string) {
   EXPECT_EQ("", env.shell_sql->get_handled_input());
   EXPECT_EQ("\"", env.shell_sql->get_continued_input_context());
 
-  query = "world\";";
+  query.append("world\";");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -417,7 +417,7 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
 
   handle_input(query, state);
   EXPECT_EQ(Input_state::ContinuedSingle, state);
-  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT 1 AS _one /*\n", query);
 
   // SQL has not been handled yet
   EXPECT_EQ("", env.shell_sql->get_handled_input());
@@ -425,10 +425,10 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   // Prompt for continued statement
   EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
-  query = "comment text */";
+  query.append("comment text */");
   handle_input(query, state);
   EXPECT_EQ(Input_state::ContinuedSingle, state);
-  EXPECT_EQ("", query);
+  EXPECT_EQ("SELECT 1 AS _one /*\ncomment text */\n", query);
 
   // SQL has not been handled yet
   EXPECT_EQ("", env.shell_sql->get_handled_input());
@@ -437,7 +437,7 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   // stopped until delimiter comes;
   EXPECT_EQ("/*", env.shell_sql->get_continued_input_context());
 
-  query = ";";
+  query.append(";");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -454,7 +454,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
 
   handle_input(query, state);
   EXPECT_EQ(Input_state::ContinuedSingle, state);
-  EXPECT_EQ("", query);
+  EXPECT_EQ("select 1 as one -- sample comment\n", query);
 
   // SQL has not been handled yet
   EXPECT_EQ("", env.shell_sql->get_handled_input());
@@ -462,7 +462,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
   // Prompt for continued statement
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = ";select 2 as two;";
+  query.append(";select 2 as two;");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);
@@ -492,7 +492,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
 
   handle_input(query, state);
   EXPECT_EQ(Input_state::ContinuedSingle, state);
-  EXPECT_EQ("", query);
+  EXPECT_EQ("select 1 as one #sample comment\n", query);
 
   // SQL has not been handled yet
   EXPECT_EQ("", env.shell_sql->get_handled_input());
@@ -500,7 +500,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
   // Prompt for continued statement
   EXPECT_EQ("-", env.shell_sql->get_continued_input_context());
 
-  query = ";select 2 as two;";
+  query.append(";select 2 as two;");
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
   EXPECT_EQ("", query);

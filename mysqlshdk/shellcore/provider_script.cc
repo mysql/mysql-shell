@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,11 +119,12 @@ std::shared_ptr<Object> Object_registry::lookup(
 Provider_script::Provider_script(std::shared_ptr<Object_registry> registry)
     : registry_(registry) {}
 
-Completion_list Provider_script::complete(const std::string &text,
+Completion_list Provider_script::complete(const std::string &,
+                                          const std::string &line,
                                           size_t *compl_offset) {
-  Chain chain = process_input(text, compl_offset);
+  Chain chain = process_input(line, compl_offset);
   if (!chain.empty()) {
-    *compl_offset = text.length() - chain[chain.size() - 1].second.length();
+    *compl_offset = line.length() - chain[chain.size() - 1].second.length();
   }
   return complete_chain(chain);
 }

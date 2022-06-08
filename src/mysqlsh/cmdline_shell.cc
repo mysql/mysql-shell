@@ -84,19 +84,16 @@ namespace {
 
 Command_line_shell *g_instance = nullptr;
 
-void auto_complete(const char *text, int *start_index,
-                   linenoiseCompletions *completions) {
+void auto_complete_cb(const char *text, int *start_index,
+                      linenoiseCompletions *completions) {
   size_t completion_offset = *start_index;
-  std::vector<std::string> options(g_instance->completer()->complete(
-      g_instance->shell_context()->interactive_mode(), text,
-      &completion_offset));
+  auto options = g_instance->auto_complete(text, &completion_offset);
 
   std::sort(options.begin(), options.end(),
             [](const std::string &a, const std::string &b) -> bool {
               return shcore::str_casecmp(a, b) < 0;
             });
-  auto last = std::unique(options.begin(), options.end());
-  options.erase(last, options.end());
+  options.erase(std::unique(options.begin(), options.end()), options.end());
 
   *start_index = completion_offset;
   for (auto &i : options) {
@@ -454,7 +451,7 @@ Command_line_shell::Command_line_shell(
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
 
-  linenoiseSetCompletionCallback(auto_complete);
+  linenoiseSetCompletionCallback(auto_complete_cb);
 
   SET_SHELL_COMMAND("\\history", "CMD_HISTORY",
                     Command_line_shell::cmd_history);
@@ -1415,6 +1412,12 @@ std::string Command_line_shell::syslog_format(const std::string &statement) {
 void Command_line_shell::pause_history(bool flag) {
   _history.pause(flag);
   m_syslog.pause(flag);
+}
+
+std::vector<std::string> Command_line_shell::auto_complete(
+    const std::string &line, size_t *completion_offset) {
+  return completer()->complete(shell_context()->interactive_mode(),
+                               _input_buffer, line, completion_offset);
 }
 
 }  // namespace mysqlsh

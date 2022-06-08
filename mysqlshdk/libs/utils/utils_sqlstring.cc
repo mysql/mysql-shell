@@ -22,12 +22,19 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
+
+#include <algorithm>
+#include <string_view>
+#include <vector>
+
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-// updated as of 8.0, 2022-02-11
-static const char *reserved_keywords[] = {
+namespace {
+
+// updated as of 8.0, 2022-02-11, this vector MUST be sorted
+const std::vector<std::string_view> reserved_keywords = {
     "ACCESSIBLE",
     "ADD",
     "ADMIN",  // became nonreserved in 8.0.12
@@ -297,8 +304,9 @@ static const char *reserved_keywords[] = {
     "XOR",
     "YEAR_MONTH",
     "ZEROFILL",
-    nullptr,
 };
+
+}  // namespace
 
 namespace shcore {
 //--------------------------------------------------------------------------------------------------
@@ -411,11 +419,10 @@ std::string escape_wildcards(const std::string &s) {
 //--------------------------------------------------------------------------------------------------
 
 bool is_reserved_word(const std::string &word) {
-  std::string upper = str_upper(word);
-  for (const char **kw = reserved_keywords; *kw != NULL; ++kw) {
-    if (upper.compare(*kw) == 0) return true;
-  }
-  return false;
+  const auto upper = str_upper(word);
+  const auto it = std::lower_bound(reserved_keywords.begin(),
+                                   reserved_keywords.end(), upper);
+  return reserved_keywords.end() != it && upper == *it;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -426,8 +433,20 @@ std::string quote_sql_string(const std::string &s) {
 
 //--------------------------------------------------------------------------------------------------
 
-std::string quote_identifier(const std::string &identifier) {
-  return "`" + str_replace(identifier, "`", "``") + "`";
+std::string quote_identifier(const std::string &identifier, char q) {
+  assert('`' == q || '"' == q);
+
+  char quotes[] = {q, q};
+  const auto replaced = str_replace(identifier, std::string_view{quotes, 1},
+                                    std::string_view{quotes, 2});
+  std::string result;
+
+  result.reserve(2 + replaced.length());
+  result.append(1, q);
+  result.append(replaced);
+  result.append(1, q);
+
+  return result;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -438,7 +457,7 @@ std::string quote_identifier(const std::string &identifier) {
  * allowed in unquoted identifiers. Leading numbers are not strictly forbidden
  * but discouraged as they may lead to ambiguous behavior.
  */
-std::string quote_identifier_if_needed(const std::string &ident) {
+std::string quote_identifier_if_needed(const std::string &ident, char q) {
   bool needs_quotation =
       is_reserved_word(ident);  // check whether it's a reserved keyword
   size_t digits = 0;
@@ -458,7 +477,7 @@ std::string quote_identifier_if_needed(const std::string &ident) {
   }
 
   if (needs_quotation || digits == ident.length())
-    return quote_identifier(ident);
+    return quote_identifier(ident, q);
   else
     return ident;
 }

@@ -265,7 +265,8 @@ void SHCORE_PUBLIC split_priv_level(const std::string &str,
                                     std::string *out_object,
                                     size_t *out_leftover = nullptr);
 
-std::string SHCORE_PUBLIC unquote_identifier(const std::string &str);
+std::string SHCORE_PUBLIC unquote_identifier(const std::string &str,
+                                             bool allow_ansi_quotes = false);
 
 /** Substitute variables in string.
  *

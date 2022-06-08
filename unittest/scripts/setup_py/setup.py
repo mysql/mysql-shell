@@ -159,6 +159,50 @@ def EXPECT_IN(actual, expected_values, note=""):
         testutil.fail(context)
 
 
+def EXPECT_CONTAINS(expected, actual, note=""):
+    missing = []
+    for e in expected:
+        if e not in actual:
+            missing.append(e)
+    if missing:
+        if not note:
+            note = __caller_context()
+        context = "Tested values not as expected: "+note+"\n\tActual:   " + \
+            ", ".join(actual) + "\n\tExpected: " + ", ".join(expected) + \
+            "\n\tMissing: " + ", ".join(missing)
+        testutil.fail(context)
+
+
+def EXPECT_CONTAINS_LIKE(expected, actual, note=""):
+    missing = []
+    for e in expected:
+        if not list(filter(lambda a: re.match(e, a), actual)):
+            missing.append(e)
+    if missing:
+        if not note:
+            note = __caller_context()
+        context = "Tested values not as expected: "+note+"\n\tActual:   " + \
+            ", ".join(actual) + "\n\tExpected: " + ", ".join(expected) + \
+            "\n\tMissing: " + ", ".join(missing)
+        testutil.fail(context)
+        return False
+    return True
+
+
+def EXPECT_NOT_CONTAINS(expected, actual, note=""):
+    present = []
+    for e in expected:
+        if e in actual:
+            present.append(e)
+    if present:
+        if not note:
+            note = __caller_context()
+        context = "Tested values not as expected: "+note+"\n\tActual:   " + \
+            ", ".join(actual) + "\n\tNot expected: " + ", ".join(expected) + \
+            "\n\tPresent: " + ", ".join(present)
+        testutil.fail(context)
+
+
 def EXPECT_LE(expected, actual, note=""):
     if expected > actual:
         if not note:
@@ -230,6 +274,8 @@ def EXPECT_TRUE(value, note=""):
         if note:
             context += ": "+note
         testutil.fail(context)
+        return False
+    return True
 
 
 def EXPECT_FALSE(value, note=""):

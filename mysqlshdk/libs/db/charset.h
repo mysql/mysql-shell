@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 
 namespace mysqlshdk {
 namespace db {
@@ -37,6 +38,7 @@ constexpr const int k_binary_collation_id = 63;
 std::string charset_name_from_collation_id(uint32_t id);
 std::string collation_name_from_collation_id(uint32_t id);
 uint32_t collation_id_from_collation_name(std::string_view collation_name);
+std::unordered_set<std::string_view> charset_names();
 
 }  // namespace charset
 }  // namespace db

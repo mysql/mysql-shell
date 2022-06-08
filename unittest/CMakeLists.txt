@@ -153,6 +153,7 @@ set(mysqlsh_tests_SRC
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
             ${MYSQL_EXTRA_LIBRARIES}
+            ${ANTLR4_LIBRARIES}
     )
 
     IF(WIN32)

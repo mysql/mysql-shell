@@ -16,6 +16,9 @@ FUNCTIONS
       add_extension_object_member(object, name, member[, definition])
             Adds a member to an extension object.
 
+      auto_complete_sql(statement, options)
+            Auto-completes the given SQL statement.
+
       connect(connectionData[, password])
             Establishes the shell global session.
 
@@ -220,6 +223,93 @@ DESCRIPTION
       parameter definition dictionary except for one: on a parameter definition
       dictionary, required parameters must be defined first, option definition
       dictionaries do not have this restriction.
+
+#@<OUT> shell.auto_complete_sql
+NAME
+      auto_complete_sql - Auto-completes the given SQL statement.
+
+SYNTAX
+      shell.auto_complete_sql(statement, options)
+
+WHERE
+      statement: A SQL statement to be auto-completed.
+      options: A dictionary with the auto-completion options.
+
+RETURNS
+      A dictionary describing the auto-completion candidates.
+
+DESCRIPTION
+      The following options are supported:
+
+      - serverVersion: string (required) - Version of the server grammar,
+        format "major.minor.patch".
+      - sqlMode: string (required) - SQL_MODE to use.
+      - statementOffset: unsigned int (default: the last offset) - zero-based
+        offset position of the caret in statement.
+      - uppercaseKeywords: bool (default: true) - Whether keywords returned in
+        the result should be upper case.
+      - filtered: bool (default: true) - Whether explicit candidate names
+        returned in the result should be filtered using the prefix which is
+        being auto-completed.
+
+      Return value
+
+      This function returns a dictionary describing candidates which can be
+      used to auto-complete the given statement at the given caret position:
+      {
+        "context": {
+          "prefix": string,
+          "qualifier": list of strings,
+          "references": list of dictionaries,
+          "labels": list of strings,
+        },
+        "keywords": list of strings,
+        "functions": list of strings,
+        "candidates": list of strings,
+      }
+
+      where:
+
+      - context - context of the auto-completion operation
+      - prefix - prefix (possibly empty) that is being auto-completed
+      - qualifier - optional, one or two unquoted identifiers which were typed
+        so far
+      - references - optional, references detected in the statement
+      - labels - optional, labels in labelled blocks
+      - keywords - optional, candidate keywords
+      - functions - optional, candidate MySQL library (runtime) functions whose
+        names are also keywords
+      - candidates - optional, candidate DB object types
+
+      The references list contains dictionaries with the following keys:
+
+      - schema - optional, name of the schema
+      - table - name of the table referenced in the statement
+      - alias - optional, alias of the table
+
+      The candidates list contains one or more of the following values:
+
+      - "schemas" - schemas
+      - "tables" - tables
+      - "views" - views
+      - "columns" - columns
+      - "internalColumns" - columns which refer to just the given table
+      - "procedures" - stored procedures
+      - "functions" - stored functions
+      - "triggers" - triggers
+      - "events" - events
+      - "engines" - MySQL storage engines
+      - "udfs" - user defined functions
+      - "runtimeFunctions" - MySQL library (runtime) functions
+      - "logfileGroups" - logfile groups
+      - "userVars" - user variables
+      - "systemVars" - system variables
+      - "tablespaces" - tablespaces
+      - "users" - user accounts
+      - "charsets" - character sets
+      - "collations" - collations
+      - "plugins" - plugins
+      - "labels" - labels in labelled blocks
 
 #@<OUT> shell.connect
 NAME
@@ -2027,4 +2117,3 @@ RETURNS
 
 DESCRIPTION
         This function returns shell object that has its own scope.
-

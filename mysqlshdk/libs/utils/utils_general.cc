@@ -1078,9 +1078,10 @@ void split_priv_level(const std::string &str, std::string *out_schema,
   }
 }
 
-std::string SHCORE_PUBLIC unquote_identifier(const std::string &str) {
+std::string SHCORE_PUBLIC unquote_identifier(const std::string &str,
+                                             bool allow_ansi_quotes) {
   std::string object;
-  const auto pos = span_quotable_identifier(str, 0, &object);
+  const auto pos = span_quotable_identifier(str, 0, &object, allow_ansi_quotes);
 
   if (pos < str.length()) {
     throw std::runtime_error(

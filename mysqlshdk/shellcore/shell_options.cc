@@ -456,9 +456,9 @@ Shell_options::Shell_options(int argc, char **argv,
         })
     (&storage.interactive, false, SHCORE_INTERACTIVE,
         "Enables interactive mode", shcore::opts::Read_only<bool>())
-    (&storage.db_name_cache, -1, SHCORE_DB_NAME_CACHE,
+    (&storage.db_name_cache, true, SHCORE_DB_NAME_CACHE,
         "Enable database name caching for autocompletion.")
-    (&storage.devapi_schema_object_handles, -1,
+    (&storage.devapi_schema_object_handles, true,
         SHCORE_DEVAPI_DB_OBJECT_HANDLES,
         "Enable table and collection name handles for the DevAPI db object.")
     (&storage.log_sql_ignore, "SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*",

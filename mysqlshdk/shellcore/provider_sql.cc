@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,48 +22,802 @@
  */
 
 #include "mysqlshdk/shellcore/provider_sql.h"
+
 #include <algorithm>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <set>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/parser/base/symbol-info.h"
+#include "mysqlshdk/libs/parser/server/sql_modes.h"
+#include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace shcore {
 namespace completer {
 
+using mysqlshdk::db::Error;
+using mysqlshdk::db::IRow;
+using mysqlshdk::utils::Version;
+
+using Columns = mysqlshdk::Sql_completion_result::Columns;
+using Names = mysqlshdk::Sql_completion_result::Names;
+
 namespace {
 
-extern std::vector<std::string> k_sorted_keywords;
-}
+const Version k_current_version{MYSH_VERSION};
 
-void add_matches_ci(const std::vector<std::string> &options,
-                    Completion_list *out_list, const std::string &prefix,
-                    bool back_quote = false) {
-  auto iter =
-      std::lower_bound(options.begin(), options.end(), prefix,
-                       [](const std::string &a, const std::string &b) -> bool {
-                         return shcore::str_casecmp(a, b) < 0;
-                       });
-  while (iter != options.end()) {
-    if (shcore::str_ibeginswith(*iter, prefix)) {
-      if (back_quote)
-        out_list->push_back(shcore::quote_identifier(*iter));
-      else
-        out_list->push_back(*iter);
-      ++iter;
-    } else {
-      break;
+struct Instance {
+  struct Object {
+    Object() = default;
+    explicit Object(std::string n) : name(std::move(n)) {}
+
+    std::string name;
+  };
+  using Objects = std::vector<Object>;
+
+  struct Table : Object {
+    using Object::Object;
+    Objects columns;
+  };
+  using Tables = std::vector<Table>;
+
+  struct Schema : Object {
+    using Object::Object;
+    Objects events;
+    Objects functions;
+    Objects procedures;
+    Tables tables;
+    Objects triggers;
+    Tables views;
+  };
+  using Schemas = std::vector<Schema>;
+
+  Objects charsets;
+  Objects collations;
+  Objects engines;
+  Objects logfile_groups;
+  Objects plugins;
+  Schemas schemas;
+  const Objects *system_functions = nullptr;
+  Objects system_variables;
+  Objects tablespaces;
+  Objects udfs;
+  Objects users;
+  Objects user_variables;
+
+  void clear() {
+    charsets.clear();
+    collations.clear();
+    engines.clear();
+    logfile_groups.clear();
+    plugins.clear();
+    schemas.clear();
+    system_functions = nullptr;
+    system_variables.clear();
+    tablespaces.clear();
+    udfs.clear();
+    users.clear();
+    user_variables.clear();
+  }
+};
+
+}  // namespace
+
+class Provider_sql::Cache final {
+ public:
+  Cache() { set_system_functions(k_current_version); }
+
+  Cache(const Cache &) = default;
+  Cache(Cache &&) = default;
+
+  Cache &operator=(const Cache &) = default;
+  Cache &operator=(Cache &&) = default;
+
+  ~Cache() = default;
+
+  void cancel() { m_cancelled = true; }
+
+  void refresh_schemas(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    m_cancelled = false;
+
+    fetch_schemas(session);
+  }
+
+  void refresh_schema(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                      const std::string &schema, bool force) {
+    m_cancelled = false;
+
+    // cache schema names if not done yet
+    if (m_instance.schemas.empty() || force) {
+      refresh_schemas(session);
+    }
+
+    if (m_instance.engines.empty() || force) {
+      refresh_static_symbols(session);
+    }
+
+    if (m_instance.users.empty() || force) {
+      refresh_database_symbols(session);
+    }
+
+    if (schema.empty()) {
+      return;
+    }
+
+    if (auto s = find(&m_instance.schemas, schema)) {
+      if (s->tables.empty() || force) {
+        fetch_tables(session, s);
+      }
+
+      if (s->views.empty() || force) {
+        fetch_views(session, s);
+      }
+
+      if (s->functions.empty() || force) {
+        fetch_functions(session, s);
+      }
+
+      if (s->procedures.empty() || force) {
+        fetch_procedures(session, s);
+      }
+
+      if (s->events.empty() || force) {
+        fetch_events(session, s);
+      }
+
+      if (s->triggers.empty() || force) {
+        fetch_triggers(session, s);
+      }
     }
   }
+
+  Completion_list complete_schema(const std::string &prefix) const {
+    Completion_list result;
+
+    for (const auto &schema : find_prefix_ci(m_instance.schemas, prefix)) {
+      result.emplace_back(schema->name);
+    }
+
+    return result;
+  }
+
+  Completion_list complete(mysqlshdk::Sql_completion_result &&result) const {
+    Completion_list list;
+    const auto add_from_set = [&list](Names *s) {
+      while (!s->empty()) {
+        list.emplace_back(std::move(s->extract(s->begin()).value()));
+      }
+    };
+    const auto quote = [&prefix = std::as_const(result.context.prefix)](
+                           const std::string &s, bool as_string) {
+      if (prefix.quoted_as_identifier) {
+        return shcore::quote_identifier(s, prefix.quote);
+      } else if (as_string && prefix.quoted_as_string) {
+        return shcore::quote_string(s, prefix.quote);
+      } else {
+        // we quote here with '`' characters, they are still valid even if
+        // ANSI_QUOTES is enabled
+        return shcore::quote_identifier_if_needed(s);
+      }
+    };
+    const auto quote_identifier = [&quote](const std::string &s) {
+      return quote(s, false);
+    };
+    const auto quote_string_or_identifier = [&quote](const std::string &s) {
+      return quote(s, true);
+    };
+    const auto add_identifiers_and_quote_if_needed =
+        [&list, &quote_identifier](const auto &container) {
+          for (const auto &item : container) {
+            list.emplace_back(quote_identifier(item));
+          }
+        };
+    const auto add_identifiers =
+        [&list, &quote_identifier,
+         &prefix = std::as_const(result.context.prefix.as_identifier)](
+            const auto &container, bool as_function_call = false) {
+          for (const auto &item : find_prefix_ci(container, prefix)) {
+            auto name = quote_identifier(item->name);
+
+            if (as_function_call) {
+              name += '(';
+              name += ')';
+            }
+
+            list.emplace_back(std::move(name));
+          }
+        };
+    const auto add_strings_or_identifiers =
+        [&list, &quote_string_or_identifier,
+         &prefix =
+             std::as_const(result.context.prefix.as_string_or_identifier)](
+            const auto &container) {
+          for (const auto &item : find_prefix_ci(container, prefix)) {
+            list.emplace_back(quote_string_or_identifier(item->name));
+          }
+        };
+    const auto add_identifiers_from = [&add_identifiers, this](
+                                          const Names &schemas, auto source,
+                                          bool as_function_call = false) {
+      for (const auto &schema : schemas) {
+        if (const auto &s = find(m_instance.schemas, schema)) {
+          add_identifiers(s->*source, as_function_call);
+        }
+      }
+    };
+    const auto add_columns = [&add_identifiers, this](const Columns &columns) {
+      for (const auto &schema : columns) {
+        if (const auto &s = find(m_instance.schemas, schema.first)) {
+          for (const auto &table : schema.second) {
+            if (const auto &t = find(s->tables, table)) {
+              add_identifiers(t->columns);
+            }
+
+            if (const auto &v = find(s->views, table)) {
+              add_identifiers(v->columns);
+            }
+          }
+        }
+      }
+    };
+
+    // these are already filtered
+    add_from_set(&result.keywords);
+    add_from_set(&result.system_functions);
+    add_identifiers_and_quote_if_needed(result.tables);
+
+    for (const auto &candidate : result.candidates) {
+      using Candidate = mysqlshdk::Sql_completion_result::Candidate;
+
+      switch (candidate) {
+        case Candidate::SCHEMA:
+          add_identifiers(m_instance.schemas);
+          break;
+
+        case Candidate::TABLE:
+          add_identifiers_from(result.tables_from, &Instance::Schema::tables);
+          break;
+
+        case Candidate::VIEW:
+          add_identifiers_from(result.views_from, &Instance::Schema::views);
+          break;
+
+        case Candidate::COLUMN:
+          add_columns(result.columns);
+          break;
+
+        case Candidate::INTERNAL_COLUMN:
+          add_columns(result.internal_columns);
+          break;
+
+        case Candidate::PROCEDURE:
+          add_identifiers_from(result.procedures_from,
+                               &Instance::Schema::procedures, true);
+          break;
+
+        case Candidate::FUNCTION:
+          add_identifiers_from(result.functions_from,
+                               &Instance::Schema::functions, true);
+          break;
+
+        case Candidate::TRIGGER:
+          add_identifiers_from(result.triggers_from,
+                               &Instance::Schema::triggers);
+          break;
+
+        case Candidate::EVENT:
+          add_identifiers_from(result.events_from, &Instance::Schema::events);
+          break;
+
+        case Candidate::ENGINE:
+          add_identifiers(m_instance.engines);
+          break;
+
+        case Candidate::UDF:
+          add_identifiers(m_instance.udfs, true);
+          break;
+
+        case Candidate::RUNTIME_FUNCTION:
+          // if prefix was quoted then we cannot match any functions
+          if (!result.context.prefix.quoted) {
+            for (const auto &item :
+                 find_prefix_ci(*m_instance.system_functions,
+                                result.context.prefix.full)) {
+              list.emplace_back(item->name);
+            }
+          }
+          break;
+
+        case Candidate::LOGFILE_GROUP:
+          add_identifiers(m_instance.logfile_groups);
+          break;
+
+        case Candidate::USER_VAR:
+          // user variables can be quoted as strings or identifiers
+          add_strings_or_identifiers(m_instance.user_variables);
+          break;
+
+        case Candidate::SYSTEM_VAR:
+          // system variables can be quoted as identifiers, but if ANSI_QUOTES
+          // is active, only "sys_var" (and not i.e. @@"sys_var") form is
+          // recognized; since we don't know the context, we simply disallow
+          // double quotes
+          if (!result.context.prefix.quoted ||
+              '`' == result.context.prefix.quote) {
+            for (const auto &item :
+                 find_prefix_ci(m_instance.system_variables,
+                                result.context.prefix.as_identifier)) {
+              auto name = item->name;
+
+              if (result.context.prefix.quote) {
+                name = shcore::quote_identifier(name);
+              }
+
+              list.emplace_back(std::move(name));
+            }
+          }
+          break;
+
+        case Candidate::TABLESPACE:
+          add_identifiers(m_instance.tablespaces);
+          break;
+
+        case Candidate::USER: {
+          // construct the prefix which matches the format of user accounts
+          // stored in cache: 'user'@'host'
+          std::string prefix;
+          const auto &as_account = result.context.as_account;
+
+          using Account_part = parsers::Sql_completion_result::Account_part;
+
+          if (!as_account.user.full.empty()) {
+            const auto add_part = [&prefix](const Account_part &part) {
+              prefix += shcore::quote_string(part.unquoted, '\'');
+            };
+
+            add_part(as_account.user);
+
+            if (as_account.has_at_sign) {
+              prefix += '@';
+
+              if (!as_account.host.full.empty()) {
+                add_part(as_account.host);
+              }
+            }
+
+            // remove the last quote to allow for partial matches
+            if (prefix.back() == '\'') {
+              prefix.pop_back();
+            }
+          }
+
+          // recreate candidate based on quotes used by the user
+          const auto quote_user = [&as_account](const std::string &name) {
+            const auto quote_like_part = [](const std::string &s,
+                                            const Account_part &part) {
+              if (part.full.empty()) {
+                return shcore::quote_string(s, '\'');
+              } else if (!part.quoted) {
+                return s;
+              } else {
+                if (part.quote == '`') {
+                  return shcore::quote_identifier(s);
+                } else {
+                  return shcore::quote_string(s, part.quote);
+                }
+              }
+            };
+
+            const auto account = shcore::split_account(name);
+            std::string quoted = quote_like_part(account.user, as_account.user);
+            quoted += '@';
+            // if host part was not provided, quote it like the user, to keep
+            // the same style
+            quoted += quote_like_part(account.host, as_account.host.full.empty()
+                                                        ? as_account.user
+                                                        : as_account.host);
+
+            return quoted;
+          };
+
+          for (const auto &item : find_prefix_ci(m_instance.users, prefix)) {
+            list.emplace_back(quote_user(item->name));
+          }
+        } break;
+
+        case Candidate::CHARSET:
+          // character sets can be quoted as strings or identifiers
+          add_strings_or_identifiers(m_instance.charsets);
+          break;
+
+        case Candidate::COLLATION:
+          // collations can be quoted as strings or identifiers
+          add_strings_or_identifiers(m_instance.collations);
+          break;
+
+        case Candidate::PLUGIN:
+          add_identifiers(m_instance.plugins);
+          break;
+
+        case Candidate::LABEL:
+          // already filtered
+          add_identifiers_and_quote_if_needed(result.context.labels);
+          break;
+      }
+    }
+
+    return list;
+  }
+
+  void clear_cache() {
+    m_instance.clear();
+    set_system_functions(k_current_version);
+  }
+
+ private:
+  struct Compare_ci {
+    bool operator()(const Instance::Object &o, const std::string &n) const {
+      return compare_ci(o.name, n);
+    }
+
+    bool operator()(const std::string &n, const Instance::Object &o) const {
+      return compare_ci(n, o.name);
+    }
+  };
+
+  template <class T>
+  using is_instance_object =
+      std::enable_if_t<std::is_base_of_v<Instance::Object, T>, int>;
+
+  static inline bool compare_ci(const std::string &a, const std::string &b) {
+    // TODO(pawel): support UTF-8
+    return str_casecmp(a, b) < 0;
+  }
+
+  template <class T, is_instance_object<T> = 0>
+  static void sort(std::vector<T> *container) {
+    std::sort(container->begin(), container->end(), [](const T &a, const T &b) {
+      return compare_ci(a.name, b.name);
+    });
+  }
+
+  template <class T, is_instance_object<T> = 0>
+  static T *find(std::vector<T> *container, const std::string &name) {
+    return const_cast<T *>(find(*container, name));
+  }
+
+  template <class T, is_instance_object<T> = 0>
+  static const T *find(const std::vector<T> &container,
+                       const std::string &name) {
+    const auto range = std::equal_range(container.begin(), container.end(),
+                                        name, Compare_ci{});
+
+    for (auto it = range.first; it != range.second; ++it) {
+      if (name == it->name) {
+        return &(*it);
+      }
+    }
+
+    return nullptr;
+  }
+
+  template <class T, is_instance_object<T> = 0>
+  static std::vector<const T *> find_prefix_ci(const std::vector<T> &container,
+                                               const std::string &prefix) {
+    auto it = std::lower_bound(container.begin(), container.end(), prefix,
+                               Compare_ci{});
+    std::vector<const T *> result;
+
+    while (it != container.end()) {
+      // TODO(pawel): support UTF-8
+      if (str_ibeginswith(it->name, prefix)) {
+        result.emplace_back(&(*it));
+        ++it;
+      } else {
+        break;
+      }
+    }
+
+    return result;
+  }
+
+  Instance::Objects init_system_functions(base::MySQLVersion version) {
+    Instance::Objects result;
+
+    for (const auto &func :
+         base::MySQLSymbolInfo::systemFunctionsForVersion(version)) {
+      result.emplace_back(func + "()");
+    }
+
+    sort(&result);
+
+    return result;
+  }
+
+  void refresh_static_symbols(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch_engines(session);
+    fetch_character_sets(session);
+    fetch_collations(session);
+    fetch_system_variables(session);
+    set_system_functions(session->get_server_version());
+  }
+
+  void refresh_database_symbols(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch_udfs(session);
+    fetch_logfile_groups(session);
+    fetch_user_variables(session);
+    fetch_tablespaces(session);
+    fetch_users(session);
+    fetch_plugins(session);
+  }
+
+  template <class T, is_instance_object<T> = 0>
+  void fetch(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+             std::string_view query, std::vector<T> *container) const {
+    if (m_cancelled) {
+      return;
+    }
+
+    container->clear();
+
+    if (const auto result = session->query(query)) {
+      while (!m_cancelled) {
+        const auto row = result->fetch_one();
+
+        if (!row) {
+          break;
+        }
+
+        container->emplace_back(row->get_string(0));
+      }
+    }
+
+    if (m_cancelled) {
+      return;
+    }
+
+    // we're sorting on our own (instead of via query) to be consistent with
+    // other methods which depend on the order
+    sort(container);
+  }
+
+  void fetch_schemas(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch(session, "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA",
+          &m_instance.schemas);
+  }
+
+  void fetch_tables(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                    Instance::Schema *schema) {
+    fetch_tables(session, schema, &schema->tables);
+  }
+
+  void fetch_views(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                   Instance::Schema *schema) {
+    fetch_tables(session, schema, &schema->views);
+  }
+
+  void fetch_tables(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                    const Instance::Schema *schema, Instance::Tables *target) {
+    fetch(session,
+          "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE" +
+              std::string{target == &schema->tables ? "=" : "<>"} +
+              "'BASE TABLE' AND TABLE_SCHEMA=" + quote_sql_string(schema->name),
+          target);
+
+    for (auto &table : *target) {
+      fetch_columns(session, schema, &table);
+    }
+  }
+
+  void fetch_columns(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                     const Instance::Schema *schema, Instance::Table *table) {
+    fetch(session,
+          "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE "
+          "TABLE_SCHEMA=" +
+              quote_sql_string(schema->name) +
+              " AND TABLE_NAME=" + quote_sql_string(table->name),
+          &table->columns);
+  }
+
+  void fetch_functions(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                       Instance::Schema *schema) {
+    fetch_routines(session, schema, &schema->functions);
+  }
+
+  void fetch_procedures(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                        Instance::Schema *schema) {
+    fetch_routines(session, schema, &schema->procedures);
+  }
+
+  void fetch_routines(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                      const Instance::Schema *schema,
+                      Instance::Objects *target) {
+    fetch(session,
+          "SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE "
+          "ROUTINE_TYPE='" +
+              std::string{target == &schema->functions ? "FUNCTION"
+                                                       : "PROCEDURE"} +
+              "' AND ROUTINE_SCHEMA=" + quote_sql_string(schema->name),
+          target);
+  }
+
+  void fetch_events(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                    Instance::Schema *schema) {
+    fetch(
+        session,
+        "SELECT EVENT_NAME FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA=" +
+            quote_sql_string(schema->name),
+        &schema->events);
+  }
+
+  void fetch_triggers(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                      Instance::Schema *schema) {
+    fetch(session,
+          "SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE "
+          "TRIGGER_SCHEMA=" +
+              quote_sql_string(schema->name),
+          &schema->triggers);
+  }
+
+  void fetch_engines(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    // SUPPORT can be YES, DEFAULT, NO, DISABLED
+    fetch(session,
+          "SELECT ENGINE FROM INFORMATION_SCHEMA.ENGINES WHERE SUPPORT IN "
+          "('YES', 'DEFAULT')",
+          &m_instance.engines);
+  }
+
+  void fetch_character_sets(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch(session,
+          "SELECT CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.CHARACTER_SETS",
+          &m_instance.charsets);
+  }
+
+  void fetch_collations(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch(session, "SELECT COLLATION_NAME FROM INFORMATION_SCHEMA.COLLATIONS",
+          &m_instance.collations);
+  }
+
+  void fetch_system_variables(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    try {
+      fetch(session,
+            "SELECT VARIABLE_NAME FROM performance_schema.session_variables",
+            &m_instance.system_variables);
+    } catch (const mysqlshdk::db::Error &e) {
+      // this table does not exist in 5.6
+      log_warning(
+          "Failed to fetch system variables for SQL auto-completion: %s",
+          e.format().c_str());
+    }
+  }
+
+  void set_system_functions(const Version &version) {
+    static const auto k_system_functions_57 =
+        init_system_functions(base::MySQLVersion::MySQL57);
+    static const auto k_system_functions_80 =
+        init_system_functions(base::MySQLVersion::MySQL80);
+
+    m_instance.system_functions = version < Version(8, 0, 0)
+                                      ? &k_system_functions_57
+                                      : &k_system_functions_80;
+  }
+
+  void fetch_udfs(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    try {
+      fetch(session,
+            "SELECT UDF_NAME FROM performance_schema.user_defined_functions",
+            &m_instance.udfs);
+    } catch (const mysqlshdk::db::Error &) {
+      try {
+        // this table does not exist in 5.7, mysql.func does not provide info on
+        // functions registered by a component or plugin
+        fetch(session, "SELECT name FROM mysql.func", &m_instance.udfs);
+      } catch (const mysqlshdk::db::Error &e) {
+        // some users don't have access to mysql tables
+        log_warning("Failed to fetch UDFs for SQL auto-completion: %s",
+                    e.format().c_str());
+      }
+    }
+  }
+
+  void fetch_logfile_groups(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch(session,
+          "SELECT LOGFILE_GROUP_NAME FROM INFORMATION_SCHEMA.FILES WHERE "
+          "LOGFILE_GROUP_NAME IS NOT NULL",
+          &m_instance.logfile_groups);
+
+    DBUG_EXECUTE_IF("sql_auto_completion_logfile_group", {
+      m_instance.logfile_groups.emplace_back("log_file_group");
+    });
+  }
+
+  void fetch_user_variables(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    try {
+      std::string query =
+          "SELECT VARIABLE_NAME FROM "
+          "performance_schema.user_variables_by_thread WHERE THREAD_ID=";
+
+      if (session->get_server_version() >= Version(8, 0, 16)) {
+        query += "PS_CURRENT_THREAD_ID()";
+      } else {
+        query += "sys.ps_thread_id(NULL)";
+      }
+
+      fetch(session, query, &m_instance.user_variables);
+    } catch (const mysqlshdk::db::Error &e) {
+      // this table does not exist in 5.6
+      log_warning("Failed to fetch user variables for SQL auto-completion: %s",
+                  e.format().c_str());
+    }
+  }
+
+  void fetch_tablespaces(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    // tablespaces created by users cannot contain a '/' character and cannot
+    // begin with 'innodb_'
+    fetch(session,
+          "SELECT TABLESPACE_NAME FROM INFORMATION_SCHEMA.FILES WHERE "
+          "TABLESPACE_NAME NOT LIKE '%/%' AND TABLESPACE_NAME NOT LIKE "
+          "'innodb\\_%' AND TABLESPACE_NAME<>'mysql'",
+          &m_instance.tablespaces);
+  }
+
+  void fetch_users(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    try {
+      fetch(session,
+            "SELECT CONCAT(QUOTE(User),'@',QUOTE(Host)) FROM mysql.user",
+            &m_instance.users);
+    } catch (const mysqlshdk::db::Error &) {
+      // some users don't have access to the mysql tables
+      // in some versions of MySQL server the GRANTEE column is truncated,
+      // append a quote in this case
+      fetch(
+          session,
+          R"(SELECT DISTINCT IF(RIGHT(GRANTEE, 1)="'",GRANTEE,CONCAT(GRANTEE,"'")) FROM INFORMATION_SCHEMA.USER_PRIVILEGES)",
+          &m_instance.users);
+    }
+  }
+
+  void fetch_plugins(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+    fetch(session, "SELECT PLUGIN_NAME FROM INFORMATION_SCHEMA.PLUGINS",
+          &m_instance.plugins);
+  }
+
+  Instance m_instance;
+  volatile bool m_cancelled = false;
+};
+
+Provider_sql::Provider_sql()
+    : m_completion_context{k_current_version},
+      m_cache(std::make_unique<Cache>()) {
+  m_completion_context.set_filtered(true);
+  m_completion_context.set_uppercase_keywords(true);
+  m_completion_context.set_sql_mode(std::string{k_default_sql_mode_80});
 }
 
-Completion_list Provider_sql::complete_schema(const std::string &prefix) {
-  Completion_list list;
-  add_matches_ci(schema_names_, &list, prefix);
-  return list;
+Provider_sql::~Provider_sql() = default;
+
+Completion_list Provider_sql::complete_schema(const std::string &prefix) const {
+  return m_cache->complete_schema(prefix);
 }
 
 /**
@@ -77,866 +831,81 @@ Completion_list Provider_sql::complete_schema(const std::string &prefix) {
  *
  * compl_offset is expected to be last string token in the text. Tokens
  * are broken at one of =+-/\\*?\"'`&<>;|@{([])}
- *
- * By default, all matching options are considered.
- * The following types of options are used:
- * - reserved keywords and built-in function names (k_sorted_keywords)
- * - system schema names (k_sorted_schemas)
- * - schema names from the connected server
- * - table names of the current schema
- * - column names of the current schema
- *
- * The limited completion filter will strip down the list of options
- * based on the following contextual information:
- * - if the character before the token is `, only DB names will be used
- * - if there's a . in the token, treat it as a DB name
  */
-Completion_list Provider_sql::complete(const std::string &text,
+Completion_list Provider_sql::complete(const std::string &buffer,
+                                       const std::string &line,
                                        size_t *compl_offset) {
-  Completion_list options;
-  size_t offset = *compl_offset;
-  bool db_names_only = false;
-  bool back_quote = false;
+  // completer needs full query
+  const auto sql = buffer + line;
 
-  if (text[0] == '\\') return options;
+  // Line contains the line buffer up to the offset where TAB was pressed,
+  // compl_offset is the offset in that line where linenoise thinks there's a
+  // break character. Since it does not consider '.' as a break character, we
+  // just send the whole line up to the TAB, completer will find the prefix and
+  // we can adjust compl_offset accordingly.
+  auto result = m_completion_context.complete(sql, sql.length());
 
-  // look for .
-  auto dot_pos = text.find('.', offset);
-  if (dot_pos != std::string::npos) {
-    db_names_only = true;
-  } else if (offset > 0 && text[offset - 1] == '`') {
-    --*compl_offset;
-    back_quote = true;
-    db_names_only = true;
+  if (result.context.prefix.full.length() <= line.length()) {
+    *compl_offset = line.length() - result.context.prefix.full.length();
+  } else {
+    // this should not happen
+    assert(false);
+    *compl_offset = 0;
   }
 
-  std::string prefix = text.substr(offset);
-
-  // if backtick quoted, skip keywords lookup
-  if (!db_names_only) {
-    add_matches_ci(k_sorted_keywords, &options, prefix);
-  }
-
-  // add DB objects
-  add_matches_ci(schema_names_, &options, prefix, back_quote);
-
-  if (dot_pos != std::string::npos) {
-    add_matches_ci(object_dot_names_, &options, prefix, back_quote);
-  }
-  add_matches_ci(object_names_, &options, prefix, back_quote);
-  return options;
+  return m_cache->complete(std::move(result));
 }
 
-void Provider_sql::interrupt_rehash() { cancelled_ = true; }
+void Provider_sql::interrupt_rehash() { m_cache->cancel(); }
 
 void Provider_sql::refresh_schema_cache(
-    std::shared_ptr<mysqlsh::ShellBaseSession> session) {
-  schema_names_.clear();
-  schema_names_.reserve(100);
-
-  auto res = session->get_core_session()->query("show schemas");
-  auto row = res->fetch_one();
-  while (row && !cancelled_) {
-    std::string column = row->get_string(0);
-    schema_names_.push_back(column);
-    row = res->fetch_one();
-  }
-  std::sort(schema_names_.begin(), schema_names_.end(),
-            [](const std::string &a, const std::string &b) -> bool {
-              return shcore::str_casecmp(a, b) < 0;
-            });
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  update_completion_context(session);
+  m_cache->refresh_schemas(session);
 }
 
 void Provider_sql::refresh_name_cache(
-    std::shared_ptr<mysqlsh::ShellBaseSession> session,
-    const std::string &current_schema,
-    const std::vector<std::string> *table_names, bool rehash_all) {
-  cancelled_ = false;
-  default_schema_ = current_schema;
-
-  object_names_.clear();
-  object_dot_names_.clear();
-
-  // cache schema names if not done yet
-  if (schema_names_.empty() || rehash_all) {
-    refresh_schema_cache(session);
-  }
-
-  if (!current_schema.empty() && !cancelled_) {
-    // fetch table names, if one was not provided
-    std::vector<std::string> schema_tables;
-    if (table_names == nullptr) {
-      table_names = &schema_tables;
-
-      auto res = session->get_core_session()->queryf("show tables from !",
-                                                     current_schema);
-      auto row = res->fetch_one();
-      while (row && !cancelled_) {
-        std::string table = row->get_string(0);
-        object_names_.push_back(table);
-        schema_tables.push_back(table);
-        row = res->fetch_one();
-      }
-    }
-
-    // fetch column names for each table
-    for (const std::string &t : *table_names) {
-      if (cancelled_) break;
-      std::vector<std::string> column_names;
-      auto res = session->get_core_session()->queryf("show columns from !.!",
-                                                     current_schema, t);
-      auto row = res->fetch_one();
-      while (row && !cancelled_) {
-        std::string column = row->get_string(0);
-        // FIXME add quoting
-        object_names_.push_back(column);
-        object_dot_names_.push_back(t + "." + column);
-        row = res->fetch_one();
-      }
-    }
-    std::sort(object_names_.begin(), object_names_.end(),
-              [](const std::string &a, const std::string &b) -> bool {
-                return shcore::str_casecmp(a, b) < 0;
-              });
-    auto last = std::unique(object_names_.begin(), object_names_.end());
-    object_names_.erase(last, object_names_.end());
-
-    std::sort(object_dot_names_.begin(), object_dot_names_.end(),
-              [](const std::string &a, const std::string &b) -> bool {
-                return shcore::str_casecmp(a, b) < 0;
-              });
-    last = std::unique(object_dot_names_.begin(), object_dot_names_.end());
-    object_dot_names_.erase(last, object_dot_names_.end());
-  }
+    const std::shared_ptr<mysqlshdk::db::ISession> &session,
+    const std::string &current_schema, bool force) {
+  update_completion_context(session);
+  m_completion_context.set_active_schema(current_schema);
+  m_cache->refresh_schema(session, current_schema, force);
 }
 
-namespace {
-// TODO refresh from latest 8.0
-/* generated 2006-12-28.  Refresh occasionally from lexer. */
-std::vector<std::string> k_sorted_keywords = {"ABS",
-                                              "ACOS",
-                                              "ACTION",
-                                              "ADD",
-                                              "ADDDATE",
-                                              "ADDTIME",
-                                              "AES_DECRYPT",
-                                              "AES_ENCRYPT",
-                                              "AFTER",
-                                              "AGAINST",
-                                              "AGGREGATE",
-                                              "ALGORITHM",
-                                              "ALL",
-                                              "ALTER",
-                                              "ANALYZE",
-                                              "AND",
-                                              "ANY",
-                                              "AREA",
-                                              "AS",
-                                              "ASBINARY",
-                                              "ASC",
-                                              "ASCII",
-                                              "ASENSITIVE",
-                                              "ASIN",
-                                              "ASTEXT",
-                                              "ASWKB",
-                                              "ASWKT",
-                                              "ATAN",
-                                              "ATAN2",
-                                              "AUTO_INCREMENT",
-                                              "AVG_ROW_LENGTH",
-                                              "AVG",
-                                              "BACKUP",
-                                              "BDB",
-                                              "BEFORE",
-                                              "BEGIN",
-                                              "BENCHMARK",
-                                              "BERKELEYDB",
-                                              "BETWEEN",
-                                              "BIGINT",
-                                              "BIN",
-                                              "BINARY",
-                                              "BINLOG",
-                                              "BIT_AND",
-                                              "BIT_COUNT",
-                                              "BIT_LENGTH",
-                                              "BIT_OR",
-                                              "BIT_XOR",
-                                              "BIT",
-                                              "BLOB",
-                                              "BOOL",
-                                              "BOOLEAN",
-                                              "BOTH",
-                                              "BTREE",
-                                              "BY",
-                                              "BYTE",
-                                              "CACHE",
-                                              "CALL",
-                                              "CASCADE",
-                                              "CASCADED",
-                                              "CASE",
-                                              "CAST",
-                                              "CEIL",
-                                              "CEILING",
-                                              "CENTROID",
-                                              "CHAIN",
-                                              "CHANGE",
-                                              "CHANGED",
-                                              "CHAR_LENGTH",
-                                              "CHAR",
-                                              "CHARACTER_LENGTH",
-                                              "CHARACTER",
-                                              "CHARSET",
-                                              "CHECK",
-                                              "CHECKSUM",
-                                              "CIPHER",
-                                              "CLIENT",
-                                              "CLOSE",
-                                              "COALESCE",
-                                              "CODE",
-                                              "COERCIBILITY",
-                                              "COLLATE",
-                                              "COLLATION",
-                                              "COLUMN",
-                                              "COLUMNS",
-                                              "COMMENT",
-                                              "COMMIT",
-                                              "COMMITTED",
-                                              "COMPACT",
-                                              "COMPRESS",
-                                              "COMPRESSED",
-                                              "CONCAT_WS",
-                                              "CONCAT",
-                                              "CONCURRENT",
-                                              "CONDITION",
-                                              "CONNECTION_ID",
-                                              "CONNECTION",
-                                              "CONSISTENT",
-                                              "CONSTRAINT",
-                                              "CONTAINS",
-                                              "CONTINUE",
-                                              "CONV",
-                                              "CONVERT_TZ",
-                                              "CONVERT",
-                                              "COS",
-                                              "COT",
-                                              "COUNT",
-                                              "CRC32",
-                                              "CREATE",
-                                              "CROSS",
-                                              "CROSSES",
-                                              "CUBE",
-                                              "CURDATE",
-                                              "CURRENT_DATE",
-                                              "CURRENT_TIME",
-                                              "CURRENT_TIMESTAMP",
-                                              "CURRENT_USER",
-                                              "CURSOR",
-                                              "CURTIME",
-                                              "DATA",
-                                              "DATABASE",
-                                              "DATABASES",
-                                              "DATE_ADD",
-                                              "DATE_FORMAT",
-                                              "DATE_SUB",
-                                              "DATE",
-                                              "DATEDIFF",
-                                              "DATETIME",
-                                              "DAY_HOUR",
-                                              "DAY_MICROSECOND",
-                                              "DAY_MINUTE",
-                                              "DAY_SECOND",
-                                              "DAY",
-                                              "DAYNAME",
-                                              "DAYOFMONTH",
-                                              "DAYOFWEEK",
-                                              "DAYOFYEAR",
-                                              "DEALLOCATE",
-                                              "DEC",
-                                              "DECIMAL",
-                                              "DECLARE",
-                                              "DECODE",
-                                              "DEFAULT",
-                                              "DEFINER",
-                                              "DEGREES",
-                                              "DELAY_KEY_WRITE",
-                                              "DELAYED",
-                                              "DELETE",
-                                              "DELIMITER",
-                                              "DES_DECRYPT",
-                                              "DES_ENCRYPT",
-                                              "DES_KEY_FILE",
-                                              "DESC",
-                                              "DESCRIBE",
-                                              "DETERMINISTIC",
-                                              "DIMENSION",
-                                              "DIRECTORY",
-                                              "DISABLE",
-                                              "DISCARD",
-                                              "DISJOINT",
-                                              "DISTINCT",
-                                              "DISTINCTROW",
-                                              "DIV",
-                                              "DO",
-                                              "DOUBLE",
-                                              "DROP",
-                                              "DUAL",
-                                              "DUMPFILE",
-                                              "DUPLICATE",
-                                              "DYNAMIC",
-                                              "EACH",
-                                              "ELSE",
-                                              "ELSEIF",
-                                              "ELT",
-                                              "ENABLE",
-                                              "ENCLOSED",
-                                              "ENCODE",
-                                              "ENCRYPT",
-                                              "END",
-                                              "ENDPOINT",
-                                              "ENGINE",
-                                              "ENGINES",
-                                              "ENUM",
-                                              "ENVELOPE",
-                                              "EQUALS",
-                                              "ERRORS",
-                                              "ESCAPE",
-                                              "ESCAPED",
-                                              "EVENTS",
-                                              "EXECUTE",
-                                              "EXISTS",
-                                              "EXIT",
-                                              "EXP",
-                                              "EXPANSION",
-                                              "EXPLAIN",
-                                              "EXPORT_SET",
-                                              "EXTENDED",
-                                              "EXTERIORRING",
-                                              "EXTRACT",
-                                              "FALSE",
-                                              "FAST",
-                                              "FETCH",
-                                              "FIELD",
-                                              "FIELDS",
-                                              "FILE",
-                                              "FIND_IN_SET",
-                                              "FIRST",
-                                              "FIXED",
-                                              "FLOAT",
-                                              "FLOAT4",
-                                              "FLOAT8",
-                                              "FLOOR",
-                                              "FLUSH",
-                                              "FOR",
-                                              "FORCE",
-                                              "FOREIGN",
-                                              "FORMAT",
-                                              "FOUND_ROWS",
-                                              "FOUND",
-                                              "FROM_DAYS",
-                                              "FROM_UNIXTIME",
-                                              "FROM",
-                                              "FULL",
-                                              "FULLTEXT",
-                                              "FUNCTION",
-                                              "GEOMCOLLFROMTEXT",
-                                              "GEOMCOLLFROMWKB",
-                                              "GEOMETRY",
-                                              "GEOMETRYCOLLECTION",
-                                              "GEOMETRYCOLLECTIONFROMTEXT",
-                                              "GEOMETRYCOLLECTIONFROMWKB",
-                                              "GEOMETRYFROMTEXT",
-                                              "GEOMETRYFROMWKB",
-                                              "GEOMETRYN",
-                                              "GEOMETRYTYPE",
-                                              "GEOMFROMTEXT",
-                                              "GEOMFROMWKB",
-                                              "GET_FORMAT",
-                                              "GET_LOCK",
-                                              "GLENGTH",
-                                              "GLOBAL",
-                                              "GRANT",
-                                              "GRANTS",
-                                              "GREATEST",
-                                              "GROUP_CONCAT",
-                                              "GROUP_UNIQUE_USERS",
-                                              "GROUP",
-                                              "HANDLER",
-                                              "HASH",
-                                              "HAVING",
-                                              "HELP",
-                                              "HEX",
-                                              "HIGH_PRIORITY",
-                                              "HOSTS",
-                                              "HOUR_MICROSECOND",
-                                              "HOUR_MINUTE",
-                                              "HOUR_SECOND",
-                                              "HOUR",
-                                              "IDENTIFIED",
-                                              "IF",
-                                              "IFNULL",
-                                              "IGNORE",
-                                              "IMPORT",
-                                              "IN",
-                                              "INDEX",
-                                              "INDEXES",
-                                              "INET_ATON",
-                                              "INET_NTOA",
-                                              "INFILE",
-                                              "INNER",
-                                              "INNOBASE",
-                                              "INNODB",
-                                              "INOUT",
-                                              "INSENSITIVE",
-                                              "INSERT_METHOD",
-                                              "INSERT",
-                                              "INSTR",
-                                              "INT",
-                                              "INT1",
-                                              "INT2",
-                                              "INT3",
-                                              "INT4",
-                                              "INT8",
-                                              "INTEGER",
-                                              "INTERIORRINGN",
-                                              "INTERSECTS",
-                                              "INTERVAL",
-                                              "INTO",
-                                              "INVOKER",
-                                              "IO_THREAD",
-                                              "IS_FREE_LOCK",
-                                              "IS_USED_LOCK",
-                                              "IS",
-                                              "ISCLOSED",
-                                              "ISEMPTY",
-                                              "ISNULL",
-                                              "ISOLATION",
-                                              "ISSIMPLE",
-                                              "ISSUER",
-                                              "ITERATE",
-                                              "JOIN",
-                                              "JSON_ARRAY_APPEND",
-                                              "JSON_ARRAY",
-                                              "JSON_CONTAINS_PATH",
-                                              "JSON_CONTAINS",
-                                              "JSON_DEPTH",
-                                              "JSON_EXTRACT",
-                                              "JSON_INSERT",
-                                              "JSON_KEYS",
-                                              "JSON_LENGTH",
-                                              "JSON_MERGE",
-                                              "JSON_QUOTE",
-                                              "JSON_REPLACE",
-                                              "JSON_ROWOBJECT",
-                                              "JSON_SEARCH",
-                                              "JSON_SET",
-                                              "JSON_TYPE",
-                                              "JSON_UNQUOTE",
-                                              "JSON_VALID",
-                                              "KEY",
-                                              "KEYS",
-                                              "KILL",
-                                              "LANGUAGE",
-                                              "LAST_DAY",
-                                              "LAST_INSERT_ID",
-                                              "LAST",
-                                              "LCASE",
-                                              "LEADING",
-                                              "LEAST",
-                                              "LEAVE",
-                                              "LEAVES",
-                                              "LEFT",
-                                              "LENGTH",
-                                              "LEVEL",
-                                              "LIKE",
-                                              "LIMIT",
-                                              "LINEFROMTEXT",
-                                              "LINEFROMWKB",
-                                              "LINES",
-                                              "LINESTRING",
-                                              "LINESTRINGFROMTEXT",
-                                              "LINESTRINGFROMWKB",
-                                              "LN",
-                                              "LOAD_FILE",
-                                              "LOAD",
-                                              "LOCAL",
-                                              "LOCALTIME",
-                                              "LOCALTIMESTAMP",
-                                              "LOCATE",
-                                              "LOCK",
-                                              "LOCKS",
-                                              "LOG",
-                                              "LOG10",
-                                              "LOG2",
-                                              "LOGS",
-                                              "LONG",
-                                              "LONGBLOB",
-                                              "LONGTEXT",
-                                              "LOOP",
-                                              "LOW_PRIORITY",
-                                              "LOWER",
-                                              "LPAD",
-                                              "LTRIM",
-                                              "MAKE_SET",
-                                              "MAKEDATE",
-                                              "MAKETIME",
-                                              "MASTER_CONNECT_RETRY",
-                                              "MASTER_HOST",
-                                              "MASTER_LOG_FILE",
-                                              "MASTER_LOG_POS",
-                                              "MASTER_PASSWORD",
-                                              "MASTER_PORT",
-                                              "MASTER_POS_WAIT",
-                                              "MASTER_SERVER_ID",
-                                              "MASTER_SSL_CA",
-                                              "MASTER_SSL_CAPATH",
-                                              "MASTER_SSL_CERT",
-                                              "MASTER_SSL_CIPHER",
-                                              "MASTER_SSL_KEY",
-                                              "MASTER_SSL",
-                                              "MASTER_TLS_VERSION",
-                                              "MASTER_USER",
-                                              "MASTER",
-                                              "MATCH",
-                                              "MAX_CONNECTIONS_PER_HOUR",
-                                              "MAX_QUERIES_PER_HOUR",
-                                              "MAX_ROWS",
-                                              "MAX_UPDATES_PER_HOUR",
-                                              "MAX_USER_CONNECTIONS",
-                                              "MAX",
-                                              "MBRCONTAINS",
-                                              "MBRDISJOINT",
-                                              "MBREQUAL",
-                                              "MBRINTERSECTS",
-                                              "MBROVERLAPS",
-                                              "MBRTOUCHES",
-                                              "MBRWITHIN",
-                                              "MD5",
-                                              "MEDIUM",
-                                              "MEDIUMBLOB",
-                                              "MEDIUMINT",
-                                              "MEDIUMTEXT",
-                                              "MERGE",
-                                              "MICROSECOND",
-                                              "MID",
-                                              "MIDDLEINT",
-                                              "MIGRATE",
-                                              "MIN_ROWS",
-                                              "MIN",
-                                              "MINUTE_MICROSECOND",
-                                              "MINUTE_SECOND",
-                                              "MINUTE",
-                                              "MLINEFROMTEXT",
-                                              "MLINEFROMWKB",
-                                              "MOD",
-                                              "MODE",
-                                              "MODIFIES",
-                                              "MODIFY",
-                                              "MONTH",
-                                              "MONTHNAME",
-                                              "MPOINTFROMTEXT",
-                                              "MPOINTFROMWKB",
-                                              "MPOLYFROMTEXT",
-                                              "MPOLYFROMWKB",
-                                              "MULTILINESTRING",
-                                              "MULTILINESTRINGFROMTEXT",
-                                              "MULTILINESTRINGFROMWKB",
-                                              "MULTIPOINT",
-                                              "MULTIPOINTFROMTEXT",
-                                              "MULTIPOINTFROMWKB",
-                                              "MULTIPOLYGON",
-                                              "MULTIPOLYGONFROMTEXT",
-                                              "MULTIPOLYGONFROMWKB",
-                                              "MUTEX",
-                                              "NAME_CONST",
-                                              "NAME",
-                                              "NAMES",
-                                              "NATIONAL",
-                                              "NATURAL",
-                                              "NCHAR",
-                                              "NDB",
-                                              "NDBCLUSTER",
-                                              "NEW",
-                                              "NEXT",
-                                              "NO_WRITE_TO_BINLOG",
-                                              "NO",
-                                              "NONE",
-                                              "NOT",
-                                              "NOW",
-                                              "NULL",
-                                              "NULLIF",
-                                              "NUMERIC",
-                                              "NUMGEOMETRIES",
-                                              "NUMINTERIORRINGS",
-                                              "NUMPOINTS",
-                                              "NVARCHAR",
-                                              "OCT",
-                                              "OCTET_LENGTH",
-                                              "OFFSET",
-                                              "ON",
-                                              "ONE_SHOT",
-                                              "ONE",
-                                              "OPEN",
-                                              "OPTIMIZE",
-                                              "OPTION",
-                                              "OPTIONALLY",
-                                              "OR",
-                                              "ORD",
-                                              "ORDER",
-                                              "OUT",
-                                              "OUTER",
-                                              "OUTFILE",
-                                              "OVERLAPS",
-                                              "PACK_KEYS",
-                                              "PARTIAL",
-                                              "PASSWORD",
-                                              "PERIOD_ADD",
-                                              "PERIOD_DIFF",
-                                              "PHASE",
-                                              "PI",
-                                              "POINT",
-                                              "POINTFROMTEXT",
-                                              "POINTFROMWKB",
-                                              "POINTN",
-                                              "POLYFROMTEXT",
-                                              "POLYFROMWKB",
-                                              "POLYGON",
-                                              "POLYGONFROMTEXT",
-                                              "POLYGONFROMWKB",
-                                              "POSITION",
-                                              "POW",
-                                              "POWER",
-                                              "PRECISION",
-                                              "PREPARE",
-                                              "PREV",
-                                              "PRIMARY",
-                                              "PRIVILEGES",
-                                              "PROCEDURE",
-                                              "PROCESS",
-                                              "PROCESSLIST",
-                                              "PURGE",
-                                              "QUARTER",
-                                              "QUERY",
-                                              "QUICK",
-                                              "QUOTE",
-                                              "RADIANS",
-                                              "RAND",
-                                              "READ",
-                                              "READS",
-                                              "REAL",
-                                              "RECOVER",
-                                              "REDUNDANT",
-                                              "REFERENCES",
-                                              "REGEXP",
-                                              "RELAY_LOG_FILE",
-                                              "RELAY_LOG_POS",
-                                              "RELAY_THREAD",
-                                              "RELEASE_LOCK",
-                                              "RELEASE",
-                                              "RELOAD",
-                                              "RENAME",
-                                              "REPAIR",
-                                              "REPEAT",
-                                              "REPEATABLE",
-                                              "REPLACE",
-                                              "REPLICATION",
-                                              "REQUIRE",
-                                              "RESET",
-                                              "RESTORE",
-                                              "RESTRICT",
-                                              "RESUME",
-                                              "RETURN",
-                                              "RETURNS",
-                                              "REVERSE",
-                                              "REVOKE",
-                                              "RIGHT",
-                                              "RLIKE",
-                                              "ROLLBACK",
-                                              "ROLLUP",
-                                              "ROUND",
-                                              "ROUTINE",
-                                              "ROW_COUNT",
-                                              "ROW_FORMAT",
-                                              "ROW",
-                                              "ROWS",
-                                              "RPAD",
-                                              "RTREE",
-                                              "RTRIM",
-                                              "SAVEPOINT",
-                                              "SCHEMA",
-                                              "SCHEMAS",
-                                              "SEC_TO_TIME",
-                                              "SECOND_MICROSECOND",
-                                              "SECOND",
-                                              "SECURITY",
-                                              "SELECT",
-                                              "SENSITIVE",
-                                              "SEPARATOR",
-                                              "SERIAL",
-                                              "SERIALIZABLE",
-                                              "SESSION_USER",
-                                              "SESSION",
-                                              "SET",
-                                              "SHA",
-                                              "SHA1",
-                                              "SHARE",
-                                              "SHOW",
-                                              "SHUTDOWN",
-                                              "SIGN",
-                                              "SIGNED",
-                                              "SIMPLE",
-                                              "SIN",
-                                              "SLAVE",
-                                              "SLEEP",
-                                              "SMALLINT",
-                                              "SNAPSHOT",
-                                              "SOME",
-                                              "SONAME",
-                                              "SOUNDEX",
-                                              "SOUNDS",
-                                              "SPACE",
-                                              "SPATIAL",
-                                              "SPECIFIC",
-                                              "SQL_BIG_RESULT",
-                                              "SQL_BUFFER_RESULT",
-                                              "SQL_CACHE",
-                                              "SQL_CALC_FOUND_ROWS",
-                                              "SQL_NO_CACHE",
-                                              "SQL_SMALL_RESULT",
-                                              "SQL_THREAD",
-                                              "SQL_TSI_DAY",
-                                              "SQL_TSI_HOUR",
-                                              "SQL_TSI_MINUTE",
-                                              "SQL_TSI_MONTH",
-                                              "SQL_TSI_QUARTER",
-                                              "SQL_TSI_SECOND",
-                                              "SQL_TSI_WEEK",
-                                              "SQL_TSI_YEAR",
-                                              "SQL",
-                                              "SQLEXCEPTION",
-                                              "SQLSTATE",
-                                              "SQLWARNING",
-                                              "SQRT",
-                                              "SRID",
-                                              "SSL",
-                                              "START",
-                                              "STARTING",
-                                              "STARTPOINT",
-                                              "STATUS",
-                                              "STD",
-                                              "STDDEV_POP",
-                                              "STDDEV_SAMP",
-                                              "STDDEV",
-                                              "STOP",
-                                              "STORAGE",
-                                              "STR_TO_DATE",
-                                              "STRAIGHT_JOIN",
-                                              "STRCMP",
-                                              "STRING",
-                                              "STRIPED",
-                                              "SUBDATE",
-                                              "SUBJECT",
-                                              "SUBSTR",
-                                              "SUBSTRING_INDEX",
-                                              "SUBSTRING",
-                                              "SUBTIME",
-                                              "SUM",
-                                              "SUPER",
-                                              "SUSPEND",
-                                              "SYSDATE",
-                                              "SYSTEM_USER",
-                                              "TABLE",
-                                              "TABLES",
-                                              "TABLESPACE",
-                                              "TAN",
-                                              "TEMPORARY",
-                                              "TEMPTABLE",
-                                              "TERMINATED",
-                                              "TEXT",
-                                              "THEN",
-                                              "TIME_FORMAT",
-                                              "TIME_TO_SEC",
-                                              "TIME",
-                                              "TIMEDIFF",
-                                              "TIMESTAMP",
-                                              "TIMESTAMPADD",
-                                              "TIMESTAMPDIFF",
-                                              "TINYBLOB",
-                                              "TINYINT",
-                                              "TINYTEXT",
-                                              "TO_DAYS",
-                                              "TO",
-                                              "TOUCHES",
-                                              "TRAILING",
-                                              "TRANSACTION",
-                                              "TRIGGER",
-                                              "TRIGGERS",
-                                              "TRIM",
-                                              "TRUE",
-                                              "TRUNCATE",
-                                              "TYPE",
-                                              "TYPES",
-                                              "UCASE",
-                                              "UNCOMMITTED",
-                                              "UNCOMPRESS",
-                                              "UNCOMPRESSED_LENGTH",
-                                              "UNDEFINED",
-                                              "UNDO",
-                                              "UNHEX",
-                                              "UNICODE",
-                                              "UNION",
-                                              "UNIQUE_USERS",
-                                              "UNIQUE",
-                                              "UNIX_TIMESTAMP",
-                                              "UNKNOWN",
-                                              "UNLOCK",
-                                              "UNSIGNED",
-                                              "UNTIL",
-                                              "UPDATE",
-                                              "UPGRADE",
-                                              "UPPER",
-                                              "USAGE",
-                                              "USE_FRM",
-                                              "USE",
-                                              "USER_RESOURCES",
-                                              "USER",
-                                              "USING",
-                                              "UTC_DATE",
-                                              "UTC_TIME",
-                                              "UTC_TIMESTAMP",
-                                              "UUID",
-                                              "VALUE",
-                                              "VALUES",
-                                              "VAR_POP",
-                                              "VAR_SAMP",
-                                              "VARBINARY",
-                                              "VARCHAR",
-                                              "VARCHARACTER",
-                                              "VARIABLES",
-                                              "VARIANCE",
-                                              "VARYING",
-                                              "VERSION",
-                                              "VIEW",
-                                              "WARNINGS",
-                                              "WEEK",
-                                              "WEEKDAY",
-                                              "WEEKOFYEAR",
-                                              "WHEN",
-                                              "WHERE",
-                                              "WHILE",
-                                              "WITH",
-                                              "WITHIN",
-                                              "WORK",
-                                              "WRITE",
-                                              "X",
-                                              "X509",
-                                              "XA",
-                                              "XOR",
-                                              "Y",
-                                              "YEAR_MONTH",
-                                              "YEAR",
-                                              "YEARWEEK",
-                                              "ZEROFILL"};
-}  // namespace
+void Provider_sql::update_completion_context(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  auto server_version = session->get_server_version();
+
+  DBUG_EXECUTE_IF("sql_auto_completion_unsupported_version_lower",
+                  { server_version = Version(1, 2, 3); });
+
+  DBUG_EXECUTE_IF("sql_auto_completion_unsupported_version_higher",
+                  { server_version = Version(10, 9, 8); });
+
+  auto version = std::max(server_version, Version(5, 7, 0));
+  version = std::min(version, k_current_version);
+
+  if (version != server_version) {
+    log_warning(
+        "Connected to an unsupported server version %s, SQL auto-completion is "
+        "falling back to: %s",
+        server_version.get_full().c_str(), version.get_full().c_str());
+  }
+
+  m_completion_context.set_server_version(version);
+  m_completion_context.set_sql_mode(session->get_sql_mode());
+}
+
+void Provider_sql::clear_name_cache() {
+  reset_completion_context();
+  m_cache->clear_cache();
+}
+
+void Provider_sql::reset_completion_context() {
+  m_completion_context.set_server_version(k_current_version);
+  m_completion_context.set_sql_mode(std::string{k_default_sql_mode_80});
+  m_completion_context.set_active_schema({});
+}
 
 }  // namespace completer
 }  // namespace shcore

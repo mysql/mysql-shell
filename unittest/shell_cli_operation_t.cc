@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,6 +132,18 @@ class Shell_cli_operation_test : public Shell_core_test_wrapper,
   void test_list_params(int argc, const char *argv[],
                         const shcore::Array_t &first,
                         const shcore::Array_t &second) {
+    std::string args;
+
+    for (int i = 0; i < argc; ++i) {
+      args += argv[i];
+      args += ' ';
+    }
+
+    if (argc) {
+      args.pop_back();
+    }
+
+    SCOPED_TRACE(args);
     Options::Cmdline_iterator it(argc, argv, 0);
 
     parse(&it);

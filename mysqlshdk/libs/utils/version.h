@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,9 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_VERSION_H_
 #define MYSQLSHDK_LIBS_UTILS_VERSION_H_
 
+#include <cstdint>
+#include <optional>
 #include <string>
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -35,9 +36,9 @@ namespace utils {
  */
 class Version {
  public:
-  Version();
+  constexpr Version() = default;
   explicit Version(const std::string &version);
-  Version(int major, int minor, int patch)
+  constexpr Version(int major, int minor, int patch)
       : _major(major), _minor(minor), _patch(patch) {}
 
   /**
@@ -48,18 +49,18 @@ class Version {
   /**
    * Returns the minor version, or 0 if not present.
    */
-  int get_minor() const { return _minor ? *_minor : 0; }
+  int get_minor() const { return _minor.value_or(0); }
 
   /**
    * Returns the patch version, or 0 if not present.
    */
-  int get_patch() const { return _patch ? *_patch : 0; }
+  int get_patch() const { return _patch.value_or(0); }
 
   /**
    * Returns the extra part of the version string, or an empty string if not
    * present.
    */
-  std::string get_extra() const { return _extra ? *_extra : ""; }
+  std::string get_extra() const { return _extra.value_or(std::string{}); }
 
   /**
    * Returns the version string in format \<major\>.\<minor\>.
@@ -76,6 +77,11 @@ class Version {
    */
   std::string get_full() const;
 
+  /**
+   * Returns the numeric version: MMmmpp, where M - major, m - minor, p - patch.
+   */
+  uint32_t numeric() const;
+
   bool operator<(const Version &other) const;
   bool operator<=(const Version &other) const;
   bool operator>(const Version &other) const;
@@ -85,10 +91,10 @@ class Version {
   explicit operator bool() const;
 
  private:
-  int _major;
-  nullable<int> _minor;
-  nullable<int> _patch;
-  nullable<std::string> _extra;
+  int _major = 0;
+  std::optional<int> _minor;
+  std::optional<int> _patch;
+  std::optional<std::string> _extra;
 
   int parse_token(const std::string &data);
 };

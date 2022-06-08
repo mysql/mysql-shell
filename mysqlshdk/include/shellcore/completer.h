@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,15 +39,16 @@ class Provider {
  public:
   using Provider_list = shcore::completer::Completion_list;
 
-  virtual Completion_list complete(const std::string &text,
+  virtual Completion_list complete(const std::string &buffer,
+                                   const std::string &line,
                                    size_t *compl_offset) = 0;
-  virtual ~Provider() {}
+  virtual ~Provider() = default;
 };
 
 class Completer {
  public:
-  Completion_list complete(IShell_core::Mode mode, const std::string &text,
-                           size_t *compl_offset);
+  Completion_list complete(IShell_core::Mode mode, const std::string &buffer,
+                           const std::string &line, size_t *compl_offset);
 
   void add_provider(IShell_core::Mode_mask mode_mask,
                     std::shared_ptr<Provider> provider,

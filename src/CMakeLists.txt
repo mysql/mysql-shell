@@ -28,6 +28,10 @@ include_directories(BEFORE "${CMAKE_SOURCE_DIR}/mysqlshdk/libs"
                     "${CMAKE_SOURCE_DIR}/src"
                     "${CMAKE_SOURCE_DIR}/ext/linenoise-ng/include")
 
+IF(HAVE_PYTHON)
+  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
+ENDIF()
+
 set(mysh_SRC
     mysqlsh/get_password.cc
     mysqlsh/cmdline_shell.cc
@@ -367,4 +371,37 @@ IF(BUNDLED_KRB5_DIR)
   ENDIF()
   INSTALL(FILES ${_KRB5_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" COMPONENT main)
   LINK_DIRECTORIES(${BUNDLED_KRB5_DIR}/lib)
+ENDIF()
+
+IF(BUNDLED_ANTLR_DIR)
+  if(WIN32)
+    FILE(GLOB_RECURSE _ANTLR4_SHARED_LIB "${ANTLR4_LIB_BASE_DIRECTORY}/*.dll")
+  elseif(APPLE)
+    set(_ANTLR4_SHARED_LIB "${ANTLR4_LIBRARY}")
+  else()
+    file(GLOB _ANTLR4_SHARED_LIB "${ANTLR4_LIBRARY}.*")
+  endif()
+
+  IF(WIN32)
+    INSTALL(FILES
+      "${_ANTLR4_SHARED_LIB}"
+      DESTINATION ${INSTALL_BINDIR}
+      COMPONENT main
+    )
+
+    # Copy the libraries to the build dir (for running tests in build tree)
+    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_ANTLR4_SHARED_LIB}"
+                  "$<TARGET_FILE_DIR:mysqlsh>/.")
+  ELSE()
+    INSTALL(FILES
+      "${_ANTLR4_SHARED_LIB}"
+      DESTINATION ${INSTALL_LIBDIR}
+      COMPONENT main
+    )
+
+    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_ANTLR4_SHARED_LIB}"
+                "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
+  ENDIF()
 ENDIF()

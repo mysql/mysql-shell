@@ -80,6 +80,9 @@ class Command_line_shell : public Mysql_shell,
 
   void process_line(const std::string &line) override;
 
+  std::vector<std::string> auto_complete(const std::string &line,
+                                         size_t *completion_offset);
+
  private:
   void handle_interrupt();
   bool _interrupted = false;

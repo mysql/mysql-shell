@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
-#include "shellcore/base_session.h"
+#include "mysqlshdk/libs/parser/code-completion/mysql_code_completion_context.h"
 #include "shellcore/completer.h"
 
 namespace shcore {
@@ -37,31 +37,36 @@ namespace completer {
 
 class Provider_sql : public Provider {
  public:
-  Completion_list complete(const std::string &text,
+  Provider_sql();
+
+  ~Provider_sql() override;
+
+  Completion_list complete(const std::string &buffer, const std::string &line,
                            size_t *compl_offset) override;
 
-  virtual void refresh_schema_cache(
-      std::shared_ptr<mysqlsh::ShellBaseSession> session);
+  void refresh_schema_cache(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
-  // void refresh_name_cache(std::shared_ptr<mysqlshdk::db::ISession> session,
-  //                         const std::string &current_schema,
-  //                         const std::vector<std::string> *table_names,
-  //                         bool rehash_all);
-  virtual void refresh_name_cache(
-      std::shared_ptr<mysqlsh::ShellBaseSession> session,
-      const std::string &current_schema,
-      const std::vector<std::string> *table_names, bool rehash_all);
+  void refresh_name_cache(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const std::string &current_schema, bool force);
+
+  void clear_name_cache();
 
   void interrupt_rehash();
 
-  Completion_list complete_schema(const std::string &prefix);
+  Completion_list complete_schema(const std::string &prefix) const;
 
  private:
-  std::string default_schema_;
-  std::vector<std::string> schema_names_;
-  std::vector<std::string> object_names_;
-  std::vector<std::string> object_dot_names_;
-  bool cancelled_;
+  class Cache;
+
+  void update_completion_context(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+  void reset_completion_context();
+
+  mysqlshdk::Sql_completion_context m_completion_context;
+  std::unique_ptr<Cache> m_cache;
 };
 
 }  // namespace completer

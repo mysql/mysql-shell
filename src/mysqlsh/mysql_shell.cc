@@ -172,19 +172,20 @@ class Shell_command_provider : public shcore::completer::Provider {
  public:
   explicit Shell_command_provider(Mysql_shell *shell) : shell_(shell) {}
 
-  shcore::completer::Completion_list complete(const std::string &text,
+  shcore::completer::Completion_list complete(const std::string &,
+                                              const std::string &line,
                                               size_t *compl_offset) {
     shcore::completer::Completion_list options;
     size_t cmdend;
-    if (text[0] == '\\' && (cmdend = text.find(' ')) != std::string::npos) {
+    if (line[0] == '\\' && (cmdend = line.find(' ')) != std::string::npos) {
       // check if we're completing params for a \command
 
       // keep it simple for now just and handle \command completions here...
       options =
-          complete_command(text.substr(0, cmdend), text.substr(*compl_offset));
-    } else if ((*compl_offset > 0 && *compl_offset < text.length() &&
-                text[*compl_offset - 1] == '\\') ||
-               (*compl_offset == 0 && text.length() > 1 && text[0] == '\\')) {
+          complete_command(line.substr(0, cmdend), line.substr(*compl_offset));
+    } else if ((*compl_offset > 0 && *compl_offset < line.length() &&
+                line[*compl_offset - 1] == '\\') ||
+               (*compl_offset == 0 && line.length() > 1 && line[0] == '\\')) {
       // handle escape commands
       if (*compl_offset > 0) {
         // extend the completed string beyond the default, which will break
@@ -193,9 +194,9 @@ class Shell_command_provider : public shcore::completer::Provider {
       }
       auto names = shell_->shell_context()
                        ->command_handler()
-                       ->get_command_names_matching(text.substr(*compl_offset));
+                       ->get_command_names_matching(line.substr(*compl_offset));
       std::copy(names.begin(), names.end(), std::back_inserter(options));
-    } else if (text == "\\") {
+    } else if (line == "\\") {
       auto names = shell_->shell_context()
                        ->command_handler()
                        ->get_command_names_matching("");
@@ -1034,12 +1035,10 @@ void Mysql_shell::set_active_session(
   _last_active_schema.clear();
 
   if (options().interactive && !get_options()->get_shell_cli_operation()) {
-    // Always refresh schema name completion cache because it can be used in
-    // \use in any mode
-    refresh_schema_completion();
-    if (_shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
-      refresh_completion();
-    }
+    // this is a new session, we want to force the update if name cache is
+    // enabled to refresh all data, schema name cache is going to be updated as
+    // well
+    refresh_completion(options().db_name_cache);
   }
 }
 
@@ -1387,6 +1386,7 @@ bool Mysql_shell::cmd_disconnect(const std::vector<std::string> &args) {
     _shell->set_dev_session(null_session);
     _global_shell->set_session_global(null_session);
     request_prompt_variables_update();
+    refresh_completion();
   }
 
   return true;
@@ -1619,7 +1619,6 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
 
 bool Mysql_shell::cmd_rehash(const std::vector<std::string> & /* args */) {
   if (_shell->get_dev_session()) {
-    refresh_schema_completion(true);
     refresh_completion(true);
 
     shcore::Value vdb(_shell->get_global("db"));
@@ -1635,58 +1634,62 @@ bool Mysql_shell::cmd_rehash(const std::vector<std::string> & /* args */) {
   return true;
 }
 
-void Mysql_shell::refresh_schema_completion(bool force) {
-  if (options().db_name_cache || force) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session(
-        _shell->get_dev_session());
-    if (session && _provider_sql) {
-      println(
-          "Fetching schema names for autocompletion... "
-          "Press ^C to stop.");
-      try {
-        _provider_sql->refresh_schema_cache(session);
-      } catch (const std::exception &e) {
-        print_diag(
-            shcore::str_format(
-                "Error during auto-completion cache update: %s\n", e.what())
-                .c_str());
-      }
-    }
-  }
-}
-
 void Mysql_shell::refresh_completion(bool force) {
   if (options().db_name_cache || force) {
-    std::shared_ptr<mysqlsh::ShellBaseSession> session(
-        _shell->get_dev_session());
+    if (!_provider_sql) {
+      return;
+    }
+
+    const auto session = _shell->get_dev_session();
+
+    if (!session || !session->is_open()) {
+      _provider_sql->clear_name_cache();
+      return;
+    }
+
     std::string current_schema;
-    auto handle_error = [](const std::exception &e) {
+    const auto handle_error = [](const std::exception &e) {
       print_diag(shcore::str_format(
           "Error during auto-completion cache update: %s\n", e.what()));
     };
 
-    if (session) {
-      try {
-        current_schema = session->get_current_schema();
-      } catch (const std::exception &e) {
-        handle_error(e);
-        return;
-      }
+    try {
+      current_schema = session->get_current_schema();
+    } catch (const std::exception &e) {
+      handle_error(e);
+      return;
     }
 
-    if (session && _provider_sql && !current_schema.empty()) {
-      // Only refresh the full DB name cache if we're in SQL mode
-      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
-        println("Fetching table and column names from `" + current_schema +
-                "` for auto-completion... Press ^C to stop.");
-        try {
-          _provider_sql->refresh_name_cache(session, current_schema,
-                                            nullptr,  // &table_names,
-                                            true);
-        } catch (const std::exception &e) {
-          handle_error(e);
-        }
+    std::vector<std::string> context;
+
+    if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
+      context.emplace_back("global names");
+
+      if (!current_schema.empty()) {
+        context.emplace_back("object names from " +
+                             shcore::quote_identifier(current_schema));
       }
+    } else if (force) {
+      context.emplace_back("schema names");
+    }
+
+    if (!context.empty()) {
+      println("Fetching " + shcore::str_join(context, ", ") +
+              " for auto-completion... Press ^C to stop.");
+    }
+
+    try {
+      const auto core = session->get_core_session();
+
+      if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
+        // Only refresh the full DB name cache if we're in SQL mode
+        _provider_sql->refresh_name_cache(core, current_schema, force);
+      } else if (force) {
+        _provider_sql->refresh_schema_cache(core);
+      }
+    } catch (const std::exception &e) {
+      handle_error(e);
+      return;
     }
   }
 }

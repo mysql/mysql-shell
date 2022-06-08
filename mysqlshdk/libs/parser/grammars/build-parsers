@@ -1,0 +1,58 @@
+#!/bin/bash
+# Copyright (c) 2022, Oracle and/or its affiliates.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License, version 2.0,
+# as published by the Free Software Foundation.
+#
+# This program is also distributed with certain software (including
+# but not limited to OpenSSL) that is licensed under separate terms, as
+# designated in a particular file or component or in included license
+# documentation. The authors of MySQL hereby grant you an additional
+# permission to link the program and your derivative works with the
+# separately licensed software that they have included with MySQL.
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+# the GNU General Public License, version 2.0, for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
+postincludel='@postinclude \{#include "mysqlshdk/libs/parser/MySQLBaseLexer.h"\}\n\n@header {// clang-format off\n'
+postincludep='@postinclude \{#include "mysqlshdk/libs/parser/MySQLBaseRecognizer.h"\}\n\n@header {// clang-format off\n'
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Convert lexer grammar from TS to C++
+sed -e 's/this\.type = \([^;]*\);/setType(\1);/g'\
+  -e 's/this\.text/getText()/g'\
+  -e 's/this\.//g'\
+  -e 's/SqlMode\.//g'\
+  -e 's/MySQLLexer\.//g'\
+  -e '/^import {.*}.*from.*/d'\
+  -e '/.*eslint-disable.*/d'\
+  -e "s:@header {:$postincludel:"\
+   "${SCRIPT_DIR}/in/MySQLLexer.g4" > "${SCRIPT_DIR}/MySQLLexer.g4"
+
+# Convert parser grammar from TS to C++
+sed -e 's/this\.//g'\
+  -e 's/SqlMode\.//g'\
+  -e '/^import {.*}.*from/d'\
+  -e '/.*eslint-disable.*/d'\
+  -e "s:@header {:$postincludep:"\
+   "${SCRIPT_DIR}/in/MySQLParser.g4" > "${SCRIPT_DIR}/MySQLParser.g4"
+
+OUTPUT_DIR="$(dirname "${SCRIPT_DIR}")/mysql"
+
+ANTLR_CMD=antlr
+
+if [ ! -z "${ANTLR_JAR_LOCATION}" ]
+then
+  ANTLR_CMD="java -jar ${ANTLR_JAR_LOCATION}"
+fi
+
+# Build the parser+lexer
+${ANTLR_CMD} -Dlanguage=Cpp -listener -visitor -o "${OUTPUT_DIR}" -package parsers "${SCRIPT_DIR}/MySQLLexer.g4" "${SCRIPT_DIR}/MySQLParser.g4"
+

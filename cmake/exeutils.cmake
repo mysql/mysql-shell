@@ -81,8 +81,14 @@ function(add_shell_executable)
                 "${_SSH_LIBRARY_NAME}" "@loader_path/../${INSTALL_LIBDIR}/${_SSH_LIBRARY_NAME}"
                 $<TARGET_FILE:${ARGV0}>)
     endif()
+    if(BUNDLED_ANTLR_DIR)
+      add_custom_command(TARGET "${ARGV0}" POST_BUILD
+        COMMAND install_name_tool -change
+                "${ANTLR4_LIB_FILENAME}" "@loader_path/../${INSTALL_LIBDIR}/${ANTLR4_LIB_FILENAME}"
+                $<TARGET_FILE:${ARGV0}>)
+    endif()
   elseif(NOT WIN32)
-  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR)
+  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR OR BUNDLED_ANTLR_DIR)
     # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH
     # entry instead of RPATH this results in loader loading system libraries (if they are available)
     # instead of bundled ones, this has special impact when bundled libraries are linked using a bundled

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -280,8 +280,6 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       }
     // no need to re-parse code until statement is complete
     if (!statement_complete) {
-      m_buffer->append(code);
-      code.clear();
       return;
     }
   }
@@ -290,7 +288,8 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
   m_splitter->set_ansi_quotes(ansi_quotes_enabled(session));
   _last_handled.clear();
 
-  m_buffer->append(code);
+  // the whole code to be executed is in the `code` variable
+  *m_buffer = std::move(code);
   code.clear();
 
   // Reinitializes the input state, will be changed back to the Continued state
@@ -298,11 +297,15 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
   m_input_state = Input_state::Ok;
   handle_input(session, false);
   state = m_input_state;
+
+  // code could have been executed partially ('statement; incomplete statement')
+  // store the incomplete statement back in the input buffer
+  code = *m_buffer;
 }
 
 void Shell_sql::flush_input(const std::string &code) {
   auto session = get_session();
-  m_buffer->append(code);
+  *m_buffer = code;
   handle_input(session, true);
 }
 

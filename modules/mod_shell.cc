@@ -214,6 +214,7 @@ void Shell::init() {
       ->cli(false);
   if (mysqlshdk::utils::in_main_thread())
     expose("createContext", &Shell::create_context, "callbacks");
+  expose("autoCompleteSql", &Shell::auto_complete_sql, "statement", "options");
 }
 
 Shell::~Shell() {}
@@ -2158,4 +2159,102 @@ int Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
                           format.empty() ? "table" : format, false, false);
   return dumper.dump("row", false, false);
 }
+
+REGISTER_HELP_FUNCTION(autoCompleteSql, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_AUTOCOMPLETESQL, R"*(
+Auto-completes the given SQL statement.
+
+@param statement A SQL statement to be auto-completed.
+@param options A dictionary with the auto-completion options.
+
+@returns A dictionary describing the auto-completion candidates.
+
+<b>The following options are supported:</b>
+@li <b>serverVersion</b>: string (required) - Version of the server grammar,
+format "major.minor.patch".
+@li <b>sqlMode</b>: string (required) - SQL_MODE to use.
+@li <b>statementOffset</b>: unsigned int (default: the last offset) - zero-based
+offset position of the caret in <b>statement</b>.
+@li <b>uppercaseKeywords</b>: bool (default: true) - Whether keywords returned
+in the result should be upper case.
+@li <b>filtered</b>: bool (default: true) - Whether explicit candidate names
+returned in the result should be filtered using the prefix which is being
+auto-completed.
+
+<b>Return value</b>
+
+This function returns a dictionary describing candidates which can be used to
+auto-complete the given statement at the given caret position:
+@code
+{
+  "context": {
+    "prefix": string,
+    "qualifier": list of strings,
+    "references": list of dictionaries,
+    "labels": list of strings,
+  },
+  "keywords": list of strings,
+  "functions": list of strings,
+  "candidates": list of strings,
+}
+@endcode
+
+where:
+@li <b>context</b> - context of the auto-completion operation
+@li <b>prefix</b> - prefix (possibly empty) that is being auto-completed
+@li <b>qualifier</b> - optional, one or two unquoted identifiers which were
+typed so far
+@li <b>references</b> - optional, references detected in the statement
+@li <b>labels</b> - optional, labels in labelled blocks
+@li <b>keywords</b> - optional, candidate keywords
+@li <b>functions</b> - optional, candidate MySQL library (runtime) functions
+whose names are also keywords
+@li <b>candidates</b> - optional, candidate DB object types
+
+The <b>references</b> list contains dictionaries with the following keys:
+@li <b>schema</b> - optional, name of the schema
+@li <b>table</b> - name of the table referenced in the statement
+@li <b>alias</b> - optional, alias of the table
+
+The <b>candidates</b> list contains one or more of the following values:
+@li <b>"schemas"</b> - schemas
+@li <b>"tables"</b> - tables
+@li <b>"views"</b> - views
+@li <b>"columns"</b> - columns
+@li <b>"internalColumns"</b> - columns which refer to just the given table
+@li <b>"procedures"</b> - stored procedures
+@li <b>"functions"</b> - stored functions
+@li <b>"triggers"</b> - triggers
+@li <b>"events"</b> - events
+@li <b>"engines"</b> - MySQL storage engines
+@li <b>"udfs"</b> - user defined functions
+@li <b>"runtimeFunctions"</b> - MySQL library (runtime) functions
+@li <b>"logfileGroups"</b> - logfile groups
+@li <b>"userVars"</b> - user variables
+@li <b>"systemVars"</b> - system variables
+@li <b>"tablespaces"</b> - tablespaces
+@li <b>"users"</b> - user accounts
+@li <b>"charsets"</b> - character sets
+@li <b>"collations"</b> - collations
+@li <b>"plugins"</b> - plugins
+@li <b>"labels"</b> - labels in labelled blocks
+)*");
+
+/**
+ * $(SHELL_AUTOCOMPLETESQL_BRIEF)
+ *
+ * $(SHELL_AUTOCOMPLETESQL)
+ */
+#if DOXYGEN_JS
+Dictionary Shell::autoCompleteSql(String statement, Dictionary options) {}
+#elif DOXYGEN_PY
+dict Shell::auto_complete_sql(str statement, dict options) {}
+#endif
+shcore::Dictionary_t Shell::auto_complete_sql(
+    const std::string &statement,
+    const shcore::Option_pack_ref<mysqlshdk::Auto_complete_sql_options>
+        &options) const {
+  return mysqlshdk::auto_complete_sql(statement, *options);
+}
+
 }  // namespace mysqlsh

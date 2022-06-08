@@ -31,6 +31,7 @@ include_directories(BEFORE
     ${CMAKE_BINARY_DIR}/mysqlshdk/include)
 
 ADD_SUBDIRECTORY(libs/tinyxml2)
+ADD_SUBDIRECTORY(libs/parser)
 ADD_SUBDIRECTORY(libs/utils)
 ADD_SUBDIRECTORY(libs/db)
 ADD_SUBDIRECTORY(libs/mysql)
@@ -65,6 +66,7 @@ merge_convenience_libraries(mysqlshdk-static
     scripting
     shellcore
     storage
+    parser
     oci
     aws
     tinyxml2 SKIP_INSTALL)
@@ -83,4 +85,5 @@ target_link_libraries(mysqlshdk-static PUBLIC
           ${MYSQLX_LIBRARIES}
           ${PROTOBUF_LIBRARIES}
           ${LZ4_LIBRARY}
-          ${SSL_LIBRARIES})
+          ${SSL_LIBRARIES}
+          ${ANTLR4_LIBRARIES})

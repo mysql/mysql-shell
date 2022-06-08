@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,7 +117,6 @@ class Mysql_shell : public mysqlsh::Base_shell {
   virtual bool do_shell_command(const std::string &command);
 
   void refresh_completion(bool force = false);
-  void refresh_schema_completion(bool force = false);
   void add_devapi_completions();
 
   void print_connection_message(mysqlsh::SessionType type,

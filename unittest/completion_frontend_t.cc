@@ -27,9 +27,11 @@
 #include <utility>
 #include <vector>
 #include "mysqlsh/cmdline_shell.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
@@ -46,7 +48,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
                           linenoiseCompletions *completions) {
     size_t completion_offset = *start_index;
     std::vector<std::string> options(_interactive_shell->completer()->complete(
-        _interactive_shell->shell_context()->interactive_mode(), text,
+        _interactive_shell->shell_context()->interactive_mode(), {}, text,
         &completion_offset));
 
     std::sort(options.begin(), options.end(),
@@ -172,7 +174,9 @@ class Completer_frontend : public Shell_core_test_wrapper {
          "create schema if not exists zoo;", "drop schema if exists actest;",
          "create schema actest;", "use actest;",
          "create table productTable (id int, name varchar(20));",
-         "create table creature (a int);", "create table croissant (a int);"});
+         "create table creature (a int);", "create table croissant (a int);",
+         "create table tab_le(col_umn int);",
+         "create view vi_ew as select * from tab_le;"});
 
     // Explicit create collections for 5.7
     {
@@ -449,6 +453,21 @@ using strv = std::vector<std::string>;
               shcore::str_join(r.second, "\n"));             \
   } while (0)
 
+#define EXPECT_TAB_TAB_CONTAINS(text, expected_option)           \
+  do {                                                           \
+    auto r = complete(text);                                     \
+    SCOPED_TRACE(text);                                          \
+    EXPECT_THAT(r.second, ::testing::Contains(expected_option)); \
+  } while (0)
+
+#define EXPECT_TAB_TAB_NOT_CONTAINS(text, unexpected_option)             \
+  do {                                                                   \
+    auto r = complete(text);                                             \
+    SCOPED_TRACE(text);                                                  \
+    EXPECT_THAT(r.second,                                                \
+                ::testing::Not(::testing::Contains(unexpected_option))); \
+  } while (0)
+
 #define EXPECT_TAB_DOES_NOTHING(text)                            \
   do {                                                           \
     EXPECT_AFTER_TAB(shcore::str_replace(text, "\t", ""), text); \
@@ -534,8 +553,7 @@ TEST_F(Completer_frontend, sql_keywords) {
 
   EXPECT_AFTER_TAB("sel", "SELECT");
   EXPECT_AFTER_TAB("select * fr", "select * FROM");
-  EXPECT_AFTER_TAB_TAB("select * FROM",
-                       strv({"FROM", "FROM_DAYS", "FROM_UNIXTIME"}));
+  EXPECT_TAB_DOES_NOTHING("select * FROM");
 }
 
 TEST_F(Completer_frontend, sql_schema) {
@@ -563,11 +581,9 @@ TEST_F(Completer_frontend, sql_table) {
                        strv({"`zombie`", "`zoo`", "`zzz`"}));
 
   // identifier in `` should skip keywords
-  EXPECT_AFTER_TAB("cr", "cr");
-  EXPECT_AFTER_TAB_TAB("cr", strv({"CRC32", "CREATE", "creature", "croissant",
-                                   "CROSS", "CROSSES"}));
+  EXPECT_AFTER_TAB("cr", "CREATE");
   EXPECT_AFTER_TAB("`cr", "`cr");
-  EXPECT_AFTER_TAB_TAB("`cr", strv({"`creature`", "`croissant`"}));
+  EXPECT_TAB_DOES_NOTHING("`cr");
 }
 
 // try different orders of mode switching
@@ -672,6 +688,7 @@ TEST_F(Completer_frontend, js_shell) {
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.rec", "shell.reconnect()");
   EXPECT_AFTER_TAB_TAB("shell.", strv({"addExtensionObjectMember()",
+                                       "autoCompleteSql()",
                                        "connect()",
                                        "connectToPrimary()",
                                        "createContext()",
@@ -1192,6 +1209,7 @@ TEST_F(Completer_frontend, py_shell) {
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.rec", "shell.reconnect()");
   EXPECT_AFTER_TAB_TAB("shell.", strv({"add_extension_object_member()",
+                                       "auto_complete_sql()",
                                        "connect()",
                                        "connect_to_primary()",
                                        "create_context()",
@@ -1561,6 +1579,808 @@ TEST_F(Completer_frontend, py_classic) {
 
   // TS_FR5.2_C03
   CHECK_OBJECT_COMPLETIONS("mysql");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_1) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("SELECT 1 FROM du", "SELECT 1 FROM DUAL");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_2) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_TAB_DOES_NOTHING("DELIMITER //");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_1_1) {
+  connect_classic();
+  execute("\\sql");
+
+  // syntax available in 5.7, but not in 8.0
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    EXPECT_AFTER_TAB("SELECT pass", "SELECT PASSWORD()");
+    EXPECT_AFTER_TAB("FLUSH qu", "FLUSH QUERY CACHE");
+  } else {
+    EXPECT_TAB_DOES_NOTHING("SELECT pass");
+    EXPECT_TAB_DOES_NOTHING("FLUSH qu");
+  }
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_1_1_1) {
+#if defined(NDEBUG)
+  SKIP_TEST("This test requires a debug build.");
+#else
+  DBUG_SET("+d,sql_auto_completion_unsupported_version_lower");
+
+  const auto log_level = output_handler.get_log_level();
+  output_handler.set_log_level(shcore::Logger::LOG_LEVEL::LOG_WARNING);
+
+  connect_classic();
+  execute("\\sql");
+
+  // wrong version (lower), auto-completion falls-back to 5.7 server
+  EXPECT_AFTER_TAB("FLUSH qu", "FLUSH QUERY CACHE");
+  EXPECT_TAB_DOES_NOTHING("CREATE ro");
+
+  MY_EXPECT_LOG_CONTAINS(
+      "Connected to an unsupported server version 1.2.3, SQL auto-completion "
+      "is falling back to: 5.7.0");
+
+  output_handler.set_log_level(log_level);
+  DBUG_SET("");
+#endif
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_1_1_2) {
+#if defined(NDEBUG)
+  SKIP_TEST("This test requires a debug build.");
+#else
+  DBUG_SET("+d,sql_auto_completion_unsupported_version_higher");
+
+  const auto log_level = output_handler.get_log_level();
+  output_handler.set_log_level(shcore::Logger::LOG_LEVEL::LOG_WARNING);
+
+  connect_classic();
+  execute("\\sql");
+
+  // wrong version (higher), auto-completion falls-back to latest 8.0 server
+  EXPECT_TAB_DOES_NOTHING("FLUSH qu");
+  EXPECT_AFTER_TAB("CREATE ro", "CREATE ROLE");
+
+  MY_EXPECT_LOG_CONTAINS(
+      "Connected to an unsupported server version 10.9.8, SQL auto-completion "
+      "is falling back to: " MYSH_VERSION);
+
+  output_handler.set_log_level(log_level);
+  DBUG_SET("");
+#endif
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_1_2_1) {
+  execute("\\sql");
+
+  // no connection, auto-completion falls-back to latest 8.0 server
+  EXPECT_TAB_DOES_NOTHING("SELECT pass");
+  EXPECT_AFTER_TAB("CREATE ro", "CREATE ROLE");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_2_1) {
+  connect_classic();
+
+  execute("\\sql");
+
+  execute("SET @saved_sql_mode = @@global.sql_mode;");
+  execute("SET @@global.sql_mode = '';");
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+
+  execute("\\use mysql");
+
+  // ANSI_QUOTES is active, "mysql" should be treated as an identifier and
+  // plugin should be suggested
+  EXPECT_AFTER_TAB("SELECT \"mysql\".plu", "SELECT \"mysql\".plugin");
+
+  execute("SET @@global.sql_mode = @saved_sql_mode;");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_2_2) {
+  connect_classic();
+
+  execute("\\sql");
+
+  execute("SET @saved_sql_mode = @@global.sql_mode;");
+  execute("SET @@global.sql_mode = 'ANSI_QUOTES';");
+  execute("SET @@sql_mode = '';");
+
+  execute("\\use mysql");
+
+  // ANSI_QUOTES is not active, "mysql" should be treated as a string and
+  // nothing is suggested
+  EXPECT_TAB_DOES_NOTHING("SELECT \"mysql\".plu");
+
+  execute("SET @@global.sql_mode = @saved_sql_mode;");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_3_1) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_TAB_TAB_CONTAINS("SELECT ", "mysql");
+  EXPECT_TAB_TAB_CONTAINS("SELECT * FROM ", "mysql");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_3_2) {
+  connect_classic("mysql");
+  execute("\\sql");
+
+  EXPECT_TAB_TAB_CONTAINS("SELECT * FROM ", "plugin");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_3_3) {
+  connect_classic();
+  execute("\\sql");
+  execute("\\use information_schema");
+
+  EXPECT_TAB_TAB_NOT_CONTAINS("SELECT * FROM ", "plugin");
+  EXPECT_TAB_TAB_CONTAINS("SELECT * FROM ", "SCHEMATA");
+
+  execute("\\use mysql");
+
+  EXPECT_TAB_TAB_CONTAINS("SELECT * FROM ", "plugin");
+  EXPECT_TAB_TAB_NOT_CONTAINS("SELECT * FROM ", "SCHEMATA");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_3_1_1) {
+  connect_classic("mysql");
+  execute("\\sql");
+  execute("\\disconnect");
+
+  EXPECT_TAB_TAB_CONTAINS("SELECT * FROM ", "DUAL");
+  EXPECT_TAB_TAB_NOT_CONTAINS("SELECT * FROM ", "plugin");
+}
+
+TEST_F(Completer_frontend, WL13397_TSFR_1_4_1) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_TAB_TAB_CONTAINS("CREATE ", "TABLE");
+  EXPECT_TAB_TAB_CONTAINS("CREATE ", "DATABASE");
+  EXPECT_TAB_TAB_CONTAINS("CREATE ", "FUNCTION");
+}
+
+// tests for BUG#34371461 (quote_*)
+
+TEST_F(Completer_frontend, quote_schema) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("SELECT acte", "SELECT actest");
+  EXPECT_AFTER_TAB("SELECT `acte", "SELECT `actest`");
+  EXPECT_TAB_DOES_NOTHING("SELECT \"acte");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("SELECT acte", "SELECT actest");
+  EXPECT_AFTER_TAB("SELECT `acte", "SELECT `actest`");
+  EXPECT_AFTER_TAB("SELECT \"acte", "SELECT \"actest\"");
+}
+
+TEST_F(Completer_frontend, quote_table) {
+  connect_classic();
+  execute("\\sql");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("SELECT tab", "SELECT tab_le");
+  EXPECT_AFTER_TAB("SELECT `actest`.tab", "SELECT `actest`.tab_le");
+
+  EXPECT_AFTER_TAB("SELECT `tab", "SELECT `tab_le`");
+  EXPECT_AFTER_TAB("SELECT actest.`tab", "SELECT actest.`tab_le`");
+
+  EXPECT_TAB_DOES_NOTHING("SELECT \"tab");
+  EXPECT_TAB_DOES_NOTHING("SELECT actest.\"tab");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("SELECT tab", "SELECT tab_le");
+  EXPECT_AFTER_TAB("SELECT \"actest\".tab", "SELECT \"actest\".tab_le");
+
+  EXPECT_AFTER_TAB("SELECT `tab", "SELECT `tab_le`");
+  EXPECT_AFTER_TAB("SELECT actest.`tab", "SELECT actest.`tab_le`");
+
+  EXPECT_AFTER_TAB("SELECT \"tab", "SELECT \"tab_le\"");
+  EXPECT_AFTER_TAB("SELECT `actest`.\"tab", "SELECT `actest`.\"tab_le\"");
+}
+
+TEST_F(Completer_frontend, quote_view) {
+  connect_classic();
+  execute("\\sql");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("SELECT vi", "SELECT vi_ew");
+  EXPECT_AFTER_TAB("SELECT `actest`.vi", "SELECT `actest`.vi_ew");
+
+  EXPECT_AFTER_TAB("SELECT `vi", "SELECT `vi_ew`");
+  EXPECT_AFTER_TAB("SELECT actest.`vi", "SELECT actest.`vi_ew`");
+
+  EXPECT_TAB_DOES_NOTHING("SELECT \"vi");
+  EXPECT_TAB_DOES_NOTHING("SELECT actest.\"vi");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("SELECT vi", "SELECT vi_ew");
+  EXPECT_AFTER_TAB("SELECT \"actest\".vi", "SELECT \"actest\".vi_ew");
+
+  EXPECT_AFTER_TAB("SELECT `vi", "SELECT `vi_ew`");
+  EXPECT_AFTER_TAB("SELECT actest.`vi", "SELECT actest.`vi_ew`");
+
+  EXPECT_AFTER_TAB("SELECT \"vi", "SELECT \"vi_ew\"");
+  EXPECT_AFTER_TAB("SELECT `actest`.\"vi", "SELECT `actest`.\"vi_ew\"");
+}
+
+TEST_F(Completer_frontend, quote_column) {
+  connect_classic();
+  execute("\\sql");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("SELECT tab_le.col", "SELECT tab_le.col_umn");
+  EXPECT_AFTER_TAB("SELECT `actest`.tab_le.col",
+                   "SELECT `actest`.tab_le.col_umn");
+
+  EXPECT_AFTER_TAB("SELECT `tab_le`.`col", "SELECT `tab_le`.`col_umn`");
+  EXPECT_AFTER_TAB("SELECT actest.`tab_le`.`col",
+                   "SELECT actest.`tab_le`.`col_umn`");
+
+  EXPECT_TAB_DOES_NOTHING("SELECT tab_le.\"col");
+  EXPECT_TAB_DOES_NOTHING("SELECT actest.tab_le.\"col");
+
+  EXPECT_AFTER_TAB("SELECT vi_ew.col", "SELECT vi_ew.col_umn");
+  EXPECT_AFTER_TAB("SELECT `actest`.vi_ew.col",
+                   "SELECT `actest`.vi_ew.col_umn");
+
+  EXPECT_AFTER_TAB("SELECT `vi_ew`.`col", "SELECT `vi_ew`.`col_umn`");
+  EXPECT_AFTER_TAB("SELECT actest.`vi_ew`.`col",
+                   "SELECT actest.`vi_ew`.`col_umn`");
+
+  EXPECT_TAB_DOES_NOTHING("SELECT vi_ew.\"col");
+  EXPECT_TAB_DOES_NOTHING("SELECT actest.vi_ew.\"col");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("SELECT tab_le.col", "SELECT tab_le.col_umn");
+  EXPECT_AFTER_TAB("SELECT \"actest\".tab_le.col",
+                   "SELECT \"actest\".tab_le.col_umn");
+
+  EXPECT_AFTER_TAB("SELECT `tab_le`.`col", "SELECT `tab_le`.`col_umn`");
+  EXPECT_AFTER_TAB("SELECT actest.`tab_le`.`col",
+                   "SELECT actest.`tab_le`.`col_umn`");
+
+  EXPECT_AFTER_TAB("SELECT \"tab_le\".\"col", "SELECT \"tab_le\".\"col_umn\"");
+  EXPECT_AFTER_TAB("SELECT `actest`.\"tab_le\".\"col",
+                   "SELECT `actest`.\"tab_le\".\"col_umn\"");
+
+  EXPECT_AFTER_TAB("SELECT vi_ew.col", "SELECT vi_ew.col_umn");
+  EXPECT_AFTER_TAB("SELECT \"actest\".vi_ew.col",
+                   "SELECT \"actest\".vi_ew.col_umn");
+
+  EXPECT_AFTER_TAB("SELECT `vi_ew`.`col", "SELECT `vi_ew`.`col_umn`");
+  EXPECT_AFTER_TAB("SELECT actest.`vi_ew`.`col",
+                   "SELECT actest.`vi_ew`.`col_umn`");
+
+  EXPECT_AFTER_TAB("SELECT \"vi_ew\".\"col", "SELECT \"vi_ew\".\"col_umn\"");
+  EXPECT_AFTER_TAB("SELECT `actest`.\"vi_ew\".\"col",
+                   "SELECT `actest`.\"vi_ew\".\"col_umn\"");
+}
+
+TEST_F(Completer_frontend, quote_internal_column) {
+  connect_classic();
+  execute("\\sql");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("ALTER TABLE tab_le ALTER COLUMN col",
+                   "ALTER TABLE tab_le ALTER COLUMN col_umn");
+  EXPECT_AFTER_TAB("ALTER TABLE actest.tab_le ALTER COLUMN `col",
+                   "ALTER TABLE actest.tab_le ALTER COLUMN `col_umn`");
+  EXPECT_TAB_DOES_NOTHING("ALTER TABLE tab_le ALTER COLUMN \"col");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("ALTER TABLE actest.tab_le ALTER COLUMN col",
+                   "ALTER TABLE actest.tab_le ALTER COLUMN col_umn");
+  EXPECT_AFTER_TAB("ALTER TABLE tab_le ALTER COLUMN `col",
+                   "ALTER TABLE tab_le ALTER COLUMN `col_umn`");
+  EXPECT_AFTER_TAB("ALTER TABLE actest.tab_le ALTER COLUMN \"col",
+                   "ALTER TABLE actest.tab_le ALTER COLUMN \"col_umn\"");
+}
+
+TEST_F(Completer_frontend, quote_procedure) {
+  connect_classic();
+  execute("\\sql");
+  execute("CREATE PROCEDURE actest.pro_cedure() BEGIN END;");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("CALL pro", "CALL pro_cedure()");
+  EXPECT_AFTER_TAB("CALL `actest`.pro", "CALL `actest`.pro_cedure()");
+
+  EXPECT_AFTER_TAB("CALL `pro", "CALL `pro_cedure`()");
+  EXPECT_AFTER_TAB("CALL actest.`pro", "CALL actest.`pro_cedure`()");
+
+  EXPECT_TAB_DOES_NOTHING("CALL \"pro");
+  EXPECT_TAB_DOES_NOTHING("CALL actest.\"pro");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("CALL pro", "CALL pro_cedure()");
+  EXPECT_AFTER_TAB("CALL \"actest\".pro", "CALL \"actest\".pro_cedure()");
+
+  EXPECT_AFTER_TAB("CALL `pro", "CALL `pro_cedure`()");
+  EXPECT_AFTER_TAB("CALL actest.`pro", "CALL actest.`pro_cedure`()");
+
+  EXPECT_AFTER_TAB("CALL \"pro", "CALL \"pro_cedure\"()");
+  EXPECT_AFTER_TAB("CALL `actest`.\"pro", "CALL `actest`.\"pro_cedure\"()");
+}
+
+TEST_F(Completer_frontend, quote_function) {
+  // BUG#34342966
+  connect_classic();
+  execute("\\sql");
+  execute(
+      "CREATE FUNCTION actest.fun_ction() RETURNS int DETERMINISTIC return 7;");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("SELECT fun", "SELECT fun_ction()");
+  EXPECT_AFTER_TAB("SELECT `actest`.fun", "SELECT `actest`.fun_ction()");
+
+  EXPECT_AFTER_TAB("SELECT `fun", "SELECT `fun_ction`()");
+  EXPECT_AFTER_TAB("SELECT actest.`fun", "SELECT actest.`fun_ction`()");
+
+  EXPECT_TAB_DOES_NOTHING("SELECT \"fun");
+  EXPECT_TAB_DOES_NOTHING("SELECT actest.\"fun");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("SELECT fun", "SELECT fun_ction()");
+  EXPECT_AFTER_TAB("SELECT \"actest\".fun", "SELECT \"actest\".fun_ction()");
+
+  EXPECT_AFTER_TAB("SELECT `fun", "SELECT `fun_ction`()");
+  EXPECT_AFTER_TAB("SELECT actest.`fun", "SELECT actest.`fun_ction`()");
+
+  EXPECT_AFTER_TAB("SELECT \"fun", "SELECT \"fun_ction\"()");
+  EXPECT_AFTER_TAB("SELECT `actest`.\"fun", "SELECT `actest`.\"fun_ction\"()");
+}
+
+TEST_F(Completer_frontend, quote_trigger) {
+  connect_classic();
+  execute("\\sql");
+  execute(
+      "CREATE TRIGGER actest.trig_ger BEFORE INSERT ON tab_le FOR EACH ROW "
+      "BEGIN END;");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("DROP TRIGGER trig", "DROP TRIGGER trig_ger");
+  EXPECT_AFTER_TAB("DROP TRIGGER `actest`.trig",
+                   "DROP TRIGGER `actest`.trig_ger");
+
+  EXPECT_AFTER_TAB("DROP TRIGGER `trig", "DROP TRIGGER `trig_ger`");
+  EXPECT_AFTER_TAB("DROP TRIGGER actest.`trig",
+                   "DROP TRIGGER actest.`trig_ger`");
+
+  EXPECT_TAB_DOES_NOTHING("DROP TRIGGER \"trig");
+  EXPECT_TAB_DOES_NOTHING("DROP TRIGGER actest.\"trig");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("DROP TRIGGER trig", "DROP TRIGGER trig_ger");
+  EXPECT_AFTER_TAB("DROP TRIGGER \"actest\".trig",
+                   "DROP TRIGGER \"actest\".trig_ger");
+
+  EXPECT_AFTER_TAB("DROP TRIGGER `trig", "DROP TRIGGER `trig_ger`");
+  EXPECT_AFTER_TAB("DROP TRIGGER actest.`trig",
+                   "DROP TRIGGER actest.`trig_ger`");
+
+  EXPECT_AFTER_TAB("DROP TRIGGER \"trig", "DROP TRIGGER \"trig_ger\"");
+  EXPECT_AFTER_TAB("DROP TRIGGER `actest`.\"trig",
+                   "DROP TRIGGER `actest`.\"trig_ger\"");
+}
+
+TEST_F(Completer_frontend, quote_event) {
+  connect_classic();
+  execute("\\sql");
+  execute("CREATE EVENT actest.ev_ent ON SCHEDULE EVERY 1 YEAR DO BEGIN END;");
+  execute("\\use actest");
+
+  EXPECT_AFTER_TAB("DROP EVENT ev", "DROP EVENT ev_ent");
+  EXPECT_AFTER_TAB("DROP EVENT `actest`.ev", "DROP EVENT `actest`.ev_ent");
+
+  EXPECT_AFTER_TAB("DROP EVENT `ev", "DROP EVENT `ev_ent`");
+  EXPECT_AFTER_TAB("DROP EVENT actest.`ev", "DROP EVENT actest.`ev_ent`");
+
+  EXPECT_TAB_DOES_NOTHING("DROP EVENT \"ev");
+  EXPECT_TAB_DOES_NOTHING("DROP EVENT actest.\"ev");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("DROP EVENT ev", "DROP EVENT ev_ent");
+  EXPECT_AFTER_TAB("DROP EVENT \"actest\".ev", "DROP EVENT \"actest\".ev_ent");
+
+  EXPECT_AFTER_TAB("DROP EVENT `ev", "DROP EVENT `ev_ent`");
+  EXPECT_AFTER_TAB("DROP EVENT actest.`ev", "DROP EVENT actest.`ev_ent`");
+
+  EXPECT_AFTER_TAB("DROP EVENT \"ev", "DROP EVENT \"ev_ent\"");
+  EXPECT_AFTER_TAB("DROP EVENT `actest`.\"ev",
+                   "DROP EVENT `actest`.\"ev_ent\"");
+}
+
+TEST_F(Completer_frontend, quote_engine) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("CREATE TABLE t(id INT) ENGINE=Inno",
+                   "CREATE TABLE t(id INT) ENGINE=InnoDB");
+  EXPECT_AFTER_TAB("CREATE TABLE t(id INT) ENGINE=`Inno",
+                   "CREATE TABLE t(id INT) ENGINE=`InnoDB`");
+  EXPECT_TAB_DOES_NOTHING("CREATE TABLE t(id INT) ENGINE=\"Inno");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("CREATE TABLE t(id INT) ENGINE=Inno",
+                   "CREATE TABLE t(id INT) ENGINE=InnoDB");
+  EXPECT_AFTER_TAB("CREATE TABLE t(id INT) ENGINE=`Inno",
+                   "CREATE TABLE t(id INT) ENGINE=`InnoDB`");
+  EXPECT_AFTER_TAB("CREATE TABLE t(id INT) ENGINE=\"Inno",
+                   "CREATE TABLE t(id INT) ENGINE=\"InnoDB\"");
+}
+
+TEST_F(Completer_frontend, quote_udf) {
+  if (this->_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    SKIP_TEST("This test requires 8.0+ server");
+  }
+
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("SELECT mysqlx_e", "SELECT mysqlx_error()");
+  EXPECT_AFTER_TAB("SELECT `mysqlx_e", "SELECT `mysqlx_error`()");
+  EXPECT_TAB_DOES_NOTHING("SELECT \"mysqlx_e");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("SELECT mysqlx_e", "SELECT mysqlx_error()");
+  EXPECT_AFTER_TAB("SELECT `mysqlx_e", "SELECT `mysqlx_error`()");
+  EXPECT_AFTER_TAB("SELECT \"mysqlx_e", "SELECT \"mysqlx_error\"()");
+}
+
+TEST_F(Completer_frontend, quote_runtime_function) {
+  connect_classic();
+  execute("\\sql");
+
+  for (const std::string sql_mode : {"", "ANSI_QUOTES"}) {
+    execute("SET @@sql_mode = '" + sql_mode + "';");
+    execute("\\rehash");
+
+    EXPECT_AFTER_TAB("SELECT current_u", "SELECT CURRENT_USER()");
+    EXPECT_TAB_DOES_NOTHING("SELECT `current_u");
+    EXPECT_TAB_DOES_NOTHING("SELECT \"current_u");
+  }
+}
+
+TEST_F(Completer_frontend, logfile_group) {
+#if defined(NDEBUG)
+  SKIP_TEST("This test requires a debug build.");
+#else
+  DBUG_SET("+d,sql_auto_completion_logfile_group");
+
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("DROP LOGFILE GROUP log_",
+                   "DROP LOGFILE GROUP log_file_group");
+  EXPECT_AFTER_TAB("DROP LOGFILE GROUP `log_",
+                   "DROP LOGFILE GROUP `log_file_group`");
+  EXPECT_TAB_DOES_NOTHING("DROP LOGFILE GROUP \"log_");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("DROP LOGFILE GROUP log_",
+                   "DROP LOGFILE GROUP log_file_group");
+  EXPECT_AFTER_TAB("DROP LOGFILE GROUP `log_",
+                   "DROP LOGFILE GROUP `log_file_group`");
+  EXPECT_AFTER_TAB("DROP LOGFILE GROUP \"log_",
+                   "DROP LOGFILE GROUP \"log_file_group\"");
+
+  DBUG_SET("");
+#endif
+}
+
+TEST_F(Completer_frontend, quote_user_var) {
+  connect_classic();
+  execute("\\sql");
+  execute("set @ab_cd = 1234;");
+  execute("\\rehash");
+
+  for (const std::string sql_mode : {"", "ANSI_QUOTES"}) {
+    execute("SET @@sql_mode = '" + sql_mode + "';");
+    execute("\\rehash");
+
+    EXPECT_AFTER_TAB("SELECT @ab", "SELECT @ab_cd");
+    EXPECT_AFTER_TAB("SELECT @'ab", "SELECT @'ab_cd'");
+    EXPECT_AFTER_TAB("SELECT @\"ab", "SELECT @\"ab_cd\"");
+    EXPECT_AFTER_TAB("SELECT @`ab", "SELECT @`ab_cd`");
+
+    EXPECT_AFTER_TAB("SET @ab", "SET @ab_cd");
+    EXPECT_AFTER_TAB("SET @'ab", "SET @'ab_cd'");
+    EXPECT_AFTER_TAB("SET @\"ab", "SET @\"ab_cd\"");
+    EXPECT_AFTER_TAB("SET @`ab", "SET @`ab_cd`");
+  }
+}
+
+TEST_F(Completer_frontend, quote_sys_var) {
+  // BUG#34343266
+  connect_classic();
+  execute("\\sql");
+
+  for (const std::string sql_mode : {"", "ANSI_QUOTES"}) {
+    execute("SET @@sql_mode = '" + sql_mode + "';");
+    execute("\\rehash");
+
+    EXPECT_AFTER_TAB("SELECT @@sql_log_b", "SELECT @@sql_log_bin");
+    EXPECT_AFTER_TAB("SELECT @@`sql_log_b", "SELECT @@`sql_log_bin`");
+    EXPECT_TAB_DOES_NOTHING("SELECT @@'sql_log_b");
+    EXPECT_TAB_DOES_NOTHING("SELECT @@\"sql_log_b");
+
+    EXPECT_AFTER_TAB("SELECT @@session.sql_log_b",
+                     "SELECT @@session.sql_log_bin");
+    EXPECT_AFTER_TAB("SELECT @@session.`sql_log_b",
+                     "SELECT @@session.`sql_log_bin`");
+    EXPECT_TAB_DOES_NOTHING("SELECT @@session.'sql_log_b");
+    EXPECT_TAB_DOES_NOTHING("SELECT @@session.\"sql_log_b");
+
+    EXPECT_AFTER_TAB("SET sql_log_b", "SET sql_log_bin");
+    EXPECT_AFTER_TAB("SET `sql_log_b", "SET `sql_log_bin`");
+    EXPECT_TAB_DOES_NOTHING("SET 'sql_log_b");
+    EXPECT_TAB_DOES_NOTHING("SET \"sql_log_b");
+
+    EXPECT_AFTER_TAB("SET PERSIST sql_log_b", "SET PERSIST sql_log_bin");
+    EXPECT_AFTER_TAB("SET PERSIST `sql_log_b", "SET PERSIST `sql_log_bin`");
+    EXPECT_TAB_DOES_NOTHING("SET PERSIST 'sql_log_b");
+    EXPECT_TAB_DOES_NOTHING("SET PERSIST \"sql_log_b");
+
+    EXPECT_AFTER_TAB("SET @@sql_log_b", "SET @@sql_log_bin");
+    EXPECT_AFTER_TAB("SET @@`sql_log_b", "SET @@`sql_log_bin`");
+    EXPECT_TAB_DOES_NOTHING("SET @@'sql_log_b");
+    EXPECT_TAB_DOES_NOTHING("SET @@\"sql_log_b");
+
+    EXPECT_AFTER_TAB("SET @@session.sql_log_b", "SET @@session.sql_log_bin");
+    EXPECT_AFTER_TAB("SET @@session.`sql_log_b", "SET @@session.`sql_log_bin`");
+    EXPECT_TAB_DOES_NOTHING("SET @@session.'sql_log_b");
+    EXPECT_TAB_DOES_NOTHING("SET @@session.\"sql_log_b");
+  }
+}
+
+TEST_F(Completer_frontend, quote_tablespace) {
+  connect_classic();
+  execute("\\sql");
+  execute("CREATE TABLESPACE table_space ADD DATAFILE 'table_space.ibd';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("DROP TABLESPACE table_", "DROP TABLESPACE table_space");
+  EXPECT_AFTER_TAB("DROP TABLESPACE `table_", "DROP TABLESPACE `table_space`");
+  EXPECT_TAB_DOES_NOTHING("DROP TABLESPACE \"table_");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("DROP TABLESPACE table_", "DROP TABLESPACE table_space");
+  EXPECT_AFTER_TAB("DROP TABLESPACE `table_", "DROP TABLESPACE `table_space`");
+  EXPECT_AFTER_TAB("DROP TABLESPACE \"table_",
+                   "DROP TABLESPACE \"table_space\"");
+
+  execute("DROP TABLESPACE table_space;");
+}
+
+TEST_F(Completer_frontend, quote_user) {
+  // BUG#34360367
+  connect_classic();
+  execute("\\sql");
+
+  execute("CREATE USER us_er@ho_st.com;");
+
+  for (const std::string sql_mode : {"", "ANSI_QUOTES"}) {
+    execute("SET @@sql_mode = '" + sql_mode + "';");
+    execute("\\rehash");
+
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER ", "'us_er'@'ho_st.com'");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER u", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_e", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@h", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@ho", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@ho_", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@ho_s", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@ho_st", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@ho_st.c", "us_er@ho_st.com");
+    EXPECT_TAB_TAB_CONTAINS("ALTER USER us_er@ho_st.co", "us_er@ho_st.com");
+
+    EXPECT_AFTER_TAB("ALTER USER us_", "ALTER USER us_er@ho_st.com");
+    EXPECT_AFTER_TAB("ALTER USER `us_", "ALTER USER `us_er`@`ho_st.com`");
+    EXPECT_AFTER_TAB("ALTER USER 'us_", "ALTER USER 'us_er'@'ho_st.com'");
+    EXPECT_AFTER_TAB("ALTER USER \"us_", "ALTER USER \"us_er\"@\"ho_st.com\"");
+
+    EXPECT_AFTER_TAB("ALTER USER us_er@ho_", "ALTER USER us_er@ho_st.com");
+    EXPECT_AFTER_TAB("ALTER USER `us_er`@'ho_",
+                     "ALTER USER `us_er`@'ho_st.com'");
+    EXPECT_AFTER_TAB("ALTER USER us_er@`ho_", "ALTER USER us_er@`ho_st.com`");
+    EXPECT_AFTER_TAB("ALTER USER \"us_er\"@\"ho_",
+                     "ALTER USER \"us_er\"@\"ho_st.com\"");
+  }
+
+  execute("DROP USER us_er@ho_st.com;");
+}
+
+TEST_F(Completer_frontend, quote_charset) {
+  connect_classic();
+  execute("\\sql");
+
+  for (const std::string sql_mode : {"", "ANSI_QUOTES"}) {
+    execute("SET @@sql_mode = '" + sql_mode + "';");
+    execute("\\rehash");
+
+    EXPECT_AFTER_TAB("LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET asc",
+                     "LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET ascii");
+    EXPECT_AFTER_TAB("LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET 'asc",
+                     "LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET 'ascii'");
+    EXPECT_AFTER_TAB(
+        "LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET \"asc",
+        "LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET \"ascii\"");
+    EXPECT_AFTER_TAB("LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET `asc",
+                     "LOAD DATA INFILE 'f' INTO TABLE t CHARACTER SET `ascii`");
+  }
+}
+
+TEST_F(Completer_frontend, quote_collation) {
+  connect_classic();
+  execute("\\sql");
+
+  for (const std::string sql_mode : {"", "ANSI_QUOTES"}) {
+    execute("SET @@sql_mode = '" + sql_mode + "';");
+    execute("\\rehash");
+
+    EXPECT_AFTER_TAB("CREATE TABLE t(c CHAR(32) COLLATE ascii_b",
+                     "CREATE TABLE t(c CHAR(32) COLLATE ascii_bin");
+    EXPECT_AFTER_TAB("CREATE TABLE t(c CHAR(32) COLLATE 'ascii_b",
+                     "CREATE TABLE t(c CHAR(32) COLLATE 'ascii_bin'");
+    EXPECT_AFTER_TAB("CREATE TABLE t(c CHAR(32) COLLATE \"ascii_b",
+                     "CREATE TABLE t(c CHAR(32) COLLATE \"ascii_bin\"");
+    EXPECT_AFTER_TAB("CREATE TABLE t(c CHAR(32) COLLATE `ascii_b",
+                     "CREATE TABLE t(c CHAR(32) COLLATE `ascii_bin`");
+  }
+}
+
+TEST_F(Completer_frontend, quote_plugin) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN mysql_n",
+                   "UNINSTALL PLUGIN mysql_native_password");
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN `mysql_n",
+                   "UNINSTALL PLUGIN `mysql_native_password`");
+  EXPECT_TAB_DOES_NOTHING("UNINSTALL PLUGIN \"mysql_n");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN mysql_n",
+                   "UNINSTALL PLUGIN mysql_native_password");
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN `mysql_n",
+                   "UNINSTALL PLUGIN `mysql_native_password`");
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN \"mysql_n",
+                   "UNINSTALL PLUGIN \"mysql_native_password\"");
+}
+
+TEST_F(Completer_frontend, quote_labels) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB(
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE lab",
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE label1");
+  EXPECT_AFTER_TAB(
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE `lab",
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE `label1`");
+  EXPECT_TAB_DOES_NOTHING(
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE \"lab");
+
+  execute("SET @@sql_mode = 'ANSI_QUOTES';");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB(
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE lab",
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE label1");
+  EXPECT_AFTER_TAB(
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE `lab",
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE `label1`");
+  EXPECT_AFTER_TAB(
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE \"lab",
+      "CREATE PROCEDURE p(i INT) BEGIN label1: LOOP SET i = i + 1; IF i < 10 "
+      "THEN ITERATE \"label1\"");
+}
+
+TEST_F(Completer_frontend, bug_34372040) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("SHOW SL", "SHOW SLAVE");
+  EXPECT_AFTER_TAB_TAB("SHOW SLAVE ", strv({"HOSTS", "STATUS"}));
+
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 0)) {
+    EXPECT_AFTER_TAB_TAB("SHOW REPLICA", strv({"REPLICA", "REPLICAS"}));
+    EXPECT_AFTER_TAB("SHOW REPLICA ", "SHOW REPLICA STATUS");
+    EXPECT_TAB_DOES_NOTHING("SHOW REPLICAS ");
+    EXPECT_TAB_DOES_NOTHING("SHOW REPLICA H");
+  }
+}
+
+TEST_F(Completer_frontend, bug_34370621) {
+  if (this->_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    SKIP_TEST("This test requires 8.0+ server");
+  }
+
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB("RESET PERSIST sql_log_b", "RESET PERSIST sql_log_bin");
+  EXPECT_AFTER_TAB("RESET PERSIST IF EXISTS sql_log_b",
+                   "RESET PERSIST IF EXISTS sql_log_bin");
+}
+
+TEST_F(Completer_frontend, bug_34343279) {
+  if (this->_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    SKIP_TEST("This test requires 8.0+ server");
+  }
+
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB_TAB("ALTER INSTANCE ",
+                       strv({"DISABLE", "ENABLE", "RELOAD", "ROTATE"}));
+  EXPECT_AFTER_TAB_TAB("ALTER INSTANCE RELOAD ", strv({"KEYRING", "TLS"}));
+}
+
+TEST_F(Completer_frontend, bug_34353732) {
+  connect_classic();
+  execute("\\sql");
+
+  EXPECT_AFTER_TAB_TAB("SELECT JSON_ARRAY",
+                       strv({"JSON_ARRAY()", "JSON_ARRAY_APPEND()",
+                             "JSON_ARRAY_INSERT()", "JSON_ARRAYAGG()"}));
+  EXPECT_AFTER_TAB_TAB("SELECT JSON_ARRAY_",
+                       strv({"JSON_ARRAY_APPEND()", "JSON_ARRAY_INSERT()"}));
 }
 
 }  // namespace mysqlsh

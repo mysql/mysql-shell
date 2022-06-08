@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,11 +28,9 @@
 namespace mysqlshdk {
 namespace utils {
 
-Version::Version() : _major(0) {}
-
 // Minimal implementation of version parsing, no need for something more complex
 // for now
-Version::Version(const std::string &version) : _major(0) {
+Version::Version(const std::string &version) {
   auto tokens = shcore::str_split(version, "-", 1);
   if (tokens.size() == 1 && version.size() == 5) {
     // check if format is digits only:
@@ -118,6 +116,10 @@ std::string Version::get_full() const {
   if (_extra) ret_val.append("-" + *_extra);
 
   return ret_val;
+}
+
+uint32_t Version::numeric() const {
+  return get_major() * 10000 + get_minor() * 100 + get_patch();
 }
 
 bool Version::operator<(const Version &other) const {

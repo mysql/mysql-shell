@@ -307,8 +307,8 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   }
   void reset_replayable_shell(const char *sub_test_name = nullptr);
 
-  void connect_classic();
-  void connect_x();
+  void connect_classic(const std::string &schema = {});
+  void connect_x(const std::string &schema = {});
 
   Shell_test_output_handler output_handler;
   std::shared_ptr<mysqlsh::Command_line_shell> _interactive_shell;

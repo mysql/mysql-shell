@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,7 +77,7 @@ class Provider_script : public Provider {
  public:
   explicit Provider_script(std::shared_ptr<Object_registry> registry);
 
-  Completion_list complete(const std::string &text,
+  Completion_list complete(const std::string &buffer, const std::string &line,
                            size_t *compl_offset) override;
 
   std::shared_ptr<Object_registry> object_registry() const { return registry_; }

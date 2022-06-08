@@ -25,6 +25,16 @@ shell.help("addExtensionObjectMember")
 //@ Help on shell.addExtensionObjectMember, \? [USE:Help on addExtensionObjectMember]
 \? shell.addExtensionObjectMember
 
+//@ Help on autoCompleteSql
+// WL13397-TSFR_2_1
+shell.help("autoCompleteSql")
+
+//@ Help on autoCompleteSql, \? [USE:Help on autoCompleteSql]
+\? autoCompleteSql
+
+//@ Help on shell.autoCompleteSql, \? [USE:Help on autoCompleteSql]
+\? shell.autoCompleteSql
+
 //@ Help on Connect
 shell.help("connect")
 

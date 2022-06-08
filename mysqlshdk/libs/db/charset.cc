@@ -334,6 +334,19 @@ uint32_t collation_id_from_collation_name(std::string_view collation_name) {
   return 0;
 }
 
+std::unordered_set<std::string_view> charset_names() {
+  std::unordered_set<std::string_view> names;
+
+  for (const auto &charset : k_charsets_info) {
+    names.emplace(charset.name);
+  }
+
+  // utf8 is an alias for a deprecated character set utf8mb3
+  names.emplace("utf8mb3");
+
+  return names;
+}
+
 }  // namespace charset
 }  // namespace db
 }  // namespace mysqlshdk

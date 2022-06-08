@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -139,6 +139,10 @@ TEST(Version, version_parsing) {
   ASSERT_ANY_THROW(mysqlshdk::utils::Version("5..2-uno-dos"));
   ASSERT_ANY_THROW(mysqlshdk::utils::Version("5.2.-uno-dos"));
   ASSERT_ANY_THROW(mysqlshdk::utils::Version("5.2.A-uno-dos"));
+
+  EXPECT_EQ(80000, Version("8.0.0").numeric());
+  EXPECT_EQ(10203, Version("1.2.3").numeric());
+  EXPECT_EQ(12345, Version("1.23.45").numeric());
 }
 
 }  // namespace tests

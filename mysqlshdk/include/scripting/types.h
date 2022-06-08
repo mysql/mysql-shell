@@ -422,6 +422,15 @@ inline Array_t make_array(Arg &&... args) {
   return array;
 }
 
+template <template <typename...> class C, typename T>
+inline Array_t make_array(const C<T> &container) {
+  auto array = make_array();
+  for (const auto &item : container) {
+    array->emplace_back(item);
+  }
+  return array;
+}
+
 class SHCORE_PUBLIC Exception : public shcore::Error {
   std::shared_ptr<Value::Map_type> _error;
 

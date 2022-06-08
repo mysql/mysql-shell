@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,13 +34,14 @@
 namespace shcore {
 namespace completer {
 Completion_list Completer::complete(IShell_core::Mode mode,
-                                    const std::string &text,
+                                    const std::string &buffer,
+                                    const std::string &line,
                                     size_t *compl_offset) {
   Completion_list list;
   for (auto &iter : providers_) {
     if (iter.first.is_set(mode)) {
       size_t old_compl_offs = *compl_offset;
-      auto tmp = iter.second->complete(text, compl_offset);
+      auto tmp = iter.second->complete(buffer, line, compl_offset);
       if (tmp.empty()) {
         *compl_offset = old_compl_offs;
       } else {

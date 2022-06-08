@@ -43,14 +43,14 @@ void clear_buffer(char *buffer, size_t size);
 void clear_buffer(std::string *buffer);
 
 /** Convert a copy of an ASCII string to uppercase and return */
-inline std::string str_upper(const std::string_view s) {
+inline std::string str_upper(std::string_view s) {
   std::string r(s);
   std::transform(r.begin(), r.end(), r.begin(), ::toupper);
   return r;
 }
 
 /** Convert a copy of an ASCII string to lowercase and return */
-inline std::string str_lower(const std::string_view s) {
+inline std::string str_lower(std::string_view s) {
   std::string r(s);
   std::transform(r.begin(), r.end(), r.begin(), ::tolower);
   return r;
@@ -65,6 +65,14 @@ inline int str_casecmp(const char *a, const char *b) {
 #endif
 }
 
+inline int str_casecmp(const char *a, const char *b, size_t n) {
+#ifdef _WIN32
+  return ::_strnicmp(a, b, n);
+#else
+  return ::strncasecmp(a, b, n);
+#endif
+}
+
 inline int str_casecmp(const std::string &a, const std::string &b) {
   return str_casecmp(a.c_str(), b.c_str());
 }
@@ -76,20 +84,12 @@ struct Case_insensitive_comparator {
 };
 
 inline bool str_caseeq(const char *a, const char *b, size_t n) {
-#ifdef _WIN32
-  return ::_strnicmp(a, b, n) == 0;
-#else
-  return ::strncasecmp(a, b, n) == 0;
-#endif
+  return str_casecmp(a, b, n) == 0;
 }
 
 inline bool str_caseeq(std::string_view a, std::string_view b) {
   if (a.size() != b.size()) return false;
-#ifdef _WIN32
-  return ::_strnicmp(a.data(), b.data(), a.size()) == 0;
-#else
-  return ::strncasecmp(a.data(), b.data(), a.size()) == 0;
-#endif
+  return str_caseeq(a.data(), b.data(), a.size());
 }
 
 template <typename T, typename... Args>

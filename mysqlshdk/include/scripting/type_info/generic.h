@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,24 +41,6 @@ struct Type_info<void> {
 };
 
 template <>
-struct Type_info<int64_t> {
-  static int64_t to_native(const shcore::Value &in) { return in.as_int(); }
-  static Value_type vtype() { return shcore::Integer; }
-  static const char *code() { return "i"; }
-  static int64_t default_value() { return 0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
-struct Type_info<uint64_t> {
-  static uint64_t to_native(const shcore::Value &in) { return in.as_uint(); }
-  static Value_type vtype() { return shcore::UInteger; }
-  static const char *code() { return "u"; }
-  static uint64_t default_value() { return 0; }
-  static std::string desc() { return type_description(vtype()); }
-};
-
-template <>
 struct Type_info<int> {
   static int to_native(const shcore::Value &in) {
     return static_cast<int>(in.as_int());
@@ -77,6 +59,50 @@ struct Type_info<unsigned int> {
   static Value_type vtype() { return shcore::UInteger; }
   static const char *code() { return "u"; }
   static unsigned int default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
+};
+
+template <>
+struct Type_info<long int> {
+  static long int to_native(const shcore::Value &in) {
+    return static_cast<long int>(in.as_int());
+  }
+  static Value_type vtype() { return shcore::Integer; }
+  static const char *code() { return "i"; }
+  static long int default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
+};
+
+template <>
+struct Type_info<unsigned long int> {
+  static unsigned long int to_native(const shcore::Value &in) {
+    return static_cast<unsigned long int>(in.as_uint());
+  }
+  static Value_type vtype() { return shcore::UInteger; }
+  static const char *code() { return "u"; }
+  static unsigned long int default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
+};
+
+template <>
+struct Type_info<long long int> {
+  static long long int to_native(const shcore::Value &in) {
+    return static_cast<long long int>(in.as_int());
+  }
+  static Value_type vtype() { return shcore::Integer; }
+  static const char *code() { return "i"; }
+  static long long int default_value() { return 0; }
+  static std::string desc() { return type_description(vtype()); }
+};
+
+template <>
+struct Type_info<unsigned long long int> {
+  static unsigned long long int to_native(const shcore::Value &in) {
+    return static_cast<unsigned long long int>(in.as_uint());
+  }
+  static Value_type vtype() { return shcore::UInteger; }
+  static const char *code() { return "u"; }
+  static unsigned long long int default_value() { return 0; }
   static std::string desc() { return type_description(vtype()); }
 };
 

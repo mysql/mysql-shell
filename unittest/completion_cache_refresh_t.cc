@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,86 +71,74 @@ TEST_F(Completion_cache_refresh, startup) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
 
-  // No connectin, no refresh
+  // No connection, no refresh
 #ifdef HAVE_V8
   reset_shell("", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
 #endif
 
   reset_shell("", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
 
   reset_shell("", shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
 
   // Classic
   // Connection without default schema, refresh schemas only
 #ifdef HAVE_V8
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 #endif
 
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   // Connection with default schema, refresh schemas and objects
 #ifdef HAVE_V8
   reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 #endif
 
   reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 
   reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 
   // X proto
   // Connection without default schema, refresh schemas only
 #ifdef HAVE_V8
   reset_shell(_uri, shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 #endif
 
   reset_shell(_uri, shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 
   reset_shell(_uri, shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   // Connection with default schema, refresh schemas and objects
 #ifdef HAVE_V8
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   // Check schema object cache in DevAPI
   execute("dir(db)");
@@ -160,8 +148,7 @@ TEST_F(Completion_cache_refresh, startup) {
 
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   // Check schema object cache in DevAPI
   execute("dir(db)");
   MY_EXPECT_STDOUT_CONTAINS("\"user\"");
@@ -169,8 +156,8 @@ TEST_F(Completion_cache_refresh, startup) {
 
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 }
 
 // FR10
@@ -182,75 +169,62 @@ TEST_F(Completion_cache_refresh, connect_interactive) {
 #ifdef HAVE_V8
   reset_shell("", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   // Connect interactively
   wipe_out();
   execute("\\connect " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_out();
   execute("\\connect " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_out();
   execute("\\connect " + _uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_out();
   execute("shell.connect('" + _uri + "/sys')");
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `sys`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 #endif
 
   reset_shell("", shcore::IShell_core::Mode::Python);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_out();
   execute("\\connect " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_out();
   execute("\\connect " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_out();
   execute("\\connect " + _uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_out();
   execute("shell.connect('" + _uri + "/sys')");
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `sys`");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
 
   reset_shell("", shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_out();
   execute("\\connect " + _mysql_uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
   wipe_out();
   execute("\\connect " + _uri);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
   wipe_out();
   execute("\\connect " + _uri + "/mysql");
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 }
 
 // FR10
@@ -267,48 +241,40 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
 
   reset_shell("", scripting_mode);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
 
   reset_shell(_mysql_uri, scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   reset_shell(_mysql_uri + "/mysql", scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 
   reset_shell(_uri, scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   reset_shell(_uri + "/mysql", scripting_mode);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 }
 
 // FR10
@@ -323,15 +289,12 @@ TEST_F(Completion_cache_refresh, switch_schema_js) {
 #endif
 
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   execute("\\use mysql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   execute("\\use information_schema");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
 }
 
 // FR10
@@ -341,16 +304,15 @@ TEST_F(Completion_cache_refresh, switch_schema_sql) {
 
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::SQL);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
   wipe_all();
   execute("\\use mysql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
-  execute("\\use information_schema");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
   MY_EXPECT_STDOUT_CONTAINS(
-      "Fetching table and column names from `information_schema`");
+      "Fetching global names, object names from `mysql` for auto-completion");
+  execute("\\use information_schema");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `information_schema` for "
+      "auto-completion");
 
 #ifdef HAVE_V8
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
@@ -358,24 +320,20 @@ TEST_F(Completion_cache_refresh, switch_schema_sql) {
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
 #endif
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
   wipe_all();
   execute("\\use mysql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
   wipe_all();
   execute("\\js");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_all();
   execute("\\sql");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
 }
 
 // FR11
@@ -384,33 +342,29 @@ TEST_F(Completion_cache_refresh, rehash) {
   _options->devapi_schema_object_handles = true;
 
   reset_shell("", shcore::IShell_core::Mode::SQL);
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_all();
   execute("\\rehash");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   MY_EXPECT_STDOUT_CONTAINS("Not connected.");
 
   reset_shell(_uri, shcore::IShell_core::Mode::SQL);
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
   wipe_all();
   execute("\\rehash");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column names from");
+  MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::SQL);
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
   wipe_all();
   execute("\\rehash");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
   wipe_all();
   execute("\\rehash");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching schema names");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column names from `mysql`");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 }
 
 // FR11
@@ -576,10 +530,11 @@ TEST_F(Completion_cache_refresh, options_db_name_cache) {
   _options->db_name_cache = false;
   _options->devapi_schema_object_handles = true;
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::SQL);
-  MY_EXPECT_STDOUT_NOT_CONTAINS("Fetching table and column");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
   wipe_all();
   execute("\\rehash");
-  MY_EXPECT_STDOUT_CONTAINS("Fetching table and column");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Fetching global names, object names from `mysql` for auto-completion");
 }
 
 }  // namespace mysqlsh

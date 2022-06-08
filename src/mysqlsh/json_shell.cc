@@ -77,7 +77,7 @@ void Json_shell::process_line(const std::string &line) {
         }
 
         std::vector<std::string> options(completer()->complete(
-            shell_context()->interactive_mode(),
+            shell_context()->interactive_mode(), {},
             doc["complete"]["data"].GetString(), &completion_offset));
 
         std::sort(options.begin(), options.end(),

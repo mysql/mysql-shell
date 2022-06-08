@@ -352,11 +352,14 @@ void Shell_test_output_handler::flush_debug_log() {
   full_output.clear();
 }
 
-void Shell_core_test_wrapper::connect_classic() {
-  execute("\\connect --mc " + _mysql_uri);
+void Shell_core_test_wrapper::connect_classic(const std::string &schema) {
+  execute("\\connect --mc " + _mysql_uri +
+          (schema.empty() ? "" : "/" + schema));
 }
 
-void Shell_core_test_wrapper::connect_x() { execute("\\connect --mx " + _uri); }
+void Shell_core_test_wrapper::connect_x(const std::string &schema) {
+  execute("\\connect --mx " + _uri + (schema.empty() ? "" : "/" + schema));
+}
 
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;

@@ -55,8 +55,10 @@ SHCORE_PUBLIC std::string escape_wildcards(const std::string &string);
 
 SHCORE_PUBLIC std::string quote_sql_string(const std::string &identifier);
 
-SHCORE_PUBLIC std::string quote_identifier(const std::string &identifier);
-SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident);
+SHCORE_PUBLIC std::string quote_identifier(const std::string &identifier,
+                                           char q = '`');
+SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident,
+                                                     char q = '`');
 
 class SHCORE_PUBLIC sqlstring {
  public:
