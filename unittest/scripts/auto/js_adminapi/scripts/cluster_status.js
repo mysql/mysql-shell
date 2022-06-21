@@ -335,15 +335,24 @@ EXPECT_EQ(lags.replication_lag2, "applier_queue_applied");
 EXPECT_EQ(lags.replication_lag3, "applier_queue_applied");
 
 // group_replication_applier stopped: "replicationLag": "null"
-session3.runSql("STOP REPLICA SQL_THREAD FOR CHANNEL 'group_replication_applier'");
+//
+// NOTE: only possible with server versions < 8.0.31.
+// Since 8.0.31 it became forbidden to start/stop replica for the GR applier
+// channel when GR is running (BUG#34231291).
+// For the channel to be OFF, GR must be either stopped or in ERROR state
+// but when in those states, we do not display 'replicationLag' in the
+// status() output anyway.
+if (__version_num < 80031) {
+  session3.runSql("STOP REPLICA SQL_THREAD FOR CHANNEL 'group_replication_applier'");
 
-get_lags(lags);
+  get_lags(lags);
 
-EXPECT_EQ(lags.replication_lag1, "applier_queue_applied");
-EXPECT_EQ(lags.replication_lag2, "applier_queue_applied");
-EXPECT_EQ(lags.replication_lag3, null);
+  EXPECT_EQ(lags.replication_lag1, "applier_queue_applied");
+  EXPECT_EQ(lags.replication_lag2, "applier_queue_applied");
+  EXPECT_EQ(lags.replication_lag3, null);
 
-session3.runSql("START REPLICA SQL_THREAD FOR CHANNEL 'group_replication_applier'");
+  session3.runSql("START REPLICA SQL_THREAD FOR CHANNEL 'group_replication_applier'");
+}
 
 // simulate lag by doing a FTWRL
 session3.runSql("FLUSH TABLES WITH READ LOCK");
