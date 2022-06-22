@@ -816,7 +816,7 @@ shcore::Value Create_replica_cluster::execute() {
       recreate_recovery_account(cluster, &repl_account_user,
                                 &repl_account_host);
 
-      undo_list.push_front([&]() {
+      undo_list.push_front([=]() {
         log_info("Revert: Dropping replication user '%s'",
                  repl_account_user.c_str());
         m_cluster_set->get_primary_master()->drop_user(repl_account_user,
