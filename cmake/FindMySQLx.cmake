@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -78,41 +78,30 @@ IF(NOT MYSQL_BUILD_DIR)
   SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL 8.0 build directory")
 ENDIF()
 
-if(MYSQL_DIR)
-  set(MYSQLX_INCLUDES "${MYSQL_DIR}/include")
+SET(MYSQL_XPLUGIN_FOLDER "")
+IF(EXISTS "${MYSQL_SOURCE_DIR}/rapid/plugin/x/client/mysqlxclient.h")
+  SET(MYSQL_XPLUGIN_FOLDER "/rapid")
+ENDIF()
 
-  set(MYSQLX_LIBRARY_PATHS
-    "${MYSQL_DIR}/lib"
-  )
-  set(MYSQL_LIBRARY_PATHS
-    "${MYSQL_DIR}/lib"
-  )
-else()
-  SET(MYSQL_XPLUGIN_FOLDER "")
-  IF(EXISTS "${MYSQL_SOURCE_DIR}/rapid/plugin/x/client/mysqlxclient.h")
-    SET(MYSQL_XPLUGIN_FOLDER "/rapid")
-  ENDIF()
+set(MYSQLX_INCLUDES
+  "${MYSQL_BUILD_DIR}/include"
+  "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/generated"
+  "${MYSQL_SOURCE_DIR}/include"
+  "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}"
+  "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
+  "${MYSQL_SOURCE_DIR}/libbinlogevents/export"
+)
 
-  set(MYSQLX_INCLUDES
-    "${MYSQL_BUILD_DIR}/include"
-    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/generated"
-    "${MYSQL_SOURCE_DIR}/include"
-    "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}"
-    "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
-    "${MYSQL_SOURCE_DIR}/libbinlogevents/export"
-  )
-
-  set(MYSQLX_LIBRARY_PATHS
-    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
-    "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/protocol/protobuf"
-    "${MYSQL_BUILD_DIR}/archive_output_directory"
-  )
-  set(MYSQL_LIBRARY_PATHS
-    "${MYSQL_BUILD_DIR}/libmysql"
-    "${MYSQL_BUILD_DIR}/libmysql/${CMAKE_BUILD_TYPE}"
-    "${MYSQL_BUILD_DIR}/archive_output_directory"
-  )
-endif()
+set(MYSQLX_LIBRARY_PATHS
+  "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
+  "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/protocol/protobuf"
+  "${MYSQL_BUILD_DIR}/archive_output_directory"
+)
+set(MYSQL_LIBRARY_PATHS
+  "${MYSQL_BUILD_DIR}/libmysql"
+  "${MYSQL_BUILD_DIR}/libmysql/${CMAKE_BUILD_TYPE}"
+  "${MYSQL_BUILD_DIR}/archive_output_directory"
+)
 
 if(NOT WIN32)
   find_library(MYSQLX_CLIENT_LIB NAMES libmysqlxclient.a
@@ -135,34 +124,20 @@ if(NOT WIN32)
   separate_arguments(_mysql_config_output)
   set(MYSQL_CLIENT_LIB ${MYSQL_CLIENT_LIB} ${_mysql_config_output})
 else()
-  if(MYSQL_DIR)
-    find_library(MYSQLX_CLIENT_LIB NAMES mysqlxclient.lib
-                   PATHS ${MYSQLX_LIBRARY_PATHS}
-                   NO_DEFAULT_PATH)
-
-    find_library(MYSQLX_PROTO_LIB NAMES mysqlxmessages.lib
-                   PATHS ${MYSQLX_LIBRARY_PATHS}
-                   NO_DEFAULT_PATH)
-
-    find_library(MYSQL_CLIENT_LIB NAMES mysqlclient.lib
-                   PATHS ${MYSQL_LIBRARY_PATHS}
-                   NO_DEFAULT_PATH)
-  else()
-    if(NOT CMAKE_BUILD_TYPE)
-      set(CMAKE_BUILD_TYPE RelWithDebInfo)
-    endif()
-    find_library(MYSQLX_CLIENT_LIB NAMES mysqlxclient.lib
-                   PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
-                   NO_DEFAULT_PATH)
-
-    find_library(MYSQLX_PROTO_LIB NAMES mysqlxmessages.lib
-                   PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
-                   NO_DEFAULT_PATH)
-
-    find_library(MYSQL_CLIENT_LIB NAMES mysqlclient.lib
-                   PATHS ${MYSQL_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
-                   NO_DEFAULT_PATH)
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
   endif()
+  find_library(MYSQLX_CLIENT_LIB NAMES mysqlxclient.lib
+                  PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
+                  NO_DEFAULT_PATH)
+
+  find_library(MYSQLX_PROTO_LIB NAMES mysqlxmessages.lib
+                  PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
+                  NO_DEFAULT_PATH)
+
+  find_library(MYSQL_CLIENT_LIB NAMES mysqlclient.lib
+                  PATHS ${MYSQL_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
+                  NO_DEFAULT_PATH)
 endif()
 
 if(MYSQLX_INCLUDES AND MYSQLX_CLIENT_LIB AND MYSQL_CLIENT_LIB)
