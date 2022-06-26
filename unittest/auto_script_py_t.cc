@@ -238,11 +238,16 @@ TEST_P(Auto_script_py, run_and_check) {
   fprintf(stdout, "Test script: %s\n", GetParam().c_str());
   exec_and_out_equals("__script_file = '" + GetParam() + "'");
 
-  set_config_folder("auto/" + folder);
+  set_config_folder(shcore::path::join_path("auto", folder));
 
   // To allow handling python modules on the path of the scripts
   execute("import sys");
-  execute("sys.path.append('" + _scripts_home + "')");
+  std::string code = "sys.path.append('" + _scripts_home + "')";
+
+#ifdef WIN32
+  code = shcore::str_replace(code, "\\", "\\\\");
+#endif
+  execute(code);
 
   validate_interactive(name);
 }

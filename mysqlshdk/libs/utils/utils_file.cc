@@ -732,10 +732,13 @@ std::string get_last_error() {
 }
 
 bool load_text_file(const std::string &path, std::string &data) {
+// NOTE: File needs to be opened in binary mode to avoid CRLF being treated as
+// a single character as it will turn on the fail bit when attempting to read
+// <size> chars from the file
 #ifdef _WIN32
-  std::ifstream s(utf8_to_wide(path));
+  std::ifstream s(utf8_to_wide(path), std::ios::binary);
 #else
-  std::ifstream s(path);
+  std::ifstream s(path, std::ios::binary);
 #endif
   if (s.fail()) {
     return false;
@@ -745,7 +748,9 @@ bool load_text_file(const std::string &path, std::string &data) {
   s.seekg(0, std::ios_base::beg);
   data.resize(fsize);
   s.read(data.data(), fsize);
-  return s.gcount() == fsize;
+
+  // OK if no errors reading
+  return !s.fail();
 }
 
 std::string SHCORE_PUBLIC get_text_file(const std::string &path) {

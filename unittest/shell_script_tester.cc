@@ -364,7 +364,7 @@ void Shell_script_tester::set_config_folder(const std::string &name) {
   // but can easily be updated to be setup on an ENV VAR so
   // the scripts can by dynamically imported from the dev-api docs
   // with the sctract tool Jan is working on
-  _scripts_home = _shell_scripts_home + "/scripts";
+  _scripts_home = shcore::path::join_path(_shell_scripts_home, "scripts");
 }
 
 void Shell_script_tester::set_setup_script(const std::string &name) {
