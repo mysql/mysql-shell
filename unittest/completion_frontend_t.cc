@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,8 +160,12 @@ class Completer_frontend : public Shell_core_test_wrapper {
   }
 
  public:
-  void SetUpOnce() override {
+  void SetUp() override {
+    Shell_core_test_wrapper::SetUp();
     output_handler.set_errors_to_stderr(true);
+  }
+
+  void SetUpOnce() override {
     run_script_classic(
         {"create schema if not exists zzz;",
          "create schema if not exists zombie;",
@@ -359,7 +363,8 @@ class Completer_frontend : public Shell_core_test_wrapper {
       shcore::Value result = shcore::Value::parse(output_handler.std_out);
       if (result.descr() == "False") return;
     } else {
-      execute_noerr("var tmpvar = " + expr);
+      ASSERT_EQ("", output_handler.std_err);
+      execute("var tmpvar = " + expr);
       // Only deprecation errors are bypassed on the function calls
       if (!output_handler.std_err.empty()) {
         if (output_handler.std_err.find("is deprecated") == std::string::npos) {
