@@ -122,6 +122,7 @@ class Create_cluster : public Command_interface {
   bool m_retrying = false;
   std::string m_address_in_metadata;
   bool m_create_replica_cluster = false;
+  mysqlshdk::mysql::Lock_scoped_list m_instance_locks;
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
@@ -138,6 +139,7 @@ class Create_cluster : public Command_interface {
                                        const Cluster_impl &cluster);
   void reset_recovery_all(Cluster_impl *cluster);
   void persist_sro_all(Cluster_impl *cluster);
+  void lock_all_instances();
 
   /**
    * This method validates the use of IPv6 addresses on the localAddress of the

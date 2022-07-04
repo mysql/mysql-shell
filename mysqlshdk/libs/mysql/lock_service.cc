@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,59 +43,60 @@ std::string to_string(const Lock_mode mode) {
   }
 }
 
-void install_lock_service_udfs(mysqlshdk::mysql::IInstance *instance) {
+void install_lock_service(mysqlshdk::mysql::IInstance *instance) {
   std::string plugin_lib =
       "locking_service" + instance->get_plugin_library_extension();
 
   mysqlshdk::mysql::Suppress_binary_log nobinlog(instance);
 
-  auto install_udf = [&plugin_lib, &instance](std::string udf) {
+  auto install = [&plugin_lib, &instance](const std::string &func_name) {
     try {
-      log_debug("Installing %s UDF...", udf.c_str());
+      log_debug("Installing '%s' lock service...", func_name.c_str());
       instance->executef(
           "CREATE FUNCTION ! RETURNS INT "
           "SONAME /*(*/ ? /*)*/",
-          udf, plugin_lib);
+          func_name, plugin_lib);
     } catch (const shcore::Error &err) {
-      // Ignore error if it is because the UDF already exists.
+      // Ignore error if it is because the lock service already exists.
       if (err.code() == ER_UDF_EXISTS) {
-        log_debug("%s UDF already installed (skipping error).", udf.c_str());
+        log_debug("Lock service '%s' already installed (skipping error).",
+                  func_name.c_str());
       } else {
         throw;
       }
     }
   };
 
-  install_udf("service_get_read_locks");
-  install_udf("service_get_write_locks");
-  install_udf("service_release_locks");
+  install("service_get_read_locks");
+  install("service_get_write_locks");
+  install("service_release_locks");
 }
 
-bool has_lock_service_udfs(const mysqlshdk::mysql::IInstance &instance) {
+bool has_lock_service(const mysqlshdk::mysql::IInstance &instance) {
   std::string plugin_lib =
       "locking_service" + instance.get_plugin_library_extension();
 
-  // Check existence of lock service UDF functions from mysql.func.
+  // Check existence of lock service functions from mysql.func.
   // NOTE: Not using performance_schema.user_defined_functions because it does
   //       not exist for 5.7 servers.
-  int64_t udf_count = instance
-                          .query(
-                              "SELECT COUNT(*) "
-                              "FROM mysql.func "
-                              "WHERE dl = /*(*/ '" +
-                              plugin_lib +
-                              "' /*(*/ "
-                              "AND name IN ('service_get_read_locks', "
-                              "'service_get_write_locks', "
-                              "'service_release_locks')")
-                          ->fetch_one()
-                          ->get_int(0);
+  int64_t func_count = instance
+                           .query(
+                               "SELECT COUNT(*) "
+                               "FROM mysql.func "
+                               "WHERE dl = /*(*/ '" +
+                               plugin_lib +
+                               "' /*(*/ "
+                               "AND name IN ('service_get_read_locks', "
+                               "'service_get_write_locks', "
+                               "'service_release_locks')")
+                           ->fetch_one()
+                           ->get_int(0);
 
-  // Return true only if the 3 lock service UDFs are available.
-  return (udf_count == 3);
+  // Return true only if the 3 lock service functions are available.
+  return (func_count == 3);
 }
 
-void uninstall_lock_service_udfs(mysqlshdk::mysql::IInstance *instance) {
+void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance) {
   mysqlshdk::mysql::Suppress_binary_log nobinlog(instance);
 
   instance->execute("DROP FUNCTION IF EXISTS service_get_read_locks");

@@ -27,6 +27,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -45,18 +46,18 @@ namespace dba {
 
 // User provided option for telling us to assume that the cluster was created
 // with a server where the full update history is reflected in its GTID set
-constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
+constexpr inline const char k_cluster_attribute_assume_gtid_set_complete[] =
     "opt_gtidSetIsComplete";
 
 // host (as in user@host) to use when creating managed replication accounts
-constexpr const char k_cluster_attribute_replication_allowed_host[] =
+constexpr inline const char k_cluster_attribute_replication_allowed_host[] =
     "opt_replicationAllowedHost";
 
 constexpr const char k_cluster_attribute_transaction_size_limit[] =
     "opt_transactionSizeLimit";
 
 // Cluster capabilities
-constexpr const char k_cluster_capabilities[] = "capabilities";
+constexpr inline const char k_cluster_capabilities[] = "capabilities";
 
 class Base_cluster_impl {
  public:
@@ -106,11 +107,17 @@ class Base_cluster_impl {
     return m_admin_credentials;
   }
 
-  virtual mysqlsh::dba::Instance *acquire_primary(
-      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") = 0;
+  virtual std::tuple<mysqlsh::dba::Instance *, mysqlshdk::mysql::Lock_scoped>
+  acquire_primary_locked(
+      [[maybe_unused]] mysqlshdk::mysql::Lock_mode mode,
+      [[maybe_unused]] std::string_view skip_lock_uuid = "") {
+    assert(!"Method not implemented");
+    throw std::logic_error("Method not implemented");
+  }
 
-  virtual void release_primary(mysqlsh::dba::Instance *primary = nullptr) = 0;
+  virtual mysqlsh::dba::Instance *acquire_primary() = 0;
+
+  virtual void release_primary() = 0;
 
   virtual void disconnect();
 
@@ -243,6 +250,9 @@ class Base_cluster_impl {
   std::tuple<std::string, std::string, shcore::Value>
   validate_set_option_namespace(const std::string &option,
                                 const shcore::Value &value) const;
+
+ private:
+  void disconnect_internal();
 };
 
 }  // namespace dba

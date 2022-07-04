@@ -159,8 +159,6 @@
   real metadata.
  */
 
-using std::placeholders::_1;
-
 namespace mysqlsh {
 namespace dba {
 
@@ -1444,13 +1442,16 @@ shcore::Value Dba::create_cluster(
     throw shcore::Exception::mysql_error_with_code(dberr.what(), dberr.code());
   }
 
+  // put an exclusive lock on the target instance
+  auto i_lock = group_server->get_lock_exclusive();
+
   // Create the cluster
   {
     // Create the add_instance command and execute it.
     Create_cluster op_create_cluster(group_server, cluster_name, *options);
 
     // Always execute finish when leaving "try catch".
-    auto finally = shcore::on_leave_scope(
+    shcore::on_leave_scope finally(
         [&op_create_cluster]() { op_create_cluster.finish(); });
 
     // Prepare the add_instance command execution (validations).
@@ -2364,12 +2365,8 @@ void Dba::do_configure_instance(
     instance_def.set_password(*options.password);
   }
 
-  std::shared_ptr<Instance> target_instance;
-  std::shared_ptr<MetadataStorage> metadata;
-
-  Cluster_check_info state;
-
   // Establish the session to the target instance
+  std::shared_ptr<Instance> target_instance;
   if (instance_def.has_data()) {
     if (instance_def.has_ssh_options())
       throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
@@ -2383,7 +2380,7 @@ void Dba::do_configure_instance(
         "An open session is required to perform this operation.");
   }
 
-  metadata = std::make_shared<MetadataStorage>(target_instance);
+  auto metadata = std::make_shared<MetadataStorage>(target_instance);
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -2391,6 +2388,7 @@ void Dba::do_configure_instance(
       Instance_pool::Auth_options(target_instance->get_connection_options()));
 
   // Check the function preconditions
+  Cluster_check_info state;
   if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {
     state = check_function_preconditions("Dba.configureReplicaSetInstance",
                                          metadata, target_instance);
@@ -2402,21 +2400,20 @@ void Dba::do_configure_instance(
 
   ipool->set_metadata(metadata);
 
-  auto warnings_callback = [](const std::string &sql, int code,
-                              const std::string &level,
-                              const std::string &msg) {
+  auto warnings_callback = [instance_descr = target_instance->descr()](
+                               const std::string &sql, int code,
+                               const std::string &level,
+                               const std::string &msg) {
+    log_debug("%s: '%s' on instance '%s'. (Code %d) When executing query: '%s'",
+              level.c_str(), msg.c_str(), instance_descr.c_str(), code,
+              sql.c_str());
+
+    if (level != "WARNING") return;
+
     auto console = current_console();
-    std::string debug_msg;
-
-    debug_msg += level + ": '" + msg + "'. (Code " + std::to_string(code) +
-                 ") When executing query: '" + sql + "'.";
-
-    log_debug("%s", debug_msg.c_str());
-
-    if (level == "WARNING") {
-      console->print_info();
-      console->print_warning(msg + " (Code " + std::to_string(code) + ").");
-    }
+    console->print_info();
+    console->print_warning(
+        shcore::str_format("%s (Code %d).", msg.c_str(), code));
   };
 
   // Add the warnings callback
@@ -2433,8 +2430,8 @@ void Dba::do_configure_instance(
           target_instance, options, state.source_type, purpose));
     }
 
-    // Prepare and execute the operation.
     op_configure_instance->prepare();
+
     op_configure_instance->execute();
   }
 }
@@ -2787,15 +2784,13 @@ None Dba::upgrade_metadata(dict options) {}
 void Dba::upgrade_metadata(
     const shcore::Option_pack_ref<Upgrade_metadata_options> &options) {
   auto instance = connect_to_target_member();
-  std::shared_ptr<MetadataStorage> metadata;
-
   if (!instance) {
     // An open session is required
     throw shcore::Exception::runtime_error(
         "An open session is required to perform this operation.");
   }
 
-  metadata = std::make_shared<MetadataStorage>(instance);
+  auto metadata = std::make_shared<MetadataStorage>(instance);
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -2810,11 +2805,38 @@ void Dba::upgrade_metadata(
 
   ipool->set_metadata(metadata);
 
+  // retrieve the cluster and clusterset (if available) in order to put an
+  // exclusive lock on them
+  std::shared_ptr<Cluster_set_impl> clusterset;
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
+  mysqlshdk::mysql::Lock_scoped cs_lock;
+  mysqlshdk::mysql::Lock_scoped c_lock;
+  if (!options->dry_run) {
+    try {
+      cluster = get_cluster(nullptr, metadata, metadata->get_md_server(), false,
+                            false);
+    } catch (const shcore::Error &e) {
+      log_info("Unable to retrieve cluster: %s", e.what());
+    }
+
+    try {
+      if (cluster) clusterset = cluster->impl()->get_cluster_set_object();
+    } catch (const shcore::Error &e) {
+      log_info("Unable to retrieve clusterset: %s", e.what());
+    }
+
+    // get exclusive locks (note: the order is important)
+    if (clusterset) cs_lock = clusterset->get_lock_exclusive();
+    if (cluster) c_lock = cluster->impl()->get_lock_exclusive();
+  }
+
+  // acquire required lock on target instance.
+  auto i_lock = metadata->get_md_server()->get_lock_exclusive();
+
   Upgrade_metadata op_upgrade(metadata, options->interactive(),
                               options->dry_run);
 
-  auto finally =
-      shcore::on_leave_scope([&op_upgrade]() { op_upgrade.finish(); });
+  shcore::on_leave_scope finally([&op_upgrade]() { op_upgrade.finish(); });
 
   op_upgrade.prepare();
 

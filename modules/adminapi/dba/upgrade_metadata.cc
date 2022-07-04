@@ -24,6 +24,7 @@
 #include "modules/adminapi/dba/upgrade_metadata.h"
 
 #include <algorithm>
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -41,7 +42,11 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+constexpr std::chrono::seconds k_router_version_update_timeout{4};
+
 using MDState = mysqlsh::dba::metadata::State;
+}  // namespace
 
 Upgrade_metadata::Upgrade_metadata(
     const std::shared_ptr<MetadataStorage> &metadata, bool interactive,
@@ -57,11 +62,6 @@ Upgrade_metadata::Upgrade_metadata(
  * the command execution
  */
 void Upgrade_metadata::prepare() {
-  // Acquire required locks on target instance.
-  // No "write" operation allowed to be executed concurrently on the target
-  // instance.
-  m_target_instance->get_lock_exclusive();
-
   std::string current_user, current_host;
   m_target_instance->get_current_user(&current_user, &current_host);
 
@@ -152,7 +152,7 @@ void Upgrade_metadata::prepare() {
 
 shcore::Array_t Upgrade_metadata::get_outdated_routers() {
   // We pool each 2 seconds
-  int timeout_sec = k_router_version_update_timeout / 2;
+  auto timeout_sec = k_router_version_update_timeout / 2;
   shcore::Array_t routers;
 
   // When an outdated Router is upgraded and the Metadata schema upgrade process
@@ -162,36 +162,33 @@ shcore::Array_t Upgrade_metadata::get_outdated_routers() {
   // that reason, we wait k_router_version_update_timeout (4 seconds) before
   // returning to the user the results. Considering that Router's default TTL is
   // 0.5 seconds, this should overcome the race-condition in most cases
-  while (timeout_sec-- >= 0) {
+  while (timeout_sec-- >= std::chrono::seconds::zero()) {
     auto routers_dict =
         mysqlsh::dba::router_list(m_metadata.get(), "", true).as_map();
 
-    if (routers_dict->empty()) {
-      // No outdated routers
-      return {};
-    } else {
-      routers = shcore::make_array();
+    if (routers_dict->empty()) return {};  // No outdated routers
 
-      auto columns = shcore::make_array();
-      columns->emplace_back("Instance");
-      columns->emplace_back("Version");
-      columns->emplace_back("Last Check-in");
-      columns->emplace_back("R/O Port");
-      columns->emplace_back("R/W Port");
+    routers = shcore::make_array();
 
-      routers->emplace_back(std::move(columns));
+    auto columns = shcore::make_array();
+    columns->emplace_back("Instance");
+    columns->emplace_back("Version");
+    columns->emplace_back("Last Check-in");
+    columns->emplace_back("R/O Port");
+    columns->emplace_back("R/W Port");
 
-      for (const auto &router_md : *routers_dict) {
-        auto router = shcore::make_array();
-        router->emplace_back(router_md.first);
-        auto router_data = router_md.second.as_map();
-        router->push_back((*router_data)["version"]);
-        router->push_back((*router_data)["lastCheckin"]);
-        router->push_back((*router_data)["roPort"]);
-        router->push_back((*router_data)["rwPort"]);
+    routers->emplace_back(std::move(columns));
 
-        routers->emplace_back(std::move(router));
-      }
+    for (const auto &router_md : *routers_dict) {
+      auto router = shcore::make_array();
+      router->emplace_back(router_md.first);
+      auto router_data = router_md.second.as_map();
+      router->push_back((*router_data)["version"]);
+      router->push_back((*router_data)["lastCheckin"]);
+      router->push_back((*router_data)["roPort"]);
+      router->push_back((*router_data)["rwPort"]);
+
+      routers->emplace_back(std::move(router));
     }
 
     // Wait 2 seconds before polling again
@@ -501,15 +498,6 @@ shcore::Value Upgrade_metadata::execute() {
   }
 
   return shcore::Value();
-}
-
-void Upgrade_metadata::rollback() {}
-
-void Upgrade_metadata::finish() {
-  if (m_target_instance) {
-    // Release locks at the end.
-    m_target_instance->release_lock();
-  }
 }
 
 }  // namespace dba

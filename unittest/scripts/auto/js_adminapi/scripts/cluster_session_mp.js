@@ -27,84 +27,138 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<OUT> Multi-primary check
 cluster.status();
 cluster.disconnect();
+
+primary_member_id = session.runSql("SELECT member_id FROM performance_schema.replication_group_members ORDER BY member_id").fetchOne()[0];
+primary_address = session.runSql("SELECT address FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = ?", [primary_member_id]).fetchOne()[0];
+primary_port = primary_address.split(":")[1];
+
 session.close();
-//@ MP - getCluster() on primary
+
+//@<> MP - getCluster() on primary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port1}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MP - getCluster() on another primary
+//@<> MP - getCluster() on another primary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 var cluster = dba.getCluster();
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port2}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MP - getCluster() on primary with connectToPrimary: true
+//@<> MP - getCluster() on primary with connectToPrimary: true
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster(null, {connectToPrimary:true});
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port1}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MP - getCluster() on another primary with connectToPrimary: true
+//@<> MP - getCluster() on another primary with connectToPrimary: true
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 var cluster = dba.getCluster(null, {connectToPrimary:true});
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port2}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MP - getCluster() on primary with connectToPrimary: false
+//@<> MP - getCluster() on primary with connectToPrimary: false
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 var cluster = dba.getCluster(null, {connectToPrimary:false});
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port1}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MP - getCluster() on another primary with connectToPrimary: false
+//@<> MP - getCluster() on another primary with connectToPrimary: false
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 var cluster = dba.getCluster(null, {connectToPrimary:false});
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port2}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MPX - getCluster() on primary
+//@<> MPX - getCluster() on primary
 shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
 var cluster = dba.getCluster(null, {connectToPrimary:true});
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${primary_port}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
-//@ MPX - getCluster() on primary (no redirect)
+//@<> MPX - getCluster() on primary (no redirect)
 shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
 var cluster = dba.getCluster(null, {connectToPrimary:false});
+
 // check the shell is connected to where we expect
 shell.status();
+EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${primary_port}`);
+WIPE_OUTPUT();
+
 // check the cluster is connected to where we expect
 cluster.status();
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
+
 cluster.disconnect();
 session.close();
 
@@ -139,32 +193,44 @@ testutil.callMysqlsh([__sandbox_xuri2, "--redirect-primary", "-e", "shell.status
 testutil.callMysqlsh([__sandbox_xuri1, "--redirect-secondary", "-e", "shell.status()"]);
 
 
-//@ MP - Connect with --cluster 1
+//@<> MP - Connect with --cluster 1
 testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
-//@ MP - Connect with --cluster 2
+//@<> MP - Connect with --cluster 2
 testutil.callMysqlsh([__sandbox_uri2, "--js", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
-//@ MP - Connect with --cluster + --redirect-primary 1
+//@<> MP - Connect with --cluster + --redirect-primary 1
 testutil.callMysqlsh([__sandbox_uri1, "--js", "--redirect-primary", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS("NOTE: --redirect-primary ignored because target is already a PRIMARY");
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
-//@ MP - Connect with --cluster + --redirect-primary 2
+//@<> MP - Connect with --cluster + --redirect-primary 2
 testutil.callMysqlsh([__sandbox_uri2, "--js", "--redirect-primary", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS("NOTE: --redirect-primary ignored because target is already a PRIMARY");
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
 //@ MP - Connect with --cluster + --redirect-secondary (error)
 testutil.callMysqlsh([__sandbox_uri1, "--js", "--redirect-secondary", "-e", "println(cluster.status())", "--cluster"]);
 
-//@ MPX - Connect with --cluster 1
+//@<> MPX - Connect with --cluster 1
 testutil.callMysqlsh([__sandbox_xuri1, "--js", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
-//@ MPX - Connect with --cluster 2
+//@<> MPX - Connect with --cluster 2
 testutil.callMysqlsh([__sandbox_xuri2, "--js", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
-//@ MPX - Connect with --cluster + --redirect-primary 1
+//@<> MPX - Connect with --cluster + --redirect-primary 1
 testutil.callMysqlsh([__sandbox_xuri1, "--js", "--redirect-primary", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS("NOTE: --redirect-primary ignored because target is already a PRIMARY");
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
-//@ MPX - Connect with --cluster + --redirect-primary 2
+//@<> MPX - Connect with --cluster + --redirect-primary 2
 testutil.callMysqlsh([__sandbox_xuri2, "--js", "--redirect-primary", "-e", "println(cluster.status())", "--cluster"]);
+EXPECT_OUTPUT_CONTAINS("NOTE: --redirect-primary ignored because target is already a PRIMARY");
+EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 
 //@ MPX - Connect with --cluster + --redirect-secondary (error)
 testutil.callMysqlsh([__sandbox_xuri1, "--js", "--redirect-secondary", "-e", "println(cluster.status())", "--cluster"]);

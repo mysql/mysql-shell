@@ -884,26 +884,41 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   // everything is ready, proceed with the reboot...
 
+  // will have to lock the target instance and all reachable members
+  mysqlshdk::mysql::Lock_scoped_list i_locks;
+  {
+    auto new_seed = best_instance_gtid ? best_instance_gtid : target_instance;
+    i_locks.push_back(new_seed->get_lock_exclusive());
+
+    instances.push_back(target_instance);  // temporary
+
+    for (const auto &instance : instances) {
+      if (instance->get_uuid() != new_seed->get_uuid())
+        i_locks.push_back(instance->get_lock_exclusive());
+    }
+
+    instances.pop_back();
+  }
+
   // reboot seed
   if (best_instance_gtid) {
     // if we have a better instance in the cluster (in terms of highest GTID),
     // use it instead of the target
-    if (best_instance_gtid) {
-      if (mysqlshdk::utils::are_endpoints_equal(
-              best_instance_gtid->get_canonical_address(),
-              options->get_primary())) {
-        console->print_info(shcore::str_format(
-            "Switching over to instance '%s' to be used as seed.",
-            best_instance_gtid->get_canonical_address().c_str()));
-      } else {
-        console->print_info(shcore::str_format(
-            "Switching over to instance '%s' (which has the highest GTID set), "
-            "to be used as seed.",
-            best_instance_gtid->get_canonical_address().c_str()));
-      }
+    if (mysqlshdk::utils::are_endpoints_equal(
+            best_instance_gtid->get_canonical_address(),
+            options->get_primary())) {
+      console->print_info(shcore::str_format(
+          "Switching over to instance '%s' to be used as seed.",
+          best_instance_gtid->get_canonical_address().c_str()));
+    } else {
+      console->print_info(shcore::str_format(
+          "Switching over to instance '%s' (which has the highest GTID set), "
+          "to be used as seed.",
+          best_instance_gtid->get_canonical_address().c_str()));
     }
 
     if (!options->get_dry_run()) {
+      // use the new target instance as seed
       reboot_seed(cluster_impl.get(), best_instance_gtid, cs_info, options);
 
       instances.push_back(std::exchange(target_instance, best_instance_gtid));

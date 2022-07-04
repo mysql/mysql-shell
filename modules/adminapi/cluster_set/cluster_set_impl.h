@@ -45,9 +45,7 @@
 namespace mysqlsh {
 namespace dba {
 
-constexpr const char *k_cluster_set_async_user_name = "mysql_innodb_cs_";
-constexpr const int k_cluster_set_master_connect_retry = 3;
-constexpr const int k_cluster_set_master_retry_count = 10;
+inline constexpr const char *k_cluster_set_async_user_name = "mysql_innodb_cs_";
 
 // ClusterSet SSL Mode
 constexpr const char k_cluster_set_attribute_ssl_mode[] =
@@ -106,11 +104,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   mysqlsh::dba::Instance *connect_primary();
   bool reconnect_target_if_invalidated(bool print_warnings = true);
 
-  mysqlsh::dba::Instance *acquire_primary(
-      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") override;
+  mysqlsh::dba::Instance *acquire_primary() override;
 
-  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+  void release_primary() override;
 
   std::list<std::shared_ptr<Cluster_impl>> connect_all_clusters(
       uint32_t read_timeout, bool skip_primary_cluster,
@@ -149,6 +145,14 @@ class Cluster_set_impl : public Base_cluster_impl,
   Async_replication_options get_clusterset_replication_options() const;
 
   bool check_gtid_consistency(Cluster_impl *cluster) const;
+
+  // Lock methods
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
+      std::chrono::seconds timeout = {});
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
+      std::chrono::seconds timeout = {});
 
  protected:
   void _set_option(const std::string &option,
@@ -242,6 +246,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   void restore_transaction_size_limit(Cluster_impl *replica, bool dry_run);
 
   void set_maximum_transaction_size_limit(Cluster_impl *replica, bool dry_run);
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
+      mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});
 
   Global_topology_type m_topology_type;
   std::shared_ptr<Cluster_impl> m_primary_cluster;

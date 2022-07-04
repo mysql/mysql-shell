@@ -1264,6 +1264,17 @@ void Cluster_join::validate_add_rejoin_options() const {
 void Cluster_join::join(Recovery_progress_style progress_style) {
   auto console = mysqlsh::current_console();
 
+  {
+    std::string msg =
+        "A new instance will be added to the InnoDB Cluster. Depending on the "
+        "amount of data on the cluster this might take from a few seconds to "
+        "several hours.";
+    std::string message =
+        mysqlshdk::textui::format_markup_text({msg}, 80, 0, false);
+    console->print_info(message);
+    console->print_info();
+  }
+
   // Set the internal configuration object: read/write configs from the
   // server.
   auto cfg = mysqlsh::dba::create_server_config(

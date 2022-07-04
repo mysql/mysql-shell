@@ -125,13 +125,15 @@ class Replica_set_impl : public Base_cluster_impl {
       uint32_t read_timeout, bool skip_primary,
       std::list<Instance_metadata> *out_unreachable);
 
-  mysqlsh::dba::Instance *acquire_primary(
-      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") override;
+  std::tuple<mysqlsh::dba::Instance *, mysqlshdk::mysql::Lock_scoped>
+  acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
+                         std::string_view skip_lock_uuid = "") override;
+
+  mysqlsh::dba::Instance *acquire_primary() override;
 
   Cluster_metadata get_metadata() const;
 
-  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+  void release_primary() override;
 
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   refresh_replication_user(mysqlshdk::mysql::IInstance *slave, bool dry_run);

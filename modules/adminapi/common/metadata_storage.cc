@@ -1676,7 +1676,7 @@ void MetadataStorage::get_lock_exclusive() const {
   // Try to acquire the specified lock.
   // NOTE: Only one lock per namespace is used because lock release is
   //       performed by namespace.
-  if (mysqlshdk::mysql::has_lock_service_udfs(*m_md_server)) {
+  if (mysqlshdk::mysql::has_lock_service(*m_md_server)) {
     // No need install Locking Service UDFs, already done at a higher level
     // (instance) if needed/supported. Thus, we only try to acquire the lock if
     // the lock UDFs are available (skipped otherwise).
@@ -1714,7 +1714,7 @@ void MetadataStorage::release_lock(bool no_throw) const {
   //       otherwise do nothing (ignore if concurrent execution is not
   //       supported, e.g., lock service plugin not available).
   try {
-    if (mysqlshdk::mysql::has_lock_service_udfs(*m_md_server)) {
+    if (mysqlshdk::mysql::has_lock_service(*m_md_server)) {
       log_debug("Releasing locks for '%s' on %s.", k_lock_name_metadata,
                 m_md_server->descr().c_str());
       mysqlshdk::mysql::release_lock(*m_md_server, k_lock_name_metadata);
@@ -2363,7 +2363,7 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
   get_lock_exclusive();
 
   // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+  shcore::on_leave_scope finally([this]() { release_lock(); });
 
   // This has to support MD versions 1.0 and 2.0, so that we can remove older
   // router versions while upgrading the MD.

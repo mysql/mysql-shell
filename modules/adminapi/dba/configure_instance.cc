@@ -714,7 +714,8 @@ void Configure_instance::prepare() {
   // ReplicaSet
   if (m_instance_type != TargetType::InnoDBCluster &&
       m_instance_type != TargetType::AsyncReplicaSet) {
-    check_lock_service();
+    m_install_lock_service =
+        !mysqlshdk::mysql::has_lock_service(*m_target_instance);
   }
 
   ensure_instance_address_usable();
@@ -804,8 +805,8 @@ shcore::Value Configure_instance::execute() {
   auto console = mysqlsh::current_console();
   {
     bool need_restore = false;
-    if ((m_install_lock_service_udfs || m_create_cluster_admin)) {
-      need_restore = clear_super_read_only();
+    if (m_install_lock_service || m_create_cluster_admin) {
+      need_restore = clear_super_read_only(!m_create_cluster_admin);
     }
 
     shcore::on_leave_scope reset_read_only([this, need_restore]() {
@@ -815,11 +816,7 @@ shcore::Value Configure_instance::execute() {
     // Acquire required locks on target instance (check user privileges first).
     // No "write" operation allowed to be executed concurrently on the target
     // instance.
-    m_target_instance->get_lock_exclusive();
-
-    // Always release locks at the end, when leaving the function scope.
-    auto finally =
-        shcore::on_leave_scope([this]() { m_target_instance->release_lock(); });
+    auto i_lock = m_target_instance->get_lock_exclusive();
 
     // Handle the clusterAdmin account creation
     if (m_create_cluster_admin) {
@@ -928,23 +925,30 @@ shcore::Value Configure_instance::execute() {
   return shcore::Value();
 }
 
-bool Configure_instance::clear_super_read_only() {
+bool Configure_instance::clear_super_read_only(bool silent_fail) {
   // Check super_read_only
   // NOTE: this is left for last to avoid setting super_read_only to true
   // and right before some execution failure of the command leaving the
   // instance in an incorrect state
 
   // Handle clear_read_only interaction
-  bool super_read_only = validate_super_read_only(
-      *m_target_instance, m_options.clear_read_only, false);
-  // If super_read_only was disabled, print the information
-  if (super_read_only) {
-    mysqlsh::current_console()->print_info(
-        "Disabled super_read_only on the instance '" +
-        m_target_instance->descr() + "'");
-    return true;
+  try {
+    bool super_read_only = validate_super_read_only(
+        *m_target_instance, m_options.clear_read_only, false);
+
+    // If super_read_only was disabled, print the information
+    if (super_read_only) {
+      mysqlsh::current_console()->print_info(
+          "Disabled super_read_only on the instance '" +
+          m_target_instance->descr() + "'");
+      return true;
+    }
+    return false;
+
+  } catch (const shcore::Exception &) {
+    if (silent_fail) return false;
+    throw;
   }
-  return false;
 }
 
 void Configure_instance::restore_super_read_only() {
@@ -957,11 +961,6 @@ void Configure_instance::restore_super_read_only() {
     m_target_instance->set_sysvar("super_read_only", "ON",
                                   mysqlshdk::mysql::Var_qualifier::GLOBAL);
   }
-}
-
-void Configure_instance::check_lock_service() {
-  m_install_lock_service_udfs =
-      mysqlshdk::mysql::has_lock_service_udfs(*m_target_instance);
 }
 
 }  // namespace dba

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ class Instance : public shcore::Cpp_object_bridge {
  public:
   explicit Instance(const std::string &name, const std::string &uri,
                     const shcore::Value::Map_type_ref options = nullptr);
-  virtual ~Instance() {}
+  virtual ~Instance() = default;
 
   virtual std::string class_name() const { return "Instance"; }
   virtual bool operator==(const Object_bridge &other) const;

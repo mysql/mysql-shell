@@ -39,7 +39,7 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-class Remove_instance : public Command_interface {
+class Remove_instance final : public Command_interface {
  public:
   Remove_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
                   const Remove_instance_options &options,
@@ -86,6 +86,13 @@ class Remove_instance : public Command_interface {
    * - Close the instance connection (if previously established);
    */
   void finish() override;
+
+  /**
+   * The current active instance
+   */
+  mysqlsh::dba::Instance *get_target_instance() const {
+    return m_target_instance.get();
+  }
 
  private:
   mysqlshdk::db::Connection_options m_instance_cnx_opts;

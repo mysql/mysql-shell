@@ -85,9 +85,8 @@ class Configure_instance : public Command_interface {
   bool check_configuration_updates(bool *restart, bool *dynamic_sysvar_change,
                                    bool *config_file_change);
 
-  bool clear_super_read_only();
+  bool clear_super_read_only(bool silent_fail);
   void restore_super_read_only();
-  void check_lock_service();
 
  protected:
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
@@ -99,7 +98,7 @@ class Configure_instance : public Command_interface {
   // By default, the clusterAdmin account will be created unless
   // it's not specified on the command options or it already exists
   bool m_create_cluster_admin = true;
-  bool m_install_lock_service_udfs = false;
+  bool m_install_lock_service = false;
 
   std::optional<bool> m_can_set_persist;
   bool m_can_restart = false;

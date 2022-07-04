@@ -81,6 +81,10 @@ namespace mysqlsh {
 namespace dba {
 
 namespace {
+// Constants with the names used to lock the cluster
+constexpr char k_lock_ns[] = "AdminAPI_cluster";
+constexpr char k_lock_name[] = "AdminAPI_lock";
+
 template <typename T>
 struct Option_info {
   bool found_non_default = false;
@@ -1103,26 +1107,25 @@ void Cluster_impl::add_instance(
   check_preconditions("addInstance");
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
-  cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
-                               options.gr_options, options.clone_options,
-                               options.interactive());
 
-  // Add the Instance to the Cluster
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
 
-  // Prepare and validate
-  joiner.prepare_join(options.label);
+  // put an exclusive lock on the target instance
+  auto i_lock = target->get_lock_exclusive();
 
-  std::string msg =
-      "A new instance will be added to the InnoDB cluster. Depending on the "
-      "amount of data on the cluster this might take from a few seconds to "
-      "several hours.";
-  std::string message =
-      mysqlshdk::textui::format_markup_text({msg}, 80, 0, false);
-  auto console = current_console();
-  console->print_info(message);
-  console->print_info();
+  {
+    // Add the Instance to the Cluster
 
-  joiner.join(progress_style);
+    cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
+                                 options.gr_options, options.clone_options,
+                                 options.interactive());
+
+    // Prepare and validate
+    joiner.prepare_join(options.label);
+
+    joiner.join(progress_style);
+  }
 
   // Verification step to ensure the server_id is an attribute on all the
   // instances of the cluster
@@ -1140,13 +1143,23 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
   }
 
   Scoped_instance target(connect_target_instance(instance_def, true));
-  cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
-                               gr_options, {}, interactive, switch_comm_stack);
 
-  // Rejoin the Instance to the Cluster
+  // put a shared lock on the cluster
+  auto c_lock = get_lock_shared();
+
+  // put an exclusive lock on the target instance
+  auto i_lock = target->get_lock_exclusive();
+
   bool uuid_mistmatch = false;
-  if (joiner.prepare_rejoin(&uuid_mistmatch)) {
-    joiner.rejoin();
+  {
+    cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
+                                 gr_options, {}, interactive,
+                                 switch_comm_stack);
+
+    // Rejoin the Instance to the Cluster
+    if (joiner.prepare_rejoin(&uuid_mistmatch)) {
+      joiner.rejoin();
+    }
   }
 
   if (uuid_mistmatch) {
@@ -1163,13 +1176,24 @@ void Cluster_impl::remove_instance(
     const cluster::Remove_instance_options &options) {
   check_preconditions("removeInstance");
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // Create the remove_instance command and execute it.
   cluster::Remove_instance op_remove_instance(instance_def, options, this);
+
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
+  shcore::on_leave_scope finally(
       [&op_remove_instance]() { op_remove_instance.finish(); });
+
   // Prepare the remove_instance command execution (validations).
   op_remove_instance.prepare();
+
+  // put an exclusive lock on the target instance
+  mysqlshdk::mysql::Lock_scoped i_lock;
+  if (auto instance = op_remove_instance.get_target_instance(); instance)
+    i_lock = instance->get_lock_exclusive();
+
   // Execute remove_instance operations.
   op_remove_instance.execute();
 }
@@ -1532,13 +1556,17 @@ void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
                                            const bool interactive) {
   check_preconditions("resetRecoveryAccountsPassword");
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // Create the reset_recovery_command.
   cluster::Reset_recovery_accounts_password op_reset(interactive, force, *this);
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_reset]() { op_reset.finish(); });
-  // Prepare the reset_recovery_accounts_password execution
+
+  // Always execute finish
+  shcore::on_leave_scope finally([&op_reset]() { op_reset.finish(); });
+
+  // prepare and execute
   op_reset.prepare();
-  // Execute the reset_recovery_accounts_password command.
   op_reset.execute();
 }
 
@@ -1575,6 +1603,9 @@ void Cluster_impl::fence_all_traffic() {
                       "' will be fenced from all traffic");
   console->print_info();
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // To fence all traffic, the command must:
   //  1. enable super_read_only and offline on the primary member
   //  2. enable offline_mode and stop Group Replication on all secondaries
@@ -1596,8 +1627,8 @@ void Cluster_impl::fence_all_traffic() {
       {Member_state::ONLINE, Member_state::RECOVERING},
       get_cluster_server()->get_connection_options(),
       {get_cluster_server()->descr()},
-      [=](const std::shared_ptr<Instance> &instance,
-          const mysqlshdk::gr::Member &) {
+      [&console](const std::shared_ptr<Instance> &instance,
+                 const mysqlshdk::gr::Member &) {
         // Every secondary should be already super_read_only
         if (!instance->get_sysvar_bool("super_read_only", false)) {
           console->print_info("* Enabling super_read_only on '" +
@@ -1633,6 +1664,9 @@ void Cluster_impl::fence_writes() {
   console->print_info("The Cluster '" + get_name() +
                       "' will be fenced from write traffic");
   console->print_info();
+
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
 
   // Disable the GR member action mysql_disable_super_read_only_if_primary
   auto primary = get_cluster_server();
@@ -1670,6 +1704,9 @@ void Cluster_impl::unfence_writes() {
                       "' will be unfenced from write traffic");
   console->print_info();
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   auto primary = get_cluster_server();
 
   // Check if the Cluster belongs to a ClusterSet and is a REPLICA Cluster, it
@@ -1696,8 +1733,8 @@ void Cluster_impl::unfence_writes() {
   using mysqlshdk::gr::Member_state;
   execute_in_members({Member_state::ONLINE, Member_state::RECOVERING},
                      get_cluster_server()->get_connection_options(), {},
-                     [=](const std::shared_ptr<Instance> &instance,
-                         const mysqlshdk::gr::Member &) {
+                     [&console](const std::shared_ptr<Instance> &instance,
+                                const mysqlshdk::gr::Member &) {
                        if (instance->get_sysvar_bool("offline_mode", false)) {
                          console->print_info("* Disabling offline_mode on '" +
                                              instance->descr() + "'...");
@@ -1805,6 +1842,9 @@ shcore::Value Cluster_impl::create_cluster_set(
       throw;
     }
   }
+
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
 
   return Cluster_set_impl::create_cluster_set(this, domain_name, options);
 }
@@ -1945,6 +1985,10 @@ void Cluster_impl::setup_admin_account(const std::string &username,
                                        const std::string &host,
                                        const Setup_account_options &options) {
   check_preconditions("setupAdminAccount");
+
+  // put a shared lock on the cluster
+  auto c_lock = get_lock_shared();
+
   Base_cluster_impl::setup_admin_account(username, host, options);
 }
 
@@ -1952,6 +1996,10 @@ void Cluster_impl::setup_router_account(const std::string &username,
                                         const std::string &host,
                                         const Setup_account_options &options) {
   check_preconditions("setupRouterAccount");
+
+  // put a shared lock on the cluster
+  auto c_lock = get_lock_shared();
+
   Base_cluster_impl::setup_router_account(username, host, options);
 }
 
@@ -1994,20 +2042,19 @@ void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
     }
   }
 
-  // Dissolve the Cluster
-  try {
-    // Create the Dissolve command and execute it.
-    cluster::Dissolve op_dissolve(interactive, force, this);
-    // Always execute finish when leaving "try catch".
-    auto finally =
-        shcore::on_leave_scope([&op_dissolve]() { op_dissolve.finish(); });
-    // Prepare the dissolve command execution (validations).
-    op_dissolve.prepare();
-    // Execute dissolve operations.
-    op_dissolve.execute();
-  } catch (...) {
-    throw;
-  }
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
+  // Create the Dissolve command and execute it.
+  cluster::Dissolve op_dissolve(interactive, force, this);
+
+  // Always execute finish when leaving "try catch".
+  shcore::on_leave_scope finally([&op_dissolve]() { op_dissolve.finish(); });
+
+  // Prepare the dissolve command execution (validations).
+  op_dissolve.prepare();
+  // Execute dissolve operations.
+  op_dissolve.execute();
 }
 
 void Cluster_impl::force_quorum_using_partition_of(
@@ -2025,7 +2072,9 @@ void Cluster_impl::force_quorum_using_partition_of(
   CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_address)
 
   check_preconditions("forceQuorumUsingPartitionOf");
-  const auto console = current_console();
+
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
 
   std::vector<Instance_metadata> online_instances = get_active_instances();
 
@@ -2034,19 +2083,16 @@ void Cluster_impl::force_quorum_using_partition_of(
         "No online instances are visible from the given one.");
   }
 
-  std::vector<std::string> online_instances_array;
-  online_instances_array.reserve(online_instances.size());
-
-  for (const auto &instance : online_instances) {
-    online_instances_array.push_back(instance.endpoint);
-  }
-
-  auto group_peers_print = shcore::str_join(online_instances_array, ",");
+  auto group_peers_print =
+      shcore::str_join(online_instances.begin(), online_instances.end(), ",",
+                       [](const auto &i) { return i.endpoint; });
 
   // Remove the trailing comma of group_peers_print
   if (group_peers_print.back() == ',') group_peers_print.pop_back();
 
   if (interactive) {
+    const auto console = current_console();
+
     std::string message = "Restoring cluster '" + get_name() +
                           "' from loss of quorum, by using the partition "
                           "composed of [" +
@@ -2218,6 +2264,8 @@ void Cluster_impl::force_quorum_using_partition_of(
   }
 
   if (interactive) {
+    const auto console = current_console();
+
     console->print_info(
         "The InnoDB cluster was successfully restored using the partition "
         "from the instance '" +
@@ -2235,11 +2283,14 @@ void Cluster_impl::force_quorum_using_partition_of(
 void Cluster_impl::rescan(const cluster::Rescan_options &options) {
   check_preconditions("rescan");
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // Create the rescan command and execute it.
   cluster::Rescan op_rescan(options, this);
 
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_rescan]() { op_rescan.finish(); });
+  shcore::on_leave_scope finally([&op_rescan]() { op_rescan.finish(); });
 
   // Prepare the rescan command execution (validations).
   op_rescan.prepare();
@@ -2326,12 +2377,15 @@ void Cluster_impl::switch_to_single_primary_mode(
 
   // Switch to single-primary mode
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // Create the Switch_to_single_primary_mode object and execute it.
   cluster::Switch_to_single_primary_mode op_switch_to_single_primary_mode(
       instance_def, this);
 
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_switch_to_single_primary_mode]() {
+  shcore::on_leave_scope finally([&op_switch_to_single_primary_mode]() {
     op_switch_to_single_primary_mode.finish();
   });
 
@@ -2346,11 +2400,14 @@ void Cluster_impl::switch_to_single_primary_mode(
 void Cluster_impl::switch_to_multi_primary_mode() {
   check_preconditions("switchToMultiPrimaryMode");
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // Create the Switch_to_multi_primary_mode object and execute it.
   cluster::Switch_to_multi_primary_mode op_switch_to_multi_primary_mode(this);
 
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_switch_to_multi_primary_mode]() {
+  shcore::on_leave_scope finally([&op_switch_to_multi_primary_mode]() {
     op_switch_to_multi_primary_mode.finish();
   });
 
@@ -2368,12 +2425,15 @@ void Cluster_impl::set_primary_instance(
 
   // Set primary instance
 
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
   // Create the Set_primary_instance object and execute it.
   cluster::Set_primary_instance op_set_primary_instance(instance_def, this,
                                                         options);
 
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
+  shcore::on_leave_scope finally(
       [&op_set_primary_instance]() { op_set_primary_instance.finish(); });
 
   // Prepare the Set_primary_instance command execution (validations).
@@ -2806,13 +2866,8 @@ bool Cluster_impl::contains_instance_with_address(
  * An Instance object connected to the primary is returned. The session
  * is owned by the cluster object.
  */
-mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
-    mysqlshdk::mysql::Lock_mode /*mode*/,
-    const std::string & /*skip_lock_uuid*/) {
-  auto console = current_console();
-  if (!m_cluster_server) {
-    return nullptr;
-  }
+mysqlsh::dba::Instance *Cluster_impl::acquire_primary() {
+  if (!m_cluster_server) return nullptr;
 
   // clear cached clusterset related metadata
   m_cs_md.cluster_set_id.clear();
@@ -2841,8 +2896,8 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     if (primary_url.empty()) {
       // Might happen and it should be possible to check the Cluster's status in
       // such situation
-      console->print_info("No PRIMARY member found for cluster '" + get_name() +
-                          "'");
+      current_console()->print_info("No PRIMARY member found for cluster '" +
+                                    get_name() + "'");
     } else if (!mysqlshdk::utils::are_endpoints_equal(
                    primary_url,
                    m_cluster_server->get_connection_options().uri_endpoint())) {
@@ -2873,9 +2928,9 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     }
   } catch (...) {
     if (!primary_url.empty()) {
-      console->print_error("A connection to the PRIMARY instance at " +
-                           primary_url +
-                           " could not be established to perform this action.");
+      current_console()->print_error(
+          "A connection to the PRIMARY instance at " + primary_url +
+          " could not be established to perform this action.");
     }
 
     throw;
@@ -3010,10 +3065,7 @@ Cluster_impl::check_and_get_cluster_set_for_cluster() {
   return cs;
 }
 
-void Cluster_impl::release_primary(mysqlsh::dba::Instance *primary) {
-  (void)primary;
-  m_primary_master.reset();
-}
+void Cluster_impl::release_primary() { m_primary_master.reset(); }
 
 std::tuple<std::string, std::vector<std::string>, bool>
 Cluster_impl::get_replication_user(
@@ -3269,11 +3321,18 @@ void Cluster_impl::_set_instance_option(const std::string &instance_def,
   }
 
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
+  shcore::on_leave_scope finally(
       [&op_set_instance_option]() { op_set_instance_option->finish(); });
 
   // Prepare the Cluster Set_instance_option command execution (validations).
   op_set_instance_option->prepare();
+
+  // put an exclusive lock on the target instance
+  mysqlshdk::mysql::Lock_scoped i_lock;
+  if (option != kLabel) {
+    if (auto instance = op_set_instance_option->get_target_instance(); instance)
+      i_lock = instance->get_lock_exclusive();
+  }
 
   // Execute Cluster Set_instance_option operations.
   op_set_instance_option->execute();
@@ -3281,6 +3340,10 @@ void Cluster_impl::_set_instance_option(const std::string &instance_def,
 
 void Cluster_impl::_set_option(const std::string &option,
                                const shcore::Value &value) {
+  // put an exclusive lock on the cluster
+  mysqlshdk::mysql::Lock_scoped c_lock;
+  if (option != kClusterName) c_lock = get_lock_exclusive();
+
   // Set Cluster configuration option
   // Create the Set_option object and execute it.
   std::unique_ptr<cluster::Set_option> op_cluster_set_option;
@@ -3308,7 +3371,7 @@ void Cluster_impl::_set_option(const std::string &option,
   }
 
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
+  shcore::on_leave_scope finally(
       [&op_cluster_set_option]() { op_cluster_set_option->finish(); });
 
   // Prepare the Set_option command execution (validations).
@@ -3316,6 +3379,16 @@ void Cluster_impl::_set_option(const std::string &option,
 
   // Execute Set_option operations.
   op_cluster_set_option->execute();
+}
+
+mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock_shared(
+    std::chrono::seconds timeout) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::SHARED, timeout);
+}
+
+mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock_exclusive(
+    std::chrono::seconds timeout) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::EXCLUSIVE, timeout);
 }
 
 const Cluster_set_member_metadata &Cluster_impl::get_clusterset_metadata()
@@ -3360,6 +3433,95 @@ void Cluster_impl::handle_notification(const std::string &name,
   if (name == kNotifyClusterSetPrimaryChanged) {
     invalidate_cluster_set_metadata_cache();
   }
+}
+
+mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
+    mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout) {
+  if (!m_cluster_server->is_lock_service_installed()) {
+    bool lock_service_installed = false;
+    // if SRO is disabled, we have a chance to install the lock service
+    if (bool super_read_only =
+            m_cluster_server->get_sysvar_bool("super_read_only", false);
+        !super_read_only) {
+      // we must disable log_bin to prevent the installation from being
+      // replicated
+      mysqlshdk::mysql::Suppress_binary_log nobinlog(m_cluster_server.get());
+
+      lock_service_installed =
+          m_cluster_server->ensure_lock_service_is_installed(false);
+    }
+
+    if (!lock_service_installed) {
+      log_warning(
+          "The required MySQL Locking Service isn't installed on instance "
+          "'%s'. The operation will continue without concurrent execution "
+          "protection.",
+          m_cluster_server->descr().c_str());
+      return nullptr;
+    }
+  }
+
+  DBUG_EXECUTE_IF("dba_locking_timeout_one",
+                  { timeout = std::chrono::seconds{1}; });
+
+  // Try to acquire the specified lock.
+  //
+  // NOTE: Only one lock per namespace is used because lock release is performed
+  // by namespace.
+  try {
+    log_debug("Acquiring %s lock ('%s', '%s') on '%s'.",
+              mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
+              m_cluster_server->descr().c_str());
+    mysqlshdk::mysql::get_lock(*m_cluster_server, k_lock_ns, k_lock_name, mode,
+                               timeout.count());
+  } catch (const shcore::Error &err) {
+    // Abort the operation in case the required lock cannot be acquired.
+    log_info("Failed to get %s lock ('%s', '%s') on '%s': %s",
+             mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
+             m_cluster_server->descr().c_str(), err.what());
+
+    if (err.code() == ER_LOCKING_SERVICE_TIMEOUT) {
+      current_console()->print_error(shcore::str_format(
+          "The operation cannot be executed because it failed to acquire the "
+          "Cluster lock through primary member '%s'. Another operation "
+          "requiring access to the member is still in progress, please wait "
+          "for it to finish and try again.",
+          m_cluster_server->descr().c_str()));
+      throw shcore::Exception(
+          shcore::str_format(
+              "Failed to acquire Cluster lock through primary member '%s'",
+              m_cluster_server->descr().c_str()),
+          SHERR_DBA_LOCK_GET_FAILED);
+    } else {
+      current_console()->print_error(shcore::str_format(
+          "The operation cannot be executed because it failed to acquire the "
+          "cluster lock through primary member '%s': %s",
+          m_cluster_server->descr().c_str(), err.what()));
+
+      throw;
+    }
+  }
+
+  auto release_cb = [instance = m_cluster_server]() {
+    // Release all instance locks in the k_lock_ns namespace.
+    //
+    // NOTE: Only perform the operation if the lock service is
+    // available, otherwise do nothing (ignore if concurrent execution is not
+    // supported, e.g., lock service plugin not available).
+    try {
+      log_debug("Releasing locks for '%s' on %s.", k_lock_ns,
+                instance->descr().c_str());
+      mysqlshdk::mysql::release_lock(*instance, k_lock_ns);
+
+    } catch (const shcore::Error &error) {
+      // Ignore any error trying to release locks (e.g., might have not
+      // been previously acquired due to lack of permissions).
+      log_error("Unable to release '%s' locks for '%s': %s", k_lock_ns,
+                instance->descr().c_str(), error.what());
+    }
+  };
+
+  return mysqlshdk::mysql::Lock_scoped{std::move(release_cb)};
 }
 
 }  // namespace dba

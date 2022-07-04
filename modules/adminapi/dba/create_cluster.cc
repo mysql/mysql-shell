@@ -235,17 +235,19 @@ void Create_cluster::resolve_ssl_mode() {
 void Create_cluster::prepare() {
   auto console = mysqlsh::current_console();
 
-  std::string msg = "A new InnoDB Cluster will be created ";
+  {
+    std::string msg = "A new InnoDB Cluster will be created ";
 
-  if (m_options.adopt_from_gr) {
-    msg += "based on the existing replication group ";
+    if (m_options.adopt_from_gr) {
+      msg += "based on the existing replication group ";
+    }
+
+    msg += "on instance '" + m_target_instance->descr();
+    msg += "'.";
+
+    console->print_info(msg);
+    console->print_info();
   }
-
-  msg += "on instance '" + m_target_instance->descr();
-  msg += "'.";
-
-  console->print_info(msg);
-  console->print_info();
 
   // Validate the cluster_name
   mysqlsh::dba::validate_cluster_name(m_cluster_name,
@@ -309,7 +311,10 @@ void Create_cluster::prepare() {
         m_target_instance->descr().c_str());
   }
 
-  // If adopting, set the target_instance to the primary member of the group:
+  // If adopting, lock all instances and set the target_instance to the primary
+  // member of the group:
+  //
+  // Don't forget that the target instance has already been locked
   //
   // Adopting a cluster can be performed using any member of the group
   // regardless if it's a primary or a secondary. However, all the operations
@@ -318,6 +323,7 @@ void Create_cluster::prepare() {
   // by disabling super_read_only. Apart from possible GTID inconsistencies, a
   // secondary will end up having super_read_only disabled.
   if (m_options.get_adopt_from_gr()) {
+    lock_all_instances();
     m_target_instance = get_primary_member_from_group(m_target_instance);
     m_primary_master = m_target_instance;
   }
@@ -1069,17 +1075,53 @@ shcore::Value Create_cluster::execute() {
 
   std::string message =
       m_options.get_adopt_from_gr()
-          ? "Cluster successfully created based on existing "
-            "replication group."
-          : "Cluster successfully created. Use "
-            "Cluster.<<<addInstance>>>() to add MySQL instances.\n"
-            "At least 3 instances are needed for the cluster to be "
-            "able to withstand up to\n"
-            "one server failure.";
+          ? "Cluster successfully created based on existing replication group."
+          : "Cluster successfully created. Use Cluster.<<<addInstance>>>() to "
+            "add MySQL instances.\nAt least 3 instances are needed for the "
+            "cluster to be able to withstand up to\none server failure.";
   console->print_info(message);
   console->print_info();
 
+  // we can already release the locks on the instances
+  m_instance_locks.invoke();
+
   return ret_val;
+}
+
+void Create_cluster::lock_all_instances() {
+  log_info("Locking all instances that belong to the GR group...");
+
+  bool has_quorum = false;
+  const auto members =
+      mysqlshdk::gr::get_members(*m_target_instance, nullptr, &has_quorum);
+
+  if (!has_quorum) {
+    throw shcore::Exception("Group has no quorum",
+                            SHERR_DBA_GROUP_HAS_NO_QUORUM);
+  }
+
+  const auto &target_instance_uuid = m_target_instance->get_uuid();
+
+  for (const auto &member : members) {
+    if (member.uuid == target_instance_uuid) continue;
+
+    mysqlshdk::db::Connection_options coptions;
+    coptions.set_host(member.host);
+    coptions.set_port(member.port);
+
+    // use the credentials from the target instance from which the group is
+    // being queried (cluster credentials)
+    coptions.set_login_options_from(
+        m_target_instance->get_connection_options());
+
+    log_info("Opening session to member of GR Group at: %s...",
+             coptions.as_uri().c_str());
+
+    auto instance = Instance::connect(coptions);
+
+    if (auto i_lock = instance->get_lock_exclusive(); i_lock)
+      m_instance_locks.push_back(std::move(i_lock), std::move(instance));
+  }
 }
 
 void Create_cluster::rollback() {

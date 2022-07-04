@@ -353,7 +353,7 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 |Instance configuration is suitable.|
 |NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.|
-|A new instance will be added to the InnoDB cluster. Depending on the amount of|
+|A new instance will be added to the InnoDB Cluster. Depending on the amount of|
 |data on the cluster this might take from a few seconds to several hours.|
 ||
 |WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.|

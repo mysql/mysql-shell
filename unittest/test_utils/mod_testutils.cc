@@ -3713,8 +3713,8 @@ void Testutils::get_exclusive_lock(const shcore::Value &classic_session,
       classic_session.as_object<mysqlsh::mysql::ClassicSession>();
   mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
 
-  if (!mysqlshdk::mysql::has_lock_service_udfs(instance)) {
-    mysqlshdk::mysql::install_lock_service_udfs(&instance);
+  if (!mysqlshdk::mysql::has_lock_service(instance)) {
+    mysqlshdk::mysql::install_lock_service(&instance);
   }
 
   mysqlshdk::mysql::get_lock(instance, name_space, name,
@@ -3748,8 +3748,8 @@ void Testutils::get_shared_lock(const shcore::Value &classic_session,
       classic_session.as_object<mysqlsh::mysql::ClassicSession>();
   mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
 
-  if (!mysqlshdk::mysql::has_lock_service_udfs(instance)) {
-    mysqlshdk::mysql::install_lock_service_udfs(&instance);
+  if (!mysqlshdk::mysql::has_lock_service(instance)) {
+    mysqlshdk::mysql::install_lock_service(&instance);
   }
 
   mysqlshdk::mysql::get_lock(instance, name_space, name,

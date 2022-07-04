@@ -73,33 +73,9 @@ Base_cluster_impl::Base_cluster_impl(
   }
 }
 
-Base_cluster_impl::~Base_cluster_impl() {
-  if (m_cluster_server) {
-    m_cluster_server->release();
-    m_cluster_server.reset();
-  }
+Base_cluster_impl::~Base_cluster_impl() { disconnect_internal(); }
 
-  if (m_primary_master) {
-    m_primary_master->release();
-    m_primary_master.reset();
-  }
-}
-
-void Base_cluster_impl::disconnect() {
-  if (m_cluster_server) {
-    m_cluster_server->release();
-    m_cluster_server.reset();
-  }
-
-  if (m_primary_master) {
-    m_primary_master->release();
-    m_primary_master.reset();
-  }
-
-  if (m_metadata_storage) {
-    m_metadata_storage.reset();
-  }
-}
+void Base_cluster_impl::disconnect() { disconnect_internal(); }
 
 void Base_cluster_impl::target_server_invalidated() {
   if (m_cluster_server && m_primary_master) {
@@ -217,7 +193,7 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   // * user:pwd@host:port  no extra checks
   auto ipool = current_ipool();
 
-  const auto &main_opts(m_cluster_server->get_connection_options());
+  const auto &main_opts = m_cluster_server->get_connection_options();
 
   // default to copying credentials and all other connection params from the
   // main session
@@ -370,8 +346,7 @@ void Base_cluster_impl::setup_account_common(
   auto metadata = std::make_shared<MetadataStorage>(get_cluster_server());
 
   const auto primary_instance = get_primary_master();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
+  shcore::on_leave_scope finally_primary([this]() { release_primary(); });
 
   // get the metadata version to build an accurate list of grants
   mysqlshdk::utils::Version metadata_version;
@@ -396,7 +371,8 @@ void Base_cluster_impl::setup_account_common(
     Setup_account op_setup(username, host, options, grant_list,
                            *primary_instance, get_type());
     // Always execute finish when leaving "try catch".
-    auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
+    shcore::on_leave_scope finally([&op_setup]() { op_setup.finish(); });
+
     // Prepare the setup_account execution
     op_setup.prepare();
     // Execute the setup_account command.
@@ -488,8 +464,8 @@ void Base_cluster_impl::set_option(const std::string &option,
 
   // make sure metadata session is using the primary
   acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
+
+  shcore::on_leave_scope finally_primary([this]() { release_primary(); });
 
   if (opt_namespace.empty()) {
     // no namespace was provided
@@ -605,6 +581,22 @@ shcore::Value Base_cluster_impl::get_cluster_tags() const {
     (*res)[instance_def.label] = shcore::Value(helper_func(instance_tags));
   }
   return shcore::Value(res);
+}
+
+void Base_cluster_impl::disconnect_internal() {
+  if (m_cluster_server) {
+    m_cluster_server->release();
+    m_cluster_server.reset();
+  }
+
+  if (m_primary_master) {
+    m_primary_master->release();
+    m_primary_master.reset();
+  }
+
+  if (m_metadata_storage) {
+    m_metadata_storage.reset();
+  }
 }
 
 }  // namespace dba

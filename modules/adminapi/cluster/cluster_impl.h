@@ -243,13 +243,11 @@ class Cluster_impl final : public Base_cluster_impl,
 
   bool contains_instance_with_address(const std::string &host_port) const;
 
-  mysqlsh::dba::Instance *acquire_primary(
-      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") override;
+  mysqlsh::dba::Instance *acquire_primary() override;
 
   Cluster_metadata get_metadata() const;
 
-  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+  void release_primary() override;
 
   shcore::Value cluster_status(int64_t extended);
   shcore::Value cluster_describe();
@@ -514,6 +512,14 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   void enable_super_read_only_globally() const;
 
+  // Lock methods
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
+      std::chrono::seconds timeout = {});
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
+      std::chrono::seconds timeout = {});
+
  public:
   // clusterset related methods
   const Cluster_set_member_metadata &get_clusterset_metadata() const;
@@ -569,6 +575,9 @@ class Cluster_impl final : public Base_cluster_impl,
                            shcore::Value::Map_type_ref data) override;
 
   void find_real_cluster_set_primary(Cluster_set_impl *cs) const;
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
+      mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});
 
   std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =

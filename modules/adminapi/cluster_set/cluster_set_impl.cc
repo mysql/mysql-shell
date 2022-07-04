@@ -50,6 +50,15 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+constexpr int k_cluster_set_master_connect_retry = 3;
+constexpr int k_cluster_set_master_retry_count = 10;
+
+// Constants with the names used to lock the cluster set
+constexpr char k_lock_ns[] = "AdminAPI_clusterset";
+constexpr char k_lock_name[] = "AdminAPI_lock";
+}  // namespace
+
 Cluster_set_impl::Cluster_set_impl(
     const std::string &domain_name,
     const std::shared_ptr<Instance> &target_instance,
@@ -262,7 +271,7 @@ Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
  * Connect to PRIMARY of PRIMARY Cluster
  */
 mysqlsh::dba::Instance *Cluster_set_impl::connect_primary() {
-  Cluster_set_member_metadata primary_cluster(get_primary_cluster_metadata());
+  Cluster_set_member_metadata primary_cluster = get_primary_cluster_metadata();
 
   current_ipool()->set_metadata(m_metadata_storage);
 
@@ -393,9 +402,7 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
 /**
  * Connect to PRIMARY of PRIMARY Cluster, throw exception if not possible
  */
-mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
-    mysqlshdk::mysql::Lock_mode /*mode*/,
-    const std::string & /*skip_lock_uuid*/) {
+mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary() {
   connect_primary();
 
   auto primary_cluster = get_primary_cluster();
@@ -404,21 +411,16 @@ mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
   try {
     m_primary_cluster->acquire_primary();
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
-      log_debug(
-          "Cluster has no quorum and cannot process write transactions: %s",
-          e.what());
-    } else {
-      throw;
-    }
+    if (e.code() != SHERR_DBA_GROUP_HAS_NO_QUORUM) throw;
+
+    log_debug("Cluster has no quorum and cannot process write transactions: %s",
+              e.what());
   }
 
   return m_primary_cluster->get_primary_master().get();
 }
 
-void Cluster_set_impl::release_primary(mysqlsh::dba::Instance *) {
-  m_primary_master.reset();
-}
+void Cluster_set_impl::release_primary() { m_primary_master.reset(); }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster(
     const std::string &name, bool allow_unavailable, bool allow_invalidated) {
@@ -731,6 +733,16 @@ bool Cluster_set_impl::check_gtid_consistency(Cluster_impl *cluster) const {
   return errants.empty();
 }
 
+mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock_shared(
+    std::chrono::seconds timeout) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::SHARED, timeout);
+}
+
+mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock_exclusive(
+    std::chrono::seconds timeout) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::EXCLUSIVE, timeout);
+}
+
 Async_replication_options Cluster_set_impl::get_clusterset_replication_options()
     const {
   Async_replication_options repl_options;
@@ -760,7 +772,6 @@ std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
     throw std::runtime_error("MD not found");
   }
 
-  auto console = current_console();
   std::list<std::shared_ptr<Cluster_impl>> r;
 
   (void)read_timeout;
@@ -778,17 +789,16 @@ std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
       continue;
     }
 
-    std::shared_ptr<Cluster_impl> cluster;
-
     try {
-      cluster = get_cluster_object(m);
+      auto cluster = get_cluster_object(m);
 
       cluster->acquire_primary();
 
-      r.emplace_back(cluster);
+      r.emplace_back(std::move(cluster));
     } catch (const shcore::Error &e) {
-      console->print_error("Could not connect to PRIMARY of cluster " +
-                           m.cluster.cluster_name + ": " + e.format());
+      current_console()->print_error(
+          "Could not connect to PRIMARY of cluster " + m.cluster.cluster_name +
+          ": " + e.format());
       if (inout_unreachable) {
         inout_unreachable->emplace_back(m.cluster.cluster_id);
       } else {
@@ -851,6 +861,11 @@ shcore::Value Cluster_set_impl::create_replica_cluster(
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
 
+  // put a shared lock on the clusterset and an exclusive one on the target
+  // instance
+  auto cs_lock = get_lock_shared();
+  auto i_lock = target->get_lock_exclusive();
+
   // Create the replica cluster
   {
     // Create the Create_replica_cluster command and execute it.
@@ -874,6 +889,11 @@ void Cluster_set_impl::remove_cluster(
   std::shared_ptr<Cluster_impl> target_cluster;
   bool skip_channel_check = false;
   auto console = mysqlsh::current_console();
+
+  // put an exclusive lock on the clusterset and one exclusive cluster lock on
+  // the primary cluster
+  auto cs_lock = get_lock_exclusive();
+  auto pc_lock = m_primary_cluster->get_lock_exclusive();
 
   // Validations and initializations of variables
   {
@@ -934,6 +954,10 @@ void Cluster_set_impl::remove_cluster(
 
     ensure_no_router_uses_cluster(routers, target_cluster->get_name());
   }
+
+  // put an exclusive cluster lock on the target cluster (if reachable)
+  mysqlshdk::mysql::Lock_scoped tc_lock;
+  if (!skip_channel_check) tc_lock = target_cluster->get_lock_exclusive();
 
   // Execute the operation
   {
@@ -1994,12 +2018,19 @@ void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *replica,
 
 void Cluster_set_impl::_set_option(const std::string &option,
                                    const shcore::Value &value) {
+  // put an exclusive lock on the clusterset
+  mysqlshdk::mysql::Lock_scoped_list api_locks;
+  api_locks.push_back(get_lock_exclusive());
+
   if (option == kReplicationAllowedHost) {
     if (value.type != shcore::String || value.as_string().empty())
       throw shcore::Exception::argument_error(
           shcore::str_format("Invalid value for '%s': Argument #2 is expected "
                              "to be a string.",
                              option.c_str()));
+
+    // we also need an exclusive lock on the primary cluster
+    api_locks.push_back(m_primary_cluster->get_lock_exclusive());
 
     update_replication_allowed_host(value.as_string());
 
@@ -2020,6 +2051,10 @@ void Cluster_set_impl::set_primary_cluster(
     const clusterset::Set_primary_cluster_options &options) {
   check_preconditions("setPrimaryCluster");
 
+  // put an exclusive lock on the clusterset
+  mysqlshdk::mysql::Lock_scoped_list api_locks;
+  api_locks.push_back(get_lock_exclusive());
+
   auto console = current_console();
 
   shcore::Scoped_callback_list undo_list;
@@ -2030,8 +2065,8 @@ void Cluster_set_impl::set_primary_cluster(
     console->print_note("dryRun enabled, no changes will be made");
 
   auto primary = get_primary_master();
-  auto release_primary_ = shcore::on_leave_scope(
-      [this, primary]() { release_primary(primary.get()); });
+  shcore::on_leave_scope release_primary_finally(
+      [this]() { release_primary(); });
 
   auto primary_cluster = get_primary_cluster();
   std::shared_ptr<Cluster_impl> promoted_cluster;
@@ -2066,9 +2101,13 @@ void Cluster_set_impl::set_primary_cluster(
 
   std::list<std::shared_ptr<Cluster_impl>> clusters(
       connect_all_clusters(0, false, &unreachable));
-  auto release_cluster_primaries = shcore::on_leave_scope([&clusters] {
+  shcore::on_leave_scope release_cluster_primaries([&clusters] {
     for (auto &c : clusters) c->release_primary();
   });
+
+  // put an exclusive lock on each reachable cluster
+  for (const auto &cluster : clusters)
+    api_locks.push_back(cluster->get_lock_exclusive());
 
   // another set of connections for locks
   // get triggered before server-side timeouts
@@ -2550,9 +2589,14 @@ void Cluster_set_impl::force_primary_cluster(
 
   std::list<std::shared_ptr<Cluster_impl>> clusters(
       connect_all_clusters(0, false, &unreachable));
-  auto release_cluster_primaries = shcore::on_leave_scope([&clusters] {
+  shcore::on_leave_scope release_cluster_primaries([&clusters] {
     for (auto &c : clusters) c->release_primary();
   });
+
+  // put an exclusive lock on each reachable cluster
+  mysqlshdk::mysql::Lock_scoped_list api_locks;
+  for (const auto &cluster : clusters)
+    api_locks.push_back(cluster->get_lock_exclusive());
 
   // another set of connections for locks
   // get triggered before server-side timeouts
@@ -2739,6 +2783,11 @@ void Cluster_set_impl::rejoin_cluster(
     const clusterset::Rejoin_cluster_options &options, bool allow_unavailable) {
   check_preconditions("rejoinCluster");
 
+  // put a shared lock on the clusterset and a shared cluster lock on the
+  // primary cluster
+  auto cs_lock = get_lock_shared();
+  auto pc_lock = m_primary_cluster->get_lock_shared();
+
   auto console = current_console();
   console->print_info("Rejoining cluster '" + cluster_name +
                       "' to the clusterset");
@@ -2753,6 +2802,9 @@ void Cluster_set_impl::rejoin_cluster(
                          "': " + e.format());
     throw;
   }
+
+  // put an exclusive lock on the target cluster
+  auto tc_lock = rejoining_cluster->get_lock_exclusive();
 
   auto rejoining_primary = rejoining_cluster->get_cluster_server();
 
@@ -2832,6 +2884,94 @@ void Cluster_set_impl::rejoin_cluster(
 
   console->print_info("Cluster '" + cluster_name +
                       "' was rejoined to the clusterset");
+}
+
+mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock(
+    mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout) {
+  if (!m_primary_master->is_lock_service_installed()) {
+    bool lock_service_installed = false;
+    // if SRO is disabled, we have a chance to install the lock service
+    if (bool super_read_only =
+            m_primary_master->get_sysvar_bool("super_read_only", false);
+        !super_read_only) {
+      // we must disable log_bin to prevent the installation from being
+      // replicated
+      mysqlshdk::mysql::Suppress_binary_log nobinlog(m_primary_master.get());
+
+      lock_service_installed =
+          m_primary_master->ensure_lock_service_is_installed(false);
+    }
+
+    if (!lock_service_installed) {
+      log_warning(
+          "The required MySQL Locking Service isn't installed on instance "
+          "'%s'. The operation will continue without concurrent execution "
+          "protection.",
+          m_primary_master->descr().c_str());
+      return nullptr;
+    }
+  }
+
+  DBUG_EXECUTE_IF("dba_locking_timeout_one",
+                  { timeout = std::chrono::seconds{1}; });
+
+  // Try to acquire the specified lock.
+  //
+  // NOTE: Only one lock per namespace is used because lock release is performed
+  // by namespace.
+  try {
+    log_debug("Acquiring %s lock ('%s', '%s') on '%s'.",
+              mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
+              m_primary_master->descr().c_str());
+    mysqlshdk::mysql::get_lock(*m_primary_master, k_lock_ns, k_lock_name, mode,
+                               timeout.count());
+  } catch (const shcore::Error &err) {
+    // Abort the operation in case the required lock cannot be acquired.
+    log_info("Failed to get %s lock ('%s', '%s') on '%s': %s",
+             mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
+             m_primary_master->descr().c_str(), err.what());
+
+    if (err.code() == ER_LOCKING_SERVICE_TIMEOUT) {
+      current_console()->print_error(shcore::str_format(
+          "The operation cannot be executed because it failed to acquire the "
+          "ClusterSet lock through global primary member '%s'. Another "
+          "operation requiring access to the member is still in progress, "
+          "please wait for it to finish and try again.",
+          m_primary_master->descr().c_str()));
+      throw shcore::Exception(
+          shcore::str_format("Failed to acquire ClusterSet lock through global "
+                             "primary member '%s'",
+                             m_primary_master->descr().c_str()),
+          SHERR_DBA_LOCK_GET_FAILED);
+    } else {
+      current_console()->print_error(shcore::str_format(
+          "The operation cannot be executed because it failed to acquire the "
+          "ClusterSet lock through global primary member '%s': %s",
+          m_primary_master->descr().c_str(), err.what()));
+      throw;
+    }
+  }
+
+  auto release_cb = [instance = m_primary_master]() {
+    // Release all instance locks in the k_lock_ns namespace.
+    //
+    // NOTE: Only perform the operation if the lock service is
+    // available, otherwise do nothing (ignore if concurrent execution is not
+    // supported, e.g., lock service plugin not available).
+    try {
+      log_debug("Releasing locks for '%s' on %s.", k_lock_ns,
+                instance->descr().c_str());
+      mysqlshdk::mysql::release_lock(*instance, k_lock_ns);
+
+    } catch (const shcore::Error &error) {
+      // Ignore any error trying to release locks (e.g., might have not
+      // been previously acquired due to lack of permissions).
+      log_error("Unable to release '%s' locks for '%s': %s", k_lock_ns,
+                instance->descr().c_str(), error.what());
+    }
+  };
+
+  return mysqlshdk::mysql::Lock_scoped{std::move(release_cb)};
 }
 
 }  // namespace dba
