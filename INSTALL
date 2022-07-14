@@ -5,13 +5,14 @@ Dependencies
 ============
 
 Mandatory
-- cmake 2.8.12 (note: if you're using a very recent version of cmake and it
+- cmake 3.5.1 (note: if you're using a very recent version of cmake and it
   doesn't work, try downgrading)
 - gcc 5/VisualStudio 2015/clang 8
 - MySQL client libraries built from sources
   (libmysqlclient, libmysqlxclient)
 - zip (gnuwin32 in windows)
-- python 3.7+
+- python 3.8+
+- libssh 0.9.2
 
 Optional
 - gtest and gmock 1.8 (can be automatically downloaded)
@@ -61,7 +62,7 @@ Building the Shell
 2) Configure and Build
 Linux/OSX
        mkdir mysql-shell/bld
-       cd bld
+       cd mysql-shell/bld
        cmake .. \
             -DMYSQL_SOURCE_DIR=../../mysql-server\
             -DMYSQL_BUILD_DIR=../../mysql-server/bld\

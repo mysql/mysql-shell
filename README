@@ -28,7 +28,7 @@ For more information about how to use MySQL Shell see
 https://dev.mysql.com/doc/mysql-shell/8.0/en/
 
 For more information about how to configure and work with an InnoDB cluster
-see https://dev.mysql.com/doc/refman/en/mysql-innodb-cluster-userguide.html
+see https://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-innodb-cluster.html
 
 For more information about how to use X DevAPI and the MySQL Document
 Store see https://dev.mysql.com/doc/refman/en/document-store.html
