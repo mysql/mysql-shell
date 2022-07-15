@@ -2387,4 +2387,18 @@ TEST_F(Completer_frontend, bug_34353732) {
                        strv({"JSON_ARRAY_APPEND()", "JSON_ARRAY_INSERT()"}));
 }
 
+TEST_F(Completer_frontend, bug_34342946) {
+  connect_classic("mysql");
+  execute("\\sql");
+
+  // BUG#34370211
+  EXPECT_TAB_DOES_NOTHING("USE mysql ");
+
+  EXPECT_TAB_TAB_NOT_CONTAINS("SELECT mysql.plugin.name ", "dl");
+  EXPECT_TAB_TAB_NOT_CONTAINS("SELECT mysql.plugin.name ", "name");
+
+  EXPECT_TAB_TAB_NOT_CONTAINS("CREATE DEFINER='root'@'localhost' ",
+                              "'root'@'localhost'");
+}
+
 }  // namespace mysqlsh

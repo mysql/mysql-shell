@@ -291,11 +291,8 @@ struct AutoCompletionContext {
     // should show candidates for this identifier position). Other tokens (like
     // operators) don't need a separator and hence we can take the caret index
     // as is for them.
-    // We don't want to move back if we're pointing to a whitespace, because
-    // this would mean we'll be completing the previous token.
     size_t caretIndex = scanner.tokenIndex();
-    if (MySQLLexer::DEFAULT_TOKEN_CHANNEL == scanner.tokenChannel() &&
-        caretIndex > 0 &&
+    if (caretIndex > 0 &&
         noSeparatorRequiredFor.count(scanner.lookBack()) == 0) {
       --caretIndex;
     }

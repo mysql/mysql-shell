@@ -481,7 +481,15 @@ CodeCompletionCore::RuleEndStatus CodeCompletionCore::processRule(
         default: {
           if (transition->isEpsilon()) {
             if (atCaret) {
-              translateToRuleIndex(callStack);
+              const auto next_state = transition->target->getStateType();
+
+              // if this is an epsilon transition into a rule stop or a block
+              // end, we've already consumed the whole rule, so this should not
+              // be a candidate
+              if (ATNStateType::RULE_STOP != next_state &&
+                  ATNStateType::BLOCK_END != next_state) {
+                translateToRuleIndex(callStack);
+              }
             }
 
             // Jump over simple states with a single outgoing epsilon
