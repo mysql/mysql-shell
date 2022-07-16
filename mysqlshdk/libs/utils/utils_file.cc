@@ -152,30 +152,17 @@ std::string get_global_config_path() {
 
   if (SUCCEEDED(
           hr = SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath))) {
-    path = shcore::wide_to_utf8(szPath, wcslen(szPath));
+    path = shcore::path::join_path(shcore::wide_to_utf8(szPath, wcslen(szPath)),
+                                   "MySQL", "mysqlsh");
   } else {
     _com_error err(hr);
     throw std::runtime_error(
         str_format("Error when gathering the PROGRAMDATA folder path: %s",
                    err.ErrorMessage()));
   }
-
-  to_append.push_back("MySQL");
-  to_append.push_back("mysqlsh");
 #else
   path = "/etc/mysql/mysqlsh";
 #endif
-
-  // Up to know the path must exist since it was retrieved from OS standard
-  // means we need to guarantee the rest of the path exists
-  if (!path.empty()) {
-    for (size_t index = 0; index < to_append.size(); index++) {
-      path += shcore::path::path_separator + to_append[index];
-      ensure_dir_exists(path);
-    }
-
-    path += shcore::path::path_separator;
-  }
 
   return path;
 }
@@ -786,7 +773,6 @@ void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet) {
  */
 std::string get_home_dir() {
   std::string path;
-  std::vector<std::string> to_append;
 
 #ifdef _WIN32
   wchar_t szPath[MAX_PATH + 1] = {};
@@ -809,11 +795,6 @@ std::string get_home_dir() {
   // Up to know the path must exist since it was retrieved from OS standard
   // means we need to guarantee the rest of the path exists
   if (!path.empty()) {
-    for (size_t index = 0; index < to_append.size(); index++) {
-      path += shcore::path::path_separator + to_append[index];
-      ensure_dir_exists(path);
-    }
-
     path += shcore::path::path_separator;
   }
 

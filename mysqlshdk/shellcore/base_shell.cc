@@ -159,7 +159,19 @@ void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
       // Checks existence of global startup script
       auto path = shcore::path::join_path(shcore::get_global_config_path(),
                                           startup_script);
-      if (shcore::is_file(path)) script_paths.emplace_back(std::move(path));
+      if (shcore::is_file(path)) {
+#ifdef WIN32
+        // Global configuration files are no longer supported in windows as the
+        // %programdata% permissions are open-wide, which opens the door for
+        // unauthorized users defining malicious startup files
+        current_console()->print_warning(
+            shcore::str_format("Global startup scripts are no longer "
+                               "supported, '%s' will be ignored.",
+                               path.c_str()));
+#else
+        script_paths.emplace_back(std::move(path));
+#endif
+      }
     }
 
     {
