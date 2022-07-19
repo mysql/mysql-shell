@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -489,7 +489,8 @@ Provider *Shell_cli_mapper::identify_operation(Provider *base_provider) {
    */
   auto is_help_required = [this](Help_type type) {
     if (help_requested()) return true;
-    const auto &next_arg = m_cmdline_args.begin()->definition;
+    if (m_cmdline_args.empty()) return false;
+    const auto &next_arg = m_cmdline_args.front().definition;
     if (next_arg == "--help" || next_arg == "-h") {
       m_help_type = type;
       m_cmdline_args.erase(m_cmdline_args.begin());
@@ -507,11 +508,11 @@ Provider *Shell_cli_mapper::identify_operation(Provider *base_provider) {
     // operation, it will also analyze nested objects.
     const auto advance_provider = [this](Provider *p) {
       assert(p);
-      auto next_arg = m_cmdline_args.begin()->definition;
+      auto next_arg = m_cmdline_args.front().definition;
       auto next = p->get_provider(next_arg).get();
       if (next) {
         m_cmdline_args.erase(m_cmdline_args.begin());
-        m_object_chain.push_back(next_arg);
+        m_object_chain.push_back(std::move(next_arg));
       }
       return next;
     };
@@ -520,7 +521,7 @@ Provider *Shell_cli_mapper::identify_operation(Provider *base_provider) {
     current_provider = advance_provider(base_provider);
     if (!current_provider) {
       throw std::invalid_argument("There is no object registered under name '" +
-                                  m_cmdline_args.begin()->definition + "'");
+                                  m_cmdline_args.front().definition + "'");
     }
 
     // Verifies if following args identify nested objects
@@ -538,7 +539,7 @@ Provider *Shell_cli_mapper::identify_operation(Provider *base_provider) {
                                   m_object_chain.back() + "'");
 
     // Handles the case where help is requested for the object
-    m_operation_name = m_cmdline_args.begin()->definition;
+    m_operation_name = m_cmdline_args.front().definition;
     m_cmdline_args.erase(m_cmdline_args.begin());
   }
 
