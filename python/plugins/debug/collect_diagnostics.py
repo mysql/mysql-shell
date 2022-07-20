@@ -464,6 +464,10 @@ def do_collect_diagnostics(session_, path, orig_args,
                 else:
                     print(
                         "Connected to remote server, ping stats not be collected.")
+
+            # collect system info
+            if local_target:
+                collect_host_info(zf, prefix)
     except:
         if os.path.exists(path):
             os.remove(path)

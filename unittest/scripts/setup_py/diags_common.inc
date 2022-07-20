@@ -1,9 +1,19 @@
 import os
+import sys
 
 outdir = __tmp_dir+"/diagout"
 if os.path.exists(outdir):
     shutil.rmtree(outdir)
 os.makedirs(outdir)
+
+if sys.platform not in ("win32", "cygwin", "msys"):
+    # add a dummy sudo so that tests don't try to use it for real
+    with open(outdir+"/sudo", "w+") as f:
+        f.write("echo 'IT WORKS!!!'\n")
+    os.chmod(outdir+"/sudo",0o555)
+    env_path="PATH="+outdir+":"+os.environ.get("PATH")
+else:
+    env_path=""
 
 # connect via not-localhost so that slow system collection isn't always executed
 hostname_uri = f"mysql://root:root@{hostname}:{__mysql_sandbox_port1}"
@@ -248,6 +258,8 @@ def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False
         ZEXPECT_NOT_EMPTY(zf, "shell_info.yaml")
         if diag_type == "basic":
             ZEXPECT_NOT_EMPTY(zf, "mysqlsh.log")
+        if localTarget:
+            ZEXPECT_NOT_EMPTY(zf, "host_info")
         filelist = zf.namelist()
         if is_cluster:
             ZEXPECT_NOT_EMPTY(zf, "cluster_accounts.tsv")
@@ -312,7 +324,7 @@ def run_collect(uri, path, options={}, *, password="root", **kwargs):
     args = [uri] if uri else []
     args += ["--passwords-from-stdin", "-e", f"util.debug.collectDiagnostics({repr(path)}, {repr(options)})"]
     print(args)
-    testutil.call_mysqlsh(args, password+"\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"], mysqlshrec)
+    testutil.call_mysqlsh(args, password+"\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path], mysqlshrec)
     return path
 
 def run_collect_hl(uri, path, options={}, *, password="root",env=[],**kwargs):
@@ -328,7 +340,7 @@ def run_collect_hl(uri, path, options={}, *, password="root",env=[],**kwargs):
     args = [uri] if uri else []
     args += ["-e", f"util.debug.collectHighLoadDiagnostics({repr(path)}, {repr(options)})"]
     print(args)
-    testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]+env, mysqlshrec)
+    testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
     return path
 
 def run_collect_sq(uri, path, query="select * from mysql.user join mysql.db", options={}, *, password="root", env=[],**kwargs):
@@ -346,7 +358,7 @@ def run_collect_sq(uri, path, query="select * from mysql.user join mysql.db", op
     args = [uri] if uri else []
     args += ["-e", f"util.debug.collectSlowQueryDiagnostics({repr(path)}, {repr(query)}, {repr(options)})"]
     print(args)
-    testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]+env, mysqlshrec)
+    testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
     return path
 
 def CHECK_ALL_ERROR(check_fn, options={}, uri=hostname_uri+"/mysql", query="select * from mysql.user join mysql.db", path=None, keep_file=False, nobasic=False):
