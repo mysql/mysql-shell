@@ -394,13 +394,13 @@ IF(BUNDLED_ANTLR_DIR)
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_ANTLR4_SHARED_LIB}"
                   "$<TARGET_FILE_DIR:mysqlsh>/.")
   ELSE()
-    INSTALL(FILES
-      "${_ANTLR4_SHARED_LIB}"
-      DESTINATION ${INSTALL_LIBDIR}
-      COMPONENT main
-    )
-
     foreach(CURRENT_ANTLR4_SHARED_LIB ${_ANTLR4_SHARED_LIB})
+       INSTALL(FILES
+        "${CURRENT_ANTLR4_SHARED_LIB}"
+        DESTINATION ${INSTALL_LIBDIR}
+        COMPONENT main
+      )
+
       ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CURRENT_ANTLR4_SHARED_LIB}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
