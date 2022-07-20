@@ -452,6 +452,11 @@ Value::Value(const char *s, size_t n, bool binary) {
   }
 }
 
+Value::Value(std::wstring_view s)
+    : Value(shcore::wide_to_utf8(s.data(), s.length())) {}
+
+Value::Value(std::nullptr_t) : type(shcore::Null) {}
+
 Value::Value(int i) : type(Integer) { value.i = i; }
 
 Value::Value(unsigned int ui) : type(UInteger) { value.ui = ui; }
@@ -1822,6 +1827,10 @@ std::string Value::as_string() const {
       break;
   }
   throw type_conversion_error(type, String);
+}
+
+std::wstring Value::as_wstring() const {
+  return shcore::utf8_to_wide(as_string());
 }
 
 std::string Value::yaml() const { return "---\n" + yaml(0) + "\n"; }

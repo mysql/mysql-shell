@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -194,6 +194,12 @@ std::string Row::get_string(uint32_t index) const {
   VALIDATE_TYPE(index, (is_string_type(ftype)));
 
   return std::string(_row[index], _lengths[index]);
+}
+
+std::wstring Row::get_wstring(uint32_t index) const {
+  VALIDATE_TYPE(index, (is_string_type(ftype)));
+
+  return shcore::utf8_to_wide(_row[index], _lengths[index]);
 }
 
 std::pair<const char *, size_t> Row::get_string_data(uint32_t index) const {

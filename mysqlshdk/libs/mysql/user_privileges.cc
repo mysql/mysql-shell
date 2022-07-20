@@ -96,7 +96,8 @@ std::set<std::string> validate_privileges(
     const std::set<std::string> &all_privileges) {
   std::set<std::string> result;
   std::transform(privileges.begin(), privileges.end(),
-                 std::inserter(result, result.begin()), shcore::str_upper);
+                 std::inserter(result, result.begin()),
+                 [](const auto &s) { return shcore::str_upper(s); });
 
   std::set<std::string> difference;
   std::set_difference(result.begin(), result.end(), all_privileges.begin(),
@@ -224,14 +225,14 @@ void User_privileges::parse_grant(const std::string &statement) {
   bool grant = true;
   bool grant_all = false;
 
-  if (shcore::str_caseeq(type.c_str(), "GRANT")) {
+  if (shcore::str_caseeq(type, "GRANT")) {
     target = &m_privileges;
 
-    if (shcore::str_ibeginswith(statement.c_str(), k_grant_all)) {
+    if (shcore::str_ibeginswith(statement, k_grant_all)) {
       grant_all = true;
       it.set_position(::strlen(k_grant_all));
     }
-  } else if (shcore::str_caseeq(type.c_str(), "REVOKE")) {
+  } else if (shcore::str_caseeq(type, "REVOKE")) {
     target = &m_revoked_privileges;
 
     // REVOKE statements can appear if partial_revokes is enabled, partial
@@ -253,26 +254,26 @@ void User_privileges::parse_grant(const std::string &statement) {
       do {
         auto token = it.next_token();
 
-        if (shcore::str_caseeq(token.c_str(), grant ? "TO" : "FROM")) {
+        if (shcore::str_caseeq(token, grant ? "TO" : "FROM")) {
           // this is GRANT role, we're not interested in these
           return;
         }
 
-        if (shcore::str_caseeq(token.c_str(), "(")) {
+        if (shcore::str_caseeq(token, "(")) {
           // column-level privilege, we're ignoring these
           add_privilege = false;
 
           // move past column_list
           do {
             token = it.next_token();
-          } while (!shcore::str_caseeq(token.c_str(), ")"));
+          } while (!shcore::str_caseeq(token, ")"));
 
           // read next token (either , or ON)
           token = it.next_token();
         }
 
-        privilege_done = shcore::str_caseeq(token.c_str(), ",");
-        all_privileges_done = shcore::str_caseeq(token.c_str(), "ON");
+        privilege_done = shcore::str_caseeq(token, ",");
+        all_privileges_done = shcore::str_caseeq(token, "ON");
 
         if (!privilege_done && !all_privileges_done) {
           privilege += " " + token;
@@ -286,10 +287,10 @@ void User_privileges::parse_grant(const std::string &statement) {
   // we're now past ON, next is [object_type] priv_level
   privilege_level = it.next_token();
 
-  if (shcore::str_caseeq_mv(privilege_level.c_str(), "FUNCTION", "PROCEDURE")) {
+  if (shcore::str_caseeq(privilege_level, "FUNCTION", "PROCEDURE")) {
     // we're not interested in such privileges
     return;
-  } else if (shcore::str_caseeq(privilege_level.c_str(), "TABLE")) {
+  } else if (shcore::str_caseeq(privilege_level, "TABLE")) {
     privilege_level = it.next_token();
   }
 
@@ -314,8 +315,8 @@ void User_privileges::parse_grant(const std::string &statement) {
 
   // check if GRANT OPTION is here
   while (it.valid()) {
-    if (shcore::str_caseeq(it.next_token().c_str(), "GRANT") &&
-        shcore::str_caseeq(it.next_token().c_str(), "OPTION")) {
+    if (shcore::str_caseeq(it.next_token(), "GRANT") &&
+        shcore::str_caseeq(it.next_token(), "OPTION")) {
       target = &m_grantable_privileges;
       break;
     }
@@ -423,7 +424,7 @@ std::set<std::string> User_privileges::get_mandatory_roles(
     // @ or ,
     const auto token = it.next_token();
 
-    if (shcore::str_caseeq(token.c_str(), "@")) {
+    if (shcore::str_caseeq(token, "@")) {
       // host name will follow
       account += token;
       account += it.next_token();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,17 +21,16 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/rest/headers.h"
+#include "mysqlshdk/libs/db/row.h"
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
-namespace rest {
+namespace db {
 
-bool Header_comparator::operator()(const std::string &l,
-                                   const std::string &r) const {
-  return shcore::str_casecmp(l, r) < 0;
+std::wstring IRow::get_wstring(uint32_t index) const {
+  return shcore::utf8_to_wide(get_string(index));
 }
 
-}  // namespace rest
+}  // namespace db
 }  // namespace mysqlshdk

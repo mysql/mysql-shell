@@ -120,15 +120,15 @@ std::string to_string(Cluster_ssl_mode ssl_mode) {
 }
 
 Cluster_ssl_mode to_cluster_ssl_mode(const std::string &mode) {
-  if (shcore::str_casecmp("AUTO", mode) == 0) {
+  if (shcore::str_caseeq("AUTO", mode)) {
     return Cluster_ssl_mode::AUTO;
-  } else if (shcore::str_casecmp("DISABLED", mode) == 0) {
+  } else if (shcore::str_caseeq("DISABLED", mode)) {
     return Cluster_ssl_mode::DISABLED;
-  } else if (shcore::str_casecmp("REQUIRED", mode) == 0) {
+  } else if (shcore::str_caseeq("REQUIRED", mode)) {
     return Cluster_ssl_mode::REQUIRED;
-  } else if (shcore::str_casecmp("VERIFY_CA", mode) == 0) {
+  } else if (shcore::str_caseeq("VERIFY_CA", mode)) {
     return Cluster_ssl_mode::VERIFY_CA;
-  } else if (shcore::str_casecmp("VERIFY_IDENTITY", mode) == 0) {
+  } else if (shcore::str_caseeq("VERIFY_IDENTITY", mode)) {
     return Cluster_ssl_mode::VERIFY_IDENTITY;
   } else {
     throw std::runtime_error("Unsupported Cluster SSL-mode: " + mode);
@@ -272,7 +272,7 @@ mysqlshdk::db::nullable<Cluster_ssl_mode> resolve_ssl_mode(
   std::string have_ssl_str = *instance.get_sysvar_string("have_ssl");
 
   // The instance supports SSL
-  if (!shcore::str_casecmp(have_ssl_str.c_str(), "YES")) {
+  if (shcore::str_caseeq(have_ssl_str, "YES")) {
     if (have_ssl) *have_ssl = true;
 
     if (ssl_mode == Cluster_ssl_mode::AUTO ||
@@ -351,7 +351,7 @@ void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
     std::string have_ssl = *instance.get_sysvar_string("have_ssl");
 
     // SSL is not supported on the instance
-    if (shcore::str_casecmp(have_ssl.c_str(), "YES")) {
+    if (!shcore::str_caseeq(have_ssl, "YES")) {
       throw shcore::Exception::runtime_error(
           "Instance '" + instance.descr() +
           "' does not support SSL and cannot join a cluster with SSL "
@@ -1421,8 +1421,8 @@ std::string resolve_gr_local_address(
     bool quiet) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
   bool generated = false;
-  bool comm_stack_mysql = shcore::str_casecmp(communication_stack.get_safe(),
-                                              kCommunicationStackMySQL) == 0;
+  bool comm_stack_mysql = shcore::str_caseeq(communication_stack.get_safe(),
+                                             kCommunicationStackMySQL);
 
   // if report host is an IPv6 address, surround it with []
   // The [] are necessary for IPv6 because we later have to append a colon and

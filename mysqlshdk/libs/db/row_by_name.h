@@ -148,6 +148,24 @@ class Row_ref_by_name {
     }
   }
 
+  std::wstring get_wstring(const std::string &field) const {
+    try {
+      return ref()->get_wstring(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
+  }
+
+  std::wstring get_wstring(const std::string &field,
+                           const std::wstring &default_if_null) const {
+    if (is_null(field)) return default_if_null;
+    try {
+      return ref()->get_wstring(field_index(field));
+    } catch (const bad_field &e) {
+      throw decorate_bad_field(field, e);
+    }
+  }
+
   int64_t get_int(const std::string &field) const {
     try {
       return ref()->get_int(field_index(field));

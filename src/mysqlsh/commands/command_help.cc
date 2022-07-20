@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,12 +180,11 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
         //   | name | description |
         //   +------+-------------+
         size_t name_col = 0;
-        if (shcore::str_casecmp(metadata[0].get_column_label(), "name") != 0)
+        if (!shcore::str_caseeq(metadata[0].get_column_label(), "name"))
           name_col++;
 
         size_t desc_col = 0;
-        if (shcore::str_casecmp(metadata[1].get_column_label(),
-                                "description") == 0)
+        if (shcore::str_caseeq(metadata[1].get_column_label(), "description"))
           desc_col++;
 
         // If found a list of topics

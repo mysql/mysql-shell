@@ -27,6 +27,7 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <set>
 #include <string_view>
 #include <type_traits>
@@ -58,11 +59,29 @@ namespace {
 const Version k_current_version{MYSH_VERSION};
 
 struct Instance {
-  struct Object {
+  class Object {
+   public:
     Object() = default;
-    explicit Object(std::string n) : name(std::move(n)) {}
 
-    std::string name;
+    explicit Object(std::wstring n) : m_wide_name(std::move(n)) {}
+
+    explicit Object(std::string n) : m_utf8_name(std::move(n)) {
+      m_wide_name = shcore::utf8_to_wide(m_utf8_name.value());
+    }
+
+    const std::wstring &wide_name() const { return m_wide_name; }
+
+    const std::string &name() const {
+      if (!m_utf8_name) {
+        m_utf8_name = shcore::wide_to_utf8(m_wide_name);
+      }
+
+      return m_utf8_name.value();
+    }
+
+   private:
+    std::wstring m_wide_name;
+    mutable std::optional<std::string> m_utf8_name;
   };
   using Objects = std::vector<Object>;
 
@@ -187,7 +206,7 @@ class Provider_sql::Cache final {
     Completion_list result;
 
     for (const auto &schema : find_prefix_ci(m_instance.schemas, prefix)) {
-      result.emplace_back(schema->name);
+      result.emplace_back(schema->name());
     }
 
     return result;
@@ -229,7 +248,7 @@ class Provider_sql::Cache final {
          &prefix = std::as_const(result.context.prefix.as_identifier)](
             const auto &container, bool as_function_call = false) {
           for (const auto &item : find_prefix_ci(container, prefix)) {
-            auto name = quote_identifier(item->name);
+            auto name = quote_identifier(item->name());
 
             if (as_function_call) {
               name += '(';
@@ -245,7 +264,7 @@ class Provider_sql::Cache final {
              std::as_const(result.context.prefix.as_string_or_identifier)](
             const auto &container) {
           for (const auto &item : find_prefix_ci(container, prefix)) {
-            list.emplace_back(quote_string_or_identifier(item->name));
+            list.emplace_back(quote_string_or_identifier(item->name()));
           }
         };
     const auto add_identifiers_from = [&add_identifiers, this](
@@ -334,8 +353,8 @@ class Provider_sql::Cache final {
           if (!result.context.prefix.quoted) {
             for (const auto &item :
                  find_prefix_ci(*m_instance.system_functions,
-                                result.context.prefix.full)) {
-              list.emplace_back(item->name);
+                                result.context.prefix.full_wide)) {
+              list.emplace_back(item->name());
             }
           }
           break;
@@ -359,7 +378,7 @@ class Provider_sql::Cache final {
             for (const auto &item :
                  find_prefix_ci(m_instance.system_variables,
                                 result.context.prefix.as_identifier)) {
-              auto name = item->name;
+              auto name = item->name();
 
               if (result.context.prefix.quote) {
                 name = shcore::quote_identifier(name);
@@ -433,7 +452,7 @@ class Provider_sql::Cache final {
           };
 
           for (const auto &item : find_prefix_ci(m_instance.users, prefix)) {
-            list.emplace_back(quote_user(item->name));
+            list.emplace_back(quote_user(item->name()));
           }
         } break;
 
@@ -467,13 +486,20 @@ class Provider_sql::Cache final {
   }
 
  private:
-  struct Compare_ci {
-    bool operator()(const Instance::Object &o, const std::string &n) const {
-      return compare_ci(o.name, n);
+  struct Compare_ci : public Case_insensitive_comparator {
+    using Case_insensitive_comparator::operator();
+
+    bool operator()(const Instance::Object &a,
+                    const Instance::Object &b) const {
+      return (*this)(a.wide_name(), b.wide_name());
     }
 
-    bool operator()(const std::string &n, const Instance::Object &o) const {
-      return compare_ci(n, o.name);
+    bool operator()(const Instance::Object &o, const std::wstring &n) const {
+      return (*this)(o.wide_name(), n);
+    }
+
+    bool operator()(const std::wstring &n, const Instance::Object &o) const {
+      return (*this)(n, o.wide_name());
     }
   };
 
@@ -481,16 +507,9 @@ class Provider_sql::Cache final {
   using is_instance_object =
       std::enable_if_t<std::is_base_of_v<Instance::Object, T>, int>;
 
-  static inline bool compare_ci(const std::string &a, const std::string &b) {
-    // TODO(pawel): support UTF-8
-    return str_casecmp(a, b) < 0;
-  }
-
   template <class T, is_instance_object<T> = 0>
   static void sort(std::vector<T> *container) {
-    std::sort(container->begin(), container->end(), [](const T &a, const T &b) {
-      return compare_ci(a.name, b.name);
-    });
+    std::sort(container->begin(), container->end(), Compare_ci{});
   }
 
   template <class T, is_instance_object<T> = 0>
@@ -501,11 +520,12 @@ class Provider_sql::Cache final {
   template <class T, is_instance_object<T> = 0>
   static const T *find(const std::vector<T> &container,
                        const std::string &name) {
+    const auto wname = shcore::utf8_to_wide(name);
     const auto range = std::equal_range(container.begin(), container.end(),
-                                        name, Compare_ci{});
+                                        wname, Compare_ci{});
 
     for (auto it = range.first; it != range.second; ++it) {
-      if (name == it->name) {
+      if (wname == it->wide_name()) {
         return &(*it);
       }
     }
@@ -515,14 +535,13 @@ class Provider_sql::Cache final {
 
   template <class T, is_instance_object<T> = 0>
   static std::vector<const T *> find_prefix_ci(const std::vector<T> &container,
-                                               const std::string &prefix) {
+                                               const std::wstring &prefix) {
     auto it = std::lower_bound(container.begin(), container.end(), prefix,
                                Compare_ci{});
     std::vector<const T *> result;
 
     while (it != container.end()) {
-      // TODO(pawel): support UTF-8
-      if (str_ibeginswith(it->name, prefix)) {
+      if (str_ibeginswith(it->wide_name(), prefix)) {
         result.emplace_back(&(*it));
         ++it;
       } else {
@@ -531,6 +550,12 @@ class Provider_sql::Cache final {
     }
 
     return result;
+  }
+
+  template <class T, is_instance_object<T> = 0>
+  static std::vector<const T *> find_prefix_ci(const std::vector<T> &container,
+                                               const std::string &prefix) {
+    return find_prefix_ci(container, shcore::utf8_to_wide(prefix));
   }
 
   Instance::Objects init_system_functions(base::MySQLVersion version) {
@@ -582,7 +607,7 @@ class Provider_sql::Cache final {
           break;
         }
 
-        container->emplace_back(row->get_string(0));
+        container->emplace_back(row->get_wstring(0));
       }
     }
 
@@ -612,11 +637,12 @@ class Provider_sql::Cache final {
 
   void fetch_tables(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                     const Instance::Schema *schema, Instance::Tables *target) {
-    fetch(session,
-          "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE" +
-              std::string{target == &schema->tables ? "=" : "<>"} +
-              "'BASE TABLE' AND TABLE_SCHEMA=" + quote_sql_string(schema->name),
-          target);
+    fetch(
+        session,
+        "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE" +
+            std::string{target == &schema->tables ? "=" : "<>"} +
+            "'BASE TABLE' AND TABLE_SCHEMA=" + quote_sql_string(schema->name()),
+        target);
 
     for (auto &table : *target) {
       fetch_columns(session, schema, &table);
@@ -628,8 +654,8 @@ class Provider_sql::Cache final {
     fetch(session,
           "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE "
           "TABLE_SCHEMA=" +
-              quote_sql_string(schema->name) +
-              " AND TABLE_NAME=" + quote_sql_string(table->name),
+              quote_sql_string(schema->name()) +
+              " AND TABLE_NAME=" + quote_sql_string(table->name()),
           &table->columns);
   }
 
@@ -651,7 +677,7 @@ class Provider_sql::Cache final {
           "ROUTINE_TYPE='" +
               std::string{target == &schema->functions ? "FUNCTION"
                                                        : "PROCEDURE"} +
-              "' AND ROUTINE_SCHEMA=" + quote_sql_string(schema->name),
+              "' AND ROUTINE_SCHEMA=" + quote_sql_string(schema->name()),
           target);
   }
 
@@ -660,7 +686,7 @@ class Provider_sql::Cache final {
     fetch(
         session,
         "SELECT EVENT_NAME FROM INFORMATION_SCHEMA.EVENTS WHERE EVENT_SCHEMA=" +
-            quote_sql_string(schema->name),
+            quote_sql_string(schema->name()),
         &schema->events);
   }
 
@@ -669,7 +695,7 @@ class Provider_sql::Cache final {
     fetch(session,
           "SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS WHERE "
           "TRIGGER_SCHEMA=" +
-              quote_sql_string(schema->name),
+              quote_sql_string(schema->name()),
           &schema->triggers);
   }
 

@@ -680,7 +680,7 @@ void Create_replica_cluster::prepare() {
   std::string have_ssl = *m_target_instance->get_sysvar_string("have_ssl");
 
   // The instance does not support SSL
-  if (shcore::str_casecmp(have_ssl.c_str(), "YES") != 0 &&
+  if (!shcore::str_caseeq(have_ssl, "YES") &&
       m_ssl_mode == Cluster_ssl_mode::REQUIRED) {
     console->print_error(
         "The ClusterSet's clusterSetReplicationSslMode is 'REQUIRED', "

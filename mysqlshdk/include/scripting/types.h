@@ -229,6 +229,8 @@ struct SHCORE_PUBLIC Value {
   explicit Value(std::string &&s, bool binary = false);
   explicit Value(const char *);
   explicit Value(const char *, size_t n, bool binary = false);
+  explicit Value(std::wstring_view s);
+  explicit Value(std::nullptr_t);
   explicit Value(int i);
   explicit Value(unsigned int ui);
   explicit Value(int64_t i);
@@ -335,6 +337,7 @@ struct SHCORE_PUBLIC Value {
   uint64_t as_uint() const;
   double as_double() const;
   std::string as_string() const;
+  std::wstring as_wstring() const;
   const std::string &get_string() const {
     check_type(String);
     return *value.s;

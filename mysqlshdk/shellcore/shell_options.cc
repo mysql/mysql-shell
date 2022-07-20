@@ -243,7 +243,7 @@ Shell_options::Shell_options(int argc, char **argv,
         "File from which the private key for public key authentication is "
         "read.",
         [](const std::string &value, Source) {
-        if (shcore::str_caseeq(value.c_str(), "null", 4))
+        if (shcore::str_caseeq(value, "null"))
           return std::string();
 
         auto path = shcore::path::expand_user(value);

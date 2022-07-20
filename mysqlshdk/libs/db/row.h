@@ -62,6 +62,7 @@ class SHCORE_PUBLIC IRow {
   virtual std::string get_as_string(uint32_t index) const = 0;
 
   virtual std::string get_string(uint32_t index) const = 0;
+  virtual std::wstring get_wstring(uint32_t index) const;
   virtual int64_t get_int(uint32_t index) const = 0;
   virtual uint64_t get_uint(uint32_t index) const = 0;
   virtual float get_float(uint32_t index) const = 0;
@@ -82,6 +83,12 @@ class SHCORE_PUBLIC IRow {
                                 const std::string &default_if_null) const {
     if (is_null(index)) return default_if_null;
     return get_string(index);
+  }
+
+  inline std::wstring get_wstring(uint32_t index,
+                                  const std::wstring &default_if_null) const {
+    if (is_null(index)) return default_if_null;
+    return get_wstring(index);
   }
 
   inline int64_t get_int(uint32_t index, int64_t default_if_null) const {

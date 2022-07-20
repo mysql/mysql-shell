@@ -45,8 +45,7 @@ namespace {
 bool matches_host(const std::string &current, const std::string &target,
                   bool host_match = false) {
   // TODO(rennox): Implement proper logic for Host and Match matching
-  if (current == "*" ||
-      (!host_match && shcore::str_casecmp(current, target) == 0)) {
+  if (current == "*" || (!host_match && shcore::str_caseeq(current, target))) {
     return true;
   }
   return false;
@@ -117,27 +116,25 @@ void Ssh_config_reader::read(Ssh_config_data *out_config,
             value = value.substr(1, end - 2);  // end is after the last "
         }
 
-        if (shcore::str_casecmp("host", tokens[0]) == 0) {
+        if (shcore::str_caseeq("host", tokens[0])) {
           current_host = tokens[1];
         } else if (matches_host(current_host, target_host)) {
           std::optional<Ssh_auth_methods> method;
-          if (shcore::str_casecmp(tokens[0], "GSSAPIAuthentication") == 0) {
+          if (shcore::str_caseeq(tokens[0], "GSSAPIAuthentication")) {
             method = Ssh_auth_methods::GSSAPI_AUTH;
-          } else if (shcore::str_casecmp(tokens[0],
-                                         "KbdInteractiveAuthentication") == 0) {
+          } else if (shcore::str_caseeq(tokens[0],
+                                        "KbdInteractiveAuthentication")) {
             method = Ssh_auth_methods::KBDINT_AUTH;
-          } else if (shcore::str_casecmp(tokens[0], "PasswordAuthentication") ==
-                     0) {
+          } else if (shcore::str_caseeq(tokens[0], "PasswordAuthentication")) {
             method = Ssh_auth_methods::PASSWORD_AUTH;
-          } else if (shcore::str_casecmp(tokens[0], "PubkeyAuthentication") ==
-                     0) {
+          } else if (shcore::str_caseeq(tokens[0], "PubkeyAuthentication")) {
             method = Ssh_auth_methods::PUBKEY_AUTH;
-          } else if (shcore::str_casecmp(tokens[0], "HostName") == 0) {
+          } else if (shcore::str_caseeq(tokens[0], "HostName")) {
             next_host = value;
           }
 
           if (method.has_value()) {
-            if (shcore::str_casecmp(value, "yes") == 0) {
+            if (shcore::str_caseeq(value, "yes")) {
               out_config->auth_methods.set(*method);
             } else {
               out_config->auth_methods.unset(*method);

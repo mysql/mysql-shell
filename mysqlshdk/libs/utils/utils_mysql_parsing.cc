@@ -383,8 +383,10 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case 'D':
             // Possible start of the keyword DELIMITER. Must be the 1st keyword
             // of a statement.
-            if (context() == NONE && (m_end - p >= k_delimiter_len) &&
-                shcore::str_caseeq(p, k_delimiter, k_delimiter_len)) {
+            if (context() == NONE &&
+                shcore::str_ibeginswith(
+                    {p, static_cast<std::size_t>(m_end - p)},
+                    {k_delimiter, k_delimiter_len})) {
               if (has_complete_line) {
                 // handle delimiter change directly here
                 auto np = skip_blanks(p + k_delimiter_len, eol);
@@ -464,8 +466,8 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
               if (off < m_commands_table.size() &&
                   !m_commands_table[off].empty()) {
                 for (const auto &kwd : m_commands_table[off])
-                  if ((m_end - p >= static_cast<int>(kwd.length())) &&
-                      shcore::str_caseeq(p, kwd.c_str(), kwd.length()) &&
+                  if (shcore::str_ibeginswith(
+                          {p, static_cast<std::size_t>(m_end - p)}, kwd) &&
                       is_any_blank(*(p + kwd.length()))) {
                     command = true;
                     p += kwd.length() + 1;

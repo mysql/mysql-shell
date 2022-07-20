@@ -1371,7 +1371,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
     result =
         query_log_and_throw(shcore::sqlformat(show_fields_stmt, db, table));
     {
-      std::string text = fix_identifier_with_newline(result_table.c_str());
+      std::string text = fix_identifier_with_newline(result_table);
       print_comment(sql_file, false,
                     "\n--\n-- Table structure for table %s\n--\n\n",
                     text.c_str());
@@ -1404,7 +1404,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
         const auto fieldname = row->get_string(SHOW_FIELDNAME);
 
         if (opt_create_invisible_pks) {
-          has_my_row_id |= shcore::str_caseeq(fieldname.c_str(), my_row_id);
+          has_my_row_id |= shcore::str_caseeq(fieldname, my_row_id);
         }
 
         fprintf(sql_file, "  %s.%s %s", result_table.c_str(),
@@ -2025,7 +2025,7 @@ int Schema_dumper::init_dumping(
   if (opt_databases || opt_alldbs) {
     std::string qdatabase = shcore::quote_identifier(database);
 
-    std::string text = fix_identifier_with_newline(qdatabase.c_str());
+    std::string text = fix_identifier_with_newline(qdatabase);
     print_comment(file, false, "\n--\n-- Current Database: %s\n--\n",
                   text.c_str());
 
@@ -3285,7 +3285,7 @@ bool Schema_dumper::include_grant(
 
   mysqlshdk::utils::SQL_iterator it(grant, 0, false);
 
-  if (!shcore::str_caseeq_mv(it.next_token(), "GRANT", "REVOKE")) {
+  if (!shcore::str_caseeq(it.next_token(), "GRANT", "REVOKE")) {
     throw std::runtime_error("Expected GRANT or REVOKE statement");
   }
 
@@ -3331,7 +3331,7 @@ bool Schema_dumper::include_grant(
       object_is_routine = false;
       // priv_level follows
       priv_level = it.next_token();
-    } else if (shcore::str_caseeq_mv(priv_level, "FUNCTION", "PROCEDURE")) {
+    } else if (shcore::str_caseeq(priv_level, "FUNCTION", "PROCEDURE")) {
       object_is_routine = true;
       // priv_level follows
       priv_level = it.next_token();

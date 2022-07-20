@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,8 +58,7 @@ class Named_pipe_test : public Command_line_test {
 
       if (row) {
         s_named_pipe = row->get_as_string(1);
-        s_is_default_named_pipe =
-            shcore::str_casecmp(s_named_pipe, "MySQL") == 0;
+        s_is_default_named_pipe = shcore::str_caseeq(s_named_pipe, "MySQL");
       } else {
         s_named_pipe_enabled = false;
       }

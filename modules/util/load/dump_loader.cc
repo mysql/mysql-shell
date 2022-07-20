@@ -365,7 +365,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
 
               if (shcore::str_caseeq(type, "EVENT")) {
                 execute = loader->m_options.include_event(schema(), name);
-              } else if (shcore::str_caseeq_mv(type, "FUNCTION", "PROCEDURE")) {
+              } else if (shcore::str_caseeq(type, "FUNCTION", "PROCEDURE")) {
                 execute = loader->m_options.include_routine(schema(), name);
               }
 
@@ -2955,7 +2955,7 @@ void Dump_loader::Sql_transform::add_execute_conditionally(
     while (it.valid()) {
       auto token = it.next_token();
 
-      if (shcore::str_caseeq_mv(token, "CREATE", "ALTER", "DROP")) {
+      if (shcore::str_caseeq(token, "CREATE", "ALTER", "DROP")) {
         auto type = it.next_token();
 
         if (shcore::str_caseeq(type, "DEFINER")) {
@@ -2974,8 +2974,8 @@ void Dump_loader::Sql_transform::add_execute_conditionally(
           }
         }
 
-        if (shcore::str_caseeq_mv(type, "EVENT", "FUNCTION", "PROCEDURE",
-                                  "TRIGGER")) {
+        if (shcore::str_caseeq(type, "EVENT", "FUNCTION", "PROCEDURE",
+                               "TRIGGER")) {
           auto name = it.next_token();
 
           if (shcore::str_caseeq(name, "IF")) {

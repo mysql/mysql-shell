@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <cwchar>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -42,18 +43,34 @@ void clear_buffer(char *buffer, size_t size);
 
 void clear_buffer(std::string *buffer);
 
+namespace internal {
+
+template <typename Char, typename F>
+inline std::basic_string<Char> transform(std::basic_string_view<Char> s,
+                                         F fun) {
+  std::basic_string<Char> r(s);
+  std::transform(r.begin(), r.end(), r.begin(), fun);
+  return r;
+}
+
+}  // namespace internal
+
 /** Convert a copy of an ASCII string to uppercase and return */
 inline std::string str_upper(std::string_view s) {
-  std::string r(s);
-  std::transform(r.begin(), r.end(), r.begin(), ::toupper);
-  return r;
+  return internal::transform(s, ::toupper);
+}
+
+inline std::wstring str_upper(std::wstring_view s) {
+  return internal::transform(s, ::towupper);
 }
 
 /** Convert a copy of an ASCII string to lowercase and return */
 inline std::string str_lower(std::string_view s) {
-  std::string r(s);
-  std::transform(r.begin(), r.end(), r.begin(), ::tolower);
-  return r;
+  return internal::transform(s, ::tolower);
+}
+
+inline std::wstring str_lower(std::wstring_view s) {
+  return internal::transform(s, ::towlower);
 }
 
 /** Compares 2 strings case insensitive (for ascii) */
@@ -65,6 +82,14 @@ inline int str_casecmp(const char *a, const char *b) {
 #endif
 }
 
+inline int str_casecmp(const wchar_t *a, const wchar_t *b) {
+#ifdef _WIN32
+  return ::_wcsicmp(a, b);
+#else
+  return ::wcscasecmp(a, b);
+#endif
+}
+
 inline int str_casecmp(const char *a, const char *b, size_t n) {
 #ifdef _WIN32
   return ::_strnicmp(a, b, n);
@@ -73,105 +98,176 @@ inline int str_casecmp(const char *a, const char *b, size_t n) {
 #endif
 }
 
-inline int str_casecmp(const std::string &a, const std::string &b) {
-  return str_casecmp(a.c_str(), b.c_str());
-}
-
-struct Case_insensitive_comparator {
-  bool operator()(const std::string &a, const std::string &b) const {
-    return str_casecmp(a, b) < 0;
-  }
-};
-
-inline bool str_caseeq(const char *a, const char *b, size_t n) {
-  return str_casecmp(a, b, n) == 0;
-}
-
-inline bool str_caseeq(std::string_view a, std::string_view b) {
-  if (a.size() != b.size()) return false;
-  return str_caseeq(a.data(), b.data(), a.size());
-}
-
-template <typename T, typename... Args>
-bool str_caseeq_mv(T &&token, Args &&... args) {
-  return (str_caseeq(std::forward<T>(token), std::forward<Args>(args)) || ...);
-}
-
-/** Checks whether a string has another as a prefix */
-inline bool str_beginswith(std::string_view s, std::string_view prefix) {
-  return s.compare(0, prefix.length(), prefix) == 0;
-}
-
-inline bool str_ibeginswith(std::string_view s, std::string_view prefix) {
-  if (s.size() < prefix.size()) return false;
-
+inline int str_casecmp(const wchar_t *a, const wchar_t *b, size_t n) {
 #ifdef _WIN32
-  return ::_strnicmp(s.data(), prefix.data(), prefix.size()) == 0;
+  return ::_wcsnicmp(a, b, n);
 #else
-  return strncasecmp(s.data(), prefix.data(), prefix.size()) == 0;
+  return ::wcsncasecmp(a, b, n);
 #endif
 }
 
-/** Checks whether a string has another as a suffix */
-inline bool str_endswith(const char *s, const char *suffix) {
-  size_t l = strlen(suffix);
-  size_t sl = strlen(s);
-  if (l > sl) return false;
-  return strncmp(s + sl - l, suffix, l) == 0;
+struct Case_sensitive_comparator {
+  bool operator()(const std::string &a, const std::string &b) const {
+    return a.compare(b) < 0;
+  }
+
+  bool operator()(const std::wstring &a, const std::wstring &b) const {
+    return a.compare(b) < 0;
+  }
+};
+
+struct Case_insensitive_comparator {
+  bool operator()(const std::string &a, const std::string &b) const {
+    return str_casecmp(a.c_str(), b.c_str()) < 0;
+  }
+
+  bool operator()(const std::wstring &a, const std::wstring &b) const {
+    return str_casecmp(a.c_str(), b.c_str()) < 0;
+  }
+};
+
+namespace internal {
+
+template <typename Char>
+inline bool str_caseeq_pair(std::basic_string_view<Char> a,
+                            std::basic_string_view<Char> b) {
+  if (a.length() != b.length()) return false;
+  return str_casecmp(a.data(), b.data(), a.length()) == 0;
 }
 
-inline bool str_endswith(const std::string &s, const std::string &suffix) {
+template <typename Char, typename... T>
+inline bool str_caseeq(std::basic_string_view<Char> a, T &&... tokens) {
+  return (str_caseeq_pair<Char>(a, std::forward<T>(tokens)) || ...);
+}
+
+}  // namespace internal
+
+template <typename... T>
+inline bool str_caseeq(std::string_view a, std::string_view token,
+                       T &&... tokens) {
+  return internal::str_caseeq(a, token, std::forward<T>(tokens)...);
+}
+
+template <typename... T>
+inline bool str_caseeq(std::wstring_view a, std::wstring_view token,
+                       T &&... tokens) {
+  return internal::str_caseeq(a, token, std::forward<T>(tokens)...);
+}
+
+/** Checks whether a string has another as a prefix */
+namespace internal {
+
+template <typename Char>
+inline bool str_beginswith_pair(std::basic_string_view<Char> s,
+                                std::basic_string_view<Char> prefix) {
+  return s.compare(0, prefix.length(), prefix) == 0;
+}
+
+template <typename Char, typename... T>
+inline bool str_beginswith(std::basic_string_view<Char> s, T &&... prefixes) {
+  return (str_beginswith_pair<Char>(s, std::forward<T>(prefixes)) || ...);
+}
+
+}  // namespace internal
+
+template <typename... T>
+inline bool str_beginswith(std::string_view s, std::string_view prefix,
+                           T &&... prefixes) {
+  return internal::str_beginswith(s, prefix, std::forward<T>(prefixes)...);
+}
+
+template <typename... T>
+inline bool str_beginswith(std::wstring_view s, std::wstring_view prefix,
+                           T &&... prefixes) {
+  return internal::str_beginswith(s, prefix, std::forward<T>(prefixes)...);
+}
+
+namespace internal {
+
+template <typename Char>
+inline bool str_ibeginswith_pair(std::basic_string_view<Char> s,
+                                 std::basic_string_view<Char> prefix) {
+  if (s.length() < prefix.length()) return false;
+  return str_casecmp(s.data(), prefix.data(), prefix.length()) == 0;
+}
+
+template <typename Char, typename... T>
+inline bool str_ibeginswith(std::basic_string_view<Char> s, T &&... prefixes) {
+  return (str_ibeginswith_pair<Char>(s, std::forward<T>(prefixes)) || ...);
+}
+
+}  // namespace internal
+
+template <typename... T>
+inline bool str_ibeginswith(std::string_view s, std::string_view prefix,
+                            T &&... prefixes) {
+  return internal::str_ibeginswith(s, prefix, std::forward<T>(prefixes)...);
+}
+
+template <typename... T>
+inline bool str_ibeginswith(std::wstring_view s, std::wstring_view prefix,
+                            T &&... prefixes) {
+  return internal::str_ibeginswith(s, prefix, std::forward<T>(prefixes)...);
+}
+
+/** Checks whether a string has another as a suffix */
+namespace internal {
+
+template <typename Char>
+inline bool str_endswith_pair(std::basic_string_view<Char> s,
+                              std::basic_string_view<Char> suffix) {
   if (suffix.length() > s.length()) return false;
   return s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
-template <typename... T>
-bool str_endswith(const char *s, const char *suffix, T &&... suffixes) {
-  return str_endswith(s, suffix) ||
-         str_endswith(s, std::forward<T>(suffixes)...);
+template <typename Char, typename... T>
+inline bool str_endswith(std::basic_string_view<Char> s, T &&... suffixes) {
+  return (str_endswith_pair<Char>(s, std::forward<T>(suffixes)) || ...);
 }
+
+}  // namespace internal
 
 template <typename... T>
-bool str_endswith(const std::string &s, const std::string &suffix,
-                  T &&... suffixes) {
-  return str_endswith(s, suffix) ||
-         str_endswith(s, std::forward<T>(suffixes)...);
+inline bool str_endswith(std::string_view s, std::string_view suffix,
+                         T &&... suffixes) {
+  return internal::str_endswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
-inline bool str_iendswith(const char *s, const char *suffix) {
-  size_t l = strlen(suffix);
-  size_t sl = strlen(s);
-  if (l > sl) return false;
-#ifdef _WIN32
-  return ::_strnicmp(s + sl - l, suffix, l) == 0;
-#else
-  return strncasecmp(s + sl - l, suffix, l) == 0;
-#endif
+template <typename... T>
+inline bool str_endswith(std::wstring_view s, std::wstring_view suffix,
+                         T &&... suffixes) {
+  return internal::str_endswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
-inline bool str_iendswith(const std::string &s, const std::string &suffix) {
+namespace internal {
+
+template <typename Char>
+inline bool str_iendswith_pair(std::basic_string_view<Char> s,
+                               std::basic_string_view<Char> suffix) {
   if (suffix.length() > s.length()) return false;
-#ifdef _WIN32
-  return ::_strnicmp(s.c_str() + s.length() - suffix.length(), suffix.c_str(),
+  return str_casecmp(s.data() + s.length() - suffix.length(), suffix.data(),
                      suffix.length()) == 0;
-#else
-  return strncasecmp(s.c_str() + s.length() - suffix.length(), suffix.c_str(),
-                     suffix.length()) == 0;
-#endif
+}
+
+template <typename Char, typename... T>
+inline bool str_iendswith(std::basic_string_view<Char> s, T &&... suffixes) {
+  return (str_iendswith_pair<Char>(s, std::forward<T>(suffixes)) || ...);
+}
+
+}  // namespace internal
+
+template <typename... T>
+inline bool str_iendswith(std::string_view s, std::string_view suffix,
+                          T &&... suffixes) {
+  return internal::str_iendswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
 template <typename... T>
-bool str_iendswith(const char *s, const char *suffix, T &&... suffixes) {
-  return str_iendswith(s, suffix) ||
-         str_iendswith(s, std::forward<T>(suffixes)...);
+inline bool str_iendswith(std::wstring_view s, std::wstring_view suffix,
+                          T &&... suffixes) {
+  return internal::str_iendswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
-template <typename... T>
-bool str_iendswith(const std::string &s, const std::string &suffix,
-                   T &&... suffixes) {
-  return str_iendswith(s, suffix) ||
-         str_iendswith(s, std::forward<T>(suffixes)...);
-}
 const char *str_casestr(const char *haystack, const char *needle);
 
 /** Return position of the first difference in the strings or npos if they're

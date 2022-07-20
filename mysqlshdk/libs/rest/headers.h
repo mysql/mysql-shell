@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,31 +27,17 @@
 #include <map>
 #include <string>
 
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 namespace mysqlshdk {
 namespace rest {
-
-/**
- * Performs the case-insensitive comparison of two headers. It's intended to
- * work with ASCII characters only.
- */
-struct Header_comparator {
-  /**
-   * Compares two strings given as an input.
-   *
-   * @param l Left string to compare.
-   * @param r Right string to compare.
-   *
-   * @returns True if the left argument appears before right argument in a
-   *          case-insensitive comparison.
-   */
-  bool operator()(const std::string &l, const std::string &r) const;
-};
 
 /**
  * Maps HTTP headers to associated values, allows for case-insensitive access.
  * If the value string is empty, a header with no content is going to be sent.
  */
-using Headers = std::map<std::string, std::string, Header_comparator>;
+using Headers =
+    std::map<std::string, std::string, shcore::Case_insensitive_comparator>;
 
 }  // namespace rest
 }  // namespace mysqlshdk

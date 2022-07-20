@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,15 +55,15 @@ const shcore::Option_pack_def<Dialect> &Dialect::options() {
 void Dialect::set_dialect(const std::string & /*option*/,
                           const std::string &name) {
   if (!name.empty()) {
-    if (shcore::str_casecmp(name, "default") == 0) {
+    if (shcore::str_caseeq(name, "default")) {
       // nop
-    } else if (shcore::str_casecmp(name, "csv") == 0) {
+    } else if (shcore::str_caseeq(name, "csv")) {
       *this = csv();
-    } else if (shcore::str_casecmp(name, "tsv") == 0) {
+    } else if (shcore::str_caseeq(name, "tsv")) {
       *this = tsv();
-    } else if (shcore::str_casecmp(name, "json") == 0) {
+    } else if (shcore::str_caseeq(name, "json")) {
       *this = json();
-    } else if (shcore::str_casecmp(name, "csv-unix") == 0) {
+    } else if (shcore::str_caseeq(name, "csv-unix")) {
       *this = csv_unix();
     } else {
       throw shcore::Exception::argument_error(
