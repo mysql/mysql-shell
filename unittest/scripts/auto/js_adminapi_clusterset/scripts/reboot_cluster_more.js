@@ -150,6 +150,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 shell.connect(__sandbox_uri4);
 replica = dba.getCluster();
 replica.removeInstance(__sandbox_uri6);
+testutil.waitMemberState(__mysql_sandbox_port6, "OFFLINE (MISSING)");
 
 cs.createReplicaCluster(__sandbox_uri6, "replica2");
 
@@ -312,6 +313,10 @@ EXPECT_EQ_ONEOF(["ONLINE", "RECOVERING"], status["defaultReplicaSet"]["topology"
 // put the cluster set back
 replica.dissolve();
 
+testutil.waitMemberState(__mysql_sandbox_port4, "OFFLINE (MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port5, "OFFLINE (MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port6, "OFFLINE (MISSING)");
+
 EXPECT_NO_THROWS(function(){ replica = cset.createReplicaCluster(__sandbox_uri4, "replica", {recoveryMethod: "clone"}); });
 EXPECT_NO_THROWS(function(){ replica.addInstance(__sandbox_uri5, {recoveryMethod: "clone"}); });
 EXPECT_NO_THROWS(function(){ replica.addInstance(__sandbox_uri6, {recoveryMethod: "clone"}); });
@@ -344,7 +349,6 @@ testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 
-shell.connect(__sandbox_uri1);
 cset = dba.getClusterSet();
 cset.status({extended:1});
 
@@ -405,12 +409,13 @@ shell.connect(__sandbox_uri1);
 cset = dba.getClusterSet();
 cset.removeCluster("replica");
 
-shell.connect(__sandbox_uri6);
-reset_instance(session);
-shell.connect(__sandbox_uri5);
-reset_instance(session);
-shell.connect(__sandbox_uri4);
-reset_instance(session);
+var session4 = mysql.getSession(__sandbox_uri4);
+var session5 = mysql.getSession(__sandbox_uri5);
+var session6 = mysql.getSession(__sandbox_uri6);
+
+reset_instance(session4);
+reset_instance(session5);
+reset_instance(session6);
 
 EXPECT_NO_THROWS(function(){ replica = cset.createReplicaCluster(__sandbox_uri4, "replica", {recoveryMethod:"clone"}); });
 EXPECT_NO_THROWS(function(){ replica.addInstance(__sandbox_uri5, {recoveryMethod:"clone"}); });
@@ -458,6 +463,8 @@ EXPECT_EQ(`${hostname}:${__mysql_sandbox_port5}`, status["defaultReplicaSet"]["p
 
 replica.removeInstance(__sandbox_uri4, {force: true});
 
+testutil.waitMemberState(__mysql_sandbox_port4, "OFFLINE (MISSING)");
+
 shell.connect(__sandbox_uri4);
 reset_instance(session);
 
@@ -484,7 +491,9 @@ replica = dba.getCluster();
 replica.removeInstance(__sandbox_uri5);
 replica.removeInstance(__sandbox_uri6);
 
-shell.connect(__sandbox_uri4);
+testutil.waitMemberState(__mysql_sandbox_port5, "OFFLINE (MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port6, "OFFLINE (MISSING)");
+
 session.runSql("STOP replica FOR CHANNEL 'clusterset_replication'");
 
 session.runSql("SET GLOBAL super_read_only = 0");
@@ -494,12 +503,44 @@ session.runSql("SET GLOBAL super_read_only = 1");
 
 session.runSql("SELECT * FROM mysql.gtid_executed;");
 
-shell.connect(__sandbox_uri4);
-
 EXPECT_THROWS(function(){
     replica = dba.rebootClusterFromCompleteOutage("replica");
 }, `The instance '${hostname}:${__mysql_sandbox_port4}' has an empty GTID set.`);
 EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten.`);
+
+//reset cluster (with just 1 instances on 'replica' cluster)
+shell.connect(__sandbox_uri1);
+cs = dba.getClusterSet();
+cs.removeCluster("replica", {force: true});
+
+var session6 = mysql.getSession(__sandbox_uri6);
+var session5 = mysql.getSession(__sandbox_uri5);
+var session4 = mysql.getSession(__sandbox_uri4);
+
+reset_instance(session6);
+reset_instance(session5);
+reset_instance(session4);
+
+replica = cs.createReplicaCluster(__sandbox_uri4, "replica", {recoveryMethod: "clone"});
+
+//@<> Must not throw if there's a new cluster in the clusterset (BUG#34408687)
+
+testutil.killSandbox(__mysql_sandbox_port4);
+
+shell.connect(__sandbox_uri1);
+cs = dba.getClusterSet();
+replica2 = cs.createReplicaCluster(__sandbox_uri6, "replica2", {recoveryMethod: "clone"});
+
+testutil.startSandbox(__mysql_sandbox_port4);
+
+shell.connect(__sandbox_uri4);
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
+
+shell.connect(__sandbox_uri1);
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replica);
+CHECK_REPLICA_CLUSTER([__sandbox_uri6], cluster, replica2);
+CHECK_CLUSTER_SET(session);
 
 //@<> Cleanup
 scene.destroy();

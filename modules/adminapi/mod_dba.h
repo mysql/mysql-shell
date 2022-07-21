@@ -208,8 +208,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   void init();
 
-  void find_real_cluster_set_primary(Cluster_set_impl *cs) const;
-
  private:
   ProvisioningInterface _provisioning_interface;
 

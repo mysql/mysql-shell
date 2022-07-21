@@ -309,62 +309,63 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
   uint32_t best_candidate_generation = 0;
 
   for (const auto &m : cs_members) {
-    if (!m.primary_cluster && !m.invalidated) {
-      // Can't use get_cluster_object(), because we need the MD object to point
-      // to itself and not the primary cluster
+    if (m.primary_cluster || m.invalidated) continue;
 
-      Cluster_availability availability;
+    // Can't use get_cluster_object(), because we need the MD object to point
+    // to itself and not the primary cluster
 
-      auto group_server = ipool->try_connect_cluster_primary_with_fallback(
+    Cluster_availability availability;
+    std::shared_ptr<Instance> group_server;
+    try {
+      group_server = ipool->try_connect_cluster_primary_with_fallback(
           m.cluster.cluster_id, &availability);
+    } catch (const shcore::Exception &e) {
+      if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
+      log_debug("%s", e.what());
+    }
 
-      if (group_server) {
-        auto md = std::make_shared<MetadataStorage>(group_server);
-        uint64_t view_id = 0;
-        Cluster_set_id csid;
+    if (!group_server) continue;
 
-        if (md->check_cluster_set(group_server.get(), &view_id, nullptr,
-                                  &csid)) {
-          log_debug("Metadata copy at %s has view_id=%x, csid=%s",
-                    group_server->descr().c_str(),
-                    cluster_set_view_id_generation(view_id), cs.id.c_str());
+    auto md = std::make_shared<MetadataStorage>(group_server);
+    uint64_t view_id = 0;
+    Cluster_set_id csid;
 
-          if (csid != cs.id.c_str()) {
-            if (print_warnings) {
-              current_console()->print_note(shcore::str_format(
-                  "Metadata at instance %s is not consistent "
-                  "with the clusterSet.",
-                  group_server->descr().c_str()));
-            }
-          } else if (cluster_set_view_id_generation(view_id) >
-                     cluster_set_view_id_generation(primary_view_id)) {
-            if (print_warnings) {
-              current_console()->print_note(shcore::str_format(
-                  "Instance %s has more recent metadata than %s (generation %x "
-                  "vs %x), which suggests %s has been invalidated",
-                  group_server->descr().c_str(),
-                  get_primary_master()->descr().c_str(),
-                  cluster_set_view_id_generation(view_id),
-                  cluster_set_view_id_generation(primary_view_id),
-                  get_primary_cluster()->get_name().c_str()));
-            }
+    if (md->check_cluster_set(group_server.get(), &view_id, nullptr, &csid)) {
+      log_debug("Metadata copy at %s has view_id=%x, csid=%s",
+                group_server->descr().c_str(),
+                cluster_set_view_id_generation(view_id), cs.id.c_str());
 
-            if (cluster_set_view_id_generation(view_id) >
-                best_candidate_generation) {
-              best_candidate = group_server;
-              best_candidate_md = md;
-              best_candidate_generation =
-                  cluster_set_view_id_generation(view_id);
-            }
-          }
-        } else {
-          if (print_warnings) {
-            current_console()->print_note(
-                shcore::str_format("Metadata at instance %s is not consistent "
-                                   "with the clusterSet.",
-                                   group_server->descr().c_str()));
-          }
+      if (csid != cs.id.c_str()) {
+        if (print_warnings) {
+          current_console()->print_note(shcore::str_format(
+              "Metadata at instance %s is not consistent with the clusterSet.",
+              group_server->descr().c_str()));
         }
+      } else if (cluster_set_view_id_generation(view_id) >
+                 cluster_set_view_id_generation(primary_view_id)) {
+        if (print_warnings) {
+          current_console()->print_note(shcore::str_format(
+              "Instance %s has more recent metadata than %s (generation %x vs "
+              "%x), which suggests %s has been invalidated",
+              group_server->descr().c_str(),
+              get_primary_master()->descr().c_str(),
+              cluster_set_view_id_generation(view_id),
+              cluster_set_view_id_generation(primary_view_id),
+              get_primary_cluster()->get_name().c_str()));
+        }
+
+        if (cluster_set_view_id_generation(view_id) >
+            best_candidate_generation) {
+          best_candidate = group_server;
+          best_candidate_md = md;
+          best_candidate_generation = cluster_set_view_id_generation(view_id);
+        }
+      }
+    } else {
+      if (print_warnings) {
+        current_console()->print_note(shcore::str_format(
+            "Metadata at instance %s is not consistent with the clusterSet.",
+            group_server->descr().c_str()));
       }
     }
   }
