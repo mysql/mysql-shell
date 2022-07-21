@@ -2210,6 +2210,61 @@ wipeout_server(session)
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "You have an error in your SQL syntax")
 EXPECT_STDOUT_NOT_CONTAINS("AA")
 
+#@<> BUG#34408669 - shell should fall back to manually creating primary keys if sql_generate_invisible_primary_key cannot be set by the user {VER(>= 8.0.30)}
+# constants
+dump_dir = os.path.join(outdir, "bug_34408669")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("SET @@SESSION.sql_generate_invisible_primary_key = OFF")
+session.run_sql("CREATE TABLE !.! (data INT)", [ tested_schema, tested_table ])
+# dump DDL, we're not interested in data
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "ddlOnly": True, "showProgress": False }), "Dump should not fail")
+
+# connect, create a user which cannot change the sql_generate_invisible_primary_key variable
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+session.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = OFF")
+session.run_sql("CREATE USER IF NOT EXISTS admin@'%' IDENTIFIED BY 'pass'")
+session.run_sql("GRANT ALL ON *.* TO admin@'%'")
+session.run_sql("REVOKE SUPER,SYSTEM_VARIABLES_ADMIN,SESSION_VARIABLES_ADMIN ON *.* FROM admin@'%'")
+
+# connect as the created user, ask for PKs to be created
+WIPE_SHELL_LOG()
+shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": True, "showProgress": True }), "Load should not fail")
+EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+EXPECT_SHELL_LOG_CONTAINS("The current user cannot set the sql_generate_invisible_primary_key session variable")
+
+# load again, this time PKs should not be created
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Load should not fail")
+EXPECT_NOT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+
+# try once again, this time global variable is ON
+shell.connect(__sandbox_uri2)
+session.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = ON")
+shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
+
+# user requests PKs to be created, this should work
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": True, "showProgress": True, "resetProgress": True }), "Load should not fail")
+EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+
+# user requests no primary keys to be created, but since they don't have required privileges it fails
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Access denied")
+
+# user requests no primary keys to be created, env var is set, keys are created anyway
+os.environ["MYSQLSH_ALLOW_ALWAYS_GIPK"] = "1"
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Load should not fail")
+EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
