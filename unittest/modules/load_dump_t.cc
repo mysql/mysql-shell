@@ -485,6 +485,12 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
       if (m_auto_generate_pk_value) {
         r.add_row({"sql_generate_invisible_primary_key",
                    *m_auto_generate_pk_value ? "ON" : "OFF"});
+
+        const auto query = shcore::sqlformat(
+            "SET @@SESSION.sql_generate_invisible_primary_key=?",
+            *m_auto_generate_pk_value);
+        EXPECT_CALL(*mock_main_session, executes(StrEq(query.c_str()), _))
+            .Times(Exactly(1));
       }
     }
 
