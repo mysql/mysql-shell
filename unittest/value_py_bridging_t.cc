@@ -366,6 +366,12 @@ k4 -> test)*";
   EXPECT_EQ(Value_type::Undefined,
             py->execute_interactive("mapval['k0']", cont).type);
   MY_EXPECT_STDERR_CONTAINS("KeyError: 'k0'");
+
+  // BUG#34403275 - accessing non-existing key with get() should return None
+  output_handler.wipe_all();
+  EXPECT_EQ(Value_type::Null,
+            py->execute_interactive("mapval.get('k0')", cont).type);
+  MY_EXPECT_STDERR_NOT_CONTAINS("Error");
 }
 
 TEST_F(Python, object_to_py) {

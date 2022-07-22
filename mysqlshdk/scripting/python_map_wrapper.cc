@@ -152,32 +152,30 @@ PyObject *dict_update(PyShDictObject *self, PyObject *arg) {
   Py_RETURN_NONE;
 }
 
-PyObject *dict_get(PyShDictObject *self, PyObject *arg) {
-  if (!arg) {
-    Python_context::set_python_error(PyExc_ValueError,
-                                     "dict argument required for get()");
+PyObject *dict_get(PyShDictObject *self, PyObject *args) {
+  PyObject *key = nullptr;
+  PyObject *default_value = Py_None;
+
+  if (!PyArg_UnpackTuple(args, "get", 1, 2, &key, &default_value)) {
     return nullptr;
   }
 
-  PyObject *def = nullptr;
-  char *key;
-  if (!PyArg_ParseTuple(arg, "s|O", &key, &def)) return nullptr;
+  std::string key_to_find;
 
-  if (key) {
-    if (self->map->get()->has_key(key))
-      return py::convert((self->map->get()->find(key))->second).release();
-    else {
-      if (def) {
-        Py_INCREF(def);
-        return def;
-      } else {
-        std::string err = std::string("invalid key: ") + key;
-        Python_context::set_python_error(PyExc_IndexError, err.c_str());
+  if (Python_context::pystring_to_string(key, &key_to_find)) {
+    try {
+      const auto result = self->map->get()->find(key_to_find);
+      if (result != self->map->get()->end()) {
+        return py::convert(result->second).release();
       }
+    } catch (const std::exception &exc) {
+      Python_context::set_python_error(PyExc_RuntimeError, exc.what());
+      return nullptr;
     }
   }
 
-  Py_RETURN_NONE;
+  Py_INCREF(default_value);
+  return default_value;
 }
 
 PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg) {

@@ -376,6 +376,39 @@ void Load_dump_options::set_session(
   m_sql_generate_invisible_primary_key =
       instance.get_sysvar_bool("sql_generate_invisible_primary_key");
 
+  if (auto_create_pks_supported()) {
+    // server supports sql_generate_invisible_primary_key, now let's see if
+    // user can actually set it
+    bool user_can_set_var = false;
+
+    try {
+      // try to set the session variable to the same value as global variable,
+      // to check if user can set it
+      m_base_session->executef(
+          "SET @@SESSION.sql_generate_invisible_primary_key=?",
+          sql_generate_invisible_primary_key());
+      user_can_set_var = true;
+    } catch (const std::exception &e) {
+      log_warning(
+          "The current user cannot set the sql_generate_invisible_primary_key "
+          "session variable: %s",
+          e.what());
+    }
+
+    if (!user_can_set_var) {
+      // BUG#34408669 - when user doesn't have any of the privileges required to
+      // set the sql_generate_invisible_primary_key session variable, fall back
+      // to inserting the key manually, but only if global value is OFF; if it's
+      // ON, then falling back would mean that PKs are created even if user
+      // does not want this, we override this behaviour with
+      // MYSQLSH_ALLOW_ALWAYS_GIPK environment variable
+      if (!sql_generate_invisible_primary_key() ||
+          getenv("MYSQLSH_ALLOW_ALWAYS_GIPK")) {
+        m_sql_generate_invisible_primary_key.reset();
+      }
+    }
+  }
+
   m_server_uuid =
       query("SELECT @@server_uuid")->fetch_one_or_throw()->get_string(0);
 
