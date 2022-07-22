@@ -1,3 +1,4 @@
+
 # Copyright (c) 2016, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -63,7 +64,7 @@ BuildRequires:  protobuf-compiler
 # will use "/usr/bin/python" and may fail
 %global __python %{bundled_python}/bin/python
 %else
-%if 0%{?rhel} >= 8
+%if 0%{?rhel} == 8
 BuildRequires:  python38-devel
 %else
 BuildRequires:  python3-devel >= 3.8
