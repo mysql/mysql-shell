@@ -111,8 +111,8 @@ void Upgrade_metadata::prepare() {
     case MDState::MINOR_LOWER:
     case MDState::MAJOR_LOWER:
       console->print_info(shcore::str_format(
-          "InnoDB Cluster Metadata Upgrade\n\n"
-          "The cluster you are connected to is using an outdated metadata "
+          "Metadata Schema Upgrade\n\n"
+          "The topology you are connected to is using an outdated metadata "
           "schema version %s and needs to be upgraded to %s.\n\n"
           "Without doing this upgrade, no AdminAPI calls except read only "
           "operations will be allowed.",

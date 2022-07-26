@@ -21,9 +21,9 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@<OUT> upgradeMetadata, dryRrun upgrade required
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -44,9 +44,9 @@ An upgrade of all cluster router instances is required. All router installations
 There is 1 Router to be upgraded in order to perform the Metadata schema upgrade.
 
 //@<OUT> Upgrades the metadata, no registered routers
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -69,9 +69,9 @@ Upgrade process successfully finished, metadata schema is now on version 2.1.0
 NOTE: Installed metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is up to date (version 2.1.0).
 
 //@<OUT> Upgrades the metadata from a slave instance
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -92,9 +92,9 @@ Upgrade process successfully finished, metadata schema is now on version 2.1.0
 
 
 //@<OUT> WL13386-TSFR1_5 Upgrades the metadata, upgrade done by unregistering 10 routers and no router accounts
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -139,9 +139,9 @@ Removing metadata backup...
 Upgrade process successfully finished, metadata schema is now on version 2.1.0
 
 //@<OUT> WL13386-TSFR1_5 Upgrades the metadata, upgrade done by unregistering more than 10 routers with router accounts
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -181,9 +181,9 @@ NOTE: If Router's Metadata Cache TTL is high Router's own update in the Metadata
 Please select an option: The metadata upgrade has been aborted.
 
 //@<OUT> Second upgrade attempt should succeed
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -229,9 +229,9 @@ Removing metadata backup...
 Upgrade process successfully finished, metadata schema is now on version 2.1.0
 
 //@<OUT> Test Migration from 1.0.1 to 2.1.0
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 

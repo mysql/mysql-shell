@@ -731,52 +731,47 @@ bool validate_cluster_group_name(const mysqlshdk::mysql::IInstance &instance,
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                               mysqlshdk::null_bool clear_read_only,
                               bool interactive) {
-  int super_read_only = *instance.get_sysvar_bool("super_read_only");
-  bool super_read_only_changed = false;
+  if (auto super_read_only = *instance.get_sysvar_bool("super_read_only");
+      !super_read_only)
+    return false;
 
-  if (super_read_only) {
-    auto console = mysqlsh::current_console();
+  auto console = mysqlsh::current_console();
 
-    const std::string error_message =
-        "The MySQL instance at '" + instance.descr() +
-        "' currently has the super_read_only system variable set to "
-        "protect it from inadvertent updates from applications.\nYou must "
-        "first unset it to be able to perform any changes to this "
-        "instance.\n"
-        "For more information see: https://dev.mysql.com/doc/refman/en/"
-        "server-system-variables.html#sysvar_super_read_only.";
+  const std::string error_message =
+      "The MySQL instance at '" + instance.descr() +
+      "' currently has the super_read_only system variable set to "
+      "protect it from inadvertent updates from applications.\nYou must "
+      "first unset it to be able to perform any changes to this "
+      "instance.\n"
+      "For more information see: https://dev.mysql.com/doc/refman/en/"
+      "server-system-variables.html#sysvar_super_read_only.";
 
-    if (clear_read_only.is_null() && interactive) {
-      console->print_error(error_message);
-      console->print_para(
-          "You must first unset it to be able to perform any changes to this "
-          "instance.\n"
-          "For more information see: https://dev.mysql.com/doc/refman/en/"
-          "server-system-variables.html#sysvar_super_read_only.");
+  if (clear_read_only.is_null() && interactive) {
+    console->print_error(error_message);
 
-      if (console->confirm(
-              "Do you want to disable super_read_only and continue?",
-              mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::NO) {
-        console->print_info();
-        throw shcore::Exception::runtime_error(
-            "Server in SUPER_READ_ONLY mode");
-      } else {
-        console->print_info();
-        clear_read_only = true;
-      }
-    }
-
-    if (clear_read_only.get_safe()) {
-      log_info("Disabling super_read_only on the instance '%s'",
-               instance.descr().c_str());
-      instance.set_sysvar("super_read_only", false);
-      super_read_only_changed = true;
-    } else {
-      console->print_error(error_message);
-
+    if (console->confirm("Do you want to disable super_read_only and continue?",
+                         mysqlsh::Prompt_answer::NO) ==
+        mysqlsh::Prompt_answer::NO) {
+      console->print_info();
       throw shcore::Exception::runtime_error("Server in SUPER_READ_ONLY mode");
+    } else {
+      console->print_info();
+      clear_read_only = true;
     }
   }
+
+  bool super_read_only_changed = false;
+  if (clear_read_only.get_safe()) {
+    log_info("Disabling super_read_only on the instance '%s'",
+             instance.descr().c_str());
+    instance.set_sysvar("super_read_only", false);
+    super_read_only_changed = true;
+  } else {
+    console->print_error(error_message);
+
+    throw shcore::Exception::runtime_error("Server in SUPER_READ_ONLY mode");
+  }
+
   return super_read_only_changed;
 }
 

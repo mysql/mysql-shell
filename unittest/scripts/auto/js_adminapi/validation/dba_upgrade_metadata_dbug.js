@@ -1,7 +1,7 @@
 //@<OUT> Upgrades the metadata, interactive options simulating unregister (no upgrade performed)
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -82,9 +82,9 @@ NOTE: If Router's Metadata Cache TTL is high Router's own update in the Metadata
 Please select an option: The metadata upgrade has been aborted.
 
 //@<OUT> Upgrades the metadata, interactive options simulating upgrade (no upgrade performed)
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
