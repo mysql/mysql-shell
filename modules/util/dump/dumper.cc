@@ -1465,6 +1465,8 @@ void Dumper::do_run() {
 
   shcore::on_leave_scope terminate_session([this]() { close_session(); });
 
+  throw_if_cannot_dump_users();
+
   fetch_user_privileges();
 
   {
@@ -1539,8 +1541,8 @@ void Dumper::do_run() {
   rethrow();
 
 #ifndef NDEBUG
-  if (m_server_version < Version(8, 0, 21) ||
-      m_server_version > Version(8, 0, 23) || !dump_users()) {
+  if (m_server_version.version < Version(8, 0, 21) ||
+      m_server_version.version > Version(8, 0, 23) || !dump_users()) {
     // SHOW CREATE USER auto-commits transaction in some 8.0 versions, we don't
     // check if transaction is still open in such case if users were dumped
     assert_transaction_is_open(session());
@@ -1639,7 +1641,7 @@ void Dumper::fetch_user_privileges() {
   m_skip_grant_tables_active =
       "'skip-grants user'@'skip-grants host'" == m_user_account;
 
-  if (m_server_version >= Version(8, 0, 0)) {
+  if (m_server_version.version >= Version(8, 0, 0)) {
     m_user_has_backup_admin =
         !m_user_privileges->validate({"BACKUP_ADMIN"}).has_missing_privileges();
   }
@@ -1661,9 +1663,9 @@ void Dumper::warn_about_backup_lock() const {
 }
 
 std::string Dumper::why_backup_lock_is_missing() const {
-  return m_server_version >= Version(8, 0, 0)
+  return m_server_version.version >= Version(8, 0, 0)
              ? "available to the account " + m_user_account
-             : "supported in MySQL " + m_server_version.get_short();
+             : "supported in MySQL " + m_server_version.version.get_short();
 }
 
 void Dumper::lock_all_tables() {
@@ -1816,7 +1818,7 @@ void Dumper::acquire_read_locks() {
   // 8.0.23, FLUSH_TABLES privilege
   const auto execute_ftwrl =
       !m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
-      (m_server_version >= Version(8, 0, 23) &&
+      (m_server_version.version >= Version(8, 0, 23) &&
        !m_user_privileges->validate({"FLUSH_TABLES"}).has_missing_privileges());
   m_ftwrl_used = execute_ftwrl;
 
@@ -2126,11 +2128,12 @@ void Dumper::validate_mds() const {
   console->print_info(
       "Checking for compatibility with MySQL Database Service " + version);
 
-  if (!m_cache.server_is_8_0) {
-    console->print_note("MySQL Server " + m_cache.server_version.get_short() +
+  if (!m_cache.server_version.is_8_0) {
+    console->print_note("MySQL Server " +
+                        m_cache.server_version.version.get_short() +
                         " detected, please consider upgrading to 8.0 first.");
 
-    if (m_cache.server_is_5_7) {
+    if (m_cache.server_version.is_5_7) {
       console->print_info("Checking for potential upgrade issues.");
 
       if (check_for_upgrade_errors()) {
@@ -2866,7 +2869,7 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("hostname"), refs(m_cache.hostname), a);
   doc.AddMember(StringRef("server"), refs(m_cache.server), a);
   doc.AddMember(StringRef("serverVersion"),
-                {m_cache.server_version.get_full().c_str(), a}, a);
+                {m_cache.server_version.version.get_full().c_str(), a}, a);
 
   if (m_options.dump_binlog_info()) {
     doc.AddMember(StringRef("binlogFile"), refs(m_cache.binlog.file), a);
@@ -3521,7 +3524,7 @@ void Dumper::validate_privileges() const {
     table_required.emplace(std::move(trigger));
   }
 
-  if (!m_cache.server_is_8_0) {
+  if (!m_cache.server_version.is_8_0) {
     // need to explicitly check for SELECT privilege, otherwise some queries
     // will return empty results
     std::string select{"SELECT"};
@@ -3529,7 +3532,7 @@ void Dumper::validate_privileges() const {
     table_required.emplace(std::move(select));
   }
 
-  if (m_cache.server_is_5_6 && dump_users()) {
+  if (m_cache.server_version.is_5_6 && dump_users()) {
     // on 5.6, SUPER is required to get the real hash value from SHOW GRANTS
     std::string super{"SUPER"};
     all_required.emplace(super);
@@ -3771,7 +3774,7 @@ void Dumper::validate_dump_consistency(
 void Dumper::fetch_server_information() {
   const auto instance = mysqlshdk::mysql::Instance(session());
 
-  m_server_version = instance.get_version();
+  m_server_version = Schema_dumper{session()}.server_version();
   m_binlog_enabled = instance.get_sysvar_bool("log_bin").get_safe(false);
   m_gtid_enabled = shcore::str_ibeginswith(
       instance.get_sysvar_string("gtid_mode").get_safe("OFF"), "ON");
@@ -3826,6 +3829,12 @@ bool Dumper::check_for_upgrade_errors() const {
   });
 
   return !check_for_upgrade(config);
+}
+
+void Dumper::throw_if_cannot_dump_users() const {
+  if (m_server_version.is_maria_db && dump_users()) {
+    THROW_ERROR0(SHERR_DUMP_USERS_MARIA_DB_NOT_SUPPORTED);
+  }
 }
 
 }  // namespace dump

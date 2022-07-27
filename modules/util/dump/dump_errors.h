@@ -167,7 +167,12 @@
 #define SHERR_DUMP_ACCOUNT_WITH_APOSTROPHE_MSG \
   "Account %s contains the ' character, which is not supported"
 
-#define SHERR_DUMP_LAST 52036
+#define SHERR_DUMP_USERS_MARIA_DB_NOT_SUPPORTED 52037
+#define SHERR_DUMP_USERS_MARIA_DB_NOT_SUPPORTED_MSG                       \
+  "Dumping user accounts is currently not supported in MariaDB. Set the " \
+  "'users' option to false to continue."
+
+#define SHERR_DUMP_LAST 52037
 
 #define SHERR_DUMP_MAX 52999
 

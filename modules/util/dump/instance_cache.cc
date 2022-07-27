@@ -553,23 +553,7 @@ void Instance_cache_builder::fetch_metadata() {
 void Instance_cache_builder::fetch_version() {
   Profiler profiler{"fetching version"};
 
-  const auto result = query("SELECT @@GLOBAL.VERSION;");
-
-  if (const auto row = result->fetch_one()) {
-    using mysqlshdk::utils::Version;
-
-    m_cache.server_version = Version(row->get_string(0));
-
-    if (m_cache.server_version < Version(5, 7, 0)) {
-      m_cache.server_is_5_6 = true;
-    } else if (m_cache.server_version < Version(8, 0, 0)) {
-      m_cache.server_is_5_7 = true;
-    } else {
-      m_cache.server_is_8_0 = true;
-    }
-  } else {
-    THROW_ERROR0(SHERR_DUMP_IC_FAILED_TO_FETCH_VERSION);
-  }
+  m_cache.server_version = Schema_dumper{m_session}.server_version();
 }
 
 void Instance_cache_builder::fetch_explain_select_rows_index() {
@@ -892,7 +876,7 @@ void Instance_cache_builder::fetch_table_indexes() {
 void Instance_cache_builder::fetch_table_histograms() {
   Profiler profiler{"fetching table histograms"};
 
-  if (!has_tables() || !m_cache.server_is_8_0) {
+  if (!has_tables() || !m_cache.server_version.is_8_0) {
     return;
   }
 

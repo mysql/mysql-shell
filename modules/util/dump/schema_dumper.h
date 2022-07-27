@@ -137,6 +137,8 @@ class Schema_dumper {
 
   Instance_cache::Binlog binlog(bool quiet = false);
 
+  Instance_cache::Server_version server_version() const;
+
  public:
   // Config options
   bool opt_force = false;
