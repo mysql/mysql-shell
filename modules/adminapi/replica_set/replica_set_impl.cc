@@ -25,6 +25,7 @@
 
 #include <mysql.h>
 #include <mysqld_error.h>
+
 #include <future>
 #include <thread>
 #include <tuple>
@@ -1825,7 +1826,7 @@ std::vector<Instance_metadata> Replica_set_impl::get_instances_from_metadata()
  */
 mysqlsh::dba::Instance *Replica_set_impl::acquire_primary(
     bool /* primary_required */, mysqlshdk::mysql::Lock_mode mode,
-    const std::string &skip_lock_uuid) {
+    const std::string &skip_lock_uuid, bool) {
   auto console = current_console();
 
   auto check_not_invalidated = [&](Instance *primary,

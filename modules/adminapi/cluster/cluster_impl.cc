@@ -1962,7 +1962,7 @@ bool Cluster_impl::is_fenced_from_writes() const {
 
   // Fencing is only supported for versions >= 8.0.27 with the introduction of
   // ClusterSet
-  if (primary->get_version() < k_min_cs_version) {
+  if (primary->get_version() < Precondition_checker::k_min_cs_version) {
     return false;
   }
 
@@ -2106,13 +2106,16 @@ void Cluster_impl::check_cluster_online() {
 }
 
 std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
-    bool print_warnings) const {
+    bool print_warnings, bool check_status) const {
   if (m_cs_md_remove_pending) {
     throw shcore::Exception("Cluster is not part of a ClusterSet",
                             SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
   }
 
-  if (auto ptr = m_cluster_set.lock()) return ptr;
+  if (auto ptr = m_cluster_set.lock(); ptr) {
+    if (check_status) ptr->get_primary_cluster()->check_cluster_online();
+    return ptr;
+  }
 
   // NOTE: The operation must work even if the PRIMARY cluster is not reachable,
   // as long as the target instance is a reachable member of an InnoDB Cluster
@@ -2135,25 +2138,28 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
                                                metadata);
 
   // Acquire primary
-  cs->acquire_primary();
+  cs->acquire_primary(true, mysqlshdk::mysql::Lock_mode::NONE, {},
+                      check_status);
 
   try {
     // Verify the Primary Cluster's availability
     cs->get_primary_cluster()->check_cluster_online();
   } catch (const shcore::Exception &e) {
-    auto console = current_console();
+    if (check_status) throw;
+
     if (e.code() == SHERR_DBA_GROUP_HAS_NO_PRIMARY ||
         e.code() == SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING) {
       log_warning("Could not connect to any member of the PRIMARY Cluster: %s",
                   e.what());
       if (print_warnings) {
-        console->print_warning(
+        current_console()->print_warning(
             "Could not connect to any member of the PRIMARY Cluster, topology "
             "changes will not be allowed");
       }
     } else if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
       log_warning("PRIMARY Cluster doesn't have quorum: %s", e.what());
       if (print_warnings) {
+        auto console = current_console();
         console->print_warning(
             "The PRIMARY Cluster lost the quorum, topology changes will "
             "not be allowed");
@@ -3070,8 +3076,7 @@ bool Cluster_impl::contains_instance_with_address(
  */
 mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     bool primary_required, mysqlshdk::mysql::Lock_mode /*mode*/,
-    const std::string & /*skip_lock_uuid*/) {
-  auto console = current_console();
+    const std::string & /*skip_lock_uuid*/, bool check_primary_status) {
   if (!m_cluster_server) {
     return nullptr;
   }
@@ -3095,6 +3100,8 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
       md_state == metadata::State::UPGRADING) {
     return m_cluster_server.get();
   }
+
+  auto console = current_console();
 
   // Ensure m_cluster_server points to the PRIMARY of the group
   try {
@@ -3148,7 +3155,7 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
   if (is_cluster_set_member()) {
     invalidate_cluster_set_metadata_cache();
 
-    auto cs = get_cluster_set_object(true);
+    auto cs = get_cluster_set_object(true, check_primary_status);
 
     if (auto cs_primary_master = cs->get_primary_master()) {
       // Check if the ClusterSet Primary is different than the Cluster's one

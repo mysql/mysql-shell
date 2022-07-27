@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,6 +59,27 @@ TEST(Enumset, test) {
   fruitset2.unset(Cantaloupe);
   EXPECT_FALSE(fruitset2.is_set(Cantaloupe));
   EXPECT_EQ((std::set<Fruit>{Banana}), fruitset2.values());
+
+  // variadic ctor
+  Fruit_set fruitset3;
+
+  fruitset3 = Fruit_set{Fruit::Apple};
+  EXPECT_EQ(fruitset3.values().size(), 1);
+  EXPECT_TRUE(fruitset3.is_set(Fruit::Apple));
+
+  fruitset3 = Fruit_set{Fruit::Apple, Fruit::Banana};
+  EXPECT_EQ(fruitset3.values().size(), 2);
+  EXPECT_TRUE(fruitset3.is_set(Fruit::Apple) &&
+              fruitset3.is_set(Fruit::Banana));
+
+  fruitset3 = Fruit_set{Fruit::Cantaloupe, Fruit::Banana};
+  EXPECT_EQ(fruitset3.values().size(), 2);
+  EXPECT_TRUE(fruitset3.is_set(Fruit::Cantaloupe) &&
+              fruitset3.is_set(Fruit::Banana));
+
+  fruitset3 = Fruit_set{Fruit::Cantaloupe, Fruit::Banana, Fruit::Apple};
+  EXPECT_EQ(fruitset3.values().size(), 3);
+  EXPECT_TRUE(Fruit_set::all() == fruitset3);
 }
 
 TEST(Enumset, operators) {

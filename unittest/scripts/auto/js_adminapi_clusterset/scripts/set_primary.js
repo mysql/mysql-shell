@@ -568,9 +568,9 @@ session4.runSql("stop group_replication");
 
 cs.status({extended:1});
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE.");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster4");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster4");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE.");
 
 //@<> Test switchover while primary cluster is down
 testutil.stopSandbox(__mysql_sandbox_port4, {wait:1});
@@ -578,11 +578,11 @@ testutil.stopSandbox(__mysql_sandbox_port4, {wait:1});
 shell.connect(__sandbox_uri1);
 cs = dba.getClusterSet();
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster.");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster.");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster4");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster4");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster.");
 
 // Continued in set_primary_more.js
 

@@ -109,7 +109,8 @@ class Base_cluster_impl {
   virtual mysqlsh::dba::Instance *acquire_primary(
       bool primary_required = true,
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") = 0;
+      const std::string &skip_lock_uuid = "",
+      bool check_primary_status = false) = 0;
 
   virtual void release_primary(mysqlsh::dba::Instance *primary = nullptr) = 0;
 

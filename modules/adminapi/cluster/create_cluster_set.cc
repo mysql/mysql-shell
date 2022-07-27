@@ -59,7 +59,7 @@ void Create_cluster_set::check_version_requirement() {
   auto lowest_instance_version =
       m_cluster->get_lowest_instance_version(&instances_addresses);
 
-  if (lowest_instance_version < k_min_cs_version) {
+  if (lowest_instance_version < Precondition_checker::k_min_cs_version) {
     std::string instances_list = shcore::str_join(instances_addresses, ",");
 
     console->print_info("MySQL version " + lowest_instance_version.get_full() +

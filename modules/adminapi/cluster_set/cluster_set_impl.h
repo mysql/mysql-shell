@@ -109,7 +109,8 @@ class Cluster_set_impl : public Base_cluster_impl,
   mysqlsh::dba::Instance *acquire_primary(
       bool primary_required = true,
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") override;
+      const std::string &skip_lock_uuid = "",
+      bool check_primary_status = false) override;
 
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 

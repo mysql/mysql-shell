@@ -605,7 +605,8 @@ void Reboot_cluster_from_complete_outage::check_instance_configuration() {
   // Cluster.rescan() and the target instance wasn't restarted so the value is
   // not effective yet. Attempt to read it and if not empty, set it right away
   // in the GR options to be used
-  if (m_target_instance->get_version() >= k_min_cs_version) {
+  if (m_target_instance->get_version() >=
+      Precondition_checker::k_min_cs_version) {
     std::string view_change_uuid_persisted =
         m_target_instance
             ->get_persisted_value("group_replication_view_change_uuid")

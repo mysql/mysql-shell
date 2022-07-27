@@ -29,6 +29,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
@@ -128,7 +129,8 @@ class Replica_set_impl : public Base_cluster_impl {
   mysqlsh::dba::Instance *acquire_primary(
       bool primary_required = true,
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") override;
+      const std::string &skip_lock_uuid = "",
+      bool check_primary_status = false) override;
 
   Cluster_metadata get_metadata() const;
 

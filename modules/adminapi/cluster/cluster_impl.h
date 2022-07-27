@@ -247,7 +247,8 @@ class Cluster_impl final : public Base_cluster_impl,
   mysqlsh::dba::Instance *acquire_primary(
       bool primary_required = true,
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "") override;
+      const std::string &skip_lock_uuid = "",
+      bool check_primary_status = false) override;
 
   Cluster_metadata get_metadata() const;
 
@@ -537,7 +538,7 @@ class Cluster_impl final : public Base_cluster_impl,
   bool is_cluster_set_remove_pending() const { return m_cs_md_remove_pending; }
 
   std::shared_ptr<Cluster_set_impl> get_cluster_set_object(
-      bool print_warnings = false) const;
+      bool print_warnings = false, bool check_status = false) const;
 
   /**
    * Reset the password for the Cluster's replication account in use for the

@@ -451,13 +451,13 @@ EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "The InnoDB Cluster is 
 //@<> rejoin while primary is offline
 session1.runSql("stop group_replication");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE");
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE.");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE");
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE.");
 
 shell.connect(__sandbox_uri6);
 tmpcs= dba.getClusterSet();
-EXPECT_THROWS(function(){tmpcs.rejoinCluster("cluster2");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE");
+EXPECT_THROWS(function(){tmpcs.rejoinCluster("cluster2");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All reachable members of Primary Cluster are OFFLINE, but there are some unreachable members that could be ONLINE.");
 
 //@<> rejoin while primary is down
 testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
@@ -470,9 +470,9 @@ EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "The ClusterSet object 
 
 shell.connect(__sandbox_uri6);
 tmpcs= dba.getClusterSet();
-EXPECT_THROWS(function(){tmpcs.rejoinCluster("cluster2", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
+EXPECT_THROWS(function(){tmpcs.rejoinCluster("cluster2", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster.");
 
-EXPECT_THROWS(function(){tmpcs.rejoinCluster("cluster2");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster");
+EXPECT_THROWS(function(){tmpcs.rejoinCluster("cluster2");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: Could not connect to any ONLINE member of Primary Cluster.");
 
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);
