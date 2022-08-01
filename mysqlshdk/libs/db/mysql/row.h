@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,6 +52,7 @@ class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
   std::string get_as_string(uint32_t index) const override;
 
   std::string get_string(uint32_t index) const override;
+  std::wstring get_wstring(uint32_t index) const override;
   int64_t get_int(uint32_t index) const override;
   uint64_t get_uint(uint32_t index) const override;
   float get_float(uint32_t index) const override;

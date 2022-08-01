@@ -680,14 +680,14 @@ void Instance_cache_builder::fetch_columns() {
         column.type = mysqlshdk::db::dbstring_to_type(
             data_type, row->get_string(6));  // COLUMN_TYPE
         column.csv_unsafe =
-            shcore::str_iendswith(data_type.c_str(), "binary", "blob") ||
+            shcore::str_iendswith(data_type, "binary", "blob") ||
             mysqlshdk::db::Type::Bit == column.type ||
             mysqlshdk::db::Type::Geometry == column.type;
         const auto extra = row->get_string(7, "");  // EXTRA
         column.generated = extra.find(" GENERATED") != std::string::npos;
         column.auto_increment =
             extra.find("auto_increment") != std::string::npos;
-        column.nullable = shcore::str_caseeq(row->get_string(5).c_str(),
+        column.nullable = shcore::str_caseeq(row->get_string(5),
                                              "YES");  // IS_NULLABLE
 
         table_columns[schema_name][table_name].emplace(
@@ -953,7 +953,7 @@ void Instance_cache_builder::fetch_table_partitions() {
   iterate_tables(info, [](const std::string &, const std::string &,
                           Instance_cache::Table *table,
                           const mysqlshdk::db::IRow *row) {
-    if (shcore::str_caseeq_mv(table->engine, "NDB", "NDBCLUSTER")) {
+    if (shcore::str_caseeq(table->engine, "NDB", "NDBCLUSTER")) {
       // Partition selection is disabled for tables employing a storage engine
       // that supplies automatic partitioning, such as NDB. Ignore such tables.
       return;

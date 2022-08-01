@@ -45,7 +45,7 @@ Completion_list Completer::complete(IShell_core::Mode mode,
       if (tmp.empty()) {
         *compl_offset = old_compl_offs;
       } else {
-        std::copy(tmp.begin(), tmp.end(), std::back_inserter(list));
+        std::move(tmp.begin(), tmp.end(), std::back_inserter(list));
         if (old_compl_offs != *compl_offset) break;
       }
     }

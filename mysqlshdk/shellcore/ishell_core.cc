@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,12 +45,10 @@ std::string to_string(const IShell_core::Mode mode) {
 }
 
 IShell_core::Mode parse_mode(const std::string &value) {
-  if (str_casecmp(value, "sql") == 0) return shcore::IShell_core::Mode::SQL;
-  if (str_casecmp(value, "py") == 0) return shcore::IShell_core::Mode::Python;
-  if (str_casecmp(value, "js") == 0)
-    return shcore::IShell_core::Mode::JavaScript;
-  if (str_casecmp(value, "none") == 0)
-    return shcore::IShell_core::Mode::JavaScript;
+  if (str_caseeq(value, "sql")) return shcore::IShell_core::Mode::SQL;
+  if (str_caseeq(value, "py")) return shcore::IShell_core::Mode::Python;
+  if (str_caseeq(value, "js")) return shcore::IShell_core::Mode::JavaScript;
+  if (str_caseeq(value, "none")) return shcore::IShell_core::Mode::JavaScript;
   throw std::invalid_argument(
       "Valid values for shell mode are sql, js, py or none.");
 }

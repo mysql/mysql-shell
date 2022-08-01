@@ -367,7 +367,7 @@ void Group_replication_options::check_option_values(
   // Validate ipWhitelist and ipAllowlist
   {
     if (!ip_allowlist.is_null()) {
-      if (shcore::str_casecmp(*ip_allowlist, "AUTOMATIC") != 0) {
+      if (!shcore::str_caseeq(*ip_allowlist, "AUTOMATIC")) {
         validate_ip_whitelist_option(version, *ip_allowlist,
                                      ip_allowlist_option_name);
       }

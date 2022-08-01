@@ -90,9 +90,7 @@ void auto_complete_cb(const char *text, int *start_index,
   auto options = g_instance->auto_complete(text, &completion_offset);
 
   std::sort(options.begin(), options.end(),
-            [](const std::string &a, const std::string &b) -> bool {
-              return shcore::str_casecmp(a, b) < 0;
-            });
+            shcore::Case_insensitive_comparator{});
   options.erase(std::unique(options.begin(), options.end()), options.end());
 
   *start_index = completion_offset;

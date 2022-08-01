@@ -104,26 +104,11 @@ std::string unquote_string(const std::string &text) {
   }
 }
 
-}  // namespace
-
-namespace base {
-
-/**
- * Convenience function to determine if 2 strings are the same. This works also
- * for culturally equal letters (e.g. german ß and ss) and any normalization
- * form.
- */
-bool same_string(std::string_view first, std::string_view second,
-                 bool case_sensitive = true) {
-  // TODO(pawel): this should support UTF-8
-  if (case_sensitive) {
-    return first == second;
-  } else {
-    return shcore::str_caseeq(first, second);
-  }
+bool ibegins_with(const std::string &s, const std::wstring &prefix) {
+  return shcore::str_ibeginswith(shcore::utf8_to_wide(s), prefix);
 }
 
-}  // namespace base
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -1140,12 +1125,14 @@ std::string unquote_prefix_as_string(const std::string &prefix) {
 
 void init_prefix_info(parsers::Sql_completion_result::Prefix *prefix,
                       bool ansi_quotes) {
-  prefix->as_identifier =
-      unquote_prefix_as_identifier(prefix->full, ansi_quotes);
-  prefix->quoted_as_identifier = prefix->full != prefix->as_identifier;
+  prefix->full_wide = shcore::utf8_to_wide(prefix->full);
+  prefix->as_identifier = shcore::utf8_to_wide(
+      unquote_prefix_as_identifier(prefix->full, ansi_quotes));
+  prefix->quoted_as_identifier = prefix->full_wide != prefix->as_identifier;
 
-  prefix->as_string = unquote_prefix_as_string(prefix->full);
-  prefix->quoted_as_string = prefix->full != prefix->as_string;
+  prefix->as_string =
+      shcore::utf8_to_wide(unquote_prefix_as_string(prefix->full));
+  prefix->quoted_as_string = prefix->full_wide != prefix->as_string;
 
   prefix->quoted = prefix->quoted_as_identifier || prefix->quoted_as_string;
 
@@ -1155,11 +1142,10 @@ void init_prefix_info(parsers::Sql_completion_result::Prefix *prefix,
                                           ? prefix->as_identifier
                                           : prefix->as_string;
   } else {
-    prefix->as_string_or_identifier = prefix->full;
+    prefix->as_string_or_identifier = prefix->full_wide;
   }
 
-  log_debug3("Prefix: |%s| - |%s| - |%s|", prefix->full.c_str(),
-             prefix->as_identifier.c_str(), prefix->as_string.c_str());
+  log_debug3("Prefix: |%s|", prefix->full.c_str());
 }
 
 void init_prefix_as_user(Scanner *scanner,
@@ -1171,7 +1157,7 @@ void init_prefix_as_user(Scanner *scanner,
     part->full = prefix.full;
     part->quoted = prefix.quoted;
     part->quote = prefix.quote;
-    part->unquoted = prefix.as_string_or_identifier;
+    part->unquoted = shcore::wide_to_utf8(prefix.as_string_or_identifier);
   };
 
   // we're positioned either past or at the token which is being completed, move
@@ -1213,11 +1199,11 @@ void init_prefix_as_user(Scanner *scanner,
   // candidates
   context->prefix.quoted = false;
   context->prefix.quote = 0;
-  context->prefix.as_identifier = context->prefix.full;
+  context->prefix.as_identifier = context->prefix.full_wide;
   context->prefix.quoted_as_identifier = false;
-  context->prefix.as_string = context->prefix.full;
+  context->prefix.as_string = context->prefix.full_wide;
   context->prefix.quoted_as_string = false;
-  context->prefix.as_string_or_identifier = context->prefix.full;
+  context->prefix.as_string_or_identifier = context->prefix.full_wide;
 
   // restore scanner position
   scanner->pop();
@@ -1554,12 +1540,11 @@ parsers::Sql_completion_result getCodeCompletion(size_t offset,
               // list).
               if ((schema.empty() && reference.schema.empty()) ||
                   (schemas.count(reference.schema) > 0)) {
-                auto t =
+                const auto &t =
                     reference.alias.empty() ? reference.table : reference.alias;
 
-                // TODO(pawel): support UTF-8
-                if (!filtered || shcore::str_ibeginswith(
-                                     t, r.context.prefix.as_identifier)) {
+                if (!filtered ||
+                    ibegins_with(t, r.context.prefix.as_identifier)) {
                   insert_table(&r, t);
                 }
               }
@@ -1595,7 +1580,7 @@ parsers::Sql_completion_result getCodeCompletion(size_t offset,
 
               // this could be an alias
               for (const auto &reference : context.references) {
-                if (base::same_string(table, reference.alias)) {
+                if (table == reference.alias) {
                   add_referenced_table(reference);
                   break;
                 }
@@ -1797,7 +1782,7 @@ parsers::Sql_completion_result getCodeCompletion(size_t offset,
     r.context.labels.reserve(context.labels.size());
 
     for (auto &label : context.labels) {
-      if (shcore::str_beginswith(label, r.context.prefix.as_identifier)) {
+      if (ibegins_with(label, r.context.prefix.as_identifier)) {
         r.context.labels.emplace_back(std::move(label));
       }
     }

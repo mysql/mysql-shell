@@ -52,9 +52,7 @@ class Completer_frontend : public Shell_core_test_wrapper {
         &completion_offset));
 
     std::sort(options.begin(), options.end(),
-              [](const std::string &a, const std::string &b) -> bool {
-                return shcore::str_casecmp(a, b) < 0;
-              });
+              shcore::Case_insensitive_comparator{});
     auto last = std::unique(options.begin(), options.end());
     options.erase(last, options.end());
 
@@ -2399,6 +2397,27 @@ TEST_F(Completer_frontend, bug_34342946) {
 
   EXPECT_TAB_TAB_NOT_CONTAINS("CREATE DEFINER='root'@'localhost' ",
                               "'root'@'localhost'");
+}
+
+TEST_F(Completer_frontend, bug_34365581) {
+  connect_classic();
+  execute("\\sql");
+
+  execute("SELECT @@GLOBAL.lower_case_table_names\\G");
+
+  if (std::string::npos ==
+      output_handler.std_out.find("@@GLOBAL.lower_case_table_names: 0")) {
+    SKIP_TEST("This test requires case-sensitive MySQL server");
+  }
+
+  execute("CREATE SCHEMA IF NOT EXISTS ogórek;");
+  execute("CREATE SCHEMA IF NOT EXISTS ogÓrek;");
+  execute("\\rehash");
+
+  EXPECT_AFTER_TAB_TAB("SELECT ogó", strv({"ogÓrek", "ogórek"}));
+
+  execute("DROP SCHEMA ogórek;");
+  execute("DROP SCHEMA ogÓrek;");
 }
 
 }  // namespace mysqlsh

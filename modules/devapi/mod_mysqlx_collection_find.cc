@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -950,12 +950,12 @@ void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
       lock_contention = args.string_at(0);
     }
 
-    if (!shcore::str_casecmp(lock_contention.c_str(), "nowait")) {
+    if (shcore::str_caseeq(lock_contention, "nowait")) {
       message_.set_locking_options(Mysqlx::Crud::Find_RowLockOptions_NOWAIT);
-    } else if (!shcore::str_casecmp(lock_contention.c_str(), "skip_locked")) {
+    } else if (shcore::str_caseeq(lock_contention, "skip_locked")) {
       message_.set_locking_options(
           Mysqlx::Crud::Find_RowLockOptions_SKIP_LOCKED);
-    } else if (shcore::str_casecmp(lock_contention.c_str(), "default")) {
+    } else if (!shcore::str_caseeq(lock_contention, "default")) {
       throw shcore::Exception::argument_error(
           "Argument #1 is expected to be one of DEFAULT, NOWAIT or "
           "SKIP_LOCKED");

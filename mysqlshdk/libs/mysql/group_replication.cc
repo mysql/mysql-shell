@@ -84,18 +84,18 @@ std::string to_string(const Member_state state) {
  * @return MemberState value resulting from the string conversion.
  */
 Member_state to_member_state(const std::string &state) {
-  if (shcore::str_casecmp("ONLINE", state.c_str()) == 0)
+  if (shcore::str_caseeq("ONLINE", state))
     return Member_state::ONLINE;
-  else if (shcore::str_casecmp("RECOVERING", state.c_str()) == 0)
+  else if (shcore::str_caseeq("RECOVERING", state))
     return Member_state::RECOVERING;
-  else if (shcore::str_casecmp("OFFLINE", state.c_str()) == 0)
+  else if (shcore::str_caseeq("OFFLINE", state))
     return Member_state::OFFLINE;
-  else if (shcore::str_casecmp("ERROR", state.c_str()) == 0)
+  else if (shcore::str_caseeq("ERROR", state))
     return Member_state::ERROR;
-  else if (shcore::str_casecmp("UNREACHABLE", state.c_str()) == 0)
+  else if (shcore::str_caseeq("UNREACHABLE", state))
     return Member_state::UNREACHABLE;
-  else if (shcore::str_casecmp("(MISSING)", state.c_str()) == 0 ||
-           shcore::str_casecmp("MISSING", state.c_str()) == 0 || state.empty())
+  else if (state.empty() || shcore::str_caseeq("(MISSING)", state) ||
+           shcore::str_caseeq("MISSING", state))
     return Member_state::MISSING;
   else
     throw std::runtime_error("Unsupported member state value: " + state);
@@ -114,9 +114,9 @@ std::string to_string(const Member_role role) {
 }
 
 Member_role to_member_role(const std::string &role) {
-  if (shcore::str_casecmp("PRIMARY", role.c_str()) == 0) {
+  if (shcore::str_caseeq("PRIMARY", role)) {
     return Member_role::PRIMARY;
-  } else if (shcore::str_casecmp("SECONDARY", role.c_str()) == 0) {
+  } else if (shcore::str_caseeq("SECONDARY", role)) {
     return Member_role::SECONDARY;
   } else if (role.empty()) {
     return Member_role::NONE;
@@ -137,9 +137,9 @@ std::string to_string(const Topology_mode mode) {
 }
 
 Topology_mode to_topology_mode(const std::string &mode) {
-  if (shcore::str_casecmp("Single-Primary", mode) == 0)
+  if (shcore::str_caseeq("Single-Primary", mode))
     return Topology_mode::SINGLE_PRIMARY;
-  else if (shcore::str_casecmp("Multi-Primary", mode) == 0)
+  else if (shcore::str_caseeq("Multi-Primary", mode))
     return Topology_mode::MULTI_PRIMARY;
   else
     throw std::runtime_error("Unsupported Group Replication mode: " + mode);

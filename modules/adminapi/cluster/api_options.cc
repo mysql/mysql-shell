@@ -163,7 +163,7 @@ void Rescan_options::set_list_option(const std::string &option,
 
   if (value.type == shcore::Value_type::String) {
     auto str_val = value.as_string();
-    if (shcore::str_casecmp(str_val, "auto") == 0) {
+    if (shcore::str_caseeq(str_val, "auto")) {
       *auto_option = true;
     } else {
       throw shcore::Exception::argument_error(shcore::str_format(

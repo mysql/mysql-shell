@@ -134,44 +134,43 @@ std::string type_to_dbstring(Type type, uint32_t length) {
 
 Type dbstring_to_type(const std::string &data_type,
                       const std::string &column_type) {
-  if (shcore::str_iendswith(data_type.c_str(), "geometry", "geomcollection",
+  if (shcore::str_iendswith(data_type, "geometry", "geomcollection",
                             "geometrycollection", "linestring", "point",
                             "polygon")) {
     return mysqlshdk::db::Type::Geometry;
-  } else if (shcore::str_iendswith(data_type.c_str(), "int")) {
-    if (shcore::str_iendswith(column_type.c_str(), " unsigned")) {
+  } else if (shcore::str_iendswith(data_type, "int")) {
+    if (shcore::str_iendswith(column_type, " unsigned")) {
       return mysqlshdk::db::Type::UInteger;
     } else {
       return mysqlshdk::db::Type::Integer;
     }
-  } else if (shcore::str_caseeq(data_type.c_str(), "decimal")) {
+  } else if (shcore::str_caseeq(data_type, "decimal")) {
     return mysqlshdk::db::Type::Decimal;
-  } else if (shcore::str_caseeq(data_type.c_str(), "double")) {
+  } else if (shcore::str_caseeq(data_type, "double")) {
     return mysqlshdk::db::Type::Double;
-  } else if (shcore::str_caseeq(data_type.c_str(), "float")) {
+  } else if (shcore::str_caseeq(data_type, "float")) {
     return mysqlshdk::db::Type::Float;
-  } else if (shcore::str_caseeq(data_type.c_str(), "date")) {
+  } else if (shcore::str_caseeq(data_type, "date")) {
     return mysqlshdk::db::Type::Date;
-  } else if (shcore::str_caseeq(data_type.c_str(), "time")) {
+  } else if (shcore::str_caseeq(data_type, "time")) {
     return mysqlshdk::db::Type::Time;
-  } else if (shcore::str_caseeq_mv(data_type.c_str(), "timestamp",
-                                   "datetime")) {
+  } else if (shcore::str_caseeq(data_type, "timestamp", "datetime")) {
     return mysqlshdk::db::Type::DateTime;
-  } else if (shcore::str_caseeq(data_type.c_str(), "year")) {
+  } else if (shcore::str_caseeq(data_type, "year")) {
     return mysqlshdk::db::Type::UInteger;
-  } else if (shcore::str_iendswith(data_type.c_str(), "blob",
+  } else if (shcore::str_iendswith(data_type, "blob",
                                    "binary")) {  // Includes varbinary data type
     return mysqlshdk::db::Type::Bytes;
-  } else if (shcore::str_iendswith(data_type.c_str(), "char",
+  } else if (shcore::str_iendswith(data_type, "char",
                                    "text")) {  // Includes varchar data type
     return mysqlshdk::db::Type::String;
-  } else if (shcore::str_caseeq(data_type.c_str(), "bit")) {
+  } else if (shcore::str_caseeq(data_type, "bit")) {
     return mysqlshdk::db::Type::Bit;
-  } else if (shcore::str_caseeq(data_type.c_str(), "enum")) {
+  } else if (shcore::str_caseeq(data_type, "enum")) {
     return mysqlshdk::db::Type::Enum;
-  } else if (shcore::str_caseeq(data_type.c_str(), "set")) {
+  } else if (shcore::str_caseeq(data_type, "set")) {
     return mysqlshdk::db::Type::Set;
-  } else if (shcore::str_caseeq(data_type.c_str(), "json")) {
+  } else if (shcore::str_caseeq(data_type, "json")) {
     return mysqlshdk::db::Type::Json;
   }
 

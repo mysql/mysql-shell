@@ -43,13 +43,14 @@ struct Sql_completion_result {
 
   struct Prefix {
     std::string full;
+    std::wstring full_wide;
     bool quoted = false;
     char quote = 0;
-    std::string as_identifier;
+    std::wstring as_identifier;
     bool quoted_as_identifier = false;
-    std::string as_string;
+    std::wstring as_string;
     bool quoted_as_string = false;
-    std::string as_string_or_identifier;
+    std::wstring as_string_or_identifier;
   };
 
   struct Account_part {

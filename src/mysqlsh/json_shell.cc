@@ -81,9 +81,7 @@ void Json_shell::process_line(const std::string &line) {
             doc["complete"]["data"].GetString(), &completion_offset));
 
         std::sort(options.begin(), options.end(),
-                  [](const std::string &a, const std::string &b) -> bool {
-                    return shcore::str_casecmp(a, b) < 0;
-                  });
+                  shcore::Case_insensitive_comparator{});
         auto last = std::unique(options.begin(), options.end());
         options.erase(last, options.end());
 

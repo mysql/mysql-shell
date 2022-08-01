@@ -87,10 +87,11 @@ Connection_options get_connection_options(
   // }
 
   Connection_options ret_val;
+  const auto case_sensitive =
+      ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE;
 
-  connection_map.ensure_keys(
-      mandatory, mysqlshdk::db::connection_attributes(), "connection options",
-      ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
+  connection_map.ensure_keys(mandatory, mysqlshdk::db::connection_attributes(),
+                             "connection options", case_sensitive);
 
   // First we load uri if possible, so we can override it later with explicit
   // options.
@@ -101,24 +102,11 @@ Connection_options get_connection_options(
     }
   }
 
-  bool (*fn_pt)(const std::string &a, const std::string &b);
-  if (ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE) {
-    fn_pt = [](const std::string &a, const std::string &b) {
-      return a.compare(b) < 0;
-    };
-  } else {
-    fn_pt = [](const std::string &a, const std::string &b) {
-      return shcore::str_casecmp(a, b) < 0;
-    };
-  }
-
-  auto customset = std::set<std::string, decltype(fn_pt)>(fn_pt);
-
-  customset.insert(mysqlshdk::db::ssh_uri_connection_attributes.begin(),
-                   mysqlshdk::db::ssh_uri_connection_attributes.end());
-
   for (auto &option : *instance_def) {
-    if (customset.find(option.first) != customset.end()) {
+    // SSH URI options are all lower-case
+    if (mysqlshdk::db::ssh_uri_connection_attributes.find(
+            case_sensitive ? option.first : shcore::str_lower(option.first)) !=
+        mysqlshdk::db::ssh_uri_connection_attributes.end()) {
       continue;  // those will be handled in different place
     } else if (ret_val.compare(option.first, mysqlshdk::db::kUri) == 0) {
       continue;  // those were already handled
