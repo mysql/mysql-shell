@@ -243,6 +243,18 @@ EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'wor
 
 session.run_sql("SET GLOBAL SQL_MODE=?", [original_global_sqlmode])
 
+#@<> BUG#33360787 loading when auto-commit set to OFF
+original_global_autocommit = session.run_sql("SELECT @@GLOBAL.autocommit").fetch_one()[0]
+session.run_sql("SET @@GLOBAL.autocommit = OFF")
+
+checksum = session.run_sql('CHECKSUM TABLE !.cities', [ target_schema ]).fetch_one()[1]
+
+session.run_sql('TRUNCATE TABLE !.cities', [ target_schema ])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "schema": target_schema, "table": 'cities' }), "importing when auto-commit is OFF")
+EXPECT_EQ(checksum, session.run_sql('CHECKSUM TABLE !.cities', [ target_schema ]).fetch_one()[1])
+
+session.run_sql("SET @@GLOBAL.autocommit = ?", [original_global_autocommit])
+
 #@<> BUG#31412330 UTIL.IMPORTTABLE(): UNABLE TO IMPORT DATA INTO A TABLE WITH NON-ASCII NAME
 original_global_sqlmode = session.run_sql("SELECT @@global.sql_mode").fetch_one()[0]
 session.run_sql("SET GLOBAL SQL_MODE=''")

@@ -2265,6 +2265,36 @@ session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Load should not fail")
 EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
 
+#@<> BUG#34173126 - loading a dump when global auto-commit is off
+# constants
+dump_dir = os.path.join(outdir, "bug_34173126")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY, data INT)", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)", [ tested_schema, tested_table ])
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "showProgress": False }), "Dump should not fail")
+
+# connect to the target instance, disable auto-commit and load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+original_global_autocommit = session.run_sql("SELECT @@GLOBAL.autocommit").fetch_one()[0]
+session.run_sql("SET @@GLOBAL.autocommit = OFF")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Load should not fail")
+
+# verification
+compare_schema(session1, session2, tested_schema, check_rows=True)
+
+#@<> BUG#34173126 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+shell.connect(__sandbox_uri2)
+session.run_sql("SET @@GLOBAL.autocommit = ?", [original_global_autocommit])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

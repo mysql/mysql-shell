@@ -574,6 +574,8 @@ void Load_data_worker::execute(
       executef("SET NAMES ?;", m_opt.character_set());
     }
 
+    // BUG#34173126, BUG#33360787 - loading when global auto-commit is OFF fails
+    execute("SET autocommit = 1");
     // set session variables
     execute("SET unique_checks = 0");
     execute("SET foreign_key_checks = 0");
