@@ -337,3 +337,16 @@ underlying issue is resolved before upgrade. See documentation for more informat
 
 * changedFunctionsInGeneratedColumnsCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-sql-changes
+
+* columnsWhichCannotHaveDefaultsCheck.title
+# Columns which cannot have default values
+
+* columnsWhichCannotHaveDefaultsCheck.description
+# Error
+Error: The following columns are defined as either BLOB, TEXT, GEOMETRY or JSON and have a default value
+set. These data types cannot have default values in MySQL versions prior to 8.0.13, while starting with
+8.0.13, the default value must be specified as an expression. In order to fix this issue, please use the
+ALTER TABLE ... ALTER COLUMN ... DROP DEFAULT statement.
+
+* columnsWhichCannotHaveDefaultsCheck.docLink
+https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html#data-type-defaults-explicit

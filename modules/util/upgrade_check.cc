@@ -1471,6 +1471,7 @@ void Upgrade_check::register_manual_check(const char *ver, const char *name,
 }
 
 namespace {
+
 bool register_manual_checks() {
   Upgrade_check::register_manual_check(
       "8.0.11", "defaultAuthenticationPlugin", Upgrade_issue::WARNING,
@@ -1482,7 +1483,6 @@ bool register_manual_checks() {
 }
 
 bool UNUSED_VARIABLE(reg_manual_checks) = register_manual_checks();
-}  // namespace
 
 class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
  private:
@@ -1530,6 +1530,8 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
   }
 };
 
+}  // namespace
+
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_changed_functions_generated_columns_check(
     const Upgrade_info &info) {
@@ -1541,11 +1543,47 @@ Sql_upgrade_check::get_changed_functions_generated_columns_check(
 }
 
 namespace {
+
 bool UNUSED_VARIABLE(register_changed_functions_generated_columns) =
     Upgrade_check::register_check(
         &Sql_upgrade_check::get_changed_functions_generated_columns_check,
         Upgrade_check::Target::OBJECT_DEFINITIONS, "5.7.0");
+
+// this check is applicable to versions up to 8.0.12, starting with 8.0.13
+// these types can have default values, specified as an expression
+class Columns_which_cannot_have_defaults_check : public Sql_upgrade_check {
+ public:
+  Columns_which_cannot_have_defaults_check()
+      : Sql_upgrade_check(
+            "columnsWhichCannotHaveDefaultsCheck",
+            "Columns which cannot have default values",
+            {"SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM "
+             "INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA NOT IN "
+             "('information_schema', 'performance_schema', 'sys') AND "
+             "COLUMN_DEFAULT IS NOT NULL AND LOWER(DATA_TYPE) IN ('point', "
+             "'linestring', 'polygon', 'geometry', 'multipoint', "
+             "'multilinestring', 'multipolygon', 'geometrycollection', "
+             "'geomcollection', 'json', 'tinyblob', 'blob', 'mediumblob', "
+             "'longblob', 'tinytext', 'text', 'mediumtext', 'longtext')"},
+            Upgrade_issue::ERROR) {}
+};
+
+}  // namespace
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_columns_which_cannot_have_defaults_check() {
+  return std::make_unique<Columns_which_cannot_have_defaults_check>();
 }
+
+namespace {
+
+bool UNUSED_VARIABLE(register_columns_which_cannot_have_defaults) =
+    Upgrade_check::register_check(
+        std::bind(
+            &Sql_upgrade_check::get_columns_which_cannot_have_defaults_check),
+        Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.12");
+
+}  // namespace
 
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format) {
