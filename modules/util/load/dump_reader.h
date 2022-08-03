@@ -27,6 +27,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -232,6 +233,14 @@ class Dump_reader {
 
   bool has_partitions() const { return m_dump_has_partitions; }
 
+  bool include_schema(const std::string &schema) const;
+  bool include_table(const std::string &schema, const std::string &table) const;
+  bool include_event(const std::string &schema, const std::string &event) const;
+  bool include_routine(const std::string &schema,
+                       const std::string &routine) const;
+  bool include_trigger(const std::string &schema, const std::string &table,
+                       const std::string &trigger) const;
+
   struct Capability_info {
     std::string id;
     std::string description;
@@ -436,6 +445,8 @@ class Dump_reader {
   };
 
  private:
+  const std::string &override_schema(const std::string &s) const;
+
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
 
   const Load_dump_options &m_options;
@@ -457,6 +468,9 @@ class Dump_reader {
 
   std::atomic<uint64_t> m_metadata_available{0};
   std::atomic<uint64_t> m_metadata_parsed{0};
+
+  // new schema name -> old schema name
+  std::optional<std::pair<std::string, std::string>> m_schema_override;
 
   static std::unordered_set<Dump_reader::Table_data_info *>::iterator
   schedule_chunk_proportionally(

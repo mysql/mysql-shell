@@ -364,9 +364,9 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
               bool execute = true;
 
               if (shcore::str_caseeq(type, "EVENT")) {
-                execute = loader->m_options.include_event(schema(), name);
+                execute = loader->m_dump->include_event(schema(), name);
               } else if (shcore::str_caseeq(type, "FUNCTION", "PROCEDURE")) {
-                execute = loader->m_options.include_routine(schema(), name);
+                execute = loader->m_dump->include_routine(schema(), name);
               }
 
               return execute;
@@ -1203,13 +1203,13 @@ void Dump_loader::on_dump_end() {
                dump::Schema_dumper::Object_type type) {
           switch (type) {
             case dump::Schema_dumper::Object_type::SCHEMA:
-              return m_options.include_schema(schema);
+              return m_dump->include_schema(schema);
 
             case dump::Schema_dumper::Object_type::TABLE:
-              return m_options.include_table(schema, object);
+              return m_dump->include_table(schema, object);
 
             case dump::Schema_dumper::Object_type::ROUTINE:
-              return m_options.include_routine(schema, object);
+              return m_dump->include_routine(schema, object);
           }
 
           throw std::logic_error("Should not happen");
@@ -1354,7 +1354,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
                 bool execute = true;
 
                 if (shcore::str_caseeq(type, "TRIGGER")) {
-                  execute = m_options.include_trigger(schema, table, name);
+                  execute = m_dump->include_trigger(schema, table, name);
                 }
 
                 return execute;
@@ -1510,7 +1510,7 @@ bool Dump_loader::schedule_table_chunk(
     if (m_skip_schemas.find(schema) != m_skip_schemas.end() ||
         m_skip_tables.find(schema_object_key(schema, table)) !=
             m_skip_tables.end() ||
-        !m_options.include_table(schema, table))
+        !m_dump->include_table(schema, table))
       return false;
   }
 
@@ -3008,9 +3008,43 @@ void Dump_loader::Sql_transform::add_execute_conditionally(
   });
 }
 
+void Dump_loader::Sql_transform::add_rename_schema(
+    const std::string &new_name) {
+  add([new_name](const std::string &sql, std::string *out_new_sql) {
+    mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+    const auto token = it.next_token();
+
+    if (shcore::str_caseeq(token, "CREATE")) {
+      if (shcore::str_caseeq(it.next_token(), "DATABASE", "SCHEMA")) {
+        auto schema = it.next_token();
+
+        if (shcore::str_caseeq(schema, "IF")) {
+          // NOT
+          it.next_token();
+          // EXISTS
+          it.next_token();
+          // schema follows
+          schema = it.next_token();
+        }
+
+        *out_new_sql = sql.substr(0, it.position() - schema.length()) +
+                       shcore::quote_identifier(new_name) +
+                       sql.substr(it.position());
+        return;
+      }
+    } else if (shcore::str_caseeq(token, "USE")) {
+      *out_new_sql = "USE " + shcore::quote_identifier(new_name);
+      return;
+    }
+
+    *out_new_sql = sql;
+  });
+}
+
 void Dump_loader::handle_schema_option() {
   if (!m_options.target_schema().empty()) {
     m_dump->replace_target_schema(m_options.target_schema());
+    m_default_sql_transforms.add_rename_schema(m_options.target_schema());
   }
 }
 

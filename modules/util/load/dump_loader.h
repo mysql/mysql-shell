@@ -448,9 +448,9 @@ class Dump_loader {
 
       for (const auto &f : m_ops) {
         f(orig_sql, &new_sql);
-        orig_sql = new_sql;
+        orig_sql = std::move(new_sql);
       }
-      *out_new_sql = new_sql;
+      *out_new_sql = std::move(orig_sql);
 
       return true;
     }
@@ -467,6 +467,12 @@ class Dump_loader {
      */
     void add_execute_conditionally(
         std::function<bool(const std::string &, const std::string &)> &&f);
+
+    /**
+     * Whenever a USE `schema` or CREATE DATABASE ... `schema` statement is
+     * executed, `schema` is going to be replaced with the new name.
+     */
+    void add_rename_schema(const std::string &new_name);
 
    private:
     void add(std::function<void(const std::string &, std::string *)> &&f) {

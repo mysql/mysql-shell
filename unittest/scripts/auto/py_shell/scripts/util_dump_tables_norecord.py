@@ -315,20 +315,21 @@ session.run_sql("CREATE VIEW !.! AS SELECT `tdata` FROM !.!;", [ test_schema, te
 
 session.run_sql("CREATE TRIGGER !.! BEFORE UPDATE ON ! FOR EACH ROW BEGIN SET NEW.tdata = NEW.data + 3; END;", [ test_schema, test_table_trigger, test_table_no_index ])
 
-session.run_sql("""
-CREATE PROCEDURE !.!()
-BEGIN
-  DECLARE i INT DEFAULT 1;
+def create_test_schema_objects():
+    session.run_sql("CREATE FUNCTION !.!(s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');", [ test_schema, test_schema_function ])
+    session.run_sql("CREATE EVENT !.! ON SCHEDULE EVERY 1 HOUR STARTS CURRENT_TIMESTAMP + INTERVAL 1 WEEK DO DELETE FROM !.!;", [ test_schema, test_schema_event, test_schema, test_table_no_index ])
+    session.run_sql("""
+        CREATE PROCEDURE !.!()
+        BEGIN
+        DECLARE i INT DEFAULT 1;
 
-  WHILE i < 10000 DO
-    INSERT INTO !.! (`data`) VALUES (i);
-    SET i = i + 1;
-  END WHILE;
-END""", [ test_schema, test_schema_procedure, test_schema, test_table_primary ])
+        WHILE i < 10000 DO
+            INSERT INTO !.! (`data`) VALUES (i);
+            SET i = i + 1;
+        END WHILE;
+        END""", [ test_schema, test_schema_procedure, test_schema, test_table_primary ])
 
-session.run_sql("CREATE FUNCTION !.!(s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');", [ test_schema, test_schema_function ])
-
-session.run_sql("CREATE EVENT !.! ON SCHEDULE EVERY 1 HOUR STARTS CURRENT_TIMESTAMP + INTERVAL 1 WEEK DO DELETE FROM !.!;", [ test_schema, test_schema_event, test_schema, test_table_no_index ])
+create_test_schema_objects()
 
 session.run_sql("""INSERT INTO !.! (`data`)
 SELECT (tth * 10000 + th * 1000 + h * 100 + t * 10 + u + 1) x FROM
@@ -1038,6 +1039,8 @@ for crc in test_schema_tables_crc:
 
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
+# restore the objects
+create_test_schema_objects()
 
 #@<> active schema, dump should be loaded into the original one
 session.run_sql("DROP SCHEMA !;", [ test_schema ])
@@ -1060,6 +1063,8 @@ for crc in test_schema_tables_crc:
 
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
+# restore the objects
+create_test_schema_objects()
 
 #@<> WL13804-FR13.2 - The `util.loadDump()` function must accept a new option `schema` with a string value, which specifies the schema into which the dump should be loaded.
 EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": None }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Null")
@@ -1088,12 +1093,15 @@ testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 recreate_verification_schema()
 session.run_sql("USE !;", [ "mysql" ])
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "loading the dump using 'schema' option")
+
 # expect tables and views to be created
 EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(verification_schema)))
+
 # expect data to be correct
 for crc in test_schema_tables_crc:
     print("---> checking: `{0}`.`{1}`".format(verification_schema, crc["table"]))
     EXPECT_EQ(crc["crc"], compute_crc(verification_schema, crc["table"], crc["columns"]))
+
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
@@ -1105,27 +1113,136 @@ EXPECT_STDOUT_CONTAINS("WARNING: The 'loadUsers' option is set to true, but the 
 
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
-#@<> WL13804-FR13.2.1 - If the specified schema does not exist, an exception must be thrown.
-# WL13804-TSFR_13_2_1
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": "dummy" }), "ValueError: Util.load_dump: The specified schema does not exist.")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": "1" }), "ValueError: Util.load_dump: The specified schema does not exist.")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": "!º\\" }), "ValueError: Util.load_dump: The specified schema does not exist.")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": "-1" }), "ValueError: Util.load_dump: The specified schema does not exist.")
+#@<> load the dump created by dump_tables(), target schema does not exist
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "Loading should not fail")
 
-# WL13804-FR13.2.2 - If dump was not created by `util.dumpTables()` function, and `schema` option is used, an exception must be thrown.
-#@<> WL13804-FR13.2.2 - util.dump_schemas()
-# WL13804-TSFR_13_2_3
+#@<> BUG#33799352 - it should be possible to use 'schema' option with dumps created by other dump utils as long as only one schema is loaded - util.dump_schemas()
+# one schema
+test_schema_snapshot = snapshot_schema(session, test_schema)
+# views are dumped using SHOW CREATE VIEW statement without an active schema set, so they contain the reference to the schema which contains them
+# we need to alter the DDL to match with the views loaded into the new schema
+for v in test_schema_views:
+    test_schema_snapshot["views"][v]["ddl"] = test_schema_snapshot["views"][v]["ddl"].replace(test_schema, verification_schema)
 shutil.rmtree(test_output_absolute, True)
-EXPECT_NO_THROWS(lambda: util.dump_schemas([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False }), "dumping a schema")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Util.load_dump: Invalid option: schema.")
-EXPECT_STDOUT_CONTAINS("ERROR: The dump was not created by the util.dump_tables() function, the 'schema' option cannot be used.")
+EXPECT_NO_THROWS(lambda: util.dump_schemas([test_schema], test_output_absolute, { "showProgress": False }), "dumping a schema")
 
-#@<> WL13804-FR13.2.2 - util.dump_instance()
-# WL13804-TSFR_13_2_3
+# load the dump, target schema does not exist
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+# load the dump, target schema exists
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+# two schemas
 shutil.rmtree(test_output_absolute, True)
-EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "ddlOnly": True, "showProgress": False }), "dumping the whole instance")
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.dump_schemas([test_schema, verification_schema], test_output_absolute, { "showProgress": False }), "dumping two schemas")
+
+# loading two schemas with 'schema' option fails
+WIPE_OUTPUT()
 EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Util.load_dump: Invalid option: schema.")
-EXPECT_STDOUT_CONTAINS("ERROR: The dump was not created by the util.dump_tables() function, the 'schema' option cannot be used.")
+EXPECT_STDOUT_CONTAINS("ERROR: The 'schema' option can only be used when loading a single schema, but 2 will be loaded.")
+
+# loading just one schema with 'schema' option succeeds
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+#@<> BUG#33799352 - it should be possible to use 'schema' option with dumps created by other dump utils as long as only one schema is loaded - util.dump_instance()
+# one schema
+shutil.rmtree(test_output_absolute, True)
+EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSchemas": [test_schema], "showProgress": False }), "dumping the whole instance")
+
+# load the dump, target schema does not exist
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+# load the dump, target schema exists
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+# two schemas
+shutil.rmtree(test_output_absolute, True)
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSchemas": [test_schema, verification_schema], "showProgress": False }), "dumping the whole instance")
+
+# loading two schemas with 'schema' option fails
+WIPE_OUTPUT()
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Util.load_dump: Invalid option: schema.")
+EXPECT_STDOUT_CONTAINS("ERROR: The 'schema' option can only be used when loading a single schema, but 2 will be loaded.")
+
+# loading just one schema with 'schema' option succeeds
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+# filtering options - table
+backup = test_schema_snapshot["tables"][test_table_primary]
+del test_schema_snapshot["tables"][test_table_primary]
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTables": [f"`{test_schema}`.`{test_table_primary}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["tables"][test_table_primary] = backup
+
+# filtering options - triggers
+backup = test_schema_snapshot["tables"][test_table_no_index]["triggers"]
+test_schema_snapshot["tables"][test_table_no_index]["triggers"] = {}
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTriggers": [f"`{test_schema}`.`{test_table_no_index}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTriggers": [f"`{test_schema}`.`{test_table_no_index}`.`{test_table_trigger}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["tables"][test_table_no_index]["triggers"] = backup
+
+# filtering options - view
+backup = test_schema_snapshot["views"]
+test_schema_snapshot["views"] = {}
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTables": [f"`{test_schema}`.`{test_view}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["views"] = backup
+
+# filtering options - procedure
+backup = test_schema_snapshot["procedures"]
+test_schema_snapshot["procedures"] = {}
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeRoutines": [f"`{test_schema}`.`{test_schema_procedure}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["procedures"] = backup
+
+# filtering options - function
+backup = test_schema_snapshot["functions"]
+test_schema_snapshot["functions"] = {}
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeRoutines": [f"`{test_schema}`.`{test_schema_function}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["functions"] = backup
+
+# filtering options - event
+backup = test_schema_snapshot["events"]
+test_schema_snapshot["events"] = {}
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeEvents": [f"`{test_schema}`.`{test_schema_event}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["events"] = backup
 
 # WL13804-FR13 - data verification tests
 #@<> WL13804-FR13 - ddlOnly
@@ -1187,15 +1304,16 @@ with open(schema_config, "w", encoding="utf-8") as json_file:
     json.dump(schema_json, json_file)
 
 #<> loading an old dumpTables() dump without 'schema' option should fail
-recreate_verification_schema()
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False }), "ValueError: Util.load_dump: The target schema was not specified.")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "resetProgress": True, "showProgress": False }), "ValueError: Util.load_dump: The target schema was not specified.")
 EXPECT_STDOUT_CONTAINS("ERROR: The dump was created by an older version of the util.dump_tables() function and needs to be loaded into an existing schema. Please set the target schema using the 'schema' option.")
 
-#<> loading an old dumpTables() dump with 'schema' option should succeed
-# remove the progress file
-testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
+#<> loading an old dumpTables() dump with 'schema' option set to non-existing schema should fail
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "ValueError: Util.load_dump: The specified schema does not exist.")
 
-EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "loading the old dumpTables() using 'schema' option")
+#<> loading an old dumpTables() dump with 'schema' option should succeed
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "loading the old dumpTables() using 'schema' option")
 
 # expect tables and views to be created
 EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(verification_schema)))

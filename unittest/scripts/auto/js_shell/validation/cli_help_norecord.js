@@ -1109,8 +1109,8 @@ OPTIONS
 
 --schema=<str>
             Load the dump into the given schema. This option can only be used
-            when loading dumps created by the util.dumpTables() function.
-            Default: not set.
+            when loading just one schema, (either only one schema was dumped,
+            or schema filters result in only one schema). Default: not set.
 
 --excludeUsers=<str list>
             Skip loading specified users from the dump. Each user is in the

@@ -97,7 +97,7 @@ Dump_reader::Status Dump_reader::open() {
   shcore::Dictionary_t basenames(md->get_map("basenames"));
 
   for (const auto &schema : *md->get_array("schemas")) {
-    if (m_options.include_schema(schema.as_string())) {
+    if (include_schema(schema.as_string())) {
       auto info = std::make_shared<Schema_info>();
 
       info->schema = schema.get_string();
@@ -242,8 +242,10 @@ bool Dump_reader::next_schema_and_views(std::string *out_schema,
     if (!s->view_sql_done && s->ready()) {
       *out_schema = s->schema;
 
-      for (const auto &v : s->views) {
-        out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+      if (s->has_view_sql) {
+        for (const auto &v : s->views) {
+          out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+        }
       }
 
       s->view_sql_done = true;
@@ -691,18 +693,21 @@ uint64_t Dump_reader::add_deferred_statements(
 }
 
 void Dump_reader::replace_target_schema(const std::string &schema) {
-  if (!is_dump_tables()) {
-    throw std::logic_error("Dump was not created using util.dumpTables().");
-  }
+  if (1 != m_contents.schemas.size()) {
+    current_console()->print_error(
+        "The 'schema' option can only be used when loading a single schema, "
+        "but " +
+        std::to_string(m_contents.schemas.size()) + " will be loaded.");
 
-  assert(1 == m_contents.schemas.size());
+    throw std::invalid_argument("Invalid option: schema.");
+  }
 
   const auto info = m_contents.schemas.begin()->second;
   m_contents.schemas.clear();
   m_contents.schemas.emplace(schema, info);
 
+  m_schema_override = {schema, info->schema};
   info->schema = schema;
-  info->has_sql = false;
 
   for (const auto &table : info->tables) {
     table.second->schema = schema;
@@ -725,37 +730,27 @@ void Dump_reader::validate_options() {
         "the user data.");
   }
 
-  if (is_dump_tables()) {
+  if (table_only()) {
+    // old version of dumpTables() - no schema SQL is available
     if (m_options.target_schema().empty()) {
-      // user didn't provide an option, we cannot proceed if the dump was
-      // created by an old version of dumpTables()
-      if (table_only()) {
-        current_console()->print_error(
-            "The dump was created by an older version of the util." +
-            shcore::get_member_name("dumpTables",
-                                    shcore::current_naming_style()) +
-            "() function and needs to be loaded into an existing schema. "
-            "Please set the target schema using the 'schema' option.");
-        throw std::invalid_argument("The target schema was not specified.");
-      }
+      // user didn't provide the new schema name, we cannot proceed
+      current_console()->print_error(
+          "The dump was created by an older version of the util." +
+          shcore::get_member_name("dumpTables",
+                                  shcore::current_naming_style()) +
+          "() function and needs to be loaded into an existing schema. "
+          "Please set the target schema using the 'schema' option.");
+
+      throw std::invalid_argument("The target schema was not specified.");
     } else {
       const auto result = m_options.base_session()->queryf(
           "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE "
-          "SCHEMA_NAME = ?",
+          "SCHEMA_NAME=?",
           m_options.target_schema());
 
       if (nullptr == result->fetch_one()) {
         throw std::invalid_argument("The specified schema does not exist.");
       }
-    }
-  } else {
-    if (!m_options.target_schema().empty()) {
-      current_console()->print_error(
-          "The dump was not created by the util." +
-          shcore::get_member_name("dumpTables",
-                                  shcore::current_naming_style()) +
-          "() function, the 'schema' option cannot be used.");
-      throw std::invalid_argument("Invalid option: schema.");
     }
   }
 
@@ -1015,7 +1010,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
 
   if (md->has_key("tables")) {
     for (const auto &t : *md->get_array("tables")) {
-      if (reader->m_options.include_table(schema, t.as_string())) {
+      if (reader->include_table(schema, t.as_string())) {
         auto info = std::make_shared<Table_info>();
 
         info->schema = schema;
@@ -1034,7 +1029,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
 
   if (md->has_key("views")) {
     for (const auto &v : *md->get_array("views")) {
-      if (reader->m_options.include_table(schema, v.as_string())) {
+      if (reader->include_table(schema, v.as_string())) {
         View_info info;
 
         info.schema = schema;
@@ -1367,6 +1362,40 @@ void Dump_reader::on_table_metadata_parsed(const Table_info &info) {
   }
 
   on_metadata_parsed();
+}
+
+bool Dump_reader::include_schema(const std::string &schema) const {
+  return m_options.include_schema(override_schema(schema));
+}
+
+bool Dump_reader::include_table(const std::string &schema,
+                                const std::string &table) const {
+  return m_options.include_table(override_schema(schema), table);
+}
+
+bool Dump_reader::include_event(const std::string &schema,
+                                const std::string &event) const {
+  return m_options.include_event(override_schema(schema), event);
+}
+
+bool Dump_reader::include_routine(const std::string &schema,
+                                  const std::string &routine) const {
+  return m_options.include_routine(override_schema(schema), routine);
+}
+
+bool Dump_reader::include_trigger(const std::string &schema,
+                                  const std::string &table,
+                                  const std::string &trigger) const {
+  return m_options.include_trigger(override_schema(schema), table, trigger);
+}
+
+const std::string &Dump_reader::override_schema(const std::string &s) const {
+  if (m_schema_override) {
+    const auto &value = m_schema_override.value();
+    return value.first == s ? value.second : s;
+  } else {
+    return s;
+  }
 }
 
 }  // namespace mysqlsh
