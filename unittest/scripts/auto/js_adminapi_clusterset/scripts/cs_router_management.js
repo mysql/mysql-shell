@@ -86,6 +86,11 @@ clusterset.routingOptions(cm_router);
 clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', 'accept_ro');
 clusterset.routingOptions(cm_router);
 
+clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', 1);
+clusterset.routingOptions(cm_router);
+clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', 15);
+clusterset.routingOptions(cm_router);
+
 //@<> clusterset.setRoutingOption for a router, invalid values
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, "target_cluster", 'any_not_supported_value'); },
   "Invalid value for routing option 'target_cluster', accepted values 'primary' or valid cluster name");
@@ -108,6 +113,18 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'invalidated_cl
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', 1); },
   "Invalid value for routing option 'invalidated_cluster_policy', accepted values: 'accept_ro', 'drop_all'");
 
+// stats_updates_frequency
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', ''); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be an integer.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', 'foo'); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be an integer.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', ['1']); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be an integer.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', {'value':'1'}); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be an integer.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', -1); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be a positive integer.");
+
 //@<> Router does not belong to the clusterset
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra", 'invalidated_cluster_policy', 'drop_all'); },
   "Router 'abra' is not part of this ClusterSet");
@@ -116,10 +133,16 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra::cadabra", 'target_c
 
 //@ Resetting router option value for a single router,
 clusterset.setRoutingOption(cm_router, "target_cluster", null);
-clusterset.setRoutingOption(cm_router, "target_cluster", null);
-clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', null);
+clusterset.routingOptions(cm_router);
+clusterset.routingOptions();
+
 clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', null);
 clusterset.routingOptions(cm_router);
+clusterset.routingOptions();
+
+clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', null);
+clusterset.routingOptions(cm_router);
+clusterset.routingOptions();
 
 //@ clusterset.setRoutingOption all valid values
 clusterset.setRoutingOption("target_cluster", "primary");
@@ -136,6 +159,10 @@ clusterset.setRoutingOption(cr_router, "target_cluster", replicacluster.getName(
 clusterset.routingOptions();
 clusterset.setRoutingOption(cr_router3, "invalidated_cluster_policy", "accept_ro");
 clusterset.routingOptions();
+clusterset.setRoutingOption("stats_updates_frequency", 11);
+clusterset.routingOptions();
+clusterset.setRoutingOption(cr_router3, "stats_updates_frequency", 222);
+clusterset.routingOptions();
 
 //@<> clusterset.setRoutingOption invalid values
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("target_cluster", 'any_not_supported_value'); },
@@ -144,8 +171,17 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("invalidated_cluster_polic
   "Invalid value for routing option 'invalidated_cluster_policy', accepted values: 'accept_ro', 'drop_all'");
 
 //@ Resetting clusterset routing option
+// BUG#34458017: setRoutingOption to null resets all options
+// Each option should be reset individually and not all of them
 clusterset.setRoutingOption("target_cluster", null);
+clusterset.routingOptions();
+
 clusterset.setRoutingOption('invalidated_cluster_policy', null);
+clusterset.routingOptions();
+
+clusterset.setRoutingOption('stats_updates_frequency', null);
+clusterset.routingOptions();
+
 clusterset.setRoutingOption(cr_router, 'target_cluster', null);
 clusterset.routingOptions();
 

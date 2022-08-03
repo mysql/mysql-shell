@@ -901,6 +901,7 @@ The accepted options are:
 @li target_cluster: Target Cluster for Router routing operations.
 @li invalidated_cluster_policy: Routing policy to be taken when the target
 cluster is detected as being invalidated.
+@li stats_updates_frequency: Frequency of Router check-in updates.
 
 The target_cluster option supports the following values:
 
@@ -914,7 +915,20 @@ are be accepted. RO connections keep being accepted and handled.
 @li drop_all: all connections to the target Cluster are closed and no new
 connections will be accepted.
 
-If the value is null, the option value is cleared and the default value takes effect.
+The stats_updates_frequency option accepts positive integers and sets the
+frequency of Router check-in updates in seconds in the Metadata. If set to 0 (
+default), no periodic updates are done. Router will round up the value to be a
+multiple of Router's TTL, i.e.:
+
+@li If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
+stats_updates_frequency=1, effective frequency is 30 seconds.
+
+@li If not a multiple of TTL it will be rounded up and adjusted according to
+the TTL, e.g. TTL=5, stats_updates_frequency=11, effective frequency is 15
+seconds; TTL=5, stats_updates_frequency=13, effective frequency is 15 seconds.
+
+If the value is null, the option value is cleared and the default value takes
+effect.
 )*");
 
 #if DOXYGEN_JS

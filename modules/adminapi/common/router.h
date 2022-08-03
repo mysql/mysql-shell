@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,19 +32,23 @@
 namespace mysqlsh {
 namespace dba {
 
-constexpr auto k_router_option_invalidated_cluster_routing_policy =
+constexpr inline auto k_router_option_invalidated_cluster_routing_policy =
     "invalidated_cluster_policy";
-constexpr auto k_router_option_invalidated_cluster_routing_policy_drop_all =
-    "drop_all";
-constexpr auto k_router_option_invalidated_cluster_routing_policy_accept_ro =
-    "accept_ro";
+constexpr inline auto
+    k_router_option_invalidated_cluster_routing_policy_drop_all = "drop_all";
+constexpr inline auto
+    k_router_option_invalidated_cluster_routing_policy_accept_ro = "accept_ro";
 
-constexpr auto k_router_option_target_cluster = "target_cluster";
-constexpr auto k_router_option_target_cluster_primary = "primary";
+constexpr inline auto k_router_option_target_cluster = "target_cluster";
+constexpr inline auto k_router_option_target_cluster_primary = "primary";
 
-constexpr std::array<decltype(k_router_option_target_cluster), 2>
+constexpr inline auto k_router_option_stats_updates_frequency =
+    "stats_updates_frequency";
+
+constexpr inline std::array<decltype(k_router_option_target_cluster), 3>
     k_router_options = {k_router_option_invalidated_cluster_routing_policy,
-                        k_router_option_target_cluster};
+                        k_router_option_target_cluster,
+                        k_router_option_stats_updates_frequency};
 
 extern const Router_options_metadata k_default_router_options;
 
