@@ -358,10 +358,12 @@ class Dumper {
   // returns true in case of errors
   bool check_for_upgrade_errors() const;
 
+  void throw_if_cannot_dump_users() const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
-  mysqlshdk::utils::Version m_server_version;
+  Instance_cache::Server_version m_server_version;
   bool m_binlog_enabled = false;
   bool m_gtid_enabled = false;
 

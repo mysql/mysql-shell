@@ -48,6 +48,7 @@
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -2732,7 +2733,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   };
 
   const auto is_5_6 = m_cache
-                          ? m_cache->server_is_5_6
+                          ? m_cache->server_version.is_5_6
                           : m_mysql->get_server_version() < Version(5, 7, 0);
   const auto &get_grants = is_5_6 ? get_grants_5_6 : get_grants_all;
 
@@ -3359,6 +3360,38 @@ bool Schema_dumper::include_grant(
   }
 
   return true;
+}
+
+Instance_cache::Server_version Schema_dumper::server_version() const {
+  const auto result = m_mysql->query("SELECT @@GLOBAL.VERSION;");
+  Instance_cache::Server_version ret_val;
+
+  if (const auto row = result->fetch_one()) {
+    ret_val.version = Version(row->get_string(0));
+
+    DBUG_EXECUTE_IF("dumper_dump_mariadb", {
+      ret_val.version = Version("10.4.18-MariaDB-1:10.4.18+maria~focal");
+    });
+
+    if (std::string::npos !=
+        shcore::str_lower(ret_val.version.get_extra()).find("mariadb")) {
+      // we don't want the numbering used by MariaDB to interfere with various
+      // conditions we have in our code, just fall-back to an old version
+      ret_val.version = Version("5.6.0-" + ret_val.version.get_full());
+      ret_val.is_5_6 = true;
+      ret_val.is_maria_db = true;
+    } else if (ret_val.version < Version(5, 7, 0)) {
+      ret_val.is_5_6 = true;
+    } else if (ret_val.version < Version(8, 0, 0)) {
+      ret_val.is_5_7 = true;
+    } else {
+      ret_val.is_8_0 = true;
+    }
+  } else {
+    THROW_ERROR0(SHERR_DUMP_IC_FAILED_TO_FETCH_VERSION);
+  }
+
+  return ret_val;
 }
 
 }  // namespace dump

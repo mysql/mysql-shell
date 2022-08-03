@@ -2219,6 +2219,19 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 # restore connection
 setup_session()
 
+#@<> BUG#34049624 - dumping users from MariaDB is not supported {not __dbug_off}
+testutil.dbug_set("+d,dumper_dump_mariadb")
+
+# trying to dump users results in error
+EXPECT_FAIL("Error: Shell Error (52037)", "While 'Initializing': Dumping user accounts is currently not supported in MariaDB. Set the 'users' option to false to continue.", test_output_absolute, { "users": True, "dryRun": dry_run, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52037)", "While 'Initializing': Dumping user accounts is currently not supported in MariaDB. Set the 'users' option to false to continue.", test_output_absolute, { "users": True, "showProgress": False })
+
+# dumping without users works fine
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "users": False, "dryRun": dry_run, "showProgress": False })
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "users": False, "showProgress": False })
+
+testutil.dbug_set("")
+
 #@<> WL14244 - help entries
 util.help('dump_instance')
 

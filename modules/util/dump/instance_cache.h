@@ -150,14 +150,19 @@ struct Instance_cache {
     }
   };
 
+  struct Server_version {
+    mysqlshdk::utils::Version version;
+    bool is_5_6 = false;
+    bool is_5_7 = false;
+    bool is_8_0 = false;
+    bool is_maria_db = false;
+  };
+
   bool has_ndbinfo = false;
   std::string user;
   std::string hostname;
   std::string server;
-  mysqlshdk::utils::Version server_version;
-  bool server_is_5_6 = false;
-  bool server_is_5_7 = false;
-  bool server_is_8_0 = false;
+  Server_version server_version;
   uint32_t explain_rows_idx = 0;
   Binlog binlog;
   std::string gtid_executed;
