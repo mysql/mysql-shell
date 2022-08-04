@@ -223,7 +223,7 @@ WIPE_OUTPUT()
 
 // optionA defined by user as invalid uint
 callMysqlsh(["--", "customObj", "dummyFunction", "1", "2", "--optionA:uint=-123"])
-EXPECT_OUTPUT_CONTAINS("Error at '--optionA:uint=-123': Argument error at '--optionA:uint=-123': UInteger indicated, but value is Integer")
+EXPECT_OUTPUT_CONTAINS("Error at '--optionA:uint=-123'.\nArgument error at '--optionA:uint=-123': UInteger indicated, but value is Integer")
 WIPE_OUTPUT()
 
 // optionA defined by user as int
@@ -233,7 +233,7 @@ WIPE_OUTPUT()
 
 // optionA defined by user as invalid int
 callMysqlsh(["--", "customObj", "dummyFunction", "1", "2", "--optionA:int=-123.45"])
-EXPECT_OUTPUT_CONTAINS("Error at '--optionA:int=-123.45': Argument error at '--optionA:int=-123.45': Integer indicated, but value is Float")
+EXPECT_OUTPUT_CONTAINS("Error at '--optionA:int=-123.45'.\nArgument error at '--optionA:int=-123.45': Integer indicated, but value is Float")
 WIPE_OUTPUT()
 
 // optionA defined by user as float

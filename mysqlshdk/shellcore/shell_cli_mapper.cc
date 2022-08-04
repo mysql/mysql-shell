@@ -197,14 +197,12 @@ Cmd_line_arg_definition parse_named_argument(const std::string &definition) {
          !results[VALUE_MATCH_IDX].matched) ||  // = without value
         (results[COLON_MATCH_IDX].matched &&
          !results[EQUAL_MATCH_IDX].matched)) {  // : without =
-      log_info(
-          "Valid formats for command line arguments:\n"
+
+      throw std::invalid_argument(
+          "Invalid format for command line argument. Valid formats are:\n"
           "\t<arg>\n"
           "\t--<arg>[=<value>]\n"
           "\t--<arg>:<type>=<value>");
-
-      throw std::invalid_argument(
-          "Invalid format for command line argument, see log for more details");
     }
 
     // If either type or value were specified the value can be determined (even
@@ -435,8 +433,8 @@ void Shell_cli_mapper::add_cmdline_argument(const std::string &cmdline_arg) {
       try {
         m_cmdline_args.push_back(parse_named_argument(cmdline_arg));
       } catch (const std::invalid_argument &ex) {
-        throw std::invalid_argument("Error at '" + cmdline_arg +
-                                    "': " + ex.what());
+        throw std::invalid_argument("Error at '" + cmdline_arg + "'.\n" +
+                                    ex.what());
       } catch (const std::logic_error &) {
         m_waiting_value = true;
         m_cmdline_args.push_back({cmdline_arg, cmdline_arg,
