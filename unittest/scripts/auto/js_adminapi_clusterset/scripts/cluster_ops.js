@@ -79,7 +79,25 @@ CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
 
 //@<> Changing the primary instance of the REPLICA Cluster must ensure the replication stream is kept
+\option dba.logSql = 2
+WIPE_SHELL_LOG();
+
 replicacluster.setPrimaryInstance(__sandbox_uri3);
+
+var set_primary_instance_sql = [
+    "STOP REPLICA FOR CHANNEL 'clusterset_replication'",
+    "SELECT group_replication_set_as_primary(*)",
+    "START REPLICA FOR CHANNEL 'clusterset_replication'"
+];
+
+EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_sql[0]);
+EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_sql[1]);
+
+// BUG#34446932: It's not necessary to restart the channel after the switch,
+// that's handled by GR
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[2]);
+
+\option dba.logSql = 0
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4], cluster, replicacluster);
@@ -141,7 +159,7 @@ replicacluster.addInstance(__sandbox_uri4);
 // the instance will have view change GTIDs from the old cluster that don't exist in the primary
 replicacluster.removeInstance(__sandbox_uri4);
 
-c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3", {recoveryMethod:"incremental"});
+c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3", {recoveryMethod:"incremental", communicationStack: "MYSQL"});
 c3.addInstance(__sandbox_uri4);
 
 c3.removeInstance(__sandbox_uri4);
@@ -164,6 +182,47 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REJOINED_INSTANCE(__sandbox_uri2);
+
+//@<> rejoinInstance on a replica cluster when primary cluster is under heavy load
+
+// Rejoining an instance to a Replica Cluster when 'MySQL' comm stack is used
+// (default) and the Primary Cluster is under heavy load results in a failure:
+// the instance is unable to rejoin the Cluster.
+// The problem is that a new recovery account is created on the primary Cluster
+// so then is replicated everywhere else but since the primary is under a heavy
+// load, the account wasn't replicated yet to the replica cluster and
+// rejoining a member of the replica cluster fails since GR does
+// pre-authentication using the recovery accounts before actually joining the
+// group, when using the MySQL comm stack. With the XCom communication stack
+// the instance will rejoin the group and be stuck in RECOVERING state for a while.
+
+// Add instance 4 to the replica cluster
+c3.addInstance(__sandbox_uri4);
+
+var session4 = mysql.getSession(__sandbox_uri4);
+session4.runSql("STOP group_replication");
+session4.runSql("SET PERSIST_ONLY group_replication_start_on_boot=0");
+testutil.restartSandbox(__mysql_sandbox_port4);
+
+// simulate lag by introducing delay in the replication channel with
+// SOURCE_DELAY. The value must be >50 seconds to ensure the join fails since GR
+// attempts 10 times the join with an interval of 5 seconds between attempt
+var session5 = mysql.getSession(__sandbox_uri5);
+session5.runSql("STOP REPLICA FOR CHANNEL 'clusterset_replication'");
+session5.runSql("CHANGE REPLICATION SOURCE TO SOURCE_DELAY=60 FOR CHANNEL 'clusterset_replication'");
+session5.runSql("START REPLICA FOR CHANNEL 'clusterset_replication'");
+
+// Attempt to rejoin the instance
+EXPECT_NO_THROWS(function() { c3.rejoinInstance(__sandbox_uri4); });
+EXPECT_OUTPUT_CONTAINS("* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
+EXPECT_OUTPUT_CONTAINS("* Configuring ClusterSet managed replication channel...");
+EXPECT_OUTPUT_CONTAINS("** Changing replication source of <<<hostname>>>:<<<__mysql_sandbox_port4>>> to <<<hostname>>>:<<<__mysql_sandbox_port1>>>");
+
+shell.connect(__sandbox_uri5);
+testutil.waitMemberState(__mysql_sandbox_port4, "ONLINE");
+
+CHECK_REPLICA_CLUSTER([__sandbox_uri5, __sandbox_uri4], cluster, c3);
+CHECK_REJOINED_INSTANCE(__sandbox_uri4, c3, false);
 
 //@<> createCluster() must generate and set a value for group_replication_view_change_uuid
 var session4 = mysql.getSession(__sandbox_uri4);

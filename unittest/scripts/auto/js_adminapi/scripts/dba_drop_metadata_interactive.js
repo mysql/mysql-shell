@@ -33,8 +33,29 @@ EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
 session.close();
 scene.destroy();
 
-//@<> InnoDB Cluster: drop metadata on read only master, rejecting to clear it
+//@<> if GR is installed but not active, can't duplicate messages
 scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.killSandbox(__mysql_sandbox_port1);
+
+testutil.startSandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port2);
+
+shell.connect(__sandbox_uri2);
+
+testutil.wipeAllOutput();
+testutil.expectPrompt("Are you sure you want to remove the Metadata? [y/N]:", "y");
+testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
+EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Server in SUPER_READ_ONLY");
+
+var count = testutil.fetchCapturedStdout(false).match(/You must first unset it to be able to perform any changes to this instance/g).length;
+EXPECT_EQ(1, count);
+
+shell.connect(__sandbox_uri1);
+cluster = dba.rebootClusterFromCompleteOutage();
+
+//@<> InnoDB Cluster: drop metadata on read only master, rejecting to clear it
 shell.connect(__sandbox_uri1);
 session.runSql("SET GLOBAL super_read_only=1");
 
@@ -47,7 +68,6 @@ shell.connect(__sandbox_uri2);
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
 EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Server in SUPER_READ_ONLY");
-
 
 //@<> InnoDB Cluster: drop metadata on read only master, accepting to clear it
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");

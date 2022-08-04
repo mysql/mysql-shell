@@ -138,20 +138,15 @@ shcore::Value Set_primary_instance::execute() {
   if (m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster()) {
     // We must stop the replication channel at the primary instance first
     // since GR won't allow changing the primary when there are running
-    // replication channels.
+    // replication channels. The channel will be re-started automatically by GR.
 
     // Stop the channel, ensuring all transactions in queue are applied first to
     // ensure no transaction loss
     stop_channel(m_cluster->get_cluster_server().get(),
                  k_clusterset_async_channel_name, true, false);
-
-    change_primary();
-
-    start_channel(m_target_instance.get(), k_clusterset_async_channel_name,
-                  false);
-  } else {
-    change_primary();
   }
+
+  change_primary();
 
   // Print information about the instances role changes
   print_cluster_members_role_changes();

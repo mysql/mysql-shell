@@ -337,6 +337,10 @@ Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devC
 ?{VER(>=8.0.27)}
 Re-creating recovery account...
 NOTE: User '<<<repl_user>>>'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with a new password.
+
+* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
+
 ?{}
 <<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 <<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>

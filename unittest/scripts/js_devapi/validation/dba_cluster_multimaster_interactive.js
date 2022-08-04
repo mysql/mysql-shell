@@ -304,6 +304,10 @@ Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devC
 ?{VER(>=8.0.27)}
 Re-creating recovery account...
 NOTE: User '<<<repl_user>>>'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with a new password.
+
+* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
+
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 

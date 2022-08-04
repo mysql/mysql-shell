@@ -1632,6 +1632,16 @@ void Cluster_join::rejoin(bool ignore_cluster_set) {
 
     // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
     m_gr_opts.ip_allowlist = "AUTOMATIC";
+
+    // Sync again with the primary Cluster to ensure the replication account
+    // that was just re-created was already replicated to the Replica Cluster,
+    // otherwise, GR won't be able to authenticate using the account and join
+    // the instance to the group.
+    console->print_info();
+    console->print_info(
+        "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
+    m_cluster->sync_transactions(*m_primary_instance,
+                                 k_clusterset_async_channel_name, 0);
   }
 
   mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance, m_gr_opts,

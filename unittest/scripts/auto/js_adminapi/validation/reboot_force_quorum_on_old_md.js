@@ -36,9 +36,9 @@ ${*}
 }
 
 //@<OUT> Testing upgrade metadata on rebooted cluster
-InnoDB Cluster Metadata Upgrade
+Metadata Schema Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
