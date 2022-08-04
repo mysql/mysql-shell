@@ -2370,21 +2370,24 @@ void Cluster_set_impl::check_gtid_set_most_recent(
 
   for (auto i : clusters) {
     auto primary = i->get_cluster_server();
-    auto gtid_set = get_filtered_gtid_set(primary.get(), nullptr);
 
-    gtid_set.subtract(promoted_view_changes, *promoted);
+    if (primary->get_uuid() != promoted->get_uuid()) {
+      auto gtid_set = get_filtered_gtid_set(primary.get(), nullptr);
 
-    if (!promoted_gtid_set.contains(gtid_set, *promoted)) {
-      console->print_note("Cluster " + i->get_name() +
-                          " has a more up-to-date GTID set");
+      gtid_set.subtract(promoted_view_changes, *promoted);
 
-      promoted_gtid_set.subtract(gtid_set, *promoted);
+      if (!promoted_gtid_set.contains(gtid_set, *promoted)) {
+        console->print_note("Cluster " + i->get_name() +
+                            " has a more up-to-date GTID set");
 
-      console->print_info(
-          "The following GTIDs are missing from the target cluster: " +
-          promoted_gtid_set.str());
+        promoted_gtid_set.subtract(gtid_set, *promoted);
 
-      up_to_date = false;
+        console->print_info(
+            "The following GTIDs are missing from the target cluster: " +
+            promoted_gtid_set.str());
+
+        up_to_date = false;
+      }
     }
   }
 
