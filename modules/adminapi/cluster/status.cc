@@ -1502,9 +1502,10 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
 
     if (group_instance &&
         group_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 26)) {
-      (*ret)["groupViewChangeUuid"] =
-          shcore::Value(*group_instance->get_sysvar_string(
-              "group_replication_view_change_uuid"));
+      (*ret)["groupViewChangeUuid"] = shcore::Value(
+          group_instance
+              ->get_sysvar_string("group_replication_view_change_uuid")
+              .get_safe());
     }
 
     (*ret)["GRProtocolVersion"] =
@@ -1526,10 +1527,13 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  auto ssl_mode = group_instance ? *group_instance->get_sysvar_string(
-                                       "group_replication_ssl_mode",
-                                       mysqlshdk::mysql::Var_qualifier::GLOBAL)
-                                 : "";
+  auto ssl_mode =
+      group_instance
+          ? group_instance
+                ->get_sysvar_string("group_replication_ssl_mode",
+                                    mysqlshdk::mysql::Var_qualifier::GLOBAL)
+                .get_safe()
+          : "";
   if (!ssl_mode.empty()) {
     (*ret)["ssl"] = shcore::Value(ssl_mode);
   }

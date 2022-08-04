@@ -458,6 +458,25 @@ EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
+//@<> RC OFFLINE and GR uninstalled
+
+// BUG#34465132 clusterset.status() Attempt to read null value
+// If a Replica Cluster is completely offline, but also the Group Replication
+// plugin was uninstalled from all members, clusterset.status() would
+// fail with a logic error. The problem was caused by attempts to query
+// group_replication sysvars that are not available when the plugin
+// is not installed
+session4.runSql("SET GLOBAL super_read_only=0");
+session5.runSql("SET GLOBAL super_read_only=0");
+session4.runSql("uninstall plugin group_replication");
+session5.runSql("uninstall plugin group_replication");
+session4.runSql("SET GLOBAL super_read_only=1");
+session5.runSql("SET GLOBAL super_read_only=1");
+
+EXPECT_NO_THROWS(function() { cs.status(); });
+EXPECT_NO_THROWS(function() { cs.status({extended:1}); });
+EXPECT_NO_THROWS(function() { cs.status({extended:2}); });
+
 //@<> RC NO_QUORUM
 
 shell.connect(__sandbox_uri4);

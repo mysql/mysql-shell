@@ -330,7 +330,7 @@ void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
 
   // Get how memberSslMode was configured on the cluster
   Cluster_ssl_mode gr_ssl_mode = to_cluster_ssl_mode(
-      *pinstance.get_sysvar_string("group_replication_ssl_mode"));
+      pinstance.get_sysvar_string("group_replication_ssl_mode").get_safe());
 
   // The cluster REQUIRES SSL
   if (gr_ssl_mode == Cluster_ssl_mode::REQUIRED ||
