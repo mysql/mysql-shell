@@ -52,7 +52,7 @@ Set_option::Set_option(Cluster_impl *cluster, const std::string &option,
   assert(cluster);
 }
 
-Set_option::~Set_option() {}
+Set_option::~Set_option() = default;
 
 void Set_option::ensure_option_valid() {
   /* - Validate if the option is valid, being the accepted values:
@@ -65,6 +65,7 @@ void Set_option::ensure_option_valid() {
    *     - expelTimeout
    *     - replicationAllowedHost
    *     - transactionSizeLimit
+   *     - ipAllowlist
    */
   if (k_global_cluster_supported_options.count(m_option) == 0 &&
       m_option != kClusterName && m_option != kDisableClone &&
@@ -110,6 +111,11 @@ void Set_option::ensure_option_valid() {
     // and its automatically managed by the AdminAPI)
     throw shcore::Exception::runtime_error(
         "Option '" + m_option + "' not supported on Replica Clusters.");
+  } else if (m_option == kIpAllowlist) {
+    if (m_value_str.is_null())
+      throw shcore::Exception::argument_error(
+          "Invalid value for 'ipAllowlist': Argument #2 is expected "
+          "to be a string.");
   }
 }
 
@@ -174,8 +180,6 @@ void Set_option::connect_all_members() {
   Connection_options cluster_cnx_opt =
       m_cluster->get_cluster_server()->get_connection_options();
 
-  auto console = mysqlsh::current_console();
-
   // Check if all instances have the ONLINE state
   for (const auto &instance_def : m_cluster->get_instances_with_state()) {
     // Instance is ONLINE, initialize and populate the internal cluster
@@ -199,7 +203,7 @@ void Set_option::connect_all_members() {
     } catch (const std::exception &err) {
       log_debug("Failed to connect to instance: %s", err.what());
 
-      console->print_error(
+      mysqlsh::current_console()->print_error(
           "Unable to connect to instance '" + instance_def.first.endpoint +
           "'. Please, verify connection credentials and make sure the "
           "instance is available.");
@@ -210,28 +214,23 @@ void Set_option::connect_all_members() {
 }
 
 void Set_option::ensure_option_supported_all_members_cluster() {
-  auto console = mysqlsh::current_console();
-
   log_debug("Checking if all members of the cluster support the option '%s'",
             m_option.c_str());
 
   for (const auto &instance : m_cluster_instances) {
-    std::string instance_address = instance->descr();
-
     // Verify if the instance version is supported
-    bool is_supported = is_option_supported(instance->get_version(), m_option,
-                                            k_global_cluster_supported_options);
+    if (is_option_supported(instance->get_version(), m_option,
+                            k_global_cluster_supported_options))
+      continue;
 
-    if (!is_supported) {
-      console->print_error(
-          "The instance '" + instance_address + "' has the version " +
-          instance->get_version().get_full() +
-          " which does not support the option '" + m_option + "'.");
+    mysqlsh::current_console()->print_error(
+        "The instance '" + instance->descr() + "' has the version " +
+        instance->get_version().get_full() +
+        " which does not support the option '" + m_option + "'.");
 
-      throw shcore::Exception::runtime_error(
-          "One or more instances of the cluster have a version that does not "
-          "support this operation.");
-    }
+    throw shcore::Exception::runtime_error(
+        "One or more instances of the cluster have a version that does not "
+        "support this operation.");
   }
 }
 
@@ -241,6 +240,9 @@ void Set_option::prepare() {
 
   // Validate if the option is valid
   ensure_option_valid();
+
+  // Must be able to connect to all members
+  connect_all_members();
 
   // Verify if all cluster members support the option
   // NOTE: clusterName and disableClone do not require this validation

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,6 +55,7 @@ class Set_option : public Command_interface {
    *     - expelTimeout
    *     - clusterName
    *     - replicationAllowedHost
+   *     - ipAllowlist
    * - Verify user privileges to execute operation;
    * - Verify if the cluster has quorum (preconditions check)
    * - Verify if all the cluster members are ONLINE

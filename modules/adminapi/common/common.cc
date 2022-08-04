@@ -161,27 +161,35 @@ bool is_option_supported(
     const mysqlshdk::utils::Version &version, const std::string &option,
     const std::map<std::string, Option_availability> &options_map) {
   assert(options_map.find(option) != options_map.end());
-  Option_availability opt_avail = options_map.at(option);
+  auto &opt_avail = options_map.at(option);
+
+  // if no version was supplied, options can be used regardless of version
+  if (opt_avail.support_in_80.get_major() == 0 &&
+      opt_avail.support_in_57.get_major() == 0)
+    return true;
+
   if (version.get_major() == 8) {
     // 8.0 server
     // if only the 5.7 version was provided to the Option_availability struct,
     // then assume variable will also be supported in 8.0. This check is enough
     // since the default Version constructor sets the major version to 0.
     return version >= opt_avail.support_in_80;
-  } else if (version.get_major() == 5 && version.get_minor() == 7) {
+  }
+
+  if (version.get_major() == 5 && version.get_minor() == 7) {
     // 5.7 server
     if (opt_avail.support_in_57.get_major() == 0) {
       // if the default constructor for version was used, no 5.7 version was
       // used on the Option_availability struct, meaning 5.7 is not supported
       return false;
-    } else {
-      return version >= opt_avail.support_in_57;
     }
-  } else {
-    throw std::runtime_error(
-        "Unexpected version found for option support check: '" +
-        version.get_full() + "'.");
+
+    return version >= opt_avail.support_in_57;
   }
+
+  throw std::runtime_error(
+      "Unexpected version found for option support check: '" +
+      version.get_full() + "'.");
 }
 
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,

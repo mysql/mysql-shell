@@ -276,28 +276,17 @@ struct Option_availability {
  * Map of the global Cluster configuration options of the AdminAPI
  * <sysvar, name>
  */
-const std::map<std::string, std::string> k_global_cluster_options{
+inline const std::map<std::string, std::string> k_global_cluster_options{
     {kGroupName, kGrGroupName},
     {kMemberSslMode, kGrMemberSslMode},
     {kTransactionSizeLimit, kGrTransactionSizeLimit}};
-
-/**
- * Map of the instance configuration options of the AdminAPI
- * <sysvar, name>
- */
-const std::map<std::string, std::string> k_instance_options{
-    {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
-    {kIpWhitelist, kGrIpWhitelist},         {kIpAllowlist, kGrIpAllowlist},
-    {kLocalAddress, kGrLocalAddress},       {kMemberWeight, kGrMemberWeight},
-    {kExpelTimeout, kGrExpelTimeout},       {kConsistency, kGrConsistency},
-    {kAutoRejoinTries, kGrAutoRejoinTries}};
 
 /**
  * Map of the supported global cluster configuration options in the
  * AdminAPI <sysvar, name>
  */
 // TODO(.) This and its dependencies must be moved out to a new user_options.h
-const std::map<std::string, Option_availability>
+inline const std::map<std::string, Option_availability>
     k_global_cluster_supported_options{
         {kExitStateAction,
          {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
@@ -313,32 +302,12 @@ const std::map<std::string, Option_availability>
          {kGrConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
         {kAutoRejoinTries,
          {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}},
-        {kTransactionSizeLimit, {kGrTransactionSizeLimit, {}, {}}}};
+        {kTransactionSizeLimit, {kGrTransactionSizeLimit, {}, {}}},
+        {kIpAllowlist,
+         {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}}};
 
-/**
- * List with the supported build-in tags for setOption and setInstanceOption
- */
-typedef std::map<std::string, shcore::Value_type> built_in_tags_map_t;
-const built_in_tags_map_t k_supported_set_option_tags{
-    {"_hidden", shcore::Value_type::Bool},
-    {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
-
-/**
- * Map of the supported instance configuration options in the AdminAPI
- * <sysvar, name>
- */
-const std::map<std::string, Option_availability> k_instance_supported_options{
-    {kExitStateAction,
-     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
-      mysqlshdk::utils::Version("5.7.24")}},
-    {kMemberWeight,
-     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
-      mysqlshdk::utils::Version("5.7.20")}},
-    {kAutoRejoinTries,
-     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}}};
-
-const mysqlshdk::utils::Version k_mysql_communication_stack_initial_version(
-    "8.0.27");
+inline const mysqlshdk::utils::Version
+    k_mysql_communication_stack_initial_version("8.0.27");
 
 struct Instance_definition {
   int host_id;

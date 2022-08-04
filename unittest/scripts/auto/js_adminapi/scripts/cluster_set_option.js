@@ -293,7 +293,40 @@ EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
 EXPECT_NO_THROWS(function(){cluster.setOption("tag:non_existing", null)});
 EXPECT_ARRAY_NOT_CONTAINS("non_existing", Object.keys(get_global_tags(cluster)));
 
+
+//@<> BUG#34424385: support for ipAllowlist {VER(>=8.0.24)}
+EXPECT_THROWS(function(){ cluster.setOption("ipAllowlist", "127.0.0.1"); }, `This operation requires all the cluster members to be ONLINE`);
+
+testutil.startSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+// invalid values
+EXPECT_THROWS(function(){ cluster.setOption("ipAllowlist", null); }, "Argument #2 is expected to be a string");
+EXPECT_THROWS(function(){ cluster.setOption("ipAllowlist", -1); }, "Argument #2 is expected to be a string");
+
+EXPECT_NO_THROWS(function(){ cluster.setOption("ipAllowlist", "127.0.0.1,127.0.0.2"); });
+EXPECT_EQ("127.0.0.1,127.0.0.2", get_sysvar(__mysql_sandbox_port1, "group_replication_ip_allowlist"));
+EXPECT_EQ("127.0.0.1,127.0.0.2", get_sysvar(__mysql_sandbox_port2, "group_replication_ip_allowlist"));
+EXPECT_EQ("127.0.0.1,127.0.0.2", get_sysvar(__mysql_sandbox_port3, "group_replication_ip_allowlist"));
+
+//@<> BUG#34424385: support for ipAllowlist (not supported) {VER(<8.0.24)}
+EXPECT_THROWS(function(){ cluster.setOption("ipAllowlist", "127.0.0.1"); }, `This operation requires all the cluster members to be ONLINE`);
+
+testutil.startSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+EXPECT_THROWS(function(){ cluster.setOption("ipAllowlist", "127.0.0.1"); }, `One or more instances of the cluster have a version that does not support this operation.`);
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' has the version ${__version} which does not support the option 'ipAllowlist'`);
+
 //@<> WL#13788: SetOption must not allow setting tags for instances if there is no quorum TSFR1_6
+shell.connect(__sandbox_uri1);
+
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");

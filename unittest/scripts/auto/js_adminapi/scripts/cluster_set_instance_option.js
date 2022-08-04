@@ -288,9 +288,28 @@ EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, 
 EXPECT_NO_THROWS(function(){cluster.setInstanceOption(__sandbox_uri3, "tag:non_existing", null)});
 EXPECT_ARRAY_NOT_CONTAINS("non_existing", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
 
+//@<> BUG#34424385: support for ipAllowlist {VER(>=8.0.24)}
+
+// invalid values
+EXPECT_THROWS(function(){ cluster.setInstanceOption(__sandbox_uri3, "ipAllowlist", null); }, "Argument #3 is expected to be a string");
+EXPECT_THROWS(function(){ cluster.setInstanceOption(__sandbox_uri3, "ipAllowlist", -1); }, "Argument #3 is expected to be a string");
+
+var ip_allowlist_1 = get_sysvar(__mysql_sandbox_port1, "group_replication_ip_allowlist");
+
+EXPECT_NO_THROWS(function(){ cluster.setInstanceOption(__sandbox_uri3, "ipAllowlist", "127.0.0.1,127.0.0.2"); });
+EXPECT_EQ(ip_allowlist_1, get_sysvar(__mysql_sandbox_port1, "group_replication_ip_allowlist"));
+EXPECT_EQ("127.0.0.1,127.0.0.2", get_sysvar(__mysql_sandbox_port3, "group_replication_ip_allowlist"));
+
+//@<> BUG#34424385: support for ipAllowlist (not supported) {VER(<8.0.24)}
+EXPECT_THROWS(function(){ cluster.setInstanceOption(__sandbox_uri3, "ipAllowlist", "127.0.0.1"); }, `The instance 'localhost:${__mysql_sandbox_port3}' does not support this operation.`);
+EXPECT_OUTPUT_CONTAINS(`The instance 'localhost:${__mysql_sandbox_port3}' has the version ${__version} which does not support the option 'ipAllowlist'`);
+
 //@<> WL#13788: SetInstanceOption must not allow setting tags for instances if there is no quorum TSFR1_6
 testutil.killSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING),UNREACHABLE");
+
 EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri1, "tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");
 EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");
 

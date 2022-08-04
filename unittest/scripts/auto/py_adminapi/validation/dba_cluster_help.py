@@ -641,6 +641,8 @@ DESCRIPTION
         primary election on failover.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
+      - ipAllowlist: The list of hosts allowed to connect to the instance for
+        group replication.
       - label a string identifier of the instance.
 
       The exitStateAction option supports the following values:
@@ -684,6 +686,11 @@ DESCRIPTION
       quickly, setting this option prevents users from having to manually add
       the expelled node back to the group. The autoRejoinTries option accepts
       positive integer values and, since 8.0.21, defaults to 3.
+
+      The ipAllowlist format is a comma separated list of IP addresses or
+      subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
+      the value is set to AUTOMATIC, allowing addresses from the instance
+      private network to be automatically set for the allowlist.
 
       Tags
 
@@ -739,6 +746,8 @@ DESCRIPTION
         it from the cluster.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
+      - ipAllowlist: The list of hosts allowed to connect to the instance for
+        group replication.
       - disableClone: boolean value used to disable the clone usage on the
         cluster.
       - replicationAllowedHost string value to use as the host name part of
@@ -870,6 +879,11 @@ DESCRIPTION
       accepts
 
       All members added or rejoined to the Cluster will use the same value.
+      
+      The ipAllowlist format is a comma separated list of IP addresses or
+      subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
+      the value is set to AUTOMATIC, allowing addresses from the instance
+      private network to be automatically set for the allowlist.
 
       Tags
 
