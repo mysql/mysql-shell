@@ -564,6 +564,24 @@ Member_recovery_method validate_instance_recovery(
   return recovery_method;
 }
 
+std::string get_only_view_change_gtids(
+    const mysqlshdk::mysql::IInstance &source,
+    const mysqlshdk::mysql::IInstance &replica, const std::string &gtids) {
+  using mysqlshdk::mysql::Gtid_set;
+  auto s_vc =
+      source.get_sysvar_string("group_replication_view_change_uuid").get_safe();
+  auto r_vc = replica.get_sysvar_string("group_replication_view_change_uuid")
+                  .get_safe();
+
+  auto orig_gtids = Gtid_set::from_string(gtids);
+  orig_gtids.normalize(source);
+
+  auto s_gtids = orig_gtids.get_gtids_from(s_vc);
+  auto r_gtids = orig_gtids.get_gtids_from(r_vc);
+
+  return s_gtids.add(r_gtids).normalize(source).str();
+}
+
 mysqlshdk::mysql::Replica_gtid_state check_replica_group_gtid_state(
     const mysqlshdk::mysql::IInstance &source,
     const mysqlshdk::mysql::IInstance &replica, std::string *out_missing_gtids,
