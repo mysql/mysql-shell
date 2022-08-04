@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,8 @@ const Router_options_metadata k_default_router_options = {
       shcore::Value(
           k_router_option_invalidated_cluster_routing_policy_drop_all)},
      {k_router_option_target_cluster,
-      shcore::Value(k_router_option_target_cluster_primary)}}};
+      shcore::Value(k_router_option_target_cluster_primary)},
+     {k_router_option_stats_updates_frequency, shcore::Value(0)}}};
 
 inline bool is_router_upgrade_required(
     const mysqlshdk::utils::Version &version) {
@@ -264,6 +265,21 @@ void validate_router_option(const Cluster_set_impl &cluster_set,
             std::string("Invalid value for routing option '") +
             k_router_option_target_cluster +
             "', accepted values 'primary' or valid cluster name");
+    } else if (name == k_router_option_stats_updates_frequency) {
+      if (value.get_type() != shcore::Value_type::Integer &&
+          value.get_type() != shcore::Value_type::UInteger) {
+        throw shcore::Exception::argument_error(
+            std::string("Invalid value for routing option '") +
+            k_router_option_stats_updates_frequency +
+            "', value is expected to be an integer.");
+      } else {
+        if (value.as_int() < 0) {
+          throw shcore::Exception::argument_error(
+              std::string("Invalid value for routing option '") +
+              k_router_option_stats_updates_frequency +
+              "', value is expected to be a positive integer.");
+        }
+      }
     }
   }
 }

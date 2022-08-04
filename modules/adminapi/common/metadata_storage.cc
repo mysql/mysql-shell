@@ -2403,14 +2403,22 @@ void MetadataStorage::set_clusterset_global_routing_option(
       "?, ?, ";
 
   try {
-    if (value == shcore::Value::Null()) {
-      // Set the default Routing Options
-      for (const auto &opt : k_default_router_options.defined_options) {
-        set_clusterset_global_routing_option(id, opt.first, opt.second);
-      }
+    shcore::Value value_to_set;
+    if (value.type == shcore::Null) {
+      // Get default Routing Option
+      value_to_set = k_default_router_options.defined_options.at(option);
+    } else {
+      value_to_set = value;
+    }
+
+    assert(value_to_set);
+
+    // The option default value is null
+    if (value_to_set.type == shcore::Null) {
+      execute_sqlf(update_call_prefix + "NULL);", id, option);
     } else {
       execute_sqlf(update_call_prefix + "JSON_QUOTE(?));", id, option,
-                   value.as_string());
+                   value_to_set.as_string());
     }
   } catch (const shcore::Exception &e) {
     if (e.code() == ER_SIGNAL_EXCEPTION) throw_router_not_found(e.what());

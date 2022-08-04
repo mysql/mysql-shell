@@ -125,7 +125,7 @@ CHECK_CLUSTER_SET(session);
 
 // promoting cluster2 should be OK
 EXPECT_NO_THROWS(function() { cs.setPrimaryCluster("cluster2"); } );
-EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs");
+EXPECT_OUTPUT_CONTAINS("* Reconciling 1 internally generated GTIDs");
 
 testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 

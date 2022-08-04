@@ -157,6 +157,37 @@ EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster3");}, "ClusterSet.force
 
 cs.forcePrimaryCluster("cluster2");
 
+
+//@<> failover while the surviving replica is still applying transactions
+// Bug #108064	forcePrimaryCluster failing, no override
+
+testutil.startSandbox(__mysql_sandbox_port1);
+shell.connect(__sandbox_uri1);
+c1 = dba.rebootClusterFromCompleteOutage();
+session1 = mysql.getSession(__sandbox_uri1);
+
+cs.rejoinCluster("cluster1");
+
+cs.setPrimaryCluster("cluster1");
+
+// prevent cluster3 from becoming a candidate
+session4.runSql("stop replica for channel 'clusterset_replication'");
+
+// stop applier in cluster2 to let the applier backlog grow
+session2.runSql("stop replica sql_thread for channel 'clusterset_replication'");
+session1.runSql("create table bla123.tbl (a int primary key)")
+for (i = 0; i < 10000; i++) {
+    session1.runSql("insert into bla123.tbl values ("+i+")")
+}
+testutil.stopSandbox(__mysql_sandbox_port1);
+session2.runSql("set global slave_parallel_workers=1");
+session2.runSql("start replica sql_thread for channel 'clusterset_replication'");
+
+shell.connect(__sandbox_uri2);
+cs = dba.getClusterSet();
+
+cs.forcePrimaryCluster("cluster2");
+
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

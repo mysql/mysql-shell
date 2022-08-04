@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,6 +76,10 @@ mysqlshdk::mysql::Replica_gtid_state check_replica_group_gtid_state(
     const mysqlshdk::mysql::IInstance &source,
     const mysqlshdk::mysql::IInstance &replica, std::string *out_missing_gtids,
     std::string *out_errant_gtids);
+
+std::string get_only_view_change_gtids(
+    const mysqlshdk::mysql::IInstance &source,
+    const mysqlshdk::mysql::IInstance &replica, const std::string &gtids);
 
 }  // namespace dba
 }  // namespace mysqlsh

@@ -301,7 +301,8 @@ invalidate_replica();
 
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
-EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs");
+EXPECT_OUTPUT_CONTAINS("* Reconciling ");
+EXPECT_OUTPUT_CONTAINS(" internally generated GTIDs")
 EXPECT_OUTPUT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
 
 //create errant transactions
