@@ -248,9 +248,24 @@ cs = dba.getClusterSet();
 EXPECT_NO_THROWS(function() { replicacluster = cs.createReplicaCluster(__sandbox_uri4, "replica"); });
 EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri5, {recoveryMethod: "clone"}); });
 
-//@<> fenceWrites on a Replica Cluster (must fail)
-EXPECT_THROWS_TYPE(function(){replicacluster.fenceWrites()}, "The Cluster 'replica' is a REPLICA Cluster of the ClusterSet 'testCS'", "MYSQLSH");
-EXPECT_STDOUT_CONTAINS("Unable to fence Cluster from write traffic: operation not permitted on REPLICA Clusters");
+//@<> fenceWrites on a Replica Cluster (must succeed)
+// Disable SRO on one of the members to test that fenceWrites enables it back
+var session5 = mysql.getSession(__sandbox_uri5);
+session5.runSql("SET GLOBAL super_read_only=0");
+
+var s = cs.status({extended:1});
+
+function instance5(status) {
+  return json_find_key(status, __address5h);
+}
+
+EXPECT_EQ(["WARNING: Instance is NOT the global PRIMARY but super_read_only option is OFF. Errant transactions and inconsistencies may be accidentally introduced."], instance5(s)["instanceErrors"]);
+
+EXPECT_NO_THROWS(function() { replicacluster.fenceWrites() });
+
+s = cs.status({extended:1});
+
+EXPECT_FALSE(instance5(s)["instanceErrors"]);
 
 //@<> fenceAllTraffic() on a Replica Cluster
 EXPECT_NO_THROWS(function() { replicacluster.fenceAllTraffic(); });
@@ -292,6 +307,47 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+
+// BUG#34417802: ClusterSet: fenceWrites() fails in a split brain scenario
+// If the Cluster is determined to be a REPLICA it should be possible to fence
+// it from writes because even though those Clusters are REPLICAS from the
+// point-of-view of shell, they might be in a split-brain
+// scenario and might have not yet received the Metadata changes and still be
+// registered in the Metadata as a PRIMARY from their point of view, so Router
+// traffic will still be ongoing.
+// On healthy REPLICA Clusters, the operation is a no-op.
+
+//@<> fenceWrites() on a Replica Cluster
+
+// Kill the primary cluster
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+testutil.killSandbox(__mysql_sandbox_port1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.killSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri4)
+cs = dba.getClusterSet()
+
+// Force failover to the replica cluster
+cs.forcePrimaryCluster("replica")
+
+// Reboot the old-primary from complete outage
+testutil.startSandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
+
+EXPECT_NO_THROWS(function() {cluster = dba.rebootClusterFromCompleteOutage(); })
+
+// Fence it from writes
+EXPECT_NO_THROWS(function() { cluster.fenceWrites(); });
+
+//@<> unfenceWrites() on a Replica Cluster
+EXPECT_THROWS_TYPE(function(){cluster.unfenceWrites()}, "The Cluster 'cluster' is a REPLICA Cluster of the ClusterSet 'testCS'", "MYSQLSH");
+EXPECT_STDOUT_CONTAINS("Unable to unfence Cluster from write traffic: operation not permitted on REPLICA Clusters");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

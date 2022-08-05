@@ -1611,19 +1611,6 @@ void Cluster_impl::fence_writes() {
                       "' will be fenced from write traffic");
   console->print_info();
 
-  // Check if the Cluster belongs to a ClusterSet and is a REPLICA Cluster
-  if (is_cluster_set_member() && !is_primary_cluster()) {
-    auto cluster_name = get_name();
-    console->print_error(
-        "Unable to fence Cluster from write traffic: operation not permitted "
-        "on REPLICA Clusters");
-
-    throw shcore::Exception("The Cluster '" + cluster_name +
-                                "' is a REPLICA Cluster of the ClusterSet '" +
-                                get_cluster_set_object()->get_name() + "'",
-                            SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);
-  }
-
   // Disable the GR member action mysql_disable_super_read_only_if_primary
   auto primary = get_cluster_server();
 
@@ -1638,11 +1625,14 @@ void Cluster_impl::fence_writes() {
   enable_super_read_only_globally();
 
   console->print_info();
-  console->print_note(
-      "Applications will now be blocked from performing writes on Cluster '" +
-      get_name() +
-      "'. Use <Cluster>.<<<unfenceWrites>>>() to resume writes if you're "
-      "certain a split-brain is not in effect.");
+
+  if (is_cluster_set_member() && is_primary_cluster()) {
+    console->print_note(
+        "Applications will now be blocked from performing writes on Cluster '" +
+        get_name() +
+        "'. Use <Cluster>.<<<unfenceWrites>>>() to resume writes if you're "
+        "certain a split-brain is not in effect.");
+  }
 
   console->print_info();
   console->print_info("Cluster successfully fenced from write traffic");
@@ -1658,6 +1648,20 @@ void Cluster_impl::unfence_writes() {
   console->print_info();
 
   auto primary = get_cluster_server();
+
+  // Check if the Cluster belongs to a ClusterSet and is a REPLICA Cluster, it
+  // must be forbidden to unfence from write traffic REPLICA Clusters.
+  if (is_cluster_set_member() && !is_primary_cluster()) {
+    auto cluster_name = get_name();
+    console->print_error(
+        "Unable to unfence Cluster from write traffic: operation not permitted "
+        "on REPLICA Clusters");
+
+    throw shcore::Exception("The Cluster '" + cluster_name +
+                                "' is a REPLICA Cluster of the ClusterSet '" +
+                                get_cluster_set_object()->get_name() + "'",
+                            SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);
+  }
 
   // Check if the Cluster is fenced from Write traffic
   if (!is_fenced_from_writes()) {
