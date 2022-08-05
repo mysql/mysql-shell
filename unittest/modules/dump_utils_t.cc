@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,11 +136,14 @@ class Dump_scheduler : public ::testing::Test {
     di.last_chunk_seen = true;
 
     di.chunked = chunks > 0;
-    di.num_chunks = chunks > 0 ? chunks : 1;
+    const auto total_chunks = chunks > 0 ? chunks : 1;
 
-    while (di.available_chunk_sizes.size() < di.num_chunks) {
+    while (di.available_chunks.size() < total_chunks) {
       size_t size = min_chunk_size + rand() % size_variation;
-      if (size > 0) di.available_chunk_sizes.push_back(size);
+      if (size > 0)
+        di.available_chunks.emplace_back(
+            mysqlshdk::storage::IDirectory::File_info{
+                "file" + std::to_string(di.available_chunks.size()), size});
     }
 
     assert(di.has_data_available());
@@ -174,30 +177,19 @@ class Dump_scheduler : public ::testing::Test {
             (*iter)->owner->schema, (*iter)->owner->table, (*iter)->partition);
 
         size_t chunk_index;
-        size_t chunks_total;
 
         if ((*iter)->chunked) {
           chunk_index = (*iter)->chunks_consumed;
-          if ((*iter)->last_chunk_seen)
-            chunks_total = (*iter)->num_chunks;
-          else
-            chunks_total = 0;
           (*iter)->chunks_consumed++;
 
-          *out_file = dump::get_table_data_filename(
-              (*iter)->basename, (*iter)->extension, chunk_index,
-              chunk_index + 1 == chunks_total);
-
-          *out_size = (*iter)->available_chunk_sizes[chunk_index];
+          *out_file = (*iter)->available_chunks[chunk_index]->name();
+          *out_size = (*iter)->available_chunks[chunk_index]->size();
         } else {
           chunk_index = 0;
-          chunks_total = 0;
           (*iter)->chunks_consumed++;
 
-          *out_size = (*iter)->available_chunk_sizes[0];
-
-          *out_file = dump::get_table_data_filename((*iter)->basename,
-                                                    (*iter)->extension);
+          *out_size = (*iter)->available_chunks[0]->size();
+          *out_file = (*iter)->available_chunks[0]->name();
         }
         if (!(*iter)->has_data_available()) tables_with_data.erase(iter);
         return true;

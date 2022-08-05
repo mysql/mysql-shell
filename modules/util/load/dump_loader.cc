@@ -1454,6 +1454,10 @@ bool Dump_loader::handle_table_data(Worker *worker) {
       auto status =
           m_load_log->table_chunk_status(schema, table, partition, chunk);
 
+      if (status == Load_progress_log::DONE) {
+        m_dump->on_chunk_loaded(schema, table, partition);
+      }
+
       log_debug("Table data for %s (%s)",
                 format_table(schema, table, partition, chunk).c_str(),
                 to_string(status).c_str());
@@ -1660,10 +1664,22 @@ size_t Dump_loader::handle_worker_events(
       }
 
       case Worker_event::INDEX_START:
-      case Worker_event::INDEX_END:
-      case Worker_event::ANALYZE_START:
-      case Worker_event::ANALYZE_END:
         break;
+
+      case Worker_event::INDEX_END: {
+        auto task = event.worker->current_task();
+        m_dump->on_index_end(task->schema(), task->table());
+        break;
+      }
+
+      case Worker_event::ANALYZE_START:
+        break;
+
+      case Worker_event::ANALYZE_END: {
+        auto task = event.worker->current_task();
+        m_dump->on_analyze_end(task->schema(), task->table());
+        break;
+      }
 
       case Worker_event::READY:
         break;
@@ -1713,21 +1729,9 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
         m_index_count_is_known = true;
       }
 
-      const auto load_finished = [this](const std::vector<std::string> &keys) {
-        std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
-        for (const auto &key : keys) {
-          if (m_tables_being_loaded.find(key) != m_tables_being_loaded.end()) {
-            return false;
-          }
-        }
-
-        return true;
-      };
-
       std::vector<std::string> *indexes = nullptr;
 
-      if (m_dump->next_deferred_index(&schema, &table, &indexes,
-                                      load_finished)) {
+      if (m_dump->next_deferred_index(&schema, &table, &indexes)) {
         assert(indexes != nullptr);
         worker->recreate_indexes(schema, table, *indexes);
         return true;
@@ -2744,10 +2748,7 @@ void Dump_loader::execute_tasks() {
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
     if (m_dump->status() == Dump_reader::Status::COMPLETE &&
-        !m_dump->data_available() &&
-        (m_options.analyze_tables() ==
-             Load_dump_options::Analyze_table_mode::OFF ||
-         !m_dump->work_available()) &&
+        !m_dump->data_available() && !m_dump->work_available() &&
         num_idle_workers == m_workers.size()) {
       break;
     }
@@ -2895,6 +2896,8 @@ void Dump_loader::on_chunk_load_end(const std::string &schema,
                                     size_t rows_loaded) {
   m_load_log->end_table_chunk(schema, table, partition, index, bytes_loaded,
                               raw_bytes_loaded, rows_loaded);
+
+  m_dump->on_chunk_loaded(schema, table, partition);
 
   m_unique_tables_loaded.insert(
       schema_table_object_key(schema, table, partition));

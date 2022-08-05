@@ -156,11 +156,8 @@ class Dump_reader {
     size_t buckets;
   };
 
-  bool next_deferred_index(
-      std::string *out_schema, std::string *out_table,
-      std::vector<std::string> **out_indexes,
-      const std::function<bool(const std::vector<std::string> &)>
-          &load_finished);
+  bool next_deferred_index(std::string *out_schema, std::string *out_table,
+                           std::vector<std::string> **out_indexes);
 
   bool next_table_analyze(std::string *out_schema, std::string *out_table,
                           std::vector<Histogram> *out_histograms);
@@ -241,6 +238,13 @@ class Dump_reader {
   bool include_trigger(const std::string &schema, const std::string &table,
                        const std::string &trigger) const;
 
+  void on_chunk_loaded(const std::string &schema, const std::string &table,
+                       const std::string &partition);
+
+  void on_index_end(const std::string &schema, const std::string &table);
+
+  void on_analyze_end(const std::string &schema, const std::string &table);
+
   struct Capability_info {
     std::string id;
     std::string description;
@@ -279,31 +283,41 @@ class Dump_reader {
     bool chunked = false;
     bool last_chunk_seen = false;
 
-    size_t num_chunks = 0;
-    std::vector<ssize_t> available_chunk_sizes;
+    size_t chunks_seen = 0;
+    std::vector<std::optional<mysqlshdk::storage::IDirectory::File_info>>
+        available_chunks;
+    // number of chunks scheduled to be loaded
     size_t chunks_consumed = 0;
+    // number of chunks which were loaded
+    size_t chunks_loaded = 0;
 
     bool has_data_available() const {
-      return chunks_consumed < available_chunk_sizes.size() &&
-             chunks_consumed < num_chunks &&
-             available_chunk_sizes[chunks_consumed] >= 0;
+      return chunks_consumed < available_chunks.size() &&
+             available_chunks[chunks_consumed];
     }
 
     size_t bytes_available() const {
       size_t total = 0;
 
-      for (size_t i = chunks_consumed;
-           i < num_chunks && available_chunk_sizes[i] >= 0; i++) {
-        total += available_chunk_sizes[i];
+      for (size_t i = chunks_consumed, s = available_chunks.size();
+           i < s && available_chunks[i]; ++i) {
+        total += available_chunks[i]->size();
       }
       return total;
     }
 
-    bool data_done() const {
-      return !has_data || (last_chunk_seen && chunks_consumed == num_chunks);
-    }
+    bool data_dumped() const { return all_chunks_are(chunks_seen); }
+
+    bool data_scheduled() const { return all_chunks_are(chunks_consumed); }
+
+    bool data_loaded() const { return all_chunks_are(chunks_loaded); }
 
     void rescan_data(const Files &files, Dump_reader *reader);
+
+   private:
+    bool all_chunks_are(std::size_t what) const {
+      return !has_data || (last_chunk_seen && what == available_chunks.size());
+    }
   };
 
   struct Table_info {
@@ -320,9 +334,11 @@ class Dump_reader {
 
     shcore::Dictionary_t options = nullptr;
     std::vector<std::string> indexes;
-    bool indexes_done = true;
+    bool indexes_scheduled = true;
+    bool indexes_created = true;
     std::vector<Histogram> histograms;
-    bool analyze_done = false;
+    bool analyze_scheduled = true;
+    bool analyze_finished = true;
     bool has_triggers = false;
 
     std::vector<Table_data_info> data_info;
@@ -342,7 +358,9 @@ class Dump_reader {
 
     void rescan_data(const Files &files, Dump_reader *reader);
 
-    bool all_data_done() const;
+    bool all_data_scheduled() const;
+
+    bool all_data_loaded() const;
   };
 
   struct Schema_info {
@@ -375,8 +393,6 @@ class Dump_reader {
     std::string script_name() const;
 
     std::string metadata_name() const;
-
-    bool data_done() const;
 
     bool should_fetch_metadata_file(const Files &files) const;
 
@@ -446,6 +462,9 @@ class Dump_reader {
 
  private:
   const std::string &override_schema(const std::string &s) const;
+
+  Table_info *find_table(const std::string &schema, const std::string &table,
+                         const char *context);
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
 
