@@ -461,7 +461,9 @@ void Base_cluster_impl::set_option(const std::string &option,
       k_min_gr_version,
       TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
       ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-      {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}};
+      {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
+      true,
+      kClusterGlobalStateAnyOk};
 
   std::string opt_namespace, opt;
   shcore::Value val;
