@@ -707,6 +707,34 @@ shcore::Value Create_cluster::execute() {
                                                     nullptr);
   }
 
+  // Reset GR member actions to avoid BUG#34464526 "Missing
+  // mysql_start_failover_channels_if_primary after upgrade to 8.0.27+"
+  //
+  // When a Cluster is upgraded from 8.0.26 to 8.0.27+, every instance that is
+  // taken out and rejoined back will have the list of available member
+  // actions reduced to the ones available in 8.0.26 (the current primary).
+  // In this particular scenario, the action
+  // 'mysql_start_failover_channels_if_primary' is removed since it's only
+  // available in 8.0.27+.
+  //
+  // As soon as the primary is taken out, upgraded, and rejoined, the member
+  // actions available in the group are the "reduced" ones, meaning
+  // 'mysql_start_failover_channels_if_primary' is not available.
+  //
+  // This results in an error while creating a Replica Cluster since that
+  // action is configured and enabled. Resetting the member actions beforehand
+  // ensures this issue is not seen.
+  if (!m_options.dry_run && m_create_replica_cluster) {
+    try {
+      mysqlshdk::gr::reset_member_actions(*m_target_instance);
+    } catch (...) {
+      log_error("Error resetting Group Replication member actions at %s: %s",
+                m_target_instance->descr().c_str(),
+                format_active_exception().c_str());
+      throw;
+    }
+  }
+
   if (*m_options.multi_primary && !m_options.get_adopt_from_gr()) {
     console->print_info(
         "The MySQL InnoDB Cluster is going to be setup in advanced "
