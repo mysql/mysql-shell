@@ -128,7 +128,14 @@ EXPECT_OUTPUT_CONTAINS(`Replica Cluster 'myReplicaCluster2' successfully created
 EXPECT_OUTPUT_CONTAINS(`dryRun finished.`);
 
 //@<> Success
+\option dba.logSql = 2
+WIPE_SHELL_LOG();
+
 EXPECT_NO_THROWS(function() { replica = cluster_set.createReplicaCluster(__sandbox_uri3, "cluster2"); });
+
+//BUG#34465006: createReplicaCluster() must reset member actions to avoid upgrade scenario bug
+EXPECT_SHELL_LOG_CONTAINS("SELECT group_replication_reset_member_actions()");
+\option dba.logSql = 0
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri3], scene.cluster, replica);
 

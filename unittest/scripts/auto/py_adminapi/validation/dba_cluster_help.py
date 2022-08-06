@@ -1362,17 +1362,18 @@ RETURNS
       Nothing
 
 DESCRIPTION
-      This function fences a PRIMARY Cluster from all Write Traffic by ensuring
-      all of its members are Read-Only regardless of any topology change on it.
-      The Cluster will be put into READ ONLY mode and all members will remain
-      available for reads. To unfence the Cluster so it restores its normal
-      functioning and can accept all traffic use Cluster.unfence().
+      This function fences a Cluster member of a ClusterSet from all Write
+      Traffic by ensuring all of its members are Read-Only regardless of any
+      topology change on it. The Cluster will be put into READ ONLY mode and
+      all members will remain available for reads. To unfence the Cluster so it
+      restores its normal functioning and can accept all traffic use
+      Cluster.unfenceWrites().
 
       Use this function when performing a PRIMARY Cluster failover in a
       ClusterSet to allow only read traffic in the previous Primary Cluster in
       the event of a split-brain.
 
-      The function is not permitted on REPLICA Clusters.
+      The function is not permitted on standalone Clusters.
 
 #@<OUT> cluster.unfence_writes
 NAME

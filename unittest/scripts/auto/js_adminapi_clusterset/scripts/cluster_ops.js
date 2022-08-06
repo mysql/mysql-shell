@@ -237,6 +237,62 @@ EXPECT_NE(null, view_change_uuid);
 var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='newcluster'").fetchOne()[0];
 EXPECT_EQ(view_change_uuid_md, view_change_uuid);
 
+//@<> change global options in the primary cluster
+EXPECT_NO_THROWS(function() {cluster.setOption("clusterName", "newName"); });
+s = cs.status();
+s1 = cluster.status();
+
+EXPECT_EQ("newName", s["primaryCluster"]);
+EXPECT_EQ("newName", s1["clusterName"]);
+
+EXPECT_NO_THROWS(function() {cluster.setOption("memberWeight", 25); });
+var session1 = mysql.getSession(__sandbox_uri1);
+var session2 = mysql.getSession(__sandbox_uri2);
+EXPECT_EQ(25, get_sysvar(session1, "group_replication_member_weight"));
+EXPECT_EQ(25, get_sysvar(session2, "group_replication_member_weight"));
+
+EXPECT_NO_THROWS(function() {cluster.setOption("tag:test", 123); });
+
+opt = cluster.options();
+EXPECT_EQ("test", opt["defaultReplicaSet"]["tags"]["global"][0]["option"]);
+EXPECT_EQ(123, opt["defaultReplicaSet"]["tags"]["global"][0]["value"]);
+
+//@<> change instance options in the primary cluster
+EXPECT_NO_THROWS(function() {cluster.setInstanceOption(__sandbox_uri1, "tag:test1", 1234); });
+
+opt = cluster.options();
+EXPECT_EQ("test1", opt["defaultReplicaSet"]["tags"][__endpoint1][0]["option"]);
+EXPECT_EQ(1234, opt["defaultReplicaSet"]["tags"][__endpoint1][0]["value"]);
+
+EXPECT_NO_THROWS(function() {cluster.setInstanceOption(__sandbox_uri1,"memberWeight", 21); });
+var session1 = mysql.getSession(__sandbox_uri1);
+EXPECT_EQ(21, get_sysvar(session1, "group_replication_member_weight"));
+
+//@<> change global options in the replica cluster
+EXPECT_NO_THROWS(function() {c3.setOption("clusterName", "newNameReplica"); });
+s = cs.status();
+s3 = c3.status();
+
+EXPECT_NE(s["clusters"]["newNameReplica"]);
+EXPECT_EQ("newNameReplica", s3["clusterName"]);
+
+EXPECT_THROWS(function(){ c3.setOption("memberWeight", 24); }, "The instance '<<<__endpoint4>>>' is '(MISSING)'", "RuntimeError");
+
+EXPECT_NO_THROWS(function() {c3.setOption("tag:test2", 321); });
+opt3 = c3.options();
+EXPECT_EQ("test2", opt3["defaultReplicaSet"]["tags"]["global"][0]["option"]);
+EXPECT_EQ(321, opt3["defaultReplicaSet"]["tags"]["global"][0]["value"]);
+
+//@<> Change instance options in the replica cluster
+EXPECT_NO_THROWS(function() {c3.setInstanceOption(__sandbox_uri5, "tag:test3", 12345); });
+opt3 = c3.options();
+EXPECT_EQ("test3", opt3["defaultReplicaSet"]["tags"][__endpoint5][0]["option"]);
+EXPECT_EQ(12345, opt3["defaultReplicaSet"]["tags"][__endpoint5][0]["value"]);
+
+EXPECT_NO_THROWS(function() {c3.setInstanceOption(__sandbox_uri5,"memberWeight", 20); });
+var session5 = mysql.getSession(__sandbox_uri5);
+EXPECT_EQ(20, get_sysvar(session5, "group_replication_member_weight"));
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
