@@ -778,6 +778,19 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     ASSERT_EQ(av, bv);                      \
   }
 
+TEST_F(Shell_cli_operation_test, error_test) {
+  SKIP_UNLESS_DIRECT_MODE();
+
+  std::vector<std::string> env{"MYSQLSH_TERM_COLOR_MODE=nocolor"};
+
+  testutil->call_mysqlsh_c(
+      {"--", "cluster", "rescan", "{--addInstances : 'auto'}"}, "", env);
+  MY_EXPECT_STDOUT_CONTAINS(
+      "Error at '--addInstances : 'auto'}'.\n"
+      "Invalid format for command line argument. Valid formats are:\n");
+  output_handler.wipe_all();
+}
+
 TEST_F(Shell_cli_operation_test, integration_test) {
   SKIP_UNLESS_DIRECT_MODE();
   testutil->mk_dir("cli-sandboxes");

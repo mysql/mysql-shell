@@ -124,7 +124,7 @@ testutil.waitMemberState(__mysql_sandbox_port6, "(MISSING)");
 
 EXPECT_THROWS(function() {
     old_primary = dba.rebootClusterFromCompleteOutage("replica", {force: true});
-}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is INVALIDATED.");
+}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is PRIMARY INVALIDATED.");
 
 // put the cluster back
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("replica"); });
@@ -144,6 +144,77 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster,
 CHECK_CLUSTER_SET(session);
 
 testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
+
+//@<> FR3.2 The 'force' option is allowed if the Cluster belongs to a ClusterSet and is an INVALIDATED replica.
+
+shell.connect(__sandbox_uri4);
+replica = dba.getCluster();
+replica.removeInstance(__sandbox_uri6);
+
+cs.createReplicaCluster(__sandbox_uri6, "replica2");
+
+testutil.killSandbox(__mysql_sandbox_port1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.killSandbox(__mysql_sandbox_port3);
+
+testutil.killSandbox(__mysql_sandbox_port4);
+testutil.killSandbox(__mysql_sandbox_port5);
+
+shell.connect(__sandbox_uri6);
+cs = dba.getClusterSet();
+
+EXPECT_NO_THROWS(function(){ cs.forcePrimaryCluster("replica2", {invalidateReplicaClusters:["replica"]}); });
+
+testutil.startSandbox(__mysql_sandbox_port5);
+testutil.startSandbox(__mysql_sandbox_port4);
+testutil.startSandbox(__mysql_sandbox_port3);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri1);
+
+EXPECT_THROWS(function(){
+    cluster = dba.rebootClusterFromCompleteOutage("cluster", {force: true});
+}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is PRIMARY INVALIDATED.");
+
+EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
+
+cs.rejoinCluster("cluster");
+
+cluster = dba.getCluster();
+cluster.rejoinInstance(__sandbox_uri2);
+cluster.rejoinInstance(__sandbox_uri3);
+
+shell.connect(__sandbox_uri4);
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica", {force: true}); });
+
+cs.rejoinCluster("replica");
+
+replica = dba.getCluster();
+replica.rejoinInstance(__sandbox_uri5);
+
+shell.connect(__sandbox_uri6);
+replica2 = dba.getCluster();
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri6], replica2);
+CHECK_REPLICA_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], replica2, cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5], replica2, replica);
+CHECK_CLUSTER_SET(session);
+
+// put the cluster back again
+cs.setPrimaryCluster("cluster");
+cs.removeCluster("replica2");
+
+shell.connect(__sandbox_uri4);
+replica = dba.getCluster();
+replica.addInstance(__sandbox_uri6);
+
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster();
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
+CHECK_CLUSTER_SET(session);
 
 //@<> FR6: The command must automatically rejoin a Replica Cluster to its ClusterSet by ensuring the ClusterSet replication channel is configured in all members of the Cluster.
 
