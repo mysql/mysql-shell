@@ -25,6 +25,9 @@
 
 #include <curl/curl.h>
 #include <tinyxml2.h>
+
+#include <limits>
+#include <stdexcept>
 #include <string>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -233,6 +236,26 @@ void Response::throw_if_error() const {
   if (const auto error = get_error()) {
     throw error.value();
   }
+}
+
+std::size_t Response::content_length() const {
+  const auto it = headers.find("Content-Length");
+
+  if (headers.end() == it) {
+    throw std::runtime_error(
+        "The response does not contain a 'Content-Length' header");
+  }
+
+  const auto length = std::stoull(it->second);
+
+  if (length > std::numeric_limits<std::size_t>::max()) {
+    throw std::out_of_range(
+        "The 'Content-Length' header stores the value '" + it->second +
+        "' which is greater than the supported size limit on this platform: " +
+        std::to_string(std::numeric_limits<std::size_t>::max()));
+  }
+
+  return static_cast<std::size_t>(length);
 }
 
 std::string Response_error::format() const {

@@ -321,7 +321,7 @@ std::optional<rest::Response_error> Http_object::fetch_file_size() const {
     if (error) {
       return error;
     } else {
-      m_file_size = std::stoul(response.headers["content-length"]);
+      m_file_size = response.content_length();
 
       if (response.headers["Accept-Ranges"] != "bytes") {
         throw std::runtime_error(

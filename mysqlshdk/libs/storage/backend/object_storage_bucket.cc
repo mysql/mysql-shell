@@ -122,7 +122,7 @@ size_t Bucket::head_object(const std::string &object_name) {
                                            object_name + "': " + error.what());
   }
 
-  return std::stoul(response.headers.at("content-length"));
+  return response.content_length();
 }
 
 void Bucket::delete_object(const std::string &object_name) {

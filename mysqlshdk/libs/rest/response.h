@@ -158,6 +158,14 @@ struct Response {
   void throw_if_error() const;
 
   /**
+   * Reads the "Content-Length" header.
+   *
+   * @throws std::runtime_error If there's no "Content-Length" header.
+   * @throws std::out_of_range If size is out of std::size_t range.
+   */
+  std::size_t content_length() const;
+
+  /**
    * HTTP status code of the response.
    */
   Status_code status;
