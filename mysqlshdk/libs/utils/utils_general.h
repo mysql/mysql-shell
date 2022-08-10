@@ -28,6 +28,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -164,11 +165,11 @@ std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
 
 char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
 
+std::vector<std::string> SHCORE_PUBLIC split_string(std::string_view input,
+                                                    std::string_view separator,
+                                                    bool compress = false);
 std::vector<std::string> SHCORE_PUBLIC
-split_string(const std::string &input, const std::string &separator,
-             bool compress = false);
-std::vector<std::string> SHCORE_PUBLIC
-split_string_chars(const std::string &input, const std::string &separator_chars,
+split_string_chars(std::string_view input, std::string_view separator_chars,
                    bool compress = false);
 
 bool SHCORE_PUBLIC match_glob(const std::string_view pattern,
@@ -235,7 +236,7 @@ std::string SHCORE_PUBLIC make_account(const std::string &user,
                                        const std::string &host);
 std::string SHCORE_PUBLIC make_account(const Account &account);
 
-std::string SHCORE_PUBLIC get_member_name(const std::string &name,
+std::string SHCORE_PUBLIC get_member_name(std::string_view name,
                                           shcore::NamingStyle style);
 
 /**
@@ -285,12 +286,12 @@ std::string SHCORE_PUBLIC unquote_sql_string(const std::string &str);
  * If var_end is "", then the variable name will span until the
  */
 std::string SHCORE_PUBLIC str_subvars(
-    const std::string &s,
-    const std::function<std::string(const std::string &)> &subvar =
-        [](const std::string &var) {
+    std::string_view s,
+    const std::function<std::string(std::string_view)> &subvar =
+        [](std::string_view var) {
           return shcore::get_member_name(var, shcore::current_naming_style());
         },
-    const std::string &var_begin = "<<<", const std::string &var_end = ">>>");
+    std::string_view var_begin = "<<<", std::string_view var_end = ">>>");
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 

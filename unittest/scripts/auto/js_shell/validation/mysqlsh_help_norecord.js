@@ -156,15 +156,19 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    statements other than SELECT and SHOW; 2 -
                                    log all statements. Option takes precedence
                                    over --log-sql in Dba.* context if enabled.
-  --log-sql=off|error|on|unfiltered
+  --log-sql=off|error|on|all|unfiltered
                                    Log SQL statements: off - none of SQL
                                    statements will be logged; (default) error -
                                    SQL statement with error message will be
                                    logged only when error occurs; on - All SQL
                                    statements will be logged except these which
-                                   match any of logSql.ignorePattern glob
-                                   pattern; unfiltered - All SQL statements
-                                   will be logged.
+                                   match any of logSql.ignorePattern and
+                                   logSql.ignorePatternUnsafe glob pattern; all
+                                   - All SQL statements will be logged except
+                                   these which match any of
+                                   logSql.ignorePatternUnsafe glob pattern;
+                                   unfiltered - All SQL statements will be
+                                   logged.
   --syslog                         Log filtered interactive commands to the
                                    system log. Filtering of commands depends on
                                    the patterns supplied via histignore option.

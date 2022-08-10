@@ -217,19 +217,19 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
         memset(color_off, 0, sizeof(color_off));
       }
 
-      const int message_len = static_cast<int>(
-          std::min<size_t>(log.length, std::numeric_limits<int>::max()));
-
-      if (log.domain && *log.domain) {
-        self->raw_print(
-            shcore::str_format("%sverbose: %s: %s%s: %.*s%s\n", color_on,
-                               ts.c_str(), show_prefix, log.domain, message_len,
-                               log.message, color_off),
-            Output_stream::STDERR);
+      if (!log.domain.empty()) {
+        self->raw_print(shcore::str_format("%sverbose: %s: %s%.*s: %.*s%s\n",
+                                           color_on, ts.c_str(), show_prefix,
+                                           static_cast<int>(log.domain.size()),
+                                           log.domain.data(),
+                                           static_cast<int>(log.message.size()),
+                                           log.message.data(), color_off),
+                        Output_stream::STDERR);
       } else {
         self->raw_print(shcore::str_format("%sverbose: %s: %s%.*s%s\n",
                                            color_on, ts.c_str(), show_prefix,
-                                           message_len, log.message, color_off),
+                                           static_cast<int>(log.message.size()),
+                                           log.message.data(), color_off),
                         Output_stream::STDERR);
       }
     }
@@ -289,7 +289,7 @@ namespace {
 std::string format_vars(const std::string &text) {
   return shcore::str_subvars(
       text,
-      [](const std::string &var) {
+      [](std::string_view var) {
         return shcore::get_member_name(var, shcore::current_naming_style());
       },
       "<<<", ">>>");

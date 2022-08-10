@@ -138,7 +138,7 @@ std::string get_script_path(const std::string &file) {
 
 std::string strip_comments(const std::string &text) {
   return shcore::str_subvars(
-      text, [](const std::string &) { return ""; }, "/*", "*/");
+      text, [](std::string_view) { return ""; }, "/*", "*/");
 }
 }  // namespace
 

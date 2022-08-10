@@ -197,7 +197,7 @@ std::shared_ptr<IResult> Replayer_mysql::querys(const char *sql_, size_t length,
   std::string sql = _impl->do_query(std::string(sql_, length));
 
   auto log_sql_handler = shcore::current_log_sql();
-  log_sql_handler->log(get_connection_id(), sql_, length);
+  log_sql_handler->log(get_connection_id(), std::string_view(sql_, length));
 
   FI_TRIGGER_TRAP(
       mysql, mysqlshdk::utils::FI::Trigger_options(
@@ -295,7 +295,7 @@ std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
   std::string sql = _impl->do_query(std::string(sql_, length));
 
   auto log_sql_handler = shcore::current_log_sql();
-  log_sql_handler->log(get_connection_id(), sql_, length);
+  log_sql_handler->log(get_connection_id(), {sql_, length});
 
   if (g_replay_row_hook)
     return _impl->trace().expected_result_x(

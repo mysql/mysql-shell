@@ -131,7 +131,7 @@ void Upgrade_metadata::prepare() {
     case MDState::UPGRADING:
       throw std::runtime_error(shcore::str_subvars(
           mysqlsh::dba::metadata::kFailedUpgradeError,
-          [](const std::string &var) {
+          [](std::string_view var) {
             return shcore::get_member_name(var, shcore::current_naming_style());
           },
           "<<<", ">>>"));
@@ -336,7 +336,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
                 "version\n"
                 "4 - Continue with the metadata upgrade once all Router "
                 "instances are upgraded or accounted for\n",
-                [](const std::string &var) {
+                [](std::string_view var) {
                   return shcore::get_member_name(
                       var, shcore::current_naming_style());
                 },

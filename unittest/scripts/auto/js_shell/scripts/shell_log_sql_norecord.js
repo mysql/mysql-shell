@@ -152,6 +152,93 @@ shell.status()
 EXPECT_SHELL_LOG_NOT_CONTAINS("SQL: select DATABASE(), USER() limit 1");
 EXPECT_SHELL_LOG_NOT_CONTAINS("SQL: show session status like 'ssl_version';");
 
+// =================================
+// Using 'all' logging option
+// =================================
+
+\option logSql = "all"
+
+//@<> Testing all sql logging with \use
+WIPE_SHELL_LOG();
+\use mysql
+EXPECT_SHELL_LOG_MATCHES(/Info: js: tid=\d+: SQL: use `mysql`/);
+
+//@<> Testing all sql logging with \sql
+WIPE_SHELL_LOG();
+\sql show databases
+EXPECT_SHELL_LOG_CONTAINS("SQL: show databases");
+
+WIPE_SHELL_LOG();
+\sql CREATE USER 'test'@'localhost' IDENTIFIED BY ''
+\sql DROP USER 'test'@'localhost'
+EXPECT_SHELL_LOG_NOT_CONTAINS("CREATE USER 'test'@'localhost' IDENTIFIED BY ''");
+EXPECT_SHELL_LOG_CONTAINS("DROP USER 'test'@'localhost'");
+
+//@<> Testing all sql logging with \show
+WIPE_SHELL_LOG()
+\show query SELECT 1
+EXPECT_SHELL_LOG_CONTAINS("SQL: SELECT 1");
+
+WIPE_SHELL_LOG();
+\show query CREATE USER 'test'@'localhost' IDENTIFIED BY ''
+\show query DROP USER 'test'@'localhost'
+EXPECT_SHELL_LOG_NOT_CONTAINS("CREATE USER 'test'@'localhost' IDENTIFIED BY ''");
+EXPECT_SHELL_LOG_CONTAINS("DROP USER 'test'@'localhost'");
+
+//@<> Testing all sql logging from \status command
+WIPE_SHELL_LOG();
+\status
+EXPECT_SHELL_LOG_CONTAINS("SQL: select DATABASE(), USER() limit 1");
+EXPECT_SHELL_LOG_CONTAINS("SQL: show session status like 'ssl_version';");
+
+testutil.createFile("multi.sql", "create schema sql_logging; create user 'test'@'localhost' identified by ''; drop user 'test'@'localhost'; select 1; select 2; SELECT 3; select 4; select 5; select 6;\nselect 'a'; select 'b';\nselect 'c'; select 'd'; select 'e'; drop schema sql_logging;\n");
+
+//@<> Testing all sql logging with \source (\.)
+WIPE_SHELL_LOG();
+\sql
+\. multi.sql
+\js
+
+EXPECT_SHELL_LOG_MATCHES(/Info: sql: tid=\d+: SQL: create schema sql_logging/);
+EXPECT_SHELL_LOG_NOT_CONTAINS("CREATE USER 'test'@'localhost' IDENTIFIED BY ''");
+EXPECT_SHELL_LOG_CONTAINS("DROP USER 'test'@'localhost'");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 1");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 2");
+EXPECT_SHELL_LOG_CONTAINS("SQL: SELECT 3");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 4");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 5");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 6");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 'a'");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 'b'");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 'c'");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 'd'");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 'e'");
+EXPECT_SHELL_LOG_MATCHES(/Info: sql: tid=\d+: SQL: drop schema sql_logging/);
+
+
+//@<> Testing all sql logging from session object
+WIPE_SHELL_LOG();
+session.runSql("select 1");
+EXPECT_SHELL_LOG_CONTAINS("SQL: select 1");
+
+//@<> Testing all sql logging from dba object
+WIPE_SHELL_LOG();
+try {
+    cluster = dba.getCluster()
+} catch (error) {
+    print(error)
+}
+EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: CONNECTED: localhost:\d+/);
+EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: SQL: SET SESSION `autocommit` = 1/);
+EXPECT_SHELL_LOG_CONTAINS("SQL: SHOW DATABASES LIKE 'mysql_innodb_cluster_metadata'");
+
+
+//@<> Testing all sql logging from shell object
+WIPE_SHELL_LOG();
+shell.status()
+EXPECT_SHELL_LOG_CONTAINS("SQL: select DATABASE(), USER() limit 1");
+EXPECT_SHELL_LOG_CONTAINS("SQL: show session status like 'ssl_version';");
+
 
 // =================================
 // Using 'off' logging option

@@ -2884,29 +2884,28 @@ void Testutils::preprocess_file(const std::string &in_path,
 
   data = shcore::str_subvars(
       data,
-      [&vars](const std::string &s) {
+      [&vars](std::string_view s) {
         for (const auto &v : vars) {
-          auto p = v.find('=');
-          if (p != std::string::npos) {
-            if (v.substr(0, p) == s) {
-              return v.substr(p + 1);
-            }
-          }
+          std::string_view v_view{v};
+
+          auto p = v_view.find('=');
+          if (p == std::string::npos) continue;
+          if (v_view.substr(0, p) != s) continue;
+          return std::string{v_view.substr(p + 1)};
         }
-        return s;
+        return std::string{s};
       },
       "${", "}");
 
   // Removes sections enclosed by a specific indicator
-  if (!skip_sections.empty()) {
-    for (const auto &section : skip_sections) {
-      bool found = false;
-      auto split1 = shcore::str_partition(data, section, &found);
+
+  for (const auto &section : skip_sections) {
+    bool found = false;
+    auto split1 = shcore::str_partition(data, section, &found);
+    if (found) {
+      auto split2 = shcore::str_partition(split1.second, section, &found);
       if (found) {
-        auto split2 = shcore::str_partition(split1.second, section, &found);
-        if (found) {
-          data = split1.first + split2.second;
-        }
+        data = split1.first + split2.second;
       }
     }
   }

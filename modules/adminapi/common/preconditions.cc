@@ -1155,7 +1155,7 @@ MDS Precondition_checker::check_metadata_state_actions(
             } else if (item.action == MDS_actions::RAISE_ERROR) {
               throw std::runtime_error(shcore::str_subvars(
                   pre_formatted,
-                  [](const std::string &var) {
+                  [](std::string_view var) {
                     return shcore::get_member_name(
                         var, shcore::current_naming_style());
                   },

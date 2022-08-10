@@ -406,25 +406,25 @@ std::string errno_to_string(int err) {
 #endif
 }
 
-std::vector<std::string> split_string(const std::string &input,
-                                      const std::string &separator,
+std::vector<std::string> split_string(std::string_view input,
+                                      std::string_view separator,
                                       bool compress) {
   std::vector<std::string> ret_val;
 
   size_t index = 0, new_find = 0;
 
-  while (new_find != std::string::npos) {
+  while (new_find != std::string_view::npos) {
     new_find = input.find(separator, index);
 
-    if (new_find != std::string::npos) {
+    if (new_find != std::string_view::npos) {
       // When compress is enabled, consecutive separators
       // do not generate new elements
       if (new_find > index || !compress || new_find == 0)
-        ret_val.push_back(input.substr(index, new_find - index));
+        ret_val.emplace_back(input.substr(index, new_find - index));
 
       index = new_find + separator.length();
     } else {
-      ret_val.push_back(input.substr(index));
+      ret_val.emplace_back(input.substr(index));
     }
   }
 
@@ -443,25 +443,25 @@ std::vector<std::string> split_string(const std::string &input,
  *
  * @returns vector of splitted strings
  */
-std::vector<std::string> split_string_chars(const std::string &input,
-                                            const std::string &separator_chars,
+std::vector<std::string> split_string_chars(std::string_view input,
+                                            std::string_view separator_chars,
                                             bool compress) {
   std::vector<std::string> ret_val;
 
   size_t index = 0, new_find = 0;
 
-  while (new_find != std::string::npos) {
+  while (new_find != std::string_view::npos) {
     new_find = input.find_first_of(separator_chars, index);
 
-    if (new_find != std::string::npos) {
+    if (new_find != std::string_view::npos) {
       // When compress is enabled, consecutive separators
       // do not generate new elements
       if (new_find > index || !compress || new_find == 0)
-        ret_val.push_back(input.substr(index, new_find - index));
+        ret_val.emplace_back(input.substr(index, new_find - index));
 
       index = new_find + 1;
     } else {
-      ret_val.push_back(input.substr(index));
+      ret_val.emplace_back(input.substr(index));
     }
   }
 
@@ -472,18 +472,19 @@ std::vector<std::string> split_string_chars(const std::string &input,
 // NOTE: Assumption is given that everything is created using a lowerUpperCase
 // naming style
 //       Which is the default to be used on C++ and JS
-std::string get_member_name(const std::string &name,
-                            shcore::NamingStyle style) {
-  std::string new_name;
+std::string get_member_name(std::string_view name, shcore::NamingStyle style) {
   switch (style) {
     // This is the default style, input is returned without modifications
     case shcore::LowerCamelCase:
-      return new_name = name;
+      return std::string{name};
     case shcore::LowerCaseUnderscores: {
       // Uppercase letters will be converted to underscore+lowercase letter
       // except in two situations:
       // - When it is the first letter
       // - When an underscore is already before the uppercase letter
+      std::string new_name;
+      new_name.reserve(name.size());
+
       bool skip_underscore = true;
       for (auto character : name) {
         if (character >= 65 && character <= 90) {
@@ -500,20 +501,20 @@ std::string get_member_name(const std::string &name,
           new_name.append(1, character);
         }
       }
-      break;
+      return new_name;
     }
     case Constants: {
-      for (auto character : name) {
-        if (character >= 97 && character <= 122)
-          new_name.append(1, character - 32);
-        else
-          new_name.append(1, character);
+      std::string new_name{name};
+
+      for (auto &character : new_name) {
+        if (character >= 97 && character <= 122) character -= 32;
       }
-      break;
+
+      return new_name;
     }
   }
 
-  return new_name;
+  return {};
 }
 
 /** Convert string from under_score/dash naming convention to camelCase
