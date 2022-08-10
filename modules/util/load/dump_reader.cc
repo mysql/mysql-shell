@@ -392,40 +392,53 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
 // among tables. If we distribute the threads equally, then smaller tables
 // will finish sooner and bigger tables will take extra longer because
 // it will have more threads working. So our optimization goal must be to keep
-// as many different tables loading concurrently for as long as possible.
+// as many different tables loading concurrently for as long as possible, while
+// ensuring that tables that are currently being loaded have preference over
+// others, which could otherwise trigger tables to get flushed out from the
+// buffer pool.
 // Thus, smaller tables must get fewer threads allocated so they take longer
 // to load, while bigger threads get more, with the hope that the total time
 // to load all tables is minimized.
-std::unordered_set<Dump_reader::Table_data_info *>::iterator
-Dump_reader::schedule_chunk_proportionally(
+Dump_reader::Candidate Dump_reader::schedule_chunk_proportionally(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-    std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data) {
+    std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data,
+    uint64_t max_concurrent_tables) {
   if (tables_with_data->empty()) return tables_with_data->end();
+
+  std::vector<Candidate> tables_in_progress;
 
   // first check if there's any table that's not being loaded
   {
-    auto best = tables_with_data->end();
+    const auto end = tables_with_data->end();
+    auto best = end;
 
-    for (auto it = tables_with_data->begin(); it != tables_with_data->end();
-         ++it) {
-      std::string key = schema_table_object_key(
-          (*it)->owner->schema, (*it)->owner->table, (*it)->partition);
-      if (tables_being_loaded.find(key) == tables_being_loaded.end()) {
-        if (best == tables_with_data->end() ||
-            (*it)->bytes_available() > (*best)->bytes_available())
+    for (auto it = tables_with_data->begin(); it != end; ++it) {
+      if ((*it)->chunks_consumed) {
+        tables_in_progress.emplace_back(it);
+      }
+
+      if (tables_being_loaded.find((*it)->key()) == tables_being_loaded.end()) {
+        // table is better if it's bigger and in the same state as the current
+        // best, or if it was previously scheduled and current best was not
+        if (best == end ||
+            ((*it)->bytes_available() > (*best)->bytes_available() &&
+             !(*it)->chunks_consumed == !(*best)->chunks_consumed) ||
+            ((*it)->chunks_consumed && !(*best)->chunks_consumed))
           best = it;
       }
     }
-    if (best != tables_with_data->end()) {
+
+    // schedule a new table only if we're not exceeding the maximum number of
+    // concurrent tables that can be loaded at the same time
+    if (best != end && (tables_in_progress.size() < max_concurrent_tables ||
+                        (*best)->chunks_consumed)) {
       return best;
     }
   }
 
   // if all available tables are already loaded, then schedule proportionally
   std::unordered_map<std::string, double> worker_weights;
-  std::vector<std::pair<
-      std::unordered_set<Dump_reader::Table_data_info *>::iterator, double>>
-      candidate_weights;
+
   // calc ratio of data being loaded per table / total data being loaded
   double total_bytes_loading = std::accumulate(
       tables_being_loaded.begin(), tables_being_loaded.end(),
@@ -442,46 +455,37 @@ Dump_reader::schedule_chunk_proportionally(
     }
   }
 
+  std::vector<std::pair<Candidate, double>> candidate_weights;
+
   // calc ratio of data available per table / total data available
-  double total_bytes_available =
-      std::accumulate(tables_with_data->begin(), tables_with_data->end(),
-                      static_cast<size_t>(0),
-                      [](size_t size, Dump_reader::Table_data_info *table) {
-                        return size + table->bytes_available();
-                      });
+  double total_bytes_available = std::accumulate(
+      tables_in_progress.begin(), tables_in_progress.end(),
+      static_cast<size_t>(0),
+      [](size_t size, auto it) { return size + (*it)->bytes_available(); });
   if (total_bytes_available > 0) {
-    for (auto it = tables_with_data->begin(); it != tables_with_data->end();
+    for (auto it = tables_in_progress.begin(); it != tables_in_progress.end();
          ++it) {
       candidate_weights.emplace_back(
-          it, static_cast<double>((*it)->bytes_available()) /
-                  total_bytes_available);
+          *it, static_cast<double>((**it)->bytes_available()) /
+                   total_bytes_available);
     }
   } else {
     assert(0);
-    return tables_with_data->begin();
+    return tables_in_progress.front();
   }
 
   // pick a chunk from the table that has the biggest difference between both
   double best_diff = 0;
-  std::unordered_set<Dump_reader::Table_data_info *>::iterator best =
-      tables_with_data->begin();
+  Candidate best = tables_in_progress.front();
 
   for (const auto &cand : candidate_weights) {
-    std::string key = schema_table_object_key((*cand.first)->owner->schema,
-                                              (*cand.first)->owner->table,
-                                              (*cand.first)->partition);
-    auto it = worker_weights.find(key);
-    if (it != worker_weights.end()) {
-      double d = cand.second - it->second;
-      if (d > best_diff) {
-        best_diff = d;
-        best = cand.first;
-      }
-    } else {
-      if (cand.second > best_diff) {
-        best_diff = cand.second;
-        best = cand.first;
-      }
+    const auto it = worker_weights.find((*cand.first)->key());
+    const auto weight = it == worker_weights.end() ? 0.0 : it->second;
+    const auto d = cand.second - weight;
+
+    if (d > best_diff) {
+      best_diff = d;
+      best = cand.first;
     }
   }
 
@@ -494,8 +498,8 @@ bool Dump_reader::next_table_chunk(
     bool *out_chunked, size_t *out_chunk_index, size_t *out_chunks_total,
     std::unique_ptr<mysqlshdk::storage::IFile> *out_file,
     size_t *out_chunk_size, shcore::Dictionary_t *out_options) {
-  auto iter =
-      schedule_chunk_proportionally(tables_being_loaded, &m_tables_with_data);
+  auto iter = schedule_chunk_proportionally(
+      tables_being_loaded, &m_tables_with_data, m_options.threads_count());
 
   if (iter != m_tables_with_data.end()) {
     *out_schema = (*iter)->owner->schema;

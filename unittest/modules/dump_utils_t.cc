@@ -170,7 +170,7 @@ class Dump_scheduler : public ::testing::Test {
 
     auto schedule_one = [&](std::string *out_table, std::string *out_file,
                             size_t *out_size) {
-      auto iter = f(tables_being_loaded, &tables_with_data);
+      auto iter = f(tables_being_loaded, &tables_with_data, nthreads);
 
       if (iter != tables_with_data.end()) {
         *out_table = schema_table_object_key(

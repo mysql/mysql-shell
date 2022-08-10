@@ -314,10 +314,20 @@ class Dump_reader {
 
     void rescan_data(const Files &files, Dump_reader *reader);
 
+    const std::string &key() const {
+      if (m_key.empty()) {
+        m_key = schema_table_object_key(owner->schema, owner->table, partition);
+      }
+
+      return m_key;
+    }
+
    private:
     bool all_chunks_are(std::size_t what) const {
       return !has_data || (last_chunk_seen && what == available_chunks.size());
     }
+
+    mutable std::string m_key;
   };
 
   struct Table_info {
@@ -491,10 +501,13 @@ class Dump_reader {
   // new schema name -> old schema name
   std::optional<std::pair<std::string, std::string>> m_schema_override;
 
-  static std::unordered_set<Dump_reader::Table_data_info *>::iterator
-  schedule_chunk_proportionally(
+  using Candidate =
+      std::unordered_set<Dump_reader::Table_data_info *>::iterator;
+
+  static Candidate schedule_chunk_proportionally(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-      std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data);
+      std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data,
+      uint64_t max_concurrent_tables);
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Dump_scheduler, load_scheduler);

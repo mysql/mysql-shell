@@ -241,7 +241,6 @@ class Schedule_checker {
       }
       m_file_sizes[file_list[i].name()] = file_list[i].size();
     }
-    tables_by_size();
   }
 
   void on_file_load(const std::string &filename) {
@@ -251,7 +250,7 @@ class Schedule_checker {
       m_tables_being_loaded.push_back(filename);
 
       validate_scheduling(m_tables_being_loaded, m_num_threads,
-                          tables_by_size());
+                          tables_by_total_size());
     }
 
     shcore::sleep_ms(m_file_sizes[filename] / 4000000);
@@ -299,7 +298,7 @@ class Schedule_checker {
           << shcore::str_join(bigger_tables, "\n - ",
                               [&](const std::string &f) {
                                 return shcore::str_ljust(f, 26) + " " +
-                                       std::to_string(total_table_size(f));
+                                       std::to_string(current_table_size(f));
                               })
           << "\n";
 
@@ -310,7 +309,7 @@ class Schedule_checker {
            it != bigger_tables.end() && count > 0; ++it, --count) {
         EXPECT_TRUE(unique_tables_loading.count(*it) > 0 ||
                     unique_tables_available.count(*it) == 0)
-            << "BAD TABLE ORDER\n"
+            << "BAD TABLE ORDER, EXPECTED: " << *it << "\n"
             << "LOADING:\n"
             << " - " << shcore::str_join(unique_tables_loading, "\n - ") << "\n"
             << "AVAILABLE:\n"
@@ -321,14 +320,14 @@ class Schedule_checker {
             << shcore::str_join(bigger_tables, "\n - ",
                                 [&](const std::string &f) {
                                   return shcore::str_ljust(f, 26) + " " +
-                                         std::to_string(total_table_size(f));
+                                         std::to_string(current_table_size(f));
                                 })
             << "\n";
       }
     }
   }
 
-  size_t total_table_size(const std::string &table) {
+  size_t current_table_size(const std::string &table) {
     size_t total = 0;
     for (const auto &f : m_chunks_available) {
       if (shcore::str_endswith(f, ".zst")) {
@@ -338,7 +337,17 @@ class Schedule_checker {
     return total;
   }
 
-  std::vector<std::string> tables_by_size() {
+  size_t total_table_size(const std::string &table) {
+    size_t total = 0;
+    for (const auto &f : m_file_sizes) {
+      if (shcore::str_endswith(f.first, ".zst")) {
+        if (table == table_name_for_chunk_file(f.first)) total += f.second;
+      }
+    }
+    return total;
+  }
+
+  std::vector<std::string> tables_by_current_size() {
     std::vector<std::string> bigger_tables;
 
     std::map<std::string, size_t> table_sizes;
@@ -350,6 +359,29 @@ class Schedule_checker {
       }
     }
     for (const auto &i : table_sizes) {
+      bigger_tables.push_back(i.first);
+    }
+    std::sort(bigger_tables.begin(), bigger_tables.end(),
+              [&table_sizes](const std::string &t1, const std::string &t2) {
+                return table_sizes[t1] > table_sizes[t2];
+              });
+
+    return bigger_tables;
+  }
+
+  std::vector<std::string> tables_by_total_size() {
+    std::vector<std::string> bigger_tables;
+
+    std::map<std::string, size_t> table_sizes;
+
+    for (const auto &f : m_chunks_available) {
+      if (shcore::str_endswith(f, ".zst")) {
+        auto table = table_name_for_chunk_file(f);
+        table_sizes[table] = 0;
+      }
+    }
+    for (auto &i : table_sizes) {
+      i.second = total_table_size(i.first);
       bigger_tables.push_back(i.first);
     }
     std::sort(bigger_tables.begin(), bigger_tables.end(),
