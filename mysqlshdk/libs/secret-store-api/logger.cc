@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,18 +30,23 @@ namespace logger {
 
 namespace {
 
-std::function<void(const std::string &)> g_logger;
+// We have to use a static local method, otherwise we have an
+// initialization-order-fiasco because this logger is used with statically
+// initialized tests (e.g.: mysql_secret_store_t.cc:1299)
+
+std::function<void(std::string_view)> *log_cb() {
+  static std::function<void(std::string_view)> cb;
+  return &cb;
+}
 
 }  // namespace
 
-void log(const std::string &msg) {
-  if (g_logger) {
-    g_logger(msg);
-  }
+void log(std::string_view msg) {
+  if (auto cb = log_cb(); *cb) (*cb)(msg);
 }
 
-void set_logger(const std::function<void(const std::string &)> &logger) {
-  g_logger = logger;
+void set_logger(std::function<void(std::string_view)> cb) {
+  *log_cb() = std::move(cb);
 }
 
 }  // namespace logger

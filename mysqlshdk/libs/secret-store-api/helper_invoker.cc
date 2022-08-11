@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,19 +37,18 @@ namespace api {
 
 namespace {
 
-constexpr auto k_secret = "\"Secret\"";
-
 std::string hide_secret(const std::string &s) {
+  constexpr std::string_view k_secret{"\"Secret\""};
   const auto pos = s.find(k_secret);
 
-  if (pos == std::string::npos) {
-    return s;
-  } else {
-    const auto start = s.find('"', pos + strlen(k_secret));
-    const auto end = mysqlshdk::utils::span_quoted_string_dq(s, start);
+  if (pos == std::string::npos) return s;
 
-    return s.substr(0, start + 1) + "****" + s.substr(end - 1);
-  }
+  const auto start = s.find('"', pos + k_secret.size());
+  const auto end = mysqlshdk::utils::span_quoted_string_dq(s, start);
+
+  if (end == std::string::npos) return s.substr(0, start + 1) + "****\"";
+
+  return s.substr(0, start + 1) + "****" + s.substr(end - 1);
 }
 
 }  // namespace

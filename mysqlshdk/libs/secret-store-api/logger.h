@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,16 +25,16 @@
 #define MYSQLSHDK_LIBS_SECRET_STORE_API_LOGGER_H_
 
 #include <functional>
-#include <string>
+#include <string_view>
 
 namespace mysql {
 namespace secret_store {
 namespace api {
 namespace logger {
 
-void log(const std::string &msg);
+void log(std::string_view msg);
 
-void set_logger(const std::function<void(const std::string &)> &logger);
+void set_logger(std::function<void(std::string_view)> cb);
 
 }  // namespace logger
 }  // namespace api
