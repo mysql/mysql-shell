@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,7 +84,8 @@ std::string Row::get_as_string(uint32_t index) const {
   std::string data;
   const Column &column = _owner->get_metadata().at(index);
   if (column.get_type() == Type::Bit) {
-    return shcore::bits_to_string(get_bit(index), column.get_length());
+    auto [bit_value, bit_size] = get_bit(index);
+    return shcore::bits_to_string(bit_value, bit_size);
   }
   if (!_row->get_field_as_string(index, &data)) {
     throw FIELD_ERROR(index, "failed converting field to string");
@@ -287,13 +288,15 @@ double Row::get_double(uint32_t index) const {
   return value;
 }
 
-uint64_t Row::get_bit(uint32_t index) const {
+std::tuple<uint64_t, int> Row::get_bit(uint32_t index) const {
   assert(_row);
   uint64_t value;
   VALIDATE_INDEX(index);
   if (!_row->get_bit(index, &value))
     FAILED_GET_TYPE(index, (ftype == Type::Bit));
-  return value;
+
+  const Column &column = _owner->get_metadata().at(index);
+  return {value, column.get_length()};
 }
 
 }  // namespace mysqlx

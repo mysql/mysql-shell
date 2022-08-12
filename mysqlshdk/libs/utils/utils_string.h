@@ -442,52 +442,58 @@ std::string SHCORE_PUBLIC str_format(const char *formats, ...);
 #endif
 
 template <typename Iter>
-inline std::string str_join(Iter begin, Iter end, const std::string &sep) {
+inline std::string str_join(Iter begin, Iter end, std::string_view sep) {
+  if (begin == end) return {};
+
   std::string s;
-  if (begin != end) {
+
+  s.append(*begin);
+  while (++begin != end) {
+    s.append(sep);
     s.append(*begin);
-    while (++begin != end) {
-      s.append(sep);
-      s.append(*begin);
-    }
   }
+
   return s;
 }
 
-template <typename Iter>
-inline std::string str_join(
-    Iter begin, Iter end, const std::string &sep,
-    std::function<std::string(const typename Iter::value_type &i)> f) {
+template <typename Iter, typename CTransform>
+inline std::string str_join(Iter begin, Iter end, std::string_view sep,
+                            CTransform &&f) {
+  if (begin == end) return {};
+
   std::string s;
-  if (begin != end) {
+
+  s.append(f(*begin));
+  while (++begin != end) {
+    s.append(sep);
     s.append(f(*begin));
-    while (++begin != end) {
-      s.append(sep);
-      s.append(f(*begin));
-    }
   }
+
   return s;
 }
 
 template <typename C>
-inline std::string str_join(const C &container, const std::string &sep) {
+inline std::string str_join(const C &container, std::string_view sep) {
   return str_join(container.begin(), container.end(), sep);
 }
 
-template <typename C>
-inline std::string str_join(
-    const C &container, const std::string &sep,
-    std::function<std::string(const typename C::value_type &i)> f) {
-  return str_join(container.begin(), container.end(), sep, f);
+template <typename C, typename CTransform>
+inline std::string str_join(const C &container, std::string_view sep,
+                            CTransform &&f) {
+  return str_join(container.begin(), container.end(), sep,
+                  std::forward<CTransform>(f));
 }
 
 std::string SHCORE_PUBLIC str_replace(std::string_view s, std::string_view from,
                                       std::string_view to);
 
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
-std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(const std::string &s);
-std::string SHCORE_PUBLIC string_to_hex(const std::string &s);
-std::string SHCORE_PUBLIC string_to_hex(const char *data, size_t length);
+std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(std::string_view s);
+
+std::string SHCORE_PUBLIC bits_to_string_hex(uint64_t bits, int nbits);
+size_t SHCORE_PUBLIC bits_to_string_hex_size(int nbits);
+
+std::string SHCORE_PUBLIC string_to_hex(std::string_view s);
 
 /**
  * Escape `quote` and `\` chars.

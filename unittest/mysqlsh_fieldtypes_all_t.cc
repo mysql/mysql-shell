@@ -395,7 +395,9 @@ TEST_F(Mysqlsh_fieldtypes_all, Other_types_X) {
            "SELECT * FROM t_bit;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
       "SELECT * FROM t_bit;",
-      multiline({"c1\tc2", "0\t0", "1\t1", "1\t18446744073709551615"}),
+      multiline({"c1\tc2", "0x00\t0x0000000000000000",
+                 "0x01\t0x0000000000000001", "0x01\t0xFFFFFFFFFFFFFFFF",
+                 "0x01\t0x5555555555555555"}),
       _output);
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
@@ -414,7 +416,9 @@ TEST_F(Mysqlsh_fieldtypes_all, Other_types_classic) {
            "SELECT * FROM t_bit;", NULL});
   MY_EXPECT_MULTILINE_OUTPUT(
       "SELECT * FROM t_bit;",
-      multiline({"c1\tc2", "0\t0", "1\t1", "1\t18446744073709551615"}),
+      multiline({"c1\tc2", "0x00\t0x0000000000000000",
+                 "0x01\t0x0000000000000001", "0x01\t0xFFFFFFFFFFFFFFFF",
+                 "0x01\t0x5555555555555555"}),
       _output);
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",

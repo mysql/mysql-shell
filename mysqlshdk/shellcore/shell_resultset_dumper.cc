@@ -275,9 +275,8 @@ class Field_formatter {
       auto str = get_number_string(row, index);
       dlength = blength = str.length();
     } else if (m_type == mysqlshdk::db::Type::Bit) {
-      auto value = row->get_bit(index);
-      auto str = shcore::lexical_cast<std::string>(value);
-      dlength = blength = str.length();
+      dlength = blength =
+          shcore::bits_to_string_hex_size(std::get<1>(row->get_bit(index))) + 2;
     } else if (m_type == mysqlshdk::db::Type::Bytes) {
       // TODO (anyone): Implement support for --skip-binary-as-hex
       auto data = row->get_string_data(index);
@@ -294,7 +293,7 @@ class Field_formatter {
     m_max_buffer_length = std::max<size_t>(m_max_buffer_length, blength);
   }
 
-  ~Field_formatter() {}
+  ~Field_formatter() = default;
 
   std::string get_number_string(const mysqlshdk::db::IRow *row, size_t index) {
     if (m_type == mysqlshdk::db::Type::Float) {
@@ -332,14 +331,15 @@ class Field_formatter {
       data = tmp.data();
       display_size = buffer_size = length = tmp.length();
     } else if (m_type == mysqlshdk::db::Type::Bit) {
-      auto value = row->get_bit(index);
-      tmp = shcore::lexical_cast<std::string>(value);
+      auto [bit_value, bit_size] = row->get_bit(index);
+      tmp = shcore::bits_to_string_hex(bit_value, bit_size);
+
       data = tmp.data();
       display_size = buffer_size = length = tmp.length();
     } else if (m_type == mysqlshdk::db::Type::Bytes) {
       std::tie(data, length) = row->get_string_data(index);
 
-      tmp = shcore::string_to_hex(data, length);
+      tmp = shcore::string_to_hex({data, length});
       data = tmp.data();
       length = tmp.size();
 
@@ -642,7 +642,8 @@ void dump_json_row(shcore::JSON_dumper *dumper,
     } else if (type == mysqlshdk::db::Type::Decimal) {
       dumper->append_float(static_cast<double>(row->get_float(col_index)));
     } else if (type == mysqlshdk::db::Type::Bit) {
-      dumper->append_int64(row->get_bit(col_index));
+      auto [bit_value, bit_size] = row->get_bit(col_index);
+      dumper->append_string(shcore::bits_to_string_hex(bit_value, bit_size));
     }
   }
   dumper->end_object();
@@ -954,7 +955,7 @@ size_t Resultset_dumper_base::dump_table() {
           const char *data;
           size_t length;
           std::tie(data, length) = row.get_string_data(field_index);
-          m_printer->print(shcore::string_to_hex(data, length));
+          m_printer->print(shcore::string_to_hex({data, length}));
         } else {
           m_printer->print(row.get_as_string(field_index));
         }

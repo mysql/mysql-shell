@@ -132,6 +132,7 @@ session.runSql("create schema resultset_dumper");
 
 session.runSql("use resultset_dumper");
 session.runSql("create table table1 (col1 varchar(100), col2 double, col3 bit(64), col4 text)");
+session.runSql("create table table2 (col1 bit(1), col2 bit(2), col3 bit(3), col4 bit(4), col5 bit(5), col56 bit(56), col64 bit(64))");
 
 var col1 = ["hello", "world", null]
 var col2 = [0.809643, null, 1]
@@ -164,6 +165,8 @@ var col4 = ['bla bla', 'blablablabla blablablabla blablablabla blablablabla blab
 for (i = 0; i < 20; i++)
   session.runSql("insert into table1 values (?, ?, b?, ?)", [col1[i % col1.length], col2[i % col2.length], col3[i % col3.length], col4[i % col4.length]]);
 
+session.runSql("insert into table2 values (b'1', b'10', b'101', b'1001', b'10001', b'10101011010010101', b'01010101111110000001100')");
+
 //@ dump a few rows to get a table with narrow values only
 session.runSql("select * from table1 limit 10");
 
@@ -173,6 +176,16 @@ session.runSql("select * from table1 limit 20");
 //@# dump everything
 // validation only checks for a few rows at the top and a few at the end
 session.runSql("select * from table1");
+
+//@<> check binary columns output
+testutil.wipeAllOutput();
+
+session.runSql("select * from table2");
+EXPECT_STDOUT_CONTAINS_MULTILINE(`+------+------+------+------+------+------------------+--------------------+
+| col1 | col2 | col3 | col4 | col5 | col56            | col64              |
++------+------+------+------+------+------------------+--------------------+
+| 0x01 | 0x02 | 0x05 | 0x09 | 0x11 | 0x00000000015695 | 0x00000000002AFC0C |
++------+------+------+------+------+------------------+--------------------+`);
 
 //@<> cleanup
 //session.dropSchema('resultset_dumper');

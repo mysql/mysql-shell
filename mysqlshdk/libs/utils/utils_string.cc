@@ -23,6 +23,7 @@
 
 #include "utils/utils_string.h"
 #include <algorithm>
+#include <array>
 #include <bitset>
 #include <cassert>
 #include <cstdarg>
@@ -159,32 +160,43 @@ std::string bits_to_string(uint64_t bits, int nbits) {
   return r;
 }
 
-std::pair<uint64_t, int> string_to_bits(const std::string &s) {
-  int nbits = s.length();
+std::pair<uint64_t, int> string_to_bits(std::string_view s) {
+  int nbits = s.size();
   if (nbits > 64)
     throw std::invalid_argument("bit string length must be <= 64");
-  std::bitset<64> bits(s);
+  std::bitset<64> bits(s.data(), s.size());
   return {bits.to_ullong(), nbits};
 }
 
-std::string string_to_hex(const std::string &s) {
-  return string_to_hex(s.data(), s.size());
+std::string bits_to_string_hex(uint64_t bits, int nbits) {
+  auto sbits = bits_to_string(bits, nbits);
+
+  return str_format("0x%.*llX",
+                    static_cast<int>(bits_to_string_hex_size(nbits)),
+                    std::bitset<64>{sbits.data(), sbits.size()}.to_ullong());
 }
 
-std::string SHCORE_PUBLIC string_to_hex(const char *data, size_t length) {
-  std::string encoded(2 + length * 2, 0);
-  auto encoded_position = encoded.data();
+size_t bits_to_string_hex_size(int nbits) {
+  // 1 hex char per 4 bits and always in pairs (0xF -> 0x0F)
+  auto num_chars = (nbits / 4) + ((nbits % 4) ? 1 : 0);
+  num_chars += (num_chars % 2) ? 1 : 0;
 
-  sprintf(encoded_position, "0x");
-  encoded_position += 2;
+  return num_chars;
+}
 
-  for (auto a_char = data; a_char < data + length; a_char++) {
-    auto byte = *(
-        static_cast<const unsigned char *>(static_cast<const void *>(a_char)));
+std::string SHCORE_PUBLIC string_to_hex(std::string_view s) {
+  constexpr std::array<char, 16> hexmap = {'0', '1', '2', '3', '4', '5',
+                                           '6', '7', '8', '9', 'A', 'B',
+                                           'C', 'D', 'E', 'F'};
 
-    sprintf(encoded_position, "%02X", byte);
+  std::string encoded;
 
-    encoded_position += 2;
+  encoded.reserve(2 + s.size() * 2);
+  encoded.append("0x");
+
+  for (const auto cur_char : s) {
+    encoded.push_back(hexmap[(cur_char & 0xF0) >> 4]);
+    encoded.push_back(hexmap[cur_char & 0x0F]);
   }
 
   return encoded;

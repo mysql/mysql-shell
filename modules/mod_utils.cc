@@ -701,7 +701,7 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
           break;
 
         case Type::Bit:
-          v = Value(row.get_bit(i));
+          v = Value(std::get<0>(row.get_bit(i)));
           break;
 
         case Type::Bytes:

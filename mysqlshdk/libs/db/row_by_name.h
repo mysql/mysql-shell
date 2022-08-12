@@ -234,7 +234,7 @@ class Row_ref_by_name {
     }
   }
 
-  uint64_t get_bit(const std::string &field) const {
+  std::tuple<uint64_t, int> get_bit(const std::string &field) const {
     try {
       return ref()->get_bit(field_index(field));
     } catch (const bad_field &e) {

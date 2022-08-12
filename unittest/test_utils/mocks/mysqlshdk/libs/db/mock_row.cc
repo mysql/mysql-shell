@@ -117,9 +117,9 @@ double Mock_row::def_get_double(uint32_t index) const {
   return std::stod(tmp);
 }
 
-uint64_t Mock_row::def_get_bit(uint32_t index) const {
+std::tuple<uint64_t, int> Mock_row::def_get_bit(uint32_t index) const {
   std::string tmp = _record[index];
-  return std::stoull(tmp);
+  return {std::stoull(tmp), 0};
 }
 
 bool Mock_row::def_is_null(uint32_t index) const {
