@@ -97,7 +97,7 @@ Dump_reader::Status Dump_reader::open() {
   shcore::Dictionary_t basenames(md->get_map("basenames"));
 
   for (const auto &schema : *md->get_array("schemas")) {
-    if (m_options.include_schema(schema.as_string())) {
+    if (include_schema(schema.as_string())) {
       auto info = std::make_shared<Schema_info>();
 
       info->schema = schema.get_string();
@@ -242,8 +242,10 @@ bool Dump_reader::next_schema_and_views(std::string *out_schema,
     if (!s->view_sql_done && s->ready()) {
       *out_schema = s->schema;
 
-      for (const auto &v : s->views) {
-        out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+      if (s->has_view_sql) {
+        for (const auto &v : s->views) {
+          out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+        }
       }
 
       s->view_sql_done = true;
@@ -390,40 +392,53 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
 // among tables. If we distribute the threads equally, then smaller tables
 // will finish sooner and bigger tables will take extra longer because
 // it will have more threads working. So our optimization goal must be to keep
-// as many different tables loading concurrently for as long as possible.
+// as many different tables loading concurrently for as long as possible, while
+// ensuring that tables that are currently being loaded have preference over
+// others, which could otherwise trigger tables to get flushed out from the
+// buffer pool.
 // Thus, smaller tables must get fewer threads allocated so they take longer
 // to load, while bigger threads get more, with the hope that the total time
 // to load all tables is minimized.
-std::unordered_set<Dump_reader::Table_data_info *>::iterator
-Dump_reader::schedule_chunk_proportionally(
+Dump_reader::Candidate Dump_reader::schedule_chunk_proportionally(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-    std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data) {
+    std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data,
+    uint64_t max_concurrent_tables) {
   if (tables_with_data->empty()) return tables_with_data->end();
+
+  std::vector<Candidate> tables_in_progress;
 
   // first check if there's any table that's not being loaded
   {
-    auto best = tables_with_data->end();
+    const auto end = tables_with_data->end();
+    auto best = end;
 
-    for (auto it = tables_with_data->begin(); it != tables_with_data->end();
-         ++it) {
-      std::string key = schema_table_object_key(
-          (*it)->owner->schema, (*it)->owner->table, (*it)->partition);
-      if (tables_being_loaded.find(key) == tables_being_loaded.end()) {
-        if (best == tables_with_data->end() ||
-            (*it)->bytes_available() > (*best)->bytes_available())
+    for (auto it = tables_with_data->begin(); it != end; ++it) {
+      if ((*it)->chunks_consumed) {
+        tables_in_progress.emplace_back(it);
+      }
+
+      if (tables_being_loaded.find((*it)->key()) == tables_being_loaded.end()) {
+        // table is better if it's bigger and in the same state as the current
+        // best, or if it was previously scheduled and current best was not
+        if (best == end ||
+            ((*it)->bytes_available() > (*best)->bytes_available() &&
+             !(*it)->chunks_consumed == !(*best)->chunks_consumed) ||
+            ((*it)->chunks_consumed && !(*best)->chunks_consumed))
           best = it;
       }
     }
-    if (best != tables_with_data->end()) {
+
+    // schedule a new table only if we're not exceeding the maximum number of
+    // concurrent tables that can be loaded at the same time
+    if (best != end && (tables_in_progress.size() < max_concurrent_tables ||
+                        (*best)->chunks_consumed)) {
       return best;
     }
   }
 
   // if all available tables are already loaded, then schedule proportionally
   std::unordered_map<std::string, double> worker_weights;
-  std::vector<std::pair<
-      std::unordered_set<Dump_reader::Table_data_info *>::iterator, double>>
-      candidate_weights;
+
   // calc ratio of data being loaded per table / total data being loaded
   double total_bytes_loading = std::accumulate(
       tables_being_loaded.begin(), tables_being_loaded.end(),
@@ -440,46 +455,37 @@ Dump_reader::schedule_chunk_proportionally(
     }
   }
 
+  std::vector<std::pair<Candidate, double>> candidate_weights;
+
   // calc ratio of data available per table / total data available
-  double total_bytes_available =
-      std::accumulate(tables_with_data->begin(), tables_with_data->end(),
-                      static_cast<size_t>(0),
-                      [](size_t size, Dump_reader::Table_data_info *table) {
-                        return size + table->bytes_available();
-                      });
+  double total_bytes_available = std::accumulate(
+      tables_in_progress.begin(), tables_in_progress.end(),
+      static_cast<size_t>(0),
+      [](size_t size, auto it) { return size + (*it)->bytes_available(); });
   if (total_bytes_available > 0) {
-    for (auto it = tables_with_data->begin(); it != tables_with_data->end();
+    for (auto it = tables_in_progress.begin(); it != tables_in_progress.end();
          ++it) {
       candidate_weights.emplace_back(
-          it, static_cast<double>((*it)->bytes_available()) /
-                  total_bytes_available);
+          *it, static_cast<double>((**it)->bytes_available()) /
+                   total_bytes_available);
     }
   } else {
     assert(0);
-    return tables_with_data->begin();
+    return tables_in_progress.front();
   }
 
   // pick a chunk from the table that has the biggest difference between both
   double best_diff = 0;
-  std::unordered_set<Dump_reader::Table_data_info *>::iterator best =
-      tables_with_data->begin();
+  Candidate best = tables_in_progress.front();
 
   for (const auto &cand : candidate_weights) {
-    std::string key = schema_table_object_key((*cand.first)->owner->schema,
-                                              (*cand.first)->owner->table,
-                                              (*cand.first)->partition);
-    auto it = worker_weights.find(key);
-    if (it != worker_weights.end()) {
-      double d = cand.second - it->second;
-      if (d > best_diff) {
-        best_diff = d;
-        best = cand.first;
-      }
-    } else {
-      if (cand.second > best_diff) {
-        best_diff = cand.second;
-        best = cand.first;
-      }
+    const auto it = worker_weights.find((*cand.first)->key());
+    const auto weight = it == worker_weights.end() ? 0.0 : it->second;
+    const auto d = cand.second - weight;
+
+    if (d > best_diff) {
+      best_diff = d;
+      best = cand.first;
     }
   }
 
@@ -492,68 +498,48 @@ bool Dump_reader::next_table_chunk(
     bool *out_chunked, size_t *out_chunk_index, size_t *out_chunks_total,
     std::unique_ptr<mysqlshdk::storage::IFile> *out_file,
     size_t *out_chunk_size, shcore::Dictionary_t *out_options) {
-  auto iter =
-      schedule_chunk_proportionally(tables_being_loaded, &m_tables_with_data);
+  auto iter = schedule_chunk_proportionally(
+      tables_being_loaded, &m_tables_with_data, m_options.threads_count());
 
   if (iter != m_tables_with_data.end()) {
-    *out_chunked = (*iter)->chunked;
     *out_schema = (*iter)->owner->schema;
     *out_table = (*iter)->owner->table;
     *out_partition = (*iter)->partition;
+    *out_chunked = (*iter)->chunked;
+    *out_chunk_index = (*iter)->chunks_consumed;
+
+    if ((*iter)->last_chunk_seen) {
+      *out_chunks_total = (*iter)->available_chunks.size();
+    } else {
+      *out_chunks_total = 0;
+    }
+
+    const auto &info = (*iter)->available_chunks[*out_chunk_index];
+    *out_file = m_dir->file(info->name());
+    *out_chunk_size = info->size();
     *out_options = (*iter)->owner->options;
 
-    if ((*iter)->chunked) {
-      *out_chunk_index = (*iter)->chunks_consumed;
-      if ((*iter)->last_chunk_seen)
-        *out_chunks_total = (*iter)->num_chunks;
-      else
-        *out_chunks_total = 0;
-      (*iter)->chunks_consumed++;
-
-      *out_file = m_dir->file(dump::get_table_data_filename(
-          (*iter)->basename, (*iter)->extension, *out_chunk_index,
-          *out_chunk_index + 1 == *out_chunks_total));
-
-      *out_chunk_size = (*iter)->available_chunk_sizes[*out_chunk_index];
-    } else {
-      *out_chunk_index = 0;
-      *out_chunks_total = 0;
-      (*iter)->chunks_consumed++;
-
-      *out_chunk_size = (*iter)->available_chunk_sizes[0];
-
-      *out_file = m_dir->file(
-          dump::get_table_data_filename((*iter)->basename, (*iter)->extension));
-    }
+    (*iter)->chunks_consumed++;
     if (!(*iter)->has_data_available()) m_tables_with_data.erase(iter);
+
     return true;
   }
 
   return false;
 }
 
-bool Dump_reader::next_deferred_index(
-    std::string *out_schema, std::string *out_table,
-    std::vector<std::string> **out_indexes,
-    const std::function<bool(const std::vector<std::string> &)>
-        &load_finished) {
+bool Dump_reader::next_deferred_index(std::string *out_schema,
+                                      std::string *out_table,
+                                      std::vector<std::string> **out_indexes) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (!table.second->indexes_done && table.second->all_data_done()) {
-        std::vector<std::string> keys;
-
-        for (const auto &di : table.second->data_info) {
-          keys.emplace_back(
-              schema_table_object_key(schema.first, table.first, di.partition));
-        }
-
-        if (load_finished(keys)) {
-          table.second->indexes_done = true;
-          *out_schema = schema.second->schema;
-          *out_table = table.second->table;
-          *out_indexes = &table.second->indexes;
-          return true;
-        }
+      if ((!m_options.load_data() || table.second->all_data_loaded()) &&
+          !table.second->indexes_scheduled) {
+        table.second->indexes_scheduled = true;
+        *out_schema = schema.second->schema;
+        *out_table = table.second->table;
+        *out_indexes = &table.second->indexes;
+        return true;
       }
     }
   }
@@ -565,9 +551,9 @@ bool Dump_reader::next_table_analyze(std::string *out_schema,
                                      std::vector<Histogram> *out_histograms) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (table.second->all_data_done() && table.second->indexes_done &&
-          !table.second->analyze_done) {
-        table.second->analyze_done = true;
+      if ((!m_options.load_data() || table.second->all_data_loaded()) &&
+          table.second->indexes_created && !table.second->analyze_scheduled) {
+        table.second->analyze_scheduled = true;
         *out_schema = schema.second->schema;
         *out_table = table.second->table;
         *out_histograms = table.second->histograms;
@@ -583,7 +569,9 @@ bool Dump_reader::data_available() const { return !m_tables_with_data.empty(); }
 bool Dump_reader::work_available() const {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (table.second->all_data_done() && !table.second->analyze_done) {
+      if ((m_options.load_data() && !table.second->all_data_scheduled()) ||
+          !table.second->indexes_scheduled ||
+          !table.second->analyze_scheduled) {
         return true;
       }
     }
@@ -673,8 +661,12 @@ uint64_t Dump_reader::add_deferred_statements(
                            schema + " for adding index");
   }
 
-  t->second->indexes_done =
-      stmts.fulltext_indexes.empty() && stmts.indexes.empty();
+  // if indexes are not going to be recreated, we're marking them as already
+  // created
+  t->second->indexes_scheduled = t->second->indexes_created =
+      !m_options.load_deferred_indexes() ||
+      (stmts.fulltext_indexes.empty() && stmts.indexes.empty());
+
   // fulltext indexes are processed first
   t->second->indexes = std::move(stmts.fulltext_indexes);
   std::move(stmts.indexes.begin(), stmts.indexes.end(),
@@ -691,18 +683,21 @@ uint64_t Dump_reader::add_deferred_statements(
 }
 
 void Dump_reader::replace_target_schema(const std::string &schema) {
-  if (!is_dump_tables()) {
-    throw std::logic_error("Dump was not created using util.dumpTables().");
-  }
+  if (1 != m_contents.schemas.size()) {
+    current_console()->print_error(
+        "The 'schema' option can only be used when loading a single schema, "
+        "but " +
+        std::to_string(m_contents.schemas.size()) + " will be loaded.");
 
-  assert(1 == m_contents.schemas.size());
+    throw std::invalid_argument("Invalid option: schema.");
+  }
 
   const auto info = m_contents.schemas.begin()->second;
   m_contents.schemas.clear();
   m_contents.schemas.emplace(schema, info);
 
+  m_schema_override = {schema, info->schema};
   info->schema = schema;
-  info->has_sql = false;
 
   for (const auto &table : info->tables) {
     table.second->schema = schema;
@@ -725,37 +720,27 @@ void Dump_reader::validate_options() {
         "the user data.");
   }
 
-  if (is_dump_tables()) {
+  if (table_only()) {
+    // old version of dumpTables() - no schema SQL is available
     if (m_options.target_schema().empty()) {
-      // user didn't provide an option, we cannot proceed if the dump was
-      // created by an old version of dumpTables()
-      if (table_only()) {
-        current_console()->print_error(
-            "The dump was created by an older version of the util." +
-            shcore::get_member_name("dumpTables",
-                                    shcore::current_naming_style()) +
-            "() function and needs to be loaded into an existing schema. "
-            "Please set the target schema using the 'schema' option.");
-        throw std::invalid_argument("The target schema was not specified.");
-      }
+      // user didn't provide the new schema name, we cannot proceed
+      current_console()->print_error(
+          "The dump was created by an older version of the util." +
+          shcore::get_member_name("dumpTables",
+                                  shcore::current_naming_style()) +
+          "() function and needs to be loaded into an existing schema. "
+          "Please set the target schema using the 'schema' option.");
+
+      throw std::invalid_argument("The target schema was not specified.");
     } else {
       const auto result = m_options.base_session()->queryf(
           "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE "
-          "SCHEMA_NAME = ?",
+          "SCHEMA_NAME=?",
           m_options.target_schema());
 
       if (nullptr == result->fetch_one()) {
         throw std::invalid_argument("The specified schema does not exist.");
       }
-    }
-  } else {
-    if (!m_options.target_schema().empty()) {
-      current_console()->print_error(
-          "The dump was not created by the util." +
-          shcore::get_member_name("dumpTables",
-                                  shcore::current_naming_style()) +
-          "() function, the 'schema' option cannot be used.");
-      throw std::invalid_argument("Invalid option: schema.");
     }
   }
 
@@ -897,9 +882,17 @@ void Dump_reader::Table_info::rescan(const Files &files) {
   }
 }
 
-bool Dump_reader::Table_info::all_data_done() const {
+bool Dump_reader::Table_info::all_data_scheduled() const {
   for (const auto &di : data_info) {
-    if (!di.data_done()) return false;
+    if (!di.data_scheduled()) return false;
+  }
+
+  return true;
+}
+
+bool Dump_reader::Table_info::all_data_loaded() const {
+  for (const auto &di : data_info) {
+    if (!di.data_loaded()) return false;
   }
 
   return true;
@@ -907,51 +900,74 @@ bool Dump_reader::Table_info::all_data_done() const {
 
 void Dump_reader::Table_data_info::rescan_data(const Files &files,
                                                Dump_reader *reader) {
-  // check for data files
-  if (!last_chunk_seen && has_data) {
-    bool found_data = false;
+  bool found_data = false;
 
-    if (!chunked) {
-      auto it = files.find(dump::get_table_data_filename(basename, extension));
-      if (it != files.end()) {
-        num_chunks = 1;
-        available_chunk_sizes.resize(1, -1);
-        available_chunk_sizes[0] = it->size();
-        last_chunk_seen = true;
-        reader->m_contents.dump_size += it->size();
+  const auto try_to_add_chunk = [&files, reader, &found_data,
+                                 this](auto &&... params) {
+    static_assert(sizeof...(params) == 0 || sizeof...(params) == 2);
 
-        found_data = true;
-      }
-    } else {
-      for (size_t i = num_chunks; i < files.size(); i++) {
-        auto it = files.find(
-            dump::get_table_data_filename(basename, extension, i, false));
-        if (it != files.end()) {
-          num_chunks = i + 1;
-          available_chunk_sizes.resize(num_chunks, -1);
-          available_chunk_sizes[i] = it->size();
-          reader->m_contents.dump_size += it->size();
+    // default values for non-chunked case
+    size_t idx = 0;
+    bool last_chunk = true;
 
-          found_data = true;
-        } else {
-          it = files.find(
-              dump::get_table_data_filename(basename, extension, i, true));
-          if (it != files.end()) {
-            num_chunks = i + 1;
-            available_chunk_sizes.resize(num_chunks, -1);
-            available_chunk_sizes[i] = it->size();
-            last_chunk_seen = true;
-            reader->m_contents.dump_size += it->size();
+    if constexpr (sizeof...(params) == 2) {
+      std::tie(idx, last_chunk) = std::forward_as_tuple(params...);
+    }
 
-            found_data = true;
-          }
-          break;
+    const auto it = files.find(
+        dump::get_table_data_filename(basename, extension, params...));
+
+    if (it == files.end()) {
+      return false;
+    }
+
+    if (idx >= available_chunks.size()) {
+      available_chunks.resize(idx + 1, {});
+    }
+
+    available_chunks[idx] = *it;
+    reader->m_contents.dump_size += it->size();
+    ++chunks_seen;
+    found_data = true;
+
+    if (last_chunk) {
+      last_chunk_seen = true;
+    }
+
+    return true;
+  };
+
+  // in older versions of Shell, empty tables would create a single data file
+  // using the non-chunked name format even if file was supposed to be chunked
+  try_to_add_chunk();
+
+  if (chunked) {
+    if (chunks_seen < available_chunks.size()) {
+      // search for chunks that we're still missing
+      for (size_t i = 0, s = available_chunks.size(); i < s; ++i) {
+        // If we have found the last chunk, then the last element in the array
+        // will already be set. If we didn't find the last chunk, then the last
+        // element in the array is going to be a regular chunk.
+        if (!available_chunks[i]) {
+          try_to_add_chunk(i, false);
         }
       }
     }
 
-    if (found_data) reader->m_tables_with_data.insert(this);
+    if (!last_chunk_seen) {
+      // We don't know how many chunks there are, try to find a consecutive
+      // sequence of chunk IDs. If sequence stops, check if the final chunk
+      // follows, then always break as we don't want to scan too many files.
+      for (size_t i = available_chunks.size(); i < files.size(); ++i) {
+        if (!try_to_add_chunk(i, false)) {
+          try_to_add_chunk(i, true);
+          break;
+        }
+      }
+    }
   }
+
+  if (found_data) reader->m_tables_with_data.insert(this);
 }
 
 std::string Dump_reader::View_info::script_name() const {
@@ -1015,7 +1031,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
 
   if (md->has_key("tables")) {
     for (const auto &t : *md->get_array("tables")) {
-      if (reader->m_options.include_table(schema, t.as_string())) {
+      if (reader->include_table(schema, t.as_string())) {
         auto info = std::make_shared<Table_info>();
 
         info->schema = schema;
@@ -1026,6 +1042,12 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
         else
           info->basename = basename + "@" + info->table;
 
+        // if tables are not going to be analysed, we're marking them as already
+        // analysed
+        info->analyze_scheduled = info->analyze_finished =
+            reader->m_options.analyze_tables() ==
+            Load_dump_options::Analyze_table_mode::OFF;
+
         tables.emplace(info->table, std::move(info));
       }
     }
@@ -1034,7 +1056,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
 
   if (md->has_key("views")) {
     for (const auto &v : *md->get_array("views")) {
-      if (reader->m_options.include_table(schema, v.as_string())) {
+      if (reader->include_table(schema, v.as_string())) {
         View_info info;
 
         info.schema = schema;
@@ -1145,18 +1167,11 @@ void Dump_reader::Schema_info::rescan_data(const Files &files,
                                            Dump_reader *reader) {
   for (auto &t : tables) {
     for (auto &di : t.second->data_info) {
-      if (!di.data_done()) {
+      if (!di.data_dumped()) {
         di.rescan_data(files, reader);
       }
     }
   }
-}
-
-bool Dump_reader::Schema_info::data_done() const {
-  for (const auto &t : tables) {
-    if (!t.second->all_data_done()) return false;
-  }
-  return true;
 }
 
 bool Dump_reader::Dump_info::ready() const {
@@ -1367,6 +1382,87 @@ void Dump_reader::on_table_metadata_parsed(const Table_info &info) {
   }
 
   on_metadata_parsed();
+}
+
+bool Dump_reader::include_schema(const std::string &schema) const {
+  return m_options.include_schema(override_schema(schema));
+}
+
+bool Dump_reader::include_table(const std::string &schema,
+                                const std::string &table) const {
+  return m_options.include_table(override_schema(schema), table);
+}
+
+bool Dump_reader::include_event(const std::string &schema,
+                                const std::string &event) const {
+  return m_options.include_event(override_schema(schema), event);
+}
+
+bool Dump_reader::include_routine(const std::string &schema,
+                                  const std::string &routine) const {
+  return m_options.include_routine(override_schema(schema), routine);
+}
+
+bool Dump_reader::include_trigger(const std::string &schema,
+                                  const std::string &table,
+                                  const std::string &trigger) const {
+  return m_options.include_trigger(override_schema(schema), table, trigger);
+}
+
+const std::string &Dump_reader::override_schema(const std::string &s) const {
+  if (m_schema_override) {
+    const auto &value = m_schema_override.value();
+    return value.first == s ? value.second : s;
+  } else {
+    return s;
+  }
+}
+
+void Dump_reader::on_chunk_loaded(const std::string &schema,
+                                  const std::string &table,
+                                  const std::string &partition) {
+  const auto t = find_table(schema, table, "chunk was loaded");
+
+  for (auto &tdi : t->data_info) {
+    if (tdi.partition == partition) {
+      ++tdi.chunks_loaded;
+      return;
+    }
+  }
+
+  throw std::logic_error("Unable to find partition " + partition +
+                         " of table " + table + " in schema " + schema +
+                         " whose chunk was loaded");
+}
+
+void Dump_reader::on_index_end(const std::string &schema,
+                               const std::string &table) {
+  find_table(schema, table, "indexes were created")->indexes_created = true;
+}
+
+void Dump_reader::on_analyze_end(const std::string &schema,
+                                 const std::string &table) {
+  find_table(schema, table, "analysis was finished")->analyze_finished = true;
+}
+
+Dump_reader::Table_info *Dump_reader::find_table(const std::string &schema,
+                                                 const std::string &table,
+                                                 const char *context) {
+  const auto s = m_contents.schemas.find(schema);
+
+  if (s == m_contents.schemas.end()) {
+    throw std::logic_error("Unable to find schema " + schema + " whose " +
+                           context);
+  }
+
+  const auto t = s->second->tables.find(table);
+
+  if (t == s->second->tables.end()) {
+    throw std::logic_error("Unable to find table " + table + " in schema " +
+                           schema + " whose " + context);
+  }
+
+  return t->second.get();
 }
 
 }  // namespace mysqlsh

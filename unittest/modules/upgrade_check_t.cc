@@ -1280,4 +1280,60 @@ TEST_F(MySQL_upgrade_check_test, convert_usage) {
   EXPECT_EQ("b", issues[1].column);
 }
 
+TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 12));
+
+  PrepareTestDatabase("columns_which_cannot_have_defaults_check_test");
+
+  const auto check =
+      Sql_upgrade_check::get_columns_which_cannot_have_defaults_check();
+  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
+                      "data-type-defaults.html#data-type-defaults-explicit",
+                      check->get_doc_link()));
+
+  EXPECT_NO_ISSUES(check.get());
+
+  // STRICT_TRANS_TABLES needs to be disabled in order for the columns with
+  // types which cannot have defaults could be created
+  ASSERT_NO_THROW(session->execute("set sql_mode='';"));
+  ASSERT_NO_THROW(
+      session->execute("create table t ("
+                       "p point NOT NULL default '',"
+                       "ls linestring NOT NULL default '',"
+                       "poly polygon NOT NULL default '',"
+                       "g geometry NOT NULL default '',"
+                       "mp multipoint NOT NULL default '',"
+                       "mls multilinestring NOT NULL default '',"
+                       "mpoly multipolygon NOT NULL default '',"
+                       "gc geometrycollection NOT NULL default '',"
+                       "j json NOT NULL default '',"
+                       "tb tinyblob NOT NULL default '',"
+                       "b blob NOT NULL default '',"
+                       "mb mediumblob NOT NULL default '',"
+                       "lb longblob NOT NULL default '',"
+                       "tt tinytext NOT NULL default '',"
+                       "t text NOT NULL default '',"
+                       "mt mediumtext NOT NULL default '',"
+                       "lt longtext NOT NULL default ''"
+                       ");"));
+
+  // for some reason, creating a blob/text column with a default value of ''
+  // warns that this column type cannot have a default, but COLUMN_DEFAULT in
+  // INFORMATION_SCHEMA.COLUMNS still holds NULL, and SHOW CREATE TABLE does
+  // not show a default value for such column, hence these columns are not
+  // reported here
+
+  EXPECT_ISSUES(check.get(), 9);
+
+  EXPECT_EQ("p", issues[0].column);
+  EXPECT_EQ("ls", issues[1].column);
+  EXPECT_EQ("poly", issues[2].column);
+  EXPECT_EQ("g", issues[3].column);
+  EXPECT_EQ("mp", issues[4].column);
+  EXPECT_EQ("mls", issues[5].column);
+  EXPECT_EQ("mpoly", issues[6].column);
+  EXPECT_EQ("gc", issues[7].column);
+  EXPECT_EQ("j", issues[8].column);
+}
+
 }  // namespace mysqlsh

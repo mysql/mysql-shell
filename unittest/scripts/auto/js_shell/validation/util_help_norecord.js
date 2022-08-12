@@ -1963,8 +1963,8 @@ DESCRIPTION
         previous load attempts to the destination server and loads the whole
         dump again.
       - schema: string (default not set) - Load the dump into the given schema.
-        This option can only be used when loading dumps created by the
-        util.dumpTables() function.
+        This option can only be used when loading just one schema, (either only
+        one schema was dumped, or schema filters result in only one schema).
       - sessionInitSql: list of strings (default: []) - execute the given list
         of SQL statements in each session about to load data.
       - showMetadata: bool (default: false) - Displays the metadata information

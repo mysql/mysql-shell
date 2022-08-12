@@ -364,9 +364,9 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
               bool execute = true;
 
               if (shcore::str_caseeq(type, "EVENT")) {
-                execute = loader->m_options.include_event(schema(), name);
+                execute = loader->m_dump->include_event(schema(), name);
               } else if (shcore::str_caseeq(type, "FUNCTION", "PROCEDURE")) {
-                execute = loader->m_options.include_routine(schema(), name);
+                execute = loader->m_dump->include_routine(schema(), name);
               }
 
               return execute;
@@ -1203,13 +1203,13 @@ void Dump_loader::on_dump_end() {
                dump::Schema_dumper::Object_type type) {
           switch (type) {
             case dump::Schema_dumper::Object_type::SCHEMA:
-              return m_options.include_schema(schema);
+              return m_dump->include_schema(schema);
 
             case dump::Schema_dumper::Object_type::TABLE:
-              return m_options.include_table(schema, object);
+              return m_dump->include_table(schema, object);
 
             case dump::Schema_dumper::Object_type::ROUTINE:
-              return m_options.include_routine(schema, object);
+              return m_dump->include_routine(schema, object);
           }
 
           throw std::logic_error("Should not happen");
@@ -1354,7 +1354,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
                 bool execute = true;
 
                 if (shcore::str_caseeq(type, "TRIGGER")) {
-                  execute = m_options.include_trigger(schema, table, name);
+                  execute = m_dump->include_trigger(schema, table, name);
                 }
 
                 return execute;
@@ -1454,6 +1454,10 @@ bool Dump_loader::handle_table_data(Worker *worker) {
       auto status =
           m_load_log->table_chunk_status(schema, table, partition, chunk);
 
+      if (status == Load_progress_log::DONE) {
+        m_dump->on_chunk_loaded(schema, table, partition);
+      }
+
       log_debug("Table data for %s (%s)",
                 format_table(schema, table, partition, chunk).c_str(),
                 to_string(status).c_str());
@@ -1510,7 +1514,7 @@ bool Dump_loader::schedule_table_chunk(
     if (m_skip_schemas.find(schema) != m_skip_schemas.end() ||
         m_skip_tables.find(schema_object_key(schema, table)) !=
             m_skip_tables.end() ||
-        !m_options.include_table(schema, table))
+        !m_dump->include_table(schema, table))
       return false;
   }
 
@@ -1660,10 +1664,22 @@ size_t Dump_loader::handle_worker_events(
       }
 
       case Worker_event::INDEX_START:
-      case Worker_event::INDEX_END:
-      case Worker_event::ANALYZE_START:
-      case Worker_event::ANALYZE_END:
         break;
+
+      case Worker_event::INDEX_END: {
+        auto task = event.worker->current_task();
+        m_dump->on_index_end(task->schema(), task->table());
+        break;
+      }
+
+      case Worker_event::ANALYZE_START:
+        break;
+
+      case Worker_event::ANALYZE_END: {
+        auto task = event.worker->current_task();
+        m_dump->on_analyze_end(task->schema(), task->table());
+        break;
+      }
 
       case Worker_event::READY:
         break;
@@ -1713,21 +1729,9 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
         m_index_count_is_known = true;
       }
 
-      const auto load_finished = [this](const std::vector<std::string> &keys) {
-        std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
-        for (const auto &key : keys) {
-          if (m_tables_being_loaded.find(key) != m_tables_being_loaded.end()) {
-            return false;
-          }
-        }
-
-        return true;
-      };
-
       std::vector<std::string> *indexes = nullptr;
 
-      if (m_dump->next_deferred_index(&schema, &table, &indexes,
-                                      load_finished)) {
+      if (m_dump->next_deferred_index(&schema, &table, &indexes)) {
         assert(indexes != nullptr);
         worker->recreate_indexes(schema, table, *indexes);
         return true;
@@ -2744,10 +2748,7 @@ void Dump_loader::execute_tasks() {
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
     if (m_dump->status() == Dump_reader::Status::COMPLETE &&
-        !m_dump->data_available() &&
-        (m_options.analyze_tables() ==
-             Load_dump_options::Analyze_table_mode::OFF ||
-         !m_dump->work_available()) &&
+        !m_dump->data_available() && !m_dump->work_available() &&
         num_idle_workers == m_workers.size()) {
       break;
     }
@@ -2896,6 +2897,8 @@ void Dump_loader::on_chunk_load_end(const std::string &schema,
   m_load_log->end_table_chunk(schema, table, partition, index, bytes_loaded,
                               raw_bytes_loaded, rows_loaded);
 
+  m_dump->on_chunk_loaded(schema, table, partition);
+
   m_unique_tables_loaded.insert(
       schema_table_object_key(schema, table, partition));
 
@@ -3008,9 +3011,43 @@ void Dump_loader::Sql_transform::add_execute_conditionally(
   });
 }
 
+void Dump_loader::Sql_transform::add_rename_schema(
+    const std::string &new_name) {
+  add([new_name](const std::string &sql, std::string *out_new_sql) {
+    mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+    const auto token = it.next_token();
+
+    if (shcore::str_caseeq(token, "CREATE")) {
+      if (shcore::str_caseeq(it.next_token(), "DATABASE", "SCHEMA")) {
+        auto schema = it.next_token();
+
+        if (shcore::str_caseeq(schema, "IF")) {
+          // NOT
+          it.next_token();
+          // EXISTS
+          it.next_token();
+          // schema follows
+          schema = it.next_token();
+        }
+
+        *out_new_sql = sql.substr(0, it.position() - schema.length()) +
+                       shcore::quote_identifier(new_name) +
+                       sql.substr(it.position());
+        return;
+      }
+    } else if (shcore::str_caseeq(token, "USE")) {
+      *out_new_sql = "USE " + shcore::quote_identifier(new_name);
+      return;
+    }
+
+    *out_new_sql = sql;
+  });
+}
+
 void Dump_loader::handle_schema_option() {
   if (!m_options.target_schema().empty()) {
     m_dump->replace_target_schema(m_options.target_schema());
+    m_default_sql_transforms.add_rename_schema(m_options.target_schema());
   }
 }
 
