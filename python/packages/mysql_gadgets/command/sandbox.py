@@ -557,7 +557,6 @@ def create_sandbox(**kwargs):
         "loose_mysqlx_socket": "mysqlx.sock",
         "basedir": basedir.replace("\\", "/"),
         "datadir": datadir.replace("\\", "/"),
-        "loose_log_syslog": "OFF",  # Disable syslog to avoid issue on Windows.
         "report_port": port,
         "report_host": "127.0.0.1",
         "log_error": os.path.join(datadir, "error.log").replace("\\", "/"),
@@ -583,6 +582,10 @@ def create_sandbox(**kwargs):
     # log_slave_updates is ON by default since 8.0.3
     if mysqld_ver < (8, 0, 3):
         opt_dict["mysqld"]["log_slave_updates"] = "ON"
+
+    if mysqld_ver < (8, 0, 13):
+        # Disable syslog to avoid issue on Windows.
+        opt_dict["mysqld"]["loose_log_syslog"] = "OFF"
 
     # Enable mysql_cache_cleaner plugin on server versions = 8.0.4.
     # This plugin is required for the hash based authentication to work
@@ -721,11 +724,8 @@ def create_sandbox(**kwargs):
     _, stderr = init_proc.communicate()
     if init_proc.returncode != 0:
         raise exceptions.GadgetError(
-            "Error initializing MySQL sandbox '{0}'. Initialize process "
-            "failed with return code '{1}' and message: '{2}'.".format(
-                port,
-                init_proc.returncode,
-                stderr.strip()))
+            f"Error initializing MySQL sandbox '{port}'. '{create_cmd}' failed\
+with return code '{init_proc.returncode}' and message: {stderr.strip()}'.")
 
     _LOGGER.debug("Creating SSL/RSA files.")
     enc_datadir = tools.fs_encode(datadir)
@@ -1228,9 +1228,9 @@ def stop_sandbox(**kwargs):
     _LOGGER.debug("Executing SHUTDOWN SQL command localhost:%i", port)
     # Send shutdown signal
     conn_dict = {"user": "root",
-                    "host": "localhost",
-                    "port": port,
-                    "passwd": password}
+                 "host": "localhost",
+                 "port": port,
+                 "passwd": password}
     s = server.Server({"conn_info": conn_dict})
     try:
         s.connect()
@@ -1246,7 +1246,7 @@ def stop_sandbox(**kwargs):
     # Wait for server to stop (listening on port).
     i = 0
     _LOGGER.debug("Waiting for MySQL sandbox on port '%i' to stop.",
-                    port)
+                  port)
     while i < timeout:
         if tools.is_listening("localhost", port):
             time.sleep(1)
@@ -1262,14 +1262,14 @@ def stop_sandbox(**kwargs):
             "Timeout waiting for sandbox at localhost:{0} to stop. "
             "You might need to terminate it manually "
             "or use the '{1} {2}' command.".format(port, SANDBOX,
-                                                    SANDBOX_KILL))
+                                                   SANDBOX_KILL))
 
     # Wait for the pid file to be deleted
     i = 0
     pidf_path = os.path.join(sandbox_dir, "{0}.pid".format(port))
     enc_pidf_path = tools.fs_encode(pidf_path)
     _LOGGER.debug("Waiting for MySQL Server pid file '%s' to de deleted.",
-                    pidf_path)
+                  pidf_path)
     while i < timeout:
         if os.path.exists(enc_pidf_path):
             time.sleep(1)
@@ -1285,7 +1285,7 @@ def stop_sandbox(**kwargs):
             "Timeout waiting for sandbox at localhost:{0} to stop. "
             "You might need to terminate it manually "
             "or use the '{1} {2}' command.".format(port, SANDBOX,
-                                                    SANDBOX_KILL))
+                                                   SANDBOX_KILL))
 
     # Server was stopped
     _LOGGER.info("MySQL sandbox was stopped on port '%i'.", port)

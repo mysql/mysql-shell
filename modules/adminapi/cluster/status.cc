@@ -891,16 +891,16 @@ void check_channel_error(shcore::Array_t issues,
       break;
     case Replication_channel::CONNECTION_ERROR:
       issues->push_back(shcore::Value(
-          "ERROR: " + channel_label +
-          " channel receiver stopped with an error: " +
+          "ERROR: receiver thread of " + channel_label +
+          " channel stopped with an error: " +
           mysqlshdk::mysql::to_string(channel.receiver.last_error)));
       break;
     case Replication_channel::APPLIER_ERROR:
       for (const auto &a : channel.appliers) {
         if (a.last_error.code != 0) {
           issues->push_back(
-              shcore::Value("ERROR: " + channel_label +
-                            " channel applier stopped with an error: " +
+              shcore::Value("ERROR: applier thread of " + channel_label +
+                            " channel stopped with an error: " +
                             mysqlshdk::mysql::to_string(a.last_error)));
           break;
         }
@@ -979,8 +979,8 @@ shcore::Array_t instance_diagnostics(
                       "option is OFF."));
   }
 
-  check_channel_error(issues, "GR Recovery", recovery_channel);
-  check_channel_error(issues, "GR Applier", applier_channel);
+  check_channel_error(issues, "Group Replication Recovery", recovery_channel);
+  check_channel_error(issues, "Group Replication Applier", applier_channel);
 
   check_unrecognized_channels(issues, instance,
                               cluster->is_cluster_set_member());
