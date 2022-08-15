@@ -133,10 +133,14 @@ Supported variables are:
     %date% - current date
     %env:varname% - environment variable
     %sysvar:varname% - global system variable queried from MySQL
+    %Sysvar:varname% - same as above, but do not use cached value
     %sessvar:varname% - session variable queried from MySQL
+    %Sessvar:varname% - same as above, but do not use cached value
     %status:varname% - status variable queried from MySQL
+    %Status:varname% - same as above, but do not use cached value
     %sessstatus:varname% - session status variable queried from MySQL
         Variables queried from MySQL are cached when the shell is connected.
+    %Sessstatus:varname% - same as above, but do not use cached value
     %linectx% - context for continued multi-line statements
 
     %trx% - set to '*' if in a trx, '^' if in a R/O transaction

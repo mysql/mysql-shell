@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -206,6 +206,25 @@ std::string Prompt_manager::do_apply_vars(
   std::string ret;
   std::string::size_type pos = 0, p;
 
+  auto getvar = [query_var, vars](const std::string &var,
+                                  Prompt_manager::Dynamic_variable_type type) {
+    auto name = var.substr(var.find(':') + 1);
+
+    // uppercase means no caching
+    if (islower(var[0])) {
+      if (auto it = vars->find(var); it != vars->end()) {
+        return it->second;
+      }
+    }
+    try {
+      auto v = query_var(name, type);
+      if (islower(var[0])) (*vars)[var] = v;
+      return v;
+    } catch (...) {
+      return std::string{};
+    }
+  };
+
   while ((p = s.find('%', pos)) != std::string::npos) {
     std::string::size_type end = s.find('%', p + 1);
     if (end == std::string::npos) break;
@@ -228,28 +247,13 @@ std::string Prompt_manager::do_apply_vars(
           ret.append(v);
         }
       } else if (shcore::str_beginswith(lvar, "sysvar:") && query_var) {
-        std::string v =
-            query_var(var.substr(7), Prompt_manager::Mysql_system_variable);
-        if (var[0] != 'S')  // uppercase means no caching
-          (*vars)[var.substr(7)] = v;
-        ret.append(v);
+        ret.append(getvar(var, Prompt_manager::Mysql_system_variable));
       } else if (shcore::str_beginswith(lvar, "sessvar:") && query_var) {
-        std::string v =
-            query_var(var.substr(8), Prompt_manager::Mysql_session_variable);
-        if (var[0] != 'S')  // uppercase means no caching
-          (*vars)[var.substr(8)] = v;
-        ret.append(v);
+        ret.append(getvar(var, Prompt_manager::Mysql_session_variable));
       } else if (shcore::str_beginswith(lvar, "status:") && query_var) {
-        std::string v = query_var(var.substr(7), Prompt_manager::Mysql_status);
-        if (var[0] != 'S')  // uppercase means no caching
-          (*vars)[var.substr(7)] = v;
-        ret.append(v);
+        ret.append(getvar(var, Prompt_manager::Mysql_status));
       } else if (shcore::str_beginswith(lvar, "sessstatus:") && query_var) {
-        std::string v =
-            query_var(var.substr(11), Prompt_manager::Mysql_session_status);
-        if (var[0] != 'S')  // uppercase means no caching
-          (*vars)[var.substr(11)] = v;
-        ret.append(v);
+        ret.append(getvar(var, Prompt_manager::Mysql_session_status));
       } else if (lvar == "linectx" && query_var) {
         ret.append(query_var(lvar, Prompt_manager::Shell_status));
       } else if (custom_variables_.find(var) != custom_variables_.end()) {
