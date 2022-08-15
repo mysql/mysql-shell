@@ -27,6 +27,7 @@
 #include <atomic>
 #include <list>
 #include <memory>
+#include <queue>
 #include <regex>
 #include <set>
 #include <string>
@@ -86,6 +87,9 @@ class Dump_loader {
       const std::string &schema() const { return m_schema; }
       const std::string &table() const { return m_table; }
       const std::string &key() const { return m_key; }
+      uint64_t weight() const { return m_weight; }
+      void set_weight(uint64_t weight) { m_weight = weight; }
+      void done() { m_weight = 0; }
 
      protected:
       static void handle_current_exception(Worker *worker, Dump_loader *loader,
@@ -101,6 +105,8 @@ class Dump_loader {
       friend class Worker;
 
       void set_id(size_t id) { m_id = id; }
+
+      uint64_t m_weight = 1;
     };
 
     class Schema_ddl_task : public Task {
@@ -217,33 +223,25 @@ class Dump_loader {
 
     class Index_recreation_task : public Task {
      public:
-      Index_recreation_task(const std::string &schema, const std::string &table,
-                            const std::vector<std::string> &queries)
-          : Task(schema, table), m_queries(queries) {}
+      Index_recreation_task(
+          const std::string &schema, const std::string &table,
+          compatibility::Deferred_statements::Index_info *indexes,
+          uint64_t weight)
+          : Task(schema, table), m_indexes(indexes) {
+        set_weight(weight);
+      }
 
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
 
      private:
-      const std::vector<std::string> &m_queries;
+      compatibility::Deferred_statements::Index_info *m_indexes;
     };
 
     Worker(size_t id, Dump_loader *owner);
     size_t id() const { return m_id; }
 
     void schedule(std::unique_ptr<Task> task);
-
-    void load_chunk_file(const std::string &schema, const std::string &table,
-                         const std::string &partition,
-                         std::unique_ptr<mysqlshdk::storage::IFile> file,
-                         ssize_t chunk_index, size_t chunk_size,
-                         const shcore::Dictionary_t &options, bool resuming,
-                         uint64_t bytes_to_skip);
-
-    void recreate_indexes(const std::string &schema, const std::string &table,
-                          const std::vector<std::string> &indexes);
-    void analyze_table(const std::string &schema, const std::string &table,
-                       const std::vector<Dump_reader::Histogram> &histograms);
 
     Task *current_task() const { return m_task.get(); }
 
@@ -264,6 +262,36 @@ class Dump_loader {
     std::unique_ptr<Task> m_task;
 
     shcore::Synchronized_queue<bool> m_work_ready;
+  };
+
+  using Task_ptr = std::unique_ptr<Worker::Task>;
+
+  struct Task_comparator {
+    bool operator()(const Worker::Task &l, const Worker::Task &r) const {
+      return l.weight() < r.weight();
+    }
+
+    bool operator()(const Task_ptr &l, const Task_ptr &r) const {
+      return (*this)(*l, *r);
+    }
+  };
+
+  class Priority_queue
+      : public std::priority_queue<Task_ptr, std::vector<Task_ptr>,
+                                   Task_comparator> {
+   public:
+    using priority_queue::priority_queue;
+
+    Task_ptr pop_top() {
+      if (c.empty()) {
+        throw std::runtime_error("Trying to pop from an empty queue.");
+      }
+
+      std::pop_heap(c.begin(), c.end(), comp);
+      Task_ptr task = std::move(c.back());
+      c.pop_back();
+      return task;
+    }
   };
 
   struct Worker_event {
@@ -305,7 +333,7 @@ class Dump_loader {
   void on_dump_begin();
   void on_dump_end();
 
-  bool handle_table_data(Worker *worker);
+  bool handle_table_data();
   void handle_schema_post_scripts();
 
   void switch_schema(const std::string &schema, bool load_done);
@@ -314,16 +342,14 @@ class Dump_loader {
 
   bool schedule_table_chunk(const std::string &schema, const std::string &table,
                             const std::string &partition, ssize_t chunk_index,
-                            Worker *worker,
                             std::unique_ptr<mysqlshdk::storage::IFile> file,
                             size_t size, shcore::Dictionary_t options,
                             bool resuming, uint64_t bytes_to_skip);
 
-  bool schedule_next_task(Worker *worker);
-  size_t handle_worker_events(
-      const std::function<bool(Worker *)> &schedule_next);
+  bool schedule_next_task();
+  size_t handle_worker_events(const std::function<bool()> &schedule_next);
 
-  void execute_threaded(const std::function<bool(Worker *)> &schedule_next);
+  void execute_threaded(const std::function<bool()> &schedule_next);
 
   void check_existing_objects();
   bool report_duplicates(const std::string &what, const std::string &schema,
@@ -429,6 +455,23 @@ class Dump_loader {
 
   void log_server_version() const;
 
+  void push_pending_task(Task_ptr task);
+
+  Task_ptr load_chunk_file(const std::string &schema, const std::string &table,
+                           const std::string &partition,
+                           std::unique_ptr<mysqlshdk::storage::IFile> file,
+                           ssize_t chunk_index, size_t chunk_size,
+                           const shcore::Dictionary_t &options, bool resuming,
+                           uint64_t bytes_to_skip) const;
+
+  Task_ptr recreate_indexes(
+      const std::string &schema, const std::string &table,
+      compatibility::Deferred_statements::Index_info *indexes) const;
+
+  Task_ptr analyze_table(
+      const std::string &schema, const std::string &table,
+      const std::vector<Dump_reader::Histogram> &histograms) const;
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
@@ -492,11 +535,14 @@ class Dump_loader {
 
   std::vector<std::thread> m_worker_threads;
   std::list<Worker> m_workers;
+  Priority_queue m_pending_tasks;
+  uint64_t m_current_weight = 0;
 
   std::mutex m_tables_being_loaded_mutex;
   std::unordered_multimap<std::string, size_t> m_tables_being_loaded;
   std::atomic<size_t> m_num_threads_loading;
   std::atomic<size_t> m_num_threads_recreating_indexes;
+  std::atomic<size_t> m_num_index_retries{0};
 
   Sql_transform m_default_sql_transforms;
 

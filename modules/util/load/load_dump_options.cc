@@ -46,6 +46,8 @@
 namespace mysqlsh {
 namespace {
 
+using Version = mysqlshdk::utils::Version;
+
 const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
                                   "mysql.sys"};
 const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
@@ -53,7 +55,7 @@ const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
 
 constexpr auto k_minimum_max_bytes_per_transaction = 4096;
 
-bool is_mds(const mysqlshdk::utils::Version &version) {
+bool is_mds(const Version &version) {
   return shcore::str_endswith(version.get_extra(), "cloud");
 }
 
@@ -367,8 +369,8 @@ void Load_dump_options::set_session(
 
   const auto instance = mysqlshdk::mysql::Instance(m_base_session);
 
-  m_target_server_version = mysqlshdk::utils::Version(
-      query("SELECT @@version")->fetch_one()->get_string(0));
+  m_target_server_version =
+      Version(query("SELECT @@version")->fetch_one()->get_string(0));
 
   m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
@@ -422,6 +424,20 @@ void Load_dump_options::set_session(
     instance.get_current_user(&account.user, &account.host);
 
     m_excluded_users.emplace_back(std::move(account));
+  }
+
+  if (m_target_server_version >= Version(8, 0, 27)) {
+    // adding indexes in parallel was added in 8.0.27,
+    // innodb_parallel_read_threads threads are used during the first stage,
+    // innodb_ddl_threads threads are used during second and third stages, in
+    // most cases first stage is executed before the rest, so we're using
+    // maximum of these two values
+    m_threads_per_add_index =
+        query(
+            "SELECT GREATEST(@@innodb_parallel_read_threads, "
+            "@@innodb_ddl_threads)")
+            ->fetch_one_or_throw()
+            ->get_uint(0);
   }
 }
 

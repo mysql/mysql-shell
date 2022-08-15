@@ -156,8 +156,9 @@ class Dump_reader {
     size_t buckets;
   };
 
-  bool next_deferred_index(std::string *out_schema, std::string *out_table,
-                           std::vector<std::string> **out_indexes);
+  bool next_deferred_index(
+      std::string *out_schema, std::string *out_table,
+      compatibility::Deferred_statements::Index_info **out_indexes);
 
   bool next_table_analyze(std::string *out_schema, std::string *out_table,
                           std::vector<Histogram> *out_histograms);
@@ -169,6 +170,8 @@ class Dump_reader {
   size_t dump_size() const { return m_contents.dump_size; }
   size_t total_data_size() const { return m_contents.data_size; }
   size_t filtered_data_size() const;
+  size_t table_data_size(const std::string &schema,
+                         const std::string &table) const;
   void compute_filtered_data_size();
 
   uint64_t bytes_per_chunk() const { return m_contents.bytes_per_chunk; }
@@ -343,7 +346,7 @@ class Dump_reader {
     bool sql_seen = false;
 
     shcore::Dictionary_t options = nullptr;
-    std::vector<std::string> indexes;
+    compatibility::Deferred_statements::Index_info indexes;
     bool indexes_scheduled = true;
     bool indexes_created = true;
     std::vector<Histogram> histograms;
@@ -384,7 +387,7 @@ class Dump_reader {
     std::vector<std::string> function_names;
     std::vector<std::string> procedure_names;
     std::vector<std::string> event_names;
-    std::vector<std::string> fk_queries;
+    std::vector<std::string> foreign_key_queries;
     std::vector<std::string> queries_on_schema_end;
 
     volatile bool md_loaded = false;

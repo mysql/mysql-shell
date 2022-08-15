@@ -530,6 +530,15 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         .then({"@@server_uuid"})
         .add_row({"UUID"});
 
+    if (Version(m_version) >= Version(8, 0, 27)) {
+      mock_main_session
+          ->expect_query(
+              "SELECT GREATEST(@@innodb_parallel_read_threads, "
+              "@@innodb_ddl_threads)")
+          .then({"a"})
+          .add_row({"4"});
+    }
+
     mock_main_session
         ->expect_query(
             "SELECT VARIABLE_VALUE = 'OFF' FROM "

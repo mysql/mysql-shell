@@ -125,6 +125,8 @@ class Load_dump_options {
     return m_background_threads_count.get_safe(def);
   }
 
+  uint64_t threads_per_add_index() const { return m_threads_per_add_index; }
+
   uint64_t dump_wait_timeout_ms() const { return m_wait_dump_timeout_ms; }
 
   const std::string &character_set() const { return m_character_set; }
@@ -292,6 +294,9 @@ class Load_dump_options {
   std::string m_server_uuid;
 
   std::vector<std::string> m_session_init_sql;
+
+  // how many threads are used by the server per one ALTER TABLE ... ADD INDEX
+  uint64_t m_threads_per_add_index = 1;
 };
 
 }  // namespace mysqlsh

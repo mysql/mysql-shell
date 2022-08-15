@@ -27,6 +27,8 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <iterator>
+#include <list>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -47,6 +49,7 @@
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -152,7 +155,8 @@ void add_invisible_pk(std::string *script, const std::string &key) {
 }
 
 void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
-                       std::string_view stmt, const std::string &error_prefix) {
+                       std::string_view stmt, const std::string &error_prefix,
+                       int silent_error = -1) {
   assert(!error_prefix.empty());
 
   constexpr uint32_t k_max_retry_time = 5 * 60 * 1000;  // 5 minutes
@@ -193,8 +197,12 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
         total_sleep_time += sleep_time;
         sleep_time *= 2;
       } else {
-        current_console()->print_error(shcore::str_format(
-            "%s: %s: %s", error_prefix.c_str(), error.c_str(), query.c_str()));
+        if (silent_error != e.code()) {
+          current_console()->print_error(
+              shcore::str_format("%s: %s: %s", error_prefix.c_str(),
+                                 error.c_str(), query.c_str()));
+        }
+
         throw;
       }
     }
@@ -488,13 +496,17 @@ void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
         }
       };
 
-      remove_duplicates(recreated.fulltext_indexes,
-                        &m_deferred_statements->fulltext_indexes);
-      remove_duplicates(recreated.indexes, &m_deferred_statements->indexes);
-      remove_duplicates(recreated.fks, &m_deferred_statements->fks);
+      remove_duplicates(recreated.index_info.fulltext,
+                        &m_deferred_statements->index_info.fulltext);
+      remove_duplicates(recreated.index_info.spatial,
+                        &m_deferred_statements->index_info.spatial);
+      remove_duplicates(recreated.index_info.regular,
+                        &m_deferred_statements->index_info.regular);
+      remove_duplicates(recreated.foreign_keys,
+                        &m_deferred_statements->foreign_keys);
 
       if (!recreated.secondary_engine.empty()) {
-        if (m_deferred_statements->has_indexes()) {
+        if (m_deferred_statements->has_alters()) {
           // recreated table already has a secondary engine (possibly table was
           // modified by the user), but not all indexes were applied, we're
           // unable to continue, as ALTER TABLE statements will fail
@@ -530,7 +542,7 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
           key().c_str(),
           (m_placeholder
                ? " (placeholder for view)"
-               : (m_deferred_statements && m_deferred_statements->has_indexes()
+               : (m_deferred_statements && m_deferred_statements->has_alters()
                       ? " (indexes removed for deferred creation)"
                       : "")));
       if (!loader->m_options.dry_run()) {
@@ -863,14 +875,13 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 bool Dump_loader::Worker::Index_recreation_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will recreate %zu indexes for table `%s`.`%s`", id(),
-            m_queries.size(), schema().c_str(), table().c_str());
+  log_debug("worker%zu will recreate %zu indexes for table %s", id(),
+            m_indexes->size(), key().c_str());
 
   const auto console = current_console();
 
-  if (!m_queries.empty())
-    log_info("[Worker%03zu] Recreating indexes for `%s`.`%s`", id(),
-             schema().c_str(), table().c_str());
+  if (!m_indexes->empty())
+    log_info("[Worker%03zu] Recreating indexes for %s", id(), key().c_str());
 
   loader->post_worker_event(worker, Worker_event::INDEX_START);
 
@@ -880,28 +891,98 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
     shcore::on_leave_scope cleanup(
         [loader]() { loader->m_num_threads_recreating_indexes--; });
 
+    // for the analysis of various index types and their impact on the parallel
+    // index creation see: BUG#33976718
+    std::list<std::vector<std::string_view>> batches;
+
+    {
+      const auto append = [](const std::vector<std::string> &what,
+                             std::vector<std::string_view> *where) {
+        where->insert(where->end(), what.begin(), what.end());
+      };
+      auto &first_batch = batches.emplace_back();
+
+      append(m_indexes->fulltext, &first_batch);
+
+      if (!m_indexes->spatial.empty()) {
+        // we load all indexes at once if:
+        //  - server does not support parallel index creation
+        auto single_batch =
+            loader->m_options.target_server_version() < Version(8, 0, 27);
+        //  - table has a virtual column
+        single_batch |= m_indexes->has_virtual_columns;
+        //  - table has a fulltext index
+        single_batch |= !m_indexes->fulltext.empty();
+
+        // if server supports parallel index creation and table does not have
+        // virtual columns or fulltext indexes, we add spatial indexes in
+        // another batch
+        append(m_indexes->spatial,
+               single_batch ? &first_batch : &batches.emplace_back());
+      }
+
+      append(m_indexes->regular, &first_batch);
+    }
+
     try {
-      for (const auto &query : m_queries) {
+      auto current = batches.begin();
+      const auto end = batches.end();
+
+      while (end != current) {
+        auto query = "ALTER TABLE " + key() + " ";
+
+        for (const auto &definition : *current) {
+          query += "ADD ";
+          query += definition;
+          query += ',';
+        }
+
+        // remove last comma
+        query.pop_back();
+
+        auto retry = false;
+
         try {
           execute_statement(
-              session, query,
-              "While recreating indexes for table `" + m_table + "`");
-          ++loader->m_indexes_recreated;
+              session, query, "While recreating indexes for table " + key(),
+              current->size() <= 1 ? -1 : ER_TEMP_FILE_WRITE_FAILURE);
+          loader->m_indexes_recreated += current->size();
         } catch (const shcore::Error &e) {
-          // Deadlocks and duplicate key errors should not happen but if they
-          // do they can be ignored at least for a while
-          if (e.code() == ER_DUP_KEYNAME) {
-            console->print_note("Index already existed for query: " + query);
+          if (e.code() == ER_TEMP_FILE_WRITE_FAILURE) {
+            if (current->size() <= 1) {
+              // we cannot split any more, report the error
+              throw;
+            } else {
+              log_info(
+                  "Failed to add indexes: the innodb_tmpdir is full, failed "
+                  "query: %s",
+                  query.c_str());
+
+              // split this batch in two and retry
+              const auto new_size = current->size() / 2;
+              std::vector<std::string_view> new_batch;
+
+              std::move(std::next(current->begin(), new_size), current->end(),
+                        std::back_inserter(new_batch));
+              current->resize(new_size);
+              batches.insert(std::next(current), std::move(new_batch));
+              retry = true;
+              ++loader->m_num_index_retries;
+            }
           } else {
             throw;
           }
+        }
+
+        if (!retry) {
+          ++current;
         }
       }
     } catch (const std::exception &e) {
       handle_current_exception(
           worker, loader,
-          shcore::str_format("While recreating indexes for table `%s`.`%s`: %s",
-                             schema().c_str(), table().c_str(), e.what()));
+          shcore::str_format("While recreating indexes for table %s: %s",
+                             key().c_str(), e.what()));
       return false;
     }
   }
@@ -961,51 +1042,6 @@ void Dump_loader::Worker::schedule(std::unique_ptr<Task> task) {
   m_work_ready.push(true);
 }
 
-void Dump_loader::Worker::load_chunk_file(
-    const std::string &schema, const std::string &table,
-    const std::string &partition,
-    std::unique_ptr<mysqlshdk::storage::IFile> file, ssize_t chunk_index,
-    size_t chunk_size, const shcore::Dictionary_t &options, bool resuming,
-    uint64_t bytes_to_skip) {
-  log_debug("Loading data for %s",
-            format_table(schema, table, partition, chunk_index).c_str());
-  assert(!schema.empty());
-  assert(!table.empty());
-  assert(file);
-
-  // The reason why sending work to worker threads isn't done through a
-  // regular queue is because a regular queue would create a static schedule
-  // for the chunk loading order. But we need to be able to dynamically
-  // schedule chunks based on the current conditions at the time each new
-  // chunk needs to be scheduled.
-
-  auto task = std::make_unique<Load_chunk_task>(
-      schema, table, partition, chunk_index, std::move(file), options, resuming,
-      bytes_to_skip);
-  task->raw_bytes_loaded = chunk_size;
-
-  schedule(std::move(task));
-}
-
-void Dump_loader::Worker::recreate_indexes(
-    const std::string &schema, const std::string &table,
-    const std::vector<std::string> &indexes) {
-  log_debug("Recreating indexes for `%s`.`%s`", schema.c_str(), table.c_str());
-  assert(!schema.empty());
-  assert(!table.empty());
-
-  schedule(std::make_unique<Index_recreation_task>(schema, table, indexes));
-}
-
-void Dump_loader::Worker::analyze_table(
-    const std::string &schema, const std::string &table,
-    const std::vector<Dump_reader::Histogram> &histograms) {
-  log_debug("Analyzing table `%s`.`%s`", schema.c_str(), table.c_str());
-  assert(!schema.empty());
-  assert(!table.empty());
-
-  schedule(std::make_unique<Analyze_table_task>(schema, table, histograms));
-}
 // ----
 
 Dump_loader::Dump_loader(const Load_dump_options &options)
@@ -1416,7 +1452,7 @@ bool Dump_loader::should_fetch_table_ddl(bool placeholder) const {
          (!placeholder && m_options.load_deferred_indexes());
 }
 
-bool Dump_loader::handle_table_data(Worker *worker) {
+bool Dump_loader::handle_table_data() {
   std::unique_ptr<mysqlshdk::storage::IFile> data_file;
 
   bool scheduled = false;
@@ -1489,9 +1525,8 @@ bool Dump_loader::handle_table_data(Worker *worker) {
       if (m_options.load_data()) {
         if (status != Load_progress_log::DONE) {
           scheduled = schedule_table_chunk(
-              schema, table, partition, chunk, worker, std::move(data_file),
-              size, options, status == Load_progress_log::INTERRUPTED,
-              bytes_to_skip);
+              schema, table, partition, chunk, std::move(data_file), size,
+              options, status == Load_progress_log::INTERRUPTED, bytes_to_skip);
         }
       }
     } else {
@@ -1505,7 +1540,7 @@ bool Dump_loader::handle_table_data(Worker *worker) {
 
 bool Dump_loader::schedule_table_chunk(
     const std::string &schema, const std::string &table,
-    const std::string &partition, ssize_t chunk_index, Worker *worker,
+    const std::string &partition, ssize_t chunk_index,
     std::unique_ptr<mysqlshdk::storage::IFile> file, size_t size,
     shcore::Dictionary_t options, bool resuming, uint64_t bytes_to_skip) {
   {
@@ -1524,18 +1559,19 @@ bool Dump_loader::schedule_table_chunk(
         schema_table_object_key(schema, table, partition), file->file_size());
   }
 
-  log_debug("Scheduling chunk for table %s (%s) - worker%zi",
+  log_debug("Scheduling chunk for table %s (%s)",
             format_table(schema, table, partition, chunk_index).c_str(),
-            file->full_path().masked().c_str(), worker->id());
+            file->full_path().masked().c_str());
 
-  worker->load_chunk_file(schema, table, partition, std::move(file),
-                          chunk_index, size, options, resuming, bytes_to_skip);
+  push_pending_task(load_chunk_file(schema, table, partition, std::move(file),
+                                    chunk_index, size, options, resuming,
+                                    bytes_to_skip));
 
   return true;
 }
 
 size_t Dump_loader::handle_worker_events(
-    const std::function<bool(Worker *)> &schedule_next) {
+    const std::function<bool()> &schedule_next) {
   const auto to_string = [](Worker_event::Event event) {
     switch (event) {
       case Worker_event::Event::READY:
@@ -1573,6 +1609,8 @@ size_t Dump_loader::handle_worker_events(
   };
 
   std::list<Worker *> idle_workers;
+  const auto thread_count = m_options.threads_count();
+
   while (idle_workers.size() < m_workers.size()) {
     Worker_event event;
 
@@ -1682,6 +1720,10 @@ size_t Dump_loader::handle_worker_events(
       }
 
       case Worker_event::READY:
+        if (const auto task = event.worker->current_task()) {
+          m_current_weight -= task->weight();
+          task->done();
+        }
         break;
 
       case Worker_event::FATAL_ERROR:
@@ -1702,8 +1744,20 @@ size_t Dump_loader::handle_worker_events(
     // schedule more work if the worker became free
     if (event.event == Worker_event::READY) {
       // no more work to do
-      if (m_worker_interrupt || !schedule_next(event.worker)) {
+      if (m_worker_interrupt || (!schedule_next() && m_pending_tasks.empty())) {
         idle_workers.push_back(event.worker);
+      } else {
+        assert(!m_pending_tasks.empty());
+
+        const auto pending_weight = m_pending_tasks.top()->weight();
+
+        if (m_current_weight + pending_weight > thread_count) {
+          // the task is too heavy, wait till more threads are idle
+          idle_workers.push_back(event.worker);
+        } else {
+          event.worker->schedule(m_pending_tasks.pop_top());
+          m_current_weight += pending_weight;
+        }
       }
     }
   }
@@ -1717,8 +1771,8 @@ size_t Dump_loader::handle_worker_events(
   return num_idle_workers;
 }
 
-bool Dump_loader::schedule_next_task(Worker *worker) {
-  if (!handle_table_data(worker)) {
+bool Dump_loader::schedule_next_task() {
+  if (!handle_table_data()) {
     std::string schema;
     std::string table;
 
@@ -1729,11 +1783,11 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
         m_index_count_is_known = true;
       }
 
-      std::vector<std::string> *indexes = nullptr;
+      compatibility::Deferred_statements::Index_info *indexes = nullptr;
 
       if (m_dump->next_deferred_index(&schema, &table, &indexes)) {
         assert(indexes != nullptr);
-        worker->recreate_indexes(schema, table, *indexes);
+        push_pending_task(recreate_indexes(schema, table, indexes));
         return true;
       }
     }
@@ -1751,7 +1805,7 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
         if (Load_dump_options::Analyze_table_mode::ON == analyze_tables ||
             !histograms.empty()) {
           ++m_tables_to_analyze;
-          worker->analyze_table(schema, table, histograms);
+          push_pending_task(analyze_table(schema, table, histograms));
           return true;
         }
       } else if (is_data_load_complete()) {
@@ -1851,6 +1905,12 @@ void Dump_loader::show_summary() {
   } else {
     console->print_info(shcore::str_format(
         "%zi warnings were reported during the load.", m_num_warnings.load()));
+  }
+
+  if (m_num_index_retries) {
+    console->print_info(
+        shcore::str_format("There were %zi retries to create indexes.",
+                           m_num_index_retries.load()));
   }
 }
 
@@ -2333,8 +2393,7 @@ void Dump_loader::setup_progress_file(bool *out_is_resuming) {
   }
 }
 
-void Dump_loader::execute_threaded(
-    const std::function<bool(Worker *)> &schedule_next) {
+void Dump_loader::execute_threaded(const std::function<bool()> &schedule_next) {
   do {
     // handle events from workers and schedule more chunks when a worker
     // becomes available
@@ -2344,7 +2403,7 @@ void Dump_loader::execute_threaded(
       // make sure that there's really no more work. schedule_work() is
       // supposed to just return false without doing anything. If it does
       // something (and returns true), then we have a bug.
-      assert(!schedule_next(&m_workers.front()) || m_worker_interrupt);
+      assert(!schedule_next() || m_worker_interrupt);
       break;
     }
   } while (!m_worker_interrupt);
@@ -2479,7 +2538,7 @@ void Dump_loader::execute_table_ddl_tasks() {
     std::list<std::unique_ptr<Worker::Task>> table_tasks;
 
     execute_threaded([this, &pool_status, &worker_tasks, &pending_tasks,
-                      &schema_tasks, &table_tasks](Worker *worker) {
+                      &schema_tasks, &table_tasks]() {
       while (!m_worker_interrupt) {
         // if there was an exception in the thread pool, interrupt the process
         if (pool_status == shcore::Thread_pool::Async_state::TERMINATED) {
@@ -2549,7 +2608,7 @@ void Dump_loader::execute_table_ddl_tasks() {
 
         // if there's work, schedule it
         if (work) {
-          worker->schedule(std::move(work));
+          push_pending_task(std::move(work));
           return true;
         }
 
@@ -2742,8 +2801,8 @@ void Dump_loader::execute_tasks() {
 
     // handle events from workers and schedule more chunks when a worker
     // becomes available
-    num_idle_workers = handle_worker_events(
-        [this](Worker *worker) { return schedule_next_task(worker); });
+    num_idle_workers =
+        handle_worker_events([this]() { return schedule_next_task(); });
 
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
@@ -3198,6 +3257,82 @@ void Dump_loader::log_server_version() const {
                ->fetch_one()
                ->get_string(0)
                .c_str());
+}
+
+void Dump_loader::push_pending_task(Task_ptr task) {
+  const auto weight = std::min(task->weight(), m_options.threads_count());
+  task->set_weight(weight);
+
+  if (weight > 1) {
+    log_debug("Pushing new task for %s with weight %zu", task->key().c_str(),
+              weight);
+  }
+
+  m_pending_tasks.emplace(std::move(task));
+}
+
+Dump_loader::Task_ptr Dump_loader::load_chunk_file(
+    const std::string &schema, const std::string &table,
+    const std::string &partition,
+    std::unique_ptr<mysqlshdk::storage::IFile> file, ssize_t chunk_index,
+    size_t chunk_size, const shcore::Dictionary_t &options, bool resuming,
+    uint64_t bytes_to_skip) const {
+  log_debug("Loading data for %s",
+            format_table(schema, table, partition, chunk_index).c_str());
+  assert(!schema.empty());
+  assert(!table.empty());
+  assert(file);
+
+  // The reason why sending work to worker threads isn't done through a
+  // regular queue is because a regular queue would create a static schedule
+  // for the chunk loading order. But we need to be able to dynamically
+  // schedule chunks based on the current conditions at the time each new
+  // chunk needs to be scheduled.
+
+  auto task = std::make_unique<Worker::Load_chunk_task>(
+      schema, table, partition, chunk_index, std::move(file), options, resuming,
+      bytes_to_skip);
+  task->raw_bytes_loaded = chunk_size;
+
+  return task;
+}
+
+Dump_loader::Task_ptr Dump_loader::recreate_indexes(
+    const std::string &schema, const std::string &table,
+    compatibility::Deferred_statements::Index_info *indexes) const {
+  log_debug("Recreating indexes for `%s`.`%s`", schema.c_str(), table.c_str());
+  assert(!schema.empty());
+  assert(!table.empty());
+
+  uint64_t weight = m_options.threads_per_add_index();
+
+  if (weight > 1) {
+    if (auto table_size = m_dump->table_data_size(schema, table)) {
+      // size per each thread
+      table_size /= weight;
+
+      // in case of small tables, we assume that they're not that impactful
+      if (table_size <= 10 * 1024 * 1024) {  // 10MiB
+        weight = 1;
+      }
+    }  // else, we don't have the size info, just use the default weight
+  }
+
+  DBUG_EXECUTE_IF("dump_loader_force_index_weight", { weight = 4; });
+
+  return std::make_unique<Worker::Index_recreation_task>(schema, table, indexes,
+                                                         weight);
+}
+
+Dump_loader::Task_ptr Dump_loader::analyze_table(
+    const std::string &schema, const std::string &table,
+    const std::vector<Dump_reader::Histogram> &histograms) const {
+  log_debug("Analyzing table `%s`.`%s`", schema.c_str(), table.c_str());
+  assert(!schema.empty());
+  assert(!table.empty());
+
+  return std::make_unique<Worker::Analyze_table_task>(schema, table,
+                                                      histograms);
 }
 
 }  // namespace mysqlsh

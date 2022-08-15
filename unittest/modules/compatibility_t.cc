@@ -1030,26 +1030,28 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
     EXPECT_EQ(expected.rewritten.empty() ? sql : expected.rewritten,
               actual.rewritten);
 
-    ASSERT_EQ(expected.fulltext_indexes.size(), actual.fulltext_indexes.size());
+    const auto EXPECT_VECTORS = [](const std::vector<std::string> &e,
+                                   const std::vector<std::string> &a,
+                                   const std::string &context) {
+      SCOPED_TRACE(context);
 
-    for (std::size_t i = 0; i < expected.fulltext_indexes.size(); ++i) {
-      SCOPED_TRACE("index: " + std::to_string(i));
-      EXPECT_EQ(expected.fulltext_indexes[i], actual.fulltext_indexes[i]);
-    }
+      ASSERT_EQ(e.size(), a.size());
 
-    ASSERT_EQ(expected.indexes.size(), actual.indexes.size());
+      for (std::size_t i = 0; i < e.size(); ++i) {
+        SCOPED_TRACE(context + ": " + std::to_string(i));
+        EXPECT_EQ(e[i], a[i]);
+      }
+    };
 
-    for (std::size_t i = 0; i < expected.indexes.size(); ++i) {
-      SCOPED_TRACE("index: " + std::to_string(i));
-      EXPECT_EQ(expected.indexes[i], actual.indexes[i]);
-    }
-
-    ASSERT_EQ(expected.fks.size(), actual.fks.size());
-
-    for (std::size_t i = 0; i < expected.fks.size(); ++i) {
-      SCOPED_TRACE("FK: " + std::to_string(i));
-      EXPECT_EQ(expected.fks[i], actual.fks[i]);
-    }
+    EXPECT_VECTORS(expected.index_info.fulltext, actual.index_info.fulltext,
+                   "fulltext");
+    EXPECT_VECTORS(expected.index_info.spatial, actual.index_info.spatial,
+                   "spatial");
+    EXPECT_VECTORS(expected.index_info.regular, actual.index_info.regular,
+                   "other");
+    EXPECT_EQ(expected.index_info.has_virtual_columns,
+              actual.index_info.has_virtual_columns);
+    EXPECT_VECTORS(expected.foreign_keys, actual.foreign_keys, "other");
 
     EXPECT_EQ(expected.secondary_engine, actual.secondary_engine);
   };
@@ -1064,10 +1066,9 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
       {R"(CREATE TABLE `author` (
   `author` varchar(200) DEFAULT NULL,
   `age` int DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-       {R"(ALTER TABLE `author` ADD FULLTEXT KEY `author` (`author`);)"},
+       {{R"(FULLTEXT KEY `author` (`author`))"}, {}, {}},
        {},
-       {},
-       ""});
+       {}});
 
   EXPECT_STMTS(
       R"(CREATE TABLE `opening_lines` (
@@ -1086,11 +1087,12 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `author` varchar(200) DEFAULT NULL,
   `title` varchar(200) DEFAULT NULL,
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-       {R"(ALTER TABLE `opening_lines` ADD FULLTEXT INDEX `idx` (`opening_line`);)",
-        R"(ALTER TABLE `opening_lines` ADD FULLTEXT key `idx2` (`author`,`title`);)"},
+       {{R"(FULLTEXT INDEX `idx` (`opening_line`))",
+         R"(FULLTEXT key `idx2` (`author`,`title`))"},
+        {},
+        {}},
        {},
-       {},
-       ""});
+       {}});
 
   EXPECT_STMTS(
       R"(CREATE TABLE `opening_lines` (
@@ -1109,11 +1111,12 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `author` varchar(200) DEFAULT NULL,
   `title` varchar(200) DEFAULT NULL,
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-       {R"(ALTER TABLE `opening_lines` ADD FULLTEXT INDEX `idx` (`opening_line`);)",
-        R"(ALTER TABLE `opening_lines` ADD FULLTEXT key `idx2` (`author`,`title`);)"},
+       {{R"(FULLTEXT INDEX `idx` (`opening_line`))",
+         R"(FULLTEXT key `idx2` (`author`,`title`))"},
+        {},
+        {}},
        {},
-       {},
-       ""});
+       {}});
 
   EXPECT_STMTS(
       R"(CREATE TABLE IF NOT EXISTS `films` (
@@ -1135,10 +1138,9 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `title` varchar(200) DEFAULT NULL,
   `oli` int unsigned NOT NULL,
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-       {R"(ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);)"},
-       {R"(ALTER TABLE `films` ADD KEY `oli` (`oli`);)"},
+       {{R"(FULLTEXT KEY (`opening_line`))"}, {}, {R"(KEY `oli` (`oli`))"}},
        {R"(ALTER TABLE `films` ADD CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`);)"},
-       ""});
+       {}});
 
   EXPECT_STMTS(R"(CREATE TABLE IF NOT EXISTS `films` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -1162,10 +1164,9 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   KEY `oli` (`oli`),
   CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-                {R"(ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);)"},
+                {{R"(FULLTEXT KEY (`opening_line`))"}, {}, {}},
                 {},
-                {},
-                ""});
+                {}});
 
   EXPECT_STMTS(R"(CREATE TABLE part_tbl2 (
   pk INT PRIMARY KEY,
@@ -1225,13 +1226,14 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `pr_id` int unsigned NOT NULL AUTO_INCREMENT,
   PRIMARY KEY (`pr_page`,`pr_type`),
   UNIQUE KEY `pr_id` (`pr_id`)) ENGINE=InnoDB AUTO_INCREMENT=854046 DEFAULT CHARSET=binary;)",
+       {{},
+        {},
+        {R"(KEY `pr_page` (`pr_page`))",
+         R"(KEY `pr_typelevel` (`pr_type`,`pr_level`))",
+         R"(KEY `pr_level` (`pr_level`))",
+         R"(KEY `pr_cascade` (`pr_cascade`))"}},
        {},
-       {R"(ALTER TABLE `page_restrictions` ADD KEY `pr_page` (`pr_page`);)",
-        R"(ALTER TABLE `page_restrictions` ADD KEY `pr_typelevel` (`pr_type`,`pr_level`);)",
-        R"(ALTER TABLE `page_restrictions` ADD KEY `pr_level` (`pr_level`);)",
-        R"(ALTER TABLE `page_restrictions` ADD KEY `pr_cascade` (`pr_cascade`);)"},
-       {},
-       ""});
+       {}});
 
   EXPECT_STMTS(
       R"(CREATE TABLE IF NOT EXISTS `se` (
@@ -1256,8 +1258,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `data` int,
   `description` text,
   PRIMARY KEY (`id`)) ;)",
-       {R"(ALTER TABLE `se` ADD FULLTEXT KEY (`description`);)"},
-       {R"(ALTER TABLE `se` ADD KEY `idx1` (`data`);)"},
+       {{R"(FULLTEXT KEY (`description`))"}, {}, {R"(KEY `idx1` (`data`))"}},
        {R"(ALTER TABLE `se` ADD CONSTRAINT `fk1` FOREIGN KEY (`fk`) REFERENCES `se2` (`id`);)"},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
 
@@ -1280,8 +1281,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   KEY `idx1` (`data`),
   CONSTRAINT `fk1` FOREIGN KEY (`fk`) REFERENCES `se2` (`id`)
 ) ;)",
-       {R"(ALTER TABLE `se` ADD FULLTEXT KEY (`description`);)"},
-       {},
+       {{R"(FULLTEXT KEY (`description`))"}, {}, {}},
        {},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
 
@@ -1295,7 +1295,6 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `id` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB ;)",
-       {},
        {},
        {},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
@@ -1312,8 +1311,90 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
 ) ENGINE=InnoDB  CHARSET=binary;)",
        {},
        {},
-       {},
        "ALTER TABLE `se` SECONDARY_ENGINE=`tmp`;"});
+
+  EXPECT_STMTS(
+      R"(CREATE TABLE IF NOT EXISTS `films` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `oli` int unsigned NOT NULL,
+  `loc` GEOMETRY NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `oli` (`oli`),
+  FULLTEXT KEY (`opening_line`),
+  SPATIAL KEY (`loc`),
+  CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+      "`films`", false,
+      {R"(CREATE TABLE IF NOT EXISTS `films` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `oli` int unsigned NOT NULL,
+  `loc` GEOMETRY NOT NULL,
+  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+       {{R"(FULLTEXT KEY (`opening_line`))"},
+        {R"(SPATIAL KEY (`loc`))"},
+        {R"(KEY `oli` (`oli`))"}},
+       {R"(ALTER TABLE `films` ADD CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`);)"},
+       {}});
+
+  EXPECT_STMTS(
+      R"(CREATE TABLE IF NOT EXISTS `virt` (
+  `id` int NOT NULL DEFAULT '0',
+  `gen` int AS (SQRT(id * id)),
+  `data` text
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB CHARSET=binary;)",
+      "`virt`", false,
+      {R"(CREATE TABLE IF NOT EXISTS `virt` (
+  `id` int NOT NULL DEFAULT '0',
+  `gen` int AS (SQRT(id * id)),
+  `data` text
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB CHARSET=binary;)",
+       {{}, {}, {}, true},
+       {},
+       {}});
+
+  EXPECT_STMTS(
+      R"(CREATE TABLE IF NOT EXISTS `virt` (
+  `id` int NOT NULL DEFAULT '0',
+  `gen` int AS (SQRT(id * id)) VIRTUAL,
+  `data` text
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB CHARSET=binary;)",
+      "`virt`", false,
+      {R"(CREATE TABLE IF NOT EXISTS `virt` (
+  `id` int NOT NULL DEFAULT '0',
+  `gen` int AS (SQRT(id * id)) VIRTUAL,
+  `data` text
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB CHARSET=binary;)",
+       {{}, {}, {}, true},
+       {},
+       {}});
+
+  EXPECT_STMTS(
+      R"(CREATE TABLE IF NOT EXISTS `virt` (
+  `id` int NOT NULL DEFAULT '0',
+  `gen` int AS (SQRT(id * id)) STORED,
+  `data` text
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB CHARSET=binary;)",
+      "`virt`", false,
+      {R"(CREATE TABLE IF NOT EXISTS `virt` (
+  `id` int NOT NULL DEFAULT '0',
+  `gen` int AS (SQRT(id * id)) STORED,
+  `data` text
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB CHARSET=binary;)",
+       {{}, {}, {}, false},
+       {},
+       {}});
 }
 
 TEST_F(Compatibility_test, indexes_recreation) {
@@ -1335,18 +1416,23 @@ TEST_F(Compatibility_test, indexes_recreation) {
     Deferred_statements stmts;
     EXPECT_NO_THROW(stmts = compatibility::check_create_table_for_indexes(
                         create_table, table_name, fulltext_only));
-    ASSERT_EQ(index_count,
-              stmts.fulltext_indexes.size() + stmts.indexes.size());
-    ASSERT_EQ(fk_count, stmts.fks.size());
+    ASSERT_EQ(index_count, stmts.index_info.size());
+    ASSERT_EQ(fk_count, stmts.foreign_keys.size());
     ASSERT_NO_THROW(session->execute("drop table " + table_name));
     ASSERT_NO_THROW(session->execute(stmts.rewritten));
-    for (const auto &q : stmts.fulltext_indexes) {
-      ASSERT_NO_THROW(session->execute(q));
+    const auto index_query = [&table_name](const std::string &q) {
+      return "ALTER TABLE " + table_name + " ADD " + q + ";";
+    };
+    for (const auto &q : stmts.index_info.fulltext) {
+      ASSERT_NO_THROW(session->execute(index_query(q)));
     }
-    for (const auto &q : stmts.indexes) {
-      ASSERT_NO_THROW(session->execute(q));
+    for (const auto &q : stmts.index_info.spatial) {
+      ASSERT_NO_THROW(session->execute(index_query(q)));
     }
-    for (const auto &q : stmts.fks) {
+    for (const auto &q : stmts.index_info.regular) {
+      ASSERT_NO_THROW(session->execute(index_query(q)));
+    }
+    for (const auto &q : stmts.foreign_keys) {
       ASSERT_NO_THROW(session->execute(q));
     }
     EXPECT_EQ(create_table, session->query("show create table " + table_name)

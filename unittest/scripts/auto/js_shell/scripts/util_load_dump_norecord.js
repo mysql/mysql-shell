@@ -1146,7 +1146,7 @@ session.runSql("create table test.nopk (a int, b json)");
 session.runSql("create table test.pk (a int primary key, b json)");
 session.runSql("create table test.uk (a int unique not null, b json)");
 session.runSql("create table test.ukn (a int unique null, b json)");
-util.dumpInstance(__tmp_dir+"/ldtest/dump-nopktest", {chunking: 0, compression: "none", compatibility: ['strip_tablespaces']});
+util.dumpInstance(__tmp_dir+"/ldtest/dump-nopktest", {includeSchemas: ["test"], chunking: 0, compression: "none", compatibility: ['strip_tablespaces']});
 
 session.runSql("insert into test.nopk values (0, '{}')")
 session.runSql("insert into test.pk values (0, '{}')")
