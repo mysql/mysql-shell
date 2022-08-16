@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -155,6 +155,29 @@ TEST_F(Command_line_connection_test, prompt_sample) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Please provide the password for '" +
                                 _mysql_uri_nopasswd + "':");
+}
+
+TEST_F(Command_line_connection_test, no_pwd_save_from_stdin) {
+  // if passwords are entered via stdin, then don't prompt if they should be
+  // saved (the prompt would be unexpected and block the shell)
+  // Bug #34501568	mysqlsh --passwords-from-stdin not working
+
+  execute_in_session(
+      _mysql_uri_nopasswd, "--mysql",
+      "create user if not exists pwduser@'%' identified by 'verysecret'");
+
+  wipe_out();
+
+  shcore::unsetenv("MYSQLSH_CREDENTIAL_STORE_HELPER");
+  shcore::unsetenv("MYSQLSH_CREDENTIAL_STORE_SAVE_PASSWORDS");
+
+  std::string uri = "pwduser@localhost:" + _mysql_port;
+  execute({_mysqlsh, uri.c_str(), "--passwords-from-stdin", "--sql", "-e",
+           "select upper('hello')", NULL},
+          "verysecret");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("HELLO");
+
+  shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "<disabled>");
 }
 
 TEST_F(Command_line_connection_test, session_cmdline_options) {

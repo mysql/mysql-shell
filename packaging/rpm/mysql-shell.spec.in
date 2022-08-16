@@ -280,8 +280,12 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %endif
 %{_prefix}/lib/mysqlsh/plugins/*
 %{_prefix}/lib/mysqlsh/python-packages/*
+%{_mandir}/man1/mysqlsh.1*
 
 %changelog
+* Tue Aug 16 2022 Nawaz Nazeer Ahamed <nawaz.nazeer.ahamed@oracle.com> - 8.0.31
+- Include man pages
+
 * Mon Jun 14 2021 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 8.0.27
 - Install adminapi-metadata
 

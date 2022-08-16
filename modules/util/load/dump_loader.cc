@@ -3260,7 +3260,7 @@ void Dump_loader::log_server_version() const {
 }
 
 void Dump_loader::push_pending_task(Task_ptr task) {
-  const auto weight = std::min(task->weight(), m_options.threads_count());
+  size_t weight = std::min(task->weight(), m_options.threads_count());
   task->set_weight(weight);
 
   if (weight > 1) {

@@ -1628,6 +1628,8 @@ bool Mysql_shell::cmd_rehash(const std::vector<std::string> & /* args */) {
         db->update_cache();
       }
     }
+
+    request_prompt_variables_update(true);
   } else {
     println("Not connected.\n");
   }

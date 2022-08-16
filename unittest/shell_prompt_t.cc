@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -731,6 +731,51 @@ TEST(Shell_prompt_manager, variables) {
                   return shcore::str_upper(var);
                 }));
   EXPECT_EQ(4, vars.size());
+
+  // lowercase means cache variable, Uppercase means query every time
+  int num_queries = 0;
+  EXPECT_EQ("VARNAME",
+            promptm.do_apply_vars(
+                "%sessstatus:varname%", &vars,
+                [&num_queries](
+                    const std::string &var,
+                    Prompt_manager::Dynamic_variable_type type) -> std::string {
+                  if (Prompt_manager::Mysql_session_status != type)
+                    throw std::logic_error("mismatch");
+                  num_queries++;
+                  return shcore::str_upper(var);
+                }));
+  // first time, so not cached yet, so hits a query
+  EXPECT_EQ(1, num_queries);
+  EXPECT_EQ(5, vars.size());
+  EXPECT_EQ("VARNAME",
+            promptm.do_apply_vars(
+                "%sessstatus:varname%", &vars,
+                [&num_queries](
+                    const std::string &var,
+                    Prompt_manager::Dynamic_variable_type type) -> std::string {
+                  if (Prompt_manager::Mysql_session_status != type)
+                    throw std::logic_error("mismatch");
+                  num_queries++;
+                  return shcore::str_upper(var);
+                }));
+  // this time it's cached
+  EXPECT_EQ(1, num_queries);
+  EXPECT_EQ(5, vars.size());
+  EXPECT_EQ("VARNAME",
+            promptm.do_apply_vars(
+                "%Sessstatus:varname%", &vars,
+                [&num_queries](
+                    const std::string &var,
+                    Prompt_manager::Dynamic_variable_type type) -> std::string {
+                  if (Prompt_manager::Mysql_session_status != type)
+                    throw std::logic_error("mismatch");
+                  num_queries++;
+                  return shcore::str_upper(var);
+                }));
+  // Uppercase, so skip cache
+  EXPECT_EQ(2, num_queries);
+  EXPECT_EQ(5, vars.size());
 }
 
 TEST(Shell_prompt_manager, custom_variable) {
@@ -1031,7 +1076,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
   std::string segs;
   for (const char *s :
        {"host", "port", "mode", "Mode", "uri", "user", "schema", "ssl", "date",
-        "env:MYSQLSH_PROMPT_THEME", "sysvar:autocommit", "sessvar:autocommit",
+        "env:MYSQLSH_PROMPT_THEME", "sysvar:autocommit", "Sessvar:autocommit",
         "sessstatus:Mysqlx_ssl_active"}) {
     segs.append(shcore::str_format(
         "{\"text\": \"%s=%%%s%%\", \"separator\":\"  \"}, ", s, s));
@@ -1052,7 +1097,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
       "host=  port=  mode=sql  Mode=SQL  uri=  user=  schema=  ssl=  date=" +
       fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
-      "sysvar:autocommit=  sessvar:autocommit=  "
+      "sysvar:autocommit=  Sessvar:autocommit=  "
       "sessstatus:Mysqlx_ssl_active= END> ");
 
   wipe_out();
@@ -1062,7 +1107,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
       "host=  port=  mode=py  Mode=Py  uri=  user=  schema=  ssl=  date=" +
       fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
-      "sysvar:autocommit=  sessvar:autocommit=  "
+      "sysvar:autocommit=  Sessvar:autocommit=  "
       "sessstatus:Mysqlx_ssl_active= END> ");
 
   wipe_out();
@@ -1075,7 +1120,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
       "  Mode=SQL  uri=" + uri + ":" + _mysql_port +
       "  user=root  schema=  ssl=SSL  date=" + fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
-      "sessvar:autocommit=OFF  "
+      "Sessvar:autocommit=OFF  "
       "sessstatus:Mysqlx_ssl_active= END> ");
 
   wipe_out();
@@ -1088,7 +1133,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
       "  Mode=SQL  uri=" + uri + ":" + _mysql_port +
       "  user=root  schema=  ssl=  date=" + fmttime("%F") +
       "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
-      "sessvar:autocommit=OFF  "
+      "Sessvar:autocommit=OFF  "
       "sessstatus:Mysqlx_ssl_active= END> ");
 
   // This test only works if the test server is listening on default socket path
@@ -1102,7 +1147,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
         "host=" + _host + "  port=" + "  mode=sql" + "  Mode=SQL  uri=" + uri +
         "  user=root  schema=  ssl=  date=" + fmttime("%F") +
         "  env:MYSQLSH_PROMPT_THEME=allvars.json  sysvar:autocommit=ON  "
-        "sessvar:autocommit=OFF  "
+        "Sessvar:autocommit=OFF  "
         "sessstatus:Mysqlx_ssl_active= END> ");
   }
 
@@ -1116,7 +1161,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                 "  user=root  schema=mysql  ssl=SSL" +
                 "  date=" + fmttime("%F") +
                 "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
-                "sysvar:autocommit=ON  sessvar:autocommit=OFF  "
+                "sysvar:autocommit=ON  Sessvar:autocommit=OFF  "
                 "sessstatus:Mysqlx_ssl_active=ON END> ");
 
   if (_port == "33060") {
@@ -1130,7 +1175,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
                   "  user=root  schema=mysql  ssl=SSL" +
                   "  date=" + fmttime("%F") +
                   "  env:MYSQLSH_PROMPT_THEME=allvars.json  "
-                  "sysvar:autocommit=ON  sessvar:autocommit=OFF  "
+                  "sysvar:autocommit=ON  Sessvar:autocommit=OFF  "
                   "sessstatus:Mysqlx_ssl_active=ON END> ");
   }
   shcore::delete_file("allvars.json");
