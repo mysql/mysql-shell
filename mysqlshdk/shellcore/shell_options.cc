@@ -371,18 +371,19 @@ Shell_options::Shell_options(int argc, char **argv,
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Redirect_to::Primary))
     (cmdline("--redirect-secondary"), "Ensure that the target server is part "
-        "of an InnoDB cluster or ReplicaSet and if it is not a secondary, find "
+        "of an InnoDB Cluster or ReplicaSet and if it is not a secondary, find "
         "a secondary and connect to it.",
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Redirect_to::Secondary))
     (cmdline("--cluster"), "Ensure that the target server is part of an InnoDB "
-        "cluster and if so, set the cluster global variable.",
+        "Cluster and if so, set the 'cluster' global variable. Also sets "
+        "'clusterset' if the cluster is part of a ClusterSet.",
         [this](const std::string&, const char* value) {
           storage.default_cluster = value ? value : "";
           storage.default_cluster_set = true;
         })
     (cmdline("--replicaset"), "Ensure that the target server is part of an "
-        "InnoDB ReplicaSet and if so, set the rs global variable.",
+        "InnoDB ReplicaSet and if so, set the 'rs' global variable.",
         assign_value(&storage.default_replicaset_set, true))
     (cmdline("--sql"), "Start in SQL mode, auto-detecting the protocol to use "
         "if it is not specified as part of the connection information.",

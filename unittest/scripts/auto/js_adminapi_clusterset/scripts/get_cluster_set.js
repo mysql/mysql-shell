@@ -71,6 +71,31 @@ EXPECT_NO_THROWS(function() {c = dba.getCluster("cluster"); });
 EXPECT_NE(c, null);
 EXPECT_EQ(c.status()["clusterName"], "cluster");
 
+//@<> check that the --cluster cmdline option works
+
+testutil.callMysqlsh([__sandbox_uri1, "--cluster", "-e", "print(cluster.status()); print(); print(clusterset.status());"]);
+
+EXPECT_OUTPUT_CONTAINS('"clusterName": "cluster"');
+EXPECT_OUTPUT_CONTAINS('"domainName": "domain"');
+
+WIPE_OUTPUT()
+
+testutil.callMysqlsh([__sandbox_uri3, "--cluster", "-e", "print(cluster.status()); print(); print(clusterset.status());"]);
+
+EXPECT_OUTPUT_CONTAINS('"clusterName": "replica"');
+EXPECT_OUTPUT_CONTAINS('"domainName": "domain"');
+
+//@<> check that mysqlsh -- clusterset works
+
+testutil.callMysqlsh([__sandbox_uri1, "--", "clusterset", "status"]);
+EXPECT_OUTPUT_CONTAINS('"domainName": "domain"');
+
+WIPE_OUTPUT()
+
+testutil.callMysqlsh([__sandbox_uri3, "--", "clusterset", "status"]);
+EXPECT_OUTPUT_CONTAINS('"domainName": "domain"');
+
+
 //TODO(miguel): check the Clusterset.status output
 
 //@<> Cluster.getClusterSet() from a secondary member of the primary cluster

@@ -92,14 +92,15 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    not a primary, find the primary and connect
                                    to it.
   --redirect-secondary             Ensure that the target server is part of an
-                                   InnoDB cluster or ReplicaSet and if it is
+                                   InnoDB Cluster or ReplicaSet and if it is
                                    not a secondary, find a secondary and
                                    connect to it.
   --cluster                        Ensure that the target server is part of an
-                                   InnoDB cluster and if so, set the cluster
-                                   global variable.
+                                   InnoDB Cluster and if so, set the 'cluster'
+                                   global variable. Also sets 'clusterset' if
+                                   the cluster is part of a ClusterSet.
   --replicaset                     Ensure that the target server is part of an
-                                   InnoDB ReplicaSet and if so, set the rs
+                                   InnoDB ReplicaSet and if so, set the 'rs'
                                    global variable.
   --sql                            Start in SQL mode, auto-detecting the
                                    protocol to use if it is not specified as
