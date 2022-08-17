@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,9 @@
 #ifndef MYSQLSHDK_LIBS_MYSQL_SCRIPT_H_
 #define MYSQLSHDK_LIBS_MYSQL_SCRIPT_H_
 
-#include <memory>
+#include <functional>
 #include <string>
+#include <string_view>
 
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -34,7 +35,7 @@ namespace mysql {
 
 size_t execute_sql_script(
     const mysqlshdk::mysql::IInstance &instance, const std::string &script,
-    const std::function<void(const std::string &)> &err_callback);
+    const std::function<void(std::string_view)> &err_callback);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

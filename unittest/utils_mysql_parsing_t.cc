@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,12 +21,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <stack>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "unittest/gtest_clean.h"
@@ -51,16 +53,20 @@ class TestMySQLSplitter : public ::testing::Test {
     debug = g_test_trace_scripts;
 
     splitter.reset(new Sql_splitter(
-        [this](const char *s, size_t len, bool bol,
+        [this](std::string_view s, bool bol,
                size_t lnum) -> std::pair<size_t, bool> {
-          if (!bol) len = 2;
+          if (!bol) s = s.substr(0, 2);
+          assert(s.size() >= 2);
+
           if (s[1] != 'g' && s[1] != 'G') {
-            results.emplace_back(std::string(len, 2), "", lnum);
-            return std::make_pair(len, false);
+            results.emplace_back(std::string{s}, "", lnum);
+            return std::make_pair(s.size(), false);
           }
           return std::make_pair(2U, true);
         },
-        [this](const std::string &err) { results.emplace_back(err, "", 0); }));
+        [this](std::string_view err) {
+          results.emplace_back(std::string{err}, "", 0);
+        }));
   }
 
   void send_sql(const std::string &data, bool dont_flush = false) {
@@ -955,24 +961,30 @@ TEST_F(TestMySQLSplitter, multiline_comment_bug_delim) {
 // New tests
 class Statement_splitter : public ::testing::TestWithParam<int> {
  protected:
-  std::vector<std::string> split_batch(const std::string &sql,
-                                       bool ansi_quotes = false) {
-    std::stringstream ss(sql);
+  std::vector<std::string> split_batch(std::string_view sql,
+                                       bool ansi_quotes = false,
+                                       bool no_backslash_escapes = false) {
+    std::stringstream ss(std::string{sql});
     std::vector<std::tuple<std::string, std::string, size_t>> r;
     if (GetParam() == 0)
       r = split_sql_stream(
           &ss, sql.empty() ? 1 : sql.length(),
-          [](const std::string &err) { throw std::runtime_error(err); },
-          ansi_quotes, &delimiter);
+          [](std::string_view err) {
+            throw std::runtime_error(std::string{err});
+          },
+          ansi_quotes, no_backslash_escapes, &delimiter);
     else
       r = split_sql_stream(
           &ss, GetParam(),
-          [](const std::string &err) { throw std::runtime_error(err); },
-          ansi_quotes, &delimiter);
+          [](std::string_view err) {
+            throw std::runtime_error(std::string{err});
+          },
+          ansi_quotes, no_backslash_escapes, &delimiter);
+
     std::vector<std::string> stmts;
-    for (const auto &i : r) {
-      stmts.push_back(std::get<0>(i) + std::get<1>(i));
-    }
+    stmts.reserve(r.size());
+    for (const auto &i : r) stmts.push_back(std::get<0>(i) + std::get<1>(i));
+
     return stmts;
   }
 
@@ -987,13 +999,17 @@ class Statement_splitter : public ::testing::TestWithParam<int> {
     if (GetParam() == 0)
       r = split_sql_stream(
           &ss, sql.empty() ? 1 : sql.length(),
-          [](const std::string &err) { throw std::runtime_error(err); }, false,
-          &delimiter);
+          [](std::string_view err) {
+            throw std::runtime_error(std::string{err});
+          },
+          false, false, &delimiter);
     else
       r = split_sql_stream(
           &ss, GetParam(),
-          [](const std::string &err) { throw std::runtime_error(err); }, false,
-          &delimiter);
+          [](std::string_view err) {
+            throw std::runtime_error(std::string{err});
+          },
+          false, false, &delimiter);
 
     size_t lnum = 1;
     auto s = stmts.begin();
@@ -1126,6 +1142,101 @@ TEST_P(Statement_splitter, ansi_quotes) {
   const auto expected_s2 =
       strv({R"*("a\";)*", R"*(b;)*", R"*('a\';b';)*", R"*(`a\`;)*", R"*(b;)*"});
   EXPECT_EQ(expected_s2, split_batch(s2, true));
+}
+
+TEST_P(Statement_splitter, no_backslash_escapes) {
+  std::array<std::string_view, 16> strs{
+      R"(select 'a'; select 1;)",
+      R"(select 'a''; select 2;)",
+      R"(select 'a'''; select 3;)",
+      R"(select 'a\'; select 4;)",
+      R"(select 'a\''; select 5;)",
+      R"(select "a"; select 6;)",
+      R"(select "a""; select 7;)",
+      R"(select "a"""; select 8;)",
+      R"(select "a\"; select 9;)",
+      R"(select "a\""; select 10;)",
+      R"(select `a`; select 11;)",
+      R"(select `a``; select 12;)",
+      R"(select `a```; select 13;)",
+      R"(select `a\`; select 14;)",
+      R"(select `a\``; select 15;)",
+      R"(create table t2 (`c1\` INT); select 16;)"};
+
+  for (size_t i = 0; i < strs.size(); i++) {
+    auto str = strs[i];
+
+    SCOPED_TRACE(shcore::str_format("Test %zu: %.*s", i,
+                                    static_cast<int>(str.size()), str.data()));
+
+    auto stat = split_batch(str, false, false);
+    switch (i) {
+      case 1:
+      case 3:
+      case 6:
+      case 8:
+      case 11:
+      case 14:
+        EXPECT_EQ(stat.size(), 1);
+        EXPECT_EQ(stat[0], str);
+        break;
+      default:
+        EXPECT_EQ(stat.size(), 2);
+        EXPECT_EQ(str.substr(0, str.find_first_of(';') + 1), stat[0]);
+        EXPECT_EQ(str.substr(str.find("; ") + 2), stat[1]);
+    }
+
+    stat = split_batch(str, true, false);
+    switch (i) {
+      case 1:
+      case 3:
+      case 6:
+      case 9:
+      case 11:
+      case 14:
+        EXPECT_EQ(stat.size(), 1);
+        EXPECT_EQ(stat[0], str);
+        break;
+      default:
+        EXPECT_EQ(stat.size(), 2);
+        EXPECT_EQ(str.substr(0, str.find_first_of(';') + 1), stat[0]);
+        EXPECT_EQ(str.substr(str.find("; ") + 2), stat[1]);
+    }
+
+    stat = split_batch(str, false, true);
+    switch (i) {
+      case 1:
+      case 4:
+      case 6:
+      case 9:
+      case 11:
+      case 14:
+        EXPECT_EQ(stat.size(), 1);
+        EXPECT_EQ(stat[0], str);
+        break;
+      default:
+        EXPECT_EQ(stat.size(), 2);
+        EXPECT_EQ(str.substr(0, str.find_first_of(';') + 1), stat[0]);
+        EXPECT_EQ(str.substr(str.find("; ") + 2), stat[1]);
+    }
+
+    stat = split_batch(str, true, true);
+    switch (i) {
+      case 1:
+      case 4:
+      case 6:
+      case 9:
+      case 11:
+      case 14:
+        EXPECT_EQ(stat.size(), 1);
+        EXPECT_EQ(stat[0], str);
+        break;
+      default:
+        EXPECT_EQ(stat.size(), 2);
+        EXPECT_EQ(str.substr(0, str.find_first_of(';') + 1), stat[0]);
+        EXPECT_EQ(str.substr(str.find("; ") + 2), stat[1]);
+    }
+  }
 }
 
 TEST_P(Statement_splitter, commands) {

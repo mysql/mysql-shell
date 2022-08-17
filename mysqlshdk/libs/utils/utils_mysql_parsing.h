@@ -24,9 +24,9 @@
 #define _UTILS_MYSQL_PARSING_H_
 
 #include <array>
-#include <forward_list>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -36,12 +36,12 @@ namespace utils {
 
 class Sql_splitter {
  public:
-  // callback(cmdstr, length, single_line, line_num) ->
+  // callback(cmdstr, single_line, line_num) ->
   //                    (real_length, is_delimiter)
-  using Command_callback = std::function<std::pair<size_t, bool>(
-      const char *, size_t, bool, size_t)>;
+  using Command_callback =
+      std::function<std::pair<size_t, bool>(std::string_view, bool, size_t)>;
 
-  using Error_callback = std::function<void(const std::string &)>;
+  using Error_callback = std::function<void(std::string_view)>;
 
   /** Sql_splitter constructor
    *
@@ -49,18 +49,20 @@ class Sql_splitter {
    * @param err_callback Error callback.
    * @param commands List of keywords defining SQL like commands (e.g. 'use').
    */
-  Sql_splitter(const Command_callback &cmd_callback,
-               const Error_callback &err_callback,
-               const std::initializer_list<const char *> &commands = {});
+  Sql_splitter(Command_callback cmd_callback, Error_callback err_callback,
+               std::initializer_list<std::string_view> commands = {});
 
   void reset();
 
   void feed_chunk(char *buffer, size_t size);
   void feed(char *buffer, size_t size);
 
-  void set_ansi_quotes(bool flag);
+  void set_ansi_quotes(bool enabled) { m_ansi_quotes = enabled; }
+  void set_no_backslash_escapes(bool enabled) {
+    m_no_backslash_escapes = enabled;
+  }
 
-  bool set_delimiter(const std::string &delim);
+  bool set_delimiter(std::string delim);
   const std::string &delimiter() const { return m_delimiter; }
 
   struct Range {
@@ -79,20 +81,20 @@ class Sql_splitter {
 
   bool is_last_chunk() const { return m_last_chunk; }
 
-  enum Context {
-    NONE,
-    STATEMENT,            // any non-comments before delimiter
-    COMMENT,              // /* ... */
-    COMMENT_HINT,         // /*+ ... */ ...;
-    COMMENT_CONDITIONAL,  // /*! ... */ ...;
-    SQUOTE_STRING,        // '...'
-    DQUOTE_STRING,        // "..." (only if not ansi_quotes)
-    BQUOTE_IDENTIFIER,    // `...`
-    DQUOTE_IDENTIFIER     // "..." (ansi_quotes)
+  enum class Context {
+    kNone,
+    kStatement,           // any non-comments before delimiter
+    kComment,             // /* ... */
+    kCommentHint,         // /*+ ... */ ...;
+    kCommentConditional,  // /*! ... */ ...;
+    kSQuoteString,        // '...'
+    kDQuoteString,        // "..." (only if not ansi_quotes)
+    kBQuoteIdentifier,    // `...`
+    kDQuoteIdentifier     // "..." (ansi_quotes)
   };
 
   Context context() const {
-    return m_context.empty() ? NONE : m_context.back();
+    return m_context.empty() ? Context::kNone : m_context.back();
   }
 
  private:
@@ -112,14 +114,15 @@ class Sql_splitter {
   Command_callback m_cmd_callback;
   Error_callback m_err_callback;
 
-  std::array<std::forward_list<std::string>, 'z' - 'a'> m_commands_table;
+  std::array<std::vector<std::string>, 'z' - 'a'> m_commands_table;
 
-  size_t m_shrinked_bytes;
-  size_t m_current_line;
-  size_t m_total_offset;
-  bool m_ansi_quotes;
-  bool m_last_chunk;
-  bool m_eof;
+  size_t m_shrinked_bytes{0};
+  size_t m_current_line{1};
+  size_t m_total_offset{0};
+  bool m_ansi_quotes{false};
+  bool m_no_backslash_escapes{false};
+  bool m_last_chunk{false};
+  bool m_eof{false};
 };
 
 std::string to_string(Sql_splitter::Context context);
@@ -127,17 +130,19 @@ std::string to_string(Sql_splitter::Context context);
 std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
     std::istream *stream, size_t chunk_size,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes = false,
-    std::string *delimiter = nullptr);
+    bool no_backslash_escapes = false, std::string *delimiter = nullptr);
 
 std::vector<std::string> split_sql(const std::string &str,
-                                   bool ansi_quotes = false);
+                                   bool ansi_quotes = false,
+                                   bool no_backslash_escapes = false);
 
 bool iterate_sql_stream(
     std::istream *stream, size_t chunk_size,
-    const std::function<bool(const char *, size_t, const std::string &, size_t,
+    const std::function<bool(std::string_view, std::string_view, size_t,
                              size_t)> &stmt_callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes = false,
-    std::string *delimiter = nullptr, Sql_splitter **splitter_ptr = nullptr);
+    bool no_backslash_escapes = false, std::string *delimiter = nullptr,
+    Sql_splitter **splitter_ptr = nullptr);
 
 }  // namespace utils
 }  // namespace mysqlshdk

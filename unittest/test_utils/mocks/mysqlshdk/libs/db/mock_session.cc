@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,18 +38,10 @@ void Mock_session_common::do_expect_query(const std::string &query) {
   m_throws.emplace_back();
 }
 
-std::string Mock_session::escape_string(const std::string &s) const {
+std::string Mock_session::escape_string(std::string_view s) const {
   std::string res;
-  res.resize(s.length() * 2 + 1);
-  size_t l = mysql_escape_string(&res[0], s.data(), s.length());
-  res.resize(l);
-  return res;
-}
-
-std::string Mock_session::escape_string(const char *buffer, size_t len) const {
-  std::string res;
-  res.resize(len * 2 + 1);
-  size_t l = mysql_escape_string(&res[0], buffer, len);
+  res.resize(s.size() * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], s.data(), s.size());
   res.resize(l);
   return res;
 }

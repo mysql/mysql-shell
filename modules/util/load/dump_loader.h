@@ -482,11 +482,10 @@ class Dump_loader {
 
   class Sql_transform {
    public:
-    bool operator()(const char *sql, size_t length,
-                    std::string *out_new_sql) const {
+    bool operator()(std::string_view sql, std::string *out_new_sql) const {
       if (m_ops.empty()) return false;
 
-      std::string orig_sql(sql, length);
+      std::string orig_sql(sql);
       std::string new_sql;
 
       for (const auto &f : m_ops) {
@@ -509,20 +508,20 @@ class Dump_loader {
      * Callback should return true if this statement should be executed.
      */
     void add_execute_conditionally(
-        std::function<bool(const std::string &, const std::string &)> &&f);
+        std::function<bool(std::string_view, std::string_view)> f);
 
     /**
      * Whenever a USE `schema` or CREATE DATABASE ... `schema` statement is
      * executed, `schema` is going to be replaced with the new name.
      */
-    void add_rename_schema(const std::string &new_name);
+    void add_rename_schema(std::string_view new_name);
 
    private:
-    void add(std::function<void(const std::string &, std::string *)> &&f) {
+    void add(std::function<void(std::string_view, std::string *)> f) {
       m_ops.emplace_back(std::move(f));
     }
 
-    std::list<std::function<void(const std::string &, std::string *)>> m_ops;
+    std::list<std::function<void(std::string_view, std::string *)>> m_ops;
   };
 
   const Load_dump_options &m_options;

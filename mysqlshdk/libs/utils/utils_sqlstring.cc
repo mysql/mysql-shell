@@ -24,8 +24,8 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 #include <algorithm>
+#include <array>
 #include <string_view>
-#include <vector>
 
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -33,8 +33,8 @@
 
 namespace {
 
-// updated as of 8.0, 2022-02-11, this vector MUST be sorted
-const std::vector<std::string_view> reserved_keywords = {
+// updated as of 8.0, 2022-02-11, this array MUST be sorted
+constexpr std::array<std::string_view, 269> reserved_keywords = {
     "ACCESSIBLE",
     "ADD",
     "ADMIN",  // became nonreserved in 8.0.12
@@ -306,6 +306,13 @@ const std::vector<std::string_view> reserved_keywords = {
     "ZEROFILL",
 };
 
+bool is_reserved_word(std::string_view word) {
+  const auto upper = shcore::str_upper(word);
+  const auto it = std::lower_bound(reserved_keywords.begin(),
+                                   reserved_keywords.end(), upper);
+  return reserved_keywords.end() != it && upper == *it;
+}
+
 }  // namespace
 
 namespace shcore {
@@ -316,14 +323,14 @@ namespace shcore {
  * Same code as used by mysql. Handles null bytes in the middle of the string.
  * If wildcards is true then _ and % are masked as well.
  */
-std::string escape_sql_string(const std::string &s, bool wildcards) {
+std::string escape_sql_string(std::string_view s, bool wildcards) {
   std::string result;
   result.reserve(s.size());
 
-  for (std::string::const_iterator ch = s.begin(); ch != s.end(); ++ch) {
+  for (const auto ch : s) {
     char escape = 0;
 
-    switch (*ch) {
+    switch (ch) {
       case 0: /* Must be escaped for 'mysql' */
         escape = '0';
         break;
@@ -352,12 +359,10 @@ std::string escape_sql_string(const std::string &s, bool wildcards) {
         if (wildcards) escape = '%';
         break;
     }
-    if (escape) {
-      result.push_back('\\');
-      result.push_back(escape);
-    } else {
-      result.push_back(*ch);
-    }
+    if (escape)
+      result.append(1, '\\').append(1, escape);
+    else
+      result.append(1, ch);
   }
   return result;
 }
@@ -366,14 +371,14 @@ std::string escape_sql_string(const std::string &s, bool wildcards) {
 
 // NOTE: This is not the same as escape_sql_string, as embedded ` must be
 // escaped as ``, not \` and \ ' and " must not be escaped
-std::string escape_backticks(const std::string &s) {
+std::string escape_backticks(std::string_view s) {
   std::string result;
   result.reserve(s.size());
 
-  for (std::string::const_iterator ch = s.begin(); ch != s.end(); ++ch) {
+  for (const auto ch : s) {
     char escape = 0;
 
-    switch (*ch) {
+    switch (ch) {
       case 0: /* Must be escaped for 'mysql' */
         escape = '0';
         break;
@@ -391,21 +396,19 @@ std::string escape_backticks(const std::string &s) {
         result.push_back('`');
         break;
     }
-    if (escape) {
-      result.push_back('\\');
-      result.push_back(escape);
-    } else {
-      result.push_back(*ch);
-    }
+    if (escape)
+      result.append(1, '\\').append(1, escape);
+    else
+      result.append(1, ch);
   }
   return result;
 }
 
-std::string escape_wildcards(const std::string &s) {
+std::string escape_wildcards(std::string_view s) {
   std::string result;
   result.reserve(s.size());
 
-  for (const auto &ch : s) {
+  for (const auto ch : s) {
     bool escape = (ch == '%' || ch == '_');
 
     if (escape) result.push_back('\\');
@@ -418,34 +421,24 @@ std::string escape_wildcards(const std::string &s) {
 
 //--------------------------------------------------------------------------------------------------
 
-bool is_reserved_word(const std::string &word) {
-  const auto upper = str_upper(word);
-  const auto it = std::lower_bound(reserved_keywords.begin(),
-                                   reserved_keywords.end(), upper);
-  return reserved_keywords.end() != it && upper == *it;
+std::string quote_sql_string(std::string_view s) {
+  std::string res;
+  res.reserve(s.size() + 2);
+  res.append("'").append(escape_sql_string(s)).append("'");
+  return res;
 }
 
 //--------------------------------------------------------------------------------------------------
 
-std::string quote_sql_string(const std::string &s) {
-  return "'" + escape_sql_string(s) + "'";
-}
-
-//--------------------------------------------------------------------------------------------------
-
-std::string quote_identifier(const std::string &identifier, char q) {
+std::string quote_identifier(std::string_view identifier, char q) {
   assert('`' == q || '"' == q);
 
   char quotes[] = {q, q};
   const auto replaced = str_replace(identifier, std::string_view{quotes, 1},
                                     std::string_view{quotes, 2});
   std::string result;
-
   result.reserve(2 + replaced.length());
-  result.append(1, q);
-  result.append(replaced);
-  result.append(1, q);
-
+  result.append(1, q).append(replaced).append(1, q);
   return result;
 }
 
@@ -457,18 +450,17 @@ std::string quote_identifier(const std::string &identifier, char q) {
  * allowed in unquoted identifiers. Leading numbers are not strictly forbidden
  * but discouraged as they may lead to ambiguous behavior.
  */
-std::string quote_identifier_if_needed(const std::string &ident, char q) {
+std::string quote_identifier_if_needed(std::string_view ident, char q) {
   bool needs_quotation =
       is_reserved_word(ident);  // check whether it's a reserved keyword
   size_t digits = 0;
 
   if (!needs_quotation) {
-    for (std::string::const_iterator i = ident.begin(); i != ident.end(); ++i) {
-      if ((*i >= 'a' && *i <= 'z') || (*i >= 'A' && *i <= 'Z') ||
-          (*i >= '0' && *i <= '9') || (*i == '_') || (*i == '$') ||
-          ((unsigned char)(*i) > 0x7F)) {
-        if (*i >= '0' && *i <= '9') digits++;
-
+    for (const auto i : ident) {
+      if ((i >= 'a' && i <= 'z') || (i >= 'A' && i <= 'Z') ||
+          (i >= '0' && i <= '9') || (i == '_') || (i == '$') ||
+          ((unsigned char)(i) > 0x7F)) {
+        if (i >= '0' && i <= '9') digits++;
         continue;
       }
       needs_quotation = true;
@@ -478,8 +470,8 @@ std::string quote_identifier_if_needed(const std::string &ident, char q) {
 
   if (needs_quotation || digits == ident.length())
     return quote_identifier(ident, q);
-  else
-    return ident;
+
+  return std::string{ident};
 }
 
 const sqlstring sqlstring::null(sqlstring("NULL", 0));
@@ -526,7 +518,7 @@ int sqlstring::next_escape() {
   return c;
 }
 
-sqlstring &sqlstring::append(const std::string &s) {
+sqlstring &sqlstring::append(std::string_view s) {
   _formatted.append(s);
   return *this;
 }
@@ -576,7 +568,7 @@ sqlstring &sqlstring::operator<<(const sqlstringformat format) {
   return *this;
 }
 
-sqlstring &sqlstring::operator<<(const std::string &v) {
+sqlstring &sqlstring::operator<<(std::string_view v) {
   int esc = next_escape();
   if (esc == '!') {
     if ((_format._flags & QuoteOnlyIfNeeded) != 0)
@@ -598,7 +590,7 @@ sqlstring &sqlstring::operator<<(const std::string &v) {
 sqlstring &sqlstring::operator<<(const sqlstring &v) {
   next_escape();
 
-  append(v);
+  append(v.str_view());
   append(consume_until_next_escape());
 
   return *this;

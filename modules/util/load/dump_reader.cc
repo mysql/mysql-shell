@@ -1392,43 +1392,41 @@ void Dump_reader::on_table_metadata_parsed(const Table_info &info) {
   on_metadata_parsed();
 }
 
-bool Dump_reader::include_schema(const std::string &schema) const {
+bool Dump_reader::include_schema(std::string_view schema) const {
   return m_options.include_schema(override_schema(schema));
 }
 
-bool Dump_reader::include_table(const std::string &schema,
-                                const std::string &table) const {
+bool Dump_reader::include_table(std::string_view schema,
+                                std::string_view table) const {
   return m_options.include_table(override_schema(schema), table);
 }
 
-bool Dump_reader::include_event(const std::string &schema,
-                                const std::string &event) const {
+bool Dump_reader::include_event(std::string_view schema,
+                                std::string_view event) const {
   return m_options.include_event(override_schema(schema), event);
 }
 
-bool Dump_reader::include_routine(const std::string &schema,
-                                  const std::string &routine) const {
+bool Dump_reader::include_routine(std::string_view schema,
+                                  std::string_view routine) const {
   return m_options.include_routine(override_schema(schema), routine);
 }
 
-bool Dump_reader::include_trigger(const std::string &schema,
-                                  const std::string &table,
-                                  const std::string &trigger) const {
+bool Dump_reader::include_trigger(std::string_view schema,
+                                  std::string_view table,
+                                  std::string_view trigger) const {
   return m_options.include_trigger(override_schema(schema), table, trigger);
 }
 
-const std::string &Dump_reader::override_schema(const std::string &s) const {
-  if (m_schema_override) {
-    const auto &value = m_schema_override.value();
-    return value.first == s ? value.second : s;
-  } else {
-    return s;
-  }
+std::string_view Dump_reader::override_schema(std::string_view s) const {
+  if (!m_schema_override) return s;
+
+  const auto &value = m_schema_override.value();
+  return value.first == s ? value.second : s;
 }
 
-void Dump_reader::on_chunk_loaded(const std::string &schema,
-                                  const std::string &table,
-                                  const std::string &partition) {
+void Dump_reader::on_chunk_loaded(std::string_view schema,
+                                  std::string_view table,
+                                  std::string_view partition) {
   const auto t = find_table(schema, table, "chunk was loaded");
 
   for (auto &tdi : t->data_info) {
@@ -1438,36 +1436,44 @@ void Dump_reader::on_chunk_loaded(const std::string &schema,
     }
   }
 
-  throw std::logic_error("Unable to find partition " + partition +
-                         " of table " + table + " in schema " + schema +
-                         " whose chunk was loaded");
+  throw std::logic_error(
+      shcore::str_format("Unable to find partition %.*s of table %.*s in "
+                         "schema %.*s whose chunk was loaded",
+                         static_cast<int>(partition.length()), partition.data(),
+                         static_cast<int>(table.length()), table.data(),
+                         static_cast<int>(schema.length()), schema.data()));
 }
 
-void Dump_reader::on_index_end(const std::string &schema,
-                               const std::string &table) {
+void Dump_reader::on_index_end(std::string_view schema,
+                               std::string_view table) {
   find_table(schema, table, "indexes were created")->indexes_created = true;
 }
 
-void Dump_reader::on_analyze_end(const std::string &schema,
-                                 const std::string &table) {
+void Dump_reader::on_analyze_end(std::string_view schema,
+                                 std::string_view table) {
   find_table(schema, table, "analysis was finished")->analyze_finished = true;
 }
 
-Dump_reader::Table_info *Dump_reader::find_table(const std::string &schema,
-                                                 const std::string &table,
-                                                 const char *context) {
-  const auto s = m_contents.schemas.find(schema);
+Dump_reader::Table_info *Dump_reader::find_table(std::string_view schema,
+                                                 std::string_view table,
+                                                 std::string_view context) {
+  const auto s = m_contents.schemas.find(std::string{schema});
 
   if (s == m_contents.schemas.end()) {
-    throw std::logic_error("Unable to find schema " + schema + " whose " +
-                           context);
+    throw std::logic_error(
+        shcore::str_format("Unable to find schema %.*s whose %.*s",
+                           static_cast<int>(schema.length()), schema.data(),
+                           static_cast<int>(context.length()), context.data()));
   }
 
-  const auto t = s->second->tables.find(table);
+  const auto t = s->second->tables.find(std::string{table});
 
   if (t == s->second->tables.end()) {
-    throw std::logic_error("Unable to find table " + table + " in schema " +
-                           schema + " whose " + context);
+    throw std::logic_error(shcore::str_format(
+        "Unable to find table %.*s in schema %.*s whose %.*s",
+        static_cast<int>(table.length()), table.data(),
+        static_cast<int>(schema.length()), schema.data(),
+        static_cast<int>(context.length()), context.data()));
   }
 
   return t->second.get();

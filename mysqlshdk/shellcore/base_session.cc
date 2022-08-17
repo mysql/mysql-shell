@@ -103,6 +103,53 @@ bool ShellBaseSession::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
+void ShellBaseSession::enable_sql_mode_tracking() {
+  if (m_is_sql_mode_tracking_enabled) return;
+
+  auto session = get_core_session();
+
+  if (session->get_connection_options().get_session_type() !=
+      mysqlsh::SessionType::Classic)
+    return;
+  if (session->get_server_version() < mysqlshdk::utils::Version(5, 7, 0))
+    return;
+
+  std::string current_value;
+  try {
+    const auto res =
+        session->query("SELECT @@SESSION.session_track_system_variables");
+    const auto row = res->fetch_one();
+    if (!row)
+      throw std::logic_error(
+          "Unable to determine current session tracked system variables.");
+
+    current_value = shcore::str_lower(row->get_string(0));
+
+  } catch (const mysqlshdk::db::Error &e) {
+    return;
+  }
+
+  m_is_sql_mode_tracking_enabled =
+      current_value.find("sql_mode") != std::string::npos;
+
+  if (m_is_sql_mode_tracking_enabled) {
+    log_info("Already tracking 'sql_mode'system variable.");
+    return;
+  }
+
+  current_value.append(current_value.empty() ? "sql_mode" : ", sql_mode");
+
+  try {
+    session->executef("SET SESSION session_track_system_variables = ?;",
+                      current_value);
+  } catch (const mysqlshdk::db::Error &e) {
+    return;
+  }
+
+  m_is_sql_mode_tracking_enabled = true;
+  log_info("Now tracking 'sql_mode' system variable.");
+}
+
 std::string ShellBaseSession::get_quoted_name(const std::string &name) {
   size_t index = 0;
   std::string quoted_name(name);

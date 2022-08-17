@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,7 +82,7 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
   void kill_query(uint64_t conn_id,
                   const mysqlshdk::db::Connection_options &conn_opts);
 
-  void execute(const std::string &sql);
+  void execute(std::string_view sql);
 
  private:
   struct Context {
@@ -104,8 +104,8 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
                      const Sql_result_info &)>
       _result_processor;
 
-  bool process_sql(const char *query_str, size_t query_len,
-                   const std::string &delimiter, size_t line_num,
+  bool process_sql(std::string_view query_str, std::string_view delimiter,
+                   size_t line_num,
                    std::shared_ptr<mysqlshdk::db::ISession> session,
                    mysqlshdk::utils::Sql_splitter *splitter);
 

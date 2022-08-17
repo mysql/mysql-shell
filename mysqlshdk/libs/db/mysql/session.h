@@ -150,7 +150,9 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::vector<std::string> get_last_gtids() const;
 
-  uint32_t get_server_status() const { return _mysql->server_status; }
+  uint32_t get_server_status() const {
+    return _mysql ? _mysql->server_status : 0;
+  }
 
   uint64_t warning_count() const {
     return _mysql ? mysql_warning_count(_mysql) : 0;
@@ -233,8 +235,7 @@ class SHCORE_PUBLIC Session : public ISession,
 
   virtual const char *get_stats() { return _impl->get_stats(); }
 
-  std::string escape_string(const std::string &s) const override;
-  std::string escape_string(const char *buffer, size_t len) const override;
+  std::string escape_string(std::string_view s) const override;
 
   mysqlshdk::utils::Version get_server_version() const override {
     return _impl->get_server_version();
@@ -246,7 +247,9 @@ class SHCORE_PUBLIC Session : public ISession,
 
   const char *get_mysql_info() const { return _impl->get_mysql_info(); }
 
-  uint32_t get_server_status() const { return _impl->get_server_status(); }
+  uint32_t get_server_status() const override {
+    return _impl->get_server_status();
+  }
 
   // function callback registration for local infile support
   void set_local_infile_init(int (*local_infile_init)(void **, const char *,

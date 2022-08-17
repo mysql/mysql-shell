@@ -23,9 +23,7 @@
 
 #include "mysqlshdk/libs/mysql/script.h"
 
-#include <cassert>
-#include <memory>
-#include <stack>
+#include <sstream>
 
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 
@@ -34,14 +32,14 @@ namespace mysql {
 
 size_t execute_sql_script(
     const mysqlshdk::mysql::IInstance &instance, const std::string &script,
-    const std::function<void(const std::string &)> &err_callback) {
+    const std::function<void(std::string_view)> &err_callback) {
   std::stringstream stream(script);
   size_t count = 0;
   utils::iterate_sql_stream(
       &stream, 1024 * 64,
-      [&instance, &count](const char *s, size_t len, const std::string &,
-                          size_t, size_t) {
-        instance.query({s, len});
+      [&instance, &count](std::string_view s, std::string_view, size_t,
+                          size_t) {
+        instance.query(std::string{s});
         ++count;
         return true;
       },

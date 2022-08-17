@@ -608,7 +608,7 @@ Load_dump_options::create_progress_file_handle() const {
 
 // Filtering works as:
 // (includeSchemas + includeTables || *) - excludeSchemas - excludeTables
-bool Load_dump_options::include_schema(const std::string &schema) const {
+bool Load_dump_options::include_schema(std::string_view schema) const {
   const auto qschema = shcore::quote_identifier(schema);
 
   if (m_exclude_schemas.count(qschema) > 0) return false;
@@ -624,69 +624,60 @@ bool Load_dump_options::include_schema(const std::string &schema) const {
   return false;
 }
 
-bool Load_dump_options::include_table(const std::string &schema,
-                                      const std::string &table) const {
+bool Load_dump_options::include_table(std::string_view schema,
+                                      std::string_view table) const {
   return include_object(schema, table, m_include_tables, m_exclude_tables);
 }
 
-bool Load_dump_options::include_event(const std::string &schema,
-                                      const std::string &event) const {
+bool Load_dump_options::include_event(std::string_view schema,
+                                      std::string_view event) const {
   return include_object(schema, event, m_include_events, m_exclude_events);
 }
 
-bool Load_dump_options::include_routine(const std::string &schema,
-                                        const std::string &routine) const {
+bool Load_dump_options::include_routine(std::string_view schema,
+                                        std::string_view routine) const {
   return include_object(schema, routine, m_include_routines,
                         m_exclude_routines);
 }
 
 bool Load_dump_options::include_object(
-    const std::string &schema, const std::string &object,
+    std::string_view schema, std::string_view object,
     const std::unordered_set<std::string> &included,
     const std::unordered_set<std::string> &excluded) const {
   assert(!schema.empty());
   assert(!object.empty());
 
-  if (include_schema(schema)) {
-    const auto key = schema_object_key(schema, object);
+  if (!include_schema(schema)) return false;
 
-    if (excluded.count(key) > 0) {
-      return false;
-    }
+  const auto key = schema_object_key(schema, object);
 
-    if (included.empty() || included.count(key) > 0) {
-      return true;
-    }
-  }
+  if (excluded.count(key) > 0) return false;
 
-  return false;
+  return (included.empty() || included.count(key) > 0);
 }
 
-bool Load_dump_options::include_trigger(const std::string &schema,
-                                        const std::string &table,
-                                        const std::string &trigger) const {
+bool Load_dump_options::include_trigger(std::string_view schema,
+                                        std::string_view table,
+                                        std::string_view trigger) const {
   assert(!schema.empty());
   assert(!table.empty());
   assert(!trigger.empty());
 
-  if (include_table(schema, table)) {
-    // filters for triggers contain either `schema`.`table` or
-    // `schema`.`table`.`trigger` entries
-    const auto table_key = schema_object_key(schema, table);
-    const auto trigger_key = schema_table_object_key(schema, table, trigger);
+  if (!include_table(schema, table)) return false;
 
-    if (m_exclude_triggers.count(table_key) > 0 ||
-        m_exclude_triggers.count(trigger_key) > 0) {
-      return false;
-    }
+  // filters for triggers contain either `schema`.`table` or
+  // `schema`.`table`.`trigger` entries
+  const auto table_key = schema_object_key(schema, table);
+  const auto trigger_key = schema_table_object_key(schema, table, trigger);
 
-    if (m_include_triggers.empty() || m_include_triggers.count(table_key) > 0 ||
-        m_include_triggers.count(trigger_key) > 0) {
-      return true;
-    }
+  if (m_exclude_triggers.count(table_key) > 0 ||
+      m_exclude_triggers.count(trigger_key) > 0) {
+    return false;
   }
 
-  return false;
+  return (m_include_triggers.empty() ||
+          m_include_triggers.count(table_key) > 0 ||
+          m_include_triggers.count(trigger_key) > 0);
 }
 
 bool Load_dump_options::include_user(const shcore::Account &account) const {

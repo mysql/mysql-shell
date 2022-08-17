@@ -28,6 +28,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -234,9 +235,7 @@ class Schema_dumper {
 
   void use(const std::string &db) const;
 
-  void unescape(IFile *file, const char *pos, size_t length);
-
-  void unescape(IFile *file, const std::string &s);
+  void unescape(IFile *file, std::string_view s);
 
   std::string quote_for_like(const std::string &name_);
 

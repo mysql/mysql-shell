@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
@@ -60,8 +61,28 @@ using mysqlshdk::utils::Sql_splitter;
 namespace shcore {
 
 namespace {
-const std::initializer_list<const char *> keyword_commands = {"source", "use"};
+const std::initializer_list<std::string_view> k_keyword_commands = {"source",
+                                                                    "use"};
+
+bool ansi_quotes_enabled(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  if (!session) return false;
+
+  FI_SUPPRESS(mysql);
+  FI_SUPPRESS(mysqlx);
+  return session->ansi_quotes_enabled();
 }
+
+bool no_backslash_escapes_enabled(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  if (!session) return false;
+
+  FI_SUPPRESS(mysql);
+  FI_SUPPRESS(mysqlx);
+  return session->no_backslash_escapes_enabled();
+}
+
+}  // namespace
 
 // How many bytes at a time to process when executing large SQL scripts
 static constexpr auto k_sql_chunk_size = 64 * 1024;
@@ -69,13 +90,13 @@ static constexpr auto k_sql_chunk_size = 64 * 1024;
 Shell_sql::Context::Context(Shell_sql *parent_)
     : parent(parent_),
       splitter(
-          [parent_](const char *s, size_t len, bool bol, size_t /*lnum*/) {
-            return parent_->handle_command(s, len, bol);
+          [parent_](std::string_view s, bool bol, size_t /*lnum*/) {
+            return parent_->handle_command(s.data(), s.size(), bol);
           },
-          [](const std::string &err) {
-            mysqlsh::current_console()->print_error(err);
+          [](std::string_view err) {
+            mysqlsh::current_console()->print_error(std::string{err});
           },
-          keyword_commands),
+          k_keyword_commands),
       old_buffer(parent->m_buffer),
       old_splitter(parent->m_splitter) {
   parent->m_buffer = &buffer;
@@ -121,22 +142,12 @@ void Shell_sql::kill_query(uint64_t conn_id,
   }
 }
 
-static inline bool ansi_quotes_enabled(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-  if (session) {
-    FI_SUPPRESS(mysql);
-    FI_SUPPRESS(mysqlx);
-    return session->ansi_quotes_enabled();
-  } else {
-    return false;
-  }
-}
-
-bool Shell_sql::process_sql(const char *query_str, size_t query_len,
-                            const std::string &delimiter, size_t line_num,
+bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
+                            size_t line_num,
                             std::shared_ptr<mysqlshdk::db::ISession> session,
                             mysqlshdk::utils::Sql_splitter *splitter) {
   bool ret_val = false;
+  std::optional<bool> server_state_changed;
   if (session) {
     try {
       std::shared_ptr<mysqlshdk::db::IResult> result;
@@ -154,7 +165,14 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
             return true;
           });
 
-          result = session->querys(query_str, query_len);
+          result = session->querys(query.data(), query.size());
+
+          if ((mysqlshdk::db::replay::g_replay_mode ==
+               mysqlshdk::db::replay::Mode::Direct) &&
+              _owner->get_dev_session()->is_sql_mode_tracking_enabled()) {
+            server_state_changed =
+                session->get_server_status() & SERVER_SESSION_STATE_CHANGED;
+          }
         }
 
         timer.stage_end();
@@ -181,30 +199,44 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
     }
   }
 
-  _last_handled.append(query_str, query_len).append(delimiter);
+  _last_handled.append(query).append(delimiter);
 
   // check if the value of sql_mode have changed - statement can either begin
   // with 'SET' or, because our splitter does not strip them, with a C style
   // comment e.g.: /*...*/ set sql_mode...
-  if (ret_val && query_len > 12 &&
-      (query_str[2] == 't' || query_str[2] == 'T' || query_str[1] == '*')) {
-    mysqlshdk::utils::SQL_iterator it(_last_handled);
-    auto next = shcore::str_upper(it.next_token());
-    if (next.compare("SET") == 0) {
-      constexpr std::array<const char *, 4> mods = {"GLOBAL", "PERSIST",
-                                                    "SESSION", "LOCAL"};
-      next = shcore::str_upper(it.next_token());
-      for (const char *mod : mods)
-        if (next.compare(mod) == 0) {
-          next = it.next_token();
-          break;
+  if (ret_val) {
+    if (server_state_changed) {
+      if (*server_state_changed) {
+        session->refresh_sql_mode();
+      }
+
+      splitter->set_ansi_quotes(session->ansi_quotes_enabled());
+      splitter->set_no_backslash_escapes(
+          session->no_backslash_escapes_enabled());
+
+    } else if (query.size() > 12 &&
+               (query[2] == 't' || query[2] == 'T' || query[1] == '*')) {
+      mysqlshdk::utils::SQL_iterator it(_last_handled);
+      auto next = it.next_token();
+      if (shcore::str_caseeq(next, "SET")) {
+        constexpr std::array<std::string_view, 4> mods = {"GLOBAL", "PERSIST",
+                                                          "SESSION", "LOCAL"};
+        next = it.next_token();
+        for (auto mod : mods) {
+          if (shcore::str_caseeq(next, mod)) {
+            next = it.next_token();
+            break;
+          }
         }
 
-      while (next == "@") next = it.next_token();
+        while (next == "@") next = it.next_token();
 
-      if (shcore::str_upper(next).find("SQL_MODE") != std::string::npos) {
-        session->refresh_sql_mode();
-        splitter->set_ansi_quotes(session->ansi_quotes_enabled());
+        if (shcore::str_upper(next).find("SQL_MODE") != std::string::npos) {
+          session->refresh_sql_mode();
+          splitter->set_ansi_quotes(session->ansi_quotes_enabled());
+          splitter->set_no_backslash_escapes(
+              session->no_backslash_escapes_enabled());
+        }
       }
     }
   }
@@ -225,27 +257,27 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
   mysqlshdk::utils::Sql_splitter *splitter = nullptr;
   if (!mysqlshdk::utils::iterate_sql_stream(
           istream, k_sql_chunk_size,
-          [&](const char *s, size_t len, const std::string &delim, size_t lnum,
-              size_t) {
-            std::string cmd(s, len);
-            std::string file;
+          [&](std::string_view s, std::string_view delim, size_t lnum, size_t) {
+            std::string_view file;
 
-            if (shcore::str_beginswith(cmd.c_str(), "source"))
-              file = cmd.substr(6);
-            else if (shcore::str_beginswith(cmd.c_str(), "\\."))
-              file = cmd.substr(2);
+            if (shcore::str_beginswith(s, "source"))
+              file = s.substr(6);
+            else if (shcore::str_beginswith(s, "\\."))
+              file = s.substr(2);
 
             bool ret = false;
             if (!file.empty())
-              ret = _owner->handle_shell_command("\\source " + file);
-            else if (len > 0)
-              ret = process_sql(s, len, delim, lnum, session, splitter);
+              ret =
+                  _owner->handle_shell_command("\\source " + std::string{file});
+            else if (!s.empty())
+              ret = process_sql(s, delim, lnum, session, splitter);
             return ret ? ret : mysqlsh::current_shell_options()->get().force;
           },
-          [](const std::string &err) {
-            mysqlsh::current_console()->print_error(err);
+          [](std::string_view err) {
+            mysqlsh::current_console()->print_error(std::string{err});
           },
-          ansi_quotes_enabled(session), nullptr, &splitter)) {
+          ansi_quotes_enabled(session), no_backslash_escapes_enabled(session),
+          nullptr, &splitter)) {
     // signal error during input processing
     _result_processor(nullptr, {});
     return false;
@@ -286,6 +318,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
   auto session = get_session();
 
   m_splitter->set_ansi_quotes(ansi_quotes_enabled(session));
+  m_splitter->set_no_backslash_escapes(no_backslash_escapes_enabled(session));
   _last_handled.clear();
 
   // the whole code to be executed is in the `code` variable
@@ -327,7 +360,7 @@ void Shell_sql::handle_input(std::shared_ptr<mysqlshdk::db::ISession> session,
       // matter if it is a complete statement or not, any generated error will
       // bubble up
       if (m_splitter->next_range(&range, &delim) || flush) {
-        if (!process_sql(&m_buffer->at(range.offset), range.length, delim, 0,
+        if (!process_sql({&m_buffer->at(range.offset), range.length}, delim, 0,
                          session, m_splitter)) {
           got_error = true;
         }
@@ -337,7 +370,7 @@ void Shell_sql::handle_input(std::shared_ptr<mysqlshdk::db::ISession> session,
       } else {
         m_splitter->pack_buffer(m_buffer, range);
         if (m_buffer->size() > 0 && range.length > 0) {
-          m_input_state = m_splitter->context() == Sql_splitter::NONE
+          m_input_state = m_splitter->context() == Sql_splitter::Context::kNone
                               ? Input_state::Ok
                               : Input_state::ContinuedSingle;
         } else {
@@ -381,11 +414,12 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
 
   std::string cmd(p, len);
   const auto handle_sql_style_command =
-      [&](const std::string &kwd) -> std::pair<size_t, bool> {
+      [&](std::string_view kwd) -> std::pair<size_t, bool> {
     {
       std::unique_ptr<Context> ctx;
       if (kwd == "source") ctx = std::make_unique<Context>(this);
-      if (!_owner->handle_shell_command("\\" + kwd + cmd.substr(kwd.length())))
+      if (!_owner->handle_shell_command("\\" + std::string{kwd} +
+                                        cmd.substr(kwd.size())))
         return std::make_pair(0, false);
     }
     _last_handled.append(cmd);
@@ -395,9 +429,8 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
     return std::make_pair(len, false);
   };
 
-  for (const auto &c : keyword_commands)
-    if (shcore::str_ibeginswith(cmd.c_str(), c))
-      return handle_sql_style_command(c);
+  for (const auto &c : k_keyword_commands)
+    if (shcore::str_ibeginswith(cmd, c)) return handle_sql_style_command(c);
 
   if (bol && memchr(p, '\n', len)) {
     // handle as full-line command
@@ -414,7 +447,7 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
   return std::make_pair(2, false);
 }
 
-void Shell_sql::execute(const std::string &sql) {
+void Shell_sql::execute(std::string_view sql) {
   std::shared_ptr<mysqlshdk::db::ISession> session;
   const auto s = _owner->get_dev_session();
 
@@ -425,16 +458,20 @@ void Shell_sql::execute(const std::string &sql) {
   if (!s || !session || !session->is_open()) {
     print_exception(shcore::Exception::logic_error("Not connected."));
   } else {
-    for (const std::string d :
-         {";", "\\G", "\\g", get_main_delimiter().c_str()}) {
-      if (shcore::str_endswith(sql, d)) {
-        process_sql(sql.c_str(), sql.length() - d.length(), d, 0, session,
-                    m_splitter);
-        return;
-      }
-    }
-    process_sql(sql.c_str(), sql.length(), get_main_delimiter(), 0, session,
-                m_splitter);
+    auto check_delim = [this, &sql, &session](std::string_view delim) {
+      if (!shcore::str_endswith(sql, delim)) return false;
+
+      process_sql(sql.substr(0, sql.length() - delim.length()), delim, 0,
+                  session, m_splitter);
+      return true;
+    };
+
+    if (check_delim(";")) return;
+    if (check_delim("\\G")) return;
+    if (check_delim("\\g")) return;
+    if (check_delim(get_main_delimiter())) return;
+
+    process_sql(sql, get_main_delimiter(), 0, session, m_splitter);
   }
 }
 

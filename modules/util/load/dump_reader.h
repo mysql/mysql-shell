@@ -233,20 +233,19 @@ class Dump_reader {
 
   bool has_partitions() const { return m_dump_has_partitions; }
 
-  bool include_schema(const std::string &schema) const;
-  bool include_table(const std::string &schema, const std::string &table) const;
-  bool include_event(const std::string &schema, const std::string &event) const;
-  bool include_routine(const std::string &schema,
-                       const std::string &routine) const;
-  bool include_trigger(const std::string &schema, const std::string &table,
-                       const std::string &trigger) const;
+  bool include_schema(std::string_view schema) const;
+  bool include_table(std::string_view schema, std::string_view table) const;
+  bool include_event(std::string_view schema, std::string_view event) const;
+  bool include_routine(std::string_view schema, std::string_view routine) const;
+  bool include_trigger(std::string_view schema, std::string_view table,
+                       std::string_view trigger) const;
 
-  void on_chunk_loaded(const std::string &schema, const std::string &table,
-                       const std::string &partition);
+  void on_chunk_loaded(std::string_view schema, std::string_view table,
+                       std::string_view partition);
 
-  void on_index_end(const std::string &schema, const std::string &table);
+  void on_index_end(std::string_view schema, std::string_view table);
 
-  void on_analyze_end(const std::string &schema, const std::string &table);
+  void on_analyze_end(std::string_view schema, std::string_view table);
 
   struct Capability_info {
     std::string id;
@@ -474,10 +473,10 @@ class Dump_reader {
   };
 
  private:
-  const std::string &override_schema(const std::string &s) const;
+  std::string_view override_schema(std::string_view s) const;
 
-  Table_info *find_table(const std::string &schema, const std::string &table,
-                         const char *context);
+  Table_info *find_table(std::string_view schema, std::string_view table,
+                         std::string_view context);
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
 

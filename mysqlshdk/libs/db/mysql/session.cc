@@ -589,20 +589,11 @@ std::vector<std::string> Session_impl::get_last_gtids() const {
   return gtids;
 }
 
-std::string Session::escape_string(const std::string &s) const {
+std::string Session::escape_string(std::string_view s) const {
   std::string res;
-  res.resize(s.length() * 2 + 1);
+  res.resize(s.size() * 2 + 1);
   size_t l = mysql_real_escape_string_quote(_impl->_mysql, &res[0], s.data(),
                                             s.size(), '\'');
-  res.resize(l);
-  return res;
-}
-
-std::string Session::escape_string(const char *buffer, size_t len) const {
-  std::string res;
-  res.resize(len * 2 + 1);
-  size_t l =
-      mysql_real_escape_string_quote(_impl->_mysql, &res[0], buffer, len, '\'');
   res.resize(l);
   return res;
 }

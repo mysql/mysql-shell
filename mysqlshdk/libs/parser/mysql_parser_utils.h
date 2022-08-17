@@ -193,11 +193,11 @@ void traverse_script_ast(
   std::stringstream stream(script);
   mysqlshdk::utils::iterate_sql_stream(
       &stream, 4098,
-      [&](const char *stmt, size_t stmt_len, const std::string & /*delim*/,
-          size_t /*lnum*/, size_t offs) {
-        std::string sql(stmt, stmt_len);
+      [&](std::string_view stmt, std::string_view /*delim*/, size_t /*lnum*/,
+          size_t offs) {
+        if (shcore::str_ibeginswith(stmt, "delimiter")) return true;
 
-        if (shcore::str_ibeginswith(sql, "delimiter")) return true;
+        std::string sql(stmt);
 
         parser.reset();
         lexer.reset();
@@ -213,8 +213,10 @@ void traverse_script_ast(
         on_stmt(sql, offs, false);
         return true;
       },
-      [](const std::string &msg) {
-        throw std::runtime_error("Error splitting SQL: " + msg);
+      [](std::string_view msg) {
+        throw std::runtime_error(
+            shcore::str_format("Error splitting SQL: %.*s",
+                               static_cast<int>(msg.size()), msg.data()));
       },
       ansi_quotes);
 }

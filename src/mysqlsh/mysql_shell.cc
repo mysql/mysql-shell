@@ -166,6 +166,7 @@ void print_warning(const std::string &s) {
 void println(const std::string &s) { current_console()->println(s); }
 
 void print(const std::string &s) { current_console()->print(s); }
+
 }  // namespace
 
 class Shell_command_provider : public shcore::completer::Provider {
@@ -956,6 +957,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
 
       old_session->close();
     }
+
+    new_session->enable_sql_mode_tracking();
   }
 
   if (recreate_schema) {

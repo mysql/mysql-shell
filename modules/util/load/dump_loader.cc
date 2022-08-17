@@ -109,8 +109,11 @@ compatibility::Deferred_statements preprocess_table_script_for_indexes(
   script->clear();
   mysqlshdk::utils::iterate_sql_stream(
       &stream, script_length,
-      [&](const char *s, size_t len, const std::string &delim, size_t, size_t) {
-        auto sql = std::string(s, len) + delim + "\n";
+      [&](std::string_view s, std::string_view delim, size_t, size_t) {
+        auto sql = shcore::str_format(
+            "%.*s%.*s\n", static_cast<int>(s.length()), s.data(),
+            static_cast<int>(delim.length()), delim.data());
+
         mysqlshdk::utils::SQL_iterator sit(sql);
         if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
             shcore::str_caseeq(sit.next_token(), "TABLE")) {
@@ -123,8 +126,9 @@ compatibility::Deferred_statements preprocess_table_script_for_indexes(
         script->append(sql);
         return true;
       },
-      [&key](const std::string &err) {
-        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(), err.c_str());
+      [&key](std::string_view err) {
+        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(),
+                    std::string{err}.c_str());
       });
   return stmts;
 }
@@ -137,8 +141,11 @@ void add_invisible_pk(std::string *script, const std::string &key) {
 
   mysqlshdk::utils::iterate_sql_stream(
       &stream, script_length,
-      [&](const char *s, size_t len, const std::string &delim, size_t, size_t) {
-        auto sql = std::string(s, len) + delim + "\n";
+      [&](std::string_view s, std::string_view delim, size_t, size_t) {
+        auto sql = shcore::str_format(
+            "%.*s%.*s\n", static_cast<int>(s.length()), s.data(),
+            static_cast<int>(delim.length()), delim.data());
+
         mysqlshdk::utils::SQL_iterator sit(sql);
 
         if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
@@ -149,8 +156,9 @@ void add_invisible_pk(std::string *script, const std::string &key) {
         script->append(sql);
         return true;
       },
-      [&key](const std::string &err) {
-        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(), err.c_str());
+      [&key](std::string_view err) {
+        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(),
+                    std::string{err}.c_str());
       });
 }
 
@@ -209,30 +217,29 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
   }
 }
 
-void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
-                    const std::string &script, const std::string &error_prefix,
-                    const std::function<bool(const char *, size_t,
-                                             std::string *)> &process_stmt) {
+void execute_script(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session,
+    const std::string &script, const std::string &error_prefix,
+    const std::function<bool(std::string_view, std::string *)> &process_stmt) {
   std::stringstream stream(script);
 
   mysqlshdk::utils::iterate_sql_stream(
       &stream, 1024 * 64,
       [&error_prefix, &session, &process_stmt](
-          const char *s, size_t len, const std::string &, size_t, size_t) {
+          std::string_view s, std::string_view, size_t, size_t) {
         std::string new_stmt;
 
-        if (process_stmt && process_stmt(s, len, &new_stmt)) {
-          s = new_stmt.data();
-          len = new_stmt.length();
-        }
+        if (process_stmt && process_stmt(s, &new_stmt)) s = new_stmt;
 
-        if (len > 0) {
-          execute_statement(session, {s, len}, error_prefix);
+        if (!s.empty()) {
+          execute_statement(session, s, error_prefix);
         }
 
         return true;
       },
-      [](const std::string &err) { current_console()->print_error(err); });
+      [](std::string_view err) {
+        current_console()->print_error(std::string{err});
+      });
 }
 
 class Index_file {
@@ -368,7 +375,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
         auto transforms = loader->m_default_sql_transforms;
 
         transforms.add_execute_conditionally(
-            [this, loader](const std::string &type, const std::string &name) {
+            [this, loader](std::string_view type, std::string_view name) {
               bool execute = true;
 
               if (shcore::str_caseeq(type, "EVENT")) {
@@ -1385,15 +1392,10 @@ void Dump_loader::on_schema_end(const std::string &schema) {
           auto transforms = m_default_sql_transforms;
 
           transforms.add_execute_conditionally(
-              [this, &schema, &table](const std::string &type,
-                                      const std::string &name) {
-                bool execute = true;
-
-                if (shcore::str_caseeq(type, "TRIGGER")) {
-                  execute = m_dump->include_trigger(schema, table, name);
-                }
-
-                return execute;
+              [this, &schema, &table](std::string_view type,
+                                      std::string_view name) {
+                if (!shcore::str_caseeq(type, "TRIGGER")) return true;
+                return m_dump->include_trigger(schema, table, name);
               });
 
           execute_script(m_session, script, "While executing triggers SQL",
@@ -2987,18 +2989,20 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
   // Remove NO_AUTO_CREATE_USER from sql_mode, which doesn't exist in 8.0 but
   // does in 5.7
 
-  std::regex re(R"*((\/\*![0-9]+\s+)?(SET\s+sql_mode\s*=\s*')(.*)('.*))*",
-                std::regex::icase);
+  add([](std::string_view sql, std::string *out_new_sql) {
+    static std::regex re(
+        R"*((\/\*![0-9]+\s+)?(SET\s+sql_mode\s*=\s*')(.*)('.*))*",
+        std::regex::icase | std::regex::optimize);
 
-  add([re](const std::string &sql, std::string *out_new_sql) {
-    std::smatch m;
-    if (std::regex_match(sql, m, re)) {
+    std::cmatch m;
+    if (std::regex_match(sql.data(), sql.data() + sql.size(), m, re)) {
       auto modes = shcore::str_split(m[3].str(), ",");
       std::string new_modes;
       for (const auto &mode : modes) {
-        if (mode != "NO_AUTO_CREATE_USER") new_modes += mode + ",";
+        if (mode != "NO_AUTO_CREATE_USER")
+          new_modes.append(mode).append(1, ',');
       }
-      if (!new_modes.empty()) new_modes.pop_back();  // strip ,
+      if (!new_modes.empty()) new_modes.pop_back();  // strip last ,
 
       *out_new_sql = m[1].str() + m[2].str() + new_modes + m[4].str();
     } else {
@@ -3008,72 +3012,75 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
 }
 
 void Dump_loader::Sql_transform::add_execute_conditionally(
-    std::function<bool(const std::string &, const std::string &)> &&f) {
-  add([f = std::move(f)](const std::string &sql, std::string *out_new_sql) {
+    std::function<bool(std::string_view, std::string_view)> f) {
+  add([f = std::move(f)](std::string_view sql, std::string *out_new_sql) {
     *out_new_sql = sql;
 
-    mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+    std::string sql_str{sql};
+    mysqlshdk::utils::SQL_iterator it(sql_str, 0, false);
 
     while (it.valid()) {
       auto token = it.next_token();
 
-      if (shcore::str_caseeq(token, "CREATE", "ALTER", "DROP")) {
-        auto type = it.next_token();
+      if (!shcore::str_caseeq(token, "CREATE", "ALTER", "DROP")) continue;
 
-        if (shcore::str_caseeq(type, "DEFINER")) {
-          // =
+      auto type = it.next_token();
+
+      if (shcore::str_caseeq(type, "DEFINER")) {
+        // =
+        it.next_token();
+        // user
+        it.next_token();
+        // type or @
+        type = it.next_token();
+
+        if (shcore::str_caseeq(type, "@")) {
+          // continuation of an account, host
           it.next_token();
-          // user
-          it.next_token();
-          // type or @
+          // type
           type = it.next_token();
-
-          if (shcore::str_caseeq(type, "@")) {
-            // continuation of an account, host
-            it.next_token();
-            // type
-            type = it.next_token();
-          }
         }
-
-        if (shcore::str_caseeq(type, "EVENT", "FUNCTION", "PROCEDURE",
-                               "TRIGGER")) {
-          auto name = it.next_token();
-
-          if (shcore::str_caseeq(name, "IF")) {
-            // NOT or EXISTS
-            token = it.next_token();
-
-            if (shcore::str_caseeq(token, "NOT")) {
-              // EXISTS
-              it.next_token();
-            }
-
-            // name follows
-            name = it.next_token();
-          }
-
-          // name can be either object_name, `object_name` or
-          // schema.`object_name`, split_schema_and_table will handle all these
-          // cases and unquote the object name
-          std::string object_name;
-          shcore::split_schema_and_table(name, nullptr, &object_name, true);
-
-          if (!f(type, object_name)) {
-            out_new_sql->clear();
-          }
-        }
-
-        return;
       }
+
+      if (shcore::str_caseeq(type, "EVENT", "FUNCTION", "PROCEDURE",
+                             "TRIGGER")) {
+        auto name = it.next_token();
+
+        if (shcore::str_caseeq(name, "IF")) {
+          // NOT or EXISTS
+          token = it.next_token();
+
+          if (shcore::str_caseeq(token, "NOT")) {
+            // EXISTS
+            it.next_token();
+          }
+
+          // name follows
+          name = it.next_token();
+        }
+
+        // name can be either object_name, `object_name` or
+        // schema.`object_name`, split_schema_and_table will handle all these
+        // cases and unquote the object name
+        std::string object_name;
+        shcore::split_schema_and_table(name, nullptr, &object_name, true);
+
+        if (!f(type, object_name)) {
+          out_new_sql->clear();
+        }
+      }
+
+      return;
     }
   });
 }
 
-void Dump_loader::Sql_transform::add_rename_schema(
-    const std::string &new_name) {
-  add([new_name](const std::string &sql, std::string *out_new_sql) {
-    mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+void Dump_loader::Sql_transform::add_rename_schema(std::string_view new_name) {
+  add([new_name = std::string{new_name}](std::string_view sql,
+                                         std::string *out_new_sql) {
+    std::string sql_str{sql};
+
+    mysqlshdk::utils::SQL_iterator it(sql_str, 0, false);
     const auto token = it.next_token();
 
     if (shcore::str_caseeq(token, "CREATE")) {
@@ -3089,9 +3096,9 @@ void Dump_loader::Sql_transform::add_rename_schema(
           schema = it.next_token();
         }
 
-        *out_new_sql = sql.substr(0, it.position() - schema.length()) +
+        *out_new_sql = sql_str.substr(0, it.position() - schema.length()) +
                        shcore::quote_identifier(new_name) +
-                       sql.substr(it.position());
+                       sql_str.substr(it.position());
         return;
       }
     } else if (shcore::str_caseeq(token, "USE")) {
@@ -3099,7 +3106,7 @@ void Dump_loader::Sql_transform::add_rename_schema(
       return;
     }
 
-    *out_new_sql = sql;
+    *out_new_sql = std::move(sql_str);
   });
 }
 

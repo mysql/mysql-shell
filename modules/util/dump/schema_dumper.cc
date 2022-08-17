@@ -560,17 +560,8 @@ void Schema_dumper::use(const std::string &db) const {
   m_mysql->executef("USE !", db);
 }
 
-void Schema_dumper::unescape(IFile *file, const char *pos, size_t length) {
-  std::string tmp = m_mysql->escape_string(pos, length);
-
-  fputs("'", file);
-  fputs(tmp.c_str(), file);
-  fputs("'", file);
-  check_io(file);
-} /* unescape */
-
-void Schema_dumper::unescape(IFile *file, const std::string &s) {
-  std::string tmp = m_mysql->escape_string(s.data(), s.length());
+void Schema_dumper::unescape(IFile *file, std::string_view s) {
+  std::string tmp = m_mysql->escape_string(s);
 
   fputs("'", file);
   fputs(tmp.c_str(), file);
