@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,9 +83,8 @@ std::unique_ptr<Helper_interface> get_helper(const Helper_name &name) noexcept {
   return std::unique_ptr<Helper_interface>{new Helper_interface{name}};
 }
 
-void set_logger(
-    const std::function<void(const std::string &)> &logger) noexcept {
-  logger::set_logger(logger);
+void set_logger(std::function<void(std::string_view)> logger) noexcept {
+  logger::set_logger(std::move(logger));
 }
 
 }  // namespace api
