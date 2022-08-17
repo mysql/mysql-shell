@@ -416,7 +416,8 @@ Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
       }
     }
 
-    int fd = open(filename, O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+    int fd = open(filename, O_CREAT | O_APPEND | O_WRONLY | O_CLOEXEC,
+                  S_IRUSR | S_IWUSR);
     if (fd < 0) {
       throw std::runtime_error(
           std::string("Error opening log file '") + filename +

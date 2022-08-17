@@ -157,10 +157,8 @@ void change_controlling_terminal(int new_ctty, const char *new_ctty_name) {
 
 void redirect_fd(int from, int to) {
   while (dup2(from, to) == -1) {
-    if (errno == EINTR)
-      continue;
-    else
-      report_error("redirect_fd()");
+    if (errno == EINTR) continue;
+    report_error("redirect_fd()");
   }
 }
 
@@ -657,7 +655,7 @@ void Process::do_start() {
       fprintf(stderr, "Exception while preparing the child process: %s\n",
               e.what());
       fflush(stderr);
-      exit(128);
+      _exit(128);
     }
 
     for (const auto &str : new_environment) shcore::setenv(str);
@@ -674,7 +672,7 @@ void Process::do_start() {
     // subprocess
     if (my_errno == 2) my_errno = 128;
 
-    exit(my_errno);
+    _exit(my_errno);
   } else {
     ::close(fd_out[1]);
     ::close(fd_in[0]);
@@ -699,9 +697,9 @@ void Process::close() {
 }
 
 int Process::do_read(char *buf, size_t count) {
-  int n;
   do {
-    if ((n = ::read(fd_out[0], buf, count)) >= 0) return n;
+    if (int n = ::read(fd_out[0], buf, count); n >= 0) return n;
+
     if (errno == EAGAIN || errno == EINTR) continue;
     if (errno == EPIPE) return 0;
     break;
@@ -833,9 +831,8 @@ bool Process::check() {
  * does not fail.
  */
 int Process::wait() {
-  int ret;
-
   if (_wait_pending) {
+    int ret;
     do {
       ret = ::waitpid(childpid, &_pstatus, 0);
       if (ret == -1) {
@@ -849,10 +846,8 @@ int Process::wait() {
   }
   _wait_pending = false;
   assert(WIFEXITED(_pstatus) || WIFSIGNALED(_pstatus));
-  if (WIFEXITED(_pstatus))
-    return WEXITSTATUS(_pstatus);
-  else
-    return WTERMSIG(_pstatus) + 128;
+  if (WIFEXITED(_pstatus)) return WEXITSTATUS(_pstatus);
+  return WTERMSIG(_pstatus) + 128;
 }
 
 void Process::set_environment(const std::vector<std::string> &env) {
@@ -864,19 +859,17 @@ void Process::set_environment(const std::vector<std::string> &env) {
 void Process::kill() { close(); }
 
 int Process::read(char *buf, size_t count) {
-  if (m_reader_thread) {
-    std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
-    count = std::min(m_read_buffer.size(), count);
+  if (!m_reader_thread) return do_read(buf, count);
 
-    if (count > 0) {
-      std::copy(m_read_buffer.begin(), m_read_buffer.begin() + count, buf);
-      m_read_buffer.erase(m_read_buffer.begin(), m_read_buffer.begin() + count);
-    }
+  std::lock_guard lock(m_read_buffer_mutex);
+  count = std::min(m_read_buffer.size(), count);
 
-    return static_cast<int>(count);
-  } else {
-    return do_read(buf, count);
+  if (count > 0) {
+    std::copy(m_read_buffer.begin(), m_read_buffer.begin() + count, buf);
+    m_read_buffer.erase(m_read_buffer.begin(), m_read_buffer.begin() + count);
   }
+
+  return static_cast<int>(count);
 }
 
 std::string Process::read_line(bool *eof) {
@@ -891,13 +884,13 @@ std::string Process::read_line(bool *eof) {
 }
 
 std::string Process::read_all() {
-  static constexpr size_t k_buffer_size = 512;
+  constexpr size_t k_buffer_size = 512;
   std::string s;
   char buffer[k_buffer_size];
   int c = 0;
 
   while ((c = read(buffer, k_buffer_size)) > 0) {
-    s += std::string(buffer, c);
+    s.append(buffer, c);
   }
 
   return s;
@@ -922,7 +915,7 @@ void Process::start_reader_threads() {
     m_reader_thread =
         std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread([this]() {
           try {
-            static constexpr size_t k_buffer_size = 512;
+            constexpr size_t k_buffer_size = 512;
             char buffer[k_buffer_size];
             int n = 0;
             while ((n = do_read(buffer, k_buffer_size)) > 0) {
@@ -940,7 +933,7 @@ void Process::start_reader_threads() {
   if (m_use_pseudo_tty && !m_terminal_reader_thread) {
     m_terminal_reader_thread =
         std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread([this]() {
-          static constexpr size_t k_buffer_size = 512;
+          constexpr size_t k_buffer_size = 512;
           char buffer[k_buffer_size];
           int n = 0;
           while ((n = ::read(m_master_device, buffer, k_buffer_size)) > 0) {
