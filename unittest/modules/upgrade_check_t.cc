@@ -110,6 +110,19 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     }
   }
 
+  void EXPECT_ISSUE(
+      const Upgrade_issue &actual, const std::string &schema = "",
+      const std::string table = "", const std::string &column = "",
+      Upgrade_issue::Level level = Upgrade_issue::Level::WARNING) {
+    std::string scope{schema + "." + table + "." + column};
+    scope.append("-").append(Upgrade_issue::level_to_string(level));
+    SCOPED_TRACE(scope.c_str());
+    EXPECT_STREQ(schema.c_str(), actual.schema.c_str());
+    EXPECT_STRCASEEQ(table.c_str(), actual.table.c_str());
+    EXPECT_STREQ(column.c_str(), actual.column.c_str());
+    EXPECT_EQ(level, actual.level);
+  }
+
   void EXPECT_NO_ISSUES(Upgrade_check *check) { EXPECT_ISSUES(check, 0); }
 
   Upgrade_check::Upgrade_info info;
@@ -187,25 +200,34 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   ASSERT_NO_THROW(
       session->execute("CREATE FUNCTION rows (s CHAR(20)) RETURNS CHAR(50) "
                        "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE FUNCTION full (s CHAR(20)) RETURNS CHAR(50) "
+                       "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
   ASSERT_NO_THROW(session->execute(
       "CREATE EVENT LEAD ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 "
       "HOUR DO UPDATE System SET JSON_TABLE = JSON_TABLE + 1;"));
 
-  EXPECT_ISSUES(check.get(), 12);
-  EXPECT_EQ("grouping", issues[0].schema);
-  EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
-  EXPECT_STRCASEEQ("system", issues[1].table.c_str());
-  EXPECT_EQ("JSON_TABLE", issues[2].column);
-  EXPECT_EQ("cube", issues[3].column);
-  // Views columns are also displayed
-  EXPECT_EQ("JSON_TABLE", issues[4].column);
-  EXPECT_EQ("cube", issues[5].column);
-  EXPECT_EQ("first_value", issues[6].table);
-  EXPECT_STRCASEEQ("LATERAL", issues[7].table.c_str());
-  EXPECT_STRCASEEQ("NTile", issues[8].table.c_str());
-  EXPECT_EQ("Array", issues[9].table);
-  EXPECT_EQ("rows", issues[10].table);
-  EXPECT_EQ("LEAD", issues[11].table);
+  EXPECT_ISSUES(check.get(), 13);
+  EXPECT_ISSUE(issues[0], "grouping");
+  EXPECT_ISSUE(issues[1], "grouping", "System");
+  EXPECT_ISSUE(issues[2], "grouping", "NTile", "JSON_TABLE");
+  EXPECT_ISSUE(issues[3], "grouping", "NTile", "cube");
+  EXPECT_ISSUE(issues[4], "grouping", "System", "JSON_TABLE");
+  EXPECT_ISSUE(issues[5], "grouping", "System", "cube");
+  EXPECT_ISSUE(issues[6], "grouping", "first_value");
+  EXPECT_ISSUE(issues[7], "grouping", "LATERAL");
+  EXPECT_ISSUE(issues[8], "grouping", "NTile");
+  EXPECT_ISSUE(issues[9], "grouping", "Array");
+  EXPECT_ISSUE(issues[10], "grouping", "full");
+  EXPECT_ISSUE(issues[11], "grouping", "rows");
+  EXPECT_ISSUE(issues[12], "grouping", "LEAD");
+
+  check = Sql_upgrade_check::get_reserved_keywords_check(
+      upgrade_info(Version(5, 7, 0), Version(8, 0, 30)));
+  ASSERT_NO_THROW(issues = check->run(session, info));
+  ASSERT_EQ(12, issues.size());
+  EXPECT_ISSUE(issues[10], "grouping", "rows");
+  EXPECT_ISSUE(issues[11], "grouping", "LEAD");
 
   check = Sql_upgrade_check::get_reserved_keywords_check(
       upgrade_info(Version(5, 7, 0), Version(8, 0, 11)));
