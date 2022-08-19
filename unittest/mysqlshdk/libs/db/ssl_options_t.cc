@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -102,12 +102,9 @@ TEST(Ssl_options, ca_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_ca("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCa);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.set_ca("value2"));
+  options.set_ca("value2");
   EXPECT_TRUE(options.has_ca());
-  EXPECT_STREQ("value", options.get_ca().c_str());
+  EXPECT_STREQ("value2", options.get_ca().c_str());
   EXPECT_NO_THROW(options.clear_ca());
   EXPECT_FALSE(options.has_ca());
   msg = "The SSL Connection option '";
@@ -120,13 +117,9 @@ TEST(Ssl_options, capath_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_capath("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCaPath);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_capath("value2"));
+  options.set_capath("value2");
   EXPECT_TRUE(options.has_capath());
-  EXPECT_STREQ("value", options.get_capath().c_str());
+  EXPECT_STREQ("value2", options.get_capath().c_str());
   EXPECT_NO_THROW(options.clear_capath());
   EXPECT_FALSE(options.has_capath());
   msg = "The SSL Connection option '";
@@ -139,13 +132,9 @@ TEST(Ssl_options, cert_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_cert("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCert);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_cert("value2"));
+  options.set_cert("value2");
   EXPECT_TRUE(options.has_cert());
-  EXPECT_STREQ("value", options.get_cert().c_str());
+  EXPECT_STREQ("value2", options.get_cert().c_str());
   EXPECT_NO_THROW(options.clear_cert());
   EXPECT_FALSE(options.has_cert());
   msg = "The SSL Connection option '";
@@ -158,13 +147,9 @@ TEST(Ssl_options, cipher_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_cipher("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCipher);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_cipher("value2"));
+  options.set_cipher("value2");
   EXPECT_TRUE(options.has_cipher());
-  EXPECT_STREQ("value", options.get_cipher().c_str());
+  EXPECT_STREQ("value2", options.get_cipher().c_str());
   EXPECT_NO_THROW(options.clear_cipher());
   EXPECT_FALSE(options.has_cipher());
   msg = "The SSL Connection option '";
@@ -177,13 +162,9 @@ TEST(Ssl_options, crl_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_crl("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCrl);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_crl("value2"));
+  options.set_crl("value2");
   EXPECT_TRUE(options.has_crl());
-  EXPECT_STREQ("value", options.get_crl().c_str());
+  EXPECT_STREQ("value2", options.get_crl().c_str());
   EXPECT_NO_THROW(options.clear_crl());
   EXPECT_FALSE(options.has_crl());
   msg = "The SSL Connection option '";
@@ -196,13 +177,9 @@ TEST(Ssl_options, crlpath_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_crlpath("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslCrlPath);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_crlpath("value2"));
+  options.set_crlpath("value2");
   EXPECT_TRUE(options.has_crlpath());
-  EXPECT_STREQ("value", options.get_crlpath().c_str());
+  EXPECT_STREQ("value2", options.get_crlpath().c_str());
   EXPECT_NO_THROW(options.clear_crlpath());
   EXPECT_FALSE(options.has_crlpath());
   msg = "The SSL Connection option '";
@@ -215,13 +192,9 @@ TEST(Ssl_options, key_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_key("value"));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslKey);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_key("value2"));
+  options.set_key("value2");
   EXPECT_TRUE(options.has_key());
-  EXPECT_STREQ("value", options.get_key().c_str());
+  EXPECT_STREQ("value2", options.get_key().c_str());
   EXPECT_NO_THROW(options.clear_key());
   EXPECT_FALSE(options.has_key());
   msg = "The SSL Connection option '";
@@ -234,14 +207,9 @@ TEST(Ssl_options, mode_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_mode(mysqlshdk::db::Ssl_mode::Disabled));
-  msg = "The SSL Connection option '";
-  msg.append(mysqlshdk::db::kSslMode);
-  msg.append("' is already defined as '");
-  msg.append(mysqlshdk::db::MapSslModeNameToValue::get_value(1)).append("'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_mode(mysqlshdk::db::Ssl_mode::Preferred));
+  options.set_mode(mysqlshdk::db::Ssl_mode::Preferred);
   EXPECT_TRUE(options.has_mode());
-  EXPECT_EQ(mysqlshdk::db::Ssl_mode::Disabled, options.get_mode());
+  EXPECT_EQ(mysqlshdk::db::Ssl_mode::Preferred, options.get_mode());
   EXPECT_NO_THROW(options.clear_mode());
   EXPECT_FALSE(options.has_mode());
   msg = "The SSL Connection option '";

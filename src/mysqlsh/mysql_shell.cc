@@ -1272,105 +1272,40 @@ bool Mysql_shell::cmd_start_multiline(const std::vector<std::string> &args) {
 }
 
 bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
-  bool error = false;
-  Shell_options::Storage options;
+  auto copy = args;
+  std::vector<char *> argv;
 
-  // Holds the argument index for the target to which the session will be
-  // established
-  size_t target_index = 1;
-  std::size_t ssh_pos = 0;
-  for (auto it = args.begin(); it != args.end(); it++) {
-    if (it->compare("--ssh") == 0) {
-      std::size_t index = std::distance(args.begin(), it);
-      ssh_pos = index;
-    }
+  for (auto &arg : copy) {
+    argv.push_back(&arg[0]);
   }
+  Shell_options shell_options(
+      argv.size(), &argv[0], "",
+      Shell_options::Option_flags_set(
+          Shell_options::Option_flags::CONNECTION_ONLY),
+      [](const std::string &err) { print_diag(err + "\n"); },
+      [](const std::string &w) { print_diag(w + "\n"); });
 
-  auto args_copy = args;
-  if (ssh_pos != 0) {
-    if (ssh_pos == args.size() - 1) {
-      throw std::invalid_argument("--ssh requires an SSHURI");
-    } else {
-      // we have to consume our arguments so the rest of the code is still valid
-      args_copy.erase(args_copy.begin() + ssh_pos,
-                      args_copy.begin() + (ssh_pos + 2));
-
-      options.ssh.uri = args[++ssh_pos];
-      try {
-        options.ssh.uri_data =
-            shcore::get_ssh_connection_options(options.ssh.uri, false);
-      } catch (const std::invalid_argument & /*error*/) {
-        throw std::invalid_argument(
-            std::string("--ssh option expects SSHURI, got ") + options.ssh.uri);
-      }
-    }
-  }
-
-  if (args_copy.size() > 1 && args_copy.size() < 4) {
-    if (args_copy.size() == 3) {
-      std::string arg_2 = args_copy[2];
-      arg_2 = shcore::str_strip(arg_2);
-
-      if (!arg_2.empty()) {
-        target_index++;
-        options.uri = args_copy[target_index];
-      }
-    }
-
-    std::string arg = args_copy[1];
-    arg = shcore::str_strip(arg);
-
-    if (arg.empty()) {
-      error = true;
-    } else if (shcore::str_caseeq("-n", arg) ||
-               shcore::str_caseeq("-mx", arg)) {
-      options.session_type = mysqlsh::SessionType::X;
-      print_warning(
-          "The " + arg +
-          " option is deprecated, please use --mysqlx or --mx instead.\n");
-    } else if (shcore::str_caseeq("-c", arg) ||
-               shcore::str_caseeq("-mc", arg)) {
-      options.session_type = mysqlsh::SessionType::Classic;
-      print_warning(
-          "The " + arg +
-          " option is deprecated, please use --mysql or --mc instead.\n");
-    } else if (shcore::str_caseeq("-ma", arg)) {
-      print_warning("The " + arg + " option is deprecated.\n");
-    } else if (!arg.compare("--mysqlx") || !arg.compare("--mx")) {
-      options.session_type = mysqlsh::SessionType::X;
-    } else if (!arg.compare("--mysql") || !arg.compare("--mc")) {
-      options.session_type = mysqlsh::SessionType::Classic;
-    } else {
-      if (args_copy.size() == 3) {
-        error = true;
-      } else {
-        options.uri = args_copy[target_index];
-      }
-    }
-
-    if (!error && !options.uri.empty()) {
-      try {
-        connect(options.connection_options());
-      } catch (const shcore::Exception &e) {
-        print_diag(std::string(e.format()) + "\n");
-      } catch (const mysqlshdk::db::Error &e) {
-        std::string msg;
-        if (e.sqlstate() && *e.sqlstate())
-          msg = shcore::str_format("MySQL Error %i (%s): %s", e.code(),
-                                   e.sqlstate(), e.what());
-        else
-          msg = shcore::str_format("MySQL Error %i: %s", e.code(), e.what());
-        print_diag(msg + "\n");
-      } catch (const std::exception &e) {
-        print_diag(std::string(e.what()) + "\n");
-      }
+  if (shell_options.get().exit_code == 0 &&
+      shell_options.get().has_connection_data()) {
+    try {
+      connect(shell_options.get().connection_options());
+    } catch (const shcore::Exception &e) {
+      print_diag(std::string(e.format()) + "\n");
+    } catch (const mysqlshdk::db::Error &e) {
+      std::string msg;
+      if (e.sqlstate() && *e.sqlstate())
+        msg = shcore::str_format("MySQL Error %i (%s): %s", e.code(),
+                                 e.sqlstate(), e.what());
+      else
+        msg = shcore::str_format("MySQL Error %i: %s", e.code(), e.what());
+      print_diag(msg + "\n");
+    } catch (const std::exception &e) {
+      print_diag(std::string(e.what()) + "\n");
     }
   } else {
-    error = true;
-  }
-  if (error || options.uri.empty())
     print_diag(
         "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
+  }
 
   return true;
 }

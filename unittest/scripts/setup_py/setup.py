@@ -18,6 +18,9 @@ if __os_type == "windows":
     mysqlshrec = mysqlshrec + ".exe"
 mysqlshrec = os.path.join(__bin_dir, mysqlshrec)
 
+
+k_cmdline_password_insecure_msg = "Using a password on the command line interface can be insecure."
+
 def get_members(object):
     all_exports = dir(object)
 

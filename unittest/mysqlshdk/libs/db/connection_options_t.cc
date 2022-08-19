@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -86,13 +86,9 @@ TEST(Connection_options, scheme_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_scheme("mysql"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kScheme);
-  msg.append("' is already defined as 'mysql'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_scheme("mysqlx"));
+  options.set_scheme("mysqlx");
   EXPECT_TRUE(options.has_scheme());
-  EXPECT_STREQ("mysql", options.get_scheme().c_str());
+  EXPECT_STREQ("mysqlx", options.get_scheme().c_str());
   EXPECT_NO_THROW(options.clear_scheme());
   EXPECT_FALSE(options.has_scheme());
   msg = "The connection option '";
@@ -105,13 +101,9 @@ TEST(Connection_options, user_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_user("value"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kUser);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_user("value1"));
+  options.set_user("value1");
   EXPECT_TRUE(options.has_user());
-  EXPECT_STREQ("value", options.get_user().c_str());
+  EXPECT_STREQ("value1", options.get_user().c_str());
   EXPECT_NO_THROW(options.clear_user());
   EXPECT_FALSE(options.has_user());
   msg = "The connection option '";
@@ -124,13 +116,9 @@ TEST(Connection_options, password_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_password("value"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kPassword);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_password("value1"));
+  options.set_password("value1");
   EXPECT_TRUE(options.has_password());
-  EXPECT_STREQ("value", options.get_password().c_str());
+  EXPECT_STREQ("value1", options.get_password().c_str());
   EXPECT_NO_THROW(options.clear_password());
   EXPECT_FALSE(options.has_password());
   msg = "The connection option '";
@@ -143,13 +131,9 @@ TEST(Connection_options, host_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_host("value"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kHost);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_host("value1"));
+  options.set_host("value1");
   EXPECT_TRUE(options.has_host());
-  EXPECT_STREQ("value", options.get_host().c_str());
+  EXPECT_STREQ("value1", options.get_host().c_str());
   EXPECT_NO_THROW(options.clear_host());
   EXPECT_FALSE(options.has_host());
   msg = "The connection option '";
@@ -162,13 +146,9 @@ TEST(Connection_options, port_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_port(3306));
-
-  msg =
-      "Unable to set a tcp connection to port '3307', a tcp connection to "
-      "port '3306' is already defined.";
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.set_port(3307));
+  options.set_port(3307);
   EXPECT_TRUE(options.has_port());
-  EXPECT_EQ(3306, options.get_port());
+  EXPECT_EQ(3307, options.get_port());
   EXPECT_NO_THROW(options.clear_port());
   EXPECT_FALSE(options.has_port());
   msg = "The connection option '";
@@ -181,13 +161,9 @@ TEST(Connection_options, schema_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_schema("value"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kSchema);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_schema("value1"));
+  options.set_schema("value1");
   EXPECT_TRUE(options.has_schema());
-  EXPECT_STREQ("value", options.get_schema().c_str());
+  EXPECT_STREQ("value1", options.get_schema().c_str());
   EXPECT_NO_THROW(options.clear_schema());
   EXPECT_FALSE(options.has_schema());
   msg = "The connection option '";
@@ -200,13 +176,9 @@ TEST(Connection_options, socket_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_socket("value"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kSocket);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_socket("value1"));
+  options.set_socket("value1");
   EXPECT_TRUE(options.has_socket());
-  EXPECT_STREQ("value", options.get_socket().c_str());
+  EXPECT_STREQ("value1", options.get_socket().c_str());
   EXPECT_NO_THROW(options.clear_socket());
   EXPECT_FALSE(options.has_socket());
   msg = "The connection option '";
@@ -219,13 +191,9 @@ TEST(Connection_options, pipe_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(options.set_pipe("value"));
-  msg = "The connection option '";
-  msg.append(mysqlshdk::db::kSocket);
-  msg.append("' is already defined as 'value'.");
-  MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                  options.set_pipe("value1"));
+  options.set_pipe("value1");
   EXPECT_TRUE(options.has_pipe());
-  EXPECT_STREQ("value", options.get_pipe().c_str());
+  EXPECT_STREQ("value1", options.get_pipe().c_str());
   EXPECT_NO_THROW(options.clear_pipe());
   EXPECT_FALSE(options.has_pipe());
   msg = "The connection option '";
@@ -549,26 +517,12 @@ TEST(Connection_options, set_host) {
     EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
   }
 
-  // Setting host causes error if a socket connection is set
-  {
-    mysqlshdk::db::Connection_options data;
-    data.set_socket("Some/Socket/Path");
-
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a connection to 'localhost', a socket "
-                    "connection to 'Some/Socket/Path' is already defined.",
-                    data.set_host("localhost"));
-  }
-
-  // Setting host causes error if a pipe connection is set
+  // Setting host causes no error if a pipe connection is set
   {
     mysqlshdk::db::Connection_options data;
     data.set_pipe("PipeName");
 
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a connection to 'localhost', a pipe "
-                    "connection to 'PipeName' is already defined.",
-                    data.set_host("localhost"));
+    data.set_host("localhost");
   }
 }
 

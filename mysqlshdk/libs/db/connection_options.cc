@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,35 @@ Connection_options::Connection_options(const std::string &uri,
   }
 }
 
+void Connection_options::override_with(const Connection_options &options) {
+  m_options.override_from(options.m_options, true);
+  m_extra_options.override_from(options.m_extra_options, true);
+  m_ssl_options.override_from(options.m_ssl_options, true);
+  m_connection_attributes.override_from(options.m_connection_attributes, true);
+  m_enable_connection_attributes = options.m_enable_connection_attributes;
+
+  if (options.has_transport_type()) {
+    m_transport_type = options.get_transport_type();
+  }
+
+  if (options.has_compression_level()) {
+    clear_compression_level();
+    set_compression_level(options.get_compression_level());
+  }
+
+  if (options.has_port()) {
+    clear_port();
+    set_port(options.get_port());
+  } else {
+    // "default" port should also override old value
+    clear_port();
+  }
+
+  for (int i = 0; i < 3; i++) {
+    m_mfa_passwords[i] = options.m_mfa_passwords[i];
+  }
+}
+
 void Connection_options::set_login_options_from(
     const Connection_options &options) {
   clear_user();
@@ -83,7 +112,6 @@ void Connection_options::set_login_options_from(
   if (options.has_password()) {
     set_password(options.get_password());
   }
-
   clear_mfa_passwords();
   if (options.has_mfa_passwords()) {
     set_mfa_passwords(options.get_mfa_passwords());
@@ -141,9 +169,6 @@ ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
     }
 
     if (has_host() && mysql_port != 0) {
-      m_ssh_options.clear_remote_host();
-      m_ssh_options.clear_remote_port();
-
       m_ssh_options.set_remote_host(get_host());
       m_ssh_options.set_remote_port(mysql_port);
     } else {
@@ -157,12 +182,14 @@ ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
 }
 
 bool Connection_options::has_data() const {
-  return IConnection::has_data() || has_value(kSocket);
+  return IConnection::has_data() || has_mfa_passwords() || has_port() ||
+         has_value(kSocket) || m_ssh_options.has_data() ||
+         m_ssl_options.has_data();
 }
 
 void Connection_options::_set_fixed(const std::string &key,
                                     const std::string &val) {
-  m_options.set(key, val, Set_mode::UPDATE_NULL);
+  m_options.set(key, val, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Connection_options::set_pipe(const std::string &pipe) {
@@ -182,7 +209,7 @@ void Connection_options::set_pipe(const std::string &pipe) {
     throw std::invalid_argument{"Pipe can only be used with Classic session"};
   }
 
-  m_options.set(kSocket, pipe, Set_mode::UPDATE_NULL);
+  m_options.set(kSocket, pipe, Set_mode::CREATE_AND_UPDATE);
   m_transport_type = Pipe;
 }
 
@@ -229,9 +256,11 @@ void Connection_options::set_socket(const std::string &socket) {
       !m_port.is_null() ||
       (has_value(kHost) &&
        get_value(kHost) != "localhost"))  // only localhost means "use socket"
-    raise_connection_type_error("socket connection to '" + socket + "'");
+    raise_connection_type_error(socket.empty()
+                                    ? "socket connection"
+                                    : "socket connection to '" + socket + "'");
 
-  m_options.set(kSocket, socket, Set_mode::UPDATE_NULL);
+  m_options.set(kSocket, socket, Set_mode::CREATE_AND_UPDATE);
   m_transport_type = Socket;
 }
 
@@ -273,7 +302,12 @@ void Connection_options::raise_connection_type_error(
 }
 
 void Connection_options::set_host(const std::string &host) {
-  if (!m_transport_type.is_null() && *m_transport_type != Tcp)
+  if (!m_transport_type.is_null() && *m_transport_type != Tcp &&
+      host != "localhost"
+#ifdef _WIN32
+      && host != "."
+#endif  // _WIN32
+  )
     raise_connection_type_error("connection to '" + host + "'");
 
   if (host != "localhost"
@@ -285,19 +319,12 @@ void Connection_options::set_host(const std::string &host) {
   else if (m_port.is_null())
     m_transport_type.reset();
 
-  m_options.set(kHost, host, Set_mode::UPDATE_NULL);
+  m_options.set(kHost, host, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Connection_options::set_port(int port) {
-  if (m_transport_type.is_null() || m_port.is_null()) {
-    m_port = port;
-    m_transport_type = Tcp;
-  } else {
-    raise_connection_type_error(
-        "tcp connection to "
-        "port '" +
-        std::to_string(port) + "'");
-  }
+  m_port = port;
+  m_transport_type = Tcp;
 }
 
 std::string Connection_options::get_iname(const std::string &name) const {
@@ -332,7 +359,7 @@ void Connection_options::set(const std::string &name,
                             "' option instead.");
 
   if (m_options.has(iname)) {
-    m_options.set(iname, value, Set_mode::UPDATE_NULL);
+    m_options.set(iname, value, Set_mode::CREATE_AND_UPDATE);
   } else if (m_ssl_options.has(iname)) {
     m_ssl_options.set(iname, value);
   } else if (iname == kCompression) {

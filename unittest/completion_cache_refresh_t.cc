@@ -53,7 +53,7 @@ class Completion_cache_refresh : public Shell_core_test_wrapper {
   void reset_shell(const std::string &uri, shcore::IShell_core::Mode mode) {
     wipe_all();
     _options->interactive = true;
-    _options->uri = uri;
+    _options->set_uri(uri);
     _options->initial_mode = mode;
     reset_shell();
     if (!uri.empty()) {

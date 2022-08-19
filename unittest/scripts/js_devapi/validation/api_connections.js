@@ -58,13 +58,6 @@
 //@ shell.connect, with classic URI, ssl-mode=REQUIRED and ssl-ca
 ||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
 
-//@ getClassicSession using URI with duplicated parameters
-||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
-
-//@ shell.connect using URI with duplicated parameters
-||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
-
-
 // ---------------- CLASSIC TESTS DICT -------------------------
 
 //@ getClassicSession with Dict, no ssl-mode (Use Required) {secure_transport != 'disabled'}
@@ -120,12 +113,6 @@
 
 //@ shell.connect, with classic Dict, ssl-mode=REQUIRED and ssl-ca
 ||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
-
-//@ getClassicSession using dictionary with duplicated parameters
-||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.
-
-//@ shell.connect using dictionary with duplicated parameters
-||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.
 
 // ---------------- X TESTS URI -------------------------
 
@@ -191,9 +178,6 @@
 //@ shell.connect, with X URI, ssl-mode=REQUIRED and ssl-ca
 ||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
 
-//@ getSession using URI with duplicated parameters
-||Invalid URI: The SSL Connection option 'ssl-mode' is already defined as 'REQUIRED'.
-
 // ---------------- X TESTS DICT -------------------------
 
 //@ getSession with Dict, no ssl-mode (Use Required) {secure_transport != 'disabled'}
@@ -257,9 +241,6 @@
 
 //@ shell.connect, with X Dict, ssl-mode=REQUIRED and ssl-ca
 ||Invalid ssl-mode, value should be either 'verify_ca' or 'verify_identity' when any of 'ssl-ca', 'ssl-capath', 'ssl-crl' or 'ssl-crlpath' are provided.
-
-//@ getSession using dictionary with duplicated parameters
-||The SSL Connection option 'ssl-mode' is already defined as 'DISABLED'.
 
 //@<OUT> WL12446-TS3_1 mysql.getClassicSession
 +-----------------+------------+

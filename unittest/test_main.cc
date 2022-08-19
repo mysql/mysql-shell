@@ -32,6 +32,8 @@
 #include <signal.h>
 #endif
 
+#include <my_alloc.h>
+#include <my_default.h>
 #include <mysql.h>
 #include <stdlib.h>
 #include <clocale>
@@ -1122,6 +1124,10 @@ int main(int argc, char **argv) {
                "is a loopback (like Ubuntu/Debian).\n";
       }
     }
+  }
+  {
+    std::cout << "mycnf defaults: "
+              << system((mysqlsh_path + " --print-defaults").c_str());
   }
 
   switch (g_test_recording_mode) {

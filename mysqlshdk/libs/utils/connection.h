@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -144,7 +144,8 @@ class SHCORE_PUBLIC IConnection {
   }
 
   void _set_fixed(const std::string &key, const std::string &val) {
-    m_options.set(key, val, utils::nullable_options::Set_mode::UPDATE_NULL);
+    m_options.set(key, val,
+                  utils::nullable_options::Set_mode::CREATE_AND_UPDATE);
   }
   utils::Comparison_mode m_mode;
   utils::Nullable_options m_options;

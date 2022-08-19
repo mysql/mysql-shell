@@ -209,6 +209,11 @@ class Shell_test_output_handler {
     SCOPED_TRACE("...in log check\n");             \
     output_handler.validate_log_content(x, false); \
   } while (0)
+#define MY_EXPECT_STDERR_EMPTY()                      \
+  do {                                                \
+    SCOPED_TRACE("...in stderr empty check\n");       \
+    output_handler.validate_stderr_content("", true); \
+  } while (0)
 
 /**
  * \ingroup UTFramework
@@ -248,8 +253,15 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     std::string options_file = get_options_file_name();
     if (remove_config) std::remove(options_file.c_str());
 
-    _opts.reset(new mysqlsh::Shell_options(argc, const_cast<char **>(argv),
-                                           options_file));
+    _opts.reset(new mysqlsh::Shell_options(
+        argc, const_cast<char **>(argv), options_file,
+        mysqlsh::Shell_options::Option_flags_set(),
+        [](const std::string &err) {
+          mysqlsh::current_console()->print_diag(err + "\n");
+        },
+        [](const std::string &w) {
+          mysqlsh::current_console()->print(w + "\n");
+        }));
     _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
     if (!argv) _options->verbose_level = g_test_default_verbosity;
     _options->db_name_cache = false;

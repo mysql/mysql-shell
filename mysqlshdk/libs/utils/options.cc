@@ -212,12 +212,13 @@ bool icomp(const std::string &lhs, const std::string &rhs) {
  *
  */
 Proxy_option::Handler deprecated(
+    const std::function<void(const std::string &)> &warn,
     const char *replacement, Proxy_option::Handler target, const char *def,
     const std::map<std::string, std::string> &map) {
-  return [replacement, target, def, map](const std::string &opt,
-                                         const char *value) {
+  return [warn, replacement, target, def, map](const std::string &opt,
+                                               const char *value) {
     std::stringstream ss;
-    ss << "The " << opt << " option has been deprecated";
+    ss << "The " << opt << " option was deprecated";
     if (replacement != nullptr)
       ss << ", please use " << replacement << " instead";
 
@@ -255,12 +256,12 @@ Proxy_option::Handler deprecated(
         ss << ").";
       }
 
-      std::cout << "WARNING: " << ss.str() << std::endl;
+      warn("WARNING: " + ss.str());
       target(replacement ? replacement : opt,
              (value || def) ? final_val.c_str() : value);
     } else {
       ss << " (Option has been ignored).";
-      std::cout << "WARNING: " << ss.str() << std::endl;
+      warn("WARNING: " + ss.str());
     }
   };
 }

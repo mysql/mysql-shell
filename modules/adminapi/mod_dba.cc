@@ -1613,7 +1613,6 @@ shcore::Value Dba::check_instance_configuration(
 
   if (has_co && !options->password.is_null()) {
     auto connection_options = instance_def.operator->();
-    connection_options->clear_password();
     connection_options->set_password(*options->password);
   }
 
@@ -2357,7 +2356,6 @@ void Dba::do_configure_instance(
   auto instance_def = instance_def_;
 
   if (instance_def.has_data() && !options.password.is_null()) {
-    instance_def.clear_password();
     instance_def.set_password(*options.password);
   }
 

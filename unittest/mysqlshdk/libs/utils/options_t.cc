@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -82,7 +82,9 @@ class Options_test : public Shell_core_test_wrapper, public Options {
       //  specified in constructor. This simply adds help to be printed.
       (cmdline("--only-help"),
         "This option is handled outside, only help is being displayed.")
-      (cmdline("--deprecated"), opts::deprecated()));
+      (cmdline("--deprecated"), opts::deprecated([](const std::string &s) {
+        std::cout << s << "\n";
+      })));
     // clang-format on
   }
 
@@ -300,7 +302,7 @@ TEST_F(Options_test, cmd_line_handling) {
   // Restore old cout.
   std::cout.rdbuf(cout_backup);
 
-  MY_EXPECT_OUTPUT_CONTAINS("The --deprecated option has been deprecated.",
+  MY_EXPECT_OUTPUT_CONTAINS("The --deprecated option was deprecated.",
                             cout.str());
 
   // options that does not expect value given one

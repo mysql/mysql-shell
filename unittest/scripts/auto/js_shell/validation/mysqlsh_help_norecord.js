@@ -7,9 +7,9 @@ Other names may be trademarks of their respective owners.
 
 Usage: mysqlsh [OPTIONS] [URI]
        mysqlsh [OPTIONS] [URI] -f <path> [<script-args>...]
-       mysqlsh [OPTIONS] [URI] --dba enableXProtocol
-       mysqlsh [OPTIONS] [URI] --cluster
+       mysqlsh [OPTIONS] [URI] --cluster|--replicaset
        mysqlsh [OPTIONS] [URI] -- <object> <method> [<method-args>...]
+       mysqlsh [OPTIONS] [URI] --dba enableXProtocol
        mysqlsh [OPTIONS] [URI] --import {<file>|-} [<collection>|<table> <column>]
 
   -?, --help                       Display this help and exit.
@@ -249,10 +249,21 @@ Usage: mysqlsh [OPTIONS] [URI]
   --save-passwords=<value>         Controls automatic storage of passwords.
                                    Allowed values are: always, prompt, never.
 
+The following options may be given as the first argument:
+--print-defaults        Print the program argument list and exit.
+--no-defaults           Don't read default options from any option file,
+                        except for login file.
+--defaults-file=#       Only read default options from the given file #.
+--defaults-extra-file=# Read this file after the global files are read.
+--defaults-group-suffix=#
+                        Also read groups with concat(group, suffix)
+--login-path=#          Read this path from the login file.
+The following groups are read: mysqlsh client
+
 Usage examples:
+$ mysqlsh --login-path=server1 --sql
 $ mysqlsh root@localhost/schema
 $ mysqlsh mysqlx://root@some.server:3307/world_x
 $ mysqlsh --uri root@localhost --py -f sample.py sample param
 $ mysqlsh root@targethost:33070 -s world_x -f sample.js
 $ mysqlsh -- util check-for-server-upgrade root@localhost --output-format=JSON
-$ mysqlsh mysqlx://user@host/db --import ~/products.json shop

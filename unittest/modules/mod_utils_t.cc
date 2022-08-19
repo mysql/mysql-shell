@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,62 +93,6 @@ TEST(modules_mod_utils, get_connection_data_override_db_password_from_string) {
   EXPECT_EQ("overwritten_password", options.get_password());
 }
 
-TEST(modules_mod_utils,
-     get_connection_data_override_db_password_from_options_password) {
-  const auto map = shcore::make_dict();
-  (*map)[mysqlshdk::db::kPassword] = shcore::Value("overwritten_password");
-
-  auto options =
-      mysqlsh::get_connection_options(shcore::Value("root:password@localhost"));
-  set_password_from_map(&options, map);
-
-  EXPECT_TRUE(options.has_host());
-  EXPECT_TRUE(options.has_user());
-  EXPECT_TRUE(options.has_password());
-  EXPECT_EQ("localhost", options.get_host());
-  EXPECT_EQ("root", options.get_user());
-  EXPECT_EQ("overwritten_password", options.get_password());
-}
-
-TEST(modules_mod_utils,
-     get_connection_data_override_db_password_from_options_db_password) {
-  const auto map = shcore::make_dict();
-  (*map)[mysqlshdk::db::kDbPassword] = shcore::Value("overwritten_password");
-
-  auto options =
-      mysqlsh::get_connection_options(shcore::Value("root:password@localhost"));
-  set_password_from_map(&options, map);
-
-  EXPECT_TRUE(options.has_host());
-  EXPECT_TRUE(options.has_user());
-  EXPECT_TRUE(options.has_password());
-  EXPECT_EQ("localhost", options.get_host());
-  EXPECT_EQ("root", options.get_user());
-  EXPECT_EQ("overwritten_password", options.get_password());
-}
-
-TEST(modules_mod_utils,
-     get_connection_data_override_password_from_options_db_password) {
-  const auto connection = shcore::make_dict();
-  (*connection)[mysqlshdk::db::kHost] = shcore::Value("localhost");
-  (*connection)[mysqlshdk::db::kUser] = shcore::Value("root");
-  (*connection)[mysqlshdk::db::kPassword] =
-      shcore::Value(mysqlshdk::db::kPassword);
-
-  const auto map = shcore::make_dict();
-  (*map)[mysqlshdk::db::kDbPassword] = shcore::Value("overwritten_password");
-
-  auto options = mysqlsh::get_connection_options(shcore::Value(connection));
-  set_password_from_map(&options, map);
-
-  EXPECT_TRUE(options.has_host());
-  EXPECT_TRUE(options.has_user());
-  EXPECT_TRUE(options.has_password());
-  EXPECT_EQ("localhost", options.get_host());
-  EXPECT_EQ("root", options.get_user());
-  EXPECT_EQ("overwritten_password", options.get_password());
-}
-
 TEST(modules_mod_utils, get_connection_data_invalid_connection_options) {
   const auto map = shcore::make_dict();
   (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
@@ -159,32 +103,6 @@ TEST(modules_mod_utils, get_connection_data_invalid_connection_options) {
   EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
                     shcore::Exception,
                     "Invalid values in connection options: invalid_option");
-}
-
-TEST(modules_mod_utils, get_connection_data_conflicting_password_db_password) {
-  const auto map = shcore::make_dict();
-  (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
-  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
-  (*map)[mysqlshdk::db::kPassword] = shcore::Value(mysqlshdk::db::kPassword);
-  (*map)[mysqlshdk::db::kDbPassword] = shcore::Value(mysqlshdk::db::kPassword);
-
-  EXPECT_THROW_LIKE(
-      mysqlsh::get_connection_options(shcore::Value(map)),
-      std::invalid_argument,
-      "The connection option 'password' is already defined as 'password'.");
-}
-
-TEST(modules_mod_utils, get_connection_data_conflicting_user_db_user) {
-  const auto map = shcore::make_dict();
-  (*map)[mysqlshdk::db::kHost] = shcore::Value("localhost");
-  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
-  (*map)[mysqlshdk::db::kDbUser] = shcore::Value("root");
-  (*map)[mysqlshdk::db::kDbPassword] = shcore::Value(mysqlshdk::db::kPassword);
-
-  EXPECT_THROW_LIKE(
-      mysqlsh::get_connection_options(shcore::Value(map)),
-      std::invalid_argument,
-      "The connection option 'user' is already defined as 'root'.");
 }
 
 TEST(modules_mod_utils, get_connection_data_connect_timeout) {

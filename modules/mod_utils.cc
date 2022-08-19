@@ -210,11 +210,9 @@ mysqlshdk::ssh::Ssh_connection_options get_ssh_options(
           connection_map.string_at(option.first));
     } else if (ssh_config.compare(option.first,
                                   mysqlshdk::db::kSshConfigFile) == 0) {
-      ssh_config.clear_config_file();
       ssh_config.set_config_file(connection_map.string_at(option.first));
     } else if (ssh_config.compare(option.first,
                                   mysqlshdk::db::kSshIdentityFile) == 0) {
-      ssh_config.clear_key_file();
       ssh_config.set_key_file(connection_map.string_at(option.first));
     } else if (ssh_config.compare(option.first,
                                   mysqlshdk::db::kSshIdentityFilePassword) ==
@@ -229,61 +227,11 @@ mysqlshdk::ssh::Ssh_connection_options get_ssh_options(
   return ssh_config;
 }
 
-void SHCORE_PUBLIC set_password_from_map(Connection_options *options,
-                                         const shcore::Dictionary_t &map) {
-  if (!options || !map) {
-    return;
-  }
-
-  bool override_pwd = false;
-  std::string key;
-
-  for (const auto &option : *map) {
-    if (!options->compare(option.first, mysqlshdk::db::kPassword) ||
-        !options->compare(option.first, mysqlshdk::db::kDbPassword)) {
-      // Will allow one override, a second means the password option was
-      // duplicate on the second map, let the error raise
-      if (!override_pwd) options->clear_password();
-
-      options->set_password(option.second.get_string());
-      key = option.first;
-      override_pwd = true;
-    }
-  }
-
-  // Removes the password from the map if found, this is because password is
-  // case insensitive and the rest of the options are not
-  if (override_pwd) map->erase(key);
-}
-
 void set_password_from_string(Connection_options *options,
                               const char *password) {
   if (options && password) {
-    options->clear_password();
     options->set_password(password);
   }
-}
-
-void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
-                                     const shcore::Value::Map_type_ref &map) {
-  bool override_user = false;
-  std::string key;
-  for (auto option : *map) {
-    if (!options->compare(option.first, mysqlshdk::db::kUser) ||
-        !options->compare(option.first, mysqlshdk::db::kDbUser)) {
-      // Will allow one override, a second means the password option was
-      // duplicate on the second map, let the error raise
-      if (!override_user) options->clear_user();
-
-      options->set_user(option.second.get_string());
-      key = option.first;
-      override_user = true;
-    }
-  }
-
-  // Removes the password from the map if found, this is because password is
-  // case insensitive and the rest of the options are not
-  if (override_user) map->erase(key);
 }
 
 shcore::Value::Map_type_ref get_connection_map(
@@ -638,7 +586,6 @@ Connection_options get_classic_connection_options(
 
       const auto socket = row->get_string(0);
 
-      co.clear_socket();
       co.set_socket(shcore::path::is_absolute(socket)
                         ? socket
                         : shcore::path::join_path(row->get_string(1), socket));

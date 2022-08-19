@@ -78,14 +78,6 @@ shell.connect(uri)
 session.runSql("show status like 'Ssl_cipher'");
 session.close();
 
-//@ getClassicSession using URI with duplicated parameters
-var uri = 'mysql://' + uri_base + __my_port + '?ssl-mode=REQUIRED&ssl-mode=DISABLED';
-shell.connect(uri)
-var mySslSession = mysql.getClassicSession(uri);
-
-//@ shell.connect using URI with duplicated parameters
-var mySslSession = mysql.getClassicSession(uri);
-
 // ---------------- CLASSIC TESTS DICT -------------------------
 
 //@ getClassicSession with Dict, no ssl-mode (Use Required)
@@ -152,16 +144,6 @@ shell.connect(connection_data)
 session.runSql("show status like 'Ssl_cipher'");
 session.close();
 delete connection_data['ssl-ca'];
-
-//@ getClassicSession using dictionary with duplicated parameters
-connection_data['Ssl-Mode'] = "DISABLED";
-var mySession = mysql.getClassicSession(connection_data)
-
-//@ shell.connect using dictionary with duplicated parameters
-shell.connect(connection_data)
-
-delete connection_data['Ssl-Mode'];
-delete connection_data['ssl-mode'];
 
 // ---------------- X TESTS URI -------------------------
 
@@ -231,11 +213,6 @@ shell.connect(uri)
 session.sql("show status like 'Mysqlx_ssl_cipher'");
 session.close();
 
-//@ getSession using URI with duplicated parameters
-var uri = 'mysql://' + uri_base + __my_port + '?ssl-mode=REQUIRED&ssl-mode=DISABLED';
-shell.connect(uri)
-var mySslSession = mysql.getClassicSession(uri);
-
 // ---------------- X TESTS DICT -------------------------
 
 //@ getSession with Dict, no ssl-mode (Use Required)
@@ -302,12 +279,6 @@ shell.connect(connection_data)
 session.sql("show status like 'Mysqlx_ssl_cipher'");
 session.close();
 delete connection_data['ssl-ca'];
-
-//@ getSession using dictionary with duplicated parameters
-connection_data['Ssl-Mode'] = "DISABLED";
-var mySession = mysql.getClassicSession(connection_data)
-delete connection_data['Ssl-Mode'];
-delete connection_data['ssl-mode'];
 
 //@<> Connection Attributes Tests
 get_connection_atts = "select ATTR_NAME, ATTR_VALUE from performance_schema.session_account_connect_attrs where processlist_id=connection_id() order by ATTR_NAME asc";

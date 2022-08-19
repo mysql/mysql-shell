@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -107,13 +107,10 @@ TEST_F(Ssh_connection_options_t, default_initialization) {
 TEST_F(Ssh_connection_options_t, scheme_functions) {
   Ssh_connection_options ssh_configs;
   std::string msg;
-  msg = "The ssh_connection option '";
-  msg.append(mysqlshdk::db::kScheme);
-  msg.append("' is already defined as 'ssh'.");
-  EXPECT_THROW_LIKE(ssh_configs.set_scheme("mysqlx"), std::invalid_argument,
-                    msg.c_str());
+
+  ssh_configs.set_scheme("mysqlx");
   EXPECT_TRUE(ssh_configs.has_scheme());
-  EXPECT_STREQ("ssh", ssh_configs.get_scheme().c_str());
+  EXPECT_STREQ("mysqlx", ssh_configs.get_scheme().c_str());
   EXPECT_NO_THROW(ssh_configs.clear_scheme());
   EXPECT_FALSE(ssh_configs.has_scheme());
   msg = "The ssh_connection option '";
@@ -127,13 +124,9 @@ TEST_F(Ssh_connection_options_t, user_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(ssh_config.set_user("value"));
-  msg = "The ssh_connection option '";
-  msg.append(mysqlshdk::db::kUser);
-  msg.append("' is already defined as 'value'.");
-  EXPECT_THROW_LIKE(ssh_config.set_user("value1"), std::invalid_argument,
-                    msg.c_str());
+  ssh_config.set_user("value1");
   EXPECT_TRUE(ssh_config.has_user());
-  EXPECT_STREQ("value", ssh_config.get_user().c_str());
+  EXPECT_STREQ("value1", ssh_config.get_user().c_str());
   EXPECT_NO_THROW(ssh_config.clear_user());
   EXPECT_FALSE(ssh_config.has_user());
   msg = "The ssh_connection option '";
@@ -146,14 +139,10 @@ TEST_F(Ssh_connection_options_t, password_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(ssh_config.set_password("value"));
-  msg = "The ssh_connection option '";
-  msg.append(mysqlshdk::db::kPassword);
-  msg.append("' is already defined as 'value'.");
-  EXPECT_THROW_LIKE(ssh_config.set_password("value1"), std::invalid_argument,
-                    msg.c_str());
+  ssh_config.set_password("value1");
 
   EXPECT_TRUE(ssh_config.has_password());
-  EXPECT_STREQ("value", ssh_config.get_password().c_str());
+  EXPECT_STREQ("value1", ssh_config.get_password().c_str());
   EXPECT_NO_THROW(ssh_config.clear_password());
   EXPECT_FALSE(ssh_config.has_password());
   msg = "The ssh_connection option '";
@@ -167,13 +156,9 @@ TEST_F(Ssh_connection_options_t, host_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(ssh_config.set_host("value"));
-  msg = "The ssh_connection option '";
-  msg.append(mysqlshdk::db::kHost);
-  msg.append("' is already defined as 'value'.");
-  EXPECT_THROW_LIKE(ssh_config.set_host("value1"), std::invalid_argument,
-                    msg.c_str());
+  ssh_config.set_host("value1");
   EXPECT_TRUE(ssh_config.has_host());
-  EXPECT_STREQ("value", ssh_config.get_host().c_str());
+  EXPECT_STREQ("value1", ssh_config.get_host().c_str());
   EXPECT_NO_THROW(ssh_config.clear_host());
   EXPECT_FALSE(ssh_config.has_host());
   msg = "The ssh_connection option '";
@@ -268,14 +253,9 @@ TEST_F(Ssh_connection_options_t, remote_host_functions) {
   std::string msg;
 
   EXPECT_NO_THROW(ssh_config.set_remote_host("value"));
-  msg = "The ssh_connection option '";
-  msg.append(mysqlshdk::db::kSshRemoteHost);
-  msg.append("' is already defined as 'value'.");
-  EXPECT_THROW_LIKE(ssh_config.set_remote_host("value1"), std::invalid_argument,
-                    msg.c_str());
-
+  ssh_config.set_remote_host("value1");
   EXPECT_TRUE(ssh_config.has_remote_host());
-  EXPECT_STREQ("value", ssh_config.get_remote_host().c_str());
+  EXPECT_STREQ("value1", ssh_config.get_remote_host().c_str());
   EXPECT_NO_THROW(ssh_config.clear_remote_host());
   EXPECT_FALSE(ssh_config.has_remote_host());
   msg = "The ssh_connection option '";

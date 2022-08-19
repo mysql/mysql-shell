@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,6 +71,8 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   ~Connection_options() = default;
 
+  void override_with(const Connection_options &options);
+
   void set_login_options_from(const Connection_options &options);
   void set_ssl_options(const Ssl_options &options);
   void set_ssh_options(const ssh::Ssh_connection_options &options);
@@ -134,6 +136,11 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void set_compression_algorithms(const std::string &compression_algorithms);
   void set_compression_level(int64_t compression_level) {
     m_compress_level = compression_level;
+  }
+  void set_mfa_password(int factor, const std::string &password) {
+    if (factor < 0 || factor >= 3)
+      throw std::invalid_argument("invalid factor #");
+    m_mfa_passwords[factor] = password;
   }
   void set_mfa_passwords(const Mfa_passwords &mfa_passwords) {
     m_mfa_passwords = mfa_passwords;

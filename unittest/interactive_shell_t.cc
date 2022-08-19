@@ -187,8 +187,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_node) {
   execute("session.close()");
 
   execute("\\connect --mx mysql://" + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The given URI conflicts with the --mysqlx session type option.");
+  MY_EXPECT_STDERR_EMPTY();
   output_handler.wipe_all();
 
   execute("\\connect --mx " + _mysql_uri);
@@ -247,8 +246,8 @@ TEST_F(Interactive_shell_test, shell_command_connect_classic) {
   execute("session.close()");
 
   execute("\\connect --mc mysqlx://" + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "The given URI conflicts with the --mysql session type option.");
+  MY_EXPECT_STDERR_NOT_CONTAINS(
+      "URI scheme mysqlx:// cannot be combined with option --mc");
   output_handler.wipe_all();
 
   // FR_EXTRA_SUCCEED_7 : \connect --mc mysql://user@host:3306/db
@@ -527,7 +526,6 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
 
     // Check for URI syntax with socket path (classic)
     if (!_mysql_socket.empty()) {
-      data.clear_socket();
       data.set_socket(_mysql_socket);
       // \connect --mc user@/path%2Fto%2Fsocket
       {
@@ -764,56 +762,6 @@ TEST_F(Interactive_shell_test, shell_command_connect_no_parameters) {
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
-  execute("\\connect --mx --mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mysqlx --mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mx --mysql " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mysql --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mc --mx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mc --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect -ma --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mx -ma " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect --mysql -ma " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
-  execute("\\connect -ma --mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
-  output_handler.wipe_all();
-
   execute("\\connect --ssh root@example.com localhost");
   MY_EXPECT_STDERR_CONTAINS(
       "Host and port for database are required in advance when using SSH "
@@ -821,13 +769,11 @@ TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
   output_handler.wipe_all();
 
   execute("\\connect --ssh --mx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "Failed to resolve hostname --mx (Name or service not known)");
+  MY_EXPECT_STDERR_CONTAINS("option --ssh requires an argument");
   output_handler.wipe_all();
 
   execute("\\connect --ssh --mysql " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "Failed to resolve hostname --mysql (Name or service not known)");
+  MY_EXPECT_STDERR_CONTAINS("option --ssh requires an argument");
   output_handler.wipe_all();
 
   // No port is specified and default port can not be determined given
@@ -852,50 +798,20 @@ TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
 TEST_F(Interactive_shell_test, shell_command_connect_deprecated_options) {
   // Deprecated is not the same as removed, so these are supposed to still
   // work in 8.0
-  execute("\\connect -n " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS(
-      "WARNING: The -n option is deprecated, please use --mysqlx or --mx "
-      "instead.");
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X");
-  output_handler.wipe_all();
-
   execute("\\connect -mx " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS(
-      "WARNING: The -mx option is deprecated, please use --mysqlx or --mx "
-      "instead.");
+  MY_EXPECT_STDERR_CONTAINS(
+      "WARNING: The -mx option was deprecated, please use --mx instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating an X");
-  output_handler.wipe_all();
-
-  execute("\\connect -N " + _uri);
-  MY_EXPECT_STDOUT_CONTAINS(
-      "WARNING: The -N option is deprecated, please use --mysqlx or --mx "
-      "instead.");
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X");
-  output_handler.wipe_all();
-
-  execute("\\connect -c " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS(
-      "WARNING: The -c option is deprecated, please use --mysql or --mc "
-      "instead.");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
   output_handler.wipe_all();
 
   execute("\\connect -mc " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS(
-      "WARNING: The -mc option is deprecated, please use --mysql or --mc "
-      "instead.");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
-  output_handler.wipe_all();
-
-  execute("\\connect -C " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS(
-      "WARNING: The -C option is deprecated, please use --mysql or --mc "
-      "instead.");
+  MY_EXPECT_STDERR_CONTAINS(
+      "WARNING: The -mc option was deprecated, please use --mc instead.");
   MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
   output_handler.wipe_all();
 
   execute("\\connect -ma " + _mysql_uri);
-  MY_EXPECT_STDOUT_CONTAINS("WARNING: The -ma option is deprecated.");
+  MY_EXPECT_STDERR_CONTAINS("WARNING: The -ma option was deprecated.");
   output_handler.wipe_all();
 }
 
@@ -1353,7 +1269,7 @@ TEST_F(Interactive_shell_test, js_startup_scripts) {
 
 TEST_F(Interactive_shell_test, expired_account_support_classic) {
   // Test secure call passing uri with no password (will be prompted)
-  _options->uri = _mysql_uri;
+  _options->set_uri(_mysql_uri);
   _options->initial_mode = shcore::IShell_core::Mode::SQL;
   reset_shell();
 
@@ -1413,7 +1329,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
 
 TEST_F(Interactive_shell_test, expired_account_support_node) {
   // Test secure call passing uri with no password (will be prompted)
-  _options->uri = _uri;
+  _options->set_uri(_uri);
   _options->initial_mode = shcore::IShell_core::Mode::SQL;
   reset_shell();
 

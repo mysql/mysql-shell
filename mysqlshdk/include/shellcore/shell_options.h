@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 #define SN_SHELL_OPTION_CHANGED "SN_SHELL_OPTION_CHANGED"
@@ -68,6 +69,7 @@
 #include <array>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -76,6 +78,8 @@
 #include "mysqlshdk/libs/utils/options.h"
 #include "mysqlshdk/shellcore/shell_cli_operation.h"
 #include "shellcore/ishell_core.h"
+
+struct MEM_ROOT;
 
 namespace mysqlsh {
 
@@ -103,35 +107,17 @@ class Shell_options final : public shcore::Options {
     std::string run_module;
 
     // Individual connection parameters
-    std::string user;
-    std::string host;
     std::string fido_register_factor;
-    int port = 0;
-    std::string schema;
-    // Unix socket or Windows pipe name
-    mysqlshdk::utils::nullable<std::string> sock;
     std::string oci_profile;
     std::string oci_config_file;
-    std::string auth_method;
-    std::string connect_timeout_cmdline;
-    std::string compress;
-    std::string compress_algorithms;
-
-    mysqlshdk::utils::nullable<int64_t> compress_level;
-    mysqlshdk::db::Mfa_passwords mfa_passwords;
 
     std::string protocol;
 
-    // SSL connection parameters
-    mysqlshdk::db::Ssl_options ssl_options;
-
-    std::string uri;
+    mysqlshdk::db::Connection_options connection_data;
     Ssh_settings ssh;
 
     std::string result_format;
     std::string wrap_json;
-    mysqlsh::SessionType session_type = mysqlsh::SessionType::Auto;
-    bool default_session_type = true;
     bool force = false;
     bool interactive = false;
     bool full_interactive = false;
@@ -190,6 +176,12 @@ class Shell_options final : public shcore::Options {
     double connect_timeout = 10.0;
     double dba_connect_timeout = 5.0;
 
+    // This should probably a command line option that determines how much bytes
+    // should be included when returning binary data, 0 means no limits
+    // Eventually this should be turned as a command line argument, i.e.
+    // --binary-limit
+    size_t binary_limit = 0;
+
     // TODO(anyone): Expose the option
     enum class Progress_reporting {
       DISABLED,
@@ -202,21 +194,31 @@ class Shell_options final : public shcore::Options {
     int exit_code = 0;
 
     bool has_connection_data() const;
-
-    // Did user specify > 1 password?
-    bool is_mfa(bool check_values = false) const;
-
     mysqlshdk::db::Connection_options connection_options() const;
 
-    // This should probably a command line option that determines how much bytes
-    // should be included when returning binary data, 0 means no limits
-    // Eventually this should be turned as a command line argument, i.e.
-    // --binary-limit
-    size_t binary_limit = 0;
+    bool has_multi_passwords() const {
+      auto &mfa_passwords = connection_data.get_mfa_passwords();
+      return (mfa_passwords[1].has_value() || mfa_passwords[2].has_value());
+    }
+
+    void set_uri(const std::string &uri);
+
+    mysqlsh::SessionType check_option_session_type_conflict(
+        const std::string &option);
+
+   private:
+    std::list<std::string> m_session_type_options;
   };
 
-  explicit Shell_options(int argc = 0, char **argv = nullptr,
-                         const std::string &configuration_file = "");
+  enum class Option_flags { CONNECTION_ONLY, READ_MYCNF };
+  using Option_flags_set =
+      mysqlshdk::utils::Enum_set<Option_flags, Option_flags::READ_MYCNF>;
+
+  Shell_options(
+      int argc = 0, char **argv = nullptr,
+      const std::string &configuration_file = "", Option_flags_set flags = {},
+      const std::function<void(const std::string &)> &on_error = {},
+      const std::function<void(const std::string &)> &on_warning = {});
 
   void set(const std::string &option, const std::string &value) {
     Options::set(option, value);
@@ -274,21 +276,18 @@ class Shell_options final : public shcore::Options {
 
   std::vector<std::string> get_named_options();
 
+  bool got_cmdline_password = false;
+
  private:
+  void handle_mycnf_options(int *argc, char ***argv, MEM_ROOT *argv_alloc);
+
   bool custom_cmdline_handler(Iterator *iterator);
 
   void override_session_type(const std::string &option, const char *value);
   void set_ssl_mode(const std::string &option, const char *value);
-  void set_connection_timeout(const std::string &option, const char *value);
 
-  void check_session_type_conflicts();
-  void check_user_conflicts();
   void check_password_conflicts();
-  void check_host_conflicts();
   void check_host_socket_conflicts();
-  void check_port_conflicts();
-  void check_socket_conflicts();
-  void check_port_socket_conflicts();
   void check_result_format();
   void check_file_execute_conflicts();
   void check_ssh_conflicts();
@@ -302,8 +301,9 @@ class Shell_options final : public shcore::Options {
 
   Storage storage;
   std::unique_ptr<shcore::cli::Shell_cli_operation> m_shell_cli_operation;
-  mysqlshdk::db::Connection_options uri_data;
-  std::string session_type_arg;
+
+  std::function<void(const std::string &)> m_on_error;
+  std::function<void(const std::string &)> m_on_warning;
 
   bool print_cmd_line_helper = false;
   bool print_cmd_line_version = false;

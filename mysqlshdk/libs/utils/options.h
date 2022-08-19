@@ -232,6 +232,7 @@ class Proxy_option : public Generic_option {
 };
 
 Proxy_option::Handler deprecated(
+    const std::function<void(const std::string &)> &warn,
     const char *replacement = nullptr, Proxy_option::Handler handler = {},
     const char *def_value = nullptr,
     const std::map<std::string, std::string> &map = {});
@@ -335,7 +336,8 @@ class Options {
   using NamedOptions = std::map<std::string, opts::Generic_option *>;
 
   struct Add_named_option_helper {
-    explicit Add_named_option_helper(Options &options) : parent(options) {}
+    Add_named_option_helper(Options &options, bool ignore_)
+        : parent(options), ignore(ignore_) {}
 
     template <class T, class S>
     Add_named_option_helper &operator()(
@@ -345,6 +347,7 @@ class Options {
             opts::Basic_type<T>(),
         typename opts::Concrete_option<T>::Serializer serializer =
             opts::serialize<T>) {
+      if (ignore) return *this;
       return (*this)(landing_spot, std::forward<S>(default_value), optname,
                      nullptr, opts::cmdline(), help, validator, serializer);
     }
@@ -357,6 +360,7 @@ class Options {
             opts::Basic_type<T>(),
         typename opts::Concrete_option<T>::Serializer serializer =
             opts::serialize<T>) {
+      if (ignore) return *this;
       return (*this)(landing_spot, std::forward<S>(default_value), optname,
                      nullptr, std::move(command_line_names), help, validator,
                      serializer);
@@ -371,6 +375,7 @@ class Options {
             opts::Basic_type<T>(),
         typename opts::Concrete_option<T>::Serializer serializer =
             opts::serialize<T>) {
+      if (ignore) return *this;
       parent.add_option(new opts::Concrete_option<T>(
           landing_spot, T(std::forward<S>(default_value)), optname, envname,
           std::move(command_line_names), help, validator, serializer));
@@ -378,10 +383,12 @@ class Options {
     }
 
     Options &parent;
+    bool ignore;
   };
 
   struct Add_startup_option_helper {
-    explicit Add_startup_option_helper(Options &options) : parent(options) {}
+    Add_startup_option_helper(Options &options, bool ignore_)
+        : parent(options), ignore(ignore_) {}
 
     template <class T, class S>
     Add_startup_option_helper &operator()(
@@ -389,6 +396,7 @@ class Options {
         std::vector<std::string> &&command_line_names, const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>()) {
+      if (ignore) return *this;
       return (*this)(landing_spot, std::forward<S>(default_value), nullptr,
                      std::move(command_line_names), help, validator);
     }
@@ -399,6 +407,7 @@ class Options {
         std::vector<std::string> &&command_line_names, const std::string &help,
         typename opts::Concrete_option<T>::Validator validator =
             opts::Basic_type<T>()) {
+      if (ignore) return *this;
       parent.add_option(new opts::Concrete_option<T>(
           landing_spot, T(std::forward<S>(default_value)), "", envname,
           std::move(command_line_names), help, validator));
@@ -411,6 +420,7 @@ class Options {
         const std::string &help,  // full help text
         opts::Proxy_option::Handler handler = nullptr,
         const std::string &name = "") {
+      if (ignore) return *this;
       parent.add_option(new opts::Proxy_option(
           nullptr, std::move(command_line_names), help, handler, name));
       return *this;
@@ -420,10 +430,12 @@ class Options {
     Add_startup_option_helper &operator()(
         std::vector<std::string> &&command_line_names,
         opts::Proxy_option::Handler handler = nullptr) {
+      if (ignore) return *this;
       return (*this)(std::move(command_line_names), "", handler);
     }
 
     Options &parent;
+    bool ignore;
   };
 
  public:
@@ -514,13 +526,13 @@ class Options {
   Options &operator=(const Options &) = delete;
 
   /// Interface for adding options visible through dict like interface.
-  Add_named_option_helper add_named_options() {
-    return Add_named_option_helper(*this);
+  Add_named_option_helper add_named_options(bool enable = true) {
+    return Add_named_option_helper(*this, !enable);
   }
 
   /// Interface for adding options that only appear on command line.
-  Add_startup_option_helper add_startup_options() {
-    return Add_startup_option_helper(*this);
+  Add_startup_option_helper add_startup_options(bool enable = true) {
+    return Add_startup_option_helper(*this, !enable);
   }
 
   void set(const std::string &option_name, const std::string &new_value);

@@ -35,9 +35,9 @@
            debug2, debug3] respectively.
 
 //@<OUT> outputFormat option help text
- outputFormat  outputFormat option has been deprecated, please use resultFormat
-               to set result format and --json command line option to wrap
-               output in JSON instead.
+ outputFormat  outputFormat option was deprecated, please use resultFormat to
+               set result format and --json command line option to wrap output
+               in JSON instead.
 
 //@<OUT> resultFormat option help text
  resultFormat  Determines format of results. Allowed values: [table, tabbed,

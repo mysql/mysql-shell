@@ -394,6 +394,7 @@ cluster.disconnect();
 
 //@ SP - Dissolve the single-primary cluster while still connected to a secondary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+session.runSql("select * from performance_schema.replication_group_members");
 cluster = dba.getCluster();
 cluster.removeInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 // dissolve will drop the metadata from sandbox1

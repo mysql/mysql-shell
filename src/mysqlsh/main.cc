@@ -68,11 +68,9 @@ static int enable_x_protocol(
   mysqlshdk::db::Connection_options connection_options =
       shell_session->get_connection_options();
 
-  connection_options.clear_scheme();
   connection_options.set_scheme("mysqlx");
   // Temporary port to be replaced by the X port
-  connection_options.clear_port();
-  connection_options.set_port(0);
+  connection_options.set_port(33060);
 
   std::string temp_uri =
       connection_options.as_uri(mysqlshdk::db::uri::formats::full());
@@ -109,7 +107,7 @@ function checkXProtocol() {
         let server_uuid = session.runSql("SELECT @@server_uuid AS uuid").fetchOneObject().uuid;
 
         // Attempts a TCP connection to the X protocol
-        let x_uri = uri_template.replace(":0", ":" + x_port.toString());
+        let x_uri = uri_template.replace(":33060", ":" + x_port.toString());
         let x_session;
         try {
           x_session = shell.openSession(x_uri);
@@ -557,7 +555,9 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
   }();
 
   auto shell_options = std::make_shared<mysqlsh::Shell_options>(
-      *argc, *argv, shcore::path::join_path(user_config_path, "options.json"));
+      *argc, *argv, shcore::path::join_path(user_config_path, "options.json"),
+      mysqlsh::Shell_options::Option_flags_set(
+          mysqlsh::Shell_options::Option_flags::READ_MYCNF));
   const mysqlsh::Shell_options::Storage &options = shell_options->get();
 
   detect_interactive(shell_options.get(), &stdin_is_tty, &stdout_is_tty);
@@ -578,8 +578,6 @@ static std::shared_ptr<mysqlsh::Shell_options> process_args(int *argc,
 }
 
 static void init_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
-  mysqlsh::global_init();
-
 #ifdef ENABLE_SESSION_RECORDING
   init_debug_shell(shell);
 #endif
@@ -696,6 +694,8 @@ int main(int argc, char **argv) {
   shcore::setenv("LC_ALL", "en_US.UTF-8");
 #endif  // _WIN32
 
+  mysqlsh::global_init();
+
   setup_path_env();
 
   // Has to be called once in main so internal static variable is properly set
@@ -798,6 +798,7 @@ int main(int argc, char **argv) {
       mysqlsh::current_console()->println(version_msg);
       ret_val = options.exit_code;
     } else if (shell_options->action_print_help()) {
+      shell->restore_print();
       shell->print_cmd_line_helper();
       ret_val = options.exit_code;
     } else {
@@ -821,11 +822,9 @@ int main(int argc, char **argv) {
           auto restore_print_on_error =
               shcore::Scoped_callback([shell]() { shell->restore_print(); });
 
-          mysqlshdk::db::Connection_options target =
-              options.connection_options();
+          const auto target = options.connection_options();
 
-          if ((target.has_password() || options.is_mfa(true)) &&
-              !options.no_password) {
+          if (shell_options->got_cmdline_password) {
             mysqlsh::current_console()->print_warning(
                 "Using a password on the command line interface can be "
                 "insecure.");

@@ -29,6 +29,10 @@
 #include <iostream>
 #include <limits>
 
+#include <my_alloc.h>
+#include <my_default.h>
+#include <mysql.h>
+
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
@@ -46,8 +50,8 @@
 namespace {
 // We do not want to expose password. Override argv's uri with uri string
 // without password.
-void override_uri(const std::string &nopassword_uri, const char *argv) {
-  char *value = const_cast<char *>(argv);
+void obfuscate_uri_password(const std::string &nopassword_uri, char *argv) {
+  char *value = argv;
   auto value_length = strlen(value);
   assert(nopassword_uri.size() <= value_length);
   // If password is longer than @host:port part then strncpy will leak
@@ -63,67 +67,17 @@ namespace mysqlsh {
 using mysqlshdk::db::Transport_type;
 
 bool Shell_options::Storage::has_connection_data() const {
-  return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
-         !sock.is_null() || port != 0 || mfa_passwords[0].has_value() ||
-         prompt_password || !connect_timeout_cmdline.empty() ||
-         ssl_options.has_data() || !compress.empty() ||
-         !compress_algorithms.empty() || !compress_level.is_null() || is_mfa();
+  return connection_data.has_data() || prompt_password;
 }
 
-/**
- * Builds Connection_options from options given by user through command line
- */
 mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     const {
-  mysqlshdk::db::Connection_options target_server;
-  if (!uri.empty()) {
-    target_server = shcore::get_connection_options(uri);
-  }
-
-  // If a scheme is given on the URI the session type must match the URI scheme
-  if (target_server.has_scheme()) {
-    mysqlsh::SessionType uri_session_type = target_server.get_session_type();
-    std::string error;
-
-    if (session_type != mysqlsh::SessionType::Auto &&
-        session_type != uri_session_type) {
-      if (session_type == mysqlsh::SessionType::Classic)
-        error = "The given URI conflicts with the --mysql session type option.";
-      else if (session_type == mysqlsh::SessionType::X)
-        error =
-            "The given URI conflicts with the --mysqlx session type "
-            "option.";
-    }
-    if (!error.empty()) throw shcore::Exception::argument_error(error);
-  } else {
-    switch (session_type) {
-      case mysqlsh::SessionType::Auto:
-        target_server.clear_scheme();
-        break;
-      case mysqlsh::SessionType::X:
-        target_server.set_scheme("mysqlx");
-        break;
-      case mysqlsh::SessionType::Classic:
-        target_server.set_scheme("mysql");
-        break;
-    }
-  }
-
-  // other options need to be set after scheme, as some of them require specific
-  // scheme type (i.e. pipe)
-  shcore::update_connection_data(
-      &target_server, user, nullptr, host, port, sock, schema, ssl_options,
-      auth_method, get_server_public_key, server_public_key_path,
-      connect_timeout_cmdline, compress, compress_algorithms, compress_level);
+  auto target_server = connection_data;
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
   }
   if (!ssh.uri.empty()) {
-    if (target_server.has_socket())
-      throw std::invalid_argument(
-          "Socket connections through SSH are not supported");
-
     auto ssh_dict = shcore::make_dict();
     if (!ssh.identity_file.empty()) {
       (*ssh_dict)[mysqlshdk::db::kSshIdentityFile] =
@@ -144,15 +98,9 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     target_server.set_ssh_options(ssh_options);
   }
 
-  if (is_mfa()) {
-    if (target_server.has_scheme() && target_server.get_scheme() == "mysqlx")
-      throw shcore::Exception::argument_error(
-          "Multi-factor authentication is only compatible with MySQL protocol");
-    target_server.clear_scheme();
+  if (has_multi_passwords()) {
     target_server.set_scheme("mysql");
   }
-
-  target_server.set_mfa_passwords(mfa_passwords);
 
   if (!fido_register_factor.empty()) {
     target_server.set_unchecked(mysqlshdk::db::kFidoRegisterFactor,
@@ -162,28 +110,79 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   return target_server;
 }
 
-bool Shell_options::Storage::is_mfa(bool check_values) const {
-  return (mfa_passwords[1].has_value() &&
-          (!check_values || !mfa_passwords[1]->empty())) ||
-         (mfa_passwords[2].has_value() &&
-          (!check_values || !mfa_passwords[2]->empty()));
+namespace {
+mysqlsh::SessionType session_type_for_option(const std::string &option) {
+  if (shcore::str_beginswith(option, "mysql://")) {
+    return mysqlsh::SessionType::Classic;
+  } else if (shcore::str_beginswith(option, "mysqlx://")) {
+    return mysqlsh::SessionType::X;
+  } else if (option == "-mc" || option == "--mc" || option == "--mysql" ||
+             option == "--sqlc") {
+    return mysqlsh::SessionType::Classic;
+  } else if (option == "-mx" || option == "--mx" || option == "--mysqlx" ||
+             option == "--sqlx") {
+    return mysqlsh::SessionType::X;
+  } else {
+    // -ma, --ma
+    return mysqlsh::SessionType::Auto;
+  }
 }
+}  // namespace
 
-static std::string get_session_type_name(mysqlsh::SessionType type) {
-  std::string label;
-  switch (type) {
-    case mysqlsh::SessionType::X:
-      label = "X protocol";
-      break;
-    case mysqlsh::SessionType::Classic:
-      label = "Classic";
-      break;
-    case mysqlsh::SessionType::Auto:
-      label = "";
-      break;
+mysqlsh::SessionType Shell_options::Storage::check_option_session_type_conflict(
+    const std::string &option) {
+  auto session_type = session_type_for_option(option);
+
+  if (session_type == mysqlsh::SessionType::Auto) return session_type;
+
+  auto format = [](const std::string &opt, bool capitalize) {
+    if (opt[0] == '-') return (capitalize ? "Option " : "option ") + opt;
+    // URIs
+    std::string scheme, rest;
+    std::tie(scheme, rest) = shcore::str_partition_after(opt, "://");
+
+    return "URI scheme " + scheme;
+  };
+
+  for (const auto &opt : m_session_type_options) {
+    auto opt_type = session_type_for_option(opt);
+
+    // any combination is allowed so that options can be placed in my.cnf and
+    // overriden from the cmdline, except for --sqlc / --sqlx
+
+    if (session_type != opt_type && (shcore::str_beginswith(opt, "--sql") ||
+                                     shcore::str_beginswith(option, "--sql"))) {
+      throw shcore::Exception::argument_error(format(option, true) +
+                                              " cannot be combined with " +
+                                              format(opt, false));
+    }
   }
 
-  return label;
+  switch (session_type) {
+    case mysqlsh::SessionType::Classic:
+      m_session_type_options.push_back(option);
+      break;
+    case mysqlsh::SessionType::X:
+      m_session_type_options.push_back(option);
+      break;
+    case mysqlsh::SessionType::Auto:
+      break;
+  }
+  return session_type;
+}
+
+void Shell_options::Storage::set_uri(const std::string &uri) {
+  if (uri.empty()) {
+    connection_data = Connection_options();
+  } else {
+    check_option_session_type_conflict(uri);
+
+    // URLs always override port/socket/schema
+    connection_data.clear_schema();
+    connection_data.clear_port();
+    connection_data.clear_socket();
+    connection_data.override_with(shcore::get_connection_options(uri, true));
+  }
 }
 
 using mysqlshdk::db::Ssl_options;
@@ -194,9 +193,65 @@ using shcore::opts::Source;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-Shell_options::Shell_options(int argc, char **argv,
-                             const std::string &configuration_file)
-    : Options(configuration_file) {
+void Shell_options::handle_mycnf_options(int *argc, char ***argv,
+                                         MEM_ROOT *argv_alloc) {
+  constexpr const char *defaults_args_separator = "----args-separator----";
+
+  const char *load_default_groups[] = {"mysqlsh", "client", nullptr};
+
+  my_getopt_use_args_separator = 1;
+  if (my_load_defaults("my", load_default_groups, argc, argv, argv_alloc,
+                       nullptr)) {
+    throw std::runtime_error("Could not read my.cnf files");
+  }
+
+  // find the separator between default options and explicit options
+  int sep = 1;
+  while ((*argv)[sep] && strcmp((*argv)[sep], defaults_args_separator) != 0) {
+    // convert my.cnf style options to ours (e.g. --ssl_ca to --ssl-ca)
+    for (int i = 0; (*argv)[sep][i] != '\0' && (*argv)[sep][i] != '='; ++i) {
+      if ((*argv)[sep][i] == '_') (*argv)[sep][i] = '-';
+    }
+
+    ++sep;
+  }
+
+  (*argv)[sep] = nullptr;
+  // process the default options
+  try {
+    handle_cmdline_options(
+        sep, *argv, false,
+        std::bind(&Shell_options::custom_cmdline_handler, this, _1));
+  } catch (const std::exception &e) {
+    throw std::runtime_error(
+        std::string("While processing defaults options:\n") + e.what());
+  }
+  (*argv)[sep] = (*argv)[0];
+  *argv = *argv + sep;
+  *argc = *argc - sep;
+}
+
+namespace {
+void default_print_err(const std::string &s) { std::cerr << s << std::endl; }
+
+void default_print_out(const std::string &s) { std::cout << s << std::endl; }
+}  // namespace
+
+Shell_options::Shell_options(
+    int argc, char **argv, const std::string &configuration_file,
+    Option_flags_set flags,
+    const std::function<void(const std::string &)> &on_error,
+    const std::function<void(const std::string &)> &on_warning)
+    : Options(configuration_file),
+      m_on_error(on_error),
+      m_on_warning(on_warning) {
+  if (!m_on_error) {
+    m_on_error = default_print_err;
+  }
+  if (!m_on_warning) {
+    m_on_warning = default_print_out;
+  }
+
   std::string home = shcore::get_home_dir();
 #ifdef WIN32
   home += ("MySQL\\mysql-sandboxes");
@@ -211,7 +266,7 @@ Shell_options::Shell_options(int argc, char **argv,
     };
   };
   // clang-format off
-  add_startup_options()
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&print_cmd_line_helper, false,
         cmdline("-?", "--help"), "Display this help and exit.")
     (cmdline("--"),
@@ -226,7 +281,9 @@ Shell_options::Shell_options(int argc, char **argv,
         "processed command.")
     (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
         "Any options specified after this are used as arguments of the "
-        "processed file.")
+        "processed file.");
+
+  add_startup_options(true)
     (cmdline("--ssh=<value>"), "Make SSH tunnel connection using"
         "Uniform Resource Identifier. "
         "Format: [user[:pass]@]host[:port]")
@@ -247,7 +304,7 @@ Shell_options::Shell_options(int argc, char **argv,
         return value;
       });
 
-  add_named_options()
+  add_named_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.ssh.config_file, "", "ssh.configFile",
       cmdline("--ssh-config-file=<file>"), "Specify a custom path for SSH "
       "configuration.",
@@ -262,16 +319,27 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.ssh.buffer_size, 10240, "ssh.bufferSize",
     "Set buffer size in bytes for data transfer, default is 10240 (10Kb)",
       shcore::opts::Range<int>(0, std::numeric_limits<int>::max()));
-
-  add_startup_options()
+  
+  add_startup_options(true)
     (cmdline("--uri=<value>"), "Connect to Uniform Resource Identifier. "
         "Format: [user[:pass]@]host[:port][/db]")
-    (&storage.host, "", cmdline("-h", "--host=<name>"),
-        "Connect to host.")
-    (&storage.port, 0, cmdline("-P", "--port=<#>"),
-        "Port number to use for connection.")
+    (cmdline("-h", "--host=<name>"),
+        "Connect to host.",
+        [this](const std::string&, const char* value) {
+          storage.connection_data.set_host(value);
+        })
+    (cmdline("-P", "--port=<#>"),
+        "Port number to use for connection.",
+        [this](const std::string&, const char* value) {
+          storage.connection_data.clear_socket();
+          storage.connection_data.clear_pipe();
+          storage.connection_data.set_port(shcore::opts::convert<int>(
+            value, shcore::opts::Source::Command_line));
+        })
     (cmdline("--connect-timeout=<ms>"), "Connection timeout in milliseconds.",
-        std::bind(&Shell_options::set_connection_timeout, this, _1, _2))
+        [this](const std::string&, const char* value) {
+          storage.connection_data.set(mysqlshdk::db::kConnectTimeout, value);
+        })
 #ifndef _WIN32
     (cmdline("-S", "--socket[=<sock>]"), "Socket name to use. "
         "If no value is provided will use default UNIX socket path.",
@@ -280,30 +348,31 @@ Shell_options::Shell_options(int argc, char **argv,
         "Pipe name to use (only classic sessions).",
 #endif
         [this](const std::string&, const char* value) {
-          storage.sock = value == nullptr ? "" : value;
+          storage.connection_data.clear_port();
+          storage.connection_data.clear_pipe();
+          storage.connection_data.set_socket(value ? value : "");
         }
       )
-    (&storage.user, "", cmdline("-u", "--user=<name>"),
+    (cmdline("-u", "--user=<name>"),
         "User for the connection to the server.")
-    (cmdline("--dbuser=<name>"),
-      deprecated("--user", [this](const std::string &, const char *value) {
-        storage.user = value;
-      }))
+    (cmdline("--dbuser=<name>"), deprecated(m_on_warning, "--user"))
     (cmdline("--password=[<pass>]"), "Password to use when connecting to server. "
       "If password is empty, connection will be made without using a password.")
-    (cmdline("--dbpassword[=<pass>]"), deprecated("--password"))
+    (cmdline("--dbpassword[=<pass>]"), deprecated(m_on_warning, "--password"))
     (cmdline("-p", "--password"), "Request password prompt to set the password")
     (cmdline("--password1[=<pass>]"),
       "Password for first factor authentication plugin.")
     (cmdline("--password2[=<pass>]"),
       "Password for second factor authentication plugin.",
       [this](const std::string&, const char* value) {
-          storage.mfa_passwords[1] = value == nullptr ? "" : value;
+          storage.connection_data.set_mfa_password(
+            1, value == nullptr ? "" : value);
       })
     (cmdline("--password3[=<pass>]"),
       "Password for third factor authentication plugin.",
       [this](const std::string&, const char* value) {
-          storage.mfa_passwords[2] = value == nullptr ? "" : value;
+          storage.connection_data.set_mfa_password(
+              2, value == nullptr ? "" : value);
       })
     (cmdline("-C", "--compress[=<value>]"),
         "Use compression in client/server protocol. Valid values: 'REQUIRED', "
@@ -312,42 +381,52 @@ Shell_options::Shell_options(int argc, char **argv,
         "set to DISABLED in classic protocol and PREFERRED in X protocol "
         "connections.",
         [this](const std::string&, const char* value) {
-          storage.compress = value == nullptr ? "REQUIRED" : value;
+          storage.connection_data.set_compression(
+              value == nullptr ? "REQUIRED" : value);
         })
-    (&storage.compress_algorithms, "",
-        cmdline("--compression-algorithms=<list>"),
+    (cmdline("--compression-algorithms=<list>"),
         "Use compression algorithm in server/client protocol. Expects comma "
         "separated list of algorithms. Supported algorithms include "
         "'zstd', 'zlib', 'lz4' (X protocol only), and 'uncompressed', "
         "which if appears in a list, causes connection to "
-        "succeed even if compression negotiation fails.")
+        "succeed even if compression negotiation fails.",
+        [this](const std::string&, const char* value) {
+          storage.connection_data.set_compression_algorithms(value);
+        })
     (cmdline("--compression-level=<int>", "--zstd-compression-level=<int>"),
         "Use this compression level in the client/server protocol. "
         "Supported by X protocol and zstd compression in classic protocol.",
         [this](const std::string& opt, const char* value) {
           try {
-            storage.compress_level = shcore::lexical_cast<int64_t>(value);
+            storage.connection_data.set_compression_level(
+                shcore::lexical_cast<int64_t>(value));
             if (opt == "--zstd-compression-level"
-                && storage.compress_algorithms.empty())
-              storage.compress_algorithms = "zstd";
+                && !storage.connection_data.has_compression_algorithms())
+              storage.connection_data.set_compression_algorithms("zstd");
           } catch(...) {
             throw std::invalid_argument(
                 "The value of 'compression-level' must be an integer.");
           }
-        })
+        });
+
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (cmdline("--import <file> <collection>", "--import <file> <table> <col>"),
         "Import JSON documents from file to collection or table in MySQL"
         " Server. Set file to - if you want to read the data from stdin."
         " Requires a default schema on the connection options.")
-    (&storage.schema, "", "schema",
-        cmdline("-D", "--schema=<name>", "--database=<name>"), "Schema to use.")
+    (cmdline("-D", "--schema=<name>", "--database=<name>"), "Schema to use.",
+      [this](const std::string&, const char* value) {
+          storage.connection_data.set_schema(value);
+        })
     (&storage.fido_register_factor, "",
         cmdline("--fido-register-factor=<name>"),
         "Specifies authentication factor, for which registration needs to be "
         "done.")
     (&storage.recreate_database, false, "recreateDatabase",
         cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
-        "Schema will be deleted if it exists!")
+        "Schema will be deleted if it exists!");
+
+  add_startup_options(true)
     (cmdline("--mx", "--mysqlx"),
         "Uses connection data to create an X protocol session.",
         std::bind(
@@ -355,7 +434,9 @@ Shell_options::Shell_options(int argc, char **argv,
     (cmdline("--mc", "--mysql"),
         "Uses connection data to create a classic session.",
         std::bind(
-            &Shell_options::override_session_type, this, _1, _2))
+            &Shell_options::override_session_type, this, _1, _2));
+
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (cmdline("--redirect-primary"), "Ensure that the target server is part of "
         "an InnoDB cluster or ReplicaSet and if it is not a primary, find the "
         "primary and connect to it.",
@@ -434,15 +515,15 @@ Shell_options::Shell_options(int argc, char **argv,
         "Print the output of a query (rows) vertically.",
         create_result_format_handler("vertical"));
 
-  add_named_options()
+  add_named_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.result_format, "table", "outputFormat",
-        "outputFormat option has been deprecated, "
+        "outputFormat option was deprecated, "
         "please use " SHCORE_RESULT_FORMAT " to set result format and --json "
         "command line option to wrap output in JSON instead.",
         [this](const std::string &val, Source s) {
-          std::cout << "WARNING: outputFormat option has been deprecated, "
+          m_on_warning("WARNING: outputFormat option was deprecated, "
               "please use " SHCORE_RESULT_FORMAT " to set result format and"
-              " --json command line option to wrap output in JSON instead.\n";
+              " --json command line option to wrap output in JSON instead.");
           get_option(SHCORE_RESULT_FORMAT).set(val, s);
           storage.wrap_json = shcore::str_beginswith(val, "json") ? val : "off";
           return storage.result_format;
@@ -474,16 +555,22 @@ Shell_options::Shell_options(int argc, char **argv,
         "Colon separated list of SQL statement patterns to filter out, unless logSql is set to 'unfiltered'."
         "Default: *IDENTIFIED*:*PASSWORD*");
 
-  add_startup_options()
+  add_startup_options(true)
     (cmdline("--get-server-public-key"), "Request public key from the server "
         "required for RSA key pair-based password exchange. Use when connecting"
         " to MySQL 8.0 servers with classic sessions with SSL mode DISABLED.",
-        assign_value(&storage.get_server_public_key, true))
-    (&storage.server_public_key_path, "",
-        cmdline("--server-public-key-path=<p>"), "The path name to a file "
+        [this](const std::string&, const char*) {
+          storage.connection_data.set(mysqlshdk::db::kGetServerPublicKey, "true");
+        })
+    (cmdline("--server-public-key-path=<p>"), "The path name to a file "
         "containing a client-side copy of the public key required by the "
         "server for RSA key pair-based password exchange. Use when connecting "
-        "to MySQL 8.0 servers with classic sessions with SSL mode DISABLED.")
+        "to MySQL 8.0 servers with classic sessions with SSL mode DISABLED.",
+        [this](const std::string&, const char* value) {
+          storage.connection_data.set(mysqlshdk::db::kServerPublicKeyPath, value);
+        });
+
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (cmdline("-i", "--interactive[=full]"),
       "To use in batch mode. "
       "It forces emulation of interactive mode processing. Each "
@@ -506,7 +593,7 @@ Shell_options::Shell_options(int argc, char **argv,
       std::is_integral<
           std::underlying_type<shcore::Logger::LOG_LEVEL>::type>::value,
       "Invalid underlying type of shcore::Logger::LOG_LEVEL enum");
-  add_named_options()
+  add_named_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.force, false, SHCORE_BATCH_CONTINUE_ON_ERROR, cmdline("--force"),
         "In SQL batch mode, forces processing to continue if an error "
         "is found.", shcore::opts::Read_only<bool>())
@@ -638,7 +725,7 @@ Shell_options::Shell_options(int argc, char **argv,
         shcore::opts::Non_negative<double>());
 
 
-  add_startup_options()
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (cmdline("--name-cache"),
       "Enable database name caching for autocompletion and DevAPI (default).",
       [this](const std::string &, const char *) {
@@ -665,51 +752,60 @@ Shell_options::Shell_options(int argc, char **argv,
         }
 
         print_cmd_line_version = true;
-    })
+    });
+
+  add_startup_options(true)
     (cmdline("--ssl-key=<file_name>"),
         "The path to the SSL private key file in PEM format.",
-        std::bind(&Ssl_options::set_key, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_key, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-cert=<file_name>"),
         "The path to the SSL public key certificate file in PEM format.",
-        std::bind(&Ssl_options::set_cert, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_cert, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-ca=<file_name>"),
         "The path to the certificate authority file in PEM format.",
-        std::bind(&Ssl_options::set_ca, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_ca, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-capath=<dir_name>"),
         "The path to the directory that contains the certificate authority "
         "files in PEM format.",
-        std::bind(&Ssl_options::set_capath, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_capath, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-cipher=<cipher_list>"),
         "The list of permissible encryption ciphers for connections that use "
         "TLS protocols up through TLSv1.2.",
-        std::bind(&Ssl_options::set_cipher, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_cipher, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-crl=<file_name>"),
         "The path to the file containing certificate revocation lists in PEM "
         "format.",
-        std::bind(&Ssl_options::set_crl, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_crl, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-crlpath=<dir_name>"),
         "The path to the directory that contains certificate revocation-list "
         "files in PEM format.",
-        std::bind(&Ssl_options::set_crlpath, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_crlpath, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--ssl-mode=<mode>"), "SSL mode to use. Allowed values: DISABLED,"
         "PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
         std::bind(&Shell_options::set_ssl_mode, this, _1, _2))
     (cmdline("--tls-version=<version>"),
         "TLS version to use. Allowed values: TLSv1.2, TLSv1.3.",
-        std::bind(&Ssl_options::set_tls_version, &storage.ssl_options, _2))
+        std::bind(&Ssl_options::set_tls_version, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--tls-ciphersuites=<name>"), "TLS v1.3 cipher to use.",
-        std::bind(&Ssl_options::set_tls_ciphersuites, &storage.ssl_options, _2))
-    (&storage.auth_method, "", cmdline("--auth-method=<method>"),
+        std::bind(&Ssl_options::set_tls_ciphersuites, &storage.connection_data.get_ssl_options(), _2))
+    (cmdline("--auth-method=<method>"),
         "Authentication method to use. In case of classic session, this is the "
         "name of the authentication plugin to use, i.e. caching_sha2_password. "
         "In case of X protocol session, it should be one of: AUTO, "
-        "FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN, SHA256_MEMORY.")
+        "FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN, SHA256_MEMORY.",
+        [this](const std::string&, const char* value) {
+          storage.connection_data.set(mysqlshdk::db::kAuthMethod, value);
+        });
+
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.execute_dba_statement, "",
         cmdline("--dba=enableXProtocol"), "Enable the X protocol in the target "
         "server. Requires a connection using classic session.")
     (cmdline("--trace-proto"),
-        assign_value(&storage.trace_protocol, true))
-    (cmdline("--ssl[=<opt>]"), deprecated("--ssl-mode",
+        assign_value(&storage.trace_protocol, true));
+
+  add_startup_options()
+    (cmdline("--ssl[=<opt>]"), deprecated(m_on_warning, "--ssl-mode",
       std::bind(&Shell_options::set_ssl_mode, this, _1, _2), "REQUIRED",
      {
        {"1", "REQUIRED"},
@@ -717,12 +813,14 @@ Shell_options::Shell_options(int argc, char **argv,
        {"0", "DISABLED"},
        {"NO", "DISABLED"}
      }))
-    (cmdline("--node"), deprecated("--mysqlx", std::bind(
+    (cmdline("--node"), deprecated(m_on_warning, "--mysqlx", std::bind(
             &Shell_options::override_session_type, this, _1, _2)))
-    (cmdline("--classic"), deprecated("--mysql", std::bind(
+    (cmdline("--classic"), deprecated(m_on_warning, "--mysql", std::bind(
             &Shell_options::override_session_type, this, _1, _2)))
-    (cmdline("--sqln"), deprecated("--sqlx", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)))
+    (cmdline("--sqln"), deprecated(m_on_warning, "--sqlx", std::bind(
+            &Shell_options::override_session_type, this, _1, _2)));
+
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (
       cmdline("--quiet-start[={1|2}]"),
       "Avoids printing information when the shell is started. A value of "
@@ -745,39 +843,73 @@ Shell_options::Shell_options(int argc, char **argv,
 #ifdef NDEBUG
         // If DBUG is disabled, we just print a warning saying the option won't
         // do anything. This is to keep options compatible between build types
-        std::cout << "WARNING: This build of mysqlsh has the DBUG feature "
-          "disabled. --debug option ignored." << std::endl;
+        m_on_warning("WARNING: This build of mysqlsh has the DBUG feature "
+          "disabled. --debug option ignored.");
 #endif
         storage.dbug_options = value ? value : "";
       })
 ;  // <-- Note this is on purpose: Mark the termination of the option definition.
   // clang-format on
 
-  shcore::Credential_manager::get().register_options(this);
+  if (!flags.is_set(Option_flags::CONNECTION_ONLY))
+    shcore::Credential_manager::get().register_options(this);
 
   try {
+    MEM_ROOT argv_alloc{};
+    mysqlshdk::db::Connection_options mycnf_connection_data;
+
     handle_environment_options();
-    if (!configuration_file.empty()) handle_persisted_options();
+    if (!configuration_file.empty()) {
+      handle_persisted_options();
+    }
+
+    // process standard my.cnf files and cmdline options first, which will
+    // prepend argv with options read from these places and end with a
+    // ----args-separator----
+    if (flags.is_set(Option_flags::READ_MYCNF))
+      handle_mycnf_options(&argc, &argv, &argv_alloc);
+
+    mycnf_connection_data = storage.connection_data;
+    // temporarily clear passwords so we can detect if we got them from cmdline
+    storage.connection_data.clear_password();
+    storage.connection_data.clear_mfa_passwords();
+
     handle_cmdline_options(
         argc, argv, false,
         std::bind(&Shell_options::custom_cmdline_handler, this, _1));
 
-    check_session_type_conflicts();
-    check_user_conflicts();
+    if (storage.connection_data.has_password() ||
+        storage.connection_data.has_mfa_passwords()) {
+      got_cmdline_password = true;
+    } else {
+      // if we didn't get any password in the cmdline, restore the ones we got
+      // from my.cnf (if any)
+      if (mycnf_connection_data.has_mfa_passwords())
+        storage.connection_data.set_mfa_passwords(
+            mycnf_connection_data.get_mfa_passwords());
+    }
+
+    // default to mysql:// if we got connection options from my.cnf but we still
+    // don't know what session type to use
+    if (storage.has_connection_data() &&
+        !storage.connection_data.has_scheme() &&
+        mycnf_connection_data.has_data())
+      storage.connection_data.set_scheme("mysql");
+
     check_password_conflicts();
-    check_host_conflicts();
     check_host_socket_conflicts();
-    check_port_conflicts();
-    check_socket_conflicts();
-    check_port_socket_conflicts();
-    check_file_execute_conflicts();
-    check_ssh_conflicts();
-    check_import_options();
-    check_result_format();
+    if (!flags.is_set(Option_flags::CONNECTION_ONLY)) {
+      check_file_execute_conflicts();
+      check_ssh_conflicts();
+      check_import_options();
+      check_result_format();
+    }
     check_connection_options();
-    shcore::Logger::set_stderr_output_format(storage.wrap_json);
+
+    if (!flags.is_set(Option_flags::CONNECTION_ONLY))
+      shcore::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
-    std::cerr << e.what() << std::endl;
+    m_on_error(e.what());
     storage.exit_code = 1;
   }
 }
@@ -947,14 +1079,28 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
   } else if ("--uri" == option || '-' != option[0]) {
     handle_missing_value(iterator);
 
-    storage.uri = iterator->value();
-    uri_data = shcore::get_connection_options(storage.uri, false);
+    storage.set_uri(iterator->value());
 
-    if (uri_data.has_password()) {
-      const auto value = iterator->value();
+    {
+      char *value = const_cast<char *>(iterator->value());
       const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value, true);
-      override_uri(nopwd, value);
+      obfuscate_uri_password(nopwd, value);
     }
+
+    iterator->next();
+  } else if ("--user" == option || "--dbuser" == option || "-u" == option) {
+    handle_missing_value(iterator);
+
+    if ("--dbuser" == option) {
+      // Deprecated handler is not going to be invoked, need to inform the
+      // user that --dbuser should not longer be used.
+      // Console is not available at this time, need to use stdout.
+      m_on_warning(
+          "WARNING: The --dbuser option was deprecated, "
+          "please use --user instead.");
+    }
+
+    storage.connection_data.set_user(iterator->value());
 
     iterator->next();
   } else if ("--ssh" == option) {
@@ -964,9 +1110,9 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     storage.ssh.uri_data =
         shcore::get_ssh_connection_options(storage.ssh.uri, false);
     if (storage.ssh.uri_data.has_password()) {
-      const auto value = iterator->value();
+      char *value = const_cast<char *>(iterator->value());
       const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value, false);
-      override_uri(nopwd, value);
+      obfuscate_uri_password(nopwd, value);
     }
 
     iterator->next();
@@ -986,15 +1132,13 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     // -p<value> sets the password to <value>
     // --password=<value> sets the password to <value>
 
-    {
-      if ("--dbpassword" == option) {
-        // Deprecated handler is not going to be invoked, need to inform the
-        // user that --dbpassword should not longer be used.
-        // Console is not available at this time, need to use stdout.
-        std::cout << "WARNING: The --dbpassword option has been deprecated, "
-                     "please use --password instead."
-                  << std::endl;
-      }
+    if ("--dbpassword" == option) {
+      // Deprecated handler is not going to be invoked, need to inform the
+      // user that --dbpassword should not longer be used.
+      // Console is not available at this time, need to use stdout.
+      m_on_warning(
+          "WARNING: The --dbpassword option was deprecated, "
+          "please use --password instead.");
     }
 
     if (shcore::Options::Iterator::Type::NO_VALUE == iterator->type()) {
@@ -1004,14 +1148,13 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
                iterator->type()) {
       // --password=value || -pvalue
       const auto value = iterator->value();
+      storage.connection_data.set_mfa_password(0, value);
 
-      storage.mfa_passwords[0] = value;
+      const std::string stars(strlen(value), '*');
 
-      const std::string stars(storage.mfa_passwords[0]->length(), '*');
-
-      strncpy(const_cast<char *>(value), stars.c_str(), strlen(value) + 1);
-
+      strncpy(const_cast<char *>(value), stars.c_str(), stars.length() + 1);
       iterator->next();
+      storage.prompt_password = false;
     } else {  // --password value (value is ignored)
       storage.prompt_password = true;
       iterator->next_no_value();
@@ -1095,8 +1238,9 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       }
 
       if (handled) {
-        deprecated(replacement, std::bind(&Shell_options::override_session_type,
-                                          this, _1, _2))(value, nullptr);
+        deprecated(m_on_warning, replacement,
+                   std::bind(&Shell_options::override_session_type, this, _1,
+                             _2))(value, nullptr);
         iterator->next();
       }
     }
@@ -1106,9 +1250,9 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
                                   std::string(": unknown option -m"));
     }
   } else if ("--dba-log-sql" == option) {
-    std::cout << "WARNING: The --dba-log-sql option has been deprecated, "
-                 "please use --log-sql instead."
-              << std::endl;
+    m_on_warning(
+        "WARNING: The --dba-log-sql option was deprecated, "
+        "please use --log-sql instead.");
     return false;
   } else {
     return false;
@@ -1119,43 +1263,23 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
 void Shell_options::override_session_type(const std::string &option,
                                           const char *value) {
   if (value != nullptr)
-    throw std::runtime_error("Option " + option + " does not support value");
+    throw std::invalid_argument("Option " + option + " does not support value");
+
+  auto session_type = storage.check_option_session_type_conflict(option);
 
   if (option.find("--sql") != std::string::npos)
     storage.initial_mode = shcore::IShell_core::Mode::SQL;
 
-  mysqlsh::SessionType new_type = mysqlsh::SessionType::Auto;
-  if (option == "-mc" || option == "--mc" || option == "--mysql" ||
-      option == "--sqlc")
-    new_type = mysqlsh::SessionType::Classic;
-  else if (option == "-mx" || option == "--mx" || option == "--mysqlx" ||
-           option == "--sqlx")
-    new_type = mysqlsh::SessionType::X;
-
-  if (new_type != storage.session_type) {
-    if (!storage.default_session_type) {
-      std::stringstream ss;
-      if (storage.session_type == mysqlsh::SessionType::Auto) {
-        ss << "Automatic protocol detection is enabled, unable to change to "
-           << get_session_type_name(new_type) << " with option " << option;
-      } else if (new_type == mysqlsh::SessionType::Auto) {
-        ss << "Session type already configured to "
-           << get_session_type_name(storage.session_type)
-           << ", automatic protocol detection (-ma) can't be enabled.";
-      } else {
-        ss << "Session type already configured to "
-           << get_session_type_name(storage.session_type)
-           << ", unable to change to " << get_session_type_name(new_type)
-           << " with option " << option;
-      }
-      throw std::invalid_argument(ss.str());
-    }
-
-    storage.session_type = new_type;
-    session_type_arg = option;
+  switch (session_type) {
+    case mysqlsh::SessionType::Classic:
+      storage.connection_data.set_scheme("mysql");
+      break;
+    case mysqlsh::SessionType::X:
+      storage.connection_data.set_scheme("mysqlx");
+      break;
+    case mysqlsh::SessionType::Auto:
+      break;
   }
-
-  storage.default_session_type = false;
 }
 
 void Shell_options::set_ssl_mode(const std::string &option, const char *value) {
@@ -1167,53 +1291,11 @@ void Shell_options::set_ssl_mode(const std::string &option, const char *value) {
                                 "REQUIRED, VERIFY_CA, VERIFY_IDENTITY]");
   }
 
-  storage.ssl_options.set_mode(static_cast<mysqlshdk::db::Ssl_mode>(mode));
-}
-
-void Shell_options::set_connection_timeout(const std::string & /*option*/,
-                                           const char *value) {
-  // Creates a temporary connection options object so the established
-  // validations are performed on the data
-  mysqlshdk::db::Connection_options{}.set(mysqlshdk::db::kConnectTimeout,
-                                          value);
-  storage.connect_timeout_cmdline.assign(value);
-}
-
-void Shell_options::check_session_type_conflicts() {
-  if (storage.session_type != mysqlsh::SessionType::Auto &&
-      uri_data.has_scheme()) {
-    if ((storage.session_type == mysqlsh::SessionType::Classic &&
-         uri_data.get_scheme() != "mysql") ||
-        (storage.session_type == mysqlsh::SessionType::X &&
-         uri_data.get_scheme() != "mysqlx")) {
-      auto error = "The given URI conflicts with the " + session_type_arg +
-                   " session type option.";
-      throw std::runtime_error(error);
-    }
-  }
-}
-
-void Shell_options::check_user_conflicts() {
-  if (!storage.user.empty() && uri_data.has_user()) {
-    if (storage.user != uri_data.get_user()) {
-      auto error =
-          "Conflicting options: provided user name differs from the "
-          "user in the URI.";
-      throw std::runtime_error(error);
-    }
-  }
+  storage.connection_data.get_ssl_options().set_mode(
+      static_cast<mysqlshdk::db::Ssl_mode>(mode));
 }
 
 void Shell_options::check_password_conflicts() {
-  if (storage.mfa_passwords[0].has_value() && uri_data.has_password()) {
-    if (*storage.mfa_passwords[0] != uri_data.get_password()) {
-      const auto error =
-          "Conflicting options: provided password differs from the "
-          "password in the URI.";
-      throw std::runtime_error(error);
-    }
-  }
-
   if (!storage.ssh.pwd.empty() && storage.ssh.uri_data.has_password()) {
     if (storage.ssh.pwd != storage.ssh.uri_data.get_password()) {
       const auto error =
@@ -1230,31 +1312,12 @@ void Shell_options::check_password_conflicts() {
     throw std::runtime_error(error);
   }
 
-  if (storage.no_password && uri_data.has_password() &&
-      !uri_data.get_password().empty()) {
-    const auto error =
-        "Conflicting options: --no-password cannot be used if password is "
-        "provided in URI.";
-    throw std::runtime_error(error);
-  }
-
-  if (storage.no_password && storage.mfa_passwords[0].has_value() &&
-      storage.mfa_passwords[0]->length() > 0) {
+  if (storage.no_password && storage.connection_data.has_password() &&
+      !storage.connection_data.get_password().empty()) {
     const auto error =
         "Conflicting options: --no-password cannot be used if password is "
         "provided.";
     throw std::runtime_error(error);
-  }
-}
-
-void Shell_options::check_host_conflicts() {
-  if (uri_data.has_host() && !storage.host.empty()) {
-    if (storage.host != uri_data.get_host()) {
-      auto error =
-          "Conflicting options: provided host differs from the "
-          "host in the URI.";
-      throw std::runtime_error(error);
-    }
   }
 }
 
@@ -1265,15 +1328,11 @@ void Shell_options::check_host_conflicts() {
 #endif  // !_WIN32
 
 void Shell_options::check_host_socket_conflicts() {
-  if (!storage.sock.is_null()) {
-    if ((!storage.host.empty() && storage.host != "localhost"
+  if (storage.connection_data.has_socket()) {
+    if ((storage.connection_data.has_host() &&
+         storage.connection_data.get_host() != "localhost"
 #ifdef _WIN32
-         && storage.host != "."
-#endif  // _WIN32
-         ) ||
-        (uri_data.has_host() && uri_data.get_host() != "localhost"
-#ifdef _WIN32
-         && uri_data.get_host() != "."
+         && storage.connection_data.get_host() != "."
 #endif  // _WIN32
          )) {
       auto error = "Conflicting options: " SOCKET_NAME
@@ -1285,56 +1344,6 @@ void Shell_options::check_host_socket_conflicts() {
 #endif  // !_WIN32
       throw std::runtime_error(error);
     }
-  }
-}
-
-void Shell_options::check_port_conflicts() {
-  if (storage.port != 0 && uri_data.has_transport_type() &&
-      uri_data.get_transport_type() == mysqlshdk::db::Transport_type::Tcp &&
-      uri_data.has_port() && uri_data.get_port() != storage.port) {
-    auto error =
-        "Conflicting options: provided port differs from the "
-        "port in the URI.";
-    throw std::runtime_error(error);
-  }
-}
-
-void Shell_options::check_socket_conflicts() {
-  if (!storage.sock.is_null() && uri_data.has_transport_type() &&
-      uri_data.get_transport_type() ==
-#ifdef _WIN32
-          mysqlshdk::db::Transport_type::Pipe
-#else   // !_WIN32
-          mysqlshdk::db::Transport_type::Socket
-#endif  // !_WIN32
-      && uri_data.get_socket() != *storage.sock) {
-    auto error = "Conflicting options: provided " SOCKET_NAME
-                 " differs from the " SOCKET_NAME " in the URI.";
-    throw std::runtime_error(error);
-  }
-}
-
-void Shell_options::check_port_socket_conflicts() {
-  if (storage.port != 0 && !storage.sock.is_null()) {
-    auto error = "Conflicting options: port and " SOCKET_NAME
-                 " cannot be used together.";
-    throw std::runtime_error(error);
-  } else if (storage.port != 0 && uri_data.has_transport_type() &&
-             uri_data.get_transport_type() ==
-#ifdef _WIN32
-                 mysqlshdk::db::Transport_type::Pipe
-#else   // !_WIN32
-                 mysqlshdk::db::Transport_type::Socket
-#endif  // !_WIN32
-  ) {
-    auto error =
-        "Conflicting options: port cannot be used if the URI "
-        "contains a " SOCKET_NAME ".";
-    throw std::runtime_error(error);
-  } else if (!storage.sock.is_null() && uri_data.has_port()) {
-    auto error = "Conflicting options: " SOCKET_NAME
-                 " cannot be used if the URI contains a port.";
-    throw std::runtime_error(error);
   }
 }
 
@@ -1353,13 +1362,12 @@ void Shell_options::check_file_execute_conflicts() {
 }
 
 void Shell_options::check_ssh_conflicts() {
-  if (!storage.ssh.uri.empty() && !storage.connection_options().has_data()) {
+  if (!storage.ssh.uri.empty() && !storage.connection_data.has_data()) {
     throw std::runtime_error(
         "SSH tunnel can't be started because DB URI is missing");
   }
 
-  if (!storage.ssh.uri.empty() &&
-      (!storage.sock.is_null() || uri_data.has_socket())) {
+  if (!storage.ssh.uri.empty() && storage.connection_data.has_socket()) {
     throw std::runtime_error(
         "Socket connections through SSH are not supported");
   }
@@ -1377,7 +1385,7 @@ void Shell_options::check_result_format() {
 }
 
 void Shell_options::check_import_options() {
-  bool is_schema_set = !storage.schema.empty() || uri_data.has_schema();
+  bool is_schema_set = storage.connection_data.has_schema();
   if (!storage.import_args.empty()) {
     if (!storage.has_connection_data()) {
       const auto error = "Error: --import requires an active session.";
@@ -1392,17 +1400,24 @@ void Shell_options::check_import_options() {
 }
 
 void Shell_options::check_connection_options() {
-  auto connection_data = storage.connection_options();
   if (!storage.fido_register_factor.empty()) {
-    if (!connection_data.has_data()) {
-      std::cout << "WARNING: --fido-register-factor was specified without "
-                   "connection data, the option will be ignored.\n";
-    } else if (connection_data.has_scheme() &&
-               connection_data.get_scheme() == "mysqlx") {
+    if (!storage.connection_data.has_data()) {
+      m_on_warning(
+          "WARNING: --fido-register-factor was specified without "
+          "connection data, the option will be ignored.");
+    } else if (storage.connection_data.has_scheme() &&
+               storage.connection_data.get_scheme() == "mysqlx") {
       throw std::runtime_error(
           "Option --fido-register-factor is only available for MySQL protocol "
           "connections.");
     }
+  }
+
+  if (storage.has_multi_passwords()) {
+    if (storage.connection_data.has_scheme() &&
+        storage.connection_data.get_scheme() == "mysqlx")
+      throw shcore::Exception::argument_error(
+          "Multi-factor authentication is only compatible with MySQL protocol");
   }
 }
 

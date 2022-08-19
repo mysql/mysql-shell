@@ -21,4 +21,4 @@
 |<ClassicSession:|
 
 //@ no password and URI password
-|Conflicting options: --no-password cannot be used if password is provided in URI.|
+|Conflicting options: --no-password cannot be used if password is provided.|

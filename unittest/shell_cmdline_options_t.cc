@@ -28,9 +28,9 @@
 #include <string>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_base_test.h"
-#include "utils/utils_general.h"
 
 using mysqlsh::Shell_options;
 
@@ -44,13 +44,13 @@ std::string session_type_name(mysqlsh::SessionType type) {
 
   switch (type) {
     case mysqlsh::SessionType::Auto:
-      ret_val = "Auto";
+      ret_val = "auto";
       break;
     case mysqlsh::SessionType::Classic:
-      ret_val = "Classic";
+      ret_val = "mysql";
       break;
     case mysqlsh::SessionType::X:
-      ret_val = "X protocol";
+      ret_val = "mysqlx";
       break;
   }
 
@@ -80,58 +80,75 @@ std::string shell_mode_name(IShell_core::Mode mode) {
 
 class Shell_cmdline_options : public tests::Shell_base_test {
  public:
-  Shell_cmdline_options() {}
+  Shell_cmdline_options() {
+    mycnf_path = getenv("TMPDIR");
+    mycnf_path += "/testmy.cnf";
+
+    defaults_file = "--defaults-file=" + mycnf_path;
+  }
+
+  std::string mycnf_path;
+  std::string defaults_file;
+
+  void make_mycnf(const std::string &text) { create_file(mycnf_path, text); }
 
   std::string get_string(const Shell_options::Storage *options,
                          const std::string &option) {
     if (option == "host")
-      return options->host;
+      return options->connection_options().get_host();
     else if (option == "user")
-      return options->user;
+      return options->connection_options().get_user();
     else if (option == "password" || option == "password1")
-      return options->mfa_passwords[0].has_value()
-                 ? std::string(*options->mfa_passwords[0])
+      return options->connection_options().get_mfa_passwords()[0].has_value()
+                 ? std::string(
+                       *options->connection_options().get_mfa_passwords()[0])
                  : "";
     else if (option == "password2")
-      return options->mfa_passwords[1].has_value()
-                 ? std::string(*options->mfa_passwords[1])
+      return options->connection_options().get_mfa_passwords()[1].has_value()
+                 ? std::string(
+                       *options->connection_options().get_mfa_passwords()[1])
                  : "";
     else if (option == "password3")
-      return options->mfa_passwords[2].has_value()
-                 ? std::string(*options->mfa_passwords[2])
+      return options->connection_options().get_mfa_passwords()[2].has_value()
+                 ? std::string(
+                       *options->connection_options().get_mfa_passwords()[2])
                  : "";
     else if (option == "port")
-      return AS__STRING(options->port);
+      return AS__STRING(options->connection_options().get_port());
     else if (option == "schema")
-      return options->schema;
+      return options->connection_options().get_schema();
     else if (option == "sock")
-      return *options->sock;
+      return options->connection_options().get_socket();
     else if (option == "ssl-ca")
-      return options->ssl_options.get_ca();
+      return options->connection_options().get_ssl_options().get_ca();
     else if (option == "ssl-cert")
-      return options->ssl_options.get_cert();
+      return options->connection_options().get_ssl_options().get_cert();
     else if (option == "ssl-key")
-      return options->ssl_options.get_key();
+      return options->connection_options().get_ssl_options().get_key();
     else if (option == "ssl-capath")
-      return options->ssl_options.get_capath();
+      return options->connection_options().get_ssl_options().get_capath();
     else if (option == "ssl-crl")
-      return options->ssl_options.get_crl();
+      return options->connection_options().get_ssl_options().get_crl();
     else if (option == "ssl-crlpath")
-      return options->ssl_options.get_crlpath();
+      return options->connection_options().get_ssl_options().get_crlpath();
     else if (option == "ssl-cipher")
-      return options->ssl_options.get_cipher();
+      return options->connection_options().get_ssl_options().get_cipher();
     else if (option == "tls-version")
-      return options->ssl_options.get_tls_version();
+      return options->connection_options().get_ssl_options().get_tls_version();
     else if (option == "tls-ciphersuites")
-      return options->ssl_options.get_tls_ciphersuites();
+      return options->connection_options()
+          .get_ssl_options()
+          .get_tls_ciphersuites();
     else if (option == "uri")
-      return options->uri;
+      return options->connection_options().as_uri();
     else if (option == "result_format")
       return options->result_format;
     else if (option == "wrap_json")
       return options->wrap_json;
-    else if (option == "session_type")
-      return session_type_name(options->session_type);
+    else if (option == "session_type" || option == "session-type")
+      return options->connection_options().has_scheme()
+                 ? options->connection_options().get_scheme()
+                 : "auto";
     else if (option == "force")
       return AS__STRING(options->force);
     else if (option == "interactive")
@@ -150,8 +167,6 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return AS__STRING(options->log_level);
     else if (option == "initial-mode")
       return shell_mode_name(options->initial_mode);
-    else if (option == "session-type")
-      return session_type_name(options->session_type);
     else if (option == "wizards")
       return AS__STRING(options->wizards);
     else if (option == "execute_statement")
@@ -159,19 +174,19 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "run_file")
       return options->run_file;
     else if (option == "connect-timeout")
-      return options->connect_timeout_cmdline;
+      return options->connection_options().get(mysqlshdk::db::kConnectTimeout);
     else if (option == "quiet-start")
       return AS__STRING(static_cast<int>(options->quiet_start));
     else if (option == "showColumnTypeInfo")
       return AS__STRING(options->show_column_type_info);
     else if (option == "compress")
-      return options->compress;
+      return options->connection_options().get_compression();
     else if (option == "mysqlPluginDir")
       return options->mysql_plugin_dir;
     else if (option == "log-sql")
       return options->log_sql;
 
-    return "";
+    throw std::logic_error(option);
   }
 
   void test_option_equal_value(const std::string &option,
@@ -561,7 +576,9 @@ class Shell_cmdline_options : public tests::Shell_base_test {
 
     if (!expected_exit_code) {
       MY_EXPECT_OUTPUT_CONTAINS(warning.c_str(), cout.str());
-      EXPECT_EQ(mode, options.get().ssl_options.get_mode());
+      EXPECT_EQ(
+          mode,
+          options.get().connection_options().get_ssl_options().get_mode());
     } else {
       EXPECT_STREQ(error.c_str(), cerr.str().c_str());
     }
@@ -655,9 +672,7 @@ class Shell_cmdline_options : public tests::Shell_base_test {
   }
 
   void test_session_type_conflicts(const std::string &firstArg,
-                                   const std::string &secondArg,
-                                   const std::string &firstST,
-                                   const std::string &secondST, int ret_code) {
+                                   const std::string &secondArg, int ret_code) {
     std::streambuf *backup = std::cerr.rdbuf();
     std::ostringstream cerr;
     std::cerr.rdbuf(cerr.rdbuf());
@@ -673,18 +688,26 @@ class Shell_cmdline_options : public tests::Shell_base_test {
 
       std::string error = "";
       if (options.get().exit_code) {
-        if (firstST.empty())
-          error =
-              "Automatic protocol detection is enabled, unable to change to " +
-              secondST + " with option " + secondArg + "\n";
-        else if (secondST.empty())
-          error = "Session type already configured to " + firstST +
-                  ", automatic protocol detection (-ma) can't be enabled.\n";
-        else
-          error = "Session type already configured to " + firstST +
-                  ", unable to"
-                  " change to " +
-                  secondST + " with option " + secondArg + "\n";
+        std::string first_opt;
+        std::string second_opt;
+        if (firstArg[0] == '-') {
+          first_opt = "option " + firstArg;
+        } else {
+          if (shcore::str_beginswith(firstArg, "mysql:"))
+            first_opt = "URI scheme mysql://";
+          else
+            first_opt = "URI scheme mysqlx://";
+        }
+        if (secondArg[0] == '-') {
+          second_opt = "Option " + secondArg;
+        } else {
+          if (shcore::str_beginswith(secondArg, "mysql:"))
+            second_opt = "URI scheme mysql://";
+          else
+            second_opt = "URI scheme mysqlx://";
+        }
+
+        error = second_opt + " cannot be combined with " + first_opt + "\n";
       }
       EXPECT_STREQ(error.c_str(), cerr.str().c_str());
     }
@@ -710,6 +733,18 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     // Restore old cerr.
     std::cerr.rdbuf(backup);
   }
+
+  void test_overriding_options(std::string context, size_t argc, char *argv[],
+                               const std::string &option,
+                               const std::string &value) {
+    SCOPED_TRACE("TESTING: " + context);
+
+    Shell_options options(argc, argv);
+
+    EXPECT_EQ(0, options.get().exit_code);
+
+    EXPECT_EQ(value, get_string(&options.get(), option));
+  }
 };
 
 TEST_F(Shell_cmdline_options, default_values) {
@@ -723,7 +758,6 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.force);
   EXPECT_FALSE(options.full_interactive);
   EXPECT_FALSE(options.has_connection_data());
-  EXPECT_TRUE(options.host.empty());
 
   EXPECT_EQ(options.initial_mode, IShell_core::Mode::None);
 
@@ -731,40 +765,39 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_EQ(options.log_level, shcore::Logger::LOG_INFO);
   EXPECT_EQ("table", options.result_format);
   EXPECT_EQ("off", options.wrap_json);
-  EXPECT_FALSE(options.mfa_passwords[0].has_value());
-  EXPECT_FALSE(options.mfa_passwords[1].has_value());
-  EXPECT_FALSE(options.mfa_passwords[2].has_value());
+  EXPECT_FALSE(options.connection_options().get_mfa_passwords()[0].has_value());
+  EXPECT_FALSE(options.connection_options().get_mfa_passwords()[1].has_value());
+  EXPECT_FALSE(options.connection_options().get_mfa_passwords()[2].has_value());
   EXPECT_FALSE(options.passwords_from_stdin);
-  EXPECT_EQ(options.port, 0);
   EXPECT_FALSE(options.prompt_password);
   EXPECT_TRUE(options.protocol.empty());
   EXPECT_FALSE(options.recreate_database);
   EXPECT_TRUE(options.run_file.empty());
-  EXPECT_TRUE(options.schema.empty());
-  EXPECT_EQ(options.session_type, mysqlsh::SessionType::Auto);
-  EXPECT_TRUE(options.sock.is_null());
-  EXPECT_TRUE(!options.ssl_options.has_ca());
-  EXPECT_TRUE(!options.ssl_options.has_cert());
-  EXPECT_TRUE(!options.ssl_options.has_key());
-  EXPECT_TRUE(!options.ssl_options.has_capath());
-  EXPECT_TRUE(!options.ssl_options.has_crl());
-  EXPECT_TRUE(!options.ssl_options.has_crlpath());
-  EXPECT_TRUE(!options.ssl_options.has_cipher());
-  EXPECT_TRUE(!options.ssl_options.has_tls_version());
-  EXPECT_FALSE(options.ssl_options.has_tls_ciphersuites());
+  EXPECT_TRUE(!options.connection_options().has_schema());
+  EXPECT_TRUE(!options.connection_options().has_scheme());
+  EXPECT_TRUE(!options.connection_options().has_socket());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_ca());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_cert());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_key());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_capath());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_crl());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_crlpath());
+  EXPECT_TRUE(!options.connection_options().get_ssl_options().has_cipher());
+  EXPECT_TRUE(
+      !options.connection_options().get_ssl_options().has_tls_version());
+  EXPECT_FALSE(
+      options.connection_options().get_ssl_options().has_tls_ciphersuites());
   EXPECT_FALSE(options.trace_protocol);
-  EXPECT_TRUE(options.uri.empty());
-  EXPECT_TRUE(options.user.empty());
   EXPECT_TRUE(options.execute_statement.empty());
   EXPECT_TRUE(options.wizards);
-  EXPECT_TRUE(options.default_session_type);
-  EXPECT_TRUE(options.connect_timeout_cmdline.empty());
+  EXPECT_FALSE(
+      options.connection_options().has(mysqlshdk::db::kConnectTimeout));
   EXPECT_EQ(Shell_options::Quiet_start::NOT_SET, options.quiet_start);
   EXPECT_FALSE(options.show_column_type_info);
-  EXPECT_TRUE(options.compress.empty());
+  EXPECT_TRUE(!options.connection_options().has_compression());
   EXPECT_FALSE(options.default_compress);
-  EXPECT_TRUE(options.compress_algorithms.empty());
-  EXPECT_TRUE(options.compress_level.is_null());
+  EXPECT_TRUE(!options.connection_options().has_compression_algorithms());
+  EXPECT_TRUE(!options.connection_options().has_compression_level());
   EXPECT_EQ("error", options.log_sql);
   EXPECT_EQ("*SELECT*:SHOW*", options.log_sql_ignore);
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*", options.log_sql_ignore_unsafe);
@@ -790,7 +823,7 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_value("socket", "S", "/some/socket/path", "",
                          IS_CONNECTION_DATA, IS_NULLABLE, "sock");
 #endif
-  test_option_with_value("connect-timeout", "", "1000", "", IS_CONNECTION_DATA,
+  test_option_with_value("connect-timeout", "", "1000", "", !IS_CONNECTION_DATA,
                          !IS_NULLABLE);
   test_option_with_no_value("-C", "compress", "REQUIRED");
   test_option_with_no_value("--compress", "compress", "REQUIRED");
@@ -922,40 +955,48 @@ TEST_F(Shell_cmdline_options, app) {
 }
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
-  test_session_type_conflicts("--sqlc", "--sqlc", "Classic", "Classic", 0);
-  test_session_type_conflicts("--sqlc", "--mysql", "Classic", "Classic", 0);
-  test_session_type_conflicts("--sqlc", "--mysqlx", "Classic", "X protocol", 1);
-  test_session_type_conflicts("--sqlc", "--sqlx", "Classic", "X protocol", 1);
+  test_session_type_conflicts("--sqlc", "--sqlc", 0);
+  test_session_type_conflicts("--sqlc", "--mysql", 0);
+  test_session_type_conflicts("--sqlc", "--mysqlx", 1);
+  test_session_type_conflicts("--sqlc", "--sqlx", 1);
 
-  test_session_type_conflicts("--sqlx", "--sqlx", "X protocol", "X protocol",
-                              0);
-  test_session_type_conflicts("--sqlx", "--mysqlx", "X protocol", "X protocol",
-                              0);
-  test_session_type_conflicts("--sqlx", "--mysql", "X protocol", "Classic", 1);
-  test_session_type_conflicts("--sqlx", "--sqlc", "X protocol", "Classic", 1);
+  test_session_type_conflicts("--sqlx", "--sqlx", 0);
+  test_session_type_conflicts("--sqlx", "--mysqlx", 0);
+  test_session_type_conflicts("--sqlx", "--mysql", 1);
+  test_session_type_conflicts("--sqlx", "--sqlc", 1);
 
-  test_session_type_conflicts("--mx", "--mysqlx", "X protocol", "X protocol",
-                              0);
-  test_session_type_conflicts("--mysqlx", "--sqlx", "X protocol", "X protocol",
-                              0);
-  test_session_type_conflicts("--mx", "--mysql", "X protocol", "Classic", 1);
-  test_session_type_conflicts("--mysqlx", "--sqlc", "X protocol", "Classic", 1);
-  test_session_type_conflicts("--mysqlx", "--mysql", "X protocol", "Classic",
-                              1);
+  test_session_type_conflicts("--mx", "--mysqlx", 0);
+  test_session_type_conflicts("--mysqlx", "--sqlx", 0);
+  test_session_type_conflicts("--mx", "--mysql", 0);
+  test_session_type_conflicts("--mysqlx", "--sqlc", 1);
+  test_session_type_conflicts("--mysqlx", "--mysql", 0);
 
-  test_session_type_conflicts("--mc", "--mysql", "Classic", "Classic", 0);
-  test_session_type_conflicts("--mysql", "--sqlc", "Classic", "Classic", 0);
-  test_session_type_conflicts("--mc", "--mysqlx", "Classic", "X protocol", 1);
-  test_session_type_conflicts("--mysql", "--sqlx", "Classic", "X protocol", 1);
-  test_session_type_conflicts("--mysql", "--mysqlx", "Classic", "X protocol",
-                              1);
+  test_session_type_conflicts("--mc", "--mysql", 0);
+  test_session_type_conflicts("--mysql", "--sqlc", 0);
+  test_session_type_conflicts("--mc", "--mysqlx", 0);
+  test_session_type_conflicts("--mysql", "--sqlx", 1);
+  test_session_type_conflicts("--mysql", "--mysqlx", 0);
 
-  test_session_type_conflicts("-ma", "--mysql", "", "Classic", 1);
-  test_session_type_conflicts("--mysql", "-ma", "Classic", "", 1);
-  test_session_type_conflicts("-ma", "--mysqlx", "", "X protocol", 1);
-  test_session_type_conflicts("--mysqlx", "-ma", "X protocol", "", 1);
-  test_session_type_conflicts("--mc", "-ma", "Classic", "", 1);
-  test_session_type_conflicts("--mx", "-ma", "X protocol", "", 1);
+  test_session_type_conflicts("-ma", "--mysql", 0);
+  test_session_type_conflicts("--mysql", "-ma", 0);
+  test_session_type_conflicts("-ma", "--mysqlx", 0);
+  test_session_type_conflicts("--mysqlx", "-ma", 0);
+  test_session_type_conflicts("--mc", "-ma", 0);
+  test_session_type_conflicts("--mx", "-ma", 0);
+
+  test_session_type_conflicts("mysql://root@localhost", "--sqlc", 0);
+  test_session_type_conflicts("mysql://root@localhost", "--mysql", 0);
+  test_session_type_conflicts("mysql://root@localhost", "-ma", 0);
+
+  test_session_type_conflicts("mysqlx://root@localhost", "--sqlx", 0);
+  test_session_type_conflicts("mysqlx://root@localhost", "--mysqlx", 0);
+  test_session_type_conflicts("mysqlx://root@localhost", "-ma", 0);
+
+  test_session_type_conflicts("mysql://root@localhost", "--sqlx", 1);
+  test_session_type_conflicts("mysqlx://root@localhost", "--sqlc", 1);
+
+  test_session_type_conflicts("mysql://root@localhost", "--mysqlx", 0);
+  test_session_type_conflicts("mysqlx://root@localhost", "--mysql", 0);
 }
 
 TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
@@ -981,9 +1022,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
     std::cout.rdbuf(cout_backup);
 
     EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
+                 "mysqlx://root@localhost:3301");
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The --node option has been deprecated, "
+        "The --node option was deprecated, "
         "please use --mysqlx instead. (Option has been processed "
         "as --mysqlx).",
         cout.str());
@@ -1009,9 +1051,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
     std::cout.rdbuf(cout_backup);
 
     EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
+                 "mysql://root@localhost:3301");
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The --classic option has been deprecated, "
+        "The --classic option was deprecated, "
         "please use --mysql instead. (Option has been processed as "
         "--mysql).",
         cout.str());
@@ -1037,9 +1080,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
     std::cout.rdbuf(cout_backup);
 
     EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
+                 "root@localhost:3301");
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The --dbpassword option has been deprecated, please use --password "
+        "The --dbpassword option was deprecated, please use --password "
         "instead.",
         cout.str());
   }
@@ -1064,10 +1108,10 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
     std::cout.rdbuf(cout_backup);
 
     EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().uri.c_str(), "root@localhost:3301");
+    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
+                 "root@localhost:3301");
     MY_EXPECT_OUTPUT_CONTAINS(
-        "The --dbuser option has been deprecated, please use --user instead. "
-        "(Option has been processed as --user=root).",
+        "The --dbuser option was deprecated, please use --user instead.",
         cout.str());
   }
 }
@@ -1090,7 +1134,8 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     const Shell_options::Storage &options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
-    EXPECT_STREQ(options.uri.c_str(), "root@localhost:3301");
+    EXPECT_STREQ(options.connection_options().as_uri().c_str(),
+                 "root@localhost:3301");
     EXPECT_STREQ("", cerr.str().c_str());
   }
 
@@ -1108,7 +1153,10 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     const Shell_options::Storage &options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
-    EXPECT_STREQ(options.uri.c_str(), "user2:pass@localhost");
+    EXPECT_STREQ(options.connection_options()
+                     .as_uri(mysqlshdk::db::uri::formats::full())
+                     .c_str(),
+                 "user2:pass@localhost");
     EXPECT_STREQ("", cerr.str().c_str());
   }
 
@@ -1126,7 +1174,10 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
     const Shell_options::Storage &options = cmd_options.get();
 
     EXPECT_EQ(0, options.exit_code);
-    EXPECT_STREQ(options.uri.c_str(), "root:pass@localhost:3301");
+    EXPECT_STREQ(options.connection_options()
+                     .as_uri(mysqlshdk::db::uri::formats::full())
+                     .c_str(),
+                 "root:pass@localhost:3301");
     EXPECT_STREQ("", cerr.str().c_str());
   }
 
@@ -1148,80 +1199,126 @@ TEST_F(Shell_cmdline_options, test_positional_argument) {
   std::cerr.rdbuf(backup);
 }
 
-TEST_F(Shell_cmdline_options, conflicts_session_type) {
+TEST_F(Shell_cmdline_options, override_session_type) {
+  // first option then uri
   {
-    auto error =
-        "The given URI conflicts with the --mysql session type option.\n";
-
+    char uri[] = "--uri=mysqlx://root@localhost";
     char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--mysql"),
-                     const_cast<char *>("--uri=mysqlx://root@localhost"), NULL};
+                     uri, NULL};
 
-    test_conflicting_options("--mysql --uri", 3, argv0, error);
+    test_overriding_options("--mysql --uri", 3, argv0, "session-type",
+                            "mysqlx");
   }
-
+  return;
   {
-    auto error =
-        "The given URI conflicts with the --sqlc session type option.\n";
+    char uri[] = "--uri=mysqlx://root@localhost";
     char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--sqlc"),
-                     const_cast<char *>("--uri=mysqlx://root@localhost"), NULL};
+                     uri, NULL};
 
-    test_conflicting_options("--mysql --uri", 3, argv0, error);
+    test_conflicting_options(
+        "--mysql --uri", 3, argv0,
+        "URI scheme mysqlx:// cannot be combined with option --sqlc\n");
+  }
+  return;
+  {
+    char uri[] = "--uri=mysql://root@localhost";
+    char *argv1[] = {const_cast<char *>("ut"), const_cast<char *>("--mysql"),
+                     uri, NULL};
+
+    test_overriding_options("--mysql --uri", 3, argv1, "session-type", "mysql");
   }
 
   {
-    auto error =
-        "The given URI conflicts with the --mysqlx session type option.\n";
-
-    char *argv1[] = {const_cast<char *>("ut"), const_cast<char *>("--mysqlx"),
-                     const_cast<char *>("--uri=mysql://root@localhost"), NULL};
-
-    test_conflicting_options("--mysql --uri", 3, argv1, error);
-  }
-
-  {
-    auto error =
-        "The given URI conflicts with the --sqlx session type option.\n";
-
+    char uri[] = "--uri=mysql://root@localhost";
     char *argv1[] = {const_cast<char *>("ut"), const_cast<char *>("--sqlx"),
-                     const_cast<char *>("--uri=mysql://root@localhost"), NULL};
+                     uri, NULL};
 
-    test_conflicting_options("--mysql --uri", 3, argv1, error);
+    test_conflicting_options(
+        "--mysql --uri", 3, argv1,
+        "URI scheme mysql:// cannot be combined with option --sqlx\n");
+  }
+
+  // first uri then option
+  {
+    char uri[] = "--uri=mysqlx://root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--mysql"), NULL};
+
+    test_overriding_options("--mysql --uri", 3, argv0, "session-type", "mysql");
+  }
+
+  {
+    char uri[] = "--uri=mysqlx://root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--sqlc"), NULL};
+
+    test_conflicting_options(
+        "--mysql --uri", 3, argv0,
+        "Option --sqlc cannot be combined with URI scheme mysqlx://\n");
+  }
+
+  {
+    char uri[] = "--uri=mysql://root@localhost";
+    char *argv1[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--mysqlx"), NULL};
+
+    test_overriding_options("--mysql --uri", 3, argv1, "session-type",
+                            "mysqlx");
+  }
+
+  {
+    char uri[] = "--uri=mysql://root@localhost";
+    char *argv1[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--sqlx"), NULL};
+
+    test_conflicting_options(
+        "--mysql --uri", 3, argv1,
+        "Option --sqlx cannot be combined with URI scheme mysql://\n");
   }
 }
 
-TEST_F(Shell_cmdline_options, conflicts_user) {
-  auto error =
-      "Conflicting options: provided user name differs from the "
-      "user in the URI.\n";
-
+TEST_F(Shell_cmdline_options, override_user) {
+  char uri[] = "--uri=mysqlx://root@localhost";
   char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--user=guest"),
-                   const_cast<char *>("--uri=mysqlx://root@localhost"), NULL};
+                   uri, NULL};
 
-  test_conflicting_options("--user --uri", 3, argv0, error);
+  test_overriding_options("--user --uri", 3, argv0, "user", "root");
+
+  char *argv1[] = {const_cast<char *>("ut"), uri,
+                   const_cast<char *>("--user=guest"), NULL};
+  test_overriding_options("--user --uri", 3, argv1, "user", "guest");
 }
 
-TEST_F(Shell_cmdline_options, conflicts_password) {
-  auto error =
-      "Conflicting options: provided password differs from the "
-      "password in the URI.\n";
+TEST_F(Shell_cmdline_options, override_password) {
+  {
+    char pwd[] = {"--password=example"};
+    char uri[] = {"--uri=mysqlx://root:password@localhost"};
+    char *argv0[] = {const_cast<char *>("ut"), pwd, uri, NULL};
 
-  char pwd[] = {"--password=example"};
-  char uri[] = {"--uri=mysqlx://root:password@localhost"};
-  char *argv0[] = {const_cast<char *>("ut"), pwd, uri, NULL};
+    test_overriding_options("--password --uri", 3, argv0, "password",
+                            "password");
+  }
+  {
+    char pwd[] = {"--password=example"};
+    char uri[] = {"--uri=mysqlx://root:password@localhost"};
+    char *argv1[] = {const_cast<char *>("ut"), uri, pwd, NULL};
 
-  test_conflicting_options("--password --uri", 3, argv0, error);
+    test_overriding_options("--password --uri", 3, argv1, "password",
+                            "example");
+  }
 }
 
-TEST_F(Shell_cmdline_options, conflicts_host) {
-  auto error =
-      "Conflicting options: provided host differs from the "
-      "host in the URI.\n";
-
+TEST_F(Shell_cmdline_options, override_host) {
   char uri[] = "--uri=mysqlx://root:password@localhost";
   char *argv0[] = {const_cast<char *>("ut"),
                    const_cast<char *>("--host=127.0.0.1"), uri, NULL};
 
-  test_conflicting_options("--host --uri", 3, argv0, error);
+  test_overriding_options("--host --uri", 3, argv0, "host", "localhost");
+
+  char *argv1[] = {const_cast<char *>("ut"), uri,
+                   const_cast<char *>("--host=127.0.0.1"), NULL};
+
+  test_overriding_options("--host --uri", 3, argv1, "host", "127.0.0.1");
 }
 
 TEST_F(Shell_cmdline_options, conflicts_output) {
@@ -1255,16 +1352,12 @@ TEST_F(Shell_cmdline_options, conflicts_output) {
 #endif  // !_WIN32
 
 TEST_F(Shell_cmdline_options, conflicts_host_socket) {
-  auto error = "Conflicting options: " SOCKET_NAME
-               " cannot be used if host is "
-#ifdef _WIN32
-               "neither '.' nor 'localhost'.\n";
-#else   // !_WIN32
-               "not 'localhost'.\n";
-#endif  // !_WIN32
+  auto error = "Unable to set a " SOCKET_NAME
+               " connection to '/some/socket/path', a tcp connection to "
+               "'127.0.0.1' is already defined.\n";
 
-  char *argv0[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--uri=root@127.0.0.1"),
+  char uri0[] = "--uri=root@127.0.0.1";
+  char *argv0[] = {const_cast<char *>("ut"), uri0,
                    const_cast<char *>("--socket=/some/socket/path"), NULL};
   test_conflicting_options("--uri --socket", 3, argv0, error);
 
@@ -1274,6 +1367,9 @@ TEST_F(Shell_cmdline_options, conflicts_host_socket) {
   test_conflicting_options("--host --socket", 3, argv1, error);
 
 #ifndef _WIN32
+  error = "Unable to set a " SOCKET_NAME
+          " connection, a tcp connection to '127.0.0.1' is already defined.\n";
+
   char *argv2[] = {const_cast<char *>("ut"),
                    const_cast<char *>("--host=127.0.0.1"),
                    const_cast<char *>("--socket"), NULL};
@@ -1281,71 +1377,59 @@ TEST_F(Shell_cmdline_options, conflicts_host_socket) {
 #endif
 }
 
-TEST_F(Shell_cmdline_options, conflicts_port) {
-  auto error =
-      "Conflicting options: provided port differs from the "
-      "port in the URI.\n";
-
+TEST_F(Shell_cmdline_options, override_port) {
   char uri[] = {"--uri=mysqlx://root:password@localhost:3307"};
   char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--port=3306"),
                    uri, NULL};
-  test_conflicting_options("--port --uri", 3, argv0, error);
+  test_overriding_options("--port --uri", 3, argv0, "port", "3307");
 }
 
-TEST_F(Shell_cmdline_options, conflicts_socket) {
-  auto error = "Conflicting options: provided " SOCKET_NAME
-               " differs from the " SOCKET_NAME " in the URI.\n";
-
-  char *argv0[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--socket=/path/to/socket"),
+TEST_F(Shell_cmdline_options, override_socket) {
 #ifdef _WIN32
-                   const_cast<char *>("--uri=mysql://root@\\\\.\\named.pipe"),
+  char socket[] = ".\\named.pipe";
+  char uri[] = "--uri=mysql://root@\\\\.\\named.pipe";
 #else   // !_WIN32
-                   const_cast<char *>("--uri=mysqlx://root@/socket"),
+  char socket[] = "/socket";
+  char uri[] = "--uri=mysqlx://root@/socket";
 #endif  // !_WIN32
-                   NULL};
+  char *argv0[] = {const_cast<char *>("ut"),
+                   const_cast<char *>("--socket=/path/to/socket"), uri, NULL};
 
-  test_conflicting_options("--socket --uri", 3, argv0, error);
+  test_overriding_options("--socket --uri", 3, argv0, "sock", socket);
 }
 
-TEST_F(Shell_cmdline_options, conflicting_port_and_socket) {
-  std::string error0 = "Conflicting options: port and " SOCKET_NAME
-                       " cannot be used together.\n";
+TEST_F(Shell_cmdline_options, override_port_and_socket) {
+  // port overrides socket and vice-versa
 
   char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("--port=3307"),
                    const_cast<char *>("--socket=/some/weird/path"), NULL};
 
-  test_conflicting_options("--port --socket", 3, argv0, error0);
+  test_overriding_options("--port --socket", 3, argv0, "sock",
+                          "/some/weird/path");
 
 #ifndef _WIN32
   char *argv0b[] = {const_cast<char *>("ut"), const_cast<char *>("--port=3307"),
                     const_cast<char *>("--socket"), NULL};
 
-  test_conflicting_options("--port --socket", 3, argv0b, error0);
+  test_overriding_options("--port --socket", 3, argv0b, "sock", "");
 #endif
 
-  auto error1 =
-      "Conflicting options: port cannot be used if the URI "
-      "contains a " SOCKET_NAME ".\n";
-
-  char *argv1[] = {const_cast<char *>("ut"),
 #ifdef _WIN32
-                   const_cast<char *>("--uri=root@\\\\.\\named.pipe"),
+  char uri1[] = "--uri=root@\\\\.\\named.pipe";
 #else   // !_WIN32
-                   const_cast<char *>("--uri=root@/socket"),
+  char uri1[] = "--uri=root@/socket";
 #endif  // !_WIN32
+  char *argv1[] = {const_cast<char *>("ut"), uri1,
                    const_cast<char *>("--port=3306"), NULL};
 
-  test_conflicting_options("--uri --port", 3, argv1, error1);
+  test_overriding_options("--uri --port", 3, argv1, "port", "3306");
 
-  auto error2 = "Conflicting options: " SOCKET_NAME
-                " cannot be used if the URI contains a port.\n";
-
-  char *argv2[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--uri=root@localhost:3306"),
+  char uri2[] = "--uri=root@localhost:3306";
+  char *argv2[] = {const_cast<char *>("ut"), uri2,
                    const_cast<char *>("--socket=/some/socket/path"), NULL};
 
-  test_conflicting_options("--uri --socket", 3, argv2, error2);
+  test_overriding_options("--uri --socket", 3, argv2, "sock",
+                          "/some/socket/path");
 }
 
 TEST_F(Shell_cmdline_options, conflicts_compression) {
@@ -1440,7 +1524,7 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
 TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
   std::string warning =
-      "The --ssl option has been deprecated, please use --ssl-mode instead. ";
+      "The --ssl option was deprecated, please use --ssl-mode instead. ";
   {
     std::vector<char *> options = {const_cast<char *>("ut"),
                                    const_cast<char *>("--ssl"),
@@ -1645,16 +1729,14 @@ TEST_F(Shell_cmdline_options, mfa_tests) {
     char wrong_pwd1[] = {"--password1=example"};
     char *argv0[] = {const_cast<char *>("ut"), uri, wrong_pwd1, NULL};
 
-    test_conflicting_options(
-        "Different passwords", 3, argv0,
-        "Conflicting options: provided password differs from the "
-        "password in the URI.\n");
+    test_overriding_options("Different passwords", 3, argv0, "password",
+                            "example");
   }
   {
     // Password 1 and X Protocol is OK
+    char uri1[] = "mysqlx://root@localhost";
     char pwd1[] = {"--password1=example"};
-    char *argv0[] = {const_cast<char *>("ut"),
-                     const_cast<char *>("mysqlx://root@localhost"), pwd1, NULL};
+    char *argv0[] = {const_cast<char *>("ut"), uri1, pwd1, NULL};
     Shell_options so(3, argv0);
     EXPECT_EQ(0, so.get().exit_code);
     EXPECT_NO_THROW(so.get().connection_options());
@@ -1669,15 +1751,189 @@ TEST_F(Shell_cmdline_options, mfa_tests) {
     // MFA and X Protocol are not OK
     for (size_t index = 0; index < 2; index++) {
       for (size_t pindex = 0; pindex < 2; pindex++) {
-        char *argv0[] = {const_cast<char *>("ut"), passwords[pindex],
-                         x_proto_args[index],
-                         const_cast<char *>("root@localhost"), NULL};
+        char uri0[] = "root@localhost";
+        char *argv0[] = {const_cast<char *>("ut"), uri0, passwords[pindex],
+                         x_proto_args[index], NULL};
 
-        test_conflicting_options("Different passwords", 4, argv0,
+        test_conflicting_options("Different passwords 2", 4, argv0,
                                  "Multi-factor authentication is only "
                                  "compatible with MySQL protocol\n");
       }
     }
+  }
+}
+
+TEST_F(Shell_cmdline_options, mycnf) {
+  make_mycnf(R"*([mysqlsh]
+user=rooot
+host=localhost
+mysqlx
+)*");
+
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], NULL};
+    Shell_options so(2, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_EQ("rooot", so.get().connection_options().get_user());
+    EXPECT_EQ("mysqlx", so.get().connection_options().get_scheme());
+  }
+
+  make_mycnf(R"*([client]
+user=rooot
+host=localhost
+mysqlx
+)*");
+
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], NULL};
+    Shell_options so(2, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_EQ("rooot", so.get().connection_options().get_user());
+    EXPECT_EQ("mysqlx", so.get().connection_options().get_scheme());
+  }
+}
+
+TEST_F(Shell_cmdline_options, mycnf_default_session_type) {
+  // check that we'll default to mysql:// if there's any connection option
+  // in my.cnf
+  make_mycnf(R"*([mysqlsh]
+user=rooot
+host=localhost
+)*");
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0],
+                     const_cast<char *>("--mysqlx"), NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_EQ("rooot", so.get().connection_options().get_user());
+    EXPECT_EQ("mysqlx", so.get().connection_options().get_scheme());
+  }
+
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0],
+                     const_cast<char *>("--sqlx"), NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_EQ("rooot", so.get().connection_options().get_user());
+    EXPECT_EQ("mysqlx", so.get().connection_options().get_scheme());
+  }
+}
+
+TEST_F(Shell_cmdline_options, mycnf_option_override) {
+  // override socket with port
+  make_mycnf(R"*([mysqlsh]
+user=rooot
+socket=/sock/et
+)*");
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], NULL};
+    Shell_options so(2, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().has_port());
+    EXPECT_EQ("/sock/et", so.get().connection_options().get_socket());
+  }
+
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0],
+                     const_cast<char *>("--port=3232"), NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_EQ(3232, so.get().connection_options().get_port());
+    EXPECT_FALSE(so.get().connection_options().has_socket());
+  }
+
+  {
+    char uri[] = "root@localhost:3333";
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], uri, NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_EQ(3333, so.get().connection_options().get_port());
+    EXPECT_FALSE(so.get().connection_options().has_socket());
+  }
+
+  {
+    char uri[] = "root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], uri, NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().has_port());
+    EXPECT_FALSE(so.get().connection_options().has_socket());
+  }
+
+  // override port with socket
+  make_mycnf(R"*([mysqlsh]
+user=rooot
+host=localhost
+port=3232
+)*");
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], NULL};
+    Shell_options so(2, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().has_socket());
+    EXPECT_EQ(3232, so.get().connection_options().get_port());
+  }
+
+  {
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0],
+                     const_cast<char *>("--socket=/tmp/sock"), NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().has_port());
+    EXPECT_EQ("/tmp/sock", so.get().connection_options().get_socket());
+  }
+
+  {
+    char uri[] = "root@/tmp%2Fsock";
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], uri, NULL};
+    Shell_options so(3, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().has_port());
+    EXPECT_EQ("/tmp/sock", so.get().connection_options().get_socket());
   }
 }
 

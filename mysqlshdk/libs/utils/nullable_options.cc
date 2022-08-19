@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -152,6 +152,16 @@ void Nullable_options::remove(const std::string &name) {
   if (!has(name)) throw_invalid_option(name);
 
   _options.erase(name);
+}
+
+void Nullable_options::override_from(const Nullable_options &options,
+                                     bool skip_null) {
+  for (auto &o : options._options) {
+    if (!o.second.is_null())
+      set(o.first, *o.second, Set_mode::CREATE_AND_UPDATE);
+    else if (!skip_null)
+      set(o.first, nullptr, Set_mode::CREATE_AND_UPDATE);
+  }
 }
 
 void Nullable_options::throw_invalid_option(const std::string &name) const {

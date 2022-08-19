@@ -354,7 +354,6 @@ void Cluster::add_instance(
   auto instance_def = instance_def_;
 
   if (!options->password.is_null()) {
-    instance_def.clear_password();
     instance_def.set_password(*(options->password));
   }
 
@@ -465,7 +464,6 @@ void Cluster::rejoin_instance(
   auto instance_def = instance_def_;
 
   if (!options->password.is_null()) {
-    instance_def.clear_password();
     instance_def.set_password(*(options->password));
   }
 
@@ -528,7 +526,6 @@ void Cluster::remove_instance(
   auto instance_def = instance_def_;
 
   if (!options->password.is_null()) {
-    instance_def.clear_password();
     instance_def.set_password(*(options->password));
   }
 

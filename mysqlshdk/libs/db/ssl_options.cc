@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ void Ssl_options::set_mode(Ssl_mode value) {
   std::string str_mode =
       MapSslModeNameToValue::get_value(static_cast<int>(value));
 
-  Nullable_options::set(kSslMode, str_mode, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslMode, str_mode, Set_mode::CREATE_AND_UPDATE);
 }
 
 Ssl_mode Ssl_options::get_mode() const {
@@ -66,39 +66,40 @@ const std::string &Ssl_options::_get(const std::string &id) const {
 }
 
 void Ssl_options::set_ca(const std::string &value) {
-  Nullable_options::set(kSslCa, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslCa, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_capath(const std::string &value) {
-  Nullable_options::set(kSslCaPath, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslCaPath, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_crl(const std::string &value) {
-  Nullable_options::set(kSslCrl, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslCrl, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_crlpath(const std::string &value) {
-  Nullable_options::set(kSslCrlPath, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslCrlPath, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_cipher(const std::string &value) {
-  Nullable_options::set(kSslCipher, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslCipher, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_tls_version(const std::string &value) {
-  Nullable_options::set(kSslTlsVersion, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslTlsVersion, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_tls_ciphersuites(const std::string &value) {
-  Nullable_options::set(kSslTlsCiphersuites, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslTlsCiphersuites, value,
+                        Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_cert(const std::string &value) {
-  Nullable_options::set(kSslCert, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslCert, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::set_key(const std::string &value) {
-  Nullable_options::set(kSslKey, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(kSslKey, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::remove(const std::string &name) {
@@ -120,7 +121,7 @@ void Ssl_options::set(const std::string &name, const std::string &value) {
     }
   }
 
-  Nullable_options::set(name, value, Set_mode::UPDATE_NULL);
+  Nullable_options::set(name, value, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Ssl_options::validate() const {

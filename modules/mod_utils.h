@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -99,12 +99,8 @@ class Unpack_options : public shcore::Option_unpacker {
   }
 };
 
-void SHCORE_PUBLIC set_password_from_map(Connection_options *options,
-                                         const shcore::Dictionary_t &map);
 void SHCORE_PUBLIC set_password_from_string(Connection_options *options,
                                             const char *password);
-void SHCORE_PUBLIC set_user_from_map(Connection_options *options,
-                                     const shcore::Value::Map_type_ref &map);
 
 shcore::Value::Map_type_ref SHCORE_PUBLIC
 get_connection_map(const Connection_options &connection_options);
