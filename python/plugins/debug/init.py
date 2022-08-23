@@ -19,11 +19,17 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-from mysqlsh.plugin_manager import plugin_function
+from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh import globals
 from mysqlsh import Error, DBError
 
 from debug.collect_diagnostics import do_collect_diagnostics, do_collect_high_load_diagnostics, do_collect_slow_query_diagnostics
+
+@plugin(parent="util")
+class debug:
+    """
+    Debugging and diagnostic utilities.
+    """
 
 
 @plugin_function("util.debug.collectDiagnostics", cli=True)

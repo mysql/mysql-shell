@@ -652,7 +652,7 @@ void Mysql_shell::finish_init() {
       providers->register_provider("clusterset", [this](bool for_help) {
         return create_default_clusterset_object(for_help);
       });
-      providers->register_provider("util", _global_util);
+
       auto shell_provider =
           providers->register_provider("shell", _global_shell);
       shell_provider->register_provider("options",
@@ -851,15 +851,20 @@ bool Mysql_shell::get_plugins(File_list *file_list, const std::string &dir,
 
 void Mysql_shell::get_plugins(File_list *file_list) {
   const auto initial_mode = _shell->interactive_mode();
-  std::vector<std::string> plugin_directories;
+
+  // Embedded plugins are loaded all the time
+  std::vector<std::string> plugin_directories = {
+      shcore::path::join_path(shcore::get_library_folder(), "plugins")};
 
   if (!options().plugins_path.is_null()) {
-    plugin_directories = shcore::split_string(
+    auto additional_plugin_paths = shcore::split_string(
         *options().plugins_path, shcore::path::pathlist_separator_s);
+    plugin_directories.insert(plugin_directories.end(),
+                              additional_plugin_paths.begin(),
+                              additional_plugin_paths.end());
   } else {
-    plugin_directories = {
-        shcore::path::join_path(shcore::get_library_folder(), "plugins"),
-        shcore::path::join_path(shcore::get_user_config_path(), "plugins")};
+    plugin_directories.push_back(
+        shcore::path::join_path(shcore::get_user_config_path(), "plugins"));
   }
 
   // A plugin is contained in a folder inside of the pre-defined "plugin"

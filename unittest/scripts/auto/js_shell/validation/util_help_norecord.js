@@ -7,8 +7,9 @@ DESCRIPTION
       Global object that groups miscellaneous tools like upgrade checker and
       JSON import.
 
-OBJECTS
- - debug Debugging and diagnostic utilities.
+PROPERTIES
+      debug
+            Debugging and diagnostic utilities.
 
 FUNCTIONS
       checkForServerUpgrade([connectionData][, options])
@@ -2079,3 +2080,4 @@ DESCRIPTION
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
+

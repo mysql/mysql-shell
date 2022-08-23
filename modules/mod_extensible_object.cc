@@ -239,9 +239,13 @@ Extensible_object::Extensible_object(const std::string &name,
     : m_name(name),
       m_qualified_name(qualified_name),
       m_registered(registered),
+      m_fixed_object(registered),
       m_detail_sequence(0) {}
 
-Extensible_object::~Extensible_object() { disable_help(); }
+Extensible_object::~Extensible_object() {
+  // There's no reason to keep disabling/enabling help on fixed objects
+  if (!m_fixed_object) disable_help();
+}
 bool Extensible_object::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }

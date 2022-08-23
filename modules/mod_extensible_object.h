@@ -442,6 +442,7 @@ class Extensible_object
   std::string m_name;
   std::string m_qualified_name;
   bool m_registered;
+  bool m_fixed_object = false;
   bool m_cli_enabled = false;
   size_t m_detail_sequence;
   std::map<std::string, std::shared_ptr<Extensible_object>> m_children;

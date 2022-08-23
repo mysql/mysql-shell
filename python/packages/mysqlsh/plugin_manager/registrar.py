@@ -692,7 +692,7 @@ class PluginRegistrar:
     def register_property(self, property):
         pass
 
-def plugin(cls=None, shell_version_min=None, shell_version_max=None):
+def plugin(cls=None, shell_version_min=None, shell_version_max=None, parent=None):
     """Decorator to register a class as a Shell extension object
 
     This decorator can be used to register a class structure as a Shell
@@ -706,7 +706,7 @@ def plugin(cls=None, shell_version_min=None, shell_version_max=None):
 
     """
     if cls is None:
-        return partial(plugin, shell_version_min=shell_version_min, shell_version_max=shell_version_max)
+        return partial(plugin, shell_version_min=shell_version_min, shell_version_max=shell_version_max, parent=parent)
     else:
         try:
             validate_shell_version(shell_version_min, shell_version_max)
@@ -715,8 +715,9 @@ def plugin(cls=None, shell_version_min=None, shell_version_max=None):
 
             # Use the class name as the plugin name and the DocString as docs and
             # register the class as Shell plugin
+            object_qualified_name = cls.__name__ if parent is None else parent + "." + cls.__name__
             plugin_manager.register_object(
-                cls.__name__, PluginRegistrar.FunctionData(cls).format_info()
+                object_qualified_name, PluginRegistrar.FunctionData(cls).format_info()
             )
 
             def register_inner_classes(cls):

@@ -81,6 +81,7 @@ The following modules and objects are ready for use when the shell starts:
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
  - os       Gives access to functions which allow to interact with the
             operating system.
+ - plugins  Plugin to manage MySQL Shell plugins
  - shell    Gives access to general purpose functions and properties.
  - sys      Gives access to system specific parameters.
  - testutil
