@@ -794,9 +794,14 @@ DESCRIPTION
       - replicationAllowedHost string value to use as the host name part of
         internal replication accounts. Existing accounts will be re-created
         with the new value.
+      - transactionSizeLimit: integer value to configure the maximum
+        transaction size in bytes which the Cluster accepts
 
       ATTENTION: The failoverConsistency option will be removed in a future
                  release. Please use the consistency option instead.
+
+      ATTENTION: The transactionSizeLimit option is not supported on Replica
+                 Clusters of InnoDB ClusterSets.
 
       The value for the configuration option is used to set the Group
       Replication system variable that corresponds to it.
@@ -903,6 +908,18 @@ DESCRIPTION
       quickly, setting this option prevents users from having to manually add
       the expelled node back to the group. The autoRejoinTries option accepts
       positive integer values and, since 8.0.21, defaults to 3.
+
+      The value for transactionSizeLimit is used to set the Group Replication
+      system variable 'group_replication_transaction_size_limit' and configures
+      the maximum transaction size in bytes which the Cluster accepts.
+      Transactions larger than this size are rolled back by the receiving
+      member and are not broadcast to the Cluster.
+
+      The transactionSizeLimit option accepts positive integer values and, if
+      set to zero, there is no limit to the size of transactions the Cluster
+      accepts
+
+      All members added or rejoined to the Cluster will use the same value.
 
       Tags
 

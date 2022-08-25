@@ -486,7 +486,6 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri6], c1, c2);
 CHECK_REPLICA_CLUSTER([__sandbox_uri5], c1, c3);
 CHECK_CLUSTER_SET(session);
 
-EXPECT_OUTPUT_NOT_CONTAINS("WARNING");
 EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 
 //@<> Test switchover to a no_quorum cluster

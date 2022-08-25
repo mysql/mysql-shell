@@ -223,6 +223,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void update_cluster_attribute(const Cluster_id &cluster_id,
                                 const std::string &attribute,
                                 const shcore::Value &value);
+  void update_clusters_attribute(const std::string &attribute,
+                                 const shcore::Value &value);
 
   void update_cluster_capability(
       const Cluster_id &cluster_id, const std::string &capability,

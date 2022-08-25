@@ -74,6 +74,7 @@ struct Group_replication_options {
   void set_expel_timeout(int64_t value);
   void set_consistency(const std::string &option, const std::string &value);
   void set_communication_stack(const std::string &value);
+  void set_transaction_size_limit(int64_t value);
 
   Unpack_target target;
 
@@ -93,6 +94,7 @@ struct Group_replication_options {
   mysqlshdk::utils::nullable<int64_t> auto_rejoin_tries;
   mysqlshdk::null_bool manual_start_on_boot;
   mysqlshdk::null_string communication_stack;
+  mysqlshdk::utils::nullable<int64_t> transaction_size_limit;
 
   std::string ip_allowlist_option_name;
 };

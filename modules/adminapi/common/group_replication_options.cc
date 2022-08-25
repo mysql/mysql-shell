@@ -586,6 +586,10 @@ void Group_replication_options::set_communication_stack(
   }
 }
 
+void Group_replication_options::set_transaction_size_limit(int64_t value) {
+  transaction_size_limit = value;
+}
+
 const shcore::Option_pack_def<Rejoin_group_replication_options>
     &Rejoin_group_replication_options::options() {
   static const auto opts =
@@ -724,7 +728,10 @@ const shcore::Option_pack_def<Create_group_replication_options>
                     shcore::Option_extract_mode::EXACT)
           .optional(kCommunicationStack,
                     &Create_group_replication_options::set_communication_stack,
-                    "", shcore::Option_extract_mode::CASE_INSENSITIVE);
+                    "", shcore::Option_extract_mode::CASE_INSENSITIVE)
+          .optional(kTransactionSizeLimit,
+                    &Group_replication_options::set_transaction_size_limit, "",
+                    shcore::Option_extract_mode::EXACT);
 
   return opts;
 }

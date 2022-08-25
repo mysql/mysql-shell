@@ -32,6 +32,11 @@
                 "variable": "group_replication_ssl_mode"
             },
             {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
                 "option": "disableClone",
                 "value": false
             },
@@ -267,6 +272,11 @@
                 "variable": "group_replication_ssl_mode"
             },
             {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
                 "option": "disableClone",
                 "value": true
             },
@@ -482,6 +492,11 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
             },
             {
                 "option": "disableClone",
@@ -717,6 +732,11 @@
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
             },
             {
                 "option": "disableClone",

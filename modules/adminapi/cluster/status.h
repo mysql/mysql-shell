@@ -42,6 +42,11 @@ typedef std::map<std::string, std::pair<mysqlshdk::db::Row_by_name,
                                         mysqlshdk::db::Row_by_name>>
     Member_stats_map;
 
+struct Instance_metadata_info {
+  Instance_metadata md;
+  std::string actual_server_uuid;
+};
+
 class Status : public Command_interface {
  public:
   Status(const Cluster_impl &cluster,
@@ -100,6 +105,7 @@ class Status : public Command_interface {
       m_member_connect_errors;
 
   bool m_no_quorum = false;
+  std::optional<int64_t> m_cluster_transaction_size_limit = -1;
 
   void connect_to_members();
 

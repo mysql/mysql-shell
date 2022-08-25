@@ -496,6 +496,12 @@ void Create_cluster::log_used_gr_options() {
     log_info("Using Group Replication Communication Stack: %s",
              m_options.gr_options.communication_stack->c_str());
   }
+
+  if (!m_options.gr_options.transaction_size_limit.is_null()) {
+    log_info(
+        "Using Group Replication transaction size limit: %s",
+        std::to_string(*m_options.gr_options.transaction_size_limit).c_str());
+  }
 }
 
 void Create_cluster::prepare_metadata_schema() {
@@ -743,6 +749,11 @@ shcore::Value Create_cluster::execute() {
         "group-replication-limitations.html");
   }
 
+  // Get the current value of group_replication_transaction_size_limit
+  int64_t original_transaction_size_limit =
+      m_target_instance->get_sysvar_int(kGrTransactionSizeLimit).get_safe();
+  ;
+
   shcore::Scoped_callback_list undo_list;
 
   shcore::Value ret_val;
@@ -910,6 +921,22 @@ shcore::Value Create_cluster::execute() {
       metadata->update_cluster_attribute(
           cluster_impl->get_id(), "group_replication_view_change_uuid",
           shcore::Value(m_options.gr_options.view_change_uuid.get_safe()));
+    }
+
+    // Store in the Metadata the value of
+    // group_replication_transaction_size_limit
+    if (m_create_replica_cluster) {
+      metadata->update_cluster_attribute(
+          cluster_impl->get_id(), k_cluster_attribute_transaction_size_limit,
+          shcore::Value(original_transaction_size_limit));
+    } else {
+      // Get and store the current value. If the option was used, the value was
+      // already set by now so we're good
+      metadata->update_cluster_attribute(
+          cluster_impl->get_id(), k_cluster_attribute_transaction_size_limit,
+          shcore::Value(
+              m_target_instance->get_sysvar_int(kGrTransactionSizeLimit)
+                  .get_safe()));
     }
 
     // Insert instance into the metadata.

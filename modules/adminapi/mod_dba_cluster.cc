@@ -1140,9 +1140,12 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 @li replicationAllowedHost string value to use as the host name part of
 internal replication accounts. Existing accounts will be re-created with the new
 value.
+${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
 
 @attention The failoverConsistency option will be removed in a future release.
 Please use the consistency option instead.
+
+@attention The transactionSizeLimit option is not supported on Replica Clusters of InnoDB ClusterSets.
 
 The value for the configuration option is used to set the Group Replication
 system variable that corresponds to it.
@@ -1160,6 +1163,8 @@ ${CLUSTER_OPT_CONSISTENCY_EXTRA}
 ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
+${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
 
 ${NAMESPACE_TAG_DETAIL_CLUSTER}
 )*");

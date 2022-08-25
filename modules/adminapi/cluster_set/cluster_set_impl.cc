@@ -1051,6 +1051,11 @@ void Cluster_set_impl::remove_cluster(
         }
       }
 
+      // Restore the transaction_size_limit value to the original one
+      if (target_cluster->get_cluster_server()) {
+        restore_transaction_size_limit(target_cluster.get(), options.dry_run);
+      }
+
       // Disable skip_replica_start
       if (!options.dry_run && target_cluster->get_cluster_server() &&
           target_cluster->cluster_availability() ==
@@ -1734,6 +1739,8 @@ void Cluster_set_impl::demote_from_primary(
 
   update_replica(cluster_primary.get(), new_primary, repl_options, true,
                  dry_run);
+
+  set_maximum_transaction_size_limit(cluster, dry_run);
 }
 
 void Cluster_set_impl::update_replica(
@@ -1912,6 +1919,93 @@ void Cluster_set_impl::update_replication_allowed_host(
   }
 }
 
+void Cluster_set_impl::restore_transaction_size_limit(Cluster_impl *replica,
+                                                      bool dry_run) {
+  shcore::Value value;
+
+  // Get the current transaction_size_limit
+  int64_t current_transaction_size_limit =
+      replica->get_cluster_server()
+          ->get_sysvar_int(kGrTransactionSizeLimit)
+          .get_safe();
+
+  // Get the transaction_size_limit value from the metadata
+  if (get_metadata_storage()->query_cluster_attribute(
+          replica->get_id(), k_cluster_attribute_transaction_size_limit,
+          &value) &&
+      value.type == shcore::Integer) {
+    int64_t transaction_size_limit = value.as_int();
+
+    // Only restore if the current value is zero, meaning it was set by the
+    // AdminAPI. Otherwise, it was either manually changed or it was picked
+    // manually by the user using the option 'transactionSizeLimit'
+    if (!dry_run && current_transaction_size_limit == 0) {
+      log_info("Restoring the Cluster's transaction_size_limit to '%" PRId64
+               "'.",
+               transaction_size_limit);
+      // The primary must be reachable at this point so it will always be
+      // updated, but one of more secondaries might be unreachable and it's OK
+      // if they are not updated. The value is always restored from the maximum
+      // to a lower one so there's no risk of transactions being rejected. The
+      // user will be warned about it in cluster.status() and can fix it with
+      // .rescan()
+      std::unique_ptr<mysqlshdk::config::Config> config =
+          replica->create_config_object({}, false, false, true, true);
+
+      config->set(
+          kGrTransactionSizeLimit,
+          mysqlshdk::utils::nullable<std::int64_t>(transaction_size_limit));
+
+      config->apply();
+    }
+  } else {
+    std::string msg =
+        "Unable to restore Cluster's transaction size limit: "
+        "group_replication_transaction_size_limit is not stored in the "
+        "Metadata. Please use <Cluster>.rescan() to update the metadata.";
+
+    // IF the current value of transaction_size_limit from the Cluster's
+    // primary member is zero we must not proceed, otherwise we're
+    // leaving the value set to the maximum risking memory exhaustion in the
+    // replica Clusters due to the lack of the transaction size limitation
+    if (current_transaction_size_limit == 0) {
+      mysqlsh::current_console()->print_error(msg);
+
+      throw shcore::Exception(
+          "group_replication_transaction_size_limit not configured",
+          SHERR_DBA_CLUSTER_NOT_CONFIGURED_TRANSACTION_SIZE_LIMIT);
+    } else {
+      // Otherwise, it can be ignored and the user is just warned about it
+      mysqlsh::current_console()->print_warning(msg);
+    }
+  }
+}
+
+void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *replica,
+                                                          bool dry_run) {
+  log_info(
+      "Setting transaction_size_limit to the maximum accepted value in "
+      "Cluster '%s'",
+      replica->get_name().c_str());
+
+  if (!dry_run) {
+    // The primary must be reachable at this point so it will always be
+    // updated, but one of more secondaries might be unreachable and it's OK
+    // if they are not updated. Auto-rejoins might fail due to transactions
+    // being rejected, but the user will be warned about it in cluster.status()
+    // and can fix it with .rescan(). Also, manually rejoining instances with
+    // .rejoinInstance() will overcome the problem
+    std::unique_ptr<mysqlshdk::config::Config> config =
+        replica->create_config_object({}, false, false, true);
+
+    config->set(
+        kGrTransactionSizeLimit,
+        mysqlshdk::utils::nullable<std::int64_t>(static_cast<int64_t>(0)));
+
+    config->apply();
+  }
+}
+
 void Cluster_set_impl::_set_option(const std::string &option,
                                    const shcore::Value &value) {
   if (option == kReplicationAllowedHost) {
@@ -2043,6 +2137,9 @@ void Cluster_set_impl::set_primary_cluster(
                       options.timeout);
   }
   console->print_info();
+
+  // Restore the transaction_size_limit value to the original one
+  restore_transaction_size_limit(promoted_cluster.get(), options.dry_run);
 
   try {
     console->print_info("* Updating metadata");
@@ -2498,6 +2595,9 @@ void Cluster_set_impl::force_primary_cluster(
     }
   });
 
+  // Restore the transaction_size_limit value to the original one
+  restore_transaction_size_limit(promoted_cluster.get(), options.dry_run);
+
   console->print_info("* Promoting cluster '" + promoted_cluster->get_name() +
                       "'");
 
@@ -2697,6 +2797,8 @@ void Cluster_set_impl::rejoin_cluster(
     }
     throw;
   }
+
+  set_maximum_transaction_size_limit(rejoining_cluster.get(), options.dry_run);
 
   mysqlsh::dba::Async_replication_options ar_options =
       get_clusterset_replication_options();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,7 @@ void Set_option::ensure_option_valid() {
    *     - consistency
    *     - expelTimeout
    *     - replicationAllowedHost
+   *     - transactionSizeLimit
    */
   if (k_global_cluster_supported_options.count(m_option) == 0 &&
       m_option != kClusterName && m_option != kDisableClone &&
@@ -102,6 +103,13 @@ void Set_option::ensure_option_valid() {
           "Invalid value for 'replicationAllowedHost': Argument #2 is expected "
           "to be a string.");
     }
+  } else if (m_option == kTransactionSizeLimit &&
+             (m_cluster->is_cluster_set_member() &&
+              !m_cluster->is_primary_cluster())) {
+    // transactionSizeLimit is not changeable in Replica Clusters (must be zero
+    // and its automatically managed by the AdminAPI)
+    throw shcore::Exception::runtime_error(
+        "Option '" + m_option + "' not supported on Replica Clusters.");
   }
 }
 
@@ -283,6 +291,19 @@ shcore::Value Set_option::execute() {
     }
 
     m_cfg->apply();
+
+    if (m_option == kTransactionSizeLimit) {
+      // If changing the option in a ClusterSet, update all Clusters
+      if (m_cluster->is_cluster_set_member()) {
+        m_cluster->get_metadata_storage()->update_clusters_attribute(
+            k_cluster_attribute_transaction_size_limit,
+            shcore::Value(*m_value_int));
+      } else {
+        m_cluster->get_metadata_storage()->update_cluster_attribute(
+            m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+            shcore::Value(*m_value_int));
+      }
+    }
 
     console->print_info("Successfully set the value of '" + m_option +
                         "' to '" +

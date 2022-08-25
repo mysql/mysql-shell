@@ -10,6 +10,9 @@
     "clusterName": "sample",
     "defaultReplicaSet": {
         "GRProtocolVersion": "[[*]]",
+        "clusterErrors": [
+            "WARNING: Cluster's transaction size limit is not registered in the metadata. Use cluster.rescan() to update the metadata."
+        ],
         "communicationStack": "XCOM",
         "groupName": "<<<gr_uuid>>>",
 ?{VER(>=8.0.26)}
@@ -253,6 +256,11 @@ ${*}
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
             },
             {
                 "option": "disableClone",
