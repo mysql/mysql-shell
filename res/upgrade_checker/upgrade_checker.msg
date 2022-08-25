@@ -55,6 +55,17 @@ https://mysqlserverteam.com/mysql-8-0-removing-support-for-old-temporal-datatype
 * reservedKeywordsCheck.docLink
 https://dev.mysql.com/doc/refman/en/keywords.html
 
+* routinesSyntaxCheck.title
+# MySQL 8.0 syntax check for routine-like objects
+
+* routinesSyntaxCheck.description
+# Error: The following objects did not pass a syntax check with the latest MySQL 8.0 grammar.
+# A common reason is that they reference names that conflict with new reserved keywords. You
+# must update these routine definitions and `quote` any such references before upgrading.
+
+* routinesSyntaxCheck.docLink
+https://dev.mysql.com/doc/refman/en/keywords.html
+
 * utf8mb3Check.title
 # Usage of utf8mb3 charset
 

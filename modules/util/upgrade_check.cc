@@ -35,6 +35,7 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -371,6 +372,137 @@ Sql_upgrade_check::get_reserved_keywords_check(const Upgrade_info &info) {
       "The following objects have names that conflict with new reserved "
       "keywords. Ensure queries sent by your applications use `quotes` when "
       "referring to them or they will result in errors.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_routine_syntax) = Upgrade_check::register_check(
+    std::bind(&Sql_upgrade_check::get_routine_syntax_check),
+    Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.11");
+
+class Routine_syntax_check : public Upgrade_check {
+  // This check works through a simple syntax check to find whether reserved
+  // keywords are used somewhere unexpected, without checking for specific
+  // keywords
+
+  // This checks:
+  // routines, view definitions, event definitions and trigger definitions
+
+ public:
+  Routine_syntax_check() : Upgrade_check("routinesSyntaxCheck") {}
+
+  Upgrade_issue::Level get_level() const override {
+    return Upgrade_issue::ERROR;
+  }
+  bool is_runnable() const override { return true; }
+
+  std::vector<Upgrade_issue> run(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info & /*server_info*/) override {
+    struct Check_info {
+      const char *names_query;
+      const char *show_query;
+      int code_field;
+    };
+    // Don't need to check views because they get auto-quoted
+    Check_info object_info[] = {
+        {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME"
+         " FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE'"
+         " AND ROUTINE_SCHEMA <> 'sys'",
+         "SHOW CREATE PROCEDURE !.!", 2},
+        {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME"
+         " FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'FUNCTION'"
+         " AND ROUTINE_SCHEMA <> 'sys'",
+         "SHOW CREATE FUNCTION !.!", 2},
+        {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME"
+         " FROM INFORMATION_SCHEMA.TRIGGERS"
+         " WHERE TRIGGER_SCHEMA <> 'sys'",
+         "SHOW CREATE TRIGGER !.!", 2},
+        {"SELECT EVENT_SCHEMA, EVENT_NAME"
+         " FROM INFORMATION_SCHEMA.EVENTS"
+         " WHERE EVENT_SCHEMA <> 'sys'",
+         "SHOW CREATE EVENT !.!", 3}};
+
+    std::vector<Upgrade_issue> issues;
+    for (const auto &obj : object_info) {
+      auto result = session->queryf(obj.names_query);
+
+      // fetch all results because we need to query again in process_item()
+      result->buffer();
+
+      while (auto row = result->fetch_one()) {
+        auto issue =
+            process_item(row, obj.show_query, obj.code_field, session.get());
+        if (!issue.description.empty()) issues.push_back(std::move(issue));
+      }
+    }
+    return issues;
+  }
+
+ protected:
+  const char *get_title_internal() const override {
+    return "MySQL 8.0 syntax check for routine-like objects";
+  }
+
+  const char *get_description_internal() const override {
+    return "The following objects did not pass a syntax check with the latest "
+           "MySQL 8.0 grammar. A common reason is that they reference names "
+           "that conflict with new reserved keywords. You must update these "
+           "routine definitions and `quote` any such references before "
+           "upgrading.";
+  }
+
+  std::string check_routine_syntax(mysqlshdk::db::ISession *session,
+                                   const std::string &show_template,
+                                   int show_sql_field,
+                                   const std::string &schema,
+                                   const std::string &name) {
+    auto result = session->queryf(show_template, schema, name);
+    if (auto row = result->fetch_one()) {
+      std::string sql = row->get_as_string(show_sql_field);
+      try {
+        sql = "DELIMITER $$$\n" + sql + "$$$\n";
+
+        mysqlshdk::parser::check_sql_syntax(sql);
+      } catch (const mysqlshdk::parser::Sql_syntax_error &err) {
+        return shcore::str_format("at line %i,%i: unexpected token '%s'",
+                                  static_cast<int>(err.line() - 1),
+                                  static_cast<int>(err.offset()),
+                                  err.token_text().c_str());
+      }
+    } else {
+      log_warning("Upgrade check query %s returned no rows for %s.%s",
+                  show_template.c_str(), schema.c_str(), name.c_str());
+    }
+
+    return "";
+  }
+
+  Upgrade_issue process_item(const mysqlshdk::db::IRow *row,
+                             const std::string &show_template,
+                             int show_sql_field,
+                             mysqlshdk::db::ISession *session) {
+    Upgrade_issue issue;
+
+    issue.schema = row->get_as_string(0);
+    issue.table = row->get_as_string(1);
+    issue.level = Upgrade_issue::ERROR;
+
+    // we need to get routine definitions with the SHOW command
+    // because INFORMATION_SCHEMA will eat up things like backslashes
+    // Bug#34534696	unparseable code returned in
+    // INFORMATION_SCHEMA.ROUTINES.ROUTINE_DEFINITION
+
+    issue.description = check_routine_syntax(
+        session, show_template, show_sql_field, issue.schema, issue.table);
+
+    if (issue.description.empty()) return {};
+    return issue;
+  }
+};
+}  // namespace
+
+std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_routine_syntax_check() {
+  return std::make_unique<Routine_syntax_check>();
 }
 
 namespace {

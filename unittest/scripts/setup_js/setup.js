@@ -497,14 +497,21 @@ function disable_auto_rejoin(session, port) {
   // Check if the variable session is an int, if so it's the member_port and we need to establish a session
   if (typeof session == "number") {
     var port = session;
-    session = shell.connect("mysql://root:root@localhost:" + session);
+    session = shell.openSession("mysql://root:root@localhost:" + session);
     close_session = true;
   }
 
   testutil.changeSandboxConf(port, "group_replication_start_on_boot", "OFF");
 
-  if (__version_num > 80011)
-    session.runSql("RESET PERSIST group_replication_start_on_boot");
+  if (__version_num > 80011) {
+    try {
+      session.runSql("RESET PERSIST group_replication_start_on_boot");
+    } catch (e) {
+      if (e["code"] != 3615) {
+        throw e;
+      }
+    }
+  }
 
   // Close the session if established in this function
   if (close_session)

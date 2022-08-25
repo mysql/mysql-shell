@@ -175,6 +175,7 @@ class Sql_upgrade_check : public Upgrade_check {
  public:
   static std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
       const Upgrade_info &info);
+  static std::unique_ptr<Upgrade_check> get_routine_syntax_check();
   static std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check();
   static std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check();
   static std::unique_ptr<Sql_upgrade_check> get_zerofill_check();

@@ -533,8 +533,7 @@ EXPECT_NO_FILE(outpath)
 RESET(outpath)
 
 outpath = run_collect_sq(__sandbox_uri1, None, "garbage")
-EXPECT_STDOUT_CONTAINS("ERROR running query:  EXPLAIN garbage MySQL Error (1046)")
-EXPECT_STDOUT_CONTAINS("You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'garbage' at line 1 (MySQL Error 1064)")
+EXPECT_STDOUT_CONTAINS("mysql.parse_statement_ast: extraneous input 'garbage' expecting")
 EXPECT_NO_FILE(outpath)
 RESET(outpath)
 

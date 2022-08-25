@@ -36,6 +36,13 @@ EXPECT_THROWS(function() {
 EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (ONLINE), '${hostname}:${__mysql_sandbox_port2}' (ONLINE), '${hostname}:${__mysql_sandbox_port3}' (ONLINE)`);
 
 //@<> FR1 reboot should work even if metadata is dropped
+
+
+// disable auto-start to speed up test
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.killSandbox(__mysql_sandbox_port1);
@@ -162,8 +169,13 @@ session.runSql("STOP GROUP_REPLICATION;");
 shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
+// disable auto-start to speed up test
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.killSandbox(__mysql_sandbox_port1);
+
 testutil.startSandbox(__mysql_sandbox_port3);
 testutil.startSandbox(__mysql_sandbox_port1);
 
@@ -217,6 +229,9 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ERROR");
 shell.connect(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ERROR");
 
+
+// disable auto-start to speed up test
+disable_auto_rejoin(__mysql_sandbox_port1);
 testutil.killSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 

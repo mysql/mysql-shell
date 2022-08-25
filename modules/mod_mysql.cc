@@ -371,7 +371,7 @@ Dictionary parseStatementAst(String statements) {}
 #elif DOXYGEN_PY
 dict parse_statement_ast(str statements) {}
 #endif
-shcore::Value Mysql::parse_statement_ast(const std::string &statement) const {
+shcore::Value Mysql::parse_statement_ast(const std::string &sql) const {
   auto array = shcore::make_array();
   int errors = 0;
   shcore::Value root =
