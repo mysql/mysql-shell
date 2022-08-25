@@ -376,7 +376,7 @@ def check(outpath):
         print(f"WARNING: time between iterations > 4??? ({dif})")
     session1.run_sql("drop table test.preamble")
 
-CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
+CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
 
 #@<> customSql - TSFR_1_5_4
 options = {
@@ -395,7 +395,7 @@ def check(outpath):
     EXPECT_EQ("after", rows[2][0])
     session1.run_sql("drop table test.preamble")
 
-CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
+CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
 
 #@<> customSql - TSFR_1_5_5
 options = {
