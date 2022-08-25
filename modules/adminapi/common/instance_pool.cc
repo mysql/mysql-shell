@@ -882,9 +882,10 @@ Instance_pool::try_connect_cluster_primary_with_fallback(
 
   auto cluster_md = m_mdcache->try_get_cluster(cluster_id);
   if (!cluster_md) {
-    assert(0);
-    throw shcore::Exception("Could not find metadata for Cluster",
-                            SHERR_DBA_METADATA_MISSING);
+    throw shcore::Exception(
+        shcore::str_format("Could not find metadata for Cluster '%s'",
+                           cluster_id.c_str()),
+        SHERR_DBA_METADATA_MISSING);
   }
 
   std::shared_ptr<Instance> best;
