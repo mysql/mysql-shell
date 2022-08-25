@@ -21,7 +21,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    For more details execute '\? cmdline' inside
                                    of the Shell.
   -e, --execute=<cmd>              Execute command and quit.
-  -c, --pyc=<cmd>                  Execute Python command and quit.
+  -c, --pyc=<cmd>                  Execute Python command and quit. Any options
+                                   specified after this are used as arguments
+                                   of the processed command.
   -f, --file=<file>                Specify a file to process in batch mode. Any
                                    options specified after this are used as
                                    arguments of the processed file.

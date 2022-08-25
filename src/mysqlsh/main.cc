@@ -896,7 +896,8 @@ int main(int argc, char **argv) {
         }
       } else if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
-        ret_val = shell->process_stream(stream, "(command line)", {});
+        ret_val = shell->process_stream(stream, "(command line)",
+                                        options.script_argv);
       } else if (!options.execute_dba_statement.empty()) {
         if (options.initial_mode != shcore::IShell_core::Mode::JavaScript &&
             options.initial_mode != shcore::IShell_core::Mode::None) {

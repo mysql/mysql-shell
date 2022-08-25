@@ -221,18 +221,9 @@ Shell_options::Shell_options(int argc, char **argv,
         "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
-    (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit.",
-        [this](const std::string &, const char* value) {
-#ifdef HAVE_PYTHON
-          // for backwards compatibility with python executable when
-          // subprocess spawns it
-          storage.initial_mode = shcore::IShell_core::Mode::Python;
-          storage.execute_statement = value ? value: "";
-#else
-          (void)value;
-          throw std::invalid_argument("Python is not supported.");
-#endif
-      })
+    (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit. "
+        "Any options specified after this are used as arguments of the "
+        "processed command.")
     (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
         "Any options specified after this are used as arguments of the "
         "processed file.")
@@ -911,6 +902,26 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     storage.script_argv.push_back(file);
     const auto cmdline = iterator->iterator();
     while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
+  } else if ("-c" == option || "--pyc" == option) {
+    // Like --py -f , but with an inline command
+    // Needed for backwards compatibility with python executable when
+    // subprocess spawns it
+#ifdef HAVE_PYTHON
+    handle_missing_value(iterator);
+
+    storage.initial_mode = shcore::IShell_core::Mode::Python;
+    storage.execute_statement = iterator->value();
+    iterator->next();
+
+    // the rest of the cmdline options, starting from the next one are all
+    // passed through to the script
+
+    storage.script_argv.push_back("-c");
+    const auto cmdline = iterator->iterator();
+    while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
+#else
+    throw std::invalid_argument("Python is not supported.");
+#endif
   } else if ("--pym" == option) {
 #ifndef HAVE_PYTHON
     throw std::invalid_argument("Python is not supported.");
