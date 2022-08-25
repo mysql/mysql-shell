@@ -133,6 +133,11 @@ set(mysqlsh_tests_SRC
 
     add_shell_executable(run_unit_tests "${mysqlsh_tests_SRC}" TRUE)
 
+    # Disable debug symbols in 32 bit platforms
+    IF(CMAKE_SIZEOF_VOID_P EQUAL 4)
+      target_compile_options(run_unit_tests PRIVATE -g0)
+    ENDIF()
+
     add_dependencies(run_unit_tests
             shellfe
             api_modules

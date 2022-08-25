@@ -1168,7 +1168,10 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
 void Mysql_shell::init_extra_globals() {
   if (options().default_cluster_set) {
     try {
-      create_default_cluster_object();
+      auto cluster = create_default_cluster_object();
+
+      if (cluster->impl()->is_cluster_set_member())
+        create_default_clusterset_object();
     } catch (const shcore::Exception &e) {
       print_warning(
           "Option --cluster requires a session to a member of an InnoDB "

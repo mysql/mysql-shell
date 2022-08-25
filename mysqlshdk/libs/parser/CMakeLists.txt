@@ -60,5 +60,12 @@ IF(WIN32)
   )
 ENDIF()
 
-ADD_CONVENIENCE_LIBRARY(parser ${parser_SOURCE})
+# Disable debug symbols in 32 bit platforms
+IF(CMAKE_SIZEOF_VOID_P EQUAL 4)
+  ADD_CONVENIENCE_LIBRARY(parser ${parser_SOURCE}
+    COMPILE_OPTIONS "-g0")
+ELSE()
+  ADD_CONVENIENCE_LIBRARY(parser ${parser_SOURCE})
+ENDIF()
+
 ADD_STAN_TARGET(parser ${parser_SOURCE})

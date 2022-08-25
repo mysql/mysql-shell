@@ -221,18 +221,9 @@ Shell_options::Shell_options(int argc, char **argv,
         "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
-    (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit.",
-        [this](const std::string &, const char* value) {
-#ifdef HAVE_PYTHON
-          // for backwards compatibility with python executable when
-          // subprocess spawns it
-          storage.initial_mode = shcore::IShell_core::Mode::Python;
-          storage.execute_statement = value ? value: "";
-#else
-          (void)value;
-          throw std::invalid_argument("Python is not supported.");
-#endif
-      })
+    (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit. "
+        "Any options specified after this are used as arguments of the "
+        "processed command.")
     (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
         "Any options specified after this are used as arguments of the "
         "processed file.")
@@ -371,18 +362,19 @@ Shell_options::Shell_options(int argc, char **argv,
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Redirect_to::Primary))
     (cmdline("--redirect-secondary"), "Ensure that the target server is part "
-        "of an InnoDB cluster or ReplicaSet and if it is not a secondary, find "
+        "of an InnoDB Cluster or ReplicaSet and if it is not a secondary, find "
         "a secondary and connect to it.",
         assign_value(&storage.redirect_session,
           Shell_options::Storage::Redirect_to::Secondary))
     (cmdline("--cluster"), "Ensure that the target server is part of an InnoDB "
-        "cluster and if so, set the cluster global variable.",
+        "Cluster and if so, set the 'cluster' global variable. Also sets "
+        "'clusterset' if the cluster is part of a ClusterSet.",
         [this](const std::string&, const char* value) {
           storage.default_cluster = value ? value : "";
           storage.default_cluster_set = true;
         })
     (cmdline("--replicaset"), "Ensure that the target server is part of an "
-        "InnoDB ReplicaSet and if so, set the rs global variable.",
+        "InnoDB ReplicaSet and if so, set the 'rs' global variable.",
         assign_value(&storage.default_replicaset_set, true))
     (cmdline("--sql"), "Start in SQL mode, auto-detecting the protocol to use "
         "if it is not specified as part of the connection information.",
@@ -910,6 +902,26 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     storage.script_argv.push_back(file);
     const auto cmdline = iterator->iterator();
     while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
+  } else if ("-c" == option || "--pyc" == option) {
+    // Like --py -f , but with an inline command
+    // Needed for backwards compatibility with python executable when
+    // subprocess spawns it
+#ifdef HAVE_PYTHON
+    handle_missing_value(iterator);
+
+    storage.initial_mode = shcore::IShell_core::Mode::Python;
+    storage.execute_statement = iterator->value();
+    iterator->next();
+
+    // the rest of the cmdline options, starting from the next one are all
+    // passed through to the script
+
+    storage.script_argv.push_back("-c");
+    const auto cmdline = iterator->iterator();
+    while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
+#else
+    throw std::invalid_argument("Python is not supported.");
+#endif
   } else if ("--pym" == option) {
 #ifndef HAVE_PYTHON
     throw std::invalid_argument("Python is not supported.");
