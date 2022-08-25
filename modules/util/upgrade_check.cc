@@ -1586,6 +1586,32 @@ bool UNUSED_VARIABLE(register_columns_which_cannot_have_defaults) =
 
 }  // namespace
 
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_invalid_57_names_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      "mysqlInvalid57NamesCheck",
+      "Check for invalid table names and schema names used in 5.7",
+      std::vector<std::string>{
+          "SELECT SCHEMA_NAME, 'Schema name' AS WARNING FROM "
+          "INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '#mysql50#%';",
+          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' AS WARNING FROM "
+          "INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE '#mysql50#%';"},
+      Upgrade_issue::ERROR,
+      "The following tables and/or schemas have invalid names. In order to fix "
+      "them use the mysqlcheck utility as follows:\n"
+      "\n  $ mysqlcheck --check-upgrade --all-databases"
+      "\n  $ mysqlcheck --fix-db-names --fix-table-names --all-databases"
+      "\n\nOR via mysql client, for eg:\n"
+      "\n  ALTER DATABASE `#mysql50#lost+found` UPGRADE DATA DIRECTORY NAME;");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_invalid_57_names_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_invalid_57_names_check),
+        Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
+}
+
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format) {
   m_upgrade_info.target_version = options.target_version;
