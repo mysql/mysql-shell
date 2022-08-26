@@ -615,9 +615,10 @@ def execute_profiled_query(zf: zipfile.ZipFile, prefix: str, helper_session, que
         "Query": query,
         "Warnings": normalize(r.get_warnings()),
         "Affected Rows": r.get_affected_row_count(),
-        "Info": r.get_info(),
         "Result Rows": row_count
     }
+    if hasattr(r, "get_info"):
+        query_info["Info"] = r.get_info()
 
     return query_info
 

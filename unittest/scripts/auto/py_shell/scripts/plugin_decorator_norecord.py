@@ -534,5 +534,33 @@ testutil.call_mysqlsh(["-e", "shell.version"], "", shell_env)
 EXPECT_STDOUT_CONTAINS("Could not register plugin object 'sample'.")
 EXPECT_STDOUT_CONTAINS(f"This plugin requires at least Shell version {v_plus_1}.")
 
+
+#@<> Extending utils object
+plugin_code = f'''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin(parent="util")
+class sample():
+    """
+    A sample plugin
+    """
+
+@plugin_function("util.utilTest", cli=True)
+def util_test():
+    print("My custom function at util.")
+
+@plugin_function("util.sample.testFunction", cli=True)
+def test():
+    print("My inner function at util.sample.")
+'''
+testutil.rmfile(sample_path)
+testutil.create_file(sample_path, plugin_code)
+
+testutil.call_mysqlsh(["--", "util", "util-test"], "", shell_env)
+testutil.call_mysqlsh(["--", "util", "sample", "test-function"], "", shell_env)
+
+EXPECT_STDOUT_CONTAINS("My custom function at util.")
+EXPECT_STDOUT_CONTAINS(f"My inner function at util.sample.")
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

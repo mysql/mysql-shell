@@ -35,6 +35,13 @@ def check(outpath):
 
 CHECK_ALL_ERROR(check, uri=None)
 
+#@<> X protocol session
+#Bug #34533583	collectSlowQuery failed when using xprotocol on standalone and mds servers
+def check(outpath):
+    EXPECT_STDOUT_NOT_CONTAINS("Traceback")
+
+CHECK_ALL(check, uri=f"mysqlx://root:root@localhost:{__mysql_sandbox_port1}0")
+
 #@<> invalid option
 def check(outpath):
     if "_sq" in outpath:
@@ -376,7 +383,7 @@ def check(outpath):
         print(f"WARNING: time between iterations > 4??? ({dif})")
     session1.run_sql("drop table test.preamble")
 
-CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
+CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
 
 #@<> customSql - TSFR_1_5_4
 options = {
@@ -395,7 +402,7 @@ def check(outpath):
     EXPECT_EQ("after", rows[2][0])
     session1.run_sql("drop table test.preamble")
 
-CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
+CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
 
 #@<> customSql - TSFR_1_5_5
 options = {

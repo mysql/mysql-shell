@@ -79,6 +79,7 @@ The following modules and objects are ready for use when the shell starts:
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
+ - plugins  Plugin to manage MySQL Shell plugins
  - shell    Gives access to general purpose functions and properties.
  - testutil
  - util     Global object that groups miscellaneous tools like upgrade checker

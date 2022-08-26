@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/libs/db/connection_options.h"
 
+#include "modules/mod_extensible_object.h"
 #include "modules/util/dump/dump_instance_options.h"
 #include "modules/util/dump/dump_schemas_options.h"
 #include "modules/util/dump/dump_tables_options.h"
@@ -37,9 +38,6 @@
 #include "modules/util/import_table/import_table_options.h"
 #include "modules/util/load/load_dump_options.h"
 #include "modules/util/upgrade_check.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
-
-#include "modules/util/mod_util_debug.h"
 
 namespace shcore {
 class IShell_core;
@@ -62,8 +60,7 @@ struct Import_json_options {
  * \ingroup ShellAPI
  * $(UTIL_BRIEF)
  */
-class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
-                           public std::enable_shared_from_this<Util> {
+class SHCORE_PUBLIC Util : public Extensible_object {
  public:
   explicit Util(shcore::IShell_core *owner);
 
@@ -153,10 +150,6 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 
  private:
   shcore::IShell_core &_shell_core;
-
-  std::shared_ptr<Util_debug> m_util_debug;
-
-  shcore::Value get_member(const std::string &prop) const override;
 };
 
 } /* namespace mysqlsh */

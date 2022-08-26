@@ -7,8 +7,9 @@ DESCRIPTION
       Global object that groups miscellaneous tools like upgrade checker and
       JSON import.
 
-OBJECTS
- - debug Debugging and diagnostic utilities.
+PROPERTIES
+      debug
+            Debugging and diagnostic utilities.
 
 FUNCTIONS
       check_for_server_upgrade([connectionData][, options])
@@ -2251,7 +2252,6 @@ DESCRIPTION
         will be executed after the loop. If prefixed with `during:`, it will be
         executed once for each iteration of the collection loop.
 
-
 #@<OUT> util debug collect_slow_query_diagnostics
 NAME
       collect_slow_query_diagnostics - Collects MySQL diagnostics and profiling
@@ -2306,3 +2306,4 @@ DESCRIPTION
         once, before the metrics collection loop. If prefixed with `after:`, it
         will be executed after the loop. If prefixed with `during:`, it will be
         executed once for each iteration of the collection loop.
+

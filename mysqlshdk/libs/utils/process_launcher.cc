@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -261,10 +261,10 @@ Process::Process(const char *const *argv_, bool redirect_stderr_)
  */
 std::string Process::make_windows_cmdline(const char *const *argv) {
   assert(argv[0]);
-  std::string cmd = argv[0];
+  std::string cmd;
 
-  for (int i = 1; argv[i]; i++) {
-    cmd.push_back(' ');
+  for (int i = 0; argv[i]; i++) {
+    if (!cmd.empty()) cmd.push_back(' ');
     // if there are any whitespaces or quotes in the arg, we need to quote
     if (strcspn(argv[i], "\" \t\n\r") < strlen(argv[i])) {
       cmd.push_back('"');

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1070,7 +1070,6 @@ void Report::validate_example(const Example &example) const {
 Shell_reports::Shell_reports(const std::string &name,
                              const std::string &qualified_name)
     : Extensible_object(name, qualified_name, true) {
-  enable_help();
   // Do not register the reports for the second time if we're inside of a
   // thread.
   if (mysqlshdk::utils::in_main_thread()) {
@@ -1082,7 +1081,22 @@ Shell_reports::Shell_reports(const std::string &name,
 
 // needs to be defined here due to Shell_reports::Report_options being
 // incomplete type
-Shell_reports::~Shell_reports() = default;
+Shell_reports::~Shell_reports() {
+  auto topic = shcore::Help_registry::get()->get_topic(
+      get_qualified_name(), true, shcore::Topic_mask::any(), true);
+
+  if (topic && topic->is_enabled()) {
+    // disable help for all the children, including methods except the help
+    // member This is only needed for the test suite where the Reports object is
+    // recreated
+    for (const auto &child : topic->m_childs) {
+      // Mode does not really matter as "help" is the same in all
+      if (child->get_name(shcore::IShell_core::Mode::JavaScript) != "help") {
+        child->set_enabled(false);
+      }
+    }
+  }
+}
 
 std::shared_ptr<Parameter_definition> Shell_reports::start_parsing_parameter(
     const shcore::Dictionary_t &definition,
