@@ -25,7 +25,7 @@
 
 
 
-// Generated from /home/paandrus/dev/ngshell/mysqlshdk/libs/parser/grammars/MySQLParser.g4 by ANTLR 4.10.1
+// Generated from /Users/kojima/dev/ngshell/mysqlshdk/libs/parser/grammars/MySQLParser.g4 by ANTLR 4.10.1
 
 
 #include "MySQLParserBaseListener.h"

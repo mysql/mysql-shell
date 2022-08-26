@@ -64,6 +64,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/gr/group_replication_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/innodbcluster/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/ssh/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/parser/mysql_parser_utils_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/scripting/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"
@@ -71,7 +72,7 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/modules/adminapi/common/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*/*_t.cc")
 
-set(mysqlsh_tests_SRC
+    set(mysqlsh_tests_SRC
         ${mysqlsh_tests_SRC}
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"

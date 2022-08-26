@@ -578,37 +578,33 @@ LONG_SYMBOL:                        L O N G;
 LOOP_SYMBOL:                        L O O P;
 LOW_PRIORITY_SYMBOL:                L O W '_' P R I O R I T Y;
 MASTER_AUTO_POSITION_SYMBOL:
-    M A S T E R '_' A U T O '_' P O S I T I O N                                         {this.serverVersion < 80024}?
-;
-MASTER_BIND_SYMBOL:                 M A S T E R '_' B I N D                             {this.serverVersion < 80024}?;
+    M A S T E R '_' A U T O '_' P O S I T I O N;
+MASTER_BIND_SYMBOL:                 M A S T E R '_' B I N D;
 MASTER_CONNECT_RETRY_SYMBOL:
-    M A S T E R '_' C O N N E C T '_' R E T R Y                                         {this.serverVersion < 80024}?
-;
-MASTER_DELAY_SYMBOL:                M A S T E R '_' D E L A Y                           {this.serverVersion < 80024}?;
-MASTER_HOST_SYMBOL:                 M A S T E R '_' H O S T                             {this.serverVersion < 80024}?;
-MASTER_LOG_FILE_SYMBOL:             M A S T E R '_' L O G '_' F I L E                   {this.serverVersion < 80024}?;
-MASTER_LOG_POS_SYMBOL:              M A S T E R '_' L O G '_' P O S                     {this.serverVersion < 80024}?;
-MASTER_PASSWORD_SYMBOL:             M A S T E R '_' P A S S W O R D                     {this.serverVersion < 80024}?;
-MASTER_PORT_SYMBOL:                 M A S T E R '_' P O R T                             {this.serverVersion < 80024}?;
-MASTER_RETRY_COUNT_SYMBOL:          M A S T E R '_' R E T R Y '_' C O U N T             {this.serverVersion < 80024}?;
-MASTER_SERVER_ID_SYMBOL:            M A S T E R '_' S E R V E R '_' I D                 {this.serverVersion < 80024}?;
-MASTER_SSL_CAPATH_SYMBOL:           M A S T E R '_' S S L '_' C A P A T H               {this.serverVersion < 80024}?;
-MASTER_SSL_CA_SYMBOL:               M A S T E R '_' S S L '_' C A                       {this.serverVersion < 80024}?;
-MASTER_SSL_CERT_SYMBOL:             M A S T E R '_' S S L '_' C E R T                   {this.serverVersion < 80024}?;
-MASTER_SSL_CIPHER_SYMBOL:           M A S T E R '_' S S L '_' C I P H E R               {this.serverVersion < 80024}?;
-MASTER_SSL_CRL_SYMBOL:              M A S T E R '_' S S L '_' C R L                     {this.serverVersion < 80024}?;
-MASTER_SSL_CRLPATH_SYMBOL:          M A S T E R '_' S S L '_' C R L P A T H             {this.serverVersion < 80024}?;
-MASTER_SSL_KEY_SYMBOL:              M A S T E R '_' S S L '_' K E Y                     {this.serverVersion < 80024}?;
-MASTER_SSL_SYMBOL:                  M A S T E R '_' S S L                               {this.serverVersion < 80024}?;
+    M A S T E R '_' C O N N E C T '_' R E T R Y;
+MASTER_DELAY_SYMBOL:                M A S T E R '_' D E L A Y;
+MASTER_HOST_SYMBOL:                 M A S T E R '_' H O S T;
+MASTER_LOG_FILE_SYMBOL:             M A S T E R '_' L O G '_' F I L E;
+MASTER_LOG_POS_SYMBOL:              M A S T E R '_' L O G '_' P O S;
+MASTER_PASSWORD_SYMBOL:             M A S T E R '_' P A S S W O R D;
+MASTER_PORT_SYMBOL:                 M A S T E R '_' P O R T;
+MASTER_RETRY_COUNT_SYMBOL:          M A S T E R '_' R E T R Y '_' C O U N T;
+MASTER_SERVER_ID_SYMBOL:            M A S T E R '_' S E R V E R '_' I D;
+MASTER_SSL_CAPATH_SYMBOL:           M A S T E R '_' S S L '_' C A P A T H;
+MASTER_SSL_CA_SYMBOL:               M A S T E R '_' S S L '_' C A;
+MASTER_SSL_CERT_SYMBOL:             M A S T E R '_' S S L '_' C E R T;
+MASTER_SSL_CIPHER_SYMBOL:           M A S T E R '_' S S L '_' C I P H E R;
+MASTER_SSL_CRL_SYMBOL:              M A S T E R '_' S S L '_' C R L;
+MASTER_SSL_CRLPATH_SYMBOL:          M A S T E R '_' S S L '_' C R L P A T H;
+MASTER_SSL_KEY_SYMBOL:              M A S T E R '_' S S L '_' K E Y;
+MASTER_SSL_SYMBOL:                  M A S T E R '_' S S L;
 MASTER_SSL_VERIFY_SERVER_CERT_SYMBOL:
-    M A S T E R '_' S S L '_' V E R I F Y '_' S E R V E R '_' C E R T                   {this.serverVersion < 80024}?
-;
-MASTER_SYMBOL:                      M A S T E R                                         {this.serverVersion < 80024}?;
-MASTER_TLS_VERSION_SYMBOL:          M A S T E R '_' T L S '_' V E R S I O N             {this.serverVersion >= 50713 && this.serverVersion < 80024}?;
-MASTER_USER_SYMBOL:                 M A S T E R '_' U S E R                             {this.serverVersion < 80024}?;
+    M A S T E R '_' S S L '_' V E R I F Y '_' S E R V E R '_' C E R T;
+MASTER_SYMBOL:                      M A S T E R;
+MASTER_TLS_VERSION_SYMBOL:          M A S T E R '_' T L S '_' V E R S I O N             {this.serverVersion >= 50713}?;
+MASTER_USER_SYMBOL:                 M A S T E R '_' U S E R;
 MASTER_HEARTBEAT_PERIOD_SYMBOL:
-    M A S T E R '_' H E A R T B E A T '_' P E R I O D                                   {this.serverVersion < 80024}?
-;
+    M A S T E R '_' H E A R T B E A T '_' P E R I O D;
 MATCH_SYMBOL:                       M A T C H;                                          // SQL-2003-R
 MAX_CONNECTIONS_PER_HOUR_SYMBOL:    M A X '_' C O N N E C T I O N S '_' P E R '_' H O U R;
 MAX_QUERIES_PER_HOUR_SYMBOL:        M A X '_' Q U E R I E S '_' P E R '_' H O U R;
@@ -1034,10 +1030,10 @@ RESOURCE_SYMBOL:                    R E S O U R C E                             
 SYSTEM_SYMBOL:                      S Y S T E M                                         {this.serverVersion >= 80000}?; // SQL-2003-R
 VCPU_SYMBOL:                        V C P U                                             {this.serverVersion >= 80000}?; // MYSQL
 MASTER_PUBLIC_KEY_PATH_SYMBOL:
-    M A S T E R '_' P U B L I C '_' K E Y '_' P A T H                                   {this.serverVersion >= 80000 && this.serverVersion < 80024}?
+    M A S T E R '_' P U B L I C '_' K E Y '_' P A T H                                   {this.serverVersion >= 80000}?
 ;                                                                                       // MYSQL
 GET_MASTER_PUBLIC_KEY_SYMBOL:
-    G E T '_' M A S T E R '_' P U B L I C '_' K E Y '_' S Y M                           {this.serverVersion >= 80000 && this.serverVersion < 80024}?
+    G E T '_' M A S T E R '_' P U B L I C '_' K E Y '_' S Y M                           {this.serverVersion >= 80000}?
 ;                                                                                       // MYSQL
 RESTART_SYMBOL:                     R E S T A R T                                       {this.serverVersion >= 80011}?; // SQL-2003-N
 DEFINITION_SYMBOL:                  D E F I N I T I O N                                 {this.serverVersion >= 80011}?; // MYSQL
@@ -1067,10 +1063,10 @@ MEMBER_SYMBOL:                      M E M B E R                                 
 
 RANDOM_SYMBOL:                      R A N D O M                                         {this.serverVersion >= 80018}?; // MYSQL
 MASTER_COMPRESSION_ALGORITHM_SYMBOL:
-    M A S T E R '_' C O M P R E S S I O N '_' A L G O R I T H M                         {this.serverVersion >= 80018 && this.serverVersion < 80024}?
+    M A S T E R '_' C O M P R E S S I O N '_' A L G O R I T H M                         {this.serverVersion >= 80018}?
 ;                                                                                       // MYSQL
 MASTER_ZSTD_COMPRESSION_LEVEL_SYMBOL:
-    M A S T E R '_' Z S T D '_' C O M P R E S S I O N '_' L E V E L                     {this.serverVersion >= 80018 && this.serverVersion < 80024}?
+    M A S T E R '_' Z S T D '_' C O M P R E S S I O N '_' L E V E L                     {this.serverVersion >= 80018}?
 ;                                                                                       // MYSQL
 PRIVILEGE_CHECKS_USER_SYMBOL:
     P R I V I L E G E '_' C H E C K S '_' U S E R                                       {this.serverVersion >= 80018}?

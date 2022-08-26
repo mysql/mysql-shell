@@ -109,7 +109,7 @@ compatibility::Deferred_statements preprocess_table_script_for_indexes(
   script->clear();
   mysqlshdk::utils::iterate_sql_stream(
       &stream, script_length,
-      [&](const char *s, size_t len, const std::string &delim, size_t) {
+      [&](const char *s, size_t len, const std::string &delim, size_t, size_t) {
         auto sql = std::string(s, len) + delim + "\n";
         mysqlshdk::utils::SQL_iterator sit(sql);
         if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
@@ -137,7 +137,7 @@ void add_invisible_pk(std::string *script, const std::string &key) {
 
   mysqlshdk::utils::iterate_sql_stream(
       &stream, script_length,
-      [&](const char *s, size_t len, const std::string &delim, size_t) {
+      [&](const char *s, size_t len, const std::string &delim, size_t, size_t) {
         auto sql = std::string(s, len) + delim + "\n";
         mysqlshdk::utils::SQL_iterator sit(sql);
 
@@ -217,8 +217,8 @@ void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
 
   mysqlshdk::utils::iterate_sql_stream(
       &stream, 1024 * 64,
-      [&error_prefix, &session, &process_stmt](const char *s, size_t len,
-                                               const std::string &, size_t) {
+      [&error_prefix, &session, &process_stmt](
+          const char *s, size_t len, const std::string &, size_t, size_t) {
         std::string new_stmt;
 
         if (process_stmt && process_stmt(s, len, &new_stmt)) {

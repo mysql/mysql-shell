@@ -225,8 +225,8 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
   mysqlshdk::utils::Sql_splitter *splitter = nullptr;
   if (!mysqlshdk::utils::iterate_sql_stream(
           istream, k_sql_chunk_size,
-          [&](const char *s, size_t len, const std::string &delim,
-              size_t lnum) {
+          [&](const char *s, size_t len, const std::string &delim, size_t lnum,
+              size_t) {
             std::string cmd(s, len);
             std::string file;
 

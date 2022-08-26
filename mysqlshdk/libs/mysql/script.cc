@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ size_t execute_sql_script(
   utils::iterate_sql_stream(
       &stream, 1024 * 64,
       [&instance, &count](const char *s, size_t len, const std::string &,
-                          size_t) {
+                          size_t, size_t) {
         instance.query({s, len});
         ++count;
         return true;

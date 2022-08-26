@@ -40,9 +40,9 @@ mysql.parseStatementAst(1);
 mysql.parseStatementAst({});
 
 //@ parseStatementAst
-mysql.parseStatementAst("this is not valid sql")
-mysql.parseStatementAst("")
-mysql.parseStatementAst("SELECT")
+mysql.parseStatementAst("this is not valid sql");
+mysql.parseStatementAst("");
+mysql.parseStatementAst("SELECT");
 
 //@ splitScript
 mysql.splitScript("select 1")
