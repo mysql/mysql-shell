@@ -350,3 +350,24 @@ ALTER TABLE ... ALTER COLUMN ... DROP DEFAULT statement.
 
 * columnsWhichCannotHaveDefaultsCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html#data-type-defaults-explicit
+
+* mysqlInvalid57NamesCheck.title
+# Check for invalid table names and schema names used in 5.7
+
+* mysqlInvalid57NamesCheck.description
+# Error
+The following tables and/or schemas have invalid names. In order to fix
+them use the mysqlcheck utility as follows:\n
+\n
+  $ mysqlcheck --check-upgrade --all-databases\n
+  $ mysqlcheck --fix-db-names --fix-table-names --all-databases\n
+\n
+OR via mysql client, for eg:\n
+\n
+  ALTER DATABASE `#mysql50#lost+found` UPGRADE DATA DIRECTORY NAME;
+
+* mysqlInvalid57NamesCheck.docLink
+https://dev.mysql.com/doc/refman/5.7/en/identifier-mapping.html
+https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
+https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
+

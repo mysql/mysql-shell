@@ -207,6 +207,7 @@ class Sql_upgrade_check : public Upgrade_check {
   get_changed_functions_generated_columns_check(const Upgrade_info &info);
   static std::unique_ptr<Sql_upgrade_check>
   get_columns_which_cannot_have_defaults_check();
+  static std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,

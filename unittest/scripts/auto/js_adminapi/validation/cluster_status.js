@@ -25,7 +25,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
 |    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
 |    "instanceErrors": [|
-|        "ERROR: GR Applier channel applier stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]",|
+|        "ERROR: applier thread of Group Replication Applier channel stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]",|
 |        "ERROR: group_replication has stopped with an error."|
 |    ], |
 |    "memberState": "ERROR", |
@@ -54,7 +54,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "source": null|
 |    }, |
 |    "instanceErrors": [|
-|        "ERROR: GR Applier channel applier stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]", |
+|        "ERROR: applier thread of Group Replication Applier channel stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]", |
 |        "ERROR: group_replication has stopped with an error."|
 |    ], |
 |    "memberState": "ERROR", |
@@ -95,7 +95,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
 |    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
 |    "instanceErrors": [|
-|       "ERROR: GR Recovery channel applier stopped with an error: [[*]]Could not execute Write_rows event on table testdb.data; Duplicate entry '42' for key '[[*]]PRIMARY', Error_code: 1062; handler error HA_ERR_FOUND_DUPP_KEY; [[*]]",|
+|       "ERROR: applier thread of Group Replication Recovery channel stopped with an error: [[*]]Could not execute Write_rows event on table testdb.data; Duplicate entry '42' for key '[[*]]PRIMARY', Error_code: 1062; handler error HA_ERR_FOUND_DUPP_KEY; [[*]]",|
 |       "ERROR: group_replication has stopped with an error."|
 |    ],|
 |    "memberState": "ERROR", |

@@ -205,6 +205,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("upgradeSandbox", &Testutils::upgrade_sandbox, "port");
   expose("removeFromSandboxConf", &Testutils::remove_from_sandbox_conf, "port",
          "option", "?section");
+  expose("getSandboxDatadir", &Testutils::get_sandbox_datadir, "port");
   expose("getSandboxConfPath", &Testutils::get_sandbox_conf_path, "port");
   expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
   expose("getSandboxPath", &Testutils::get_sandbox_path, "?port", "?filename");
