@@ -53,7 +53,7 @@ class Mock_row : public mysqlshdk::db::IRow {
                                         size_t *out_size));
   MOCK_CONST_METHOD1(get_float, float(uint32_t index));
   MOCK_CONST_METHOD1(get_double, double(uint32_t index));
-  MOCK_CONST_METHOD1(get_bit, uint64_t(uint32_t index));
+  MOCK_CONST_METHOD1(get_bit, std::tuple<uint64_t, int>(uint32_t index));
 
   MOCK_CONST_METHOD1(get_type, mysqlshdk::db::Type(uint32_t index));
   MOCK_CONST_METHOD1(is_null, bool(uint32_t index));
@@ -75,7 +75,7 @@ class Mock_row : public mysqlshdk::db::IRow {
                                 size_t *out_size) const;
   virtual float def_get_float(uint32_t index) const;
   virtual double def_get_double(uint32_t index) const;
-  virtual uint64_t def_get_bit(uint32_t index) const;
+  virtual std::tuple<uint64_t, int> def_get_bit(uint32_t index) const;
 
   virtual mysqlshdk::db::Type def_get_type(uint32_t index) const;
   virtual bool def_is_null(uint32_t index) const;

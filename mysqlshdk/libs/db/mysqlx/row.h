@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,7 @@ class SHCORE_PUBLIC Row : public mysqlshdk::db::IRow {
       uint32_t index) const override;
   void get_raw_data(uint32_t index, const char **out_data,
                     size_t *out_size) const override;
-  uint64_t get_bit(uint32_t index) const override;
+  std::tuple<uint64_t, int> get_bit(uint32_t index) const override;
 
  private:
   friend class Result;

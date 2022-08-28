@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 
 #include "mysqlshdk/libs/db/column.h"
@@ -71,7 +72,7 @@ class SHCORE_PUBLIC IRow {
       uint32_t index) const = 0;
   virtual void get_raw_data(uint32_t index, const char **out_data,
                             size_t *out_size) const = 0;
-  virtual uint64_t get_bit(uint32_t index) const = 0;
+  virtual std::tuple<uint64_t, int> get_bit(uint32_t index) const = 0;
 
   inline std::string get_as_string(uint32_t index,
                                    const std::string &default_if_null) const {

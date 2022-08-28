@@ -457,106 +457,106 @@ _json_schema: {"type": "object"}
 
 
 //@<OUT> dump a few rows to get a table with narrow values only
-+-------+----------+------+--------------------+
-| col1  | col2     | col3 | col4               |
-+-------+----------+------+--------------------+
-| hello | 0.809643 | 0    | bla bla            |
-| world |     NULL | 1    | bla blabla blaaaaa |
-| NULL  |        1 | 1    | NULL               |
-| hello | 0.809643 | NULL | bla bla            |
-| world |     NULL | 0    | bla blabla blaaaaa |
-| NULL  |        1 | 1    | NULL               |
-| hello | 0.809643 | 1    | bla bla            |
-| world |     NULL | NULL | bla blabla blaaaaa |
-| NULL  |        1 | 0    | NULL               |
-| hello | 0.809643 | 1    | bla bla            |
-+-------+----------+------+--------------------+
++-------+----------+--------------------+--------------------+
+| col1  | col2     | col3               | col4               |
++-------+----------+--------------------+--------------------+
+| hello | 0.809643 | 0x0000000000000000 | bla bla            |
+| world |     NULL | 0x0000000000000001 | bla blabla blaaaaa |
+| NULL  |        1 | 0x0000000000000001 | NULL               |
+| hello | 0.809643 | NULL               | bla bla            |
+| world |     NULL | 0x0000000000000000 | bla blabla blaaaaa |
+| NULL  |        1 | 0x0000000000000001 | NULL               |
+| hello | 0.809643 | 0x0000000000000001 | bla bla            |
+| world |     NULL | NULL               | bla blabla blaaaaa |
+| NULL  |        1 | 0x0000000000000000 | NULL               |
+| hello | 0.809643 | 0x0000000000000001 | bla bla            |
++-------+----------+--------------------+--------------------+
 
 //@<OUT> dump a few rows to get a table with slightly wider values
-+-----------------------------+------------------+------+-----------------------------------------------------------------+
-| col1                        | col2             | col3 | col4                                                            |
-+-----------------------------+------------------+------+-----------------------------------------------------------------+
-| hello                       |         0.809643 | 0    | bla bla                                                         |
-| world                       |             NULL | 1    | bla blabla blaaaaa                                              |
-| NULL                        |                1 | 1    | NULL                                                            |
-| hello                       |         0.809643 | NULL | bla bla                                                         |
-| world                       |             NULL | 0    | bla blabla blaaaaa                                              |
-| NULL                        |                1 | 1    | NULL                                                            |
-| hello                       |         0.809643 | 1    | bla bla                                                         |
-| world                       |             NULL | NULL | bla blabla blaaaaa                                              |
-| NULL                        |                1 | 0    | NULL                                                            |
-| hello                       |         0.809643 | 1    | bla bla                                                         |
-| world                       | 0.39888085877797 | 1    | bla bla                                                         |
-| foo bar                     |      0.972853873 | 85   | bla blabla blaaaaa                                              |
-| fóo                         |                1 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |
-| foo–bar                     | 0.70964040738497 | 1    | bla bla                                                         |
-| foo-bar                     | 0.39888085877797 | 85   | bla blabla blaaaaa                                              |
-| many values                 |      0.972853873 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |
-| Park_Güell                  |                1 | 1    | bla bla                                                         |
-| Ashmore_and_Cartier_Islands | 0.70964040738497 | 85   | bla blabla blaaaaa                                              |
-| hello                       | 0.39888085877797 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |
-| world                       |      0.972853873 | 1    | bla bla                                                         |
-+-----------------------------+------------------+------+-----------------------------------------------------------------+
++-----------------------------+------------------+--------------------+-----------------------------------------------------------------+
+| col1                        | col2             | col3               | col4                                                            |
++-----------------------------+------------------+--------------------+-----------------------------------------------------------------+
+| hello                       |         0.809643 | 0x0000000000000000 | bla bla                                                         |
+| world                       |             NULL | 0x0000000000000001 | bla blabla blaaaaa                                              |
+| NULL                        |                1 | 0x0000000000000001 | NULL                                                            |
+| hello                       |         0.809643 | NULL               | bla bla                                                         |
+| world                       |             NULL | 0x0000000000000000 | bla blabla blaaaaa                                              |
+| NULL                        |                1 | 0x0000000000000001 | NULL                                                            |
+| hello                       |         0.809643 | 0x0000000000000001 | bla bla                                                         |
+| world                       |             NULL | NULL               | bla blabla blaaaaa                                              |
+| NULL                        |                1 | 0x0000000000000000 | NULL                                                            |
+| hello                       |         0.809643 | 0x0000000000000001 | bla bla                                                         |
+| world                       | 0.39888085877797 | 0x0000000000000001 | bla bla                                                         |
+| foo bar                     |      0.972853873 | 0x0000000000000055 | bla blabla blaaaaa                                              |
+| fóo                         |                1 | 0x0000000000000000 | blablablablablab lablablablablabla blablablabl ablablablablabla |
+| foo–bar                     | 0.70964040738497 | 0x0000000000000001 | bla bla                                                         |
+| foo-bar                     | 0.39888085877797 | 0x0000000000000055 | bla blabla blaaaaa                                              |
+| many values                 |      0.972853873 | 0x0000000000000000 | blablablablablab lablablablablabla blablablabl ablablablablabla |
+| Park_Güell                  |                1 | 0x0000000000000001 | bla bla                                                         |
+| Ashmore_and_Cartier_Islands | 0.70964040738497 | 0x0000000000000055 | bla blabla blaaaaa                                              |
+| hello                       | 0.39888085877797 | 0x0000000000000000 | blablablablablab lablablablablabla blablablabl ablablablablabla |
+| world                       |      0.972853873 | 0x0000000000000001 | bla bla                                                         |
++-----------------------------+------------------+--------------------+-----------------------------------------------------------------+
 
 //@# dump everything
-@+-----------------------------+------------------+------+-----------------------------------------------------------------+@
-@| col1                        | col2             | col3 | col4                                                            |@
-@+-----------------------------+------------------+------+-----------------------------------------------------------------+@
-@| hello                       |         0.809643 | 0    | bla bla                                                         |@
-@| world                       |             NULL | 1    | bla blabla blaaaaa                                              |@
-@| NULL                        |                1 | 1    | NULL                                                            |@
-@| hello                       |         0.809643 | NULL | bla bla                                                         |@
-@| world                       |             NULL | 0    | bla blabla blaaaaa                                              |@
-@| NULL                        |                1 | 1    | NULL                                                            |@
-@| hello                       |         0.809643 | 1    | bla bla                                                         |@
-@| world                       |             NULL | NULL | bla blabla blaaaaa                                              |@
-@| NULL                        |                1 | 0    | NULL                                                            |@
-@| hello                       |         0.809643 | 1    | bla bla                                                         |@
-@| world                       | 0.39888085877797 | 1    | bla bla                                                         |@
-@| foo bar                     |      0.972853873 | 85   | bla blabla blaaaaa                                              |@
-@| fóo                         |                1 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |@
-@| foo–bar                     | 0.70964040738497 | 1    | bla bla                                                         |@
-@| foo-bar                     | 0.39888085877797 | 85   | bla blabla blaaaaa                                              |@
-@| many values                 |      0.972853873 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |@
-@| Park_Güell                  |                1 | 1    | bla bla                                                         |@
-@| Alfonso_Aráu                |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@+-----------------------------+------------------+--------------------+-----------------------------------------------------------------+@
+@| col1                        | col2             | col3               | col4                                                            |@
+@+-----------------------------+------------------+--------------------+-----------------------------------------------------------------+@
+@| hello                       |         0.809643 | 0x0000000000000000 | bla bla                                                         |@
+@| world                       |             NULL | 0x0000000000000001 | bla blabla blaaaaa                                              |@
+@| NULL                        |                1 | 0x0000000000000001 | NULL                                                            |@
+@| hello                       |         0.809643 | NULL               | bla bla                                                         |@
+@| world                       |             NULL | 0x0000000000000000 | bla blabla blaaaaa                                              |@
+@| NULL                        |                1 | 0x0000000000000001 | NULL                                                            |@
+@| hello                       |         0.809643 | 0x0000000000000001 | bla bla                                                         |@
+@| world                       |             NULL | NULL               | bla blabla blaaaaa                                              |@
+@| NULL                        |                1 | 0x0000000000000000 | NULL                                                            |@
+@| hello                       |         0.809643 | 0x0000000000000001 | bla bla                                                         |@
+@| world                       | 0.39888085877797 | 0x0000000000000001 | bla bla                                                         |@
+@| foo bar                     |      0.972853873 | 0x0000000000000055 | bla blabla blaaaaa                                              |@
+@| fóo                         |                1 | 0x0000000000000000 | blablablablablab lablablablablabla blablablabl ablablablablabla |@
+@| foo–bar                     | 0.70964040738497 | 0x0000000000000001 | bla bla                                                         |@
+@| foo-bar                     | 0.39888085877797 | 0x0000000000000055 | bla blabla blaaaaa                                              |@
+@| many values                 |      0.972853873 | 0x0000000000000000 | blablablablablab lablablablablabla blablablabl ablablablablabla |@
+@| Park_Güell                  |                1 | 0x0000000000000001 | bla bla                                                         |@
+@| Alfonso_Aráu                |      0.398880858 | 0x0000000000000001 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| André-Marie_Ampère          |        0.9733873 | 2817036 | bla bla                                                         |@
-@| Very long text but not that long really, but at least longer than before | 0.1180964040738497 | 0    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| André-Marie_Ampère          |        0.9733873 | 0x00000000002AFC0C | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before | 0.1180964040738497 | 0x0000000000000000 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| hello world                 |      0.398880858 | 1    | bla bla                                                         |@
-@| Alfonso_Aráu                |        0.9733873 | 2817036 | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| hello world                 |      0.398880858 | 0x0000000000000001 | bla bla                                                         |@
+@| Alfonso_Aráu                |        0.9733873 | 0x00000000002AFC0C | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| André-Marie_Ampère          | 0.1180964040738497 | 0    | bla bla                                                         |@
-@| Very long text but not that long really, but at least longer than before |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| André-Marie_Ampère          | 0.1180964040738497 | 0x0000000000000000 | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before |      0.398880858 | 0x0000000000000001 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| hello world                 |        0.9733873 | 2817036 | bla bla                                                         |@
-@| Alfonso_Aráu                | 0.1180964040738497 | 0    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| hello world                 |        0.9733873 | 0x00000000002AFC0C | bla bla                                                         |@
+@| Alfonso_Aráu                | 0.1180964040738497 | 0x0000000000000000 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| André-Marie_Ampère          |      0.398880858 | 1    | bla bla                                                         |@
-@| Very long text but not that long really, but at least longer than before |        0.9733873 | 2817036 | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| André-Marie_Ampère          |      0.398880858 | 0x0000000000000001 | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before |        0.9733873 | 0x00000000002AFC0C | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| hello world                 | 0.1180964040738497 | 0    | bla bla                                                         |@
-@| Alfonso_Aráu                |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| hello world                 | 0.1180964040738497 | 0x0000000000000000 | bla bla                                                         |@
+@| Alfonso_Aráu                |      0.398880858 | 0x0000000000000001 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| André-Marie_Ampère          |        0.9733873 | 2817036 | bla bla                                                         |@
-@| Very long text but not that long really, but at least longer than before | 0.1180964040738497 | 0    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| André-Marie_Ampère          |        0.9733873 | 0x00000000002AFC0C | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before | 0.1180964040738497 | 0x0000000000000000 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| hello world                 |      0.398880858 | 1    | bla bla                                                         |@
-@| Alfonso_Aráu                |        0.9733873 | 2817036 | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| hello world                 |      0.398880858 | 0x0000000000000001 | bla bla                                                         |@
+@| Alfonso_Aráu                |        0.9733873 | 0x00000000002AFC0C | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@| André-Marie_Ampère          | 0.1180964040738497 | 0    | bla bla                                                         |@
-@| Very long text but not that long really, but at least longer than before |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@| André-Marie_Ampère          | 0.1180964040738497 | 0x0000000000000000 | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before |      0.398880858 | 0x0000000000000001 | blablablabla blablablabla blablablabla blablablabla blablablabla@
 @blablablabla blablablabla blablablabla@
 @blablablabla bla! |@
-@+-----------------------------+------------------+------+-----------------------------------------------------------------+@
+@+-----------------------------+------------------+--------------------+-----------------------------------------------------------------+@
 

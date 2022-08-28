@@ -131,7 +131,7 @@ class Row_hook : public db::IRow {
     _source->get_raw_data(index, out_data, out_size);
   }
 
-  uint64_t get_bit(uint32_t index) const override {
+  std::tuple<uint64_t, int> get_bit(uint32_t index) const override {
     return _source->get_bit(index);
   }
 

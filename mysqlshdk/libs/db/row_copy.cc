@@ -288,10 +288,10 @@ double Mem_row::get_double(uint32_t index) const {
   }
 }
 
-uint64_t Mem_row::get_bit(uint32_t index) const {
+std::tuple<uint64_t, int> Mem_row::get_bit(uint32_t index) const {
   Type ftype;
   GET_VALIDATE_TYPE(index, (ftype == Type::Bit));
-  return shcore::string_to_bits(get<std::string>(index)).first;
+  return shcore::string_to_bits(get<std::string>(index));
 }
 
 bool Mem_row::is_null(uint32_t index) const {

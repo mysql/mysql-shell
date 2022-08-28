@@ -253,7 +253,7 @@ void push_field(
         value.SetString(row->get_as_string(i).c_str(), doc->GetAllocator());
         break;
       case Type::Bit:
-        value = row->get_bit(i);
+        value = std::get<0>(row->get_bit(i));
         break;
       case Type::String:
       case Type::Bytes:
@@ -627,8 +627,8 @@ class Row_unserializer : public db::IRow {
     throw std::logic_error("not implemented");
   }
 
-  uint64_t get_bit(uint32_t index) const override {
-    return replay::get_int(_fields[index]);
+  std::tuple<uint64_t, int> get_bit(uint32_t index) const override {
+    return {replay::get_int(_fields[index]), 0};
   }
 };
 

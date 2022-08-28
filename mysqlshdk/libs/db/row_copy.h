@@ -63,7 +63,7 @@ class SHCORE_PUBLIC Mem_row : public IRow {
       uint32_t index) const override;
   void get_raw_data(uint32_t index, const char **out_data,
                     size_t *out_size) const override;
-  uint64_t get_bit(uint32_t index) const override;
+  std::tuple<uint64_t, int> get_bit(uint32_t index) const override;
 
   /** Inserts new field at specified offset. Field value is set to null.
    *

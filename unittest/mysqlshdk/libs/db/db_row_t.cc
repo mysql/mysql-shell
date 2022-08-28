@@ -242,17 +242,17 @@ TEST_F(Db_tests, row_getters_bit) {
       CHECK_NOT_NULL(1);
 
       // clang-format off
-      CHECK_BIT_EQ(0, 0, std::string("0"));
-      CHECK_BIT_EQ(1, 0, std::string("0000000000000000000000000000000000000000000000000000000000000000"));  // NOLINT(whitespace/line_length)
+      CHECK_BIT_EQ(0, 0, 1, std::string("0"));
+      CHECK_BIT_EQ(1, 0, 64, std::string("0000000000000000000000000000000000000000000000000000000000000000"));  // NOLINT(whitespace/line_length)
       NEXT_ROW();
-      CHECK_BIT_EQ(0, 1, std::string("1"));
-      CHECK_BIT_EQ(1, 1, std::string("0000000000000000000000000000000000000000000000000000000000000001"));  // NOLINT(whitespace/line_length)
+      CHECK_BIT_EQ(0, 1, 1, std::string("1"));
+      CHECK_BIT_EQ(1, 1, 64, std::string("0000000000000000000000000000000000000000000000000000000000000001"));  // NOLINT(whitespace/line_length)
       NEXT_ROW();
-      CHECK_BIT_EQ(0, 1, std::string("1"));
-      CHECK_BIT_EQ(1, 0xFFFFFFFFFFFFFFFFULL, std::string("1111111111111111111111111111111111111111111111111111111111111111"));  // NOLINT(whitespace/line_length)
+      CHECK_BIT_EQ(0, 1, 1, std::string("1"));
+      CHECK_BIT_EQ(1, 0xFFFFFFFFFFFFFFFFULL, 64, std::string("1111111111111111111111111111111111111111111111111111111111111111"));  // NOLINT(whitespace/line_length)
       NEXT_ROW();
-      CHECK_BIT_EQ(0, 1, std::string("1"));
-      CHECK_BIT_EQ(1, 0x5555555555555555ULL, std::string("0101010101010101010101010101010101010101010101010101010101010101"));  // NOLINT(whitespace/line_length)
+      CHECK_BIT_EQ(0, 1, 1, std::string("1"));
+      CHECK_BIT_EQ(1, 0x5555555555555555ULL, 64, std::string("0101010101010101010101010101010101010101010101010101010101010101"));  // NOLINT(whitespace/line_length)
       // clang-format on
       NEXT_ROW();
       CHECK_NULL(0);

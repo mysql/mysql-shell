@@ -86,12 +86,14 @@ class Db_tests : public tests::Shell_test_env {
   EXPECT_EQ(shcore::str_strip(STRINGIFY(value), "UL\""), \
             rowcp.get_as_string(f));
 
-#define CHECK_BIT_EQ(f, value, svalue)         \
-  EXPECT_FALSE(rowptr->is_null(f));            \
-  EXPECT_FALSE(rowcp.is_null(f));              \
-  EXPECT_EQ(value, rowptr->get_bit(f));        \
-  EXPECT_EQ(value, rowcp.get_bit(f));          \
-  EXPECT_EQ(svalue, rowptr->get_as_string(f)); \
+#define CHECK_BIT_EQ(f, value, value_size, svalue)        \
+  EXPECT_FALSE(rowptr->is_null(f));                       \
+  EXPECT_FALSE(rowcp.is_null(f));                         \
+  EXPECT_EQ(value, std::get<0>(rowptr->get_bit(f)));      \
+  EXPECT_EQ(value, std::get<0>(rowcp.get_bit(f)));        \
+  EXPECT_EQ(value_size, std::get<1>(rowptr->get_bit(f))); \
+  EXPECT_EQ(value_size, std::get<1>(rowcp.get_bit(f)));   \
+  EXPECT_EQ(svalue, rowptr->get_as_string(f));            \
   EXPECT_EQ(svalue, rowcp.get_as_string(f));
 
 #define CHECK_DOUBLE_EQ(f, value, getter)     \

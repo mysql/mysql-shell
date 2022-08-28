@@ -140,9 +140,10 @@ std::string Row::get_as_string(uint32_t index) const {
     // must be fixed
     // throw FIELD_ERROR(index, "field is NULL");
     return "NULL";
-  if (get_type(index) == Type::Bit)
-    return shcore::bits_to_string(get_bit(index),
-                                  _result.get_metadata()[index].get_length());
+  if (get_type(index) == Type::Bit) {
+    auto [bit_value, bit_size] = get_bit(index);
+    return shcore::bits_to_string(bit_value, bit_size);
+  }
   return std::string(_row[index], _lengths[index]);
 }
 
@@ -238,7 +239,7 @@ double Row::get_double(uint32_t index) const {
   return ret_val;
 }
 
-uint64_t Row::get_bit(uint32_t index) const {
+std::tuple<uint64_t, int> Row::get_bit(uint32_t index) const {
   VALIDATE_TYPE(index, (ftype == Type::Bit));
   uint64_t uval = 0;
   switch (_lengths[index]) {
@@ -270,7 +271,7 @@ uint64_t Row::get_bit(uint32_t index) const {
       uval = 0;
       break;
   }
-  return uval;
+  return {uval, _result.get_metadata()[index].get_length()};
 }
 
 }  // namespace mysql
