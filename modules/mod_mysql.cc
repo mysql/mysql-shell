@@ -344,9 +344,9 @@ Array splitScript(String script) {}
 #elif DOXYGEN_PY
 list split_script(str script) {}
 #endif
-shcore::Value Mysql::split_script(const std::string &sql) const {
+shcore::Value Mysql::split_script(const std::string &script) const {
   shcore::Array_t array = shcore::make_array();
-  for (auto s : mysqlshdk::utils::split_sql(sql))
+  for (auto s : mysqlshdk::utils::split_sql(script))
     array->emplace_back(std::move(s));
   return shcore::Value(array);
 }
@@ -371,13 +371,13 @@ Dictionary parseStatementAst(String statement) {}
 #elif DOXYGEN_PY
 dict parse_statement_ast(str statement) {}
 #endif
-shcore::Value Mysql::parse_statement_ast(const std::string &sql) const {
+shcore::Value Mysql::parse_statement_ast(const std::string &statement) const {
   auto array = shcore::make_array();
   shcore::Value root =
       shcore::Value(shcore::make_dict("children", shcore::Value(array)));
 
   mysqlshdk::parser::traverse_statement_ast<shcore::Value>(
-      sql, &root,
+      statement, &root,
       [](const mysqlshdk::parser::AST_node &node, shcore::Value *parent) {
         auto parent_list = parent->as_map()->get_array("children");
 
