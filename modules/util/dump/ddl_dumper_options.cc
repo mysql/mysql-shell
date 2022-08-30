@@ -76,6 +76,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
                     &Ddl_dumper_options::set_exclude_triggers)
           .optional("includeTriggers",
                     &Ddl_dumper_options::set_include_triggers)
+          .optional("where", &Ddl_dumper_options::set_where_clause)
+          .optional("partitions", &Ddl_dumper_options::set_partitions)
           .include(&Ddl_dumper_options::m_dump_manifest_options)
           .include(&Ddl_dumper_options::m_s3_bucket_options)
           .on_done(&Ddl_dumper_options::on_unpacked_options)

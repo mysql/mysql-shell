@@ -179,7 +179,7 @@ class Instance_cache_builder final {
 
   using Filter = std::unordered_set<std::string>;
   using Object_filters = std::unordered_map<std::string, Filter>;
-  using Trigger_filters = std::unordered_map<std::string, Object_filters>;
+  using Subobject_filters = std::unordered_map<std::string, Object_filters>;
 
   Instance_cache_builder() = delete;
 
@@ -187,7 +187,7 @@ class Instance_cache_builder final {
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const Filter &included_schemas, const Object_filters &included_tables,
       const Filter &excluded_schemas, const Object_filters &excluded_tables,
-      Instance_cache &&cache = {}, bool include_metadata = true);
+      Instance_cache &&cache = {});
 
   Instance_cache_builder(const Instance_cache_builder &) = delete;
   Instance_cache_builder(Instance_cache_builder &&) = default;
@@ -197,6 +197,8 @@ class Instance_cache_builder final {
   Instance_cache_builder &operator=(const Instance_cache_builder &) = delete;
   Instance_cache_builder &operator=(Instance_cache_builder &&) = default;
 
+  Instance_cache_builder &metadata(const Subobject_filters &partitions);
+
   Instance_cache_builder &users(const Users &included, const Users &excluded);
 
   Instance_cache_builder &events(const Object_filters &included,
@@ -205,8 +207,8 @@ class Instance_cache_builder final {
   Instance_cache_builder &routines(const Object_filters &included,
                                    const Object_filters &excluded);
 
-  Instance_cache_builder &triggers(const Trigger_filters &included,
-                                   const Trigger_filters &excluded);
+  Instance_cache_builder &triggers(const Subobject_filters &included,
+                                   const Subobject_filters &excluded);
 
   Instance_cache_builder &binlog_info();
 
@@ -230,7 +232,7 @@ class Instance_cache_builder final {
 
   void filter_tables();
 
-  void fetch_metadata();
+  void fetch_metadata(const Subobject_filters &partitions);
 
   void fetch_version();
 
@@ -248,7 +250,7 @@ class Instance_cache_builder final {
 
   void fetch_table_histograms();
 
-  void fetch_table_partitions();
+  void fetch_table_partitions(const Subobject_filters &partitions);
 
   void iterate_schemas(
       const Iterate_schema &info,
@@ -303,8 +305,8 @@ class Instance_cache_builder final {
                             const Object_filters &excluded) const;
 
   std::string trigger_filter(const Iterate_table &info,
-                             const Trigger_filters &included,
-                             const Trigger_filters &excluded) const;
+                             const Subobject_filters &included,
+                             const Subobject_filters &excluded) const;
 
   inline std::shared_ptr<mysqlshdk::db::IResult> query(
       std::string_view sql) const {

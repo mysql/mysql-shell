@@ -24,9 +24,11 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_OPTIONS_H_
 #define MODULES_UTIL_DUMP_DUMP_OPTIONS_H_
 
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -141,13 +143,20 @@ class Dump_options {
     return m_excluded_routines;
   }
 
-  const Instance_cache_builder::Trigger_filters &included_triggers() const {
+  const Instance_cache_builder::Subobject_filters &included_triggers() const {
     return m_included_triggers;
   }
 
-  const Instance_cache_builder::Trigger_filters &excluded_triggers() const {
+  const Instance_cache_builder::Subobject_filters &excluded_triggers() const {
     return m_excluded_triggers;
   }
+
+  const Instance_cache_builder::Subobject_filters &included_partitions() const {
+    return m_partitions;
+  }
+
+  const std::string &where(const std::string &schema,
+                           const std::string &table) const;
 
   virtual bool split() const = 0;
 
@@ -182,10 +191,6 @@ class Dump_options {
   virtual bool par_manifest() const = 0;
 
  protected:
-  void set_dialect(const import_table::Dialect &dialect) {
-    m_dialect = dialect;
-  }
-
   void set_compression(mysqlshdk::storage::Compression compression) {
     m_compression = compression;
   }
@@ -198,6 +203,17 @@ class Dump_options {
   void set_compatibility_option(Compatibility_option c) {
     m_compatibility_options |= c;
   }
+
+  void set_where_clause(const std::map<std::string, std::string> &where);
+
+  void set_where_clause(const std::string &schema, const std::string &table,
+                        const std::string &where);
+
+  void set_partitions(
+      const std::map<std::string, std::unordered_set<std::string>> &partitions);
+
+  void set_partitions(const std::string &schema, const std::string &table,
+                      const std::unordered_set<std::string> &partitions);
 
   template <typename C>
   void add_excluded_users(const C &excluded_users) {
@@ -229,20 +245,8 @@ class Dump_options {
       schema.clear();
       object.clear();
 
-      try {
-        shcore::split_schema_and_table(t, &schema, &object);
-      } catch (const std::runtime_error &e) {
-        throw std::invalid_argument("Failed to parse " + object_type +
-                                    " to be " + action + "d '" + t +
-                                    "': " + e.what());
-      }
-
-      if (schema.empty()) {
-        throw std::invalid_argument(
-            "The " + object_type + " to be " + action +
-            "d must be in the following form: schema." + object_type +
-            ", with optional backtick quotes, wrong value: '" + t + "'.");
-      }
+      parse_schema_and_object(t, object_type + " to be " + action + "d",
+                              object_type, &schema, &object);
 
       (*map)[schema].emplace(std::move(object));
     }
@@ -250,7 +254,7 @@ class Dump_options {
 
   template <typename C>
   void add_trigger_filters(const C &data, const std::string &action,
-                           Instance_cache_builder::Trigger_filters *target) {
+                           Instance_cache_builder::Subobject_filters *target) {
     std::string schema;
     std::string table;
     std::string object;
@@ -313,8 +317,8 @@ class Dump_options {
   Instance_cache_builder::Object_filters m_included_routines;
   Instance_cache_builder::Object_filters m_excluded_routines;
 
-  Instance_cache_builder::Trigger_filters m_included_triggers;
-  Instance_cache_builder::Trigger_filters m_excluded_triggers;
+  Instance_cache_builder::Subobject_filters m_included_triggers;
+  Instance_cache_builder::Subobject_filters m_excluded_triggers;
 
   mutable bool m_filter_conflicts = false;
 
@@ -340,6 +344,8 @@ class Dump_options {
   void error_on_trigger_filters_conflicts() const;
 
  private:
+  void on_unpacked_options();
+
   virtual void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;
 
@@ -367,6 +373,14 @@ class Dump_options {
 
   void error_on_table_cross_filters_conflicts() const;
 
+  static void parse_schema_and_object(const std::string &str,
+                                      const std::string &context,
+                                      const std::string &object_type,
+                                      std::string *out_schema,
+                                      std::string *out_table);
+
+  void validate_partitions() const;
+
   // global session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
@@ -386,10 +400,18 @@ class Dump_options {
 
   std::string m_character_set = "utf8mb4";
 
+  import_table::Dialect m_dialect;
+  import_table::Dialect m_dialect_unpacker;
+
+  // schema -> table -> condition
+  std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+      m_where;
+
+  // schema -> table -> partitions
+  Instance_cache_builder::Subobject_filters m_partitions;
+
   // these options are unpacked elsewhere, but are here 'cause we're returning
   // a reference
-  // currently used by exportTable()
-  import_table::Dialect m_dialect;
 
   // currently used by dumpTables(), dumpSchemas() and dumpInstance()
   mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;

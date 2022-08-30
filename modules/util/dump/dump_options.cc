@@ -38,6 +38,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -107,6 +108,8 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
           .optional("showProgress", &Dump_options::m_show_progress)
           .optional("compression", &Dump_options::set_string_option)
           .optional("defaultCharacterSet", &Dump_options::m_character_set)
+          .include(&Dump_options::m_dialect_unpacker)
+          .on_done(&Dump_options::on_unpacked_options)
           .on_log(&Dump_options::on_log_options);
 
   return opts;
@@ -151,6 +154,14 @@ void Dump_options::set_session(
   on_set_session(session);
 }
 
+void Dump_options::on_unpacked_options() {
+  m_dialect = m_dialect_unpacker;
+
+  if (import_table::Dialect::json() == dialect()) {
+    throw std::invalid_argument("The 'json' dialect is not supported.");
+  }
+}
+
 void Dump_options::validate() const {
   // cross-filter conflicts cannot be checked earlier, as filters are not
   // initialized at the same time
@@ -165,6 +176,8 @@ void Dump_options::validate() const {
   if (m_filter_conflicts) {
     throw std::invalid_argument("Conflicting filtering options");
   }
+
+  validate_partitions();
 
   validate_options();
 }
@@ -271,7 +284,7 @@ void Dump_options::error_on_object_filters_conflicts(
 }
 
 void Dump_options::error_on_trigger_filters_conflicts() const {
-  find_matches<Instance_cache_builder::Trigger_filters,
+  find_matches<Instance_cache_builder::Subobject_filters,
                Instance_cache_builder::Object_filters>(
       included_triggers(), excluded_triggers(), {},
       [this](const auto &included, const auto &excluded,
@@ -467,6 +480,170 @@ void Dump_options::error_on_table_cross_filters_conflicts() const {
 
   check_triggers(included_triggers(), true);
   check_triggers(excluded_triggers(), false);
+}
+
+void Dump_options::set_where_clause(
+    const std::map<std::string, std::string> &where) {
+  std::string schema;
+  std::string table;
+
+  for (const auto &w : where) {
+    schema.clear();
+    table.clear();
+
+    parse_schema_and_object(w.first, "table name key of the 'where' option",
+                            "table", &schema, &table);
+
+    set_where_clause(schema, table, w.second);
+  }
+}
+
+void Dump_options::set_where_clause(const std::string &schema,
+                                    const std::string &table,
+                                    const std::string &where) {
+  if (where.empty()) {
+    return;
+  }
+
+  // prevent SQL injection
+  mysqlshdk::utils::SQL_iterator it{where};
+  int parentheses = 0;
+
+  const auto throw_error = [&schema, &table, &where]() {
+    throw std::invalid_argument("Malformed condition used for table '" +
+                                schema + "'.'" + table + "': " + where);
+  };
+
+  while (it.valid()) {
+    const auto token = it.next_token();
+
+    if (shcore::str_caseeq("(", token)) {
+      ++parentheses;
+    } else if (shcore::str_caseeq(")", token)) {
+      --parentheses;
+
+      if (parentheses < 0) {
+        throw_error();
+      }
+    }
+  }
+
+  if (parentheses != 0) {
+    throw_error();
+  }
+
+  m_where[schema][table] = '(' + where + ')';
+}
+
+void Dump_options::set_partitions(
+    const std::map<std::string, std::unordered_set<std::string>> &partitions) {
+  std::string schema;
+  std::string table;
+
+  for (const auto &p : partitions) {
+    schema.clear();
+    table.clear();
+
+    parse_schema_and_object(p.first,
+                            "table name key of the 'partitions' option",
+                            "table", &schema, &table);
+
+    set_partitions(schema, table, p.second);
+  }
+}
+
+void Dump_options::set_partitions(
+    const std::string &schema, const std::string &table,
+    const std::unordered_set<std::string> &partitions) {
+  if (partitions.empty()) {
+    return;
+  }
+
+  m_partitions[schema][table] = partitions;
+}
+
+void Dump_options::parse_schema_and_object(const std::string &str,
+                                           const std::string &context,
+                                           const std::string &object_type,
+                                           std::string *out_schema,
+                                           std::string *out_table) {
+  assert(out_schema && out_table);
+
+  try {
+    shcore::split_schema_and_table(str, out_schema, out_table);
+  } catch (const std::runtime_error &e) {
+    throw std::invalid_argument("Failed to parse " + context + " '" + str +
+                                "': " + e.what());
+  }
+
+  if (out_schema->empty()) {
+    throw std::invalid_argument(
+        "The " + context + " must be in the following form: schema." +
+        object_type + ", with optional backtick quotes, wrong value: '" + str +
+        "'.");
+  }
+}
+
+const std::string &Dump_options::where(const std::string &schema,
+                                       const std::string &table) const {
+  static std::string def;
+
+  const auto s = m_where.find(schema);
+
+  if (m_where.end() == s) {
+    return def;
+  }
+
+  const auto t = s->second.find(table);
+
+  if (s->second.end() == t) {
+    return def;
+  }
+
+  return t->second;
+}
+
+void Dump_options::validate_partitions() const {
+  bool valid = true;
+  const auto console = current_console();
+
+  for (const auto &schema : m_partitions) {
+    for (const auto &table : schema.second) {
+      if (!exists(schema.first, table.first)) {
+        log_warning(
+            "Table '%s'.'%s' does not exist, 'partition' option was ignored "
+            "for this table",
+            schema.first.c_str(), table.first.c_str());
+        continue;
+      }
+
+      const auto condition = shcore::sqlformat(
+          "PARTITION_NAME IS NOT NULL AND TABLE_SCHEMA=? AND TABLE_NAME=?",
+          schema.first, table.first);
+      const auto missing = find_missing_impl(
+          "SELECT PARTITION_NAME AS name FROM information_schema.partitions "
+          "WHERE " +
+              condition +
+              " UNION SELECT SUBPARTITION_NAME FROM "
+              "information_schema.partitions WHERE SUB" +
+              condition,
+          table.second);
+
+      if (!missing.empty()) {
+        console->print_error(
+            "Following partitions were not found in table '" + schema.first +
+            "'.'" + table.first +
+            "': " + shcore::str_join(missing, ", ", [](const std::string &p) {
+              return "'" + p + "'";
+            }));
+        valid = false;
+      }
+    }
+  }
+
+  if (!valid) {
+    throw std::invalid_argument("Invalid partitions");
+  }
 }
 
 }  // namespace dump

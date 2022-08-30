@@ -1267,6 +1267,26 @@ operating systems which support them): <b>rw-r-----</b>.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS, R"*(
+@li <b>fieldsTerminatedBy</b>: string (default: "\t") - This option has the same
+meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+@li <b>fieldsEnclosedBy</b>: char (default: '') - This option has the same
+meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+@li <b>fieldsEscapedBy</b>: char (default: '\\') - This option has the same
+meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+@li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if the
+input values are not necessarily enclosed within quotation marks specified by
+<b>fieldsEnclosedBy</b> option. Set to false if all fields are quoted by
+character specified by <b>fieldsEnclosedBy</b> option.
+@li <b>linesTerminatedBy</b>: string (default: "\n") - This option has the same
+meaning as the corresponding clause for SELECT ... INTO OUTFILE. See Section
+13.2.10.1, "SELECT ... INTO Statement".
+@li <b>dialect</b>: enum (default: "default") - Setup fields and lines options
+that matches specific data file format. Can be used as base dialect and
+customized with <b>fieldsTerminatedBy</b>, <b>fieldsEnclosedBy</b>,
+<b>fieldsEscapedBy</b>, <b>fieldsOptionallyEnclosed</b> and
+<b>linesTerminatedBy</b> options. Must be one of the following values: default,
+csv, tsv or csv-unix.
+
 @li <b>maxRate</b>: string (default: "0") - Limit data read throughput to
 maximum rate, measured in bytes per second per thread. Use maxRate="0" to set no
 limit.
@@ -1304,6 +1324,13 @@ to be excluded from the dump in the format of <b>schema</b>.<b>table</b>
 to be included in the dump in the format of <b>schema</b>.<b>table</b>
 (all triggers from the specified table) or
 <b>schema</b>.<b>table</b>.<b>trigger</b> (the individual trigger).
+
+@li <b>where</b>: dictionary (default: not set) - A key-value pair of a table
+name in the format of <b>schema.table</b> and a valid SQL condition expression
+used to filter the data being exported.
+@li <b>partitions</b>: dictionary (default: not set) - A key-value pair of a
+table name in the format of <b>schema.table</b> and a list of valid partition
+names used to limit the data export to just the specified partitions.
 
 @li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
 
@@ -1387,8 +1414,8 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS}
 This operation writes SQL files per each schema, table and view dumped, along
 with some global SQL files.
 
-Table data dumps are written to TSV files, optionally splitting them into
-multiple chunk files.
+Table data dumps are written to text files using the specified file format,
+optionally splitting them into multiple chunk files.
 
 ${TOPIC_UTIL_DUMP_SESSION_DETAILS}
 
@@ -1399,14 +1426,28 @@ Data dumps cannot be created for the following tables:
 @li mysql.slow_log
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS, R"*(
-The names given in the <b>exclude{object}</b> or <b>include{object}</b> options
-should be valid MySQL identifiers, quoted using backtick characters when
-required.
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_DIALECT_OPTION_DETAILS, R"*(
+The <b>dialect</b> option predefines the set of options fieldsTerminatedBy (FT),
+fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
+and linesTerminatedBy (LT) in the following manner:
+@li default: no quoting, tab-separated, LF line endings.
+(LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
+@li csv: optionally quoted, comma-separated, CRLF line endings.
+(LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=true)
+@li tsv: optionally quoted, tab-separated, CRLF line endings.
+(LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='&quot;', FOE=true)
+@li csv-unix: fully quoted, comma-separated, LF line endings.
+(LT=@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=false)
+)*");
 
-If the <b>exclude{object}</b> or <b>include{object}</b> options contain an
-object which does not exist, or an object which belongs to a schema which does
-not exist, it is ignored.
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS, R"*(
+The names given in the <b>exclude{object}</b>, <b>include{object}</b>,
+<b>where</b> or <b>partitions</b> options should be valid MySQL identifiers,
+quoted using backtick characters when required.
+
+If the <b>exclude{object}</b>, <b>include{object}</b>, <b>where</b> or
+<b>partitions</b> options contain an object which does not exist, or an object
+which belongs to a schema which does not exist, it is ignored.
 
 The <b>tzUtc</b> option allows dumping TIMESTAMP data when a server has data in
 different time zones or data is being moved between servers with different time
@@ -1438,6 +1479,8 @@ cannot be chunked (for example if it does not contain a primary key or a unique
 index), a warning is displayed and chunking is disabled for this table.
 
 The value of the <b>threads</b> option must be a positive number.
+
+${TOPIC_UTIL_DUMP_EXPORT_DIALECT_OPTION_DETAILS}
 
 Both the <b>bytesPerChunk</b> and <b>maxRate</b> options support unit suffixes:
 @li k - for kilobytes,
@@ -1522,21 +1565,10 @@ to be overwritten. The output file is created with the following access rights
 (on operating systems which support them): <b>rw-r-----</b>.
 
 <b>The following options are supported:</b>
-@li <b>fieldsTerminatedBy</b>: string (default: "\t"), <b>fieldsEnclosedBy</b>:
-char (default: ''), <b>fieldsEscapedBy</b>: char (default: '\'),
-<b>linesTerminatedBy</b>: string (default: "\n") - These options have the same
-meaning as the corresponding clauses for SELECT ... INTO OUTFILE. For more
-information use <b>\? SQL Syntax/SELECT</b>, (a session is required).
-@li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if the
-input values are not necessarily enclosed within quotation marks specified by
-<b>fieldsEnclosedBy</b> option. Set to false if all fields are quoted by
-character specified by <b>fieldsEnclosedBy</b> option.
-@li <b>dialect</b>: enum (default: "default") - Setup fields and lines options
-that matches specific data file format. Can be used as base dialect and
-customized with <b>fieldsTerminatedBy</b>, <b>fieldsEnclosedBy</b>,
-<b>fieldsOptionallyEnclosed</b>, <b>fieldsEscapedBy</b> and
-<b>linesTerminatedBy</b> options. Must be one of the following values: default,
-csv, tsv or csv-unix.
+@li <b>where</b>: string (default: not set) - A valid SQL condition expression
+used to filter the data being exported.
+@li <b>partitions</b>: list of strings (default: not set) - A list of valid
+partition names used to limit the data export to just the specified partitions.
 
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 @li <b>compression</b>: string (default: "none") - Compression used when writing
@@ -1556,17 +1588,7 @@ ${TOPIC_UTIL_DUMP_SESSION_DETAILS}
 
 <b>Options</b>
 
-The <b>dialect</b> option predefines the set of options fieldsTerminatedBy (FT),
-fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
-and linesTerminatedBy (LT) in the following manner:
-@li default: no quoting, tab-separated, LF line endings.
-(LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
-@li csv: optionally quoted, comma-separated, CRLF line endings.
-(LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=true)
-@li tsv: optionally quoted, tab-separated, CRLF line endings.
-(LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='&quot;', FOE=true)
-@li csv-unix: fully quoted, comma-separated, LF line endings.
-(LT=@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=false)
+${TOPIC_UTIL_DUMP_EXPORT_DIALECT_OPTION_DETAILS}
 
 The <b>maxRate</b> option supports unit suffixes:
 @li k - for kilobytes,
@@ -1665,8 +1687,8 @@ that when using the util.<<<loadDump>>>() function to load the dump, it is
 automatically recreated. Alternatively, dump can be loaded into another existing
 schema using the <b>schema</b> option.
 
-Table data dumps are written to TSV files, optionally splitting them into
-multiple chunk files.
+Table data dumps are written to text files using the specified file format,
+optionally splitting them into multiple chunk files.
 
 ${TOPIC_UTIL_DUMP_SESSION_DETAILS}
 

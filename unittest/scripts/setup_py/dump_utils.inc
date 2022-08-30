@@ -2,17 +2,26 @@ import json
 import re
 import urllib.parse
 
-def md5_table(session, schema, table):
-    columns = ""
+def md5_table(session, schema, table, where = "", partitions = []):
+    columns = []
     has_pri = 0 != session.run_sql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetch_one()[0]
     for c in session.run_sql("desc !.!", [schema, table]).fetch_all():
-        columns += f", convert(`{c[0]}` using binary)"
-    query = f"SELECT min(least(length(@crc := sha1(concat(@crc, sha1(concat_ws('#'{columns}))))),@cnt := @cnt + 1)) as discard from !.!"
+        columns.append(c[0])
+    query = f"SELECT @crc := sha1(concat(@crc, sha1(concat_ws('#', {', '.join(['convert(! using binary)' for c in columns])})))),@cnt := @cnt + 1 as discard from !.!"
+    params = columns + [schema, table]
+    if partitions:
+        query += f" PARTITION ({', '.join(['!' for p in partitions])})"
+        params += partitions
     if has_pri:
         query += " use index(PRIMARY)"
+    if where:
+        query += f" WHERE {where}"
+    if not has_pri:
+        query += f" ORDER BY {', '.join(['!' for c in columns])}"
+        params += columns
     session.run_sql("SET @crc = ''")
     session.run_sql("SET @cnt = 0")
-    session.run_sql(query, [schema, table])
+    session.run_sql(query, params)
     row = session.run_sql("select @crc, @cnt").fetch_one()
     return {"sha1": row[0], "count": row[1]}
 
@@ -422,6 +431,17 @@ def EXPECT_NO_CAPABILITIES(path, capabilities):
     for expected in capabilities:
         actual = next(filter(lambda capability: expected["id"] == capability["id"], metadata["capabilities"]), None)
         EXPECT_FALSE(actual is not None, f"Metadata should NOT have '{expected['id']}' capability")
+
+def quote_identifier(schema, object = None):
+    def quote(identifier):
+        return f"`{identifier.replace('`', '``')}`"
+    ret = quote(schema)
+    if object is not None:
+        ret += "." + quote(object)
+    return ret
+
+def count_rows(schema, table):
+    return session.run_sql("SELECT COUNT(*) FROM !.!", [ schema, table ]).fetch_one()[0]
 
 # constants
 test_user = "sample_user"

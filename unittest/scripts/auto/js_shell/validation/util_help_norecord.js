@@ -228,6 +228,12 @@ DESCRIPTION
         be included in the dump in the format of schema.table (all triggers
         from the specified table) or schema.table.trigger (the individual
         trigger).
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being exported.
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data export to just the specified partitions.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
@@ -241,6 +247,24 @@ DESCRIPTION
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
+      - fieldsTerminatedBy: string (default: "\t") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEscapedBy: char (default: '\') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
+        input values are not necessarily enclosed within quotation marks
+        specified by fieldsEnclosedBy option. Set to false if all fields are
+        quoted by character specified by fieldsEnclosedBy option.
+      - linesTerminatedBy: string (default: "\n") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE. See
+        Section 13.2.10.1, "SELECT ... INTO Statement".
+      - dialect: enum (default: "default") - Setup fields and lines options
+        that matches specific data file format. Can be used as base dialect and
+        customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+        fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
+        the following values: default, csv, tsv or csv-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -292,8 +316,8 @@ DESCRIPTION
       This operation writes SQL files per each schema, table and view dumped,
       along with some global SQL files.
 
-      Table data dumps are written to TSV files, optionally splitting them into
-      multiple chunk files.
+      Table data dumps are written to text files using the specified file
+      format, optionally splitting them into multiple chunk files.
 
       Requires an open, global Shell session, and uses its connection options,
       such as compression, ssl-mode, etc., to establish additional connections.
@@ -318,13 +342,13 @@ DESCRIPTION
       If the excludeSchemas or includeSchemas options contain a schema which is
       not included in the dump or does not exist, it is ignored.
 
-      The names given in the exclude{object} or include{object} options should
-      be valid MySQL identifiers, quoted using backtick characters when
-      required.
+      The names given in the exclude{object}, include{object}, where or
+      partitions options should be valid MySQL identifiers, quoted using
+      backtick characters when required.
 
-      If the exclude{object} or include{object} options contain an object which
-      does not exist, or an object which belongs to a schema which does not
-      exist, it is ignored.
+      If the exclude{object}, include{object}, where or partitions options
+      contain an object which does not exist, or an object which belongs to a
+      schema which does not exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -357,6 +381,19 @@ DESCRIPTION
       index), a warning is displayed and chunking is disabled for this table.
 
       The value of the threads option must be a positive number.
+
+      The dialect option predefines the set of options fieldsTerminatedBy (FT),
+      fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
+      (FESC) and linesTerminatedBy (LT) in the following manner:
+
+      - default: no quoting, tab-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=<TAB>, FE=<empty>, FOE=false)
+      - csv: optionally quoted, comma-separated, CRLF line endings.
+        (LT=<CR><LF>, FESC='\', FT=",", FE='"', FOE=true)
+      - tsv: optionally quoted, tab-separated, CRLF line endings. (LT=<CR><LF>,
+        FESC='\', FT=<TAB>, FE='"', FOE=true)
+      - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=",", FE='"', FOE=false)
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
@@ -617,6 +654,12 @@ DESCRIPTION
         be included in the dump in the format of schema.table (all triggers
         from the specified table) or schema.table.trigger (the individual
         trigger).
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being exported.
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data export to just the specified partitions.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
@@ -630,6 +673,24 @@ DESCRIPTION
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
+      - fieldsTerminatedBy: string (default: "\t") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEscapedBy: char (default: '\') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
+        input values are not necessarily enclosed within quotation marks
+        specified by fieldsEnclosedBy option. Set to false if all fields are
+        quoted by character specified by fieldsEnclosedBy option.
+      - linesTerminatedBy: string (default: "\n") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE. See
+        Section 13.2.10.1, "SELECT ... INTO Statement".
+      - dialect: enum (default: "default") - Setup fields and lines options
+        that matches specific data file format. Can be used as base dialect and
+        customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+        fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
+        the following values: default, csv, tsv or csv-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -681,8 +742,8 @@ DESCRIPTION
       This operation writes SQL files per each schema, table and view dumped,
       along with some global SQL files.
 
-      Table data dumps are written to TSV files, optionally splitting them into
-      multiple chunk files.
+      Table data dumps are written to text files using the specified file
+      format, optionally splitting them into multiple chunk files.
 
       Requires an open, global Shell session, and uses its connection options,
       such as compression, ssl-mode, etc., to establish additional connections.
@@ -696,13 +757,13 @@ DESCRIPTION
 
       Options
 
-      The names given in the exclude{object} or include{object} options should
-      be valid MySQL identifiers, quoted using backtick characters when
-      required.
+      The names given in the exclude{object}, include{object}, where or
+      partitions options should be valid MySQL identifiers, quoted using
+      backtick characters when required.
 
-      If the exclude{object} or include{object} options contain an object which
-      does not exist, or an object which belongs to a schema which does not
-      exist, it is ignored.
+      If the exclude{object}, include{object}, where or partitions options
+      contain an object which does not exist, or an object which belongs to a
+      schema which does not exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -735,6 +796,19 @@ DESCRIPTION
       index), a warning is displayed and chunking is disabled for this table.
 
       The value of the threads option must be a positive number.
+
+      The dialect option predefines the set of options fieldsTerminatedBy (FT),
+      fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
+      (FESC) and linesTerminatedBy (LT) in the following manner:
+
+      - default: no quoting, tab-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=<TAB>, FE=<empty>, FOE=false)
+      - csv: optionally quoted, comma-separated, CRLF line endings.
+        (LT=<CR><LF>, FESC='\', FT=",", FE='"', FOE=true)
+      - tsv: optionally quoted, tab-separated, CRLF line endings. (LT=<CR><LF>,
+        FESC='\', FT=<TAB>, FE='"', FOE=true)
+      - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=",", FE='"', FOE=false)
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
@@ -983,6 +1057,12 @@ DESCRIPTION
         be included in the dump in the format of schema.table (all triggers
         from the specified table) or schema.table.trigger (the individual
         trigger).
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being exported.
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data export to just the specified partitions.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
@@ -996,6 +1076,24 @@ DESCRIPTION
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
+      - fieldsTerminatedBy: string (default: "\t") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEscapedBy: char (default: '\') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
+        input values are not necessarily enclosed within quotation marks
+        specified by fieldsEnclosedBy option. Set to false if all fields are
+        quoted by character specified by fieldsEnclosedBy option.
+      - linesTerminatedBy: string (default: "\n") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE. See
+        Section 13.2.10.1, "SELECT ... INTO Statement".
+      - dialect: enum (default: "default") - Setup fields and lines options
+        that matches specific data file format. Can be used as base dialect and
+        customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+        fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
+        the following values: default, csv, tsv or csv-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -1055,8 +1153,8 @@ DESCRIPTION
       the dump, it is automatically recreated. Alternatively, dump can be
       loaded into another existing schema using the schema option.
 
-      Table data dumps are written to TSV files, optionally splitting them into
-      multiple chunk files.
+      Table data dumps are written to text files using the specified file
+      format, optionally splitting them into multiple chunk files.
 
       Requires an open, global Shell session, and uses its connection options,
       such as compression, ssl-mode, etc., to establish additional connections.
@@ -1068,13 +1166,13 @@ DESCRIPTION
       be dumped. If the tables parameter is not set to an empty array, an
       exception is thrown.
 
-      The names given in the exclude{object} or include{object} options should
-      be valid MySQL identifiers, quoted using backtick characters when
-      required.
+      The names given in the exclude{object}, include{object}, where or
+      partitions options should be valid MySQL identifiers, quoted using
+      backtick characters when required.
 
-      If the exclude{object} or include{object} options contain an object which
-      does not exist, or an object which belongs to a schema which does not
-      exist, it is ignored.
+      If the exclude{object}, include{object}, where or partitions options
+      contain an object which does not exist, or an object which belongs to a
+      schema which does not exist, it is ignored.
 
       The tzUtc option allows dumping TIMESTAMP data when a server has data in
       different time zones or data is being moved between servers with
@@ -1107,6 +1205,19 @@ DESCRIPTION
       index), a warning is displayed and chunking is disabled for this table.
 
       The value of the threads option must be a positive number.
+
+      The dialect option predefines the set of options fieldsTerminatedBy (FT),
+      fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
+      (FESC) and linesTerminatedBy (LT) in the following manner:
+
+      - default: no quoting, tab-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=<TAB>, FE=<empty>, FOE=false)
+      - csv: optionally quoted, comma-separated, CRLF line endings.
+        (LT=<CR><LF>, FESC='\', FT=",", FE='"', FOE=true)
+      - tsv: optionally quoted, tab-separated, CRLF line endings. (LT=<CR><LF>,
+        FESC='\', FT=<TAB>, FE='"', FOE=true)
+      - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=",", FE='"', FOE=false)
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
@@ -1335,21 +1446,29 @@ DESCRIPTION
 
       The following options are supported:
 
-      - fieldsTerminatedBy: string (default: "\t"), fieldsEnclosedBy: char
-        (default: ''), fieldsEscapedBy: char (default: '\'), linesTerminatedBy:
-        string (default: "\n") - These options have the same meaning as the
-        corresponding clauses for SELECT ... INTO OUTFILE. For more information
-        use \? SQL Syntax/SELECT, (a session is required).
+      - where: string (default: not set) - A valid SQL condition expression
+        used to filter the data being exported.
+      - partitions: list of strings (default: not set) - A list of valid
+        partition names used to limit the data export to just the specified
+        partitions.
+      - fieldsTerminatedBy: string (default: "\t") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEscapedBy: char (default: '\') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
       - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
         input values are not necessarily enclosed within quotation marks
         specified by fieldsEnclosedBy option. Set to false if all fields are
         quoted by character specified by fieldsEnclosedBy option.
+      - linesTerminatedBy: string (default: "\n") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE. See
+        Section 13.2.10.1, "SELECT ... INTO Statement".
       - dialect: enum (default: "default") - Setup fields and lines options
         that matches specific data file format. Can be used as base dialect and
-        customized with fieldsTerminatedBy, fieldsEnclosedBy,
-        fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
-        options. Must be one of the following values: default, csv, tsv or
-        csv-unix.
+        customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+        fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
+        the following values: default, csv, tsv or csv-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -2080,4 +2199,3 @@ DESCRIPTION
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
-

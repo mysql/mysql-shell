@@ -134,11 +134,10 @@ class Dumper {
   struct Table_task : Table_info {
     std::string task_name;
     std::string schema;
-    const Instance_cache::Partition *partition = nullptr;
+    std::string where;
   };
 
   struct Table_data_task : Table_task {
-    std::string where;
     Dump_writer *writer = nullptr;
     std::unique_ptr<mysqlshdk::storage::IFile> index_file;
     std::string id;

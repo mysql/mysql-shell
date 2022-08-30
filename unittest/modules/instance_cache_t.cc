@@ -1128,7 +1128,7 @@ TEST_F(Instance_cache_test, view_metadata) {
     SCOPED_TRACE("test view metadata");
 
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
 
     {
       const auto &one = cache.schemas.at("second").views.at("one");
@@ -1259,7 +1259,7 @@ TEST_F(Instance_cache_test, table_columns) {
     SCOPED_TRACE("test table columns");
 
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
 
     const auto validate = [this, &cache](const std::string &schema,
                                          const std::string &table,
@@ -1586,7 +1586,7 @@ TEST_F(Instance_cache_test, table_indexes) {
     SCOPED_TRACE("test table indexes");
 
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
 
     const auto validate =
         [&cache](const std::string &schema, const std::string &table,
@@ -1658,7 +1658,7 @@ TEST_F(Instance_cache_test, table_histograms) {
     SCOPED_TRACE("test table histograms");
 
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
 
     const auto validate =
         [&cache](const std::string &schema, const std::string &table,
@@ -2866,13 +2866,13 @@ TEST_F(Instance_cache_test, bug32540460) {
   {
     // create the cache, do not fetch metadata, this will return just list of
     // schemas, tables and views
-    auto cache = Instance_cache_builder(m_session, {}, {}, excluded_schemas, {},
-                                        {}, false)
-                     .build();
+    auto cache =
+        Instance_cache_builder(m_session, {}, {}, excluded_schemas, {}, {})
+            .build();
     // recreate the cache, use the existing one, fetch metadata
     auto builder = Instance_cache_builder(m_session, {}, {}, excluded_schemas,
-                                          {}, std::move(cache), true);
-    cache = builder.build();
+                                          {}, std::move(cache));
+    cache = builder.metadata({}).build();
 
     EXPECT_EQ(schemas, cache.schemas.size());
 

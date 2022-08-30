@@ -1,3 +1,6 @@
+#@<> INCLUDE dump_utils.inc
+
+#@<> entry point
 # imports
 import hashlib
 import json
@@ -34,6 +37,7 @@ test_schema_event = "sample_event"
 test_view = "sample_view"
 
 verification_schema = "wl13804_ver"
+verification_table = "verification"
 
 types_schema = "xtest"
 
@@ -142,9 +146,12 @@ def EXPECT_SUCCESS(table, outputUrl, options = {}):
 def EXPECT_FAIL(error, msg, table, outputUrl, options = {}, expect_file_created = False):
     shutil.rmtree(test_output_absolute_parent, True)
     os.mkdir(test_output_absolute_parent)
-    EXPECT_THROWS(lambda: util.export_table(table, outputUrl, options), "{0}: Util.export_table: {1}".format(error, msg))
-    if expect_file_created:
-        EXPECT_TRUE(os.path.isfile(test_output_absolute))
+    is_re = is_re_instance(msg)
+    full_msg = "{0}: Util.export_table: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
+    if is_re:
+        full_msg = re.compile("^" + full_msg)
+    EXPECT_THROWS(lambda: util.export_table(table, outputUrl, options), full_msg)
+    EXPECT_EQ(expect_file_created, os.path.isfile(test_output_absolute), "Output file should" + ("" if expect_file_created else " NOT") + " be created.")
 
 def TEST_BOOL_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Bool, but is Null".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: None })
@@ -193,7 +200,6 @@ def compute_crc(schema, table, columns):
 def TEST_LOAD(schema, table, options = {}):
     print("---> testing: `{0}`.`{1}` with options: {2}".format(schema, table, options))
     # prepare the options
-    target_table = "verification"
     run_options = { "showProgress": False }
     # add extra options
     run_options.update(options)
@@ -201,13 +207,22 @@ def TEST_LOAD(schema, table, options = {}):
     EXPECT_SUCCESS(quote(schema, table), test_output_absolute, run_options)
     # create target table
     recreate_verification_schema()
-    session.run_sql("CREATE TABLE !.! LIKE !.!;", [verification_schema, target_table, schema, table])
+    session.run_sql("CREATE TABLE !.! LIKE !.!;", [verification_schema, verification_table, schema, table])
     # prepare options for load
-    run_options.update({ "schema": verification_schema, "table": target_table, "characterSet": "utf8mb4" })
+    run_options.update({ "schema": verification_schema, "table": verification_table, "characterSet": "utf8mb4" })
     # rename the character set key (if it was provided)
     if "defaultCharacterSet" in run_options:
         run_options["characterSet"] = run_options["defaultCharacterSet"]
         del run_options["defaultCharacterSet"]
+    # filtering options
+    where = ""
+    if "where" in run_options:
+        where = run_options["where"]
+        del run_options["where"]
+    partitions = []
+    if "partitions" in run_options:
+        partitions = run_options["partitions"]
+        del run_options["partitions"]
     # add decoded columns
     all_columns = get_all_columns(schema, table)
     decoded_columns = {}
@@ -231,7 +246,7 @@ def TEST_LOAD(schema, table, options = {}):
     # load data
     util.import_table(test_output_absolute, run_options)
     # compute CRC
-    EXPECT_EQ(compute_crc(schema, table, all_columns), compute_crc(verification_schema, target_table, all_columns))
+    EXPECT_EQ(md5_table(session, schema, table, where, partitions), md5_table(session, verification_schema, verification_table))
 
 def get_magic_number(path, count):
     with open(path, "rb") as f:
@@ -626,6 +641,13 @@ EXPECT_EQ(expected_hash, hash_file(test_output_absolute))
 # * `fieldsOptionallyEnclosed`,
 # * `linesTerminatedBy`,
 # * `dialect`.
+
+TEST_STRING_OPTION("fieldsTerminatedBy")
+TEST_STRING_OPTION("fieldsEnclosedBy")
+TEST_STRING_OPTION("fieldsEscapedBy")
+TEST_BOOL_OPTION("fieldsOptionallyEnclosed")
+TEST_STRING_OPTION("linesTerminatedBy")
+TEST_STRING_OPTION("dialect")
 
 # WL13804-TSFR_5_9
 
@@ -1150,8 +1172,145 @@ EXPECT_NO_THROWS(lambda: exec(code), "importing data")
 all_columns = ["id", "something"]
 EXPECT_EQ(compute_crc(tested_schema, tested_table, all_columns), compute_crc(verification_schema, tested_table, all_columns))
 
+#@<> WL15311 - setup
+schema_name = "wl15311"
+no_partitions_table_name = "no_partitions"
+partitions_table_name = "partitions"
+subpartitions_table_name = "subpartitions"
+all_tables = [ no_partitions_table_name, partitions_table_name, subpartitions_table_name ]
+subpartition_prefix = "@o" if __os_type == "windows" else "@ó"
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [schema_name])
+
+session.run_sql("CREATE TABLE !.! (`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)", [ schema_name, no_partitions_table_name ])
+
+session.run_sql("""CREATE TABLE !.!
+(`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)
+PARTITION BY RANGE (`id`)
+(PARTITION x0 VALUES LESS THAN (10000),
+ PARTITION x1 VALUES LESS THAN (20000),
+ PARTITION x2 VALUES LESS THAN (30000),
+ PARTITION x3 VALUES LESS THAN MAXVALUE)""", [ schema_name, partitions_table_name ])
+
+session.run_sql(f"""CREATE TABLE !.!
+(`id` int, `data` blob)
+PARTITION BY RANGE (`id`)
+SUBPARTITION BY KEY (id)
+SUBPARTITIONS 2
+(PARTITION `{subpartition_prefix}0` VALUES LESS THAN (10000),
+ PARTITION `{subpartition_prefix}1` VALUES LESS THAN (20000),
+ PARTITION `{subpartition_prefix}2` VALUES LESS THAN (30000),
+ PARTITION `{subpartition_prefix}3` VALUES LESS THAN MAXVALUE)""", [ schema_name, subpartitions_table_name ])
+
+for x in range(4):
+    session.run_sql(f"""INSERT INTO !.! (`data`) VALUES {",".join([f"('{random_string(100,200)}')" for i in range(10000)])}""", [ schema_name, partitions_table_name ])
+session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, subpartitions_table_name, schema_name, partitions_table_name ])
+session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, no_partitions_table_name, schema_name, partitions_table_name ])
+
+for table in all_tables:
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, table ])
+
+#@<> WL15311_TSFR_1_1
+help_text = """
+      - where: string (default: not set) - A valid SQL condition expression
+        used to filter the data being exported.
+"""
+EXPECT_TRUE(help_text in util.help("export_table"))
+
+#@<> WL15311_TSFR_1_1_1
+TEST_STRING_OPTION("where")
+
+#@<> WL15311_TSFR_1_1_2
+TEST_LOAD(schema_name, no_partitions_table_name, { "where": "1 = 2" })
+EXPECT_EQ(0, count_rows(verification_schema, verification_table))
+
+#@<> WL15311_TSFR_1_1_3
+TEST_LOAD(schema_name, no_partitions_table_name, { "where": "id > 12345" })
+EXPECT_GT(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, no_partitions_table_name, { "where": "id > 12345 AND (id < 23456)" })
+EXPECT_GT(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, verification_table))
+
+#@<> WL15311_TSFR_1_2_1
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), quote(schema_name, no_partitions_table_name), test_output_absolute, { "where": "THIS_IS_NO_SQL", "showProgress": False })
+EXPECT_STDOUT_CONTAINS("MySQL Error 1054 (42S22): Unknown column 'THIS_IS_NO_SQL' in 'where clause'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), quote(schema_name, no_partitions_table_name), test_output_absolute, { "where": "1 = 1 ; DROP TABLE mysql.user ; SELECT 1 FROM DUAL", "showProgress": False })
+EXPECT_STDOUT_CONTAINS("MySQL Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '; DROP TABLE mysql.user ; SELECT 1 FROM DUAL) ORDER BY")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", f"Malformed condition used for table '{schema_name}'.'{no_partitions_table_name}': 1 = 1) --", quote(schema_name, no_partitions_table_name), test_output_absolute, { "where": "1 = 1) --", "showProgress": False })
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", f"Malformed condition used for table '{schema_name}'.'{no_partitions_table_name}': (1 = 1", quote(schema_name, no_partitions_table_name), test_output_absolute, { "where": "(1 = 1", "showProgress": False })
+
+#@<> WL15311_TSFR_1_3
+TEST_LOAD(schema_name, no_partitions_table_name, {})
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, no_partitions_table_name, { "where": "" })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, verification_table))
+
+#@<> WL15311_TSFR_2_1
+help_text = """
+      - partitions: list of strings (default: not set) - A list of valid
+        partition names used to limit the data export to just the specified
+        partitions.
+"""
+EXPECT_TRUE(help_text in util.help("export_table"))
+
+#@<> WL15311_TSFR_2_2
+TEST_ARRAY_OF_STRINGS_OPTION("partitions")
+
+#@<> WL15311_TSFR_2_1_1
+TEST_LOAD(schema_name, partitions_table_name, { "where": "1 = 1", "partitions": [ "x1" ] })
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, partitions_table_name, { "where": "id > 12345", "partitions": [ "x1" ] })
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, partitions_table_name, { "where": "id > 12345", "partitions": [ "x1", "x2" ] })
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, partitions_table_name, { "where": "id > 12345", "partitions": [ "x0" ] })
+EXPECT_EQ(0, count_rows(verification_schema, verification_table))
+
+#@<> WL15311_TSFR_2_1_2
+TEST_LOAD(schema_name, subpartitions_table_name, { "partitions": [ f"{subpartition_prefix}1", f"{subpartition_prefix}2" ] })
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, subpartitions_table_name, { "partitions": [ f"{subpartition_prefix}1", f"{subpartition_prefix}2sp0" ] })
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, subpartitions_table_name, { "partitions": [ f"{subpartition_prefix}1sp0", f"{subpartition_prefix}2sp0" ] })
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, verification_table))
+
+#@<> WL15311_TSFR_2_2_1
+EXPECT_FAIL("ValueError", "Invalid partitions", quote(schema_name, subpartitions_table_name), test_output_absolute, { "partitions": [ "SELECT 1" ], "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': 'SELECT 1'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", "Invalid partitions", quote(schema_name, subpartitions_table_name), test_output_absolute, { "partitions": [ f"{subpartition_prefix}9" ], "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': '{subpartition_prefix}9'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", "Invalid partitions", quote(schema_name, subpartitions_table_name), test_output_absolute, { "partitions": [ f"{subpartition_prefix}9", f"{subpartition_prefix}1sp9" ], "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': '{subpartition_prefix}1sp9', '{subpartition_prefix}9'")
+
+#@<> WL15311_TSFR_2_3_1
+TEST_LOAD(schema_name, subpartitions_table_name, {})
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, verification_table))
+
+TEST_LOAD(schema_name, subpartitions_table_name, { "partitions": [] })
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, verification_table))
+
+#@<> WL15311 - cleanup
+session.run_sql("DROP SCHEMA !;", [schema_name])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
 session.close()
-testutil.destroy_sandbox(__mysql_sandbox_port1);
+testutil.destroy_sandbox(__mysql_sandbox_port1)

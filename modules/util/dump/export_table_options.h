@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
@@ -95,11 +96,14 @@ class Export_table_options : public Dump_options {
 
   void on_unpacked_options();
 
-  void set_includes();
+  void on_set_schema();
 
   std::string m_schema;
   std::string m_table;
-  import_table::Dialect m_dialect_unpacker;
+
+  std::string m_where;
+  std::unordered_set<std::string> m_partitions;
+
   mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
   mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
 };

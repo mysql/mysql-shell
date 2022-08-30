@@ -282,7 +282,7 @@ Instance_cache_builder::Instance_cache_builder(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
     const Filter &included_schemas, const Object_filters &included_tables,
     const Filter &excluded_schemas, const Object_filters &excluded_tables,
-    Instance_cache &&cache, bool include_metadata)
+    Instance_cache &&cache)
     : m_session(session), m_cache(std::move(cache)) {
   set_schema_filter(included_schemas, excluded_schemas);
   set_table_filter(included_tables, excluded_tables);
@@ -308,10 +308,12 @@ Instance_cache_builder::Instance_cache_builder(
     filter_schemas();
     filter_tables();
   }
+}
 
-  if (include_metadata) {
-    fetch_metadata();
-  }
+Instance_cache_builder &Instance_cache_builder::metadata(
+    const Subobject_filters &partitions) {
+  fetch_metadata(partitions);
+  return *this;
 }
 
 Instance_cache_builder &Instance_cache_builder::users(const Users &included,
@@ -391,7 +393,7 @@ Instance_cache_builder &Instance_cache_builder::routines(
 }
 
 Instance_cache_builder &Instance_cache_builder::triggers(
-    const Trigger_filters &included, const Trigger_filters &excluded) {
+    const Subobject_filters &included, const Subobject_filters &excluded) {
   Profiler profiler{"fetching triggers"};
 
   if (has_tables()) {
@@ -538,7 +540,8 @@ void Instance_cache_builder::filter_tables() {
   m_cache.total.views = count(info, "'VIEW'=TABLE_TYPE");
 }
 
-void Instance_cache_builder::fetch_metadata() {
+void Instance_cache_builder::fetch_metadata(
+    const Subobject_filters &partitions) {
   Profiler profiler{"fetching metadata"};
 
   fetch_ndbinfo();
@@ -547,7 +550,7 @@ void Instance_cache_builder::fetch_metadata() {
   fetch_columns();
   fetch_table_indexes();
   fetch_table_histograms();
-  fetch_table_partitions();
+  fetch_table_partitions(partitions);
 }
 
 void Instance_cache_builder::fetch_version() {
@@ -916,7 +919,8 @@ void Instance_cache_builder::fetch_table_histograms() {
   }
 }
 
-void Instance_cache_builder::fetch_table_partitions() {
+void Instance_cache_builder::fetch_table_partitions(
+    const Subobject_filters &partitions) {
   Profiler profiler{"fetching table partitions"};
 
   if (!has_tables()) {
@@ -927,31 +931,70 @@ void Instance_cache_builder::fetch_table_partitions() {
   info.schema_column = "TABLE_SCHEMA";  // NOT NULL
   info.table_column = "TABLE_NAME";     // NOT NULL
   info.extra_columns = {
-      "IFNULL(SUBPARTITION_NAME, PARTITION_NAME)",  // NOT NULL
-      "TABLE_ROWS",                                 // NOT NULL
-      "AVG_ROW_LENGTH",                             // NOT NULL
+      "PARTITION_NAME",     // NOT NULL due to condition
+      "SUBPARTITION_NAME",  // can be NULL
+      "TABLE_ROWS",         // NOT NULL
+      "AVG_ROW_LENGTH",     // NOT NULL
   };
   info.table_name = "partitions";
   info.where = "PARTITION_NAME IS NOT NULL";
 
-  iterate_tables(info, [](const std::string &, const std::string &,
-                          Instance_cache::Table *table,
-                          const mysqlshdk::db::IRow *row) {
-    if (shcore::str_caseeq(table->engine, "NDB", "NDBCLUSTER")) {
-      // Partition selection is disabled for tables employing a storage engine
-      // that supplies automatic partitioning, such as NDB. Ignore such tables.
-      return;
-    }
+  const auto include_partition =
+      [&partitions](const std::string &schema, const std::string &table,
+                    const std::string &partition,
+                    const std::string &subpartition) {
+        // if table is not on the list, all partitions from that table are
+        // included
+        const auto s = partitions.find(schema);
 
-    Instance_cache::Partition partition;
+        if (partitions.end() == s) {
+          return true;
+        }
 
-    partition.name = row->get_string(2);  // PARTITION_NAME or SUBPARTITION_NAME
-    partition.quoted_name = shcore::quote_identifier(partition.name);
-    partition.row_count = row->get_uint(3, 0);           // TABLE_ROWS
-    partition.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
+        const auto t = s->second.find(table);
 
-    table->partitions.emplace_back(std::move(partition));
-  });
+        if (s->second.end() == t || t->second.empty()) {
+          return true;
+        }
+
+        // we have a list of partitions for that table, include partition only
+        // if it's on the list
+        for (const auto &p : t->second) {
+          if (partition == p || subpartition == p) {
+            return true;
+          }
+        }
+
+        return false;
+      };
+
+  iterate_tables(
+      info, [&include_partition](const std::string &s, const std::string &t,
+                                 Instance_cache::Table *table,
+                                 const mysqlshdk::db::IRow *row) {
+        if (shcore::str_caseeq(table->engine, "NDB", "NDBCLUSTER")) {
+          // Partition selection is disabled for tables employing a storage
+          // engine that supplies automatic partitioning, such as NDB. Ignore
+          // such tables.
+          return;
+        }
+
+        auto partition = row->get_string(2);         // PARTITION_NAME
+        auto subpartition = row->get_string(3, {});  // SUBPARTITION_NAME
+
+        if (!include_partition(s, t, partition, subpartition)) {
+          return;
+        }
+
+        Instance_cache::Partition p;
+
+        p.name = std::move(subpartition.empty() ? partition : subpartition);
+        p.quoted_name = shcore::quote_identifier(p.name);
+        p.row_count = row->get_uint(4, 0);           // TABLE_ROWS
+        p.average_row_length = row->get_uint(5, 0);  // AVG_ROW_LENGTH
+
+        table->partitions.emplace_back(std::move(p));
+      });
 }
 
 void Instance_cache_builder::iterate_schemas(
@@ -1188,8 +1231,8 @@ std::string Instance_cache_builder::object_filter(
 }
 
 std::string Instance_cache_builder::trigger_filter(
-    const Iterate_table &info, const Trigger_filters &included,
-    const Trigger_filters &excluded) const {
+    const Iterate_table &info, const Subobject_filters &included,
+    const Subobject_filters &excluded) const {
   const auto filter_triggers = [&info](const std::string &schema,
                                        const Object_filters &tables) {
     const auto &trigger_column = info.extra_columns[0];

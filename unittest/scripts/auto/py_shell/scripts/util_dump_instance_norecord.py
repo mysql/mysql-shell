@@ -247,7 +247,7 @@ def drop_all_schemas(exclude=[]):
 
 def create_all_schemas():
     for schema in all_schemas:
-        session.run_sql("CREATE SCHEMA !;", [ schema ])
+        session.run_sql("CREATE SCHEMA IF NOT EXISTS !;", [ schema ])
 
 def create_authentication_plugin_user(name):
     full_name = get_test_user_account(name)
@@ -369,6 +369,33 @@ def TEST_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Map".format(option), test_output_relative, { option: [ {} ] })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Bool".format(option), test_output_relative, { option: [ False ] })
 
+def TEST_MAP_OF_STRINGS_OPTION(option):
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Integer".format(option), test_output_relative, { option: 5 })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Integer".format(option), test_output_relative, { option: -5 })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is String".format(option), test_output_relative, { option: "dummy" })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Array".format(option), test_output_relative, { option: [] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Bool".format(option), test_output_relative, { option: False })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Null".format(option), test_output_relative, { option: { "key": None } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": 5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": -5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Map".format(option), test_output_relative, { option: { "key": {} } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Bool".format(option), test_output_relative, { option: { "key": False } })
+
+def TEST_MAP_OF_ARRAY_OF_STRINGS_OPTION(option):
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Integer".format(option), test_output_relative, { option: 5 })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Integer".format(option), test_output_relative, { option: -5 })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is String".format(option), test_output_relative, { option: "dummy" })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Array".format(option), test_output_relative, { option: [] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Bool".format(option), test_output_relative, { option: False })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Integer".format(option), test_output_relative, { option: { "key": 5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Integer".format(option), test_output_relative, { option: { "key": -5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Map".format(option), test_output_relative, { option: { "key": {} } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Bool".format(option), test_output_relative, { option: { "key": False } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": [ 5 ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": [ -5 ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Map".format(option), test_output_relative, { option: { "key": [ {} ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Bool".format(option), test_output_relative, { option: { "key": [ False ] } })
+
 def get_load_columns(options):
     decode = options["decodeColumns"] if "decodeColumns" in options else {}
     columns = []
@@ -396,59 +423,25 @@ def compute_crc(schema, table, columns):
     session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY {0};".format(("!," * len(columns))[:-1]), columns + [schema, table] + columns)
     return session.run_sql("SELECT @crc;").fetch_one()[0]
 
-def TEST_LOAD(schema, table):
+def TEST_LOAD(schema, table, where = "", partitions = [], recreate_schema = True):
     print("---> testing: `{0}`.`{1}`".format(schema, table))
-    # only uncompressed files are supported
-    basename = encode_table_basename(schema, table)
-    # read global options
-    with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as json_file:
-        tz_utc = json.load(json_file)["tzUtc"]
-    # read options from metadata file
-    with open(os.path.join(test_output_absolute, basename + ".json"), encoding="utf-8") as json_file:
-        options = json.load(json_file)["options"]
-    columns_statement = get_load_columns(options)
-    local_infile_statement = """'
-    INTO TABLE `{0}`.`{1}`
-    CHARACTER SET '{2}'
-    FIELDS TERMINATED BY {3} {4}ENCLOSED BY {5} ESCAPED BY {6}
-    LINES TERMINATED BY {7}
-    {8};\n""".format(verification_schema, table, options["defaultCharacterSet"], repr(options["fieldsTerminatedBy"]), "OPTIONALLY " if options["fieldsOptionallyEnclosed"] else "", repr(options["fieldsEnclosedBy"]), repr(options["fieldsEscapedBy"]), repr(options["linesTerminatedBy"]), columns_statement)
-    # get files with data
-    data_files = []
-    for f in os.listdir(test_output_absolute):
-        if f == basename + ".tsv" or (f.startswith(basename + "@") and f.endswith(".tsv")):
-            data_files.append(f)
-    # on Windows file path in LOAD DATA is passed directly to the function which opens the file
-    # (without any encoding/decoding), rename them to avoid problems
-    if __os_type == "windows":
-        backup_data_files = {}
-        for idx, old_name in enumerate(data_files):
-            new_name = old_name.encode("ascii", "replace").decode().replace("?", "_")
-            os.rename(os.path.join(test_output_absolute, old_name), os.path.join(test_output_absolute, new_name))
-            backup_data_files[new_name] = old_name
-            data_files[idx] = new_name
-    # write SQL file which will load everything
-    sql_file = os.path.join(test_output_absolute, "data_" + basename + ".sql")
-    with open(sql_file, "w", encoding="utf-8") as f:
-        f.write("SET NAMES '{0}';\n".format(options["defaultCharacterSet"]))
-        f.write("SET SQL_MODE='';\n")
-        if tz_utc:
-            f.write("SET TIME_ZONE = '+00:00';\n")
-        f.write("source {0} ;\n".format(filename_for_file(os.path.join(test_output_absolute, basename + ".sql"))))
-        for data in data_files:
-            f.write("LOAD DATA LOCAL INFILE '")
-            f.write(filename_for_file(os.path.join(test_output_absolute, data)))
-            f.write(local_infile_statement)
     # load data
+    if recreate_schema:
+        recreate_verification_schema()
+    EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False, "loadUsers": False, "includeTables" : [ quote_identifier(schema, table) ], "schema": verification_schema, "resetProgress": True }), "loading should not throw")
+    # compute CRC
+    EXPECT_EQ(md5_table(session, schema, table, where, partitions), md5_table(session, verification_schema, table))
+
+def TEST_DUMP_AND_LOAD(schemas, options = {}):
+    EXPECT_SUCCESS(schemas, test_output_absolute, options)
+    where = options.get("where", {})
+    partitions = options.get("partitions", {})
     recreate_verification_schema()
-    EXPECT_EQ(0, testutil.call_mysqlsh([uri + "/" + verification_schema + "?local-infile=true", "--sql", "--file", sql_file]))
-    # rename back the data files
-    if __os_type == "windows":
-        for new_name, old_name in backup_data_files.items():
-            os.rename(os.path.join(test_output_absolute, new_name), os.path.join(test_output_absolute, old_name))
-    #compute CRC
-    all_columns = get_all_columns(schema, table)
-    EXPECT_EQ(compute_crc(schema, table, all_columns), compute_crc(verification_schema, table, all_columns))
+    for schema in schemas:
+        for row in session.run_sql("SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? and table_type = 'BASE TABLE'", [schema]).fetch_all():
+            table = row[0]
+            quoted = quote_identifier(schema, table)
+            TEST_LOAD(schema, table, where.get(quoted, ""), partitions.get(quoted, []), False)
 
 #@<> WL13807-FR1.2 - an exception must be thrown if there is no global session
 # WL13807-TSFR_1_17
@@ -901,6 +894,76 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProg
 # name should be correctly encoded using UTF-8
 EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_unique), os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".sql"))
 
+#@<> WL15311_TSFR_5_1
+help_text = """
+      - fieldsTerminatedBy: string (default: "\\t") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsEscapedBy: char (default: '\\') - This option has the same meaning
+        as the corresponding clause for SELECT ... INTO OUTFILE.
+      - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
+        input values are not necessarily enclosed within quotation marks
+        specified by fieldsEnclosedBy option. Set to false if all fields are
+        quoted by character specified by fieldsEnclosedBy option.
+      - linesTerminatedBy: string (default: "\\n") - This option has the same
+        meaning as the corresponding clause for SELECT ... INTO OUTFILE. See
+        Section 13.2.10.1, "SELECT ... INTO Statement".
+      - dialect: enum (default: "default") - Setup fields and lines options
+        that matches specific data file format. Can be used as base dialect and
+        customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+        fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
+        the following values: default, csv, tsv or csv-unix.
+"""
+EXPECT_TRUE(help_text in util.help("dump_instance"))
+
+#@<> WL15311 - option types
+TEST_STRING_OPTION("fieldsTerminatedBy")
+TEST_STRING_OPTION("fieldsEnclosedBy")
+TEST_STRING_OPTION("fieldsEscapedBy")
+TEST_BOOL_OPTION("fieldsOptionallyEnclosed")
+TEST_STRING_OPTION("linesTerminatedBy")
+TEST_STRING_OPTION("dialect")
+
+#@<> WL15311_TSFR_5_1_1, WL15311_TSFR_5_2_1 - various predefined dialects and their extensions
+for dialect, ext in { "default": "tsv", "csv": "csv", "tsv": "tsv", "csv-unix": "csv" }.items():
+    TEST_DUMP_AND_LOAD([types_schema], { "dialect": dialect })
+    EXPECT_TRUE(count_files_with_extension(test_output_relative, f".{ext}.zst") > 0)
+
+#@<> WL15311 - The JSON dialect must not be supported.
+EXPECT_FAIL("ValueError", "Argument #2: The 'json' dialect is not supported.", test_output_relative, { "dialect": "json" })
+
+#@<> WL15311_TSFR_5_3_1 - custom dialect
+TEST_DUMP_AND_LOAD([types_schema], { "fieldsTerminatedBy": "a", "fieldsEnclosedBy": "b", "fieldsEscapedBy": "c", "linesTerminatedBy": "d", "fieldsOptionallyEnclosed": True })
+EXPECT_TRUE(count_files_with_extension(test_output_relative, ".txt.zst") > 0)
+
+#@<> WL15311_TSFR_5_2, WL15311_TSFR_5_3, WL15311_TSFR_5_4, WL15311_TSFR_5_5, WL15311_TSFR_5_6 - more custom dialects
+custom_dialect_schema = "wl15311_tsfr_5"
+custom_dialect_table = "x"
+
+session.run_sql("CREATE SCHEMA !;", [ custom_dialect_schema ])
+session.run_sql("CREATE TABLE !.! (id int primary key AUTO_INCREMENT, p text, q text);", [ custom_dialect_schema, custom_dialect_table ])
+session.run_sql("INSERT INTO !.! VALUES (1, 'aaaaaa', 'bbbbb'), (2, 'aabbaaaa', 'bbaabbb'), (3, 'aabbaababaaa', 'bbaabbababbabab');", [ custom_dialect_schema, custom_dialect_table ])
+
+for i in range(10):
+    session.run_sql("INSERT INTO !.! (p, q) SELECT p, q FROM !.!;", [ custom_dialect_schema, custom_dialect_table, custom_dialect_schema, custom_dialect_table ])
+
+session.run_sql("ANALYZE TABLE !.!;", [ custom_dialect_schema, custom_dialect_table ])
+
+all_schemas.append(custom_dialect_schema)
+
+TEST_DUMP_AND_LOAD([ custom_dialect_schema ])
+TEST_DUMP_AND_LOAD([ custom_dialect_schema ], { "fieldsTerminatedBy": "a" })
+TEST_DUMP_AND_LOAD([ custom_dialect_schema ], { "linesTerminatedBy": "a" })
+TEST_DUMP_AND_LOAD([ custom_dialect_schema ], { "fieldsEnclosedBy": '"', "fieldsOptionallyEnclosed": False , "linesTerminatedBy": "a"})
+TEST_DUMP_AND_LOAD([ custom_dialect_schema ], { "fieldsEnclosedBy": '"', "fieldsOptionallyEnclosed": False , "linesTerminatedBy": "ab"})
+
+all_schemas.pop()
+session.run_sql("DROP SCHEMA !;", [ custom_dialect_schema ])
+
+#@<> WL15311 - fixed-row format is not supported yet
+EXPECT_FAIL("ValueError", "Argument #2: The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting in a fixed-row format. This is currently not supported.", test_output_absolute, { "fieldsTerminatedBy": "", "fieldsEnclosedBy": "" })
+
 #@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
 TEST_STRING_OPTION("s3BucketName")
 
@@ -953,7 +1016,7 @@ EXPECT_FAIL("ValueError", "Argument #2: The value of the option 's3EndpointOverr
 EXPECT_FAIL("ValueError", "Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.", test_output_absolute, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "showProgress": False })
 
 #@<> WL13807-TSFR_3_2 - options param being a dictionary that contains an unknown key
-for param in { "dummy", "indexColumn", "fieldsTerminatedBy", "fieldsEnclosedBy", "fieldsEscapedBy", "fieldsOptionallyEnclosed", "linesTerminatedBy", "dialect" }:
+for param in { "dummy", "indexColumn" }:
     EXPECT_FAIL("ValueError", f"Argument #2: Invalid options: {param}", test_output_relative, { param: "fails" })
 
 # WL13807-FR4 - Both new functions must accept a set of additional options:
@@ -2478,6 +2541,10 @@ snapshot = dump_and_load({ "excludeTriggers": ['existing_schema_1.existing_table
 EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
 
+#@<> WL14244 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_1")
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_2")
+
 #@<> includeX + excludeX conflicts - helpers
 def dump_with_conflicts(options, throws = True):
     WIPE_STDOUT()
@@ -3091,6 +3158,223 @@ EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contai
 dump_with_conflicts({ "includeUsers": [ "u@h" ], "excludeUsers": [ "u", "u@h" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The includeUsers option contains a user 'u'@'h' which is excluded by the value of the excludeUsers option: 'u'@''.")
 EXPECT_STDOUT_CONTAINS("ERROR: Both includeUsers and excludeUsers options contain a user 'u'@'h'.")
+
+#@<> WL15311 - setup
+schema_name = "wl15311"
+no_partitions_table_name = "no_partitions"
+no_partitions_table_name_quoted = quote_identifier(schema_name, no_partitions_table_name)
+partitions_table_name = "partitions"
+partitions_table_name_quoted = quote_identifier(schema_name, partitions_table_name)
+subpartitions_table_name = "subpartitions"
+subpartitions_table_name_quoted = quote_identifier(schema_name, subpartitions_table_name)
+all_tables = [ no_partitions_table_name, partitions_table_name, subpartitions_table_name ]
+subpartition_prefix = "@o" if __os_type == "windows" else "@ó"
+
+create_all_schemas()
+all_schemas.append(schema_name)
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [schema_name])
+
+session.run_sql("CREATE TABLE !.! (`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)", [ schema_name, no_partitions_table_name ])
+
+session.run_sql("""CREATE TABLE !.!
+(`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)
+PARTITION BY RANGE (`id`)
+(PARTITION x0 VALUES LESS THAN (10000),
+ PARTITION x1 VALUES LESS THAN (20000),
+ PARTITION x2 VALUES LESS THAN (30000),
+ PARTITION x3 VALUES LESS THAN MAXVALUE)""", [ schema_name, partitions_table_name ])
+
+session.run_sql(f"""CREATE TABLE !.!
+(`id` int, `data` blob)
+PARTITION BY RANGE (`id`)
+SUBPARTITION BY KEY (id)
+SUBPARTITIONS 2
+(PARTITION `{subpartition_prefix}0` VALUES LESS THAN (10000),
+ PARTITION `{subpartition_prefix}1` VALUES LESS THAN (20000),
+ PARTITION `{subpartition_prefix}2` VALUES LESS THAN (30000),
+ PARTITION `{subpartition_prefix}3` VALUES LESS THAN MAXVALUE)""", [ schema_name, subpartitions_table_name ])
+
+for x in range(4):
+    session.run_sql(f"""INSERT INTO !.! (`data`) VALUES {",".join([f"('{random_string(100,200)}')" for i in range(10000)])}""", [ schema_name, partitions_table_name ])
+session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, subpartitions_table_name, schema_name, partitions_table_name ])
+session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, no_partitions_table_name, schema_name, partitions_table_name ])
+
+for table in all_tables:
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, table ])
+
+#@<> WL15311_TSFR_3_1
+help_text = """
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being exported.
+"""
+EXPECT_TRUE(help_text in util.help("dump_instance"))
+
+#@<> WL15311_TSFR_3_1_1, WL15311_TSFR_3_2_1
+TEST_MAP_OF_STRINGS_OPTION("where")
+
+#@<> WL15311_TSFR_3_1_1_1
+EXPECT_FAIL("ValueError", "Argument #2: The table name key of the 'where' option must be in the following form: schema.table, with optional backtick quotes, wrong value: 'no_dot'.", test_output_absolute, {"where": { "no_dot": "1 = 1" }})
+
+#@<> WL15311_TSFR_3_1_1_2
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { no_partitions_table_name_quoted: "id > 12345", subpartitions_table_name_quoted: "" } })
+EXPECT_GT(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+# WL15311_TSFR_3_2_5_1
+EXPECT_EQ(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { no_partitions_table_name_quoted: "id > 12345 AND (id < 23456)", partitions_table_name_quoted: "id > 12345" } })
+EXPECT_GT(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+
+#@<> WL15311_TSFR_3_1_2_1
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "ddlOnly": True, "where": { no_partitions_table_name_quoted: "id > 12345" }, "showProgress": False })
+
+#@<> WL15311_TSFR_3_1_2_2
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "dryRun": True, "where": { no_partitions_table_name_quoted: "id > 12345" }, "showProgress": False })
+
+#@<> WL15311_TSFR_3_1_2_3
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "includeTables": [ partitions_table_name_quoted ], "where": { no_partitions_table_name_quoted: "id > 12345" }, "showProgress": False })
+
+#@<> WL15311_TSFR_3_1_2_4
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "excludeTables": [ no_partitions_table_name_quoted ], "where": { no_partitions_table_name_quoted: "id > 12345" }, "showProgress": False })
+
+#@<> WL15311_TSFR_3_1_2_5
+TEST_DUMP_AND_LOAD([ schema_name, types_schema ], { "excludeSchemas": [ types_schema ], "where": { no_partitions_table_name_quoted: "id > 12345", quote_identifier(types_schema, types_schema_tables[0]): "1=1" }, "showProgress": False })
+
+#@<> WL15311_TSFR_3_1_2_10 - schema or table do not exist
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { quote_identifier("schema", "table"): "1 = 2", quote_identifier(schema_name, "table"): "1 = 2" } })
+
+#@<> WL15311_TSFR_3_2_1_1
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { no_partitions_table_name_quoted: "1 = 2", partitions_table_name_quoted: "1 = 1" } })
+EXPECT_EQ(0, count_rows(verification_schema, no_partitions_table_name))
+EXPECT_EQ(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+
+#@<> WL15311_TSFR_3_2_3_1
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "where": { no_partitions_table_name_quoted: "THIS_IS_NO_SQL" }, "showProgress": False }, True)
+EXPECT_STDOUT_CONTAINS("MySQL Error 1054 (42S22): Unknown column 'THIS_IS_NO_SQL' in 'where clause'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "where": { no_partitions_table_name_quoted: "1 = 1 ; DROP TABLE mysql.user ; SELECT 1 FROM DUAL" }, "showProgress": False }, True)
+EXPECT_STDOUT_CONTAINS("MySQL Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '; DROP TABLE mysql.user ; SELECT 1 FROM DUAL) ORDER BY")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", f"Argument #2: Malformed condition used for table '{schema_name}'.'{no_partitions_table_name}': 1 = 1) --", test_output_absolute, { "where": { no_partitions_table_name_quoted: "1 = 1) --" }, "showProgress": False })
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", f"Argument #2: Malformed condition used for table '{schema_name}'.'{no_partitions_table_name}': (1 = 1", test_output_absolute, { "where": { no_partitions_table_name_quoted: "(1 = 1" }, "showProgress": False })
+
+
+#@<> WL15311_TSFR_3_2_4_1
+TEST_DUMP_AND_LOAD([ schema_name ], {})
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": {} })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { no_partitions_table_name_quoted: "" } })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+
+#@<> WL15311_TSFR_4_1
+help_text = """
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data export to just the specified partitions.
+"""
+EXPECT_TRUE(help_text in util.help("dump_instance"))
+
+#@<> WL15311_TSFR_4_1_1, WL15311_TSFR_4_2_1, WL15311_TSFR_4_2_2
+TEST_MAP_OF_ARRAY_OF_STRINGS_OPTION("partitions")
+
+#@<> WL15311_TSFR_4_1_1_1
+EXPECT_FAIL("ValueError", "Argument #2: The table name key of the 'partitions' option must be in the following form: schema.table, with optional backtick quotes, wrong value: 'no_dot'.", test_output_absolute, {"partitions": { "no_dot": [ "p0" ] }})
+
+#@<> WL15311_TSFR_4_1_1_2
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { partitions_table_name_quoted: "1 = 1" }, "partitions": { partitions_table_name_quoted: [ "x1" ] } })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { partitions_table_name_quoted: "id > 12345" }, "partitions": { partitions_table_name_quoted: [ "x1" ] } })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { partitions_table_name_quoted: "id > 12345" }, "partitions": { partitions_table_name_quoted: [ "x1", "x2" ] } })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { partitions_table_name_quoted: "id > 12345" }, "partitions": { partitions_table_name_quoted: [ "x0" ] } })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+EXPECT_EQ(0, count_rows(verification_schema, partitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "where": { partitions_table_name_quoted: "id > 12345" }, "partitions": { subpartitions_table_name_quoted: [ f"{subpartition_prefix}1" ] } })
+EXPECT_EQ(count_rows(schema_name, no_partitions_table_name), count_rows(verification_schema, no_partitions_table_name))
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+#@<> WL15311_TSFR_4_2_1_1, WL15311_TSFR_4_2_2_1
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": { subpartitions_table_name_quoted: [ f"{subpartition_prefix}1", f"{subpartition_prefix}2" ] } })
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": { subpartitions_table_name_quoted: [ f"{subpartition_prefix}1", f"{subpartition_prefix}2sp0" ] } })
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": { subpartitions_table_name_quoted: [ f"{subpartition_prefix}1sp0", f"{subpartition_prefix}2sp0" ] } })
+EXPECT_GT(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+#@<> WL15311_TSFR_4_1_2_1
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "ddlOnly": True, "partitions": { partitions_table_name_quoted: [ "x1" ] }, "showProgress": False })
+
+#@<> WL15311_TSFR_4_1_2_2
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "dryRun": True, "partitions": { partitions_table_name_quoted: [ "x1" ] }, "showProgress": False })
+
+#@<> WL15311_TSFR_4_1_2_3
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "includeTables": [ subpartitions_table_name_quoted ], "partitions": { partitions_table_name_quoted: [ "x1" ] }, "showProgress": False })
+
+#@<> WL15311_TSFR_4_1_2_4
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "excludeTables": [ partitions_table_name_quoted ], "partitions": { partitions_table_name_quoted: [ "x1" ] }, "showProgress": False })
+
+#@<> WL15311_TSFR_4_1_2_5
+EXPECT_SUCCESS(None, test_output_absolute, { "excludeSchemas": [ types_schema ], "partitions": { partitions_table_name_quoted: [ "x1" ], quote_identifier(types_schema, types_schema_tables[0]): [ "x1" ] }, "showProgress": False })
+
+#@<> WL15311_TSFR_4_1_2_10 - schema or table do not exist
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": { quote_identifier("schema", "table"): [ "x1" ], quote_identifier(schema_name, "table"): [ "x1" ] } })
+
+#@<> WL15311_TSFR_4_2_3_1
+EXPECT_FAIL("ValueError", "Invalid partitions", test_output_absolute, { "partitions": { subpartitions_table_name_quoted: [ "SELECT 1" ] }, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': 'SELECT 1'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", "Invalid partitions", test_output_absolute, { "partitions": { subpartitions_table_name_quoted: [ f"{subpartition_prefix}9" ] }, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': '{subpartition_prefix}9'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", "Invalid partitions", test_output_absolute, { "partitions": { subpartitions_table_name_quoted: [ f"{subpartition_prefix}9", f"{subpartition_prefix}1sp9" ] }, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': '{subpartition_prefix}1sp9', '{subpartition_prefix}9'")
+
+WIPE_STDOUT()
+EXPECT_FAIL("ValueError", "Invalid partitions", test_output_absolute, { "partitions": { partitions_table_name_quoted: [ "x6" ], subpartitions_table_name_quoted: [ f"{subpartition_prefix}9" ] }, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{subpartitions_table_name}': '{subpartition_prefix}9'")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Following partitions were not found in table '{schema_name}'.'{partitions_table_name}': 'x6'")
+
+#@<> WL15311_TSFR_4_2_4_1, WL15311_TSFR_4_2_5_1
+TEST_DUMP_AND_LOAD([ schema_name ], {})
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": {} })
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": { subpartitions_table_name_quoted: [] } })
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+TEST_DUMP_AND_LOAD([ schema_name ], { "partitions": { partitions_table_name_quoted: [ "x1" ], subpartitions_table_name_quoted: [] } })
+EXPECT_GT(count_rows(schema_name, partitions_table_name), count_rows(verification_schema, partitions_table_name))
+EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, subpartitions_table_name))
+
+#@<> WL15311 - cleanup
+session.run_sql("DROP SCHEMA !;", [schema_name])
+all_schemas.pop()
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

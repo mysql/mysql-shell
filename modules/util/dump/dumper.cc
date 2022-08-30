@@ -356,8 +356,12 @@ class Dumper::Table_worker final {
 
     query += " FROM " + table.quoted_name;
 
-    if (table.partition) {
-      query += " PARTITION (" + table.partition->quoted_name + ")";
+    if (!table.partitions.empty()) {
+      query += " PARTITION (" +
+               shcore::str_join(
+                   table.partitions.begin(), table.partitions.end(), ",",
+                   [](const auto &p) { return p.info->quoted_name; }) +
+               ")";
     }
 
     query += where(table.where);
@@ -525,7 +529,9 @@ class Dumper::Table_worker final {
     data_task.quoted_name = table.quoted_name;
     data_task.schema = table.schema;
     data_task.info = table.info;
-    data_task.partition = table.partition;
+    data_task.partitions = table.partitions;
+    data_task.where = table.where;
+
     data_task.writer = m_dumper->get_table_data_writer(filename);
 
     if (!m_dumper->m_options.is_export_only()) {
@@ -561,7 +567,11 @@ class Dumper::Table_worker final {
     if (0 == idx) {
       for (const auto &c : table.info->index.columns()) {
         if (c->nullable) {
-          data_task.where += "OR(" + c->quoted_name + " IS NULL)";
+          if (!data_task.where.empty()) {
+            data_task.where += "OR";
+          }
+
+          data_task.where += "(" + c->quoted_name + " IS NULL)";
         }
       }
     }
@@ -1076,19 +1086,21 @@ class Dumper::Table_worker final {
     // default row size to use when there's no known row size
     constexpr const uint64_t k_default_row_size = 256;
 
-    auto average_row_length = table.partition
-                                  ? table.partition->average_row_length
-                                  : table.info->average_row_length;
-    auto partition = table.partition
-                         ? " PARTITION (" + table.partition->quoted_name + ")"
-                         : "";
+    assert(table.partitions.size() < 2);
+    const auto partition =
+        table.partitions.empty() ? nullptr : table.partitions[0].info;
+
+    auto average_row_length = partition ? partition->average_row_length
+                                        : table.info->average_row_length;
+    auto partition_clause =
+        partition ? " PARTITION (" + partition->quoted_name + ")" : "";
 
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 
       const auto result =
           query("SELECT " + table.info->index.columns_sql() + " FROM " +
-                table.quoted_name + partition + " LIMIT 1");
+                table.quoted_name + partition_clause + " LIMIT 1");
 
       // print the message only if table is not empty
       if (result->fetch_one()) {
@@ -1097,9 +1109,9 @@ class Dumper::Table_worker final {
                    "Please consider running 'ANALYZE TABLE " +
                    table.quoted_name + ";'";
 
-        if (table.partition) {
+        if (partition) {
           msg += " or 'ALTER TABLE " + table.quoted_name +
-                 " ANALYZE PARTITION " + table.partition->quoted_name + ";'";
+                 " ANALYZE PARTITION " + partition->quoted_name + ";'";
         }
 
         msg += " first.";
@@ -1111,13 +1123,13 @@ class Dumper::Table_worker final {
     Chunking_info info;
 
     info.table = &table;
-    info.row_count =
-        table.partition ? table.partition->row_count : table.info->row_count;
+    info.row_count = partition ? partition->row_count : table.info->row_count;
     info.rows_per_chunk =
         m_dumper->m_options.bytes_per_chunk() / average_row_length;
     info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
     info.explain_rows_idx = m_dumper->m_cache.explain_rows_idx;
-    info.partition = std::move(partition);
+    info.partition = std::move(partition_clause);
+    info.where = table.where;
 
     for (const auto &c : table.info->index.columns()) {
       if (c->nullable) {
@@ -2020,7 +2032,7 @@ void Dumper::initialize_instance_cache_minimal() {
   m_cache = Instance_cache_builder(session(), m_options.included_schemas(),
                                    m_options.included_tables(),
                                    m_options.excluded_schemas(),
-                                   m_options.excluded_tables(), {}, false)
+                                   m_options.excluded_tables(), {})
                 .build();
 
   validate_schemas_list();
@@ -2034,6 +2046,8 @@ void Dumper::initialize_instance_cache() {
       session(), m_options.included_schemas(), m_options.included_tables(),
       m_options.excluded_schemas(), m_options.excluded_tables(),
       std::move(m_cache));
+
+  builder.metadata(m_options.included_partitions());
 
   if (dump_users()) {
     builder.users(m_options.included_users(), m_options.excluded_users());
@@ -2636,6 +2650,7 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.basename = table.basename;
   task.info = table.info;
   task.partitions = table.partitions;
+  task.where = m_options.where(schema.name, table.name);
 
   on_create_table_task(task.schema, task.name, task.info);
 
@@ -2692,7 +2707,8 @@ void Dumper::push_table_task(Table_task &&task) {
       copy.task_name =
           task.task_name + " partition " + partition.info->quoted_name;
       copy.basename = partition.basename;
-      copy.partition = partition.info;
+      copy.partitions.clear();
+      copy.partitions.emplace_back(partition);
 
       push_table_chunking_task(std::move(copy));
     }
@@ -2823,6 +2839,12 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("dumper"), refs(mysqlsh), a);
   doc.AddMember(StringRef("version"), StringRef(Schema_dumper::version()), a);
   doc.AddMember(StringRef("origin"), StringRef(name()), a);
+
+  if (const auto &options = m_options.original_options()) {
+    Document o{Type::kObjectType, &a};
+    o.Parse(shcore::Value(options).json().c_str());
+    doc.AddMember(StringRef("options"), std::move(o), a);
+  }
 
   {
     // list of schemas
@@ -3207,6 +3229,14 @@ void Dumper::write_table_metadata(
     }
 
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
+  }
+
+  {
+    const auto &where = m_options.where(table.schema, table.name);
+
+    if (!where.empty()) {
+      doc.AddMember(StringRef("where"), refs(where), a);
+    }
   }
 
   write_json(make_file(dump::get_table_data_filename(table.basename, "json")),

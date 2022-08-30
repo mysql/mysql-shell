@@ -224,6 +224,37 @@ OPTIONS
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".
 
+--dialect=<str>
+            Setup fields and lines options that matches specific data file
+            format. Can be used as base dialect and customized with
+            fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+            fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
+            of the following values: default, csv, tsv or csv-unix. Default:
+            "default".
+
+--fieldsTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: "\t".
+
+--fieldsEnclosedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: ''.
+
+--fieldsOptionallyEnclosed=<bool>
+            Set to true if the input values are not necessarily enclosed within
+            quotation marks specified by fieldsEnclosedBy option. Set to false
+            if all fields are quoted by character specified by fieldsEnclosedBy
+            option. Default: false.
+
+--fieldsEscapedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: '\'.
+
+--linesTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+            Statement". Default: "\n".
+
 --chunking=<bool>
             Enable chunking of the tables. Default: true.
 
@@ -274,6 +305,16 @@ OPTIONS
             List of triggers to be included in the dump in the format of
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
+
+--where=<key>[:<type>]=<value>
+            A key-value pair of a table name in the format of schema.table and
+            a valid SQL condition expression used to filter the data being
+            exported. Default: not set.
+
+--partitions=<key>[:<type>]=<value>
+            A key-value pair of a table name in the format of schema.table and
+            a list of valid partition names used to limit the data export to
+            just the specified partitions. Default: not set.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not
@@ -401,6 +442,37 @@ OPTIONS
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".
 
+--dialect=<str>
+            Setup fields and lines options that matches specific data file
+            format. Can be used as base dialect and customized with
+            fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+            fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
+            of the following values: default, csv, tsv or csv-unix. Default:
+            "default".
+
+--fieldsTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: "\t".
+
+--fieldsEnclosedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: ''.
+
+--fieldsOptionallyEnclosed=<bool>
+            Set to true if the input values are not necessarily enclosed within
+            quotation marks specified by fieldsEnclosedBy option. Set to false
+            if all fields are quoted by character specified by fieldsEnclosedBy
+            option. Default: false.
+
+--fieldsEscapedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: '\'.
+
+--linesTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+            Statement". Default: "\n".
+
 --chunking=<bool>
             Enable chunking of the tables. Default: true.
 
@@ -451,6 +523,16 @@ OPTIONS
             List of triggers to be included in the dump in the format of
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
+
+--where=<key>[:<type>]=<value>
+            A key-value pair of a table name in the format of schema.table and
+            a valid SQL condition expression used to filter the data being
+            exported. Default: not set.
+
+--partitions=<key>[:<type>]=<value>
+            A key-value pair of a table name in the format of schema.table and
+            a list of valid partition names used to limit the data export to
+            just the specified partitions. Default: not set.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not
@@ -559,6 +641,37 @@ OPTIONS
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".
 
+--dialect=<str>
+            Setup fields and lines options that matches specific data file
+            format. Can be used as base dialect and customized with
+            fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+            fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
+            of the following values: default, csv, tsv or csv-unix. Default:
+            "default".
+
+--fieldsTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: "\t".
+
+--fieldsEnclosedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: ''.
+
+--fieldsOptionallyEnclosed=<bool>
+            Set to true if the input values are not necessarily enclosed within
+            quotation marks specified by fieldsEnclosedBy option. Set to false
+            if all fields are quoted by character specified by fieldsEnclosedBy
+            option. Default: false.
+
+--fieldsEscapedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: '\'.
+
+--linesTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+            Statement". Default: "\n".
+
 --chunking=<bool>
             Enable chunking of the tables. Default: true.
 
@@ -609,6 +722,16 @@ OPTIONS
             List of triggers to be included in the dump in the format of
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
+
+--where=<key>[:<type>]=<value>
+            A key-value pair of a table name in the format of schema.table and
+            a valid SQL condition expression used to filter the data being
+            exported. Default: not set.
+
+--partitions=<key>[:<type>]=<value>
+            A key-value pair of a table name in the format of schema.table and
+            a list of valid partition names used to limit the data export to
+            just the specified partitions. Default: not set.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not
@@ -689,19 +812,18 @@ OPTIONS
 --dialect=<str>
             Setup fields and lines options that matches specific data file
             format. Can be used as base dialect and customized with
-            fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
-            fieldsEscapedBy and linesTerminatedBy options. Must be one of the
-            following values: default, csv, tsv or csv-unix. Default:
+            fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
+            fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
+            of the following values: default, csv, tsv or csv-unix. Default:
             "default".
 
 --fieldsTerminatedBy=<str>
-            These options have the same meaning as the corresponding clauses
-            for SELECT ... INTO OUTFILE. For more information use \? SQL
-            Syntax/SELECT, (a session is required). Default: "\t"),
-            fieldsEnclosedBy: char (default: ''), fieldsEscapedBy: char
-            (default: '\'), linesTerminatedBy: string (default: "\n".
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: "\t".
 
 --fieldsEnclosedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: ''.
 
 --fieldsOptionallyEnclosed=<bool>
             Set to true if the input values are not necessarily enclosed within
@@ -710,8 +832,21 @@ OPTIONS
             option. Default: false.
 
 --fieldsEscapedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. Default: '\'.
 
 --linesTerminatedBy=<str>
+            This option has the same meaning as the corresponding clause for
+            SELECT ... INTO OUTFILE. See Section 13.2.10.1, "SELECT ... INTO
+            Statement". Default: "\n".
+
+--where=<str>
+            A valid SQL condition expression used to filter the data being
+            exported. Default: not set.
+
+--partitions=<str list>
+            A list of valid partition names used to limit the data export to
+            just the specified partitions. Default: not set.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not

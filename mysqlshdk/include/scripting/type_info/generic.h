@@ -239,6 +239,32 @@ struct Type_info<std::unordered_set<std::string>> {
   }
 };
 
+template <>
+struct Type_info<std::map<std::string, std::string>> {
+  static std::map<std::string, std::string> to_native(const shcore::Value &in) {
+    return in.to_string_map();
+  }
+  static Value_type vtype() { return shcore::Map; }
+  static const char *code() { return "D"; }
+  static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+  static std::string desc() {
+    return type_description(vtype()) + " of strings";
+  }
+};
+
+template <class C>
+struct Type_info<std::map<std::string, C>> {
+  static std::map<std::string, C> to_native(const shcore::Value &in) {
+    return in.to_container_map<C>();
+  }
+  static Value_type vtype() { return shcore::Map; }
+  static const char *code() { return "D"; }
+  static shcore::Dictionary_t default_value() { return shcore::Dictionary_t(); }
+  static std::string desc() {
+    return type_description(vtype()) + " of " + Type_info<C>::desc();
+  }
+};
+
 }  // namespace detail
 }  // namespace shcore
 

@@ -368,11 +368,12 @@ struct SHCORE_PUBLIC Value {
   template <class C>
   C to_string_container() const {
     C vec;
-    check_type(Array);
     auto arr = as_array();
 
-    std::transform(arr->begin(), arr->end(), std::inserter<C>(vec, vec.end()),
-                   [](const shcore::Value &v) { return v.get_string(); });
+    if (arr) {
+      std::transform(arr->begin(), arr->end(), std::inserter<C>(vec, vec.end()),
+                     [](const shcore::Value &v) { return v.get_string(); });
+    }
 
     return vec;
   }
@@ -382,6 +383,16 @@ struct SHCORE_PUBLIC Value {
     check_type(Map);
     for (const auto &v : *as_map()) {
       map.emplace(v.first, v.second.get_string());
+    }
+    return map;
+  }
+
+  template <class C>
+  std::map<std::string, C> to_container_map() const {
+    std::map<std::string, C> map;
+    check_type(Map);
+    for (const auto &v : *as_map()) {
+      map.emplace(v.first, v.second.to_string_container<C>());
     }
     return map;
   }
@@ -720,6 +731,15 @@ struct value_type_for_native<std::map<std::string, std::string>> {
 
   static std::map<std::string, std::string> extract(const Value &value) {
     return value.to_string_map();
+  }
+};
+
+template <class C>
+struct value_type_for_native<std::map<std::string, C>> {
+  static const Value_type type = Map;
+
+  static std::map<std::string, C> extract(const Value &value) {
+    return value.to_container_map<C>();
   }
 };
 

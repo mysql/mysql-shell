@@ -41,7 +41,8 @@ const shcore::Option_pack_def<Export_table_options>
   static const auto opts =
       shcore::Option_pack_def<Export_table_options>()
           .include<Dump_options>()
-          .include(&Export_table_options::m_dialect_unpacker)
+          .optional("where", &Export_table_options::m_where)
+          .optional("partitions", &Export_table_options::m_partitions)
           .include(&Export_table_options::m_oci_bucket_options)
           .include(&Export_table_options::m_s3_bucket_options)
           .on_done(&Export_table_options::on_unpacked_options)
@@ -51,12 +52,6 @@ const shcore::Option_pack_def<Export_table_options>
 }
 
 void Export_table_options::on_unpacked_options() {
-  set_dialect(m_dialect_unpacker);
-
-  if (import_table::Dialect::json() == dialect()) {
-    throw std::invalid_argument("The 'json' dialect is not supported.");
-  }
-
   m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
 
   if (m_oci_bucket_options) {
@@ -71,7 +66,7 @@ void Export_table_options::on_unpacked_options() {
 void Export_table_options::set_table(const std::string &schema_table) {
   try {
     shcore::split_schema_and_table(schema_table, &m_schema, &m_table);
-    set_includes();
+    on_set_schema();
   } catch (const std::runtime_error &e) {
     throw std::invalid_argument("Failed to parse table to be exported '" +
                                 schema_table + "': " + e.what());
@@ -89,7 +84,7 @@ void Export_table_options::on_set_session(
       }
     }
 
-    set_includes();
+    on_set_schema();
   }
 }
 
@@ -107,10 +102,13 @@ void Export_table_options::validate_options() const {
   }
 }
 
-void Export_table_options::set_includes() {
+void Export_table_options::on_set_schema() {
   if (!schema().empty()) {
     m_included_schemas.emplace(schema());
     m_included_tables[schema()].emplace(table());
+
+    set_where_clause(schema(), table(), m_where);
+    set_partitions(schema(), table(), m_partitions);
   }
 }
 

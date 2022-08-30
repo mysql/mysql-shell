@@ -294,27 +294,121 @@ retry:
   }
 }
 
-uint64_t Transaction_buffer::find_first_row_boundary_after_impl_dumper() const {
-  assert(m_dialect.lines_terminated_by.size() == 1);
-  const char delimiter = m_dialect.lines_terminated_by[0];
-  const auto end = m_data.find(delimiter);
-  if (end < m_data.length()) {
-    return end + 1;
+uint64_t Transaction_buffer::find_first_row_boundary_after_impl_default()
+    const {
+  assert(m_dialect == Dialect::default_());
+
+  const char needle = m_dialect.lines_terminated_by[0];
+  const auto p = m_data.find(needle);
+
+  if (p >= m_data.length()) return 0;
+
+  return p + 1;
+}
+
+uint64_t Transaction_buffer::find_last_row_boundary_before_impl_default(
+    uint64_t limit) {
+  assert(m_dialect == Dialect::default_());
+
+  const char needle = m_dialect.lines_terminated_by[0];
+  auto p = limit < m_data.length() ? static_cast<size_t>(limit - 1)
+                                   : m_data.length();
+
+  if (p == 0) return 0;
+
+  p = adjust_line_offset(p);
+  p = m_data.rfind(needle, p);
+
+  if (p >= m_data.length()) return 0;
+
+  return p + 1;
+}
+
+uint64_t Transaction_buffer::find_first_row_boundary_after_impl_no_escape()
+    const {
+  assert(m_dialect.lines_terminated_by.size());
+  assert(!m_dialect.fields_escaped_by.size());
+
+  const auto &needle = m_dialect.lines_terminated_by;
+  const auto p = m_data.find(needle);
+
+  if (p >= m_data.length()) return 0;
+
+  return p + needle.size();
+}
+
+uint64_t Transaction_buffer::find_last_row_boundary_before_impl_no_escape(
+    uint64_t limit) {
+  assert(m_dialect.lines_terminated_by.size());
+  assert(!m_dialect.fields_escaped_by.size());
+
+  const auto &needle = m_dialect.lines_terminated_by;
+  auto p = limit < m_data.length() ? static_cast<size_t>(limit - 1)
+                                   : m_data.length();
+
+  if (p < needle.size()) return 0;
+
+  p = adjust_line_offset(p);
+  p = m_data.rfind(needle, p);
+
+  if (p >= m_data.length()) return 0;
+
+  return p + needle.size();
+}
+
+uint64_t Transaction_buffer::find_first_row_boundary_after_impl_escape() const {
+  assert(m_dialect.lines_terminated_by.size());
+  assert(m_dialect.fields_escaped_by.size());
+
+  const auto &needle = m_dialect.lines_terminated_by;
+  auto p = m_data.find(needle);
+
+  while (p != std::string::npos) {
+    if (!(p > 0 && m_data[p - 1] == m_dialect.fields_escaped_by[0])) {
+      assert(p < m_data.length());
+      return p + needle.size();
+    }
+
+    p += needle.size();
+    p = m_data.find(needle, p);
   }
+
   return 0;
 }
 
-uint64_t Transaction_buffer::find_last_row_boundary_before_impl_dumper(
+uint64_t Transaction_buffer::find_last_row_boundary_before_impl_escape(
     uint64_t limit) {
-  assert(m_dialect.lines_terminated_by.size() == 1);
-  const char delimiter = m_dialect.lines_terminated_by[0];
+  assert(m_dialect.lines_terminated_by.size());
+  assert(m_dialect.fields_escaped_by.size());
 
+  const auto &needle = m_dialect.lines_terminated_by;
+  auto p = limit < m_data.length() ? static_cast<size_t>(limit - 1)
+                                   : m_data.length();
+
+  if (p < needle.size()) return 0;
+
+  p = adjust_line_offset(p);
+  p = m_data.rfind(needle, p);
+
+  while (p != std::string::npos) {
+    if (!(p > 0 && m_data[p - 1] == m_dialect.fields_escaped_by[0])) {
+      assert(p < m_data.length());
+      return p + needle.size();
+    }
+
+    if (p < needle.size()) {
+      break;
+    }
+
+    p -= needle.size();
+    p = m_data.rfind(needle, p);
+  }
+
+  return 0;
+}
+
+uint64_t Transaction_buffer::adjust_line_offset(uint64_t offset) {
   // find boundary of the last row that will fit within the given limit
-  const auto max_length = std::min<size_t>(limit, m_data.length());
-  auto length = max_length;
-
-  if (length == 0) return 0;
-
   if (m_options.offsets) {
     const auto size = m_options.offsets->size();
     bool index_changed = false;
@@ -323,82 +417,22 @@ uint64_t Transaction_buffer::find_last_row_boundary_before_impl_dumper(
       const auto &o = (*m_options.offsets)[m_offset_index];
 
       if (o > m_current_offset) {
-        const auto new_length = o - m_current_offset;
+        const auto new_offset = o - m_current_offset;
 
-        if (new_length > max_length) {
+        if (new_offset > offset) {
           if (index_changed) {
             --m_offset_index;
           }
+
           break;
         }
 
-        length = new_length;
+        return new_offset;
       }
     }
   }
 
-  assert(length <= m_data.length());
-  const auto last_row_end = m_data.rend() - length;
-  const auto delimiter_pos = std::find(last_row_end, m_data.rend(), delimiter);
-  return std::distance(m_data.begin(), delimiter_pos.base());
-}
-
-uint64_t Transaction_buffer::find_first_row_boundary_after_impl_no_escape()
-    const {
-  const auto p = m_data.find(m_dialect.lines_terminated_by);
-  if (p < m_data.length()) {
-    return p + m_dialect.lines_terminated_by.size();
-  }
-  return 0;
-}
-
-uint64_t Transaction_buffer::find_last_row_boundary_before_impl_no_escape(
-    uint64_t limit) {
-  const size_t bound = std::min<size_t>(limit, m_data.length());
-  const std::string &needle = m_dialect.lines_terminated_by;
-  if (bound < needle.size()) return 0;
-  if (bound == 0) return 0;
-  size_t p = m_data.rfind(needle, bound - needle.size());
-  if (p == std::string::npos) return 0;
-  return p + needle.size();
-}
-
-uint64_t Transaction_buffer::find_first_row_boundary_after_impl_escape() const {
-  size_t p = m_data.find(m_dialect.lines_terminated_by);
-
-  while (p != std::string::npos) {
-    if (!(p > 0 && m_data[p - 1] == m_dialect.fields_escaped_by[0])) {
-      assert(p < m_data.length());
-      return p + m_dialect.lines_terminated_by.size();
-    }
-    p += m_dialect.lines_terminated_by.size();
-    p = m_data.find(m_dialect.lines_terminated_by, p);
-  }
-
-  return 0;
-}
-
-uint64_t Transaction_buffer::find_last_row_boundary_before_impl_escape(
-    uint64_t limit) {
-  const size_t bound = std::min<size_t>(limit, m_data.length());
-  const std::string &needle = m_dialect.lines_terminated_by;
-  if (bound < needle.size()) return 0;
-  if (bound == 0) return 0;
-
-  size_t p = m_data.rfind(needle, bound - needle.size());
-  while (p != std::string::npos) {
-    if (!(p > 0 && m_data[p - 1] == m_dialect.fields_escaped_by[0])) {
-      assert(p < m_data.length());
-      return p + needle.size();
-    }
-    if (p < needle.size()) {
-      break;
-    }
-    p -= needle.size();
-    p = m_data.rfind(needle, p);
-  }
-
-  return 0;
+  return offset;
 }
 
 // ------
@@ -724,17 +758,15 @@ void Load_data_worker::execute(
             max_trx_size = m_opt.max_transaction_size();
           }
 
-          fi.buffer = Transaction_buffer(
-              Transaction_buffer::General_Tx_buffer{}, m_opt.dialect(),
-              fi.filehandler.get(), max_trx_size);
+          fi.buffer = Transaction_buffer(m_opt.dialect(), fi.filehandler.get(),
+                                         max_trx_size);
         }
       } else {
         if (file != nullptr) {
           fi.filename = file->full_path().real();
           fi.filehandler = std::move(file);
           file.reset(nullptr);
-          fi.buffer = Transaction_buffer(Transaction_buffer::Dumper_Tx_buffer{},
-                                         m_opt.dialect(), fi.filehandler.get(),
+          fi.buffer = Transaction_buffer(m_opt.dialect(), fi.filehandler.get(),
                                          options);
           fi.filehandler->open(mysqlshdk::storage::Mode::READ);
         }

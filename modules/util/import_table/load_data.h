@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,28 +56,25 @@ struct Transaction_options {
 
 class Transaction_buffer {
  public:
-  struct Dumper_Tx_buffer {};
-  struct General_Tx_buffer {};
-
   Transaction_buffer() = default;
 
-  Transaction_buffer(Dumper_Tx_buffer, Dialect dialect,
-                     mysqlshdk::storage::IFile *file,
+  Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
                      const Transaction_options &options = {})
-      : m_dialect(dialect), m_file(file), m_options(options) {
-    assert(Dialect::default_() == dialect);
-    find_first_row_boundary_after =
-        &Transaction_buffer::find_first_row_boundary_after_impl_dumper;
-    find_last_row_boundary_before =
-        &Transaction_buffer::find_last_row_boundary_before_impl_dumper;
+      : Transaction_buffer(dialect, file, options.max_trx_size) {
+    m_options = options;
   }
 
-  Transaction_buffer(General_Tx_buffer, Dialect dialect,
-                     mysqlshdk::storage::IFile *file,
+  Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
                      uint64_t max_transaction_size)
       : m_dialect(dialect), m_file(file) {
     m_options.max_trx_size = max_transaction_size;
-    if (m_dialect.fields_escaped_by.empty()) {
+
+    if (m_dialect == Dialect::default_()) {
+      find_first_row_boundary_after =
+          &Transaction_buffer::find_first_row_boundary_after_impl_default;
+      find_last_row_boundary_before =
+          &Transaction_buffer::find_last_row_boundary_before_impl_default;
+    } else if (m_dialect.fields_escaped_by.empty()) {
       find_first_row_boundary_after =
           &Transaction_buffer::find_first_row_boundary_after_impl_no_escape;
       find_last_row_boundary_before =
@@ -111,14 +108,16 @@ class Transaction_buffer {
   uint64_t (Transaction_buffer::*find_first_row_boundary_after)() const;
   uint64_t (Transaction_buffer::*find_last_row_boundary_before)(uint64_t);
 
-  uint64_t find_first_row_boundary_after_impl_dumper() const;
-  uint64_t find_last_row_boundary_before_impl_dumper(uint64_t limit);
+  uint64_t find_first_row_boundary_after_impl_default() const;
+  uint64_t find_last_row_boundary_before_impl_default(uint64_t limit);
 
   uint64_t find_first_row_boundary_after_impl_no_escape() const;
   uint64_t find_last_row_boundary_before_impl_no_escape(uint64_t limit);
 
   uint64_t find_first_row_boundary_after_impl_escape() const;
   uint64_t find_last_row_boundary_before_impl_escape(uint64_t limit);
+
+  uint64_t adjust_line_offset(uint64_t offset);
 
   void set_trx_end_offset(uint64_t end) { m_trx_end_offset = m_trx_size + end; }
 
