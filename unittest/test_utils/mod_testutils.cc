@@ -232,6 +232,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("waitForRplApplierError", &Testutils::wait_for_rpl_applier_error,
          "port", "?channel", "");
 
+  expose("stopGroup", &Testutils::stop_group, "ports");
+
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value",
          "?options");
   expose("expectPassword", &Testutils::expect_password, "prompt", "value",
@@ -971,6 +973,51 @@ void Testutils::wait_for_delayed_gr_start(int port,
     throw std::runtime_error(
         "Timeout waiting for the Group Replication Plugin to start/stop");
   }
+}
+
+//!<  @name InnoDB Cluster Utilities
+///@{
+/**
+ * Parallel stop group_replication in all given sandboxes
+ *
+ * @param ports List of sandbox ports
+ */
+#if DOXYGEN_JS
+Undefined Testutils::stopGroup(Array ports);
+#elif DOXYGEN_PY
+None Testutils::stop_group(list ports)
+#endif
+///@}
+void Testutils::stop_group(const shcore::Array_t &ports) {
+  std::vector<std::thread> workers;
+  std::atomic<int> current = 0;
+
+  for (const auto &port : *ports) {
+    workers.push_back(
+        mysqlsh::spawn_scoped_thread([p = port.as_int(), ports, &current]() {
+          mysqlsh::thread_init();
+
+          mysqlshdk::db::Connection_options cnx_opt;
+          cnx_opt.set_user("root");
+          cnx_opt.set_password("root");
+          cnx_opt.set_host("localhost");
+          cnx_opt.set_port(p);
+          auto session = mysqlshdk::db::mysql::Session::create();
+          // connection must happen in order
+          while (p != ports->at(current).as_int()) {
+            shcore::sleep_ms(100);
+          }
+          session->connect(cnx_opt);
+          ++current;
+          session->execute("stop group_replication");
+
+          session->close();
+
+          mysqlsh::thread_end();
+        }));
+  }
+
+  for (auto &thd : workers) thd.join();
 }
 
 //!<  @name Misc Utilities

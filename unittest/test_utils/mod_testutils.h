@@ -248,6 +248,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void restart_sandbox(int port);
 
+  void stop_group(const shcore::Array_t &ports);
+
   void wait_sandbox_alive(const shcore::Value &port_or_uri);
   void wait_sandbox_alive(
       const std::function<std::shared_ptr<mysqlshdk::db::ISession>()> &connect,

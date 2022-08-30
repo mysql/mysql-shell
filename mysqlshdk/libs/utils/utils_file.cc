@@ -718,14 +718,16 @@ std::string get_last_error() {
 #endif
 }
 
-bool load_text_file(const std::string &path, std::string &data) {
+bool load_text_file(const std::string &path, std::string &data,
+                    bool preserve_cr) {
 // NOTE: File needs to be opened in binary mode to avoid CRLF being treated as
 // a single character as it will turn on the fail bit when attempting to read
 // <size> chars from the file
 #ifdef _WIN32
-  std::ifstream s(utf8_to_wide(path), std::ios::binary);
+  std::ifstream s(utf8_to_wide(path),
+                  preserve_cr ? std::ios::binary : std::ios::in);
 #else
-  std::ifstream s(path, std::ios::binary);
+  std::ifstream s(path, preserve_cr ? std::ios::binary : std::ios::in);
 #endif
   if (s.fail()) {
     return false;
@@ -737,12 +739,19 @@ bool load_text_file(const std::string &path, std::string &data) {
   s.read(data.data(), fsize);
 
   // OK if no errors reading
-  return !s.fail();
+  if (s.fail()) {
+    auto err = errno;
+    s.close();
+    errno = err;
+    return false;
+  }
+  return true;
 }
 
-std::string SHCORE_PUBLIC get_text_file(const std::string &path) {
+std::string SHCORE_PUBLIC get_text_file(const std::string &path,
+                                        bool preserve_cr) {
   std::string data;
-  if (!load_text_file(path, data)) {
+  if (!load_text_file(path, data, preserve_cr)) {
     throw std::runtime_error(path + ": " + errno_to_string(errno));
   }
   return data;

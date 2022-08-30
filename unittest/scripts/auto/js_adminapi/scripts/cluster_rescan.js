@@ -687,11 +687,9 @@ cluster = dba.getCluster()
 EXPECT_NO_THROWS(function() { cluster.rescan({updateViewChangeUuid: true}); });
 WIPE_STDOUT();
 
-shell.connect(__sandbox_uri2);
-session.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port2,__mysql_sandbox_port1]);
 
 shell.connect(__sandbox_uri1);
-session.runSql("stop group_replication");
 
 cluster = dba.rebootClusterFromCompleteOutage("c");
 

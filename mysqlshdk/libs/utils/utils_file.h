@@ -85,8 +85,10 @@ void SHCORE_PUBLIC create_directory(const std::string &path,
 void SHCORE_PUBLIC remove_directory(const std::string &path,
                                     bool recursive = true);
 std::string SHCORE_PUBLIC get_last_error();
-bool SHCORE_PUBLIC load_text_file(const std::string &path, std::string &data);
-std::string SHCORE_PUBLIC get_text_file(const std::string &path);
+bool SHCORE_PUBLIC load_text_file(const std::string &path, std::string &data,
+                                  bool preserve_cr = true);
+std::string SHCORE_PUBLIC get_text_file(const std::string &path,
+                                        bool preserve_cr = true);
 void SHCORE_PUBLIC delete_file(const std::string &filename, bool quiet = true);
 bool SHCORE_PUBLIC create_file(const std::string &name,
                                const std::string &content,

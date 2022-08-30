@@ -116,25 +116,9 @@ dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycn
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
-//@<> BUG#29305551: Reset gr_start_on_boot on all instances
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
-disable_auto_rejoin(__mysql_sandbox_port3);
+//@<> BUG#29305551: bring down cluster
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
-//@<> BUG#29305551: Kill all cluster members.
-c.disconnect();
-shell.connect(__sandbox_uri1);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
-session.close();
-testutil.killSandbox(__mysql_sandbox_port1);
-
-//@<> BUG#29305551: Start the members again.
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port3);
-testutil.startSandbox(__mysql_sandbox_port1);
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
@@ -170,8 +154,7 @@ c.status();
 //
 // Even if replication is not running but configured, the warning/error has to
 // be provided as implemented in BUG#29305551
-session1.runSql("STOP group_replication");
-session3.runSql("STOP group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port3]);
 session2.runSql("STOP SLAVE");
 
 //@ BUG#32197197 - Reboot cluster from complete outage, rejoin fails with channels stopped
@@ -186,8 +169,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 c.status();
 
 //@<> BUG#32112864 - REBOOTCLUSTERFROMCOMPLETEOUTAGE() DOES NOT EXCLUDE INSTANCES IF IN OPTION "REMOVEINSTANCES" LIST
-session1.runSql("STOP group_replication;")
-session3.runSql("STOP group_replication;")
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port3]);
 session3.runSql("SET GLOBAL super_read_only=0");
 session3.runSql("CREATE DATABASE ERRANTDB2");
 

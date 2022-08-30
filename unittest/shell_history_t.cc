@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -598,7 +598,7 @@ TEST_F(Shell_history, history_linenoise) {
     EXPECT_EQ("Command history file saved with 0 entries.\n\n", m_capture);
 
     std::string hdata;
-    shcore::load_text_file(hist_file, hdata);
+    shcore::load_text_file(hist_file, hdata, false);
     EXPECT_EQ("", hdata);
   }
   shcore::delete_file(hist_file);
@@ -939,7 +939,7 @@ TEST_F(Shell_history, history_management) {
   shell.process_line("\\history save\n");
 
   std::string hist;
-  shcore::load_text_file(histfile, hist);
+  shcore::load_text_file(histfile, hist, false);
   EXPECT_TRUE(hist.find("'hello'") != std::string::npos);
   EXPECT_FALSE(hist.find("'test1'") != std::string::npos);
   EXPECT_FALSE(hist.find("'test2'") != std::string::npos);
@@ -976,7 +976,7 @@ TEST_F(Shell_history, history_management) {
   // stripped
   shell.process_line("if (123)\nbar=456;\n");
   shell.process_line("\\history save\n");
-  shcore::load_text_file(histfile, hist);
+  shcore::load_text_file(histfile, hist, false);
   EXPECT_TRUE(hist.find("if (123) bar=456") != std::string::npos);
 
   shell.process_line("\\history clear\n");
@@ -1582,7 +1582,7 @@ TEST_F(Shell_history, never_filter_latest) {
 
   // this should clear the set password line
   shell._history.save("testhistory");
-  std::string data = shcore::get_text_file("testhistory");
+  std::string data = shcore::get_text_file("testhistory", false);
   EXPECT_EQ("select 1;\n", data);
   shcore::delete_file("testhistory");
 

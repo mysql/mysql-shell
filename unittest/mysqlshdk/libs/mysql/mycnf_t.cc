@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,7 +49,7 @@ log_general=1
                                      {"bin_log", {"/var/lib/mysql/binlog"}}});
 
   std::string file;
-  shcore::load_text_file(TEST_FILE, file);
+  shcore::load_text_file(TEST_FILE, file, false);
 
   static const char *expected = R"*([mysql]
 user=foo
@@ -78,7 +78,7 @@ user=bla
                  std::vector<Option>{{"user", {}}, {"password", {}}});
 
   std::string file;
-  shcore::load_text_file(TEST_FILE, file);
+  shcore::load_text_file(TEST_FILE, file, false);
 
   static const char *expected = R"*([mysql]
 user=foo
@@ -107,7 +107,7 @@ bar
                      {"foo", {"hello world"}}, {"bar", {"x"}}, {"baz", {""}}});
 
   std::string file;
-  shcore::load_text_file(TEST_FILE, file);
+  shcore::load_text_file(TEST_FILE, file, false);
 
   static const char *expected = R"*([mysql]
 user=foo
@@ -132,7 +132,7 @@ TEST(Mycnf, update_options_empty) {
                      {"foo", {"hello world"}}, {"bar", {"x"}}, {"baz", {""}}});
 
   std::string file;
-  shcore::load_text_file(TEST_FILE, file);
+  shcore::load_text_file(TEST_FILE, file, false);
 
   static const char *expected = R"*([mysqld]
 foo=hello world

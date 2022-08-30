@@ -155,12 +155,7 @@ disable_auto_rejoin(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
 //@<> Kill GR in all instances
-session1 = mysql.getSession(__sandbox_uri1);
-session1.runSql("stop group_replication");
-session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("stop group_replication");
-session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 //@<> Re-establish the connection to instance 1
 shell.connect(__sandbox_uri1);

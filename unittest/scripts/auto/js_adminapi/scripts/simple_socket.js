@@ -114,8 +114,7 @@ session2 = mysql.getSession(sockuri2);
 cluster.rejoinInstance(sockuri2);
 
 //@<> rebootClusterFromCompleteOutage
-session1.runSql("STOP group_replication");
-session2.runSql("STOP group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 
 cluster = dba.rebootClusterFromCompleteOutage();
 

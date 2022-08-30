@@ -10,8 +10,7 @@ function retry_with_success() {
 
   // Clean-up for the next test
   session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
-  session.runSql("STOP group_replication");
-  session2.runSql("STOP group_replication");
+  testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 
   cluster = dba.createCluster("cluster");
   cluster.addInstance(__sandbox_uri2);

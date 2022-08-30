@@ -11,15 +11,13 @@ var row = res.fetchOne();
 EXPECT_EQ("pm", row[0]);
 
 // Change topology type manually to multiprimary (on all instances)
-session.runSql('STOP GROUP_REPLICATION');
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 session.runSql('SET GLOBAL group_replication_single_primary_mode=OFF');
 session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-session.runSql('STOP GROUP_REPLICATION');
 session.runSql('SET GLOBAL group_replication_single_primary_mode=OFF');
 session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
-session.runSql('STOP GROUP_REPLICATION');
 session.runSql('SET GLOBAL group_replication_single_primary_mode=OFF');
 session.close();
 
@@ -69,15 +67,13 @@ EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
 
 //@<> Change topology type manually back to primary master (on all instances)
-session.runSql('STOP GROUP_REPLICATION');
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 session.runSql('SET GLOBAL group_replication_single_primary_mode=ON');
 session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-session.runSql('STOP GROUP_REPLICATION');
 session.runSql('SET GLOBAL group_replication_single_primary_mode=ON');
 session.close();
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
-session.runSql('STOP GROUP_REPLICATION');
 session.runSql('SET GLOBAL group_replication_single_primary_mode=ON');
 session.close();
 

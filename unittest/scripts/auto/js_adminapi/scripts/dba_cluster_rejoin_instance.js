@@ -52,6 +52,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // stop instance 2
 // Use stop sandbox instance to make sure the instance is gone before restarting it
+disable_auto_rejoin(__mysql_sandbox_port2);
 testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Waiting for instance 2 to become missing

@@ -80,13 +80,12 @@ session3 = mysql.getSession(__sandbox_uri3);
 var vars1 = session1.runSql("show variables like 'group_replication%'").fetchAll();
 var vars2 = session2.runSql("show variables like 'group_replication%'").fetchAll();
 
-session1.runSql("STOP group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 session1.runSql("set global super_read_only=0");
 session1.runSql("set sql_log_bin=0");
 session1.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
 session1.runSql("uninstall plugin group_replication");
 
-session2.runSql("STOP group_replication");
 session2.runSql("set global super_read_only=0");
 session2.runSql("set sql_log_bin=0");
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
@@ -257,10 +256,8 @@ session.close();
 
 //@<> Reboot cluster resets group_seeds because peer members could be unreachable
 // Bug #33389693 Can't reboot after total outage with group_seeds set
-shell.connect(__sandbox_uri2);
-session.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 shell.connect(__sandbox_uri1);
-session.runSql("stop group_replication");
 
 session.runSql("set global group_replication_group_seeds='127.0.0.1:"+__mysql_sandbox_gr_port2+",unreachable:1234'")
 

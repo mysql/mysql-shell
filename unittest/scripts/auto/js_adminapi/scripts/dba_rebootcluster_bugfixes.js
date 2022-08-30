@@ -163,8 +163,7 @@ disable_auto_rejoin(__mysql_sandbox_port2);
 c.disconnect();
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
-session1.runSql("stop group_replication");
-session2.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 
 //@<> BUG#29305551: Setup asynchronous replication
 shell.connect(__sandbox_uri1);
@@ -297,10 +296,9 @@ shell.connect(__sandbox_uri2);
 var c = dba.getCluster("test");
 c.status();
 
-session.runSql("stop group_replication"); // stop at sb2
+testutil.stopGroup([__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("stop group_replication");
 
 shell.connect(__sandbox_uri2);
 var c = dba.rebootClusterFromCompleteOutage("test", {force: true});
