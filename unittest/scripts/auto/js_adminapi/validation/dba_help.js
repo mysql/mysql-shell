@@ -464,6 +464,8 @@ DESCRIPTION
         multiple writable instances. Deprecated.
       - communicationStack: The Group Replication protocol stack to be used in
         the Cluster: XCom (legacy) or MySQL.
+      - transactionSizeLimit: integer value to configure the maximum
+        transaction size in bytes which the Cluster accepts
 
       An InnoDB cluster may be setup in two ways:
 
@@ -670,6 +672,18 @@ DESCRIPTION
       address (localAddress), and introduces user-based authentication.
 
       The default value for Clusters running 8.0.27+ is 'MySQL'.
+
+      The value for transactionSizeLimit is used to set the Group Replication
+      system variable 'group_replication_transaction_size_limit' and configures
+      the maximum transaction size in bytes which the Cluster accepts.
+      Transactions larger than this size are rolled back by the receiving
+      member and are not broadcast to the Cluster.
+
+      The transactionSizeLimit option accepts positive integer values and, if
+      set to zero, there is no limit to the size of transactions the Cluster
+      accepts
+
+      All members added or rejoined to the Cluster will use the same value.
 
       ATTENTION: The clearReadOnly option will be removed in a future release.
 

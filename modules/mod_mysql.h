@@ -90,14 +90,13 @@ std::shared_ptr<shcore::Object_bridge> get_session(
     const char *password = nullptr);
 
 virtual shcore::Value get_member(const std::string &prop) const;
+#endif
 
-shcore::Value split_script(const std::string &sql) const;
-shcore::Value parse_statement_ast(const std::string &sql) const;
+shcore::Value split_script(const std::string &script) const;
+shcore::Value parse_statement_ast(const std::string &statement) const;
 
 std::string quote_identifier(const std::string &s) const;
 std::string unquote_identifier(const std::string &s) const;
-
-#endif
 
 private:
 shcore::Object_bridge_ref _type;

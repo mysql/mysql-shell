@@ -605,7 +605,7 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
   iterate_sql_stream(
       stream, chunk_size,
       [&results](const char *s, size_t len, const std::string &delim,
-                 size_t lnum) {
+                 size_t lnum, size_t) {
         results.emplace_back(std::string(s, len), delim, lnum);
         return true;
       },
@@ -613,15 +613,18 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
   return results;
 }
 
-std::vector<std::string> split_sql(const std::string &str) {
+std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes) {
   std::istringstream s(str);
-  auto parts = split_sql_stream(&s, str.size(), [](const std::string &err) {
-    throw std::runtime_error("Error splitting SQL script: " + err);
-  });
+  auto parts = split_sql_stream(
+      &s, str.size(),
+      [](const std::string &err) {
+        throw std::runtime_error("Error splitting SQL script: " + err);
+      },
+      ansi_quotes);
 
   std::vector<std::string> stmts;
   for (const auto &p : parts) {
-    stmts.emplace_back(std::get<0>(p) + std::get<1>(p));
+    stmts.emplace_back(std::get<0>(p));
   }
   return stmts;
 }
@@ -644,19 +647,21 @@ bool iterate_sql_stream(
     std::istream *stream, size_t chunk_size,
     const std::function<bool(const char * /* string */, size_t /* length */,
                              const std::string & /* delimiter */,
-                             size_t /* line_num */)> &callback,
+                             size_t /* line_num */, size_t /* offset */)>
+        &callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
     std::string *delimiter, Sql_splitter **splitter_ptr) {
   assert(chunk_size > 0);
 
   bool stop = false;
+  std::string buffer;
 
   Sql_splitter splitter(
-      [callback, &stop](const char *s, size_t len, bool bol,
-                        size_t lnum) -> std::pair<size_t, bool> {
+      [callback, &stop, &buffer](const char *s, size_t len, bool bol,
+                                 size_t lnum) -> std::pair<size_t, bool> {
         if (!bol) len = 2;
         if (s[1] != 'g' && s[1] != 'G') {
-          if (!callback(s, len, "", lnum)) stop = true;
+          if (!callback(s, len, "", lnum, s - &buffer[0])) stop = true;
           return std::make_pair(len, false);
         }
         return std::make_pair(2U, true);
@@ -666,32 +671,34 @@ bool iterate_sql_stream(
   if (delimiter) splitter.set_delimiter(*delimiter);
   if (splitter_ptr) *splitter_ptr = &splitter;
 
-  std::string buffer;
   buffer.resize(chunk_size);
 
   stream->read(&buffer[0], chunk_size);
   buffer.resize(stream->gcount());
   splitter.feed_chunk(&buffer[0], buffer.size());
   size_t old_chunk_size = splitter.chunk_size();
+  size_t offset = 0;
 
   while (!splitter.eof() && !stop) {
     Sql_splitter::Range range;
     std::string delim;
 
     if (splitter.next_range(&range, &delim)) {
-      if (!callback(&buffer[range.offset], range.length, delim, range.line_num))
+      if (!callback(&buffer[range.offset], range.length, delim, range.line_num,
+                    offset + range.offset))
         stop = true;
     } else {
       // flush if this is the last chunk, even if statement is unfinished
       if (splitter.is_last_chunk() && range.length > 0) {
         if (!callback(&buffer[range.offset], range.length, delim,
-                      range.line_num))
+                      range.line_num, offset + range.offset))
           stop = true;
         break;
       }
 
       size_t shrinkage = old_chunk_size - splitter.chunk_size();
       if (range.offset > 0) {
+        offset += range.offset;
         memmove(&buffer[0], &buffer[range.offset],
                 buffer.size() - range.offset - shrinkage);
         buffer.resize(buffer.size() - range.offset - shrinkage);

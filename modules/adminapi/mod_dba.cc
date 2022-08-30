@@ -284,6 +284,10 @@ REGISTER_HELP(CLUSTER_OPT_COMM_STACK,
 REGISTER_HELP(CLUSTER_OPT_LOCAL_ADDRESS,
               "@li localAddress: string value with the Group Replication local "
               "address to be used instead of the automatically generated one.");
+REGISTER_HELP(
+    CLUSTER_OPT_TRANSACTION_SIZE_LIMIT,
+    "@li transactionSizeLimit: integer value to configure the maximum "
+    "transaction size in bytes which the Cluster accepts");
 
 REGISTER_HELP(
     OPT_INTERACTIVE,
@@ -453,6 +457,18 @@ specified, the default value is the port of the target instance if the
 communication stack in use by the Cluster is 'MYSQL', otherwise, port * 10 + 1
  when the communication stack is 'XCOM'. In case the automatically determined
  default port value is invalid (> 65535) then an error is thrown.)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA, R"*(
+The value for transactionSizeLimit is used to set the Group Replication
+system variable 'group_replication_transaction_size_limit' and
+configures the maximum transaction size in bytes which the Cluster
+accepts. Transactions larger than this size are rolled back by the receiving
+member and are not broadcast to the Cluster.
+
+The transactionSizeLimit option accepts positive integer values and, if set to
+zero, there is no limit to the size of transactions the Cluster accepts
+
+All members added or rejoined to the Cluster will use the same value.)*");
 
 // TODO create a dedicated topic for InnoDB clusters and replicasets,
 // with a quick tutorial for both, in addition to more deep technical info
@@ -1252,6 +1268,7 @@ disabled. Deprecated.
 @li multiMaster: boolean value used to define an InnoDB cluster with multiple
 writable instances. Deprecated.
 ${CLUSTER_OPT_COMM_STACK}
+${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
 
 An InnoDB cluster may be setup in two ways:
 
@@ -1336,6 +1353,8 @@ ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
 ${CLUSTER_OPT_COMM_STACK_EXTRA}
+
+${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
 
 @attention The clearReadOnly option will be removed in a future release.
 

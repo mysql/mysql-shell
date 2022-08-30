@@ -31,8 +31,8 @@ session.runSql("select * from testdb2.table2").fetchAll();
 //@! importData badfile
 testutil.importData(__sandbox_uri1, "badfile.sql");
 
-//@! importData badpass
-testutil.importData("root:bla@localhost:"+__mysql_sandbox_port1, "dump.sql");
+//@<> importData badpass
+EXPECT_THROWS(function(){testutil.importData("root:bla@localhost:"+__mysql_sandbox_port1, "dump.sql");}, "mysql exited with code");
 
 //@<> setTrap {!__dbug_off && !__recording && !__replaying}
 

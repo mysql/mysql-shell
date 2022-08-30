@@ -730,7 +730,7 @@ std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state(
 
 std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
     const std::vector<std::string> &ignored_instances, bool skip_invalid_state,
-    bool persist_only, bool best_effort) const {
+    bool persist_only, bool best_effort, bool allow_cluster_offline) const {
   auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
   auto console = mysqlsh::current_console();
@@ -738,7 +738,7 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
   // Get all cluster instances, including state information to update
   // auto-increment values.
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-      instance_defs = get_instances_with_state();
+      instance_defs = get_instances_with_state(allow_cluster_offline);
 
   for (const auto &instance_def : instance_defs) {
     // If instance is on the list of instances to be ignored, skip it.
@@ -2268,6 +2268,13 @@ const std::string Cluster_impl::get_communication_stack() const {
   return get_cluster_server()
       ->get_sysvar_string("group_replication_communication_stack")
       .get_safe(kCommunicationStackXCom);
+}
+
+int64_t Cluster_impl::get_transaction_size_limit() const {
+  // Get it from the primary member
+  return get_cluster_server()
+      ->get_sysvar_int(kGrTransactionSizeLimit)
+      .get_safe();
 }
 
 shcore::Value Cluster_impl::check_instance_state(

@@ -171,6 +171,8 @@ class Cluster_impl final : public Base_cluster_impl,
 
   const std::string get_communication_stack() const;
 
+  int64_t get_transaction_size_limit() const;
+
   Cluster_type get_type() const override {
     return Cluster_type::GROUP_REPLICATION;
   }
@@ -438,7 +440,7 @@ class Cluster_impl final : public Base_cluster_impl,
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       const std::vector<std::string> &ignored_instances = {},
       bool skip_invalid_state = false, bool persist_only = false,
-      bool best_effort = false) const;
+      bool best_effort = false, bool allow_cluster_offline = false) const;
 
   void query_group_wide_option_values(
       mysqlshdk::mysql::IInstance *target_instance,

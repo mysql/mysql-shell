@@ -235,6 +235,97 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   ASSERT_EQ(10, issues.size());
 }
 
+TEST_F(MySQL_upgrade_check_test, syntax_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+  static const char *test_objects[] = {
+      R"*(CREATE PROCEDURE testsp1()
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+END)*",
+      R"*(CREATE PROCEDURE testsp1_ok()
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW`  INT DEFAULT 4;
+END)*",
+      R"*(CREATE FUNCTION testf1() RETURNS INT
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+      R"*(CREATE FUNCTION testf1_ok() RETURNS INT
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW`  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+      R"*(CREATE PROCEDURE testsp2()
+BEGIN
+  CREATE TABLE reservedTestTable (
+      ROWS binary(16) NOT NULL,
+      ROW binary(16) NOT NULL,
+      C datetime NOT NULL,
+      D varchar(32) NOT NULL,
+      E longtext NOT NULL,
+      PRIMARY KEY (ROWS,`C`),
+      KEY `BD_idx` (ROW,`D`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+END)*",
+      R"*(CREATE PROCEDURE testsp2_ok()
+BEGIN
+  CREATE TABLE reservedTestTable (
+      `ROWS` binary(16) NOT NULL,
+      `ROW` binary(16) NOT NULL,
+      C datetime NOT NULL,
+      D varchar(32) NOT NULL,
+      E longtext NOT NULL,
+      PRIMARY KEY (`ROWS`,`C`),
+      KEY `BD_idx` (`ROW`,`D`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+END)*",
+      "CREATE TABLE testbl (a int primary key)",
+      R"*(CREATE TRIGGER mytrigger BEFORE INSERT ON testbl FOR EACH ROW
+       BEGIN
+        DECLARE rows INT DEFAULT 0;
+        DECLARE ROW  INT DEFAULT 4;
+      END)*",
+      R"*(CREATE TRIGGER mytrigger_ok BEFORE INSERT ON testbl
+       FOR EACH ROW
+      BEGIN 
+        DECLARE `rows` INT DEFAULT 0;
+        DECLARE `ROW` INT DEFAULT 4;
+      END)*",
+      R"*(CREATE EVENT myevent ON SCHEDULE AT '2000-01-01 00:00:00'
+     ON COMPLETION PRESERVE DO
+     begin
+      DECLARE rows INT DEFAULT 0;
+      DECLARE ROW INT DEFAULT 4;
+     end)*",
+      R"*(CREATE EVENT myevent_ok ON SCHEDULE AT '2000-01-01 00:00:00'
+     ON COMPLETION PRESERVE DO
+     begin
+      DECLARE `rows` INT DEFAULT 0;
+      DECLARE `ROW` INT DEFAULT 4;
+     end)*"};
+
+  auto check = Sql_upgrade_check::get_routine_syntax_check();
+  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_NO_ISSUES(check.get());
+
+  PrepareTestDatabase("testdb");
+  for (const char *sql : test_objects) {
+    ASSERT_NO_THROW(session->execute(sql));
+  }
+
+  EXPECT_ISSUES(check.get(), 5);
+  EXPECT_ISSUE(issues[0], "testdb", "testsp1", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[1], "testdb", "testsp2", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[2], "testdb", "testf1", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[3], "testdb", "mytrigger", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[4], "testdb", "myevent", "", Upgrade_issue::ERROR);
+}
+
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 

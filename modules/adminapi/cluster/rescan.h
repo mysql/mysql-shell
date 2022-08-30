@@ -206,6 +206,18 @@ class Rescan : public Command_interface {
       const std::string &view_change_uuid = "");
 
   /**
+   * Ensures group_replication_transaction_size_limit is stored in the Metadata
+   * schema.
+   */
+  void ensure_transaction_size_limit_stored_metadata();
+
+  /**
+   * Ensures group_replication_transaction_size_limit is the same in all cluster
+   * members
+   */
+  void ensure_transaction_size_limit_consistency();
+
+  /**
    * Ensures the recovery accounts in use by each cluster member match the one
    * created for itself
    */

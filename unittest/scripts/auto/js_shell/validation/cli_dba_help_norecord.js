@@ -275,6 +275,10 @@ OPTIONS
             The Group Replication protocol stack to be used in the Cluster:
             XCom (legacy) or MySQL.
 
+--transactionSizeLimit=<int>
+            Integer value to configure the maximum transaction size in bytes
+            which the Cluster accepts
+
 --disableClone=<bool>
             Boolean value used to disable the clone usage on the cluster.
 

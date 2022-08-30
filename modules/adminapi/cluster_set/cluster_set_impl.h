@@ -239,6 +239,10 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void update_replication_allowed_host(const std::string &host);
 
+  void restore_transaction_size_limit(Cluster_impl *replica, bool dry_run);
+
+  void set_maximum_transaction_size_limit(Cluster_impl *replica, bool dry_run);
+
   Global_topology_type m_topology_type;
   std::shared_ptr<Cluster_impl> m_primary_cluster;
 };

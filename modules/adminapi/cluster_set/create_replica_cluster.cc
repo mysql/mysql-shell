@@ -95,6 +95,11 @@ Create_replica_cluster::prepare_create_cluster_options() {
 
   options->clone_options = no_clone_options;
 
+  // Set the maximum value for Replica Clusters by default
+  // Required to avoid a failure in the ClusterSet replication channel due to
+  // transaction sizes in the Replica side being bigger than on the source.
+  options->gr_options.transaction_size_limit = static_cast<int64_t>(0);
+
   return options;
 }
 
@@ -444,6 +449,15 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
     m_cluster_set->get_metadata_storage()->update_cluster_attribute(
         cluster->get_id(), k_cluster_attribute_assume_gtid_set_complete,
         shcore::Value::True());
+  }
+
+  // Store the value of group_replication_transaction_size_limit inherited from
+  // the Primary Cluster
+  if (!m_options.dry_run) {
+    m_cluster_set->get_metadata_storage()->update_cluster_attribute(
+        cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+        shcore::Value(m_cluster_set->get_primary_cluster()
+                          ->get_transaction_size_limit()));
   }
 
   return cluster;

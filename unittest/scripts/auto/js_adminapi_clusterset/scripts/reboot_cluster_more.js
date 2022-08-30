@@ -158,6 +158,8 @@ testutil.killSandbox(__mysql_sandbox_port1);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.killSandbox(__mysql_sandbox_port3);
 
+disable_auto_rejoin(__mysql_sandbox_port4);
+disable_auto_rejoin(__mysql_sandbox_port5);
 testutil.killSandbox(__mysql_sandbox_port4);
 testutil.killSandbox(__mysql_sandbox_port5);
 

@@ -33,8 +33,8 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
-      parseStatementAst(statement)
-            Parse a MySQL statement and return its AST representation.
+      parseStatementAst(sql)
+            Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
             Quote a string as a MySQL identifier, escaping characters when
@@ -280,14 +280,14 @@ WHERE
 
 //@<OUT> parseStatementAst
 NAME
-      parseStatementAst - Parse a MySQL statement and return its AST
+      parseStatementAst - Parse MySQL statements and return its AST
                           representation.
 
 SYNTAX
-      mysql.parseStatementAst(statement)
+      mysql.parseStatementAst(sql)
 
 WHERE
-      statement: The SQL statement to parse
+      sql: SQL statements to be parsed
 
 RETURNS
       AST encoded as a JSON structure

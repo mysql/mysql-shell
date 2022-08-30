@@ -344,18 +344,18 @@ Array splitScript(String script) {}
 #elif DOXYGEN_PY
 list split_script(str script) {}
 #endif
-shcore::Value Mysql::split_script(const std::string &sql) const {
+shcore::Value Mysql::split_script(const std::string &script) const {
   shcore::Array_t array = shcore::make_array();
-  for (auto s : mysqlshdk::utils::split_sql(sql))
+  for (auto s : mysqlshdk::utils::split_sql(script))
     array->emplace_back(std::move(s));
   return shcore::Value(array);
 }
 
 REGISTER_HELP_FUNCTION(parseStatementAst, mysql);
 REGISTER_HELP_FUNCTION_TEXT(MYSQL_PARSESTATEMENTAST, R"*(
-Parse a MySQL statement and return its AST representation.
+Parse MySQL statements and return its AST representation.
 
-@param statement The SQL statement to parse
+@param sql SQL statements to be parsed
 
 @returns AST encoded as a JSON structure
 )*");
@@ -367,27 +367,46 @@ Parse a MySQL statement and return its AST representation.
  * $(MYSQL_PARSESTATEMENTAST)
  */
 #if DOXYGEN_JS
-Dictionary parseStatementAst(String statement) {}
+Dictionary parseStatementAst(String statements) {}
 #elif DOXYGEN_PY
-dict parse_statement_ast(str statement) {}
+dict parse_statement_ast(str statements) {}
 #endif
 shcore::Value Mysql::parse_statement_ast(const std::string &sql) const {
   auto array = shcore::make_array();
+  int errors = 0;
   shcore::Value root =
       shcore::Value(shcore::make_dict("children", shcore::Value(array)));
 
-  mysqlshdk::parser::traverse_statement_ast<shcore::Value>(
-      sql, &root,
-      [](const mysqlshdk::parser::AST_node &node, shcore::Value *parent) {
-        auto parent_list = parent->as_map()->get_array("children");
-
-        if (node.is_terminal) {
-          parent_list->emplace_back(
-              shcore::make_dict("symbol", node.name, "text", node.text));
-        } else {
+  mysqlshdk::parser::traverse_script_ast<shcore::Value>(
+      sql, {}, false, false, &root, [](const std::string &, size_t, bool) {},
+      [](const mysqlshdk::parser::AST_rule_node &node, bool enter,
+         shcore::Value *parent) -> shcore::Value * {
+        if (enter) {
+          auto parent_list = parent->as_map()->get_array("children");
           parent_list->emplace_back(shcore::make_dict(
               "rule", node.name, "children", shcore::make_array()));
+          return &parent_list->back();
         }
+        return nullptr;
+      },
+      [](const mysqlshdk::parser::AST_terminal_node &node,
+         shcore::Value *parent) {
+        auto parent_list = parent->as_map()->get_array("children");
+
+        parent_list->emplace_back(
+            shcore::make_dict("symbol", node.name, "text", node.text));
+
+        return &parent_list->back();
+      },
+      [&errors](const mysqlshdk::parser::AST_error_node &node,
+                shcore::Value *parent) {
+        auto parent_list = parent->as_map()->get_array("children");
+
+        ++errors;
+        parent_list->emplace_back(shcore::make_dict(
+            "symbol", node.name, "text", node.text, "line", node.line, "offset",
+            node.offset, "error", shcore::Value(1)));
+
         return &parent_list->back();
       });
 

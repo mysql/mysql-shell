@@ -852,11 +852,6 @@ std::pair<std::string, shcore::Value> recovery_status(
   return {status, info};
 }
 
-struct Instance_metadata_info {
-  Instance_metadata md;
-  std::string actual_server_uuid;
-};
-
 void check_parallel_appliers(
     shcore::Array_t issues, const mysqlshdk::utils::Version &instance_version,
     const Parallel_applier_options &parallel_applier_options) {
@@ -941,6 +936,22 @@ void check_host_metadata(shcore::Array_t issues, Instance *instance,
   }
 }
 
+void check_transaction_size_limit(shcore::Array_t issues, Instance *instance,
+                                  int64_t cluster_transaction_size_limit) {
+  // Check if the instance's value for group_replication_transaction_size_limit
+  // matches the Cluster's one
+  int64_t instance_transaction_size_limit =
+      instance->get_sysvar_int(kGrTransactionSizeLimit).get_safe();
+
+  if (cluster_transaction_size_limit != -1 &&
+      instance_transaction_size_limit != cluster_transaction_size_limit) {
+    issues->push_back(shcore::Value(
+        "WARNING: The value of 'group_replication_transaction_size_limit' does "
+        "not match the Cluster's configured value. Use Cluster.rescan() to "
+        "repair."));
+  }
+}
+
 shcore::Array_t instance_diagnostics(
     Instance *instance, const Cluster_impl *cluster,
     const Instance_metadata_info &instance_md,
@@ -948,7 +959,8 @@ shcore::Array_t instance_diagnostics(
     const mysqlshdk::mysql::Replication_channel &applier_channel,
     const mysqlshdk::utils::nullable<bool> &super_read_only,
     const mysqlshdk::gr::Member &minfo, mysqlshdk::gr::Member_state self_state,
-    const Parallel_applier_options &parallel_applier_options) {
+    const Parallel_applier_options &parallel_applier_options,
+    int64_t cluster_transaction_size_limit) {
   shcore::Array_t issues = shcore::make_array();
 
   // split-brain
@@ -1023,6 +1035,11 @@ shcore::Array_t instance_diagnostics(
 
   if (instance_version >= mysqlshdk::utils::Version(8, 0, 23)) {
     check_parallel_appliers(issues, instance_version, parallel_applier_options);
+  }
+
+  if (instance) {
+    check_transaction_size_limit(issues, instance,
+                                 cluster_transaction_size_limit);
   }
 
   return issues;
@@ -1422,7 +1439,8 @@ shcore::Dictionary_t Status::get_topology(
 
     shcore::Array_t issues = instance_diagnostics(
         instance.get(), &m_cluster, inst, recovery_channel, applier_channel,
-        super_read_only, minfo, self_state, parallel_applier_options);
+        super_read_only, minfo, self_state, parallel_applier_options,
+        *m_cluster_transaction_size_limit);
 
     if (offline_mode.get_safe(false))
       issues->push_back(
@@ -1584,14 +1602,42 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  (*ret)["topology"] = shcore::Value(get_topology(member_info));
-
   {
     auto issues = group_diagnostics(&m_cluster, member_info, protocol_version);
+
+    // Get the Cluster's transaction size_limit stored in the Metadata if the
+    // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
+    // should be the value of the primary member
+    shcore::Value value;
+    bool is_replica_cluster =
+        m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster();
+
+    if (group_instance) {
+      m_cluster_transaction_size_limit =
+          m_cluster.get_cluster_server()
+              ->get_sysvar_int(kGrTransactionSizeLimit)
+              .get_safe();
+    }
+
+    if (!is_replica_cluster) {
+      if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
+              m_cluster.get_id(), k_cluster_attribute_transaction_size_limit,
+              &value)) {
+        issues->push_back(
+            shcore::Value("WARNING: Cluster's transaction size limit is not "
+                          "registered in the metadata. Use "
+                          "cluster.rescan() to update the metadata."));
+
+      } else {
+        m_cluster_transaction_size_limit = value.as_int();
+      }
+    }
 
     if (issues && !issues->empty())
       (*ret)["clusterErrors"] = shcore::Value(issues);
   }
+
+  (*ret)["topology"] = shcore::Value(get_topology(member_info));
 
   return ret;
 }

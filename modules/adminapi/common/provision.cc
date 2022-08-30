@@ -228,6 +228,12 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
     config->set("group_replication_communication_stack",
                 gr_opts.communication_stack, "communicationStack");
   }
+
+  // Set GR transaction size limit (if provided).
+  if (!gr_opts.transaction_size_limit.is_null()) {
+    config->set(mysqlsh::dba::kGrTransactionSizeLimit,
+                gr_opts.transaction_size_limit, "transactionSizeLimit");
+  }
 }
 
 void report_gr_start_error(const mysqlshdk::mysql::IInstance &instance,
@@ -736,7 +742,8 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - expel timeout (if provided);
   // - auto-rejoin tries (if provided);
   // - Enable GR start on boot;
-  // - communication stack (if provided)
+  // - communication stack (if provided).
+  // - transactionSizeLimit (if provided)
   set_gr_options(instance, gr_opts, config, single_primary_mode);
 
   if (multi_primary) {

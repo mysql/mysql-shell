@@ -52,6 +52,9 @@ constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
 constexpr const char k_cluster_attribute_replication_allowed_host[] =
     "opt_replicationAllowedHost";
 
+constexpr const char k_cluster_attribute_transaction_size_limit[] =
+    "opt_transactionSizeLimit";
+
 // Cluster capabilities
 constexpr const char k_cluster_capabilities[] = "capabilities";
 

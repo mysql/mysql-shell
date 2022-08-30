@@ -111,6 +111,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 "variable": "group_replication_ssl_mode"
             },
             {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
                 "option": "disableClone",
                 "value": false
             },
@@ -435,6 +440,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
             },
             {
                 "option": "disableClone",

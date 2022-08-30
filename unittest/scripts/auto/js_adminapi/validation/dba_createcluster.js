@@ -361,6 +361,11 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 "variable": "group_replication_ssl_mode"
             },
             {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
                 "option": "disableClone",
                 "value": <<<(__version_num>=80017)?"false":"true">>>
             },
@@ -495,6 +500,11 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 "variable": "group_replication_ssl_mode"
             },
             {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
                 "option": "disableClone",
                 "value": true
             },
@@ -623,6 +633,11 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 "option": "memberSslMode",
                 "value": "REQUIRED",
                 "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
             },
             {
                 "option": "disableClone",

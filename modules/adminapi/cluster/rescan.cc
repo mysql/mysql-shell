@@ -717,6 +717,85 @@ void Rescan::ensure_view_change_uuid_set_stored_metadata(
   }
 }
 
+void Rescan::ensure_transaction_size_limit_stored_metadata() {
+  auto console = mysqlsh::current_console();
+  shcore::Value value;
+
+  // Check if transaction_size_limit is stored in the Metadata
+  if (!m_cluster->get_metadata_storage()->query_cluster_attribute(
+          m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+          &value)) {
+    console->print_info(
+        "Updating group_replication_transaction_size_limit in the Cluster's "
+        "metadata...");
+
+    m_cluster->get_metadata_storage()->update_cluster_attribute(
+        m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+        shcore::Value(m_cluster->get_cluster_server()
+                          ->get_sysvar_int(kGrTransactionSizeLimit)
+                          .get_safe()));
+  }
+}
+
+void Rescan::ensure_transaction_size_limit_consistency() {
+  // Get the Cluster's transaction size_limit stored in the Metadata if the
+  // Cluster is standlone or a Primary. Otherwise, it's a Replica so it should
+  // be zero
+  int64_t cluster_transaction_size_limit = 0;
+
+  if (!m_cluster->is_cluster_set_member() ||
+      (m_cluster->is_cluster_set_member() && m_cluster->is_primary_cluster())) {
+    shcore::Value value;
+    m_cluster->get_metadata_storage()->query_cluster_attribute(
+        m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+        &value);
+
+    cluster_transaction_size_limit = value.as_int();
+  }
+
+  m_cluster->execute_in_members(
+      [cluster_transaction_size_limit](
+          const std::shared_ptr<Instance> &instance,
+          const Instance_md_and_gr_member &info) {
+        if (info.second.state != mysqlshdk::gr::Member_state::RECOVERING &&
+            info.second.state != mysqlshdk::gr::Member_state::UNREACHABLE) {
+          // Get the instance's value for transaction_size_limit
+          int64_t instance_transaction_size_limit =
+              instance->get_sysvar_int(kGrTransactionSizeLimit).get_safe();
+
+          if (instance_transaction_size_limit !=
+              cluster_transaction_size_limit) {
+            auto console = mysqlsh::current_console();
+
+            console->print_note(
+                "'group_replication_transaction_size_limit' value at '" +
+                instance->descr() + "' does not match the Cluster's value: '" +
+                std::to_string(cluster_transaction_size_limit) + "'");
+
+            console->print_info("Updating the member's value...");
+
+            log_info(
+                "Updating group_replication_transaction_size_limit on "
+                "instance '%s' to the Cluster's value '%" PRId64 "'",
+                instance->descr().c_str(), cluster_transaction_size_limit);
+
+            auto cfg = mysqlsh::dba::create_server_config(
+                instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
+
+            cfg->set(kGrTransactionSizeLimit,
+                     mysqlshdk::utils::nullable<int64_t>(
+                         cluster_transaction_size_limit));
+
+            cfg->apply();
+          }
+        }
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
+}
+
 void Rescan::ensure_recovery_accounts_match() {
   m_cluster->execute_in_members(
       [this](const std::shared_ptr<Instance> &instance,
@@ -874,6 +953,14 @@ shcore::Value Rescan::execute() {
       }
     }
   }
+
+  // Ensures the value of group_replication_transaction_size_limit is stored
+  // in the metadata
+  ensure_transaction_size_limit_stored_metadata();
+
+  // Ensures group_replication_transaction_size_limit is set to the same value
+  // in all cluster members
+  ensure_transaction_size_limit_consistency();
 
   // Print warning about not used instances in removeInstances.
   {

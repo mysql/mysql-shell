@@ -597,6 +597,29 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
   }
 }
 
+void MetadataStorage::update_clusters_attribute(const std::string &attribute,
+                                                const shcore::Value &value) {
+  if (value) {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.clusters"
+        " SET attributes = json_set(attributes, '$." +
+            attribute + "', CAST(? as JSON))",
+        0);
+
+    query << value.repr();
+    query.done();
+    execute_sql(query);
+  } else {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.clusters"
+        " SET attributes = json_remove(attributes, '$." +
+            attribute + "')",
+        0);
+    query.done();
+    execute_sql(query);
+  }
+}
+
 bool MetadataStorage::query_cluster_capability(const Cluster_id &cluster_id,
                                                const std::string &capability,
                                                shcore::Value *out_value) const {

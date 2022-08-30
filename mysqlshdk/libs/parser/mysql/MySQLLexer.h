@@ -25,7 +25,7 @@
 
 
 
-// Generated from /home/paandrus/dev/ngshell/mysqlshdk/libs/parser/grammars/MySQLLexer.g4 by ANTLR 4.10.1
+// Generated from /Users/kojima/dev/ngshell/mysqlshdk/libs/parser/grammars/MySQLLexer.g4 by ANTLR 4.10.1
 
 #pragma once
 
@@ -390,30 +390,7 @@ private:
   bool JSON_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool LOCATOR_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool LONG_NUM_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_AUTO_POSITION_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_BIND_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_CONNECT_RETRY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_DELAY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_HOST_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_LOG_FILE_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_LOG_POS_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_PASSWORD_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_PORT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_RETRY_COUNT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SERVER_ID_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_CAPATH_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_CA_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_CERT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_CIPHER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_CRL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_CRLPATH_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_KEY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SSL_VERIFY_SERVER_CERT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool MASTER_TLS_VERSION_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_USER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool MASTER_HEARTBEAT_PERIOD_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool MAX_STATEMENT_TIME_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool NCHAR_STRING_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool NEG_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);

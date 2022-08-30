@@ -1000,6 +1000,9 @@ void Cluster_join::prepare_join(
                                   m_gr_opts.communication_stack.get_safe(),
                                   m_target_instance->get_canonical_port());
   }
+
+  // Set the transaction size limit
+  m_gr_opts.transaction_size_limit = m_cluster->get_transaction_size_limit();
 }
 
 bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch, Intent intent) {
@@ -1033,6 +1036,9 @@ bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch, Intent intent) {
   // cluster BUG#29953812: ADD_INSTANCE() PICKY ABOUT GTID_EXECUTED,
   // REJOIN_INSTANCE() NOT: DATA NOT COPIED
   m_cluster->validate_rejoin_gtid_consistency(*m_target_instance);
+
+  // Set the transaction size limit, to ensure no older values are used
+  m_gr_opts.transaction_size_limit = m_cluster->get_transaction_size_limit();
 
   return true;
 }
@@ -1794,6 +1800,27 @@ void Cluster_join::reboot() {
   if (!m_gr_opts.group_name.is_null() && !m_gr_opts.group_name->empty()) {
     log_info("Using Group Replication group name: %s",
              m_gr_opts.group_name->c_str());
+  }
+
+  // Get the value for transaction size limit stored in the Metadata if it
+  // wasn't set by the caller
+  if (m_gr_opts.transaction_size_limit.is_null()) {
+    int64_t transaction_size_limit;
+
+    shcore::Value value;
+    if (m_cluster->get_metadata_storage()->query_cluster_attribute(
+            m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+            &value)) {
+      transaction_size_limit = value.as_int();
+    } else {
+      // Use what's set in the instance
+      transaction_size_limit = m_cluster->get_transaction_size_limit();
+    }
+
+    log_info("Using Group Replication transaction size limit: %" PRId64,
+             transaction_size_limit);
+
+    m_gr_opts.transaction_size_limit = transaction_size_limit;
   }
 
   log_info("Starting cluster with '%s' using account %s",

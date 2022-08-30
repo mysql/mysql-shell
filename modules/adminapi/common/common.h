@@ -258,6 +258,9 @@ constexpr const char kClusterSetReplicationSslMode[] =
 constexpr const char kReplicationAllowedHost[] = "replicationAllowedHost";
 constexpr const char kCommunicationStack[] = "communicationStack";
 constexpr const char kSwitchCommunicationStack[] = "switchCommunicationStack";
+constexpr const char kTransactionSizeLimit[] = "transactionSizeLimit";
+constexpr const char kGrTransactionSizeLimit[] =
+    "group_replication_transaction_size_limit";
 
 constexpr const int k_group_replication_members_limit = 9;
 
@@ -274,7 +277,9 @@ struct Option_availability {
  * <sysvar, name>
  */
 const std::map<std::string, std::string> k_global_cluster_options{
-    {kGroupName, kGrGroupName}, {kMemberSslMode, kGrMemberSslMode}};
+    {kGroupName, kGrGroupName},
+    {kMemberSslMode, kGrMemberSslMode},
+    {kTransactionSizeLimit, kGrTransactionSizeLimit}};
 
 /**
  * Map of the instance configuration options of the AdminAPI
@@ -307,7 +312,8 @@ const std::map<std::string, Option_availability>
         {kConsistency,
          {kGrConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
         {kAutoRejoinTries,
-         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}}};
+         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}},
+        {kTransactionSizeLimit, {kGrTransactionSizeLimit, {}, {}}}};
 
 /**
  * List with the supported build-in tags for setOption and setInstanceOption
@@ -547,8 +553,8 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  *
  * @param local_address Nullable string with the input local address value to
  *                      resolve.
- * @param communication_stack Nullable string with the GR communication stack to
- * be used
+ * @param communication_stack Nullable string with the GR communication stack
+ * to be used
  * @param report_host String with the report host value of the instance (host
  *                    used by GR and the Metadata).
  * @param port integer with port used to connect to the instance.
@@ -646,14 +652,14 @@ std::vector<std::string> create_router_grants(
  *
  * @param deprecated_name name of the deprecated option.
  * @param new_name name of the new option
- * @param new_set boolean indicating if an option with the new name was already
- * provided
- * @param fall_back_to_new_option boolean value, defines the type of warning to
- * be printed when old option is used:
+ * @param new_set boolean indicating if an option with the new name was
+ * already provided
+ * @param fall_back_to_new_option boolean value, defines the type of warning
+ * to be printed when old option is used:
  * - true: indicates the new option will be set instead.
  * - false: suggest the new option should be used instead.
- * @param additional_info information to be included as part of the deprecation
- * warning.
+ * @param additional_info information to be included as part of the
+ * deprecation warning.
  */
 void handle_deprecated_option(const std::string &deprecated_name,
                               const std::string &new_name, bool new_set = false,

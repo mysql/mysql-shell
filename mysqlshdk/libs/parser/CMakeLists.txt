@@ -40,6 +40,7 @@ SET(parser_SOURCE
     MySQLRecognizerCommon.cpp
     parsers-common.cpp
     SymbolTable.cpp
+    mysql_parser_utils.cc
     ${parser_GEN_SOURCE}
 )
 

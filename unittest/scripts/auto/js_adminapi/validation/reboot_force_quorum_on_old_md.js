@@ -12,6 +12,9 @@ ${*}
 {
     "clusterName": "sample",
     "defaultReplicaSet": {
+        "clusterErrors": [
+            "WARNING: Cluster's transaction size limit is not registered in the metadata. Use cluster.rescan() to update the metadata."
+        ],
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
 ${*}
