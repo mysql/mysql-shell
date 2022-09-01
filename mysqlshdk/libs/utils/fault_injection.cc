@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,24 +35,27 @@ namespace utils {
 // ----------------------------------------------------------------------------
 namespace {
 
-static int g_debug_fi = getenv("TEST_DEBUG_FI") != nullptr;
+bool debug_fi() {
+  static bool is_enabled = getenv("TEST_DEBUG_FI") != nullptr;
+  return is_enabled;
+}
 
 class Fault_injector {
  public:
-  Fault_injector(const std::string &type_name,
-                 const std::function<void(const FI::Args &)> &injector)
-      : m_name(type_name), m_inject(injector) {}
+  Fault_injector(std::string type_name,
+                 std::function<void(const FI::Args &)> injector)
+      : m_name(std::move(type_name)), m_inject(std::move(injector)) {}
 
   const std::string &name() const { return m_name; }
 
   void add_trap(const FI::Conditions &conds,
                 const FI::Trap_options &trap_options) {
-    if (g_debug_fi) fprintf(stderr, "FI: Adding '%s' trap\n", m_name.c_str());
+    if (debug_fi()) fprintf(stderr, "FI: Adding '%s' trap\n", m_name.c_str());
     m_traps.emplace_back(conds, trap_options);
   }
 
   void clear_traps() {
-    if (g_debug_fi)
+    if (debug_fi())
       fprintf(stderr, "FI: Clearing '%s' traps\n", m_name.c_str());
     m_traps.clear();
   }
@@ -63,10 +66,10 @@ class Fault_injector {
       return it != opts.end() && it->second != "0";
     };
 
-    if (g_debug_fi) fprintf(stderr, "FI: Trigger '%s' trap\n", m_name.c_str());
+    if (debug_fi()) fprintf(stderr, "FI: Trigger '%s' trap\n", m_name.c_str());
 
     if (m_paused) {
-      if (g_debug_fi)
+      if (debug_fi())
         fprintf(stderr, "FI: Trigger '%s' is paused\n", m_name.c_str());
       return;
     }
@@ -75,7 +78,7 @@ class Fault_injector {
       if (trap.conds.match(&trap, trigger_options)) {
         const auto &trap_options = trap.options;
 
-        if (g_debug_fi)
+        if (debug_fi())
           fprintf(stderr, "FI: Trap '%s' matched%s\n", m_name.c_str(),
                   (trap.active ? "" : " but is not active"));
 
@@ -86,7 +89,7 @@ class Fault_injector {
         }
         break;
       } else {
-        if (g_debug_fi)
+        if (debug_fi())
           fprintf(stderr, "FI: Trap '%s' wasn't matched\n", m_name.c_str());
       }
     }
@@ -101,14 +104,14 @@ class Fault_injector {
 
   void pause() {
     ++m_paused;
-    if (g_debug_fi && 1 == m_paused)
+    if (debug_fi() && 1 == m_paused)
       fprintf(stderr, "FI: Trigger '%s' paused\n", m_name.c_str());
   }
 
   void resume() {
     assert(m_paused > 0);
     --m_paused;
-    if (g_debug_fi && 0 == m_paused)
+    if (debug_fi() && 0 == m_paused)
       fprintf(stderr, "FI: Trigger '%s' resumed\n", m_name.c_str());
   }
 
@@ -122,7 +125,11 @@ class Fault_injector {
 
 thread_local int Fault_injector::m_paused = 0;
 
-static std::unique_ptr<std::vector<Fault_injector>> g_fault_injectors;
+std::unique_ptr<std::vector<Fault_injector>> &fault_injectors() {
+  static std::unique_ptr<std::vector<Fault_injector>> fault_injectors_ptr;
+  return fault_injectors_ptr;
+}
+
 }  // namespace
 
 // ----------------------------------------------------------------------------
@@ -152,20 +159,19 @@ FI::Conditions &FI::Conditions::add(const std::string &str) {
 FI::Conditions &FI::Conditions::add_regex(const std::string &key,
                                           const std::string &value,
                                           bool invert) {
-  std::regex re(value, std::regex::icase);
-
   m_matchers.push_back(
-      [key, re, value, invert](Trap *, const Trigger_options &options) {
+      [key, value, invert](Trap *, const Trigger_options &options) {
         auto it = options.find(key);
-        if (it != options.end()) {
-          bool r = std::regex_search(it->second, re);
-          if (g_debug_fi)
-            fprintf(stderr, "FI: \"%s\" matches \"%s\" => %s\n",
-                    it->second.c_str(), value.c_str(), r ? "true" : "false");
+        if (it == options.end()) return false;
 
-          return invert ? (!r) : r;
-        }
-        return false;
+        std::regex re(value, std::regex::icase);
+
+        bool r = std::regex_search(it->second, re);
+        if (debug_fi())
+          fprintf(stderr, "FI: \"%s\" matches \"%s\" => %s\n",
+                  it->second.c_str(), value.c_str(), r ? "true" : "false");
+
+        return invert ? (!r) : r;
       });
 
   return *this;
@@ -179,7 +185,7 @@ FI::Conditions &FI::Conditions::add_eq(const std::string &key,
     m_matchers.push_back(
         [key, ivalue, invert](Trap *trap, const Trigger_options &) {
           bool r = ivalue == ++trap->match_counter;
-          if (g_debug_fi)
+          if (debug_fi())
             fprintf(stderr, "FI: match_counter (%i) = %i => %s\n",
                     trap->match_counter, ivalue, r ? "true" : "false");
 
@@ -191,7 +197,7 @@ FI::Conditions &FI::Conditions::add_eq(const std::string &key,
           auto it = options.find(key);
           if (it != options.end()) {
             bool r = value == it->second;
-            if (g_debug_fi)
+            if (debug_fi())
               fprintf(stderr, "FI: \"%s\" = \"%s\" => %s\n", it->second.c_str(),
                       value.c_str(), r ? "true" : "false");
 
@@ -208,7 +214,7 @@ FI::Conditions &FI::Conditions::add_gt(const std::string &key, int value) {
     m_matchers.push_back([key, value](Trap *trap, const Trigger_options &) {
       bool r = value < ++trap->match_counter;
 
-      if (g_debug_fi)
+      if (debug_fi())
         fprintf(stderr, "FI: match_counter (%i) > %i => %s\n",
                 trap->match_counter, value, r ? "true" : "false");
 
@@ -220,7 +226,7 @@ FI::Conditions &FI::Conditions::add_gt(const std::string &key, int value) {
       if (it != options.end()) {
         bool r = value < std::stoi(it->second);
 
-        if (g_debug_fi)
+        if (debug_fi())
           fprintf(stderr, "FI: %s (%s) > %i => %s\n", key.c_str(),
                   it->second.c_str(), value, r ? "true" : "false");
 
@@ -254,23 +260,23 @@ FI::Type_id FI::add_injector(
     const std::function<void(const Args &)> &injector) {
   const std::lock_guard<std::mutex> lock{s_mutex};
 
-  if (g_debug_fi) fprintf(stderr, "FI: Add handler for '%s'\n", type.c_str());
+  if (debug_fi()) fprintf(stderr, "FI: Add handler for '%s'\n", type.c_str());
 
-  if (!g_fault_injectors)
-    g_fault_injectors = std::make_unique<std::vector<Fault_injector>>();
+  if (!fault_injectors())
+    fault_injectors() = std::make_unique<std::vector<Fault_injector>>();
 
-  g_fault_injectors->emplace_back(type, injector);
+  fault_injectors()->emplace_back(type, injector);
 
-  return g_fault_injectors->size();
+  return fault_injectors()->size();
 }
 
 void FI::trigger_trap(Type_id type, const Trap_options &input) {
   const std::lock_guard<std::mutex> lock{s_mutex};
 
   if (type > 0) {
-    assert(g_fault_injectors && type <= g_fault_injectors->size());
+    assert(fault_injectors() && type <= fault_injectors()->size());
 
-    (*g_fault_injectors)[type - 1].trigger(input);
+    (*fault_injectors())[type - 1].trigger(input);
   }
 }
 
@@ -283,7 +289,7 @@ void FI::set_trap(const std::string &type, const Conditions &conds,
 
   bool flag = false;
 
-  for (auto &fi : *g_fault_injectors) {
+  for (auto &fi : *fault_injectors()) {
     if (fi.name() == type) {
       fi.add_trap(conds, options);
       flag = true;
@@ -297,7 +303,7 @@ void FI::clear_traps(const std::string &type) {
 
   bool flag = false;
 
-  for (auto &fi : *g_fault_injectors) {
+  for (auto &fi : *fault_injectors()) {
     if (type.empty() || fi.name() == type) {
       fi.clear_traps();
       flag = true;
@@ -311,7 +317,7 @@ void FI::reset_traps(const std::string &type) {
 
   bool flag = false;
 
-  for (auto &fi : *g_fault_injectors) {
+  for (auto &fi : *fault_injectors()) {
     if (type.empty() || fi.name() == type) {
       fi.reset();
       flag = true;
@@ -325,7 +331,7 @@ void FI::pause_traps(const std::string &type) {
 
   bool flag = false;
 
-  for (auto &fi : *g_fault_injectors) {
+  for (auto &fi : *fault_injectors()) {
     if (type.empty() || fi.name() == type) {
       fi.pause();
       flag = true;
@@ -339,7 +345,7 @@ void FI::resume_traps(const std::string &type) {
 
   bool flag = false;
 
-  for (auto &fi : *g_fault_injectors) {
+  for (auto &fi : *fault_injectors()) {
     if (type.empty() || fi.name() == type) {
       fi.resume();
       flag = true;
