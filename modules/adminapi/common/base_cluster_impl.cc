@@ -50,6 +50,16 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+/**
+ * List with the supported build-in tags for setOption and setInstanceOption
+ */
+typedef std::map<std::string, shcore::Value_type> built_in_tags_map_t;
+const built_in_tags_map_t k_supported_set_option_tags{
+    {"_hidden", shcore::Value_type::Bool},
+    {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
+}  // namespace
+
 Base_cluster_impl::Base_cluster_impl(
     const std::string &cluster_name, std::shared_ptr<Instance> group_server,
     std::shared_ptr<MetadataStorage> metadata_storage)

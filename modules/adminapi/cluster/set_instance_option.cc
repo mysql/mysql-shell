@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,25 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
+namespace {
+
+/**
+ * Map of the supported instance configuration options in the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, Option_availability> k_instance_supported_options{
+    {kExitStateAction,
+     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
+      mysqlshdk::utils::Version("5.7.24")}},
+    {kMemberWeight,
+     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
+      mysqlshdk::utils::Version("5.7.20")}},
+    {kAutoRejoinTries,
+     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}},
+    {kIpAllowlist, {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}}};
+
+}  // namespace
+
 Set_instance_option::Set_instance_option(
     const Cluster_impl &cluster,
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
@@ -62,7 +81,7 @@ Set_instance_option::Set_instance_option(
   m_address_in_metadata = m_target_instance_address;
 }
 
-Set_instance_option::~Set_instance_option() {}
+Set_instance_option::~Set_instance_option() = default;
 
 void Set_instance_option::ensure_option_valid() {
   /* - Validate if the option is valid, being the accepted values:
@@ -92,12 +111,17 @@ void Set_instance_option::ensure_option_valid() {
       throw shcore::Exception::argument_error("Option '" + m_option +
                                               "' not supported.");
     }
+
+    if (m_option == kIpAllowlist) {
+      if (m_value_str.is_null())
+        throw shcore::Exception::argument_error(
+            "Invalid value for 'ipAllowlist': Argument #3 is expected "
+            "to be a string.");
+    }
   }
 }
 
 void Set_instance_option::ensure_instance_belong_to_cluster() {
-  auto console = mysqlsh::current_console();
-
   // Check if the instance exists on the cluster
   log_debug("Checking if the instance belongs to the cluster");
   bool is_instance_on_md =
@@ -124,8 +148,6 @@ void Set_instance_option::ensure_target_member_reachable() {
 }
 
 void Set_instance_option::ensure_option_supported_target_member() {
-  auto console = mysqlsh::current_console();
-
   log_debug("Checking if member '%s' of the cluster supports the option '%s'",
             m_target_instance->descr().c_str(), m_option.c_str());
 
@@ -133,17 +155,16 @@ void Set_instance_option::ensure_option_supported_target_member() {
   bool is_supported = is_option_supported(
       m_target_instance->get_version(), m_option, k_instance_supported_options);
 
-  if (!is_supported) {
-    console->print_error(
-        "The instance '" + m_target_instance_address + "' has the version " +
-        m_target_instance->get_version().get_full() +
-        " which does not support the option '" + m_option + "'.");
+  if (is_supported) return;
 
-    throw shcore::Exception::runtime_error("The instance '" +
-                                           m_target_instance_address +
-                                           "' does not support "
-                                           "this operation.");
-  }
+  mysqlsh::current_console()->print_error(
+      "The instance '" + m_target_instance_address + "' has the version " +
+      m_target_instance->get_version().get_full() +
+      " which does not support the option '" + m_option + "'.");
+
+  throw shcore::Exception::runtime_error("The instance '" +
+                                         m_target_instance_address +
+                                         "' does not support this operation.");
 }
 
 void Set_instance_option::prepare() {

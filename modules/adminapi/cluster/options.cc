@@ -31,6 +31,20 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
+namespace {
+/**
+ * Map of the instance configuration options of the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string, std::string> k_instance_options{
+    {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
+    {kIpWhitelist, kGrIpWhitelist},         {kIpAllowlist, kGrIpAllowlist},
+    {kLocalAddress, kGrLocalAddress},       {kMemberWeight, kGrMemberWeight},
+    {kExpelTimeout, kGrExpelTimeout},       {kConsistency, kGrConsistency},
+    {kAutoRejoinTries, kGrAutoRejoinTries}};
+
+}  // namespace
+
 Options::Options(const Cluster_impl &cluster, bool all)
     : m_cluster(cluster), m_all(all) {}
 
