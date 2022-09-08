@@ -33,7 +33,7 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
-      parseStatementAst(sql)
+      parseStatementAst(statements)
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
@@ -284,10 +284,10 @@ NAME
                           representation.
 
 SYNTAX
-      mysql.parseStatementAst(sql)
+      mysql.parseStatementAst(statements)
 
 WHERE
-      sql: SQL statements to be parsed
+      statements: SQL statements to be parsed
 
 RETURNS
       AST encoded as a JSON structure
