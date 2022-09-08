@@ -387,6 +387,9 @@
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
+//@ SP - getCluster() on session to secondary with primary failover not complete - auto-redirect to secondary
+|TCP port:                     <<<__mysql_sandbox_port2>>>|
+|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
 
 //@ SP - Dissolve the single-primary cluster while still connected to a secondary
 ||

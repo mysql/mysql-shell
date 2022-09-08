@@ -15,6 +15,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
@@ -178,7 +179,6 @@ var cluster = dba.getCluster(null, {connectToPrimary:false});
 shell.status();
 // check the cluster is connected to where we expect
 cluster.status();
-cluster.disconnect();
 
 //@ SP - Connect with no options and ensure it will connect to the specified member
 testutil.callMysqlsh([__sandbox_uri1, "-e", "shell.status()"]);
@@ -361,11 +361,41 @@ testutil.callMysqlsh([__sandbox_xuri1_, "--js", "--redirect-secondary", "-e", "p
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 2
 testutil.callMysqlsh([__sandbox_xuri2_, "--js", "--redirect-secondary", "-e", "println(cluster.status())", "--cluster"]);
 
+//@<> SP - getCluster() on session to secondary with primary gone but still reported as primary - auto-redirect to secondary
+cluster.addInstance(__sandbox_uri3);
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri2);
+testutil.killSandbox(__mysql_sandbox_port1);
+
+EXPECT_NO_THROWS(function() { cluster = dba.getCluster(); });
+EXPECT_OUTPUT_CONTAINS("WARNING: Error connecting to Cluster: MYSQLSH 51004: Unable to connect to the primary member of the Cluster: 'Can't connect to MySQL server on");
+EXPECT_OUTPUT_CONTAINS("Retrying getCluster() using a secondary member");
+
+//@ SP - getCluster() on session to secondary with primary failover not complete - auto-redirect to secondary
+testutil.waitMemberState(__mysql_sandbox_port1, "UNREACHABLE");
+
+var cluster = dba.getCluster();
+EXPECT_OUTPUT_CONTAINS("WARNING: Error connecting to Cluster: MYSQLSH 51004: Unable to find a primary member in the Cluster");
+EXPECT_OUTPUT_CONTAINS("Retrying getCluster() using a secondary member");
+
+shell.status();
+cluster.status();
+
+testutil.startSandbox(__mysql_sandbox_port1);
+
+if (__version_num < 80000) {
+  cluster.rejoinInstance(__sandbox_uri1);
+}
+
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+
+cluster.disconnect();
 
 //@ SP - Dissolve the single-primary cluster while still connected to a secondary
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 cluster = dba.getCluster();
-cluster.removeInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
+cluster.removeInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 // dissolve will drop the metadata from sandbox1
 cluster.dissolve({force:true});
 // this should drop metadata from sandbox2 (where we're connected to)

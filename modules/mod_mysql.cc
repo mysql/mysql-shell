@@ -355,7 +355,7 @@ REGISTER_HELP_FUNCTION(parseStatementAst, mysql);
 REGISTER_HELP_FUNCTION_TEXT(MYSQL_PARSESTATEMENTAST, R"*(
 Parse MySQL statements and return its AST representation.
 
-@param sql SQL statements to be parsed
+@param statements SQL statements to be parsed
 
 @returns AST encoded as a JSON structure
 )*");

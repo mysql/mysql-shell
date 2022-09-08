@@ -802,8 +802,8 @@ void Dba::connect_to_target_group(
     std::string primary_uri = find_primary_member_uri(target_member, false);
 
     if (primary_uri.empty()) {
-      throw shcore::Exception::runtime_error(
-          "Unable to find a primary member in the cluster");
+      throw shcore::Exception("Unable to find a primary member in the Cluster",
+                              SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
     } else if (!mysqlshdk::utils::are_endpoints_equal(
                    primary_uri,
                    target_member->get_connection_options().uri_endpoint())) {
@@ -838,12 +838,18 @@ void Dba::connect_to_target_group(
             "Metadata and group sessions are now using the primary member");
         if (owns_target_member_session) target_member->close_session();
         target_member = instance;
-      } catch (const shcore::Exception &) {
+      } catch (const shcore::Exception &e) {
+        // If we reached here it means Group Replication is still reporting a
+        // primary available but we couldn't connect to it
+        log_warning("PRIMARY member '%s' is currently unreachable: %s",
+                    primary_uri.c_str(), e.what());
+
+        throw shcore::Exception(
+            "Unable to connect to the primary member of the Cluster: '" +
+                std::string(e.what()) + "'",
+            SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
+      } catch (const std::exception &) {
         throw;
-      } catch (const std::exception &e) {
-        throw shcore::Exception::runtime_error(
-            std::string("Unable to find a primary member in the cluster: ") +
-            e.what());
       }
     }
   }
@@ -998,9 +1004,6 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   auto console = mysqlsh::current_console();
 
   try {
-    bool connect_to_primary = true;
-    bool fallback_to_anything = true;
-
     target_member = connect_to_target_member();
 
     if (!target_member) {
@@ -1027,15 +1030,12 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           "secondary when not possible");
     }
 
-    connect_to_primary = true;
-
     // This will throw if not a cluster member
     try {
       // Connect to the target cluster member and
       // also find the primary and connect to it, unless target is already
       // primary or connectToPrimary:false was given
-      connect_to_target_group(target_member, &metadata, &group_server,
-                              connect_to_primary);
+      connect_to_target_group(target_member, &metadata, &group_server, true);
     } catch (const shcore::Exception &e) {
       // Print warning in case a cluster error is found (e.g., no quorum).
       if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
@@ -1043,14 +1043,13 @@ std::shared_ptr<Cluster> Dba::get_cluster(
             "Cluster has no quorum and cannot process write transactions: " +
             std::string(e.what()));
       } else {
-        console->print_warning("Cluster error connecting to target: " +
-                               e.format());
+        console->print_warning("Error connecting to Cluster: " + e.format());
       }
 
       if ((e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM ||
-           e.code() == SHERR_DBA_GROUP_MEMBER_NOT_ONLINE) &&
-          fallback_to_anything && connect_to_primary) {
-        log_info("Retrying getCluster() without connectToPrimary");
+           e.code() == SHERR_DBA_GROUP_MEMBER_NOT_ONLINE)) {
+        console->print_info("Retrying getCluster() using a secondary member");
+
         connect_to_target_group({}, &metadata, &group_server, false);
       } else {
         throw;
