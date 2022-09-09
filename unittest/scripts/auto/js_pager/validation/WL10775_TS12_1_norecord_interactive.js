@@ -38,7 +38,7 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
-      parseStatementAst(sql)
+      parseStatementAst(statements)
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
@@ -101,7 +101,7 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
-      parseStatementAst(sql)
+      parseStatementAst(statements)
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)

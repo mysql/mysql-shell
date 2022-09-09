@@ -33,7 +33,7 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
-      parse_statement_ast(sql)
+      parse_statement_ast(statements)
             Parse MySQL statements and return its AST representation.
 
       quote_identifier(s)
