@@ -808,6 +808,12 @@ shcore::Value Create_replica_cluster::execute() {
     console->print_info(
         "* Configuring ClusterSet managed replication channel...");
 
+    DBUG_EXECUTE_IF("dba_create_replica_cluster_source_delay", {
+      // Simulate high load on the Primary Cluster (lag) by
+      // introducing delay in the replication channel
+      ar_options.master_delay = 5;
+    });
+
     m_cluster_set->update_replica(m_target_instance.get(), m_primary_instance,
                                   ar_options, true, m_options.dry_run);
 
@@ -924,6 +930,20 @@ shcore::Value Create_replica_cluster::execute() {
     undo_list.cancel();
 
     log_debug("ClusterSet metadata updates done");
+
+    // Sync with the primary Cluster to ensure the Metadata changes are
+    // propagated to the new Replica Cluster before returning, otherwise, any
+    // attempt to get this Cluster's object from a connection to one of its
+    // members may result in the object having the wrong view of the topology.
+    // i.e. not understanding its part of a ClusterSet
+    console->print_info();
+    console->print_info(
+        "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
+    if (!m_options.dry_run) {
+      m_cluster_set->sync_transactions(*m_target_instance.get(),
+                                       {k_clusterset_async_channel_name},
+                                       m_options.timeout);
+    }
 
     console->print_info();
     console->print_info("Replica Cluster '" + m_cluster_name +

@@ -65,7 +65,8 @@ void change_master(mysqlshdk::mysql::IInstance *slave,
               new_master->get_canonical_port(), channel_name,
               repl_options.repl_credentials.get_safe(), repl_options.ssl_mode,
               repl_options.master_connect_retry,
-              repl_options.master_retry_count, repl_options.auto_failover);
+              repl_options.master_retry_count, repl_options.auto_failover,
+              repl_options.master_delay);
         }
       } catch (const shcore::Error &e) {
         console->print_error(

@@ -228,6 +228,10 @@ one server failure.
 
 * Updating topology
 
+* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
+
+
 Replica Cluster 'replicacluster' successfully created on ClusterSet 'clusterset'.
 `);
 
