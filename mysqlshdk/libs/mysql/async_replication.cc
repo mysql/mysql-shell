@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,8 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
                    const mysqlsh::dba::Cluster_ssl_mode &ssl_mode,
                    const mysqlshdk::utils::nullable<int> master_connect_retry,
                    const mysqlshdk::utils::nullable<int> master_retry_count,
-                   const mysqlshdk::utils::nullable<bool> auto_failover) {
+                   const mysqlshdk::utils::nullable<bool> auto_failover,
+                   const mysqlshdk::utils::nullable<int> master_delay) {
   log_info(
       "Setting up async source for channel '%s' of %s to %s:%i (user "
       "%s)",
@@ -83,6 +84,11 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
     if (!auto_failover.is_null()) {
       options.append(", SOURCE_CONNECTION_AUTO_FAILOVER=" +
                      std::to_string(*auto_failover));
+    }
+
+    if (!master_delay.is_null()) {
+      options.append(", " + source_term +
+                     "_DELAY=" + std::to_string(*master_delay));
     }
 
     instance->executef("CHANGE " + source_term_cmd +

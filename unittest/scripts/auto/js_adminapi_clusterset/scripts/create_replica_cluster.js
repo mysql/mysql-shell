@@ -200,6 +200,28 @@ values = { "domain": "myClusterSet" };
 CHECK_REPLICA_CLUSTER([__sandbox_uri3], scene.cluster, replica, values);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], scene.cluster, replica2, values);
 
+//@<> Immediate operations after createReplicaCluster() may be exec on a wrong view of the topology {!__replaying}
+
+// Remove the Replica Clusters
+EXPECT_NO_THROWS(function() { cluster_set.removeCluster("myReplicaCluster2"); });
+
+EXPECT_NO_THROWS(function() { cluster_set.removeCluster("cluster2"); });
+
+// Re-create the Replica Cluster, simulating lag
+testutil.dbugSet("+d,dba_create_replica_cluster_source_delay");
+
+EXPECT_NO_THROWS(function() { replica_lag = cluster_set.createReplicaCluster(__sandbox_uri4, "replicaLag", {recoveryMethod:"clone"}); });
+
+// Get the cluster object so its view of the topology is outdated due to the lag
+// BUG#34584939: Adding instance to a new replica cluster under load results in errors
+shell.connect(__sandbox_uri4);
+replica_lag = dba.getCluster();
+
+EXPECT_NO_THROWS(function() { replica_lag.addInstance(__sandbox_uri3, {recoveryMethod:"clone"}); });
+
+// Unset the debug trap
+testutil.dbugSet("");
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
