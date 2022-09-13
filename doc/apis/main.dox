@@ -42,6 +42,6 @@ For more information on the functionality these APIs provide see the following d
 
   - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/document-store.html">Using MySQL as a Document Store</a> documentation explains how to use X DevAPI to achieve a NoSQL-like MySQL database.
   - The <a class ="el" href="http://dev.mysql.com/doc/x-devapi-userguide/en/">X DevAPI user guide</a> provides details about and usage examples of the X DevAPI.
-  - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/mysql-innodb-cluster-userguide.html">InnoDB Cluster user guide</a> explains how to use MySQL Shell and AdminAPI to set up and administer a highly available InnoDB cluster.
-  - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/group-replication.html">Group Replication</a> documentation provides detailed documentation on the replication group which InnoDB cluster utilizes.
+  - The <a class ="el" href="http://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-innodb-cluster.html">InnoDB Cluster user guide</a> explains how to use MySQL Shell and AdminAPI to set up and administer a highly available InnoDB Cluster.
+  - The <a class ="el" href="http://dev.mysql.com/doc/refman/en/group-replication.html">Group Replication</a> documentation provides detailed documentation on the replication group which InnoDB Cluster utilizes.
 */
