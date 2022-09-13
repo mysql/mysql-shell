@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,8 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
                    const mysqlsh::dba::Cluster_ssl_mode &ssl_mode,
                    const mysqlshdk::utils::nullable<int> master_connect_retry,
                    const mysqlshdk::utils::nullable<int> master_retry_count,
-                   const mysqlshdk::utils::nullable<bool> auto_failover);
+                   const mysqlshdk::utils::nullable<bool> auto_failover,
+                   const mysqlshdk::utils::nullable<int> master_delay);
 
 void change_master_host_port(mysqlshdk::mysql::IInstance *instance,
                              const std::string &master_host, int master_port,

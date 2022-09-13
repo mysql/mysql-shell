@@ -80,7 +80,7 @@ function END_CHECK_NO_ZOMBIES(cs) {
 
   function EXPECT_PROCESSLIST(session, sandbox) {
     var expected = filter(existing_sessions[sandbox]);
-    plist = wait_get_clients(session, expected, session.runSql("select connection_id()").fetchOne()[0]);  
+    plist = wait_get_clients(session, expected, session.runSql("select connection_id()").fetchOne()[0]);
     EXPECT_EQ(expected, filter(plist), "sandbox"+sandbox+": "+JSON.stringify(plist));
   }
 
@@ -96,10 +96,22 @@ shell.connect(__sandbox_uri1);
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {"ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
 
-//@ createClusterSet
+//@<> createClusterSet
 BEGIN_CHECK_NO_ZOMBIES();
 
 EXPECT_NO_THROWS(function() {cs = cluster.createClusterSet("clusterset"); });
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+A new ClusterSet will be created based on the Cluster 'cluster'.
+
+* Validating Cluster 'cluster' for ClusterSet compliance.
+
+* Creating InnoDB ClusterSet 'clusterset' on 'cluster'...
+
+* Updating metadata...
+
+ClusterSet successfully created. Use ClusterSet.createReplicaCluster() to add Replica Clusters to it.
+`);
 
 END_CHECK_NO_ZOMBIES(cs);
 
@@ -170,7 +182,7 @@ cs.describe();
 
 END_CHECK_NO_ZOMBIES(cs);
 
-//@ createReplicaCluster() - incremental recovery
+//@<> createReplicaCluster() - incremental recovery
 // SRO might be set in the instance so we must ensure the proper handling of it in createReplicaCluster.
 session4.runSql("SET PERSIST super_read_only=true");
 var replicacluster;
@@ -180,6 +192,48 @@ BEGIN_CHECK_NO_ZOMBIES();
 clusterset = dba.getClusterSet();
 
 EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+Setting up replica 'replicacluster' of cluster 'cluster' at instance '${hostname}:${__mysql_sandbox_port4}'.
+
+A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port4}'.
+
+Disabling super_read_only mode on instance '${hostname}:${__mysql_sandbox_port4}'.
+Validating instance configuration at localhost:${__mysql_sandbox_port4}...
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port4}
+
+Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port4}1'. Use the localAddress option to override.
+
+
+* Checking transaction state of the instance...
+
+NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
+
+Incremental state recovery selected through the recoveryMethod option
+
+Creating InnoDB Cluster 'replicacluster' on '${hostname}:${__mysql_sandbox_port4}'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+* Configuring ClusterSet managed replication channel...
+** Changing replication source of ${hostname}:${__mysql_sandbox_port4} to ${hostname}:${__mysql_sandbox_port1}
+
+* Waiting for instance '${hostname}:${__mysql_sandbox_port4}' to synchronize with PRIMARY Cluster...
+
+
+* Updating topology
+
+* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
+
+
+Replica Cluster 'replicacluster' successfully created on ClusterSet 'clusterset'.
+`);
 
 //@<> validate replica cluster - incremental recovery
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster);
@@ -288,8 +342,26 @@ EXPECT_NO_THROWS(function() { replicacluster.setupRouterAccount("routerreplica@'
 EXPECT_NO_THROWS(function() { replicacluster.removeInstance(__sandbox_uri3); });
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster);
 
-//@ removeCluster()
+//@<> removeCluster()
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster"); });
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+The Cluster 'replicacluster' will be removed from the InnoDB ClusterSet.
+
+* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
+
+* Updating topology
+* Waiting for the Cluster to synchronize the Metadata updates with the PRIMARY Cluster...
+
+
+* Stopping and deleting ClusterSet managed replication channel...
+* Dissolving the Cluster...
+* Reconciling internally generated GTIDs...
+* Instance '${__endpoint4}' is attempting to leave the cluster...
+
+The Cluster 'replicacluster' was removed from the ClusterSet.
+`);
 
 //@<> validate remove cluster
 CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
