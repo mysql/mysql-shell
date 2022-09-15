@@ -2199,7 +2199,7 @@ std::vector<Router_options_metadata> MetadataStorage::get_routing_options(
     std::string ret;
     for (const auto &opt : k_router_options) {
       if (opt == k_router_option_target_cluster) {
-        ret += ", IF(";
+        ret += ", JSON_QUOTE(IF(";
         ret += prefix;
         ret +=
             "->>'$.target_cluster'='primary', "
@@ -2208,11 +2208,11 @@ std::vector<Router_options_metadata> MetadataStorage::get_routing_options(
             "mysql_innodb_cluster_metadata.clusters c "
             "WHERE c.attributes->>'$.group_replication_group_name' = ";
         ret += prefix;
-        ret += "->>'$.target_cluster' limit 1)) AS target_cluster";
+        ret += "->>'$.target_cluster' limit 1))) AS target_cluster";
       } else {
         ret += ", ";
         ret += prefix;
-        ret += "->>'$.";
+        ret += "->'$.";
         ret += opt;
         ret += "' as ";
         ret += opt;
@@ -2243,9 +2243,8 @@ std::vector<Router_options_metadata> MetadataStorage::get_routing_options(
 
     for (const auto &option : k_router_options) {
       if (!row.is_null(option)) {
-        std::string value = row.get_string(option);
-
-        rom.defined_options.emplace(option, shcore::Value(value));
+        rom.defined_options.emplace(
+            option, shcore::Value::parse(row.get_string(option)));
       }
     }
 
@@ -2440,8 +2439,8 @@ void MetadataStorage::set_clusterset_global_routing_option(
     if (value_to_set.type == shcore::Null) {
       execute_sqlf(update_call_prefix + "NULL);", id, option);
     } else {
-      execute_sqlf(update_call_prefix + "JSON_QUOTE(?));", id, option,
-                   value_to_set.as_string());
+      execute_sqlf(update_call_prefix + "cast(? as JSON));", id, option,
+                   value_to_set.json(false));
     }
   } catch (const shcore::Exception &e) {
     if (e.code() == ER_SIGNAL_EXCEPTION) throw_router_not_found(e.what());
@@ -2451,7 +2450,7 @@ void MetadataStorage::set_clusterset_global_routing_option(
 
 void MetadataStorage::set_routing_option(const std::string &router,
                                          const std::string &clusterset_id,
-                                         const std::string option,
+                                         const std::string &option,
                                          const shcore::Value &value) {
   static const std::string update_call_prefix =
       "call mysql_innodb_cluster_metadata.v2_set_routing_option(?, ?, ?, ";
@@ -2461,8 +2460,8 @@ void MetadataStorage::set_routing_option(const std::string &router,
       execute_sqlf(update_call_prefix + "NULL);", router, clusterset_id,
                    option);
     else
-      execute_sqlf(update_call_prefix + "JSON_QUOTE(?));", router,
-                   clusterset_id, option, value.as_string());
+      execute_sqlf(update_call_prefix + "cast(? as JSON));", router,
+                   clusterset_id, option, value.json(false));
   } catch (const shcore::Exception &e) {
     if (e.code() == ER_SIGNAL_EXCEPTION) throw_router_not_found(e.what());
     throw;
