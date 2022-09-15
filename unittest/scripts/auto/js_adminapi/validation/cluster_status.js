@@ -110,21 +110,20 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 
 
 //@# instanceError with split-brain {VER(>=8.0.11)}
-|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
-|},|
-|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
-|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
-|    "instanceErrors": [|
-|        "ERROR: split-brain! Instance is not part of the majority group, but has state [[*]]"|
-|    ], |
-|    "memberState": "RECOVERING", |
-|    "mode": "R/O", |
-|    "readReplicas": {}, |
-|    "role": "HA", |
-|    "status": "(MISSING)",|
-|}, |
-|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
-|},|
+#"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {#
+#},#
+#"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {#
+#    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", #
+#    "instanceErrors": [#
+#        "ERROR: split-brain! Instance is not part of the majority group, but has state [[*]]"#
+#    ], #
+#    "memberState": "{{RECOVERING|ONLINE}}", #
+#    "readReplicas": {}, #
+#    "role": "HA", #
+#    "status": "(MISSING)",#
+#}, #
+#"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {#
+#},#
 
 //@# instanceError with split-brain {VER(<8.0.11)}
 |"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|

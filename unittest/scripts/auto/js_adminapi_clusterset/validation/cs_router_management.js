@@ -3,7 +3,7 @@
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
@@ -63,7 +63,7 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
 {
     "routerhost1::system": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "1",
+        "stats_updates_frequency": 1,
         "target_cluster": "cluster"
     }
 }
@@ -71,7 +71,7 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
 {
     "routerhost1::system": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "15",
+        "stats_updates_frequency": 15,
         "target_cluster": "cluster"
     }
 }
@@ -81,20 +81,20 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
 {
     "routerhost1::system": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "15"
+        "stats_updates_frequency": 15
     }
 }
 {
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
         "routerhost1::system": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": "15"
+            "stats_updates_frequency": 15
         },
         "routerhost2::": {},
         "routerhost2::another": {},
@@ -104,19 +104,19 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
 Routing option 'invalidated_cluster_policy' successfully updated in router 'routerhost1::system'.
 {
     "routerhost1::system": {
-        "stats_updates_frequency": "15"
+        "stats_updates_frequency": 15
     }
 }
 {
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
         "routerhost1::system": {
-            "stats_updates_frequency": "15"
+            "stats_updates_frequency": 15
         },
         "routerhost2::": {},
         "routerhost2::another": {},
@@ -131,7 +131,7 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
@@ -148,7 +148,7 @@ Routing option 'target_cluster' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
@@ -163,7 +163,7 @@ Routing option 'target_cluster' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -178,7 +178,7 @@ Routing option 'invalidated_cluster_policy' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -193,7 +193,7 @@ Routing option 'invalidated_cluster_policy' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -208,7 +208,7 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -225,7 +225,7 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -244,7 +244,7 @@ Routing option 'invalidated_cluster_policy' successfully updated in router 'rout
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -265,7 +265,7 @@ Routing option 'stats_updates_frequency' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "11",
+        "stats_updates_frequency": 11,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -286,7 +286,7 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "11",
+        "stats_updates_frequency": 11,
         "target_cluster": "cluster"
     },
     "routers": {
@@ -295,7 +295,7 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
         },
         "routerhost2::": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": "222"
+            "stats_updates_frequency": 222
         },
         "routerhost2::another": {},
         "routerhost2::system": {
@@ -310,7 +310,7 @@ Routing option 'target_cluster' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": "11",
+        "stats_updates_frequency": 11,
         "target_cluster": "primary"
     },
     "routers": {
@@ -319,7 +319,7 @@ Routing option 'target_cluster' successfully updated.
         },
         "routerhost2::": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": "222"
+            "stats_updates_frequency": 222
         },
         "routerhost2::another": {},
         "routerhost2::system": {
@@ -332,7 +332,7 @@ Routing option 'invalidated_cluster_policy' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "11",
+        "stats_updates_frequency": 11,
         "target_cluster": "primary"
     },
     "routers": {
@@ -341,7 +341,7 @@ Routing option 'invalidated_cluster_policy' successfully updated.
         },
         "routerhost2::": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": "222"
+            "stats_updates_frequency": 222
         },
         "routerhost2::another": {},
         "routerhost2::system": {
@@ -354,7 +354,7 @@ Routing option 'stats_updates_frequency' successfully updated.
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
@@ -363,7 +363,7 @@ Routing option 'stats_updates_frequency' successfully updated.
         },
         "routerhost2::": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": "222"
+            "stats_updates_frequency": 222
         },
         "routerhost2::another": {},
         "routerhost2::system": {
@@ -376,7 +376,7 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
-        "stats_updates_frequency": "0",
+        "stats_updates_frequency": 0,
         "target_cluster": "primary"
     },
     "routers": {
@@ -385,7 +385,7 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         },
         "routerhost2::": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": "222"
+            "stats_updates_frequency": 222
         },
         "routerhost2::another": {},
         "routerhost2::system": {}

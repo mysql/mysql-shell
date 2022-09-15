@@ -410,7 +410,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   void set_routing_option(const std::string &router,
                           const std::string &clusterset_id,
-                          const std::string option, const shcore::Value &value);
+                          const std::string &option,
+                          const shcore::Value &value);
 
   /**
    * Get the topology mode of the cluster from the metadata.
