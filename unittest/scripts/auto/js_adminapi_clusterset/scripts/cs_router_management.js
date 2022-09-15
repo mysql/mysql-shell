@@ -65,7 +65,7 @@ var cr_router3 = "routerhost2::";
 EXPECT_THROWS(function(){ clusterset.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the ClusterSet");
 
 //@ clusterset.routingOptions() with all defaults
-clusterset.routingOptions();
+values = clusterset.routingOptions();
 
 //@ clusterset.setRoutingOption for a router, all valid values
 clusterset.setRoutingOption(cm_router, "target_cluster", "primary");
@@ -163,6 +163,19 @@ clusterset.setRoutingOption("stats_updates_frequency", 11);
 clusterset.routingOptions();
 clusterset.setRoutingOption(cr_router3, "stats_updates_frequency", 222);
 clusterset.routingOptions();
+
+//@<> check types of clusterset router option values
+// Bug#34604612
+options = clusterset.routingOptions();
+EXPECT_EQ("string", typeof options["global"]["target_cluster"]);
+EXPECT_EQ("string", typeof options["global"]["invalidated_cluster_policy"]);
+EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_EQ("string", typeof options["target_cluster"]);
+EXPECT_EQ("string", typeof options["invalidated_cluster_policy"]);
+EXPECT_EQ("number", typeof options["stats_updates_frequency"]);
+
 
 //@<> clusterset.setRoutingOption invalid values
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("target_cluster", 'any_not_supported_value'); },
