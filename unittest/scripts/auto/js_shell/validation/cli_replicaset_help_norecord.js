@@ -294,6 +294,17 @@ OPTIONS
             Boolean value that must be enabled to allow updating the privileges
             and/or password of existing accounts. Default value is False.
 
+--requireCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--requireCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
+
 --password=<str>
             The password for the InnoDB ReplicaSet administrator account.
 
@@ -325,6 +336,17 @@ OPTIONS
 --update=<bool>
             Boolean value that must be enabled to allow updating the privileges
             and/or password of existing accounts. Default value is False.
+
+--requireCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--requireCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --password=<str>
             The password for the MySQL Router account.

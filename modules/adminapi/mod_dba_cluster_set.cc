@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/mod_dba_cluster_set.h"
+#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
@@ -106,7 +107,12 @@ void ClusterSet::init() {
   expose("describe", &ClusterSet::describe)->cli();
   expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
   expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
-
+  expose("setupAdminAccount", &ClusterSet::setup_admin_account, "user",
+         "?options")
+      ->cli();
+  expose("setupRouterAccount", &ClusterSet::setup_router_account, "user",
+         "?options")
+      ->cli();
   expose("options", &ClusterSet::options)->cli();
   expose("setOption", &ClusterSet::set_option, "option", "value")->cli();
 
@@ -294,7 +300,7 @@ The recoveryMethod option supports the following values:
 from the PRIMARY
 @li clone: uses MySQL clone to provision the instance, which completely
 replaces the state of the target instance with a full snapshot of another
-ReplicaSet member.
+ClusterSet member.
 @li auto: compares the transaction set of the instance with that of the
 PRIMARY to determine if incremental recovery is safe to be automatically
 chosen as the most appropriate recovery method.
@@ -1006,6 +1012,156 @@ dict ClusterSet::routing_options(str router) {}
 shcore::Value ClusterSet::routing_options(const std::string &router) {
   return execute_with_pool([&]() { return impl()->routing_options(router); },
                            false);
+}
+
+REGISTER_HELP_FUNCTION(setupAdminAccount, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPADMINACCOUNT, R"*(
+Create or upgrade an InnoDB ClusterSet admin account.
+
+@param user Name of the InnoDB ClusterSet administrator account.
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function creates/upgrades a MySQL user account with the necessary
+privileges to administer an InnoDB ClusterSet.
+
+This function also allows a user to upgrade an existing admin account
+with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
+
+The mandatory argument user is the name of the MySQL account we want to create
+or upgrade to be used as Administrator account. The accepted format is
+username[@@host] where the host part is optional and if not provided defaults to
+'%'.
+
+The options dictionary may contain the following attributes:
+
+@li password: The password for the InnoDB ClusterSet administrator account.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
+${OPT_INTERACTIVE}
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
+
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
+
+If the user account exists, the update option must be enabled.
+
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
+
+${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
+
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
+)*");
+
+/**
+ * $(CLUSTERSET_SETUPADMINACCOUNT_BRIEF)
+ *
+ * $(CLUSTERSET_SETUPADMINACCOUNT)
+ */
+#if DOXYGEN_JS
+Undefined ClusterSet::setupAdminAccount(String user, Dictionary options) {}
+#elif DOXYGEN_PY
+None ClusterSet::setup_admin_account(str user, dict options) {}
+#endif
+
+void ClusterSet::setup_admin_account(
+    const std::string &user,
+    const shcore::Option_pack_ref<Setup_account_options> &options) {
+  // Throw an error if the replicaset is invalid
+  assert_valid("setupAdminAccount");
+
+  // split user into user/host
+  std::string username, host;
+  std::tie(username, host) = validate_account_name(user);
+
+  execute_with_pool(
+      [&]() {
+        impl()->setup_admin_account(username, host, *options);
+        return shcore::Value();
+      },
+      false);
+}
+
+REGISTER_HELP_FUNCTION(setupRouterAccount, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPROUTERACCOUNT, R"*(
+Create or upgrade a MySQL account to use with MySQL Router.
+
+@param user Name of the account to create/upgrade for MySQL Router.
+@param options Dictionary with options for the operation.
+
+@returns Nothing.
+
+This function creates/upgrades a MySQL user account with the necessary
+privileges to be used by MySQL Router.
+
+This function also allows a user to upgrade existing MySQL router accounts
+with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
+
+The mandatory argument user is the name of the MySQL account we want to create
+or upgrade to be used by MySQL Router. The accepted format is
+username[@@host] where the host part is optional and if not provided defaults to
+'%'.
+
+The options dictionary may contain the following attributes:
+
+@li password: The password for the MySQL Router account.
+@li passwordExpiration: Password expiration setting for the account. May be set
+to the number of days for expiration, 'NEVER' to disable expiration and
+'DEFAULT' to use the system default.
+@li requireCertIssuer: Optional SSL certificate issuer for the account.
+@li requireCertSubject: Optional SSL certificate subject for the account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+${OPT_INTERACTIVE}
+@li update: boolean value that must be enabled to allow updating the privileges
+and/or password of existing accounts. Default value is False.
+
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
+
+If the user account exists, the update option must be enabled.
+
+If dryRun is used, the function will display information about the permissions
+to be granted to `user` account without actually creating and/or performing any
+changes to it.
+
+The interactive option can be used to explicitly enable or disable the
+interactive prompts that help the user through the account setup process.
+
+To change authentication options for an existing account, set `update` to
+`true`. It is possible to change password without affecting certificate options
+or vice-versa but certificate options can only be changed together.
+)*");
+
+/**
+ * $(CLUSTERSET_SETUPROUTERACCOUNT_BRIEF)
+ *
+ * $(CLUSTERSET_SETUPROUTERACCOUNT)
+ */
+#if DOXYGEN_JS
+Undefined ClusterSet::setupRouterAccount(String user, Dictionary options) {}
+#elif DOXYGEN_PY
+None ClusterSet::setup_router_account(str user, dict options) {}
+#endif
+void ClusterSet::setup_router_account(
+    const std::string &user,
+    const shcore::Option_pack_ref<Setup_account_options> &options) {
+  // Throw an error if the replicaset is invalid
+  assert_valid("setupRouterAccount");
+
+  // split user into user/host
+  std::string username, host;
+  std::tie(username, host) = validate_account_name(user);
+
+  execute_with_pool(
+      [&]() {
+        impl()->setup_router_account(username, host, *options);
+        return shcore::Value();
+      },
+      false);
 }
 
 }  // namespace dba

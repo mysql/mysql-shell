@@ -146,6 +146,14 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
 
   shcore::Value routing_options(const std::string &router);
 
+  void setup_admin_account(
+      const std::string &user,
+      const shcore::Option_pack_ref<Setup_account_options> &options);
+
+  void setup_router_account(
+      const std::string &user,
+      const shcore::Option_pack_ref<Setup_account_options> &options);
+
  protected:
   void init();
 

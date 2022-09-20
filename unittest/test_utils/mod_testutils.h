@@ -106,15 +106,11 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined dbugSet(String s);
   Undefined dprint(String s);
   Undefined setenv(String var, String value);
-  Undefined sslCreateCA(String name);
-  Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
-                           String clientcn);
+  String sslCreateCA(String name, String issuer);
+  String sslCreateCert(String name, String caname, String subj, Integer sbport);
   Undefined setTrap(String type, Array conditions, Dictionary options);
   None clearTraps(String type);
   None resetTraps(String type);
-  Undefined sslCreateCA(String name);
-  Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
-                           String clientcn);
   Undefined wipeAllOutput();
   String getCurrentMetadataVersion();
   String getInstalledMetadataVersion();
@@ -174,13 +170,11 @@ class Testutils : public mysqlsh::Extensible_object {
   None dprint(str s);
   None skip(int port, bool start);
   None setenv(str var, str value);
-  None ssl_create_ca(str name);
-  None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
+  str ssl_create_ca(str name, str issuer);
+  str ssl_create_cert(str name, str caname, str subj, int sbport);
   None set_trap(str type, list conditions, dict options);
   None clear_traps(str type);
   None reset_traps(str type);
-  None ssl_create_ca(str name);
-  None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
   None wipe_all_output();
   str get_current_metadata_version();
   str get_installed_metadata_version();
@@ -338,10 +332,10 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void bp(bool flag);
 
-  void ssl_create_ca(const std::string &name);
-  void ssl_create_certs(int sbport, const std::string &caname,
-                        const std::string &servercn,
-                        const std::string &clientcn);
+  std::string ssl_create_ca(const std::string &name, const std::string &issuer);
+  std::string ssl_create_cert(const std::string &name,
+                              const std::string &caname,
+                              const std::string &subj, int sbport);
 
   void get_exclusive_lock(const shcore::Value &classic_session,
                           const std::string name_space, const std::string name,

@@ -98,10 +98,56 @@ const shcore::Option_pack_def<Configure_instance_options>
           .optional(kClusterAdmin, &Configure_instance_options::cluster_admin)
           .optional(kClusterAdminPassword,
                     &Configure_instance_options::cluster_admin_password)
+          .optional(kClusterAdminCertIssuer,
+                    &Configure_instance_options::cluster_admin_cert_issuer)
+          .optional(kClusterAdminCertSubject,
+                    &Configure_instance_options::cluster_admin_cert_subject)
+          .optional(kClusterAdminPasswordExpiration,
+                    &Configure_instance_options::set_password_expiration)
           .optional(kRestart, &Configure_instance_options::restart)
           .include<Password_interactive_options>();
 
   return opts;
+}
+
+void Configure_instance_options::set_password_expiration(
+    const shcore::Value &value) {
+  switch (value.type) {
+    case shcore::Null:
+      cluster_admin_password_expiration.reset();
+      break;
+
+    case shcore::String: {
+      const auto &s = value.get_string();
+      if (shcore::str_caseeq(s, "NEVER")) {
+        cluster_admin_password_expiration = -1;
+        break;
+      } else if (shcore::str_caseeq(s, "DEFAULT") || s.empty()) {
+        cluster_admin_password_expiration.reset();
+        break;
+      }
+      [[fallthrough]];
+    }
+
+    case shcore::Integer:
+    case shcore::UInteger:
+      try {
+        cluster_admin_password_expiration = value.as_uint();
+        if (*cluster_admin_password_expiration > 0) break;
+      } catch (...) {
+      }
+      throw shcore::Exception::value_error(
+          std::string("Option '") + kPasswordExpiration +
+          "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '" +
+          value.as_string() + "'");
+      break;
+
+    default:
+      throw shcore::Exception::type_error(
+          std::string("Option '") + kPasswordExpiration +
+          "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is " +
+          type_name(value.type));
+  }
 }
 
 void Configure_cluster_local_instance_options::set_mycnf_path(

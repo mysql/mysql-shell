@@ -48,9 +48,6 @@ std::vector<std::string> create_router_grants(
     const std::string &username,
     const mysqlshdk::utils::Version &metadata_version);
 
-void create_cluster_admin_user(mysqlshdk::mysql::IInstance &instance,
-                               const std::string &username,
-                               const std::string &password);
 bool check_admin_account_access_restrictions(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host, bool interactive, Cluster_type purpose);

@@ -788,6 +788,9 @@ void drop_indicator_tag(const mysql::IInstance &instance,
   try {
     instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?", name);
   } catch (const shcore::Error &e) {
+#ifndef ER_REPLICA_CHANNEL_DOES_NOT_EXIST
+#define ER_REPLICA_CHANNEL_DOES_NOT_EXIST ER_SLAVE_CHANNEL_DOES_NOT_EXIST
+#endif
     if (e.code() != ER_REPLICA_CHANNEL_DOES_NOT_EXIST) throw;
   }
 }

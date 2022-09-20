@@ -66,6 +66,12 @@ FUNCTIONS
             Changes the value of either a global Routing option or of a single
             Router instance.
 
+      setupAdminAccount(user, options)
+            Create or upgrade an InnoDB ClusterSet admin account.
+
+      setupRouterAccount(user, options)
+            Create or upgrade a MySQL account to use with MySQL Router.
+
       status([options])
             Describe the status of the ClusterSet.
 
@@ -188,7 +194,7 @@ DESCRIPTION
         transactions from the PRIMARY
       - clone: uses MySQL clone to provision the instance, which completely
         replaces the state of the target instance with a full snapshot of
-        another ReplicaSet member.
+        another ClusterSet member.
       - auto: compares the transaction set of the instance with that of the
         PRIMARY to determine if incremental recovery is safe to be
         automatically chosen as the most appropriate recovery method. A prompt
@@ -841,3 +847,129 @@ RETURNS
 
 DESCRIPTION
       This function lists the configuration options for the ClusterSet.
+
+
+
+//@<OUT> setupAdminAccount
+NAME
+      setupAdminAccount - Create or upgrade an InnoDB ClusterSet admin account.
+
+SYNTAX
+      <ClusterSet>.setupAdminAccount(user, options)
+
+WHERE
+      user: Name of the InnoDB ClusterSet administrator account.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function creates/upgrades a MySQL user account with the necessary
+      privileges to administer an InnoDB ClusterSet.
+
+      This function also allows a user to upgrade an existing admin account
+      with the necessary privileges before a dba.upgradeMetadata() call.
+
+      The mandatory argument user is the name of the MySQL account we want to
+      create or upgrade to be used as Administrator account. The accepted
+      format is username[@host] where the host part is optional and if not
+      provided defaults to '%'.
+
+      The options dictionary may contain the following attributes:
+
+      - password: The password for the InnoDB ClusterSet administrator account.
+      - passwordExpiration: Password expiration setting for the account. May be
+        set to the number of days for expiration, 'NEVER' to disable expiration
+        and 'DEFAULT' to use the system default.
+      - requireCertIssuer: Optional SSL certificate issuer for the account.
+      - requireCertSubject: Optional SSL certificate subject for the account.
+      - dryRun: boolean value used to enable a dry run of the account setup
+        process. Default value is False.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+      - update: boolean value that must be enabled to allow updating the
+        privileges and/or password of existing accounts. Default value is
+        False.
+
+      If the user account does not exist, either the password,
+      requireCertIssuer or requireCertSubject are mandatory.
+
+      If the user account exists, the update option must be enabled.
+
+      If dryRun is used, the function will display information about the
+      permissions to be granted to `user` account without actually creating
+      and/or performing any changes to it.
+
+      The interactive option can be used to explicitly enable or disable the
+      interactive prompts that help the user through the account setup process.
+
+      To change authentication options for an existing account, set `update` to
+      `true`. It is possible to change password without affecting certificate
+      options or vice-versa but certificate options can only be changed
+      together.
+
+//@<OUT> setupRouterAccount
+NAME
+      setupRouterAccount - Create or upgrade a MySQL account to use with MySQL
+                           Router.
+
+SYNTAX
+      <ClusterSet>.setupRouterAccount(user, options)
+
+WHERE
+      user: Name of the account to create/upgrade for MySQL Router.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function creates/upgrades a MySQL user account with the necessary
+      privileges to be used by MySQL Router.
+
+      This function also allows a user to upgrade existing MySQL router
+      accounts with the necessary privileges after a dba.upgradeMetadata()
+      call.
+
+      The mandatory argument user is the name of the MySQL account we want to
+      create or upgrade to be used by MySQL Router. The accepted format is
+      username[@host] where the host part is optional and if not provided
+      defaults to '%'.
+
+      The options dictionary may contain the following attributes:
+
+      - password: The password for the MySQL Router account.
+      - passwordExpiration: Password expiration setting for the account. May be
+        set to the number of days for expiration, 'NEVER' to disable expiration
+        and 'DEFAULT' to use the system default.
+      - requireCertIssuer: Optional SSL certificate issuer for the account.
+      - requireCertSubject: Optional SSL certificate subject for the account.
+      - dryRun: boolean value used to enable a dry run of the account setup
+        process. Default value is False.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
+      - update: boolean value that must be enabled to allow updating the
+        privileges and/or password of existing accounts. Default value is
+        False.
+
+      If the user account does not exist, either the password,
+      requireCertIssuer or requireCertSubject are mandatory.
+
+      If the user account exists, the update option must be enabled.
+
+      If dryRun is used, the function will display information about the
+      permissions to be granted to `user` account without actually creating
+      and/or performing any changes to it.
+
+      The interactive option can be used to explicitly enable or disable the
+      interactive prompts that help the user through the account setup process.
+
+      To change authentication options for an existing account, set `update` to
+      `true`. It is possible to change password without affecting certificate
+      options or vice-versa but certificate options can only be changed
+      together.

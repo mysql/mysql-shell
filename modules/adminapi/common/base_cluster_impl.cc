@@ -321,6 +321,8 @@ shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
  * @param host The host part of the account
  * @param interactive the value of the interactive flag
  * @param update the value of the update flag
+ * @param requireSubject certificate subject to require
+ * @param requireIssuer certificate issuer to require
  * @param dry_run the value of the dry_run flag
  * @param password the password for the account
  * @param type The type of account to create, Admin or Router

@@ -23,6 +23,16 @@ session.runSql("GRANT SELECT on *.* TO 'gr_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 
+//@<> clusterAdmin with ssl certificates
+session1 = mysql.getSession(__sandbox_uri1);
+dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:"root", clusterAdmin:"cert1", clusterAdminPassword:"", clusterAdminCertIssuer:"/CN=cert1issuer", clusterAdminCertSubject:"/CN=cert1subject", clusterAdminPasswordExpiration:42});
+
+user = session1.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string, password_lifetime from mysql.user where user='cert1'").fetchOne();
+EXPECT_EQ(user[0], "/CN=cert1issuer");
+EXPECT_EQ(user[1], "/CN=cert1subject");
+EXPECT_EQ(user[2], "");
+EXPECT_EQ(user[3], 42);
+
 //@ create cluster using cluster admin account (BUG#26523629)
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'gr_user', password: 'root'});
 var cluster = dba.createCluster('devCluster', {memberSslMode:'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});

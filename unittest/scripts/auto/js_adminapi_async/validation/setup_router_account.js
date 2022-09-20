@@ -78,7 +78,7 @@ ReplicaSet.setupRouterAccount: Could not proceed with the operation because acco
 ReplicaSet.setupRouterAccount: Could not proceed with the operation because account dryruntest@% already exists. Enable the 'update' option to update the existing account's privileges. (RuntimeError)
 
 //@<ERR> WL#13536 TSFR6_8 Creating new account fails if password not provided and interactive mode is disabled
-ReplicaSet.setupRouterAccount: Could not proceed with the operation because no password was specified to create account interactive_test_2@%. Provide one using the 'password' option. (RuntimeError)
+ReplicaSet.setupRouterAccount: Could not proceed with the operation because neither password nor client certificate options were specified to create account interactive_test_2@%. Provide one using the 'password', 'requireCertIssuer' and/or 'requireCertSubject' options. (RuntimeError)
 
 //@<ERR> WL#13536 TSET_6 Validate operation fails if user doesn't have enough privileges to create/upgrade account
 ReplicaSet.setupRouterAccount: Account currently in use ('almost_admin_user'@'%') does not have enough privileges to execute the operation. (RuntimeError)

@@ -37,7 +37,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]:
-Cluster admin user 'repl_admin'@'%' created.
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -59,7 +61,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'repl_admin'@'%' created.
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -80,7 +84,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'repl_admin'@'%' created.
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -102,7 +108,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'repl_admin'@'%' created.
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -124,7 +132,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'repl_admin'@'%' created.
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -146,21 +156,13 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'repl_admin'@'%' created.
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-
-//@<OUT> test connection with custom cluster admin and password
-No default schema selected; type \use <schema> to set one.
-<ClassicSession:repl_admin@localhost:<<<__mysql_sandbox_port1>>>>
-
-//@ test configureInstance providing clusterAdminPassword without clusterAdmin
-||The clusterAdminPassword is allowed only if clusterAdmin is specified.
-
-//@ test configureInstance providing clusterAdminPassword and an existing clusterAdmin
-||The 'repl_admin'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.
 
 //@<OUT> configureInstance custom cluster admin and no password
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -198,7 +200,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]:
-Cluster admin user 'repl_admin2'@'%' created.
+Creating user repl_admin2@%.
+Account repl_admin2@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -214,7 +218,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'repl_admin2'@'%' created.
+Creating user repl_admin2@%.
+Account repl_admin2@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.

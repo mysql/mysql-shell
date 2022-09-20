@@ -85,6 +85,12 @@ cs.help("setRoutingOption");
 //@ options
 \? ClusterSet.options
 
+//@ setupAdminAccount
+\? ClusterSet.setupAdminAccount
+
+//@ setupRouterAccount
+\? ClusterSet.setupRouterAccount
+
 //@<> Clean-up.
 cs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

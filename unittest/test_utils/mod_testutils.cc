@@ -298,9 +298,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   // expose("slowify", &Testutils::slowify, "port", "start");
   expose("bp", &Testutils::bp, "flag");
 
-  expose("sslCreateCa", &Testutils::ssl_create_ca, "name");
-  expose("sslCreateCerts", &Testutils::ssl_create_certs, "sbport", "caname",
-         "servercn", "clientcn");
+  expose("sslCreateCa", &Testutils::ssl_create_ca, "name", "issuer");
+  expose("sslCreateCert", &Testutils::ssl_create_cert, "name", "caname", "subj",
+         "?sbport", 0);
 
   expose("validateOciConfig", &Testutils::validate_oci_config);
   expose("getOciConfig", &Testutils::get_oci_config);
@@ -3087,14 +3087,16 @@ void Testutils::dprint(const std::string &s) {
  * Generates a named CA that can be used to create certificates.
  *
  * @param name a name for the CA to be created
+ * @param isuer string to be used for the subject field
  */
 #if DOXYGEN_JS
-Undefined Testutils::sslCreateCa(String s);
+String Testutils::sslCreateCa(String s, String issuer);
 #elif DOXYGEN_PY
-None Testutils::ssl_create_ca(str s);
+str Testutils::ssl_create_ca(str s, String issuer);
 #endif
 ///@}
-void Testutils::ssl_create_ca(const std::string &name) {
+std::string Testutils::ssl_create_ca(const std::string &name,
+                                     const std::string &issuer) {
   if (!_skip_server_interaction) {
     std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
     if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
@@ -3115,11 +3117,11 @@ void Testutils::ssl_create_ca(const std::string &name) {
 
     std::string keyfmt =
         "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $ca-key.pem$ "
-        "-subj /CN=A_test_CA_called_$cn$ -out $ca-req.pem$ "
+        "-subj $subj$ -out $ca-req.pem$ "
         "&& openssl rsa -in $ca-key.pem$ -out $ca-key.pem$";
 
     cmd = shcore::str_replace(keyfmt, "$ca-key.pem$", key_path.c_str());
-    cmd = shcore::str_replace(cmd, "$cn$", name.c_str());
+    cmd = shcore::str_replace(cmd, "$subj$", issuer.c_str());
     cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
 
     dprint("-> " + cmd);
@@ -3141,7 +3143,10 @@ void Testutils::ssl_create_ca(const std::string &name) {
     shcore::delete_file(req_path);
     shcore::delete_file(cav3_ext);
     shcore::delete_file(certv3_ext);
+
+    return ca_path;
   }
+  return "";
 }
 
 //!<  @name Testing Utilities
@@ -3149,44 +3154,44 @@ void Testutils::ssl_create_ca(const std::string &name) {
 /**
  * Generats client and server certs signed by the named CA.
  *
- * @param sbport port of the sandbox that will use the certificates
+ * @param name name of the certificate to generate
  * @param caname the name of the CA as given to sslCreateCa
- * @param servercn the CN to be used for the server certificate
- * @param clientcn the CN to be used for the client certificate
+ * @param subj the subject text to be used for the certificate
+ * @param sbport port of the sandbox that will use the certificates or 0
  *
- * Both client and server certificates signed by the CA that was given will
- * be created and replace the equivalent ones in the given sandbox.
+ * A certificates signed by the CA that was given will be created and be placed
+ * in the given sandbox.
  *
  * The sandbox must be restarted for the changes to take effect.
  *
  * Output is enabled if tracing is enabled.
  */
 #if DOXYGEN_JS
-Undefined Testutils::sslCreateCerts(Integer sbport, String caname,
-                                    String servercn, String clientcn);
+String Testutils::sslCreateCert(String name, String caname, String subj,
+                                Integer sbport);
 #elif DOXYGEN_PY
-None Testutils::ssl_create_certs(int sbport, str caname, str servercn,
-                                 str clientcn);
+str Testutils::ssl_create_cert(str name, str caname, str subj, int sbport);
 #endif
 ///@}
-void Testutils::ssl_create_certs(int sbport, const std::string &caname,
-                                 const std::string &servercn,
-                                 const std::string &clientcn) {
+std::string Testutils::ssl_create_cert(const std::string &name,
+                                       const std::string &caname,
+                                       const std::string &subj, int sbport) {
   if (!_skip_server_interaction) {
     std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
-    std::string sbdir = get_sandbox_datadir(sbport);
+    std::string sbdir = sbport == 0 ? basedir : get_sandbox_datadir(sbport);
 
     std::string ca_key_path =
         shcore::path::join_path(basedir, caname + "-key.pem");
     std::string ca_path = shcore::path::join_path(basedir, caname + ".pem");
 
-    // first copy the CA to the target dir
-    shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca.pem"));
-    // Note: in reality, I don't think we would deploy the CA key too, but we do
-    // to overwrite the one generated by default
-    shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca-key.pem"));
-
-    auto mkcert = [&](const std::string &name, const std::string &cn) {
+    if (sbport != 0) {
+      // first copy the CA to the target dir
+      shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca.pem"));
+      // Note: in reality, I don't think we would deploy the CA key too, but we
+      // do to overwrite the one generated by default
+      shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca-key.pem"));
+    }
+    {
       std::string key_path = shcore::path::join_path(sbdir, name + "-key.pem");
       std::string req_path = shcore::path::join_path(sbdir, name + "-req.pem");
       std::string cert_path =
@@ -3205,16 +3210,16 @@ void Testutils::ssl_create_certs(int sbport, const std::string &caname,
       std::string keyfmt =
           "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout "
           "$cert-key.pem$ "
-          "-subj '/CN=$cn$' -out $cert-req.pem$ "
+          "-subj '$subj$' -out $cert-req.pem$ "
           "&& openssl rsa -in $cert-key.pem$ -out $cert-key.pem$";
 
       cmd = shcore::str_replace(keyfmt, "$cert-key.pem$", key_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cn$", cn.c_str());
+      cmd = shcore::str_replace(cmd, "$subj$", subj.c_str());
       cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
 
       dprint("-> " + cmd);
       if (system(cmd.c_str()) != 0)
-        throw std::runtime_error("CA creation failed");
+        throw std::runtime_error("cert creation failed");
 
       std::string certfmt =
           "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ "
@@ -3228,19 +3233,16 @@ void Testutils::ssl_create_certs(int sbport, const std::string &caname,
 
       dprint("-> " + cmd);
       if (system(cmd.c_str()) != 0)
-        throw std::runtime_error("CA creation failed");
+        throw std::runtime_error("cert creation failed");
 
       shcore::delete_file(req_path);
       shcore::delete_file(cav3_ext);
       shcore::delete_file(certv3_ext);
-    };
 
-    // then generate the server certs
-    mkcert("server", servercn);
-
-    // and finally the client certs
-    mkcert("client", clientcn);
+      return cert_path;
+    }
   }
+  return "";
 }
 
 std::string Testutils::fetch_captured_stdout(bool eat_one) {

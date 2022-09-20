@@ -99,6 +99,17 @@ OPTIONS
 --clusterAdminPassword=<str>
             The password for the "cluster administrator" account.
 
+--clusterAdminCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--clusterAdminCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--clusterAdminPasswordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
+
 --restart=<bool>
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
@@ -148,6 +159,17 @@ OPTIONS
 --clusterAdminPassword=<str>
             The password for the "cluster administrator" account.
 
+--clusterAdminCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--clusterAdminCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--clusterAdminPasswordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
+
 --restart=<bool>
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
@@ -194,6 +216,17 @@ OPTIONS
 
 --clusterAdminPassword=<str>
             The password for the "cluster administrator" account.
+
+--clusterAdminCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--clusterAdminCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--clusterAdminPasswordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --restart=<bool>
             Boolean value used to indicate that a remote restart of the target

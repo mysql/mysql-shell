@@ -231,6 +231,10 @@ constexpr const char kOutputMycnfPath[] = "outputMycnfPath";
 constexpr const char kInteractive[] = "interactive";
 constexpr const char kClusterAdmin[] = "clusterAdmin";
 constexpr const char kClusterAdminPassword[] = "clusterAdminPassword";
+constexpr const char kClusterAdminCertIssuer[] = "clusterAdminCertIssuer";
+constexpr const char kClusterAdminCertSubject[] = "clusterAdminCertSubject";
+constexpr const char kClusterAdminPasswordExpiration[] =
+    "clusterAdminPasswordExpiration";
 constexpr const char kRestart[] = "restart";
 constexpr const char kClearReadOnly[] = "clearReadOnly";
 constexpr const char kApplierWorkerThreads[] = "applierWorkerThreads";
@@ -262,6 +266,9 @@ constexpr const char kSwitchCommunicationStack[] = "switchCommunicationStack";
 constexpr const char kTransactionSizeLimit[] = "transactionSizeLimit";
 constexpr const char kGrTransactionSizeLimit[] =
     "group_replication_transaction_size_limit";
+constexpr const char kRequireCertIssuer[] = "requireCertIssuer";
+constexpr const char kRequireCertSubject[] = "requireCertSubject";
+constexpr const char kPasswordExpiration[] = "passwordExpiration";
 
 constexpr const int k_group_replication_members_limit = 9;
 

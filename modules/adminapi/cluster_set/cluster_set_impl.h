@@ -146,6 +146,11 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   bool check_gtid_consistency(Cluster_impl *cluster) const;
 
+  void setup_admin_account(const std::string &username, const std::string &host,
+                           const Setup_account_options &options) override;
+  void setup_router_account(const std::string &username,
+                            const std::string &host,
+                            const Setup_account_options &options) override;
   // Lock methods
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(

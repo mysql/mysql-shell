@@ -921,6 +921,11 @@ DESCRIPTION
       The options dictionary may contain the following attributes:
 
       - password: The password for the InnoDB cluster administrator account.
+      - passwordExpiration: Password expiration setting for the account. May be
+        set to the number of days for expiration, 'NEVER' to disable expiration
+        and 'DEFAULT' to use the system default.
+      - requireCertIssuer: Optional SSL certificate issuer for the account.
+      - requireCertSubject: Optional SSL certificate subject for the account.
       - dryRun: boolean value used to enable a dry run of the account setup
         process. Default value is False.
       - interactive: boolean value used to disable/enable the wizards in the
@@ -931,19 +936,23 @@ DESCRIPTION
         privileges and/or password of existing accounts. Default value is
         False.
 
-      If the user account does not exist, the password is mandatory.
+      If the user account does not exist, either the password,
+      requireCertIssuer or requireCertSubject are mandatory.
 
       If the user account exists, the update option must be enabled.
 
       If dryRun is used, the function will display information about the
       permissions to be granted to `user` account without actually creating
-      and/or performing any changes on it.
+      and/or performing any changes to it.
 
       The interactive option can be used to explicitly enable or disable the
       interactive prompts that help the user through the account setup process.
 
-      The update option must be enabled to allow updating an existing account's
-      privileges and/or password.
+      To change authentication options for an existing account, set `update` to
+      `true`. It is possible to change password without affecting certificate
+      options or vice-versa but certificate options can only be changed
+      together.
+
 
 #@<OUT> cluster.setup_router_account
 NAME
@@ -976,6 +985,11 @@ DESCRIPTION
       The options dictionary may contain the following attributes:
 
       - password: The password for the MySQL Router account.
+      - passwordExpiration: Password expiration setting for the account. May be
+        set to the number of days for expiration, 'NEVER' to disable expiration
+        and 'DEFAULT' to use the system default.
+      - requireCertIssuer: Optional SSL certificate issuer for the account.
+      - requireCertSubject: Optional SSL certificate subject for the account.
       - dryRun: boolean value used to enable a dry run of the account setup
         process. Default value is False.
       - interactive: boolean value used to disable/enable the wizards in the
@@ -986,19 +1000,23 @@ DESCRIPTION
         privileges and/or password of existing accounts. Default value is
         False.
 
-      If the user account does not exist, the password is mandatory.
+      If the user account does not exist, either the password,
+      requireCertIssuer or requireCertSubject are mandatory.
 
       If the user account exists, the update option must be enabled.
 
       If dryRun is used, the function will display information about the
       permissions to be granted to `user` account without actually creating
-      and/or performing any changes on it.
+      and/or performing any changes to it.
 
       The interactive option can be used to explicitly enable or disable the
       interactive prompts that help the user through the account setup process.
 
-      The update option must be enabled to allow updating an existing account's
-      privileges and/or password.
+      To change authentication options for an existing account, set `update` to
+      `true`. It is possible to change password without affecting certificate
+      options or vice-versa but certificate options can only be changed
+      together.
+
 
 #@<OUT> cluster.rescan
 NAME

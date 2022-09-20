@@ -222,6 +222,13 @@ DESCRIPTION
       - clusterAdmin: The name of the "cluster administrator" account.
       - clusterAdminPassword: The password for the "cluster administrator"
         account.
+      - clusterAdminPasswordExpiration: Password expiration setting for the
+        account. May be set to the number of days for expiration, 'NEVER' to
+        disable expiration and 'DEFAULT' to use the system default.
+      - clusterAdminCertIssuer: Optional SSL certificate issuer for the
+        account.
+      - clusterAdminCertSubject: Optional SSL certificate subject for the
+        account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
       - restart: boolean value used to indicate that a remote restart of the
@@ -290,6 +297,13 @@ DESCRIPTION
       - password: The password to be used on the connection.
       - clusterAdmin: The name of the "cluster administrator" account.
       - clusterAdminPassword: The password for the "cluster administrator"
+        account.
+      - clusterAdminPasswordExpiration: Password expiration setting for the
+        account. May be set to the number of days for expiration, 'NEVER' to
+        disable expiration and 'DEFAULT' to use the system default.
+      - clusterAdminCertIssuer: Optional SSL certificate issuer for the
+        account.
+      - clusterAdminCertSubject: Optional SSL certificate subject for the
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
@@ -364,6 +378,13 @@ DESCRIPTION
       - clusterAdmin: The name of a "cluster administrator" user to be created.
         The supported format is the standard MySQL account name format.
       - clusterAdminPassword: The password for the "cluster administrator"
+        account.
+      - clusterAdminPasswordExpiration: Password expiration setting for the
+        account. May be set to the number of days for expiration, 'NEVER' to
+        disable expiration and 'DEFAULT' to use the system default.
+      - clusterAdminCertIssuer: Optional SSL certificate issuer for the
+        account.
+      - clusterAdminCertSubject: Optional SSL certificate subject for the
         account.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or

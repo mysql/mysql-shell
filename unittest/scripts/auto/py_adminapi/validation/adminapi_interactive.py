@@ -234,7 +234,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -249,7 +251,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -274,7 +278,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]:
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -293,7 +299,8 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
 
 #@<OUT> configure_instance() - create admin account 3
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
@@ -309,7 +316,8 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
 
 #@<OUT> configure_instance() - check if configure_instance() was actually successful by double-checking with check_instance_configuration() {VER(>=8.0.11)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...

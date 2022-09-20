@@ -875,25 +875,23 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the InnoDB ReplicaSet administrator account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
 ${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
-If the user account does not exist, the password is mandatory.
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes on it.
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
+${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
 
-The update option must be enabled to allow updating an existing account's
-privileges and/or password.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
 )*");
 
 /**
@@ -948,25 +946,23 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the MySQL Router account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
 ${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
-If the user account does not exist, the password is mandatory.
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes on it.
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
+${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
 
-The update option must be enabled to allow updating an existing account's
-privileges and/or password.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
 )*");
 
 /**

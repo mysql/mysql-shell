@@ -30,6 +30,7 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
@@ -117,9 +118,98 @@ const shcore::Option_pack_def<Setup_account_options>
       shcore::Option_pack_def<Setup_account_options>()
           .optional(kDryRun, &Setup_account_options::dry_run)
           .optional(kUpdate, &Setup_account_options::update)
+          .optional(kRequireCertIssuer,
+                    &Setup_account_options::require_cert_issuer)
+          .optional(kRequireCertSubject,
+                    &Setup_account_options::require_cert_subject)
+          .optional(kPasswordExpiration,
+                    &Setup_account_options::set_password_expiration)
           .include<Password_interactive_options>();
 
   return opts;
+}
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION,
+    "@li passwordExpiration: Password expiration setting for the account. "
+    "May be set to the number of days for expiration, 'NEVER' to disable "
+    "expiration and 'DEFAULT' to use the system default.");
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER,
+    "@li requireCertIssuer: Optional SSL certificate issuer for the account.");
+
+REGISTER_HELP(OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT,
+              "@li requireCertSubject: Optional SSL certificate subject for "
+              "the account.");
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN,
+    "@li dryRun: boolean value used to enable a dry run of the account setup "
+    "process. Default value is False.");
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL,
+    "If dryRun is used, the function will display information about the "
+    "permissions to be granted to `user` account without actually creating "
+    "and/or performing any changes to it.");
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_UPDATE,
+    "@li update: boolean value that must be enabled to allow updating the "
+    "privileges and/or password of existing accounts. Default value is False.");
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL,
+    "To change authentication options for an existing account, set `update` to "
+    "`true`. It is possible to change password without affecting "
+    "certificate options or vice-versa but certificate options can only be "
+    "changed together.");
+
+REGISTER_HELP(
+    OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL,
+    "The interactive option can be used to explicitly enable or disable the "
+    "interactive prompts that help the user through the account setup "
+    "process.");
+
+void Setup_account_options::set_password_expiration(
+    const shcore::Value &value) {
+  switch (value.type) {
+    case shcore::Null:
+      password_expiration.reset();
+      break;
+
+    case shcore::String: {
+      const auto &s = value.get_string();
+      if (shcore::str_caseeq(s, "NEVER")) {
+        password_expiration = -1;
+        break;
+      } else if (shcore::str_caseeq(s, "DEFAULT") || s.empty()) {
+        password_expiration.reset();
+        break;
+      }
+      [[fallthrough]];
+    }
+
+    case shcore::Integer:
+    case shcore::UInteger:
+      try {
+        password_expiration = value.as_uint();
+        if (*password_expiration > 0) break;
+      } catch (...) {
+      }
+      throw shcore::Exception::value_error(
+          std::string("Option '") + kPasswordExpiration +
+          "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '" +
+          value.as_string() + "'");
+      break;
+
+    default:
+      throw shcore::Exception::type_error(
+          std::string("Option '") + kPasswordExpiration +
+          "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is " +
+          type_name(value.type));
+  }
 }
 
 }  // namespace dba

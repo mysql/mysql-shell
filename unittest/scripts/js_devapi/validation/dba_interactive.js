@@ -420,7 +420,9 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'dba_test'@'%' created.
+Creating user dba_test@%.
+Account dba_test@% was successfully created.
+
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
 
 ?{VER(>=8.0.23)}

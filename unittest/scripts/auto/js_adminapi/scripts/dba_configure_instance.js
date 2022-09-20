@@ -39,15 +39,21 @@ testutil.assertNoPrompts();
 ensure_plugin_disabled("validate_password", session1, "validate_password");
 session1.close();
 
-//@ test connection with custom cluster admin and password
+//@<> test connection with custom cluster admin and password
 shell.connect('repl_admin:sample@' + uri1);
 session.close();
 
-//@ test configureInstance providing clusterAdminPassword without clusterAdmin
-dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminPassword: "whatever" });
+//@<> test configureInstance providing clusterAdminPassword without clusterAdmin
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminPassword: "whatever" });}, "The clusterAdminPassword option is allowed only if clusterAdmin is specified.");
 
-//@ test configureInstance providing clusterAdminPassword and an existing clusterAdmin
-dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdmin: "repl_admin", clusterAdminPassword: "whatever" });
+//@<> test configureInstance providing clusterAdminCertIssuer without clusterAdmin
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminCertIssuer: "whatever" });}, "The clusterAdminCertIssuer option is allowed only if clusterAdmin is specified.");
+
+//@<> test configureInstance providing clusterAdminCertSubject without clusterAdmin
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminCertSubject: "whatever" });}, "The clusterAdminCertSubject option is allowed only if clusterAdmin is specified.");
+
+//@<> test configureInstance providing clusterAdminPassword and an existing clusterAdmin
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdmin: "repl_admin", clusterAdminPassword: "whatever" });}, "The 'repl_admin'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.");
 
 //@ configureInstance custom cluster admin and no password
 var root_uri1 = "root@" + uri1;
@@ -79,6 +85,16 @@ testutil.waitSandboxAlive(__mysql_sandbox_port1);
 EXPECT_EQ(10, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
 
 // Verify that configureInstance() enables parallel-appliers on a cluster member that doesn't have them enabled (upgrade scenario)
+
+//@<> clusterAdmin with ssl certificates {VER(>=8.0)}
+session1 = mysql.getSession(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri1, {clusterAdmin:"cert1", clusterAdminPassword:"", clusterAdminCertIssuer:"/CN=cert1issuer", clusterAdminCertSubject:"/CN=cert1subject", clusterAdminPasswordExpiration:42});
+
+user = session1.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string, password_lifetime from mysql.user where user='cert1'").fetchOne();
+EXPECT_EQ(user[0], "/CN=cert1issuer");
+EXPECT_EQ(user[1], "/CN=cert1subject");
+EXPECT_EQ(user[2], "");
+EXPECT_EQ(user[3], 42);
 
 //@<> Create a cluster {VER(>=8.0.23)}
 shell.connect(uri_repl_admin);

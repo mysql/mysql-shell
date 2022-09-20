@@ -1684,6 +1684,9 @@ void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
           reset_channel(instance.get(), k_clusterset_async_channel_name, true,
                         dry_run);
         } catch (const shcore::Exception &e) {
+#ifndef ER_REPLICA_CHANNEL_DOES_NOT_EXIST
+#define ER_REPLICA_CHANNEL_DOES_NOT_EXIST ER_SLAVE_CHANNEL_DOES_NOT_EXIST
+#endif
           if (e.code() != ER_REPLICA_CHANNEL_DOES_NOT_EXIST) {
             throw;
           }
@@ -2884,6 +2887,28 @@ void Cluster_set_impl::rejoin_cluster(
 
   console->print_info("Cluster '" + cluster_name +
                       "' was rejoined to the clusterset");
+}
+
+void Cluster_set_impl::setup_admin_account(
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options) {
+  check_preconditions("setupAdminAccount");
+
+  // put a shared lock on the cluster
+  auto c_lock = get_lock_shared();
+
+  Base_cluster_impl::setup_admin_account(username, host, options);
+}
+
+void Cluster_set_impl::setup_router_account(
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options) {
+  check_preconditions("setupRouterAccount");
+
+  // put a shared lock on the cluster
+  auto c_lock = get_lock_shared();
+
+  Base_cluster_impl::setup_router_account(username, host, options);
 }
 
 mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock(

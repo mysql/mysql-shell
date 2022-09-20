@@ -99,13 +99,18 @@ void Setup_account::prepare() {
     if (m_options.interactive()) {
       prompt_for_password();
     } else {
-      // new user, password was not provided and not interactive mode, so we
-      // must throw an error
-      throw shcore::Exception::runtime_error(
-          shcore::str_format("Could not proceed with the operation because no "
-                             "password was specified to create account "
-                             "%s@%s. Provide one using the 'password' option.",
-                             m_name.c_str(), m_host.c_str()));
+      if (!m_options.require_cert_issuer.has_value() &&
+          !m_options.require_cert_subject.has_value()) {
+        // new user, password was not provided and not interactive mode, so we
+        // must throw an error
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Could not proceed with the operation because neither "
+            "password nor client certificate options were specified to create "
+            "account %s@%s. Provide one using the 'password', '%s' and/or '%s' "
+            "options.",
+            m_name.c_str(), m_host.c_str(), kRequireCertIssuer,
+            kRequireCertSubject));
+      }
     }
   }
 }
@@ -156,28 +161,60 @@ void Setup_account::create_account() {
   // makes it work even if the account doesn't exists on some cluster
   // instances but exists on others.
   const auto console = mysqlsh::current_console();
-  const std::string action = m_user_exists ? "Updating" : "Creating";
-  console->print_info(shcore::str_format("%s user %s@%s.", action.c_str(),
+  const char *action = m_user_exists ? "Updating" : "Creating";
+  console->print_info(shcore::str_format("%s user %s@%s.", action,
                                          m_name.c_str(), m_host.c_str()));
+
+  std::string sql;
 
   // If the user already exists, just update the password otherwise create a new
   // account
   if (m_user_exists) {
+    std::string what;
     if (!m_options.password.is_null()) {
-      console->print_info("Updating user password.");
-
-      if (!m_options.dry_run) {
-        m_primary_server.executef(
-            "ALTER USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", m_name, m_host,
-            m_options.password.get_safe());
+      what = "user password";
+    }
+    if (m_options.require_cert_issuer.has_value() ||
+        m_options.require_cert_subject.has_value()) {
+      if (!what.empty()) what += " and ";
+      what += "client certificate options";
+    }
+    console->print_info("Updating " + what + ".");
+    sql = "ALTER USER";
+  } else {
+    sql = "CREATE USER IF NOT EXISTS";
+  }
+  if (!m_options.dry_run) {
+    sql += shcore::sqlformat(" ?@?", m_name, m_host);
+    if (!m_options.password.is_null()) {
+      sql += shcore::sqlformat(" IDENTIFIED BY /*((*/ ? /*))*/",
+                               m_options.password.get_safe());
+    }
+    if (m_options.require_cert_issuer.has_value() ||
+        m_options.require_cert_subject.has_value()) {
+      if (!m_options.require_cert_issuer.value_or("").empty() ||
+          !m_options.require_cert_subject.value_or("").empty()) {
+        sql += " REQUIRE";
+      } else {
+        sql += " REQUIRE NONE";
+      }
+      if (!m_options.require_cert_issuer.value_or("").empty()) {
+        sql += shcore::sqlformat(" ISSUER ?", *m_options.require_cert_issuer);
+      }
+      if (!m_options.require_cert_subject.value_or("").empty()) {
+        sql += shcore::sqlformat(" SUBJECT ?", *m_options.require_cert_subject);
       }
     }
-  } else {
-    if (!m_options.dry_run) {
-      m_primary_server.executef(
-          "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*((*/ ? /*))*/", m_name,
-          m_host, m_options.password.get_safe());
+    if (m_options.password_expiration.has_value()) {
+      if (*m_options.password_expiration < 0) {
+        sql += " PASSWORD EXPIRE NEVER";
+      } else {
+        sql += shcore::sqlformat(" PASSWORD EXPIRE INTERVAL ? DAY",
+                                 *m_options.password_expiration);
+      }
     }
+
+    m_primary_server.execute(sql);
   }
 }
 

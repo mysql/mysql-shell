@@ -22,7 +22,9 @@ For more information see:
 https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
 
 Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-Cluster admin user 'testUser'@'%' created.
+Creating user testUser@%.
+Account testUser@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@<OUT> Configures the instance, read only set, no prompt
@@ -39,7 +41,9 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'
-Cluster admin user 'testUser'@'%' created.
+Creating user testUser@%.
+Account testUser@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'
 
 //@<OUT> Configures the instance, no prompt
@@ -56,7 +60,8 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'testUser'@'%' created.
+Creating user testUser@%.
+Account testUser@% was successfully created.
 
 //@ Creates Cluster succeeds (should auto-clear)
 |Disabling super_read_only mode on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.|

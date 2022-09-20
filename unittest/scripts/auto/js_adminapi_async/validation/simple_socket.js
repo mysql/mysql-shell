@@ -54,7 +54,9 @@ NOTE: Some configuration options need to be fixed:
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 

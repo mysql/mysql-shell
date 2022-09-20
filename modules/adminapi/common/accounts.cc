@@ -380,30 +380,6 @@ std::vector<std::string> create_router_grants(
   return grants;
 }
 
-void create_cluster_admin_user(mysqlshdk::mysql::IInstance &instance,
-                               const std::string &username,
-                               const std::string &password) {
-  std::string user, host;
-  shcore::split_account(username, &user, &host);
-
-  // We're not checking if the current user has enough privileges to create a
-  // cluster admin here, because such check should be performed before calling
-  // this function.
-  // If the current user doesn't have the right privileges to create a cluster
-  // admin, one of the SQL statements below will throw.
-
-  mysqlshdk::mysql::Suppress_binary_log nobinlog(&instance);
-  log_info("Creating account %s", username.c_str());
-  // Create the user
-  instance.executef("CREATE USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", user, host,
-                    password);
-  // Give the grants
-  for (const auto &grant :
-       create_admin_grants(username, instance.get_version())) {
-    instance.execute(grant);
-  }
-}
-
 /*
  * Check cluster admin restrictions
  *

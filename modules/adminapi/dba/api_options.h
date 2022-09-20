@@ -74,12 +74,17 @@ struct Check_instance_configuration_options
 struct Configure_instance_options : public Password_interactive_options {
   static const shcore::Option_pack_def<Configure_instance_options> &options();
 
+  void set_password_expiration(const shcore::Value &value);
+
   bool local = false;
   Cluster_type cluster_type;
 
   std::string cluster_admin;
-  mysqlshdk::null_string cluster_admin_password;
-  mysqlshdk::null_bool restart;
+  std::optional<std::string> cluster_admin_password;
+  std::optional<std::string> cluster_admin_cert_issuer;
+  std::optional<std::string> cluster_admin_cert_subject;
+  std::optional<int64_t> cluster_admin_password_expiration;
+  std::optional<bool> restart;
   std::optional<int64_t> replica_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;

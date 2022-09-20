@@ -1,9 +1,6 @@
 //@# createCluster
 ||
 
-//@# addInstance
-||
-
 //@# status
 |{|
 |    "clusterName": "clus",|

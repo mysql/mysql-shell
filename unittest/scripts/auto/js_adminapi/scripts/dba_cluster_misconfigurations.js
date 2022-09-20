@@ -9,7 +9,7 @@ EXPECT_STDERR_EMPTY();
 
 //@<> create cluster admin
 dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-EXPECT_STDOUT_CONTAINS("Cluster admin user 'ca'@'%' created.")
+EXPECT_STDOUT_CONTAINS("Account ca@% was successfully created.")
 
 session.close();
 
@@ -54,7 +54,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 // Create cluster admin account
 dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port2, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
-EXPECT_STDOUT_CONTAINS("Cluster admin user 'ca'@'%' created.")
+EXPECT_STDOUT_CONTAINS("Account ca@% was successfully created.")
 
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "DATABASE");

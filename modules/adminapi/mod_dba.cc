@@ -2519,6 +2519,11 @@ file of the instance.
 @li password: The password to be used on the connection.
 @li clusterAdmin: The name of the "cluster administrator" account.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
+@li clusterAdminPasswordExpiration: Password expiration setting for the account.
+May be set to the number of days for expiration, 'NEVER' to disable expiration
+and 'DEFAULT' to use the system default.
+@li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
+@li clusterAdminCertSubject: Optional SSL certificate subject for the account.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled.
 @li restart: boolean value used to indicate that a remote restart of the target
@@ -2599,6 +2604,11 @@ The options dictionary may contain the following options:
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
+@li clusterAdminPasswordExpiration: Password expiration setting for the account.
+May be set to the number of days for expiration, 'NEVER' to disable expiration
+and 'DEFAULT' to use the system default.
+@li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
+@li clusterAdminCertSubject: Optional SSL certificate subject for the account.
 ${OPT_INTERACTIVE}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.

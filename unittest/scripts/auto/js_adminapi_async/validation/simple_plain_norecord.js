@@ -54,7 +54,9 @@ NOTE: Some configuration options need to be fixed:
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<__address1>>>' was configured to be used in an InnoDB ReplicaSet.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -72,7 +74,9 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 
 The instance '<<<__address2>>>' is valid to be used in an InnoDB ReplicaSet.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 The instance '<<<__address2>>>' is already ready to be used in an InnoDB ReplicaSet.
 ?{VER(>=8.0.23)}
 

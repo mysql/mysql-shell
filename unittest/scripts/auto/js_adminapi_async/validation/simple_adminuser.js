@@ -1,9 +1,9 @@
 //@#configureReplicaSetInstance + create admin user
-|Cluster admin user 'admin'@'%' created.|
+|Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.|
-|Cluster admin user 'admin'@'%' created.|
+|Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB ReplicaSet.|
-|Cluster admin user 'admin'@'%' created.|
+|Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' is already ready to be used in an InnoDB ReplicaSet.|
 
 //@<OUT> createReplicaSet
