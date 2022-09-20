@@ -169,6 +169,7 @@ n_tables = 250
 
 # create schema with lots of tables
 shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
 session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
@@ -195,7 +196,35 @@ EXPECT_PAR_IS_SECRET()
 EXPECT_STDOUT_CONTAINS(f"{n_tables + 1} tables in 1 schemas were loaded")
 
 #@<> BUG#33122234 - cleanup
-session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
+#@<> BUG#34599319 - dump&load when paths contain spaces and other characters that need to be URL-encoded
+tested_schema = "test schema"
+tested_table = "fish & chips"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+# prepare the dump
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+util.dump_schemas([tested_schema], "shell test/dump & load", {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file})
+
+#@<> BUG#34599319 - test
+all_read_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), "shell test/dump & load/", "ListObjects")
+shell.connect(__sandbox_uri2)
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": ""}), "load_dump() with URL-encoded file names")
+EXPECT_PAR_IS_SECRET()
+
+EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
+
+#@<> BUG#34599319 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> BUG#33155373
 PREPARE_PAR_IS_SECRET_TEST()

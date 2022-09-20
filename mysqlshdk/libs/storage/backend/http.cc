@@ -25,6 +25,7 @@
 
 #include <algorithm>
 
+#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/rest/error_codes.h"
 #include "mysqlshdk/libs/rest/response.h"
 #include "mysqlshdk/libs/rest/rest_service.h"
@@ -183,7 +184,7 @@ std::string Http_object::filename() const {
       fname = fname.substr(p + 1);
     }
   }
-  return fname;
+  return shcore::pctdecode(fname);
 }
 
 bool Http_object::exists() const {
@@ -398,7 +399,8 @@ std::unique_ptr<IFile> Http_directory::file(
   auto real = full.real();
   auto masked = full.masked();
   Masked_string copy = {std::move(real), std::move(masked)};
-  auto file = std::make_unique<Http_object>(copy, name, m_use_retry);
+  auto file = std::make_unique<Http_object>(copy, db::uri::pctencode_path(name),
+                                            m_use_retry);
   file->set_parent_config(m_config);
   return file;
 }

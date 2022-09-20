@@ -27,6 +27,7 @@
 #include <regex>
 #include <utility>
 
+#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/storage/backend/http.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -126,6 +127,10 @@ std::string hide_par_secret(const std::string &par, std::size_t start_at) {
   return par.substr(0, p + 3) + "<secret>" + par.substr(n);
 }
 
+std::string PAR_structure::full_url() const {
+  return par_url() + db::uri::pctencode_path(object_prefix + object_name);
+}
+
 std::string PAR_structure::par_url() const {
   return shcore::str_format("%s/p/%s/n/%s/b/%s/o/", endpoint().c_str(),
                             par_id.c_str(), ns_name.c_str(), bucket.c_str());
@@ -147,7 +152,7 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
   std::smatch results;
 
   if (std::regex_match(url, results, k_full_par_parser)) {
-    std::string object_name = results[par_tokens::BASENAME];
+    std::string object_name = shcore::pctdecode(results[par_tokens::BASENAME]);
 
     if (object_name.empty()) {
       ret_val = PAR_type::PREFIX;
@@ -159,13 +164,12 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
     }
 
     if (data) {
-      data->full_url = url;
       data->region = results[par_tokens::REGION];
       data->domain = results[par_tokens::FULL_DOMAIN];
       data->par_id = results[par_tokens::PARID];
       data->ns_name = results[par_tokens::NAMESPACE];
       data->bucket = results[par_tokens::BUCKET];
-      data->object_prefix = results[par_tokens::PREFIX];
+      data->object_prefix = shcore::pctdecode(results[par_tokens::PREFIX]);
       data->object_name = std::move(object_name);
     }
   }

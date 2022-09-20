@@ -999,17 +999,4 @@ TEST(utils_string, truncate) {
   EXPECT_EQ("zß水𝄋zß水𝄋", truncate("zß水𝄋zß水𝄋", 8));
 }
 
-TEST(utils_string, pctencode_path) {
-  EXPECT_EQ("", pctencode_path(""));
-  EXPECT_EQ("out", pctencode_path("out"));
-  EXPECT_EQ("/out", pctencode_path("/out"));
-  EXPECT_EQ("out/", pctencode_path("out/"));
-  EXPECT_EQ("/out/", pctencode_path("/out/"));
-  EXPECT_EQ("out/%40.json", pctencode_path("out/@.json"));
-  EXPECT_EQ("/out/%40.json", pctencode_path("/out/@.json"));
-  EXPECT_EQ("tmp/out/%40.json", pctencode_path("tmp/out/@.json"));
-  EXPECT_EQ("/tmp/out/%40.json", pctencode_path("/tmp/out/@.json"));
-  EXPECT_EQ("/tmp//out/%40.json", pctencode_path("/tmp//out/@.json"));
-}
-
 }  // namespace shcore

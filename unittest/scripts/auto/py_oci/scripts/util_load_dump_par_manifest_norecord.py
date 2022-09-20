@@ -312,6 +312,35 @@ testutil.anycopy("@.manifest.json", {"osBucketName":OS_BUCKET_NAME, "osNamespace
 os.remove("@.manifest.json")
 os.remove("@.manifest.json.expired")
 
+#@<> BUG#34599319 - dump&load when paths contain spaces and other characters that need to be URL-encoded
+tested_schema = "test schema"
+tested_table = "fish & chips"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+# prepare the dump
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+util.dump_schemas([tested_schema], "shell test/dump & load", {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "ociParManifest": True})
+
+#@<> BUG#34599319 - test
+manifest_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell test/dump & load/@.manifest.json")
+progress_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "progress-par", today_plus_days(1, RFC3339), "shell test/dump & load/load progress.json")
+shell.connect(__sandbox_uri2)
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() with URL-encoded file names")
+EXPECT_PAR_IS_SECRET()
+
+EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
+
+#@<> BUG#34599319 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
