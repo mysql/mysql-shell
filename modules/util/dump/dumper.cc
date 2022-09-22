@@ -55,7 +55,6 @@
 #include "mysqlshdk/libs/utils/std.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -82,8 +81,6 @@ using Row = std::vector<std::string>;
 
 namespace {
 
-static constexpr auto k_dump_in_progress_ext = ".dumping";
-
 static constexpr const int k_mysql_server_net_write_timeout = 30 * 60;
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
@@ -107,14 +104,6 @@ std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
     return "'" + value + "'";
   } else {
     return value;
-  }
-}
-
-std::string trim_in_progress_extension(const std::string &s) {
-  if (shcore::str_iendswith(s, k_dump_in_progress_ext)) {
-    return s.substr(0, s.length() - strlen(k_dump_in_progress_ext));
-  } else {
-    return s;
   }
 }
 
@@ -228,6 +217,311 @@ class Dumper::Synchronize_workers final {
   std::mutex m_mutex;
   std::condition_variable m_condition;
   uint16_t m_count = 0;
+};
+
+class Dumper::Dump_writer_controller {
+ public:
+  using Create_file = std::function<std::unique_ptr<mysqlshdk::storage::IFile>(
+      const std::string &)>;
+
+  Dump_writer_controller() = delete;
+
+  Dump_writer_controller(const Dump_writer_controller &) = delete;
+  Dump_writer_controller(Dump_writer_controller &&) = default;
+
+  Dump_writer_controller &operator=(const Dump_writer_controller &) = delete;
+  Dump_writer_controller &operator=(Dump_writer_controller &&) = default;
+
+  virtual ~Dump_writer_controller() = default;
+
+  inline const Dump_write_result &total_stats() const {
+    return m_total_written;
+  }
+
+  inline const Dump_write_result &progress_stats() const {
+    return m_written_per_update;
+  }
+
+  inline void reset_progress() { m_written_per_update.reset(); }
+
+  inline uint64_t longest_row() const { return m_longest_row; }
+
+  inline const std::string &output_filename() const {
+    return m_output_filename;
+  }
+
+  virtual Dump_write_result start_writing(
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Dump_writer::Encoding_type> &pre_encoded_columns) {
+    assert(m_output);
+
+    m_writer->set_output_file(m_output);
+
+    if (m_create_index) {
+      m_writer->set_index_file(m_create_index(m_output_filename + ".idx"));
+    }
+
+    if (!m_output->is_open()) {
+      m_output->open(Mode::WRITE);
+    }
+
+    m_writer->open();
+
+    return update_stats(
+        m_writer->write_preamble(metadata, pre_encoded_columns));
+  }
+
+  virtual Dump_write_result write_row(const mysqlshdk::db::IRow *row) {
+    assert(m_output);
+    return update_stats(m_writer->write_row(row));
+  }
+
+  virtual Dump_write_result finish_writing() {
+    assert(m_output);
+
+    auto result = m_writer->write_postamble();
+    m_writer->close();
+
+    if (m_close_output && m_output->is_open()) {
+      m_output->close();
+
+      // if file is compressed, the final file size may differ from the bytes
+      // written so far, as i.e. bytes were not flushed until the whole block
+      // was ready
+      result.write_bytes(m_output->file_size() -
+                         m_total_written.bytes_written() -
+                         result.bytes_written());
+    }
+
+    return update_stats(result);
+  }
+
+  virtual void update_uncompressed_file_size(
+      std::unordered_map<std::string, uint64_t> *stats) const {
+    (*stats)[output_filename()] += m_total_written.data_bytes();
+  }
+
+ protected:
+  explicit Dump_writer_controller(std::unique_ptr<Dump_writer> writer)
+      : m_writer(std::move(writer)) {}
+
+  void set_output(mysqlshdk::storage::IFile *output) { m_output = output; }
+
+  void set_output_filename(const std::string &name) {
+    m_output_filename = name;
+  }
+
+  void write_index(Create_file create_index) {
+    m_create_index = std::move(create_index);
+  }
+
+  void close_output() { m_close_output = true; }
+
+  Dump_write_result update_stats(Dump_write_result result) {
+    m_total_written += result;
+    m_written_per_update += result;
+
+    if (result.rows_written() && result.data_bytes() > m_longest_row) {
+      m_longest_row = result.data_bytes();
+    }
+
+    return result;
+  }
+
+ private:
+  mysqlshdk::storage::IFile *m_output = nullptr;
+  std::string m_output_filename;
+  std::unique_ptr<Dump_writer> m_writer;
+  Create_file m_create_index;
+  bool m_close_output = false;
+
+  Dump_write_result m_total_written;
+  Dump_write_result m_written_per_update;
+  uint64_t m_longest_row = 0;
+};
+
+class Dumper::Single_file_writer_controller : public Dump_writer_controller {
+ public:
+  Single_file_writer_controller() = delete;
+
+  Single_file_writer_controller(std::unique_ptr<Dump_writer> writer,
+                                mysqlshdk::storage::IFile *output)
+      : Dump_writer_controller(std::move(writer)) {
+    set_output(output);
+    set_output_filename(output->filename());
+  }
+
+  Single_file_writer_controller(const Single_file_writer_controller &) = delete;
+  Single_file_writer_controller(Single_file_writer_controller &&) = default;
+
+  Single_file_writer_controller &operator=(
+      const Single_file_writer_controller &) = delete;
+  Single_file_writer_controller &operator=(Single_file_writer_controller &&) =
+      default;
+
+  ~Single_file_writer_controller() = default;
+};
+
+class Dumper::Default_writer_controller : public Dump_writer_controller {
+ public:
+  Default_writer_controller() = delete;
+
+  Default_writer_controller(std::unique_ptr<Dump_writer> writer,
+                            Create_file create_file, Create_file create_index,
+                            const std::string &filename, bool add_suffix)
+      : Dump_writer_controller(std::move(writer)),
+        m_create_file(std::move(create_file)),
+        m_add_suffix(add_suffix) {
+    set_output_filename(filename);
+    write_index(std::move(create_index));
+    close_output();
+  }
+
+  Default_writer_controller(const Default_writer_controller &) = delete;
+  Default_writer_controller(Default_writer_controller &&) = default;
+
+  Default_writer_controller &operator=(const Default_writer_controller &) =
+      delete;
+  Default_writer_controller &operator=(Default_writer_controller &&) = default;
+
+  ~Default_writer_controller() = default;
+
+  Dump_write_result start_writing(
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Dump_writer::Encoding_type> &pre_encoded_columns)
+      override {
+    auto filename = output_filename();
+
+    if (m_add_suffix) {
+      filename += k_dump_in_progress_ext;
+    }
+
+    m_output = m_create_file(filename);
+    set_output(m_output.get());
+
+    return Dump_writer_controller::start_writing(metadata, pre_encoded_columns);
+  }
+
+  Dump_write_result finish_writing() override {
+    auto result = Dump_writer_controller::finish_writing();
+
+    if (m_add_suffix) {
+      m_output->rename(output_filename());
+    }
+
+    m_output.reset();
+
+    return result;
+  }
+
+ private:
+  static constexpr std::string_view k_dump_in_progress_ext = ".dumping";
+
+  Create_file m_create_file;
+  bool m_add_suffix;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_output;
+};
+
+class Dumper::Multi_file_writer_controller : public Dump_writer_controller {
+ public:
+  using Create_controller =
+      std::function<std::unique_ptr<Dump_writer_controller>(
+          const std::string &)>;
+
+  Multi_file_writer_controller() = delete;
+
+  Multi_file_writer_controller(Create_controller create_controller,
+                               const std::string &basename,
+                               const std::string &extension,
+                               uint64_t bytes_per_file)
+      : Dump_writer_controller(std::unique_ptr<Dump_writer>{}),
+        m_create_controller(std::move(create_controller)),
+        m_extension(extension),
+        m_bytes_per_file(bytes_per_file) {
+    set_output_filename(basename);
+  }
+
+  Multi_file_writer_controller(const Multi_file_writer_controller &) = delete;
+  Multi_file_writer_controller(Multi_file_writer_controller &&) = default;
+
+  Multi_file_writer_controller &operator=(
+      const Multi_file_writer_controller &) = delete;
+  Multi_file_writer_controller &operator=(Multi_file_writer_controller &&) =
+      default;
+
+  ~Multi_file_writer_controller() = default;
+
+  Dump_write_result start_writing(
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Dump_writer::Encoding_type> &pre_encoded_columns)
+      override {
+    m_metadata = metadata;
+    m_pre_encoded_columns = pre_encoded_columns;
+
+    return {};
+  }
+
+  Dump_write_result write_row(const mysqlshdk::db::IRow *row) override {
+    Dump_write_result result;
+
+    if (!m_controller) {
+      result += initialize_controller(false);
+    }
+
+    result += update_stats(m_controller->write_row(row));
+
+    if (m_controller->total_stats().data_bytes() >= m_bytes_per_file) {
+      result += finalize_controller();
+    }
+
+    return result;
+  }
+
+  Dump_write_result finish_writing() override {
+    Dump_write_result result;
+
+    if (m_controller) {
+      result += finalize_controller();
+    }
+
+    // create an empty final chunk
+    result += initialize_controller(true);
+    result += finalize_controller();
+
+    return result;
+  }
+
+  void update_uncompressed_file_size(
+      std::unordered_map<std::string, uint64_t> *stats) const override {
+    for (const auto &file : m_file_stats) {
+      (*stats)[file.first] += file.second.data_bytes();
+    }
+  }
+
+ private:
+  Dump_write_result initialize_controller(bool last_chunk) {
+    m_controller = m_create_controller(dump::get_table_data_filename(
+        output_filename(), m_extension, m_index++, last_chunk));
+    return update_stats(
+        m_controller->start_writing(m_metadata, m_pre_encoded_columns));
+  }
+
+  Dump_write_result finalize_controller() {
+    auto result = update_stats(m_controller->finish_writing());
+    m_file_stats.emplace(m_controller->output_filename(),
+                         m_controller->total_stats());
+    m_controller.reset();
+    return result;
+  }
+
+  Create_controller m_create_controller;
+  std::string m_extension;
+  uint64_t m_bytes_per_file;
+  std::size_t m_index = 0;
+  std::unique_ptr<Dump_writer_controller> m_controller;
+  std::vector<mysqlshdk::db::Column> m_metadata;
+  std::vector<Dump_writer::Encoding_type> m_pre_encoded_columns;
+  std::unordered_map<std::string, Dump_write_result> m_file_stats;
 };
 
 class Dumper::Table_worker final {
@@ -376,133 +670,66 @@ class Dumper::Table_worker final {
   }
 
   void dump_table_data(const Table_data_task &table) {
-    Dump_write_result bytes_written_per_file;
-    Dump_write_result bytes_written_per_update{table.schema, table.name};
-    uint64_t rows_written_per_update = 0;
-    uint64_t rows_written_per_file = 0;
-    uint64_t max_row_size = 0;
-    const uint64_t update_every = 2000;
-    uint64_t bytes_written_per_idx = 0;
-    const uint64_t write_idx_every = 1024 * 1024;  // bytes
-    Dump_write_result bytes_written;
-    mysqlshdk::utils::Duration duration;
-    std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
-
-    log_debug("%sDumping %s (chunk %s) using condition: %s", m_log_id.c_str(),
+    log_debug("%sDumping %s (%s) using condition: %s", m_log_id.c_str(),
               table.task_name.c_str(), table.id.c_str(), table.where.c_str());
 
+    mysqlshdk::utils::Duration duration;
     duration.start();
 
-    shcore::on_leave_scope close_index_file([this, &table]() {
-      try {
-        if (table.index_file) {
-          if (table.index_file->is_open()) {
-            table.index_file->close();
-          }
-        }
-      } catch (const std::runtime_error &error) {
-        log_error("%s%s", m_log_id.c_str(), error.what());
-      }
-    });
-
+    std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
     const auto full_query = prepare_query(table, &pre_encoded_columns);
+    const auto controller = table.controller.get();
 
     try {
       const auto result = query(full_query);
 
-      table.writer->open();
-      if (table.index_file) {
-        table.index_file->open(Mode::WRITE);
-      }
-      bytes_written = table.writer->write_preamble(result->get_metadata(),
-                                                   pre_encoded_columns);
-      bytes_written_per_file += bytes_written;
-      bytes_written_per_update += bytes_written;
+      controller->start_writing(result->get_metadata(), pre_encoded_columns);
 
       while (const auto row = result->fetch_one()) {
         if (m_dumper->m_worker_interrupt) {
           return;
         }
 
-        bytes_written = table.writer->write_row(row);
-        bytes_written_per_file += bytes_written;
-        bytes_written_per_update += bytes_written;
-        bytes_written_per_idx += bytes_written.data_bytes();
-        ++rows_written_per_update;
-        ++rows_written_per_file;
+        controller->write_row(row);
 
-        if (table.index_file && bytes_written_per_idx >= write_idx_every) {
-          // the idx file contains offsets to the data stream, not to binary one
-          const auto offset = mysqlshdk::utils::host_to_network(
-              bytes_written_per_file.data_bytes());
-          table.index_file->write(&offset, sizeof(uint64_t));
-
-          // make sure offsets are written when close to the write_idx_every
-          bytes_written_per_idx %= write_idx_every;
-        }
-
-        if (update_every == rows_written_per_update) {
-          m_dumper->update_progress(rows_written_per_update,
-                                    bytes_written_per_update);
+        constexpr uint64_t update_every = 2000;
+        if (update_every == controller->progress_stats().rows_written()) {
+          m_dumper->update_progress(controller->progress_stats());
 
           // we don't know how much data was read from the server, number of
           // bytes written to the dump file is a good approximation
           if (m_rate_limit.enabled()) {
-            m_rate_limit.throttle(bytes_written_per_update.data_bytes());
+            m_rate_limit.throttle(controller->progress_stats().data_bytes());
           }
 
-          rows_written_per_update = 0;
-          bytes_written_per_update.reset();
-        }
-
-        if (bytes_written.data_bytes() > max_row_size) {
-          max_row_size = bytes_written.data_bytes();
+          controller->reset_progress();
         }
       }
     } catch (const mysqlshdk::db::Error &e) {
-      log_error("%sFailed to dump %s (chunk %s) using query: %s, error: %s",
+      log_error("%sFailed to dump %s (%s) using query: %s, error: %s",
                 m_log_id.c_str(), table.task_name.c_str(), table.id.c_str(),
                 full_query.c_str(), e.format().c_str());
       throw;
     }
 
-    bytes_written = table.writer->write_postamble();
-    bytes_written_per_file += bytes_written;
-    bytes_written_per_update += bytes_written;
+    controller->finish_writing();
 
     duration.finish();
 
-    if (table.index_file) {
-      const auto total = mysqlshdk::utils::host_to_network(
-          bytes_written_per_file.data_bytes());
-      table.index_file->write(&total, sizeof(uint64_t));
-      table.index_file->close();
-    }
+    log_info("%sDump of %s (%s) into '%s' took %f seconds, written %" PRIu64
+             " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
+             m_log_id.c_str(), table.task_name.c_str(), table.id.c_str(),
+             controller->output_filename().c_str(), duration.seconds_elapsed(),
+             controller->total_stats().rows_written(),
+             controller->total_stats().data_bytes(), controller->longest_row());
 
-    log_info(
-        "%sDump of %s into '%s' (chunk %s) took %f seconds, written %" PRIu64
-        " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
-        m_log_id.c_str(), table.task_name.c_str(),
-        table.writer->output()->full_path().masked().c_str(), table.id.c_str(),
-        duration.seconds_elapsed(), rows_written_per_file,
-        bytes_written_per_file.data_bytes(), max_row_size);
-
-    const auto file_size = m_dumper->finish_writing(
-        table.writer, bytes_written_per_file.data_bytes());
-    m_dumper->update_progress(rows_written_per_update,
-                              bytes_written_per_update);
-
-    // if file is compressed, the final file size may differ from the bytes
-    // written so far, as i.e. bytes were not flushed until the whole block was
-    // ready
-    if (file_size > bytes_written_per_file.bytes_written()) {
-      m_dumper->update_bytes_written(file_size -
-                                     bytes_written_per_file.bytes_written());
-    }
+    m_dumper->update_progress(controller->progress_stats());
+    m_dumper->finish_writing(table.schema, table.name, controller);
   }
 
   void push_table_data_task(Table_data_task &&task) {
     std::string info = "dumping " + task.task_name;
+
     // Table_data_task contains an unique_ptr, it's moved into shared_ptr and
     // then move-captured by lambda, so that this lambda can be stored,
     // otherwise compiler will complain about a call to implicitly-deleted
@@ -532,33 +759,42 @@ class Dumper::Table_worker final {
     data_task.partitions = table.partitions;
     data_task.where = table.where;
 
-    data_task.writer = m_dumper->get_table_data_writer(filename);
-
-    if (!m_dumper->m_options.is_export_only()) {
-      data_task.index_file = m_dumper->make_file(filename + ".idx");
+    if (!filename.empty()) {
+      data_task.controller = m_dumper->table_dump_controller(filename);
     }
 
     return data_task;
   }
 
-  void create_and_push_table_data_task(const Table_task &table) {
+  void create_and_push_whole_table_data_task(const Table_task &table) {
     Table_data_task data_task = create_table_data_task(
         table, m_dumper->get_table_data_filename(table.basename));
 
-    data_task.id = "1";
+    data_task.id = "whole table";
 
     push_table_data_task(std::move(data_task));
   }
 
-  void create_and_push_table_data_task(const Table_task &table,
-                                       const std::string &where,
-                                       const std::string &id, std::size_t idx,
-                                       bool last_chunk) {
+  void create_and_push_whole_table_data_in_chunks_task(
+      const Table_task &table) {
+    Table_data_task data_task = create_table_data_task(table, {});
+
+    data_task.id = "whole table split in chunks";
+    data_task.controller =
+        m_dumper->table_dump_multi_file_controller(table.basename);
+
+    push_table_data_task(std::move(data_task));
+  }
+
+  void create_and_push_table_data_chunk_task(const Table_task &table,
+                                             const std::string &where,
+                                             const std::string &id,
+                                             std::size_t idx, bool last_chunk) {
     Table_data_task data_task = create_table_data_task(
         table,
         m_dumper->get_table_data_filename(table.basename, idx, last_chunk));
 
-    data_task.id = id;
+    data_task.id = "chunk " + id;
 
     if (!where.empty()) {
       data_task.where = "(" + where + ")";
@@ -605,7 +841,7 @@ class Dumper::Table_worker final {
     auto ranges = create_ranged_tasks(table);
 
     if (0 == ranges) {
-      create_and_push_table_data_task(table);
+      create_and_push_whole_table_data_task(table);
       ++ranges;
     }
 
@@ -937,8 +1173,9 @@ class Dumper::Table_worker final {
 
       last_chunk = (current >= max);
 
-      create_and_push_table_data_task(*info.table, between(info, begin, end),
-                                      chunk_id, ranges_count++, last_chunk);
+      create_and_push_table_data_chunk_task(*info.table,
+                                            between(info, begin, end), chunk_id,
+                                            ranges_count++, last_chunk);
 
       ++current;
     }
@@ -1012,7 +1249,7 @@ class Dumper::Table_worker final {
 
       range_end = fetch(result);
 
-      create_and_push_table_data_task(
+      create_and_push_table_data_chunk_task(
           *info.table, between(info, range_begin, range_end), chunk_id,
           ranges_count++, range_end == end);
 
@@ -1023,6 +1260,18 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_column(const Chunking_info &info) {
+    if (!info.table->info->index.valid()) {
+      log_info(
+          "%sTable %s does not have a valid index, number of chunks is "
+          "estimated",
+          m_log_id.c_str(), info.table->task_name.c_str());
+
+      create_and_push_whole_table_data_in_chunks_task(*info.table);
+      // we add one because we create an empty final chunk, plus we don't want
+      // to return zero here
+      return info.row_count / info.rows_per_chunk + 1;
+    }
+
     const auto sql =
         "SELECT SQL_NO_CACHE " + info.table->info->index.columns_sql() +
         " FROM " + info.table->quoted_name + info.partition + where(info.where);
@@ -1031,7 +1280,8 @@ class Dumper::Table_worker final {
     auto row = result->fetch_one();
 
     const auto handle_empty_table = [&info, this]() {
-      create_and_push_table_data_task(*info.table, info.where, "0", 0, true);
+      create_and_push_table_data_chunk_task(*info.table, info.where, "0", 0,
+                                            true);
       return 1;
     };
 
@@ -1074,7 +1324,7 @@ class Dumper::Table_worker final {
   }
 
   std::size_t create_ranged_tasks(const Table_task &table) {
-    if (!m_dumper->is_chunked(table)) {
+    if (!m_dumper->m_options.split()) {
       return 0;
     }
 
@@ -1098,9 +1348,8 @@ class Dumper::Table_worker final {
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 
-      const auto result =
-          query("SELECT " + table.info->index.columns_sql() + " FROM " +
-                table.quoted_name + partition_clause + " LIMIT 1");
+      const auto result = query("SELECT 1 FROM " + table.quoted_name +
+                                partition_clause + " LIMIT 1");
 
       // print the message only if table is not empty
       if (result->fetch_one()) {
@@ -1131,23 +1380,25 @@ class Dumper::Table_worker final {
     info.partition = std::move(partition_clause);
     info.where = table.where;
 
-    for (const auto &c : table.info->index.columns()) {
-      if (c->nullable) {
-        if (!info.where.empty()) {
-          info.where += "AND";
+    if (table.info->index.valid()) {
+      for (const auto &c : table.info->index.columns()) {
+        if (c->nullable) {
+          if (!info.where.empty()) {
+            info.where += "AND";
+          }
+
+          info.where += "(" + c->quoted_name + " IS NOT NULL)";
         }
-
-        info.where += "(" + c->quoted_name + " IS NOT NULL)";
       }
-    }
 
-    info.order_by = " ORDER BY " + table.info->index.columns_sql();
-    info.order_by_desc =
-        " ORDER BY " +
-        shcore::str_join(table.info->index.columns(), ",", [](const auto &c) {
-          return c->quoted_name + " DESC";
-        });
-    info.index_column = 0;
+      info.order_by = " ORDER BY " + table.info->index.columns_sql();
+      info.order_by_desc =
+          " ORDER BY " +
+          shcore::str_join(table.info->index.columns(), ",", [](const auto &c) {
+            return c->quoted_name + " DESC";
+          });
+      info.index_column = 0;
+    }
 
     log_info("%sChunking %s, rows: %" PRIu64 ", average row length: %" PRIu64
              ", rows per chunk: %" PRIu64,
@@ -1314,8 +1565,6 @@ Dumper::Dumper(const Dump_options &options)
   m_options.validate();
 
   if (m_options.use_single_file()) {
-    using mysqlshdk::storage::make_file;
-
     {
       using mysqlshdk::storage::utils::get_scheme;
       using mysqlshdk::storage::utils::scheme_matches;
@@ -1336,8 +1585,10 @@ Dumper::Dumper(const Dump_options &options)
       }
     }
 
+    using mysqlshdk::storage::make_file;
     m_output_file =
-        make_file(m_options.output_url(), m_options.storage_config());
+        make_file(make_file(m_options.output_url(), m_options.storage_config()),
+                  m_options.compression());
     m_output_dir = m_output_file->parent();
 
     if (!m_output_dir->exists()) {
@@ -1387,6 +1638,33 @@ Dumper::Dumper(const Dump_options &options)
       }
     }
   }
+
+  if (import_table::Dialect::default_() == m_options.dialect()) {
+    m_writer_creator = []() { return std::make_unique<Default_dump_writer>(); };
+    m_table_data_extension = "tsv";
+  } else if (import_table::Dialect::json() == m_options.dialect()) {
+    m_writer_creator = []() { return std::make_unique<Json_dump_writer>(); };
+    m_table_data_extension = "json";
+  } else if (import_table::Dialect::csv() == m_options.dialect()) {
+    m_writer_creator = []() { return std::make_unique<Csv_dump_writer>(); };
+    m_table_data_extension = "csv";
+  } else if (import_table::Dialect::tsv() == m_options.dialect()) {
+    m_writer_creator = []() { return std::make_unique<Tsv_dump_writer>(); };
+    m_table_data_extension = "tsv";
+  } else if (import_table::Dialect::csv_unix() == m_options.dialect()) {
+    m_writer_creator = []() {
+      return std::make_unique<Csv_unix_dump_writer>();
+    };
+    m_table_data_extension = "csv";
+  } else {
+    m_writer_creator = [&dialect = m_options.dialect()]() {
+      return std::make_unique<Text_dump_writer>(dialect);
+    };
+    m_table_data_extension = "txt";
+  }
+
+  m_table_data_extension +=
+      mysqlshdk::storage::get_extension(m_options.compression());
 }
 
 // needs to be defined here due to Dumper::Synchronize_workers being
@@ -2376,14 +2654,11 @@ void Dumper::wait_for_all_tasks() {
 
   // when using a single file as an output, it's not closed until the whole
   // dump is done
-  if (m_options.use_single_file()) {
-    for (const auto &writer : m_worker_writers) {
-      close_file(*writer);
-    }
+  if (m_output_file && m_output_file->is_open()) {
+    m_output_file->close();
   }
 
   m_workers.clear();
-  m_worker_writers.clear();
 
   if (m_data_dump_stage && !m_worker_interrupt) {
     m_data_dump_stage->finish();
@@ -2677,11 +2952,10 @@ void Dumper::push_table_task(Table_task &&task) {
 
   if (m_options.split()) {
     if (!index.valid()) {
-      current_console()->print_note(
-          "Could not select columns to be used as an index for table " +
-          task_name +
-          ". Chunking has been disabled for this table, data will be dumped to "
-          "a single file.");
+      log_info(
+          "Could not select columns to be used as an index for table %s. Data "
+          "will be dumped to multiple files by a single thread.",
+          task_name.c_str());
     } else {
       log_info("Data dump for table %s will be chunked using %s",
                task_name.c_str(), get_index().c_str());
@@ -2730,88 +3004,40 @@ void Dumper::push_table_chunking_task(Table_task &&task) {
                       shcore::Queue_priority::MEDIUM);
 }
 
-Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
-  // TODO(pawel): in the future, it's going to be possible to dump into a single
-  //              SQL file: use a different type of writer, return the same
-  //              pointer each time
-  std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
-
-  // create new writer if we're writing to multiple files, or to a single file
-  // and writer hasn't been created yet
-  if (!m_options.use_single_file() || m_worker_writers.empty()) {
-    // if we're writing to a single file, simply use the provided name
-    auto file = m_options.use_single_file()
-                    ? std::move(m_output_file)
-                    : make_file(filename_for_data_dump(filename), true);
-    auto compressed_file =
-        mysqlshdk::storage::make_file(std::move(file), m_options.compression());
-    std::unique_ptr<Dump_writer> writer;
-
-    if (import_table::Dialect::default_() == m_options.dialect()) {
-      writer =
-          std::make_unique<Default_dump_writer>(std::move(compressed_file));
-    } else if (import_table::Dialect::json() == m_options.dialect()) {
-      writer = std::make_unique<Json_dump_writer>(std::move(compressed_file));
-    } else if (import_table::Dialect::csv() == m_options.dialect()) {
-      writer = std::make_unique<Csv_dump_writer>(std::move(compressed_file));
-    } else if (import_table::Dialect::tsv() == m_options.dialect()) {
-      writer = std::make_unique<Tsv_dump_writer>(std::move(compressed_file));
-    } else if (import_table::Dialect::csv_unix() == m_options.dialect()) {
-      writer =
-          std::make_unique<Csv_unix_dump_writer>(std::move(compressed_file));
-    } else {
-      writer = std::make_unique<Text_dump_writer>(std::move(compressed_file),
-                                                  m_options.dialect());
-    }
-
-    m_worker_writers.emplace_back(std::move(writer));
+std::unique_ptr<Dumper::Dump_writer_controller> Dumper::table_dump_controller(
+    const std::string &filename) const {
+  if (m_options.use_single_file()) {
+    return std::make_unique<Single_file_writer_controller>(m_writer_creator(),
+                                                           m_output_file.get());
+  } else {
+    return std::make_unique<Default_writer_controller>(
+        m_writer_creator(),
+        [this](const std::string &name) {
+          return mysqlshdk::storage::make_file(make_file(name, true),
+                                               m_options.compression());
+        },
+        [this](const std::string &name) { return make_file(name); }, filename,
+        // We only use the .dumping extension in case of the local files. In
+        // case of the remote ones, file is not actually created until the whole
+        // data is uploaded, so it's not visible to the loader. This allows to
+        // avoid renaming the file, which in some cases is costly.
+        directory()->is_local());
   }
-
-  return m_worker_writers.back().get();
 }
 
-std::size_t Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
-  std::size_t file_size = 0;
-
-  // close the file if we're writing to multiple files, otherwise the single
-  // file is going to be closed when all tasks are finished
-  if (!m_options.use_single_file()) {
-    std::string final_filename = close_file(*writer);
-
-    {
-      std::lock_guard<std::mutex> lock(m_table_data_bytes_mutex);
-      m_chunk_file_bytes[final_filename] = total_bytes;
-    }
-
-    file_size = writer->output()->file_size();
-
-    {
-      std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
-
-      m_worker_writers.erase(
-          std::remove_if(m_worker_writers.begin(), m_worker_writers.end(),
-                         [writer](const auto &w) { return w.get() == writer; }),
-          m_worker_writers.end());
-    }
-  }
-
-  return file_size;
+std::unique_ptr<Dumper::Dump_writer_controller>
+Dumper::table_dump_multi_file_controller(const std::string &basename) const {
+  return std::make_unique<Multi_file_writer_controller>(
+      [this](const std::string &name) { return table_dump_controller(name); },
+      basename, m_table_data_extension, m_options.bytes_per_chunk());
 }
 
-std::string Dumper::close_file(const Dump_writer &writer) const {
-  const auto output = writer.output();
+void Dumper::finish_writing(const std::string &schema, const std::string &table,
+                            const Dump_writer_controller *controller) {
+  std::lock_guard<std::mutex> lock(m_table_data_bytes_mutex);
 
-  if (output->is_open()) {
-    output->close();
-  }
-
-  const auto filename = output->filename();
-  const auto trimmed = trim_in_progress_extension(filename);
-
-  if (trimmed != filename) {
-    output->rename(trimmed);
-  }
-  return trimmed;
+  controller->update_uncompressed_file_size(&m_chunk_file_bytes);
+  m_table_data_bytes[schema][table] += controller->total_stats().data_bytes();
 }
 
 void Dumper::write_metadata() const {
@@ -3190,8 +3416,8 @@ void Dumper::write_table_metadata(
   doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
   doc.AddMember(StringRef("includesDdl"), m_options.dump_ddl(), a);
 
-  doc.AddMember(StringRef("extension"), {get_table_data_ext().c_str(), a}, a);
-  doc.AddMember(StringRef("chunking"), is_chunked(table), a);
+  doc.AddMember(StringRef("extension"), refs(m_table_data_extension), a);
+  doc.AddMember(StringRef("chunking"), m_options.split(), a);
   doc.AddMember(
       StringRef("compression"),
       {mysqlshdk::storage::to_string(m_options.compression()).c_str(), a}, a);
@@ -3322,31 +3548,14 @@ void Dumper::kill_workers() {
 }
 
 std::string Dumper::get_table_data_filename(const std::string &basename) const {
-  return dump::get_table_data_filename(basename, get_table_data_ext());
+  return dump::get_table_data_filename(basename, m_table_data_extension);
 }
 
 std::string Dumper::get_table_data_filename(const std::string &basename,
                                             const std::size_t idx,
                                             const bool last_chunk) const {
-  return dump::get_table_data_filename(basename, get_table_data_ext(), idx,
+  return dump::get_table_data_filename(basename, m_table_data_extension, idx,
                                        last_chunk);
-}
-
-std::string Dumper::get_table_data_ext() const {
-  using import_table::Dialect;
-
-  const auto dialect = m_options.dialect();
-  auto extension = "txt";
-
-  if (dialect == Dialect::default_() || dialect == Dialect::tsv()) {
-    extension = "tsv";
-  } else if (dialect == Dialect::csv() || dialect == Dialect::csv_unix()) {
-    extension = "csv";
-  } else if (dialect == Dialect::json()) {
-    extension = "json";
-  }
-
-  return extension + mysqlshdk::storage::get_extension(m_options.compression());
 }
 
 void Dumper::initialize_progress() {
@@ -3391,21 +3600,10 @@ void Dumper::initialize_progress() {
       m_progress_thread.start_stage("Dumping data", std::move(config));
 }
 
-void Dumper::update_bytes_written(uint64_t new_bytes) {
-  m_bytes_written += new_bytes;
-}
-
-void Dumper::update_progress(uint64_t new_rows,
-                             const Dump_write_result &new_bytes) {
-  m_rows_written += new_rows;
-  update_bytes_written(new_bytes.bytes_written());
-  m_data_bytes += new_bytes.data_bytes();
-
-  {
-    std::lock_guard<std::mutex> lock(m_table_data_bytes_mutex);
-    m_table_data_bytes[new_bytes.schema()][new_bytes.table()] +=
-        new_bytes.data_bytes();
-  }
+void Dumper::update_progress(const Dump_write_result &progress) {
+  m_rows_written += progress.rows_written();
+  m_bytes_written += progress.bytes_written();
+  m_data_bytes += progress.data_bytes();
 
   {
     std::unique_lock<std::recursive_mutex> lock(m_throughput_mutex,
@@ -3513,17 +3711,12 @@ std::string Dumper::get_query_comment(const std::string &quoted_name,
          // sanitize schema/table names in case they contain a '*/'
          // *\/ isn't really a valid escape, but it doesn't matter because we
          // just want the lexer to not see */
-         shcore::str_replace(quoted_name, "*/", "*\\/") + ", chunk ID: " + id +
-         " */";
+         shcore::str_replace(quoted_name, "*/", "*\\/") + ", ID: " + id + " */";
 }
 
 std::string Dumper::get_query_comment(const Table_data_task &task,
                                       const char *context) const {
   return get_query_comment(task.task_name, task.id, context);
-}
-
-bool Dumper::is_chunked(const Table_task &task) const {
-  return m_options.split() && task.info->index.valid();
 }
 
 bool Dumper::should_dump_data(const Table_task &table) {
@@ -3811,20 +4004,6 @@ void Dumper::fetch_server_information() {
 
   DBUG_EXECUTE_IF("dumper_binlog_disabled", { m_binlog_enabled = false; });
   DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });
-}
-
-std::string Dumper::filename_for_data_dump(const std::string &filename) const {
-  auto result = filename;
-
-  // We only use the .dumping extension in case of the local files. In case of
-  // the remote ones, file is not actually created until the whole data is
-  // uploaded, so it's not visible to the loader. This allows to avoid renaming
-  // the file, which in some cases is costly.
-  if (directory()->is_local()) {
-    result += k_dump_in_progress_ext;
-  }
-
-  return result;
 }
 
 bool Dumper::check_for_upgrade_errors() const {

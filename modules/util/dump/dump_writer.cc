@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,11 +23,12 @@
 
 #include "modules/util/dump/dump_writer.h"
 
+#include <exception>
 #include <stdexcept>
 #include <utility>
 
-#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 #include "modules/util/dump/dump_errors.h"
 
@@ -37,9 +38,16 @@ namespace dump {
 using mysqlshdk::storage::IFile;
 using mysqlshdk::storage::Mode;
 
+namespace {
+
+constexpr uint64_t k_write_idx_every = 1024 * 1024;  // bytes
+
+}  // namespace
+
 Dump_write_result &Dump_write_result::operator+=(const Dump_write_result &rhs) {
   m_data_bytes += rhs.m_data_bytes;
   m_bytes_written += rhs.m_bytes_written;
+  m_rows_written += rhs.m_rows_written;
 
   return *this;
 }
@@ -122,26 +130,37 @@ void Dump_writer::Buffer::write_base64_data(const char *data,
   }
 }
 
-Dump_writer::Dump_writer(std::unique_ptr<IFile> out)
-    : m_output(std::move(out)), m_buffer(std::make_unique<Buffer>()) {
-  using mysqlshdk::storage::Compressed_file;
-
-  m_compressed = dynamic_cast<Compressed_file *>(output()) != nullptr;
-}
+Dump_writer::Dump_writer() : m_buffer(std::make_unique<Buffer>()) {}
 
 Dump_writer::~Dump_writer() {
   try {
-    if (output()->is_open()) {
-      output()->close();
-    }
+    close();
   } catch (const std::runtime_error &error) {
-    log_error("%s", error.what());
+    log_error("During destruction of Dump_writer: %s", error.what());
   }
 }
 
+void Dump_writer::set_output_file(mysqlshdk::storage::IFile *output) {
+  m_output = output;
+  m_compressed = dynamic_cast<mysqlshdk::storage::Compressed_file *>(m_output);
+}
+
+void Dump_writer::set_index_file(
+    std::unique_ptr<mysqlshdk::storage::IFile> index) {
+  m_index = std::move(index);
+}
+
 void Dump_writer::open() {
-  if (!output()->is_open()) {
-    output()->open(Mode::WRITE);
+  if (m_index && !m_index->is_open()) {
+    m_index->open(Mode::WRITE);
+  }
+}
+
+void Dump_writer::close() {
+  if (m_index && m_index->is_open()) {
+    // write the total uncompressed size
+    write_index();
+    m_index->close();
   }
 }
 
@@ -156,7 +175,18 @@ Dump_write_result Dump_writer::write_preamble(
 Dump_write_result Dump_writer::write_row(const mysqlshdk::db::IRow *row) {
   buffer()->clear();
   store_row(row);
-  return write_buffer("row");
+  auto result = write_buffer("row", true);
+
+  m_bytes_written += result.data_bytes();
+  m_bytes_written_per_idx += result.data_bytes();
+
+  if (m_index && m_bytes_written_per_idx >= k_write_idx_every) {
+    write_index();
+    // make sure offsets are written when close to the k_write_idx_every
+    m_bytes_written_per_idx %= k_write_idx_every;
+  }
+
+  return result;
 }
 
 Dump_write_result Dump_writer::write_postamble() {
@@ -165,28 +195,41 @@ Dump_write_result Dump_writer::write_postamble() {
   return write_buffer("postamble");
 }
 
-Dump_write_result Dump_writer::write_buffer(const char *context) const {
+Dump_write_result Dump_writer::write_buffer(const char *context,
+                                            bool row) const {
+  assert(m_output);
+
   Dump_write_result result;
 
-  result.m_data_bytes = buffer()->length();
+  result.write_data(buffer()->length());
 
-  if (result.m_data_bytes > 0) {
-    using mysqlshdk::storage::Compressed_file;
-    const auto compressed = static_cast<Compressed_file *>(output());
-    const auto size = m_compressed ? compressed->file()->tell() : 0;
+  if (row) {
+    result.write_row();
+  }
+
+  if (result.data_bytes() > 0) {
+    const auto size = m_compressed ? m_compressed->file()->tell() : 0;
     const auto bytes_written =
-        output()->write(buffer()->data(), result.m_data_bytes);
+        m_output->write(buffer()->data(), result.data_bytes());
 
     if (bytes_written < 0) {
       THROW_ERROR(SHERR_DUMP_DW_WRITE_FAILED, context,
-                  output()->full_path().masked().c_str());
+                  m_output->full_path().masked().c_str());
     }
 
-    result.m_bytes_written =
-        m_compressed ? compressed->file()->tell() - size : bytes_written;
+    result.write_bytes(m_compressed ? m_compressed->file()->tell() - size
+                                    : bytes_written);
   }
 
   return result;
+}
+
+void Dump_writer::write_index() {
+  assert(m_index);
+
+  // the idx file contains offsets to the data stream, not to binary one
+  const auto offset = mysqlshdk::utils::host_to_network(m_bytes_written);
+  m_index->write(&offset, sizeof(uint64_t));
 }
 
 }  // namespace dump

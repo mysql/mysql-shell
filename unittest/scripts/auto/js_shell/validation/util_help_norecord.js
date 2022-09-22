@@ -387,7 +387,7 @@ DESCRIPTION
 
       If the chunking option is set to true, but a table to be dumped cannot be
       chunked (for example if it does not contain a primary key or a unique
-      index), a warning is displayed and chunking is disabled for this table.
+      index), data is dumped to multiple files using a single thread.
 
       The value of the threads option must be a positive number.
 
@@ -907,7 +907,7 @@ DESCRIPTION
 
       If the chunking option is set to true, but a table to be dumped cannot be
       chunked (for example if it does not contain a primary key or a unique
-      index), a warning is displayed and chunking is disabled for this table.
+      index), data is dumped to multiple files using a single thread.
 
       The value of the threads option must be a positive number.
 
@@ -1421,7 +1421,7 @@ DESCRIPTION
 
       If the chunking option is set to true, but a table to be dumped cannot be
       chunked (for example if it does not contain a primary key or a unique
-      index), a warning is displayed and chunking is disabled for this table.
+      index), data is dumped to multiple files using a single thread.
 
       The value of the threads option must be a positive number.
 

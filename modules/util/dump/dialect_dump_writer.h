@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -90,9 +90,7 @@ template <class T,
           std::enable_if_t<std::is_base_of<dialect_traits, T>::value, int> = 0>
 class Dialect_dump_writer : public Dump_writer {
  public:
-  Dialect_dump_writer() = delete;
-  explicit Dialect_dump_writer(std::unique_ptr<mysqlshdk::storage::IFile> out)
-      : Dump_writer(std::move(out)) {
+  Dialect_dump_writer() {
     static_assert(
         s_lines_terminated_by_length >= 1 && s_lines_terminated_by_length <= 2,
         "Line terminator needs to be 1 or 2 characters long");
@@ -390,7 +388,6 @@ class Dialect_dump_writer : public Dump_writer {
 class Default_dump_writer
     : public detail::Dialect_dump_writer<detail::default_traits> {
  public:
-  Default_dump_writer() = delete;
   using Dialect_dump_writer::Dialect_dump_writer;
 
   Default_dump_writer(const Default_dump_writer &) = delete;
@@ -405,7 +402,6 @@ class Default_dump_writer
 class Json_dump_writer
     : public detail::Dialect_dump_writer<detail::json_traits> {
  public:
-  Json_dump_writer() = delete;
   using Dialect_dump_writer::Dialect_dump_writer;
 
   Json_dump_writer(const Json_dump_writer &) = delete;
@@ -419,7 +415,6 @@ class Json_dump_writer
 
 class Csv_dump_writer : public detail::Dialect_dump_writer<detail::csv_traits> {
  public:
-  Csv_dump_writer() = delete;
   using Dialect_dump_writer::Dialect_dump_writer;
 
   Csv_dump_writer(const Csv_dump_writer &) = delete;
@@ -433,7 +428,6 @@ class Csv_dump_writer : public detail::Dialect_dump_writer<detail::csv_traits> {
 
 class Tsv_dump_writer : public detail::Dialect_dump_writer<detail::tsv_traits> {
  public:
-  Tsv_dump_writer() = delete;
   using Dialect_dump_writer::Dialect_dump_writer;
 
   Tsv_dump_writer(const Tsv_dump_writer &) = delete;
@@ -448,7 +442,6 @@ class Tsv_dump_writer : public detail::Dialect_dump_writer<detail::tsv_traits> {
 class Csv_unix_dump_writer
     : public detail::Dialect_dump_writer<detail::csv_unix_traits> {
  public:
-  Csv_unix_dump_writer() = delete;
   using Dialect_dump_writer::Dialect_dump_writer;
 
   Csv_unix_dump_writer(const Csv_unix_dump_writer &) = delete;

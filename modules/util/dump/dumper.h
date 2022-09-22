@@ -107,6 +107,11 @@ class Dumper {
   bool dump_users() const;
 
  private:
+  class Dump_writer_controller;
+  class Single_file_writer_controller;
+  class Default_writer_controller;
+  class Multi_file_writer_controller;
+
   struct Object_info {
     std::string name;
     std::string quoted_name;
@@ -137,8 +142,7 @@ class Dumper {
   };
 
   struct Table_data_task : Table_task {
-    Dump_writer *writer = nullptr;
-    std::unique_ptr<mysqlshdk::storage::IFile> index_file;
+    std::unique_ptr<Dump_writer_controller> controller;
     std::string id;
   };
 
@@ -270,15 +274,16 @@ class Dumper {
 
   void push_table_chunking_task(Table_task &&task);
 
-  bool is_chunked(const Table_task &task) const;
-
   bool should_dump_data(const Table_task &table);
 
-  Dump_writer *get_table_data_writer(const std::string &filename);
+  std::unique_ptr<Dump_writer_controller> table_dump_controller(
+      const std::string &filename) const;
 
-  std::size_t finish_writing(Dump_writer *writer, uint64_t total_bytes);
+  std::unique_ptr<Dump_writer_controller> table_dump_multi_file_controller(
+      const std::string &basename) const;
 
-  std::string close_file(const Dump_writer &writer) const;
+  void finish_writing(const std::string &schema, const std::string &table,
+                      const Dump_writer_controller *controller);
 
   void write_metadata() const;
 
@@ -306,13 +311,9 @@ class Dumper {
                                       const std::size_t idx,
                                       const bool last_chunk) const;
 
-  std::string get_table_data_ext() const;
-
   void initialize_progress();
 
-  void update_bytes_written(uint64_t new_bytes);
-
-  void update_progress(uint64_t new_rows, const Dump_write_result &new_bytes);
+  void update_progress(const Dump_write_result &progress);
 
   void shutdown_progress();
 
@@ -351,8 +352,6 @@ class Dumper {
 
   void fetch_server_information();
 
-  std::string filename_for_data_dump(const std::string &filename) const;
-
   // returns true in case of errors
   bool check_for_upgrade_errors() const;
 
@@ -379,6 +378,7 @@ class Dumper {
   Instance_cache m_cache;
   std::vector<Schema_info> m_schema_infos;
   std::unordered_map<std::string, std::size_t> m_truncated_basenames;
+  std::string m_table_data_extension;
 
   // status variables
   bool m_instance_locked = false;
@@ -430,8 +430,7 @@ class Dumper {
   std::atomic<uint64_t> m_chunking_tasks;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
   std::unique_ptr<Synchronize_workers> m_worker_synchronization;
-  std::vector<std::unique_ptr<Dump_writer>> m_worker_writers;
-  std::mutex m_worker_writers_mutex;
+  std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
   volatile bool m_worker_interrupt = false;
 };
 
