@@ -321,7 +321,8 @@
  logFile                         <<<testutil.getShellLogPath()>>>
  logLevel                        5
  logSql                          error
- logSql.ignorePattern            SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*
+ logSql.ignorePattern            *SELECT*:SHOW*
+ logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD*
  mysqlPluginDir                  ""
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
@@ -359,7 +360,8 @@
  logFile                         <<<testutil.getShellLogPath()>>> (Compiled default)
  logLevel                        5 (Compiled default)
  logSql                          error (Compiled default)
- logSql.ignorePattern            SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD* (Compiled default)
+ logSql.ignorePattern            *SELECT*:SHOW* (Compiled default)
+ logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD* (Compiled default)
  mysqlPluginDir                  "" (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
@@ -478,7 +480,8 @@
  logFile                         <<<testutil.getShellLogPath()>>>
  logLevel                        5
  logSql                          error
- logSql.ignorePattern            SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*
+ logSql.ignorePattern            *SELECT*:SHOW*
+ logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD*
  mysqlPluginDir                  ""
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
@@ -517,7 +520,8 @@ Switching to SQL mode... Commands end with ;
  logFile                         <<<testutil.getShellLogPath()>>> (Compiled default)
  logLevel                        5 (Compiled default)
  logSql                          error (Compiled default)
- logSql.ignorePattern            SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD* (Compiled default)
+ logSql.ignorePattern            *SELECT*:SHOW* (Compiled default)
+ logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD* (Compiled default)
  mysqlPluginDir                  "" (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)

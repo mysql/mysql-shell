@@ -123,17 +123,6 @@ std::string check_logfile_permissions(const std::string &filepath) {
 
 }  // namespace
 
-Logger::Log_entry::Log_entry()
-    : Log_entry(nullptr, nullptr, 0, LOG_LEVEL::LOG_NONE) {}
-
-Logger::Log_entry::Log_entry(const char *domain_, const char *message_,
-                             size_t length_, LOG_LEVEL level_)
-    : timestamp{time(nullptr)},
-      domain{domain_},
-      message{message_},
-      length{length_},
-      level{level_} {}
-
 void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
   if (hook) {
     std::lock_guard l{m_mutex_hooks};
@@ -232,7 +221,7 @@ void Logger::log(LOG_LEVEL level, const char *formats, ...) {
     va_end(args);
 
     auto ctx = logger->context();
-    Logger::do_log(logger, {ctx.c_str(), msg.c_str(), msg.size(), level});
+    Logger::do_log(logger, {ctx, msg, level});
   }
 }
 
@@ -303,13 +292,17 @@ void Logger::out_to_stderr(const Log_entry &entry, void *) {
                   rapidjson::StringRef(level.c_str(), level.length()),
                   allocator);
 
-    if (entry.domain) {
-      doc.AddMember(rapidjson::StringRef("domain"),
-                    rapidjson::StringRef(entry.domain), allocator);
+    if (!entry.domain.empty()) {
+      doc.AddMember(
+          rapidjson::StringRef("domain"),
+          rapidjson::StringRef(entry.domain.data(), entry.domain.size()),
+          allocator);
     }
 
-    doc.AddMember(rapidjson::StringRef("message"),
-                  rapidjson::StringRef(entry.message, entry.length), allocator);
+    doc.AddMember(
+        rapidjson::StringRef("message"),
+        rapidjson::StringRef(entry.message.data(), entry.message.size()),
+        allocator);
 
     rapidjson::StringBuffer buffer;
 
@@ -345,7 +338,7 @@ std::string Logger::format_message(const Log_entry &entry) {
     gmtime_r(&entry.timestamp, &tm);
 #endif  // !_WIN32
 
-    static constexpr auto date_format = "%Y-%m-%d %H:%M:%S";
+    constexpr auto date_format = "%Y-%m-%d %H:%M:%S";
     strftime(timestamp, sizeof(timestamp), date_format, &tm);
   }
 
@@ -362,14 +355,14 @@ std::string Logger::format_message(const Log_entry &entry) {
     }
 #endif  // MYSQLSH_PRECISE_TIMESTAMP
     result.append(": ");
-    result += to_string(entry.level);
+    result.append(to_string(entry.level));
     result.append(": ");
-    if (entry.domain && *entry.domain) {
-      result += entry.domain;
+    if (!entry.domain.empty()) {
+      result.append(entry.domain);
       result.append(": ");
     }
-    result += std::string(entry.message, entry.length);
-    result += "\n";
+    result.append(entry.message);
+    result.append("\n");
   }
 
   return result;

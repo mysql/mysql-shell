@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 #define MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 
+#include <time.h>
 #include <atomic>
 #include <cstdarg>
 #include <fstream>
@@ -32,6 +33,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 
 #ifndef _WIN32
@@ -61,15 +63,15 @@ class SHCORE_PUBLIC Logger final {
   };
 
   struct Log_entry {
-    Log_entry();
-    Log_entry(const char *domain, const char *message, size_t length,
-              LOG_LEVEL level);
+    Log_entry() = default;
+    Log_entry(std::string_view domain_, std::string_view message_,
+              LOG_LEVEL level_)
+        : domain{domain_}, message{message_}, level{level_} {}
 
-    time_t timestamp;
-    const char *domain;
-    const char *message;
-    size_t length;  //< message length
-    LOG_LEVEL level;
+    time_t timestamp{time(nullptr)};
+    std::string_view domain;
+    std::string_view message;
+    LOG_LEVEL level{LOG_LEVEL::LOG_NONE};
   };
 
   using Log_hook = void (*)(const Log_entry &entry, void *);
@@ -200,8 +202,8 @@ class Log_reentrant_protector {
 };
 
 struct Log_context {
-  explicit Log_context(const std::string &context) {
-    current_logger()->push_context(context);
+  explicit Log_context(std::string context) {
+    current_logger()->push_context(std::move(context));
   }
 
   ~Log_context() { current_logger()->pop_context(); }

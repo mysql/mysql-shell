@@ -43,7 +43,7 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
   static std::string error;
 
   static void my_hook(const shcore::Logger::Log_entry &entry, void *) {
-    EXPECT_THAT(entry.message, ::testing::HasSubstr(error));
+    EXPECT_THAT(std::string{entry.message}, ::testing::HasSubstr(error));
     i++;
   }
 

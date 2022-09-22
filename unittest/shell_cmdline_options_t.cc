@@ -766,7 +766,8 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.compress_algorithms.empty());
   EXPECT_TRUE(options.compress_level.is_null());
   EXPECT_EQ("error", options.log_sql);
-  EXPECT_EQ("SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*", options.log_sql_ignore);
+  EXPECT_EQ("*SELECT*:SHOW*", options.log_sql_ignore);
+  EXPECT_EQ("*IDENTIFIED*:*PASSWORD*", options.log_sql_ignore_unsafe);
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -912,11 +913,12 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_CONNECTION_DATA, IS_NULLABLE, "mysqlPluginDir");
 
   test_option_with_value_list(
-      "log-sql", "", {"off", "error", "on", "unfiltered"}, "", false, false);
+      "log-sql", "", {"off", "error", "on", "all", "ALL", "unfiltered"}, "",
+      false, false);
 
-  test_option_equal_invalid_values("log-sql", {"filtered", "all"},
+  test_option_equal_invalid_values("log-sql", {"filtered"},
                                    "--log-sql: The log level value must be any "
-                                   "of {off, error, on, unfiltered}.\n");
+                                   "of {off, error, on, all, unfiltered}.\n");
 }
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {

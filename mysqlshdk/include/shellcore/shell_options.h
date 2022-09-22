@@ -41,6 +41,7 @@
 #define SHCORE_LOG_FILE_NAME "logFile"
 #define SHCORE_LOG_SQL "logSql"
 #define SHCORE_LOG_SQL_IGNORE "logSql.ignorePattern"
+#define SHCORE_LOG_SQL_IGNORE_UNSAFE "logSql.ignorePatternUnsafe"
 
 #define SHCORE_HISTORY_MAX_SIZE "history.maxSize"
 #define SHCORE_HISTIGNORE "history.sql.ignorePattern"
@@ -152,6 +153,7 @@ class Shell_options final : public shcore::Options {
     int dba_log_sql = 0;
     std::string log_sql;  //< Global SQL logging level
     std::string log_sql_ignore;
+    std::string log_sql_ignore_unsafe;
     shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_INFO;
     std::string log_file;
     int verbose_level = 0;

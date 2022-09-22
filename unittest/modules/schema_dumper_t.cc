@@ -1623,18 +1623,13 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
 
         auto ddl = shcore::str_subvars(
             stmt,
-            [&](const std::string &var) -> std::string {
-              if ("schema" == var) {
-                return schema;
-              } else if ("object" == var) {
-                return object;
-              } else if ("definer" == var) {
-                return definer;
-              } else if ("security" == var) {
-                return security;
-              }
+            [&](std::string_view var) -> std::string {
+              if ("schema" == var) return schema;
+              if ("object" == var) return object;
+              if ("definer" == var) return definer;
+              if ("security" == var) return security;
 
-              throw std::logic_error("Unknown variable: " + var);
+              throw std::logic_error("Unknown variable: " + std::string{var});
             },
             "${", "}");
         std::vector<Schema_dumper::Issue> issues;

@@ -608,13 +608,13 @@ std::shared_ptr<IResult> XSession_impl::query(const char *sql, size_t len,
 
     stmt.set_stmt(sql, len);
     auto log_sql_handler = shcore::current_log_sql();
-    log_sql_handler->log(get_thread_id(), sql, len);
+    log_sql_handler->log(get_thread_id(), std::string_view{sql, len});
 
     DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt.stmt());
     xresult = _mysql->get_protocol().execute_stmt(stmt, &error);
     if (error) {
       auto err = Error(error.what(), error.error());
-      log_sql_handler->log(get_thread_id(), sql, len, err);
+      log_sql_handler->log(get_thread_id(), std::string_view{sql, len}, err);
     }
     check_error_and_throw(error, stmt.stmt().c_str());
   }
@@ -644,7 +644,7 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   xcl::XError error;
   if (ns.empty() || ns == "sql") {
     auto log_sql_handler = shcore::current_log_sql();
-    log_sql_handler->log(get_thread_id(), stmt.c_str(), stmt.length());
+    log_sql_handler->log(get_thread_id(), stmt);
     DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << stmt);
   }
   std::unique_ptr<xcl::XQuery_result> xresult(
@@ -653,7 +653,7 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   if (error) {
     auto log_sql_handler = shcore::current_log_sql();
     auto err = Error(error.what(), error.error());
-    log_sql_handler->log(get_thread_id(), stmt.c_str(), stmt.length(), err);
+    log_sql_handler->log(get_thread_id(), stmt, err);
   }
 
   check_error_and_throw(error, stmt.c_str());

@@ -776,11 +776,16 @@ DESCRIPTION
       - logSql: Log SQL statements: off - none of SQL statements will be
         logged; error (default) - SQL statement with error message will be
         logged only when error occurs; on - all SQL statements will be logged
-        except these which match any of logSql.ignorePattern glob pattern;
-        unfiltered - all SQL statements will be logged.
+        except these which match any of logSql.ignorePattern and
+        logSql.ignorePatternUnsafe glob pattern; all - all SQL statements will
+        be logged except these which match any of logSql.ignorePatternUnsafe
+        glob pattern; unfiltered - all SQL statements will be logged.
       - logSql.ignorePattern: Colon separated list of glob patterns to filter
-        out SQL queries to be logged when logSql is set to "filtered". Default:
-        SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*
+        out SQL queries to be logged when logSql is set to "on". Default:
+        *SELECT*:*SHOW*
+      - logSql.ignorePatternUnsafe: Colon separated list of glob patterns to
+        filter out SQL queries to be logged when logSql is set to "all".
+        Default: *IDENTIFIED*:*PASSWORD*
       - mysqlPluginDir: Directory for client-side authentication plugins
       - oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
         file

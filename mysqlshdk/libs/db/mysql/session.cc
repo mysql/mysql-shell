@@ -461,20 +461,21 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
       }
     }
 
-    if (filter_set == 0 || (filter_set > 0 && std::regex_match(sql, filter))) {
+    if (filter_set == 0 ||
+        (filter_set > 0 && std::regex_match(sql, sql + len, filter))) {
       static int count = std::stoi(getenv("TEST_SQL_UNTIL_CRASH"));
       if (--count == 0) {
         fprintf(stderr, "%s SQL statements executed, will throw now\n",
                 getenv("TEST_SQL_UNTIL_CRASH"));
-        throw mysqlshdk::db::Error(
-            "Injected error when about to execute '" + std::string(sql) + "'",
-            CR_UNKNOWN_ERROR);
+        throw mysqlshdk::db::Error("Injected error when about to execute '" +
+                                       std::string(sql, len) + "'",
+                                   CR_UNKNOWN_ERROR);
       }
     }
   });
 
   auto log_sql_handler = shcore::current_log_sql();
-  log_sql_handler->log(get_thread_id(), sql, len);
+  log_sql_handler->log(get_thread_id(), std::string_view{sql, len});
 
   DBUG_LOG("sqlall", get_thread_id() << ": QUERY: " << std::string(sql, len));
 
@@ -486,8 +487,7 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
     auto err =
         Error(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
 
-    shcore::current_log_sql()->log(get_thread_id(), sql_script.data(),
-                                   sql_script.size(), err);
+    shcore::current_log_sql()->log(get_thread_id(), sql_script, err);
 
     if (DBUG_EVALUATE_IF("sqlall", 1, 0)) {
       DBUG_LOG("sql", get_thread_id() << ": ERROR: " << err.format());

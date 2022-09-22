@@ -71,9 +71,6 @@ void clear_buffer(std::string *buffer) {
   buffer->clear();
 }
 
-constexpr const char k_idchars[] =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_01234567890";
-
 std::string str_strip(const std::string &s, const std::string &chars) {
   size_t begin = s.find_first_not_of(chars);
   size_t end = s.find_last_not_of(chars);
@@ -295,30 +292,35 @@ std::pair<std::string::size_type, std::string::size_type> get_quote_span(
 }
 
 std::string str_subvars(
-    const std::string &s,
-    const std::function<std::string(const std::string &)> &subvar,
-    const std::string &var_begin, const std::string &var_end) {
-  assert(var_begin.size() > 0);
-  std::string out_s;
+    std::string_view s,
+    const std::function<std::string(std::string_view)> &subvar,
+    std::string_view var_begin, std::string_view var_end) {
+  assert(!var_begin.empty());
 
-  std::string::size_type p0 = 0;
-  while (p0 != std::string::npos) {
+  std::string out_s;
+  out_s.reserve(s.size());
+
+  std::string_view::size_type p0 = 0;
+  while (p0 != std::string_view::npos) {
     auto pos = s.find(var_begin, p0);
-    if (pos == std::string::npos) {
+    if (pos == std::string_view::npos) {
       out_s.append(s.substr(p0));
       break;
-    } else {
-      out_s.append(s.substr(p0, pos - p0));
     }
+
+    out_s.append(s.substr(p0, pos - p0));
+
     pos += var_begin.size();
-    std::string::size_type p1;
+    std::string_view::size_type p1;
     if (var_end.empty()) {
+      constexpr std::string_view k_idchars{
+          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_01234567890"};
       p1 = s.find_first_not_of(k_idchars, pos);
     } else {
       p1 = s.find(var_end, pos);
-      if (p1 == std::string::npos) return out_s.append(s.substr(pos));
+      if (p1 == std::string_view::npos) return out_s.append(s.substr(pos));
     }
-    if (p1 == std::string::npos) {
+    if (p1 == std::string_view::npos) {
       out_s.append(subvar(s.substr(pos)));
     } else {
       out_s.append(subvar(s.substr(pos, p1 - pos)));

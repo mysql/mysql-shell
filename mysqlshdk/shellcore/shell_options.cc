@@ -465,11 +465,14 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.devapi_schema_object_handles, true,
         SHCORE_DEVAPI_DB_OBJECT_HANDLES,
         "Enable table and collection name handles for the DevAPI db object.")
-    (&storage.log_sql_ignore, "SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*",
+    (&storage.log_sql_ignore, "*SELECT*:SHOW*",
         SHCORE_LOG_SQL_IGNORE,
-        "Colon separated list of glob patterns to filter out SQL queries to be "
-        "logged when logSql is set to \"filtered\". "
-        "Default: SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*");
+        "Colon separated list of SQL statement patterns to filter out, unless logSql is set to 'all' or 'unfiltered'."
+        "Default: *SELECT*:SHOW*")
+    (&storage.log_sql_ignore_unsafe, "*IDENTIFIED*:*PASSWORD*",
+        SHCORE_LOG_SQL_IGNORE_UNSAFE,
+        "Colon separated list of SQL statement patterns to filter out, unless logSql is set to 'unfiltered'."
+        "Default: *IDENTIFIED*:*PASSWORD*");
 
   add_startup_options()
     (cmdline("--get-server-public-key"), "Request public key from the server "
@@ -547,13 +550,15 @@ Shell_options::Shell_options(int argc, char **argv,
         "2 - log all statements. Option takes precedence over --log-sql in "
         "Dba.* context if enabled.", shcore::opts::Range<int>(0, 2))
     (&storage.log_sql, "error", SHCORE_LOG_SQL,
-        cmdline("--log-sql=off|error|on|unfiltered"),
+        cmdline("--log-sql=off|error|on|all|unfiltered"),
         "Log SQL statements: "
         "off - none of SQL statements will be logged; "
         "(default) error - SQL statement with error message will be logged "
         "only when error occurs; "
         "on - All SQL statements will be logged except these which match "
-        "any of logSql.ignorePattern glob pattern; "
+        "any of logSql.ignorePattern and logSql.ignorePatternUnsafe glob pattern; "
+        "all - All SQL statements will be logged except these which match "
+        "any of logSql.ignorePatternUnsafe glob pattern; "
         "unfiltered - All SQL statements will be logged.",
         [](const std::string &val, Source) {
           shcore::Log_sql::parse_log_level(val);

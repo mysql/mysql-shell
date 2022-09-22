@@ -40,7 +40,14 @@ namespace shcore {
 
 class Log_sql : public NotificationObserver {
  public:
-  enum class Log_level { OFF, ERROR, ON, UNFILTERED, MAX_VALUE = UNFILTERED };
+  enum class Log_level {
+    OFF,
+    ERROR,
+    ON,
+    ALL,
+    UNFILTERED,
+    MAX_VALUE = UNFILTERED
+  };
 
   Log_sql();
   explicit Log_sql(const mysqlsh::Shell_options &opts);
@@ -61,26 +68,28 @@ class Log_sql : public NotificationObserver {
   void push(std::string_view context);
   void pop();
 
-  void log(uint64_t thread_id, const char *sql, size_t len);
-  void log(uint64_t thread_id, const char *sql, size_t len,
+  void log(uint64_t thread_id, std::string_view sql);
+  void log(uint64_t thread_id, std::string_view sql,
            const shcore::Error &error);
-  void log_connect(const std::string &endpoint_uri, uint64_t thread_id);
+  void log_connect(std::string_view endpoint_uri, uint64_t thread_id);
 
   bool is_off() const;
 
-  static Log_level parse_log_level(const std::string &tag);
+  static Log_level parse_log_level(std::string_view tag);
 
  private:
   void init(const mysqlsh::Shell_options::Storage &opts);
-  std::pair<bool, bool> will_log(const char *sql, size_t len, bool has_error);
-  void do_log(const std::string &msg) const;
+  std::pair<bool, bool> will_log(std::string_view, bool has_error);
+  void do_log(std::string_view msg) const;
   bool is_filtered(const std::string_view sql) const;
+  bool is_filtered_unsafe(const std::string_view sql) const;
 
   mutable std::mutex m_mutex;
 
   std::atomic<int> m_dba_log_sql{0};
   std::atomic<Log_level> m_log_sql_level{Log_level::OFF};
   std::vector<std::string> m_ignore_patterns;
+  std::vector<std::string> m_ignore_patterns_all;
   Logger::LOG_LEVEL m_log_level = Logger::LOG_LEVEL::LOG_INFO;
   std::stack<std::string> m_context_stack;
   size_t m_num_dba_ctx{0};

@@ -36,18 +36,15 @@ Log_sql::Log_level get_level_by_name(std::string_view name) {
   if (str_caseeq(name, "off")) return Log_sql::Log_level::OFF;
   if (str_caseeq(name, "error")) return Log_sql::Log_level::ERROR;
   if (str_caseeq(name, "on")) return Log_sql::Log_level::ON;
+  if (str_caseeq(name, "all")) return Log_sql::Log_level::ALL;
   if (str_caseeq(name, "unfiltered")) return Log_sql::Log_level::UNFILTERED;
 
   throw std::invalid_argument("invalid level");
 }
 
-const char *get_level_range_info() {
-  return "The log level value must be any of {off, error, on, unfiltered}.";
-}
-
-std::string mask_sql_query(const std::string &sql) {
+std::string mask_sql_query(std::string_view sql) {
   return shcore::str_subvars(
-      sql, [](const std::string &) { return "****"; }, "/*((*/", "/*))*/");
+      sql, [](std::string_view) { return "****"; }, "/*((*/", "/*))*/");
 }
 
 // We need to know when we are in Dba.* context to be (backward) compatible
@@ -75,10 +72,7 @@ Log_sql::Log_sql() {
   }
 }
 
-Log_sql::Log_sql(const mysqlsh::Shell_options &opts) {
-  const auto &storage = opts.get();
-  init(storage);
-}
+Log_sql::Log_sql(const mysqlsh::Shell_options &opts) { init(opts.get()); }
 
 Log_sql::Log_sql(const mysqlsh::Shell_options::Storage &opts) { init(opts); }
 
@@ -89,6 +83,7 @@ void Log_sql::init(const mysqlsh::Shell_options::Storage &opts) {
   m_dba_log_sql = opts.dba_log_sql;
   m_log_sql_level = get_level_by_name(opts.log_sql);
   m_ignore_patterns = shcore::split_string(opts.log_sql_ignore, ":");
+  m_ignore_patterns_all = shcore::split_string(opts.log_sql_ignore_unsafe, ":");
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
 }
@@ -107,68 +102,85 @@ void Log_sql::handle_notification(const std::string &name,
     std::lock_guard lock(m_mutex);
     auto v = data->get_string("value");
     m_ignore_patterns = shcore::split_string(v, ":");
+  } else if (option == SHCORE_LOG_SQL_IGNORE_UNSAFE) {
+    std::lock_guard lock(m_mutex);
+    auto v = data->get_string("value");
+    m_ignore_patterns_all = shcore::split_string(v, ":");
   }
 }
 
-void Log_sql::do_log(const std::string &msg) const {
+void Log_sql::do_log(std::string_view msg) const {
   // this is private and called with a lock on m_mutex
-  const auto &e = m_context_stack.top();
-  Logger::Log_entry entry(e.c_str(), msg.c_str(), msg.size(), m_log_level);
+  Logger::Log_entry entry(m_context_stack.top(), msg, m_log_level);
   Logger::do_log(entry);
 }
 
-void Log_sql::log(uint64_t thread_id, const char *sql, size_t len) {
+void Log_sql::log(uint64_t thread_id, std::string_view sql) {
   std::lock_guard lock(m_mutex);
 
   if (m_context_stack.empty()) return;
 
-  const auto [log_flag, filtered_flag] = will_log(sql, len, false);
+  const auto [log_flag, filtered_flag] = will_log(sql, false);
   if (!log_flag) return;
 
-  const std::string log_msg = "tid=" + std::to_string(thread_id) +
-                              ": SQL: " + mask_sql_query(std::string(sql, len));
+  std::string log_msg;
+  log_msg.reserve(16 + sql.size());
+  log_msg.append("tid=");
+  log_msg.append(std::to_string(thread_id));
+  log_msg.append(": SQL: ");
+  log_msg.append(mask_sql_query(sql));
+
   do_log(log_msg);
 }
 
-void Log_sql::log(uint64_t thread_id, const char *sql, size_t len,
+void Log_sql::log(uint64_t thread_id, std::string_view sql,
                   const shcore::Error &error) {
   std::lock_guard lock(m_mutex);
 
   if (m_context_stack.empty()) return;
 
-  const auto [log_flag, filtered_flag] = will_log(sql, len, true);
+  const auto [log_flag, filtered_flag] = will_log(sql, true);
   if (!log_flag) return;
 
-  std::string log_msg =
-      "tid=" + std::to_string(thread_id) + ": " + error.format();
+  std::string log_msg;
+  log_msg.reserve(256);
+  log_msg.append("tid=");
+  log_msg.append(std::to_string(thread_id));
+  log_msg.append(": ");
+  log_msg.append(error.format());
 
   if (m_log_sql_level == Log_level::ERROR) {
     // SQL query string isn't logged when Log_level is error. Therefore we need
     // to append SQL query string to logged error message received from MySQL
     // Server, to have information which query caused error.
-    log_msg += ", SQL: " + mask_sql_query(std::string(sql, len));
+    log_msg.append(", SQL: ");
+    log_msg.append(mask_sql_query(sql));
   } else if (filtered_flag) {
-    log_msg += ", SQL: <filtered>";
+    log_msg.append(", SQL: <filtered>");
   }
   do_log(log_msg);
 }
 
-void Log_sql::log_connect(const std::string &endpoint_uri, uint64_t thread_id) {
+void Log_sql::log_connect(std::string_view endpoint_uri, uint64_t thread_id) {
   if (is_off()) return;
 
   std::lock_guard lock(m_mutex);
 
   if (m_context_stack.empty()) return;
 
-  std::string log_msg{"tid=" + std::to_string(thread_id) +
-                      ": CONNECTED: " + endpoint_uri};
+  std::string log_msg;
+  log_msg.reserve(32 + endpoint_uri.size());
+  log_msg.append("tid=");
+  log_msg.append(std::to_string(thread_id));
+  log_msg.append(": CONNECTED: ");
+  log_msg.append(endpoint_uri);
+
   do_log(log_msg);
 }
 
 bool Log_sql::is_off() const { return m_log_sql_level == Log_level::OFF; }
 
-std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
-                                        bool has_error) {
+std::pair<bool, bool> Log_sql::will_log(std::string_view sql, bool has_error) {
   // If --dba-log-sql != 0, then it has priority in Dba.* context
   if (m_num_dba_ctx > 0) {
     if (m_dba_log_sql >= 2) {
@@ -176,9 +188,8 @@ std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
     }
 
     if (m_dba_log_sql == 1) {
-      if (std::string_view sqlv{sql, len};
-          shcore::str_ibeginswith(sqlv, "select") ||
-          shcore::str_ibeginswith(sqlv, "show")) {
+      if (shcore::str_ibeginswith(sql, "select") ||
+          shcore::str_ibeginswith(sql, "show")) {
         return std::make_pair(false, true);
       } else {
         return std::make_pair(true, false);
@@ -192,7 +203,11 @@ std::pair<bool, bool> Log_sql::will_log(const char *sql, size_t len,
     case Log_level::ERROR:
       return std::make_pair(has_error, false);
     case Log_level::ON: {
-      auto filter_flag = is_filtered(std::string_view(sql, len));
+      auto filter_flag = is_filtered(sql) || is_filtered_unsafe(sql);
+      return std::make_pair((has_error || !filter_flag), filter_flag);
+    }
+    case Log_level::ALL: {
+      auto filter_flag = is_filtered_unsafe(sql);
       return std::make_pair((has_error || !filter_flag), filter_flag);
     }
     case Log_level::UNFILTERED:
@@ -226,19 +241,26 @@ void Log_sql::pop() {
   assert(!m_context_stack.empty() || (m_num_dba_ctx == 0));
 }
 
-Log_sql::Log_level Log_sql::parse_log_level(const std::string &tag) {
+Log_sql::Log_level Log_sql::parse_log_level(std::string_view tag) {
   try {
     return get_level_by_name(tag);
   } catch (...) {
-    throw std::invalid_argument(get_level_range_info());
+    throw std::invalid_argument(
+        "The log level value must be any of {off, error, on, all, "
+        "unfiltered}.");
   }
 }
 
-bool Log_sql::is_filtered(const std::string_view sql) const {
+bool Log_sql::is_filtered(std::string_view sql) const {
   for (auto &pattern : m_ignore_patterns) {
-    if (shcore::match_glob(pattern, sql)) {
-      return true;
-    }
+    if (shcore::match_glob(pattern, sql)) return true;
+  }
+  return false;
+}
+
+bool Log_sql::is_filtered_unsafe(std::string_view sql) const {
+  for (auto &pattern : m_ignore_patterns_all) {
+    if (shcore::match_glob(pattern, sql)) return true;
   }
   return false;
 }

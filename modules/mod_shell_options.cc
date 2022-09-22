@@ -104,12 +104,18 @@ Log SQL statements: off - none of SQL statements will be logged;
 error (default) - SQL statement with error message will be logged only when
 error occurs;
 on - all SQL statements will be logged except these which match any of
-logSql.ignorePattern glob pattern;
+logSql.ignorePattern and logSql.ignorePatternUnsafe glob pattern;
+all - all SQL statements will be logged except these which match any of
+logSql.ignorePatternUnsafe glob pattern;
 unfiltered - all SQL statements will be logged.
 
 @li logSql.ignorePattern: Colon separated list of glob patterns to filter out
-SQL queries to be logged when logSql is set to "filtered". Default:
-SELECT*:SHOW*:*IDENTIFIED*:*PASSWORD*
+SQL queries to be logged when logSql is set to "on". Default:
+*SELECT*:*SHOW*
+
+@li logSql.ignorePatternUnsafe: Colon separated list of glob patterns to filter out
+SQL queries to be logged when logSql is set to "all". Default:
+*IDENTIFIED*:*PASSWORD*
 
 @li mysqlPluginDir: Directory for client-side authentication plugins
 

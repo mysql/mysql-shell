@@ -745,36 +745,44 @@ TEST(utils_string, str_span) {
 
 TEST(utils_string, str_subvars) {
   EXPECT_EQ("", str_subvars(
-                    "", [](const std::string &) { return ""; }, "$", ""));
+                    "", [](std::string_view) { return ""; }, "$", ""));
   EXPECT_EQ("", str_subvars(
-                    "$", [](const std::string &) { return ""; }, "$", ""));
-  EXPECT_EQ("boo",
-            str_subvars(
-                "$boo", [](const std::string &v) { return v; }, "$", ""));
+                    "$", [](std::string_view) { return ""; }, "$", ""));
+  EXPECT_EQ(
+      "boo",
+      str_subvars(
+          "$boo", [](std::string_view v) { return std::string{v}; }, "$", ""));
   EXPECT_EQ("booble",
             str_subvars(
-                "$boo$ble", [](const std::string &v) { return v; }, "$", ""));
+                "$boo$ble", [](std::string_view v) { return std::string{v}; },
+                "$", ""));
   EXPECT_EQ("boo.ble",
             str_subvars(
-                "$boo.$ble", [](const std::string &v) { return v; }, "$", ""));
-  EXPECT_EQ(".boo.ble.", str_subvars(
-                             ".$boo.$ble.",
-                             [](const std::string &v) { return v; }, "$", ""));
+                "$boo.$ble", [](std::string_view v) { return std::string{v}; },
+                "$", ""));
+  EXPECT_EQ(".boo.ble.",
+            str_subvars(
+                ".$boo.$ble.",
+                [](std::string_view v) { return std::string{v}; }, "$", ""));
   EXPECT_EQ("boo.ble",
             str_subvars(
-                "boo.{ble}", [](const std::string &v) { return v; }, "{", "}"));
+                "boo.{ble}", [](std::string_view v) { return std::string{v}; },
+                "{", "}"));
   EXPECT_EQ("blaboo",
             str_subvars(
-                "{bla}boo", [](const std::string &v) { return v; }, "{", "}"));
-  EXPECT_EQ("boo",
+                "{bla}boo", [](std::string_view v) { return std::string{v}; },
+                "{", "}"));
+  EXPECT_EQ("boo", str_subvars(
+                       "boo", [](std::string_view v) { return std::string{v}; },
+                       "{", "}"));
+  EXPECT_EQ("blable",
             str_subvars(
-                "boo", [](const std::string &v) { return v; }, "{", "}"));
-  EXPECT_EQ("blable", str_subvars(
-                          "${bla}${ble}",
-                          [](const std::string &v) { return v; }, "${", "}"));
-  EXPECT_EQ("blable", str_subvars({"\0bla\0\0ble\0", 10},
-                                  [](const std::string &v) { return v; },
-                                  {"\0", 1}, {"\0", 1}));
+                "${bla}${ble}",
+                [](std::string_view v) { return std::string{v}; }, "${", "}"));
+  EXPECT_EQ("blable",
+            str_subvars({"\0bla\0\0ble\0", 10},
+                        [](std::string_view v) { return std::string{v}; },
+                        {"\0", 1}, {"\0", 1}));
 
   {
     shcore::Scoped_naming_style lower(shcore::LowerCamelCase);

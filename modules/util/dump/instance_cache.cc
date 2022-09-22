@@ -1128,7 +1128,7 @@ std::string Instance_cache_builder::schema_filter(
     const std::string &schema_column) const {
   return shcore::str_subvars(
       m_schema_filter,
-      [&schema_column](const std::string &) { return schema_column; },
+      [&schema_column](std::string_view) { return schema_column; },
       k_template_marker, k_template_marker);
 }
 
@@ -1141,14 +1141,10 @@ std::string Instance_cache_builder::table_filter(
     const std::string &schema_column, const std::string &table_column) const {
   return shcore::str_subvars(
       m_table_filter,
-      [&schema_column, &table_column](const std::string &var) {
-        if (var == k_schema_var) {
-          return schema_column;
-        } else if (var == k_table_var) {
-          return table_column;
-        } else {
-          throw std::logic_error("Unknown variable: " + var);
-        }
+      [&schema_column, &table_column](std::string_view var) {
+        if (var == k_schema_var) return schema_column;
+        if (var == k_table_var) return table_column;
+        throw std::logic_error("Unknown variable: " + std::string{var});
       },
       k_template_marker, k_template_marker);
 }

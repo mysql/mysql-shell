@@ -200,17 +200,11 @@ void display_info(const std::shared_ptr<T> &object, const std::string &variable,
                   const std::string &context, bool print_name = true) {
   static constexpr auto var_begin = "${";
   static constexpr auto var_end = "}";
-  const auto replace = [&object, &variable, &context](const std::string &var) {
-    if (var == "name") {
-      return object->impl()->get_name();
-    } else if (var == "class") {
-      return object->class_name();
-    } else if (var == "var") {
-      return variable;
-    } else if (var == "context") {
-      return context;
-    }
-
+  const auto replace = [&object, &variable, &context](std::string_view var) {
+    if (var == "name") return object->impl()->get_name();
+    if (var == "class") return object->class_name();
+    if (var == "var") return variable;
+    if (var == "context") return context;
     return std::string{"ERROR"};
   };
 

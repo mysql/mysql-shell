@@ -66,7 +66,7 @@ char sql_filter_error[] = "showasdf;";
 struct Log_sql_test_params {
   std::string context_name;
   int dba_log_level;          // (0),1,2
-  std::string log_sql_level;  // off,(error),on,unfiltered
+  std::string log_sql_level;  // off,(error),on,all,unfiltered
   std::array<int, 11> log_count_mask;
 };
 
@@ -156,12 +156,14 @@ TEST_P(Shell_log_sql_parameterized_tests, log_sql) {
   mysqlsh::current_shell_options()->set_and_notify(
       "dba.logSql", std::to_string(params.dba_log_level));
 
-  // off,(error),on,unfiltered
+  // off,(error),on,all,unfiltered
   mysqlsh::current_shell_options()->set_and_notify("logSql",
                                                    params.log_sql_level);
 
   mysqlsh::current_shell_options()->set_and_notify("logSql.ignorePattern",
                                                    "SHOW*:*PASSWORD*");
+  mysqlsh::current_shell_options()->set_and_notify("logSql.ignorePatternUnsafe",
+                                                   "*IDENTIFIED*:*PASSWORD*");
 
   auto conn_opts = [&proto]() {
     if (proto == "X") {
