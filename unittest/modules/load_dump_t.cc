@@ -55,13 +55,13 @@ namespace mysqlsh {
 TEST(Load_dump, sql_transforms_strip_sql_mode) {
   Dump_loader::Sql_transform tx;
 
-  auto call = [&tx](const char *s, std::string *out) {
-    return tx(s, strlen(s), out);
+  auto call = [&tx](std::string_view s, std::string *out) {
+    return tx(s, out);
   };
 
-  auto callr = [&tx](const char *s) {
+  auto callr = [&tx](std::string_view s) {
     std::string tmp;
-    EXPECT_TRUE(tx(s, strlen(s), &tmp));
+    EXPECT_TRUE(tx(s, &tmp));
     return tmp;
   };
 
@@ -121,16 +121,17 @@ TEST(Load_dump, sql_transforms_strip_sql_mode) {
 }
 
 TEST(Load_dump, add_execute_conditionally) {
-  const auto call = [](const Dump_loader::Sql_transform &tx, const char *s) {
+  const auto call = [](const Dump_loader::Sql_transform &tx,
+                       std::string_view s) {
     std::string tmp;
-    EXPECT_TRUE(tx(s, strlen(s), &tmp));
+    EXPECT_TRUE(tx(s, &tmp));
     return tmp;
   };
 
   {
     Dump_loader::Sql_transform tx;
     tx.add_execute_conditionally(
-        [](const std::string &, const std::string &) { return true; });
+        [](std::string_view, std::string_view) { return true; });
 
     EXPECT_EQ("CREATE EVENT foo", call(tx, "CREATE EVENT foo"));
   }
@@ -138,34 +139,34 @@ TEST(Load_dump, add_execute_conditionally) {
   {
     Dump_loader::Sql_transform tx;
     tx.add_execute_conditionally(
-        [](const std::string &, const std::string &) { return false; });
+        [](std::string_view, std::string_view) { return false; });
 
     EXPECT_EQ("", call(tx, "CREATE EVENT foo"));
   }
 
-  const auto EXPECT_TYPE_NAME =
-      [](const std::string &stmt, const std::string &type,
-         const std::string &name, const bool called = true) {
-        SCOPED_TRACE("statement: " + stmt + ", type: " + type + ", name " +
-                     name + ", called: " + (called ? "true" : "false"));
+  const auto EXPECT_TYPE_NAME = [](const std::string &stmt,
+                                   const std::string &type,
+                                   const std::string &name,
+                                   const bool called = true) {
+    SCOPED_TRACE("statement: " + stmt + ", type: " + type + ", name " + name +
+                 ", called: " + (called ? "true" : "false"));
 
-        bool was_called = false;
-        Dump_loader::Sql_transform tx;
+    bool was_called = false;
+    Dump_loader::Sql_transform tx;
 
-        tx.add_execute_conditionally(
-            [&was_called, &type, &name](const std::string &t,
-                                        const std::string &n) {
-              EXPECT_EQ(type, t);
-              EXPECT_EQ(name, n);
-              was_called = true;
-              return true;
-            });
+    tx.add_execute_conditionally(
+        [&was_called, &type, &name](std::string_view t, std::string_view n) {
+          EXPECT_EQ(type, t);
+          EXPECT_EQ(name, n);
+          was_called = true;
+          return true;
+        });
 
-        std::string tmp;
-        EXPECT_TRUE(tx(stmt.c_str(), stmt.length(), &tmp));
+    std::string tmp;
+    EXPECT_TRUE(tx(stmt, &tmp));
 
-        EXPECT_EQ(was_called, called);
-      };
+    EXPECT_EQ(was_called, called);
+  };
 
   EXPECT_TYPE_NAME("CREATE EVENT foo", "EVENT", "foo");
   EXPECT_TYPE_NAME("/*!50106 DROP EVENT foo */", "EVENT", "foo");

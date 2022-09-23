@@ -112,6 +112,11 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() const = 0;
 
+  void enable_sql_mode_tracking();
+  bool is_sql_mode_tracking_enabled() const {
+    return m_is_sql_mode_tracking_enabled;
+  }
+
   std::function<void(const std::string &, bool exists)> update_schema_cache;
 
  protected:
@@ -152,6 +157,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   void begin_query();
   void end_query();
   mutable int _guard_active = 0;
+
+  bool m_is_sql_mode_tracking_enabled = false;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Interrupt_mysql, sql_classic);

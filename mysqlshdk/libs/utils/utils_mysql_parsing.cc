@@ -34,91 +34,27 @@
 namespace mysqlshdk {
 namespace utils {
 
-Sql_splitter::Sql_splitter(const Command_callback &cmd_callback,
-                           const Error_callback &err_callback,
-                           const std::initializer_list<const char *> &commands)
-    : m_cmd_callback(cmd_callback), m_err_callback(err_callback) {
-  for (const char *cmd : commands) {
-    size_t off = tolower(cmd[0]) - 'a';
-    assert(off < m_commands_table.size());
-    m_commands_table[off].emplace_front(cmd);
-  }
-  reset();
-}
-
-void Sql_splitter::reset() {
-  m_begin = nullptr;
-  m_end = nullptr;
-  m_ptr = nullptr;
-
-  m_delimiter = ";";
-  m_context.clear();
-
-  m_shrinked_bytes = 0;
-  m_current_line = 1;
-  m_total_offset = 0;
-  m_ansi_quotes = false;
-  m_last_chunk = false;
-  m_eof = false;
-}
-
-/** Pack input buffer, moving the last unfinished statement to its beginning
- */
-void Sql_splitter::pack_buffer(std::string *buffer, Range last_range) {
-  if (last_range.offset > 0) {
-    memmove(&(*buffer)[0], &(*buffer)[last_range.offset],
-            buffer->size() - last_range.offset - m_shrinked_bytes);
-    buffer->resize(buffer->size() - last_range.offset - m_shrinked_bytes);
-  } else if (m_shrinked_bytes > 0) {
-    buffer->resize(buffer->size() - m_shrinked_bytes);
-  }
-}
-
-void Sql_splitter::feed(char *buffer, size_t size) {
-  feed_chunk(buffer, size);
-  m_last_chunk = true;
-}
-
-void Sql_splitter::feed_chunk(char *buffer, size_t size) {
-  // printf("feed --> [[%s]] %zi\n", std::string(buffer, size).c_str(), size);
-  if (m_begin) m_total_offset += (m_end - m_begin);
-
-  m_shrinked_bytes = 0;
-
-  m_begin = buffer;
-  m_end = buffer + size;
-
-  m_ptr = m_begin;
-
-  m_context.clear();
-}
-
-void Sql_splitter::set_ansi_quotes(bool flag) { m_ansi_quotes = flag; }
-
-bool Sql_splitter::set_delimiter(const std::string &delim) {
-  if (delim.empty()) {
-    m_err_callback(
-        "DELIMITER must be followed by a 'delimiter' character or string");
-    return false;
-  }
-  if (delim.find('\\') != std::string::npos) {
-    m_err_callback("DELIMITER cannot contain a backslash character");
-    return false;
-  }
-  m_delimiter = delim;
-  return true;
-}
+namespace {
 
 template <const char skip_table[256], const char quote>
-inline char *span_string(char *p, const char *end) {
+inline char *span_string(char *p, const char *end, bool no_backslash_escapes) {
+  char skip_table_backslash[256];
+  if (no_backslash_escapes) {
+    std::memcpy(skip_table_backslash, skip_table, 256);
+    skip_table_backslash[static_cast<unsigned char>('\\')] = 1;
+  }
+
+  auto target_table = no_backslash_escapes ? skip_table_backslash : skip_table;
+
   // p must be inside the single quote string (after the ')
   int last_ch = 0;
   for (;;) {
     // Tight-loop to span until end or closing quote
     while (p < end &&
-           skip_table[last_ch = static_cast<unsigned char>(*p)] > 0) {
-      p += skip_table[last_ch];
+           target_table[last_ch = static_cast<unsigned char>(*p)] > 0) {
+      p += target_table[last_ch];
     }
+
     // Now check why we exited the loop
     if (last_ch == '\0' || p >= end) {
       // there was a '\0', but the string is not over, continue spanning
@@ -156,11 +92,11 @@ inline char *span_quoted_identifier(char *p, char *end) {
 }
 
 inline char *span_comment(char *p, char *end) {
-  while ((p = static_cast<char *>(memchr(p, '*', end - p))) && p + 1 < end &&
-         *(p + 1) != '/') {
-    p += 1;
+  while ((p + 1 < end) && (p = static_cast<char *>(memchr(p, '*', end - p))) &&
+         p[1] != '/') {
+    p++;
   }
-  return (p && p + 1 < end && *(p + 1) == '/') ? p : nullptr;
+  return (p && (p + 1 < end) && p[1] == '/') ? p : nullptr;
 }
 
 inline char *skip_blanks(char *p, const char *end) {
@@ -172,18 +108,93 @@ inline bool is_any_blank(const char c) {
   return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-inline char *skip_any_blanks(char *p, const char *end) {
-  while (p < end && is_any_blank(*p)) ++p;
-  return p;
-}
-
 inline char *skip_not_blanks(char *p, const char *end) {
   while (p < end && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n') ++p;
   return p;
 }
 
-constexpr char k_delimiter[] = "delimiter";
-constexpr int k_delimiter_len = 9;
+constexpr std::string_view k_delimiter{"delimiter"};
+
+}  // namespace
+
+Sql_splitter::Sql_splitter(Command_callback cmd_callback,
+                           Error_callback err_callback,
+                           std::initializer_list<std::string_view> commands)
+    : m_cmd_callback(std::move(cmd_callback)),
+      m_err_callback(std::move(err_callback)) {
+  for (auto cmd : commands) {
+    size_t off = tolower(cmd[0]) - 'a';
+    assert(off < m_commands_table.size());
+    m_commands_table[off].emplace_back(cmd);
+  }
+
+  for (auto &cmd : m_commands_table) std::reverse(cmd.begin(), cmd.end());
+
+  reset();
+}
+
+void Sql_splitter::reset() {
+  m_begin = nullptr;
+  m_end = nullptr;
+  m_ptr = nullptr;
+
+  m_delimiter = ";";
+  m_context.clear();
+
+  m_shrinked_bytes = 0;
+  m_current_line = 1;
+  m_total_offset = 0;
+  m_ansi_quotes = false;
+  m_no_backslash_escapes = false;
+  m_last_chunk = false;
+  m_eof = false;
+}
+
+/** Pack input buffer, moving the last unfinished statement to its beginning
+ */
+void Sql_splitter::pack_buffer(std::string *buffer, Range last_range) {
+  assert(buffer);
+  if (last_range.offset > 0) {
+    memmove(&(*buffer)[0], &(*buffer)[last_range.offset],
+            buffer->size() - last_range.offset - m_shrinked_bytes);
+    buffer->resize(buffer->size() - last_range.offset - m_shrinked_bytes);
+  } else if (m_shrinked_bytes > 0) {
+    buffer->resize(buffer->size() - m_shrinked_bytes);
+  }
+}
+
+void Sql_splitter::feed(char *buffer, size_t size) {
+  feed_chunk(buffer, size);
+  m_last_chunk = true;
+}
+
+void Sql_splitter::feed_chunk(char *buffer, size_t size) {
+  // printf("feed --> [[%s]] %zi\n", std::string(buffer, size).c_str(), size);
+  if (m_begin) m_total_offset += (m_end - m_begin);
+
+  m_shrinked_bytes = 0;
+
+  m_begin = buffer;
+  m_end = buffer + size;
+
+  m_ptr = m_begin;
+
+  m_context.clear();
+}
+
+bool Sql_splitter::set_delimiter(std::string delim) {
+  if (delim.empty()) {
+    m_err_callback(
+        "DELIMITER must be followed by a 'delimiter' character or string");
+    return false;
+  }
+  if (!m_no_backslash_escapes && delim.find('\\') != std::string::npos) {
+    m_err_callback("DELIMITER cannot contain a backslash character");
+    return false;
+  }
+  m_delimiter = std::move(delim);
+  return true;
+}
 
 /** Get range of next statement in buffer.
  *
@@ -253,9 +264,9 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
     const auto run_command = [&](bool delimited) {
       command = false;
-      size_t skip;
-      bool d;
-      std::tie(skip, d) = m_cmd_callback(bos, p - bos, true, m_current_line);
+      auto [skip, d] =
+          m_cmd_callback(std::string_view{bos, static_cast<size_t>(p - bos)},
+                         true, m_current_line);
       if (skip == 0) return false;
       if (delimited) skip += m_delimiter.size();
       p = bos + skip;
@@ -271,8 +282,9 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
     while (p && p < eol) {
       auto ctx = context();
-      if (ctx == NONE || ctx == STATEMENT || ctx == COMMENT_CONDITIONAL) {
-        if (ctx == COMMENT_CONDITIONAL) {
+      if (ctx == Context::kNone || ctx == Context::kStatement ||
+          ctx == Context::kCommentConditional) {
+        if (ctx == Context::kCommentConditional) {
           if ((eol - p) > 2 && *p == '*' && *(p + 1) == '/') {
             pop();
             p += 2;
@@ -299,21 +311,18 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
         switch (*p) {
           case '\\':  // \x
           {
+            if (m_no_backslash_escapes) goto other;
+
             // commands within commands are not supported
             if (command) goto other;
 
-            // let the caller handle \commands
-            size_t skip;
-            bool delim;
-
-            if (eol - p == 1) {
-              return unfinished_stmt(bos, out_range);
-            }
+            if (eol - p == 1) return unfinished_stmt(bos, out_range);
 
             // Callback returns number of chars to skip and whether the
             // statement should be terminated.
-            std::tie(skip, delim) =
-                m_cmd_callback(p, eol - p, p == bos, m_current_line);
+            auto [skip, delim] = m_cmd_callback(
+                std::string_view{p, static_cast<size_t>(eol - p)}, p == bos,
+                m_current_line);
             if (skip == 0 && (p == bos && !has_complete_line)) {
               // if there's a \command at the beginning of the line and
               // skip is 0, then it means we need the full line because it's a
@@ -342,34 +351,34 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
           case '\'':  // 'str'
             ++p;      // skip the opening '
-            push(SQUOTE_STRING);
+            push(Context::kSQuoteString);
             break;
 
           case '"':  // "str"
             ++p;     // skip the opening "
             if (m_ansi_quotes) {
-              push(DQUOTE_IDENTIFIER);
+              push(Context::kDQuoteIdentifier);
             } else {
-              push(DQUOTE_STRING);
+              push(Context::kDQuoteString);
             }
             break;
 
           case '`':  // `ident`
             ++p;
-            push(BQUOTE_IDENTIFIER);
+            push(Context::kBQuoteIdentifier);
             break;
 
           case '/':  // /* ... */
             if ((m_end - p) >= 3) {
               if (*(p + 1) == '*') {
                 if (*(p + 2) == '+') {
-                  push(COMMENT_HINT);
+                  push(Context::kCommentHint);
                   p += 3;
                 } else if (*(p + 2) == '!') {
-                  push(COMMENT_CONDITIONAL);
+                  push(Context::kCommentConditional);
                   p += 3;
                 } else {
-                  push(COMMENT);
+                  push(Context::kComment);
                   p += 2;
                 }
                 break;
@@ -383,14 +392,13 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case 'D':
             // Possible start of the keyword DELIMITER. Must be the 1st keyword
             // of a statement.
-            if (context() == NONE &&
+            if (context() == Context::kNone &&
                 shcore::str_ibeginswith(
-                    {p, static_cast<std::size_t>(m_end - p)},
-                    {k_delimiter, k_delimiter_len})) {
+                    {p, static_cast<std::size_t>(m_end - p)}, k_delimiter)) {
               if (has_complete_line) {
                 // handle delimiter change directly here
-                auto np = skip_blanks(p + k_delimiter_len, eol);
-                if (np == eol || np == p + k_delimiter_len) {
+                auto np = skip_blanks(p + k_delimiter.size(), eol);
+                if (np == eol || np == p + k_delimiter.size()) {
                   set_delimiter("");
                 } else {
                   p = np;
@@ -414,7 +422,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case '#':  // # ...
             if (has_complete_line) {
               // if the whole line is a comment return it
-              if (context() == NONE) {
+              if (context() == Context::kNone) {
                 int nl = 1;
                 if (*(eol - 1) == '\r') nl++;
                 Range range{static_cast<size_t>(bos - m_begin),
@@ -437,7 +445,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             if ((m_end - p) > 2 && *(p + 1) == '-' && is_any_blank(*(p + 2))) {
               if (has_complete_line) {
                 // if the whole line is a comment return it
-                if (context() == NONE) {
+                if (context() == Context::kNone) {
                   int nl = 1;
                   if (*(eol - 1) == '\r') nl++;
                   Range range{static_cast<size_t>(bos - m_begin),
@@ -461,7 +469,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
           default:
           other:
-            if (context() == NONE) {
+            if (context() == Context::kNone) {
               size_t off = tolower(*p) - 'a';
               if (off < m_commands_table.size() &&
                   !m_commands_table[off].empty()) {
@@ -471,7 +479,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                       is_any_blank(*(p + kwd.length()))) {
                     command = true;
                     p += kwd.length() + 1;
-                    push(STATEMENT);
+                    push(Context::kStatement);
                     break;
                   }
                 if (command) continue;
@@ -479,7 +487,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             }
 
             if (!is_any_blank(*p)) {
-              if (context() == NONE) push(STATEMENT);
+              if (context() == Context::kNone) push(Context::kStatement);
             } else if (p == bos) {
               bos++;
             }
@@ -489,14 +497,14 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
       }
 
       switch (context()) {
-        case NONE:
-        case STATEMENT:
-        case COMMENT_CONDITIONAL:
+        case Context::kNone:
+        case Context::kStatement:
+        case Context::kCommentConditional:
           break;
 
-        case SQUOTE_STRING:
-          p = span_string<internal::k_quoted_string_span_skips_sq, '\''>(p,
-                                                                         eol);
+        case Context::kSQuoteString:
+          p = span_string<internal::k_quoted_string_span_skips_sq, '\''>(
+              p, eol, m_no_backslash_escapes);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
               p = eol;
@@ -508,8 +516,9 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           }
           break;
 
-        case DQUOTE_STRING:
-          p = span_string<internal::k_quoted_string_span_skips_dq, '"'>(p, eol);
+        case Context::kDQuoteString:
+          p = span_string<internal::k_quoted_string_span_skips_dq, '"'>(
+              p, eol, m_no_backslash_escapes);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
               p = eol;
@@ -521,8 +530,8 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           }
           break;
 
-        case COMMENT:
-        case COMMENT_HINT:
+        case Context::kComment:
+        case Context::kCommentHint:
           p = span_comment(p, eol);
           if (!p) {  // comment end missing
             if (has_complete_line) {
@@ -536,7 +545,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           }
           break;
 
-        case BQUOTE_IDENTIFIER:
+        case Context::kBQuoteIdentifier:
           p = span_quoted_identifier<'`'>(p, eol);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
@@ -549,7 +558,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           }
           break;
 
-        case DQUOTE_IDENTIFIER:
+        case Context::kDQuoteIdentifier:
           p = span_quoted_identifier<'"'>(p, eol);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
@@ -600,29 +609,33 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
     std::istream *stream, size_t chunk_size,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
-    std::string *delimiter) {
+    bool no_backslash_escapes, std::string *delimiter) {
   std::vector<std::tuple<std::string, std::string, size_t>> results;
   iterate_sql_stream(
       stream, chunk_size,
-      [&results](const char *s, size_t len, const std::string &delim,
-                 size_t lnum, size_t) {
-        results.emplace_back(std::string(s, len), delim, lnum);
+      [&results](std::string_view s, std::string_view delim, size_t lnum,
+                 size_t) {
+        results.emplace_back(std::string(s), std::string(delim), lnum);
         return true;
       },
-      err_callback, ansi_quotes, delimiter);
+      err_callback, ansi_quotes, no_backslash_escapes, delimiter);
   return results;
 }
 
-std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes) {
+std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes,
+                                   bool no_backslash_escapes) {
   std::istringstream s(str);
   auto parts = split_sql_stream(
       &s, str.size(),
-      [](const std::string &err) {
-        throw std::runtime_error("Error splitting SQL script: " + err);
+      [](std::string_view err) {
+        throw std::runtime_error(
+            shcore::str_format("Error splitting SQL script: %.*s",
+                               static_cast<int>(err.size()), err.data()));
       },
-      ansi_quotes);
+      ansi_quotes, no_backslash_escapes);
 
   std::vector<std::string> stmts;
+  stmts.reserve(parts.size());
   for (const auto &p : parts) {
     stmts.emplace_back(std::get<0>(p));
   }
@@ -645,29 +658,37 @@ std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes) {
  */
 bool iterate_sql_stream(
     std::istream *stream, size_t chunk_size,
-    const std::function<bool(const char * /* string */, size_t /* length */,
-                             const std::string & /* delimiter */,
-                             size_t /* line_num */, size_t /* offset */)>
-        &callback,
+    const std::function<
+        bool(std::string_view /* string */, std::string_view /* delimiter */,
+             size_t /* line_num */, size_t /* offset */)> &callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
-    std::string *delimiter, Sql_splitter **splitter_ptr) {
+    bool no_backslash_escapes, std::string *delimiter,
+    Sql_splitter **splitter_ptr) {
   assert(chunk_size > 0);
 
   bool stop = false;
   std::string buffer;
 
   Sql_splitter splitter(
-      [callback, &stop, &buffer](const char *s, size_t len, bool bol,
+      [callback, &stop, &buffer](std::string_view s, bool bol,
                                  size_t lnum) -> std::pair<size_t, bool> {
-        if (!bol) len = 2;
+        assert((s.data() >= buffer.data()) &&
+               (s.data() < (buffer.data() + buffer.size())));
+
+        auto sdata = s.data();
+        if (!bol) s = s.substr(0, 2);
+        assert(s.size() >= 2);
+
         if (s[1] != 'g' && s[1] != 'G') {
-          if (!callback(s, len, "", lnum, s - &buffer[0])) stop = true;
-          return std::make_pair(len, false);
+          if (!callback(s, {}, lnum, sdata - &buffer[0])) stop = true;
+          return std::make_pair(s.size(), false);
         }
         return std::make_pair(2U, true);
       },
       err_callback, {"source"});
   splitter.set_ansi_quotes(ansi_quotes);
+  splitter.set_no_backslash_escapes(no_backslash_escapes);
+
   if (delimiter) splitter.set_delimiter(*delimiter);
   if (splitter_ptr) *splitter_ptr = &splitter;
 
@@ -684,13 +705,13 @@ bool iterate_sql_stream(
     std::string delim;
 
     if (splitter.next_range(&range, &delim)) {
-      if (!callback(&buffer[range.offset], range.length, delim, range.line_num,
-                    offset + range.offset))
+      if (!callback({&buffer[range.offset], range.length}, delim,
+                    range.line_num, offset + range.offset))
         stop = true;
     } else {
       // flush if this is the last chunk, even if statement is unfinished
       if (splitter.is_last_chunk() && range.length > 0) {
-        if (!callback(&buffer[range.offset], range.length, delim,
+        if (!callback({&buffer[range.offset], range.length}, delim,
                       range.line_num, offset + range.offset))
           stop = true;
         break;
@@ -727,21 +748,21 @@ bool iterate_sql_stream(
 
 std::string to_string(Sql_splitter::Context context) {
   switch (context) {
-    case Sql_splitter::NONE:
+    case Sql_splitter::Context::kNone:
       return "";
-    case Sql_splitter::STATEMENT:
-    case Sql_splitter::COMMENT_HINT:
-    case Sql_splitter::COMMENT_CONDITIONAL:
+    case Sql_splitter::Context::kStatement:
+    case Sql_splitter::Context::kCommentHint:
+    case Sql_splitter::Context::kCommentConditional:
       return "-";
-    case Sql_splitter::COMMENT:
+    case Sql_splitter::Context::kComment:
       return "/*";
-    case Sql_splitter::SQUOTE_STRING:
+    case Sql_splitter::Context::kSQuoteString:
       return "'";
-    case Sql_splitter::DQUOTE_STRING:
+    case Sql_splitter::Context::kDQuoteString:
       return "\"";
-    case Sql_splitter::BQUOTE_IDENTIFIER:
+    case Sql_splitter::Context::kBQuoteIdentifier:
       return "`";
-    case Sql_splitter::DQUOTE_IDENTIFIER:
+    case Sql_splitter::Context::kDQuoteIdentifier:
       return "\"";
   }
   return "";

@@ -36,16 +36,11 @@ namespace mysqlshdk {
 namespace utils {
 
 namespace internal {
-#ifdef _WIN32
-#define MSVC_WORKAROUND extern const __declspec(selectany)
-#else
-#define MSVC_WORKAROUND constexpr
-#endif
 
 // lookup table of number of bytes to skip when spanning a quoted string
 // (single quote and double quote versions)
 // skip 2 for escape, 0 for '\0', 0 for end quote and 1 for the rest
-MSVC_WORKAROUND char k_quoted_string_span_skips_sq[256] = {
+inline constexpr char k_quoted_string_span_skips_sq[256] = {
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -58,7 +53,7 @@ MSVC_WORKAROUND char k_quoted_string_span_skips_sq[256] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-MSVC_WORKAROUND char k_quoted_string_span_skips_dq[256] = {
+inline constexpr char k_quoted_string_span_skips_dq[256] = {
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -71,7 +66,7 @@ MSVC_WORKAROUND char k_quoted_string_span_skips_dq[256] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-MSVC_WORKAROUND char k_keyword_chars[] =
+inline constexpr char k_keyword_chars[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 }  // namespace internal
 

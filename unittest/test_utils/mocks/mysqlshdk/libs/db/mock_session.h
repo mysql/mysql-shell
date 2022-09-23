@@ -116,6 +116,8 @@ class Mock_session : public mysqlshdk::db::ISession,
   // Error handling
   MOCK_CONST_METHOD0(get_last_error, mysqlshdk::db::Error *());
 
+  MOCK_CONST_METHOD0(get_server_status, uint32_t());
+
   Mock_session &expect_query(const std::string &query) {
     Mock_session_common::do_expect_query(query);
     return *this;
@@ -127,9 +129,7 @@ class Mock_session : public mysqlshdk::db::ISession,
     expect_query(data.sql).then_return({data});
   }
 
-  std::string escape_string(const std::string &s) const override;
-
-  std::string escape_string(const char *buffer, size_t len) const override;
+  std::string escape_string(std::string_view s) const override;
 };
 }  // namespace testing
 

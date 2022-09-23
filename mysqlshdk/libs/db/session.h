@@ -31,6 +31,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -150,14 +151,14 @@ class SHCORE_PUBLIC ISession {
    * auto result = session->queryf("SELECT * FROM tbl WHERE id = ?", my_id);
    */
   template <typename... Args>
-  inline std::shared_ptr<IResult> queryf(const std::string &sql,
-                                         const Args &... args) {
-    return query(shcore::sqlformat(sql, args...));
+  inline std::shared_ptr<IResult> queryf(std::string sql, Args &&... args) {
+    return query(
+        shcore::sqlformat(std::move(sql), std::forward<Args>(args)...));
   }
 
   template <typename... Args>
-  inline void executef(const std::string &sql, const Args &... args) {
-    execute(shcore::sqlformat(sql, args...));
+  inline void executef(std::string sql, Args &&... args) {
+    execute(shcore::sqlformat(std::move(sql), std::forward<Args>(args)...));
   }
 
   // Disconnection
@@ -167,19 +168,27 @@ class SHCORE_PUBLIC ISession {
 
   virtual const Error *get_last_error() const = 0;
 
+  virtual uint32_t get_server_status() const = 0;
+
   virtual ~ISession() = default;
 
-  virtual std::string escape_string(const std::string &s) const = 0;
-  virtual std::string escape_string(const char *buffer, size_t len) const = 0;
+  virtual std::string escape_string(const std::string_view s) const = 0;
 
-  const char *get_sql_mode() {
+  bool has_sql_mode() const { return static_cast<bool>(m_sql_mode); }
+
+  std::string get_sql_mode() {
     if (!m_sql_mode && is_open()) refresh_sql_mode();
-    return m_sql_mode ? m_sql_mode->c_str() : "";
+    return m_sql_mode.value_or("");
   }
 
   bool ansi_quotes_enabled() {
     if (!m_sql_mode && is_open()) refresh_sql_mode();
     return m_ansi_quotes_enabled;
+  }
+
+  bool no_backslash_escapes_enabled() {
+    if (!m_sql_mode && is_open()) refresh_sql_mode();
+    return m_no_backslash_escapes_enabled;
   }
 
   void refresh_sql_mode() {
@@ -188,17 +197,17 @@ class SHCORE_PUBLIC ISession {
       auto result = query("select @@sql_mode;");
       auto row = result->fetch_one();
 
-      if (row && !row->is_null(0)) {
-        const auto sql_mode = shcore::str_upper(row->get_string(0));
-        m_sql_mode = std::make_unique<std::string>(sql_mode);
-        m_ansi_quotes_enabled =
-            sql_mode.find("ANSI_QUOTES") != std::string::npos;
-      } else {
-        throw std::runtime_error("Missing sql_mode");
-      }
+      if (!row || row->is_null(0)) throw std::runtime_error("Missing sql_mode");
+
+      m_sql_mode = shcore::str_upper(row->get_string(0));
+      m_ansi_quotes_enabled =
+          m_sql_mode->find("ANSI_QUOTES") != std::string::npos;
+      m_no_backslash_escapes_enabled =
+          m_sql_mode->find("NO_BACKSLASH_ESCAPES") != std::string::npos;
+
     } catch (...) {
-      m_sql_mode = std::make_unique<std::string>("");
-      m_ansi_quotes_enabled = false;
+      m_sql_mode = std::nullopt;
+      m_ansi_quotes_enabled = m_no_backslash_escapes_enabled = false;
     }
   }
 
@@ -207,8 +216,9 @@ class SHCORE_PUBLIC ISession {
   virtual void do_close() = 0;
 
  private:
-  std::unique_ptr<std::string> m_sql_mode;
+  std::optional<std::string> m_sql_mode;
   bool m_ansi_quotes_enabled = false;
+  bool m_no_backslash_escapes_enabled = false;
 };
 
 }  // namespace db

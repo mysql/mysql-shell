@@ -1859,12 +1859,12 @@ void execute_script(const std::shared_ptr<Instance> &group_server,
 
   mysqlshdk::mysql::execute_sql_script(
       *group_server, script,
-      [&console, &first_error, &context](const std::string &err) {
+      [&console, &first_error, &context](std::string_view err) {
         if (first_error) {
           console->print_error(context);
           first_error = false;
         }
-        console->print_error(err);
+        console->print_error(std::string{err});
       });
 }
 

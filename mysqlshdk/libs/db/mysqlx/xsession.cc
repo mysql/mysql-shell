@@ -870,18 +870,10 @@ void XSession_impl::setup_default_character_set() {
 
 std::function<std::shared_ptr<Session>()> g_session_factory;
 
-std::string Session::escape_string(const std::string &s) const {
+std::string Session::escape_string(std::string_view s) const {
   std::string res;
-  res.resize(s.length() * 2 + 1);
-  size_t l = mysql_escape_string(&res[0], s.data(), s.length());
-  res.resize(l);
-  return res;
-}
-
-std::string Session::escape_string(const char *buffer, size_t len) const {
-  std::string res;
-  res.resize(len * 2 + 1);
-  size_t l = mysql_escape_string(&res[0], buffer, len);
+  res.resize(s.size() * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], s.data(), s.size());
   res.resize(l);
   return res;
 }

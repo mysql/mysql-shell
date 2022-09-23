@@ -146,6 +146,8 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   Error *get_last_error() const { return m_last_error.get(); }
 
+  uint32_t get_server_status() const { return 0; }
+
   void setup_default_character_set();
 
   std::unique_ptr<xcl::XSession> _mysql;
@@ -257,8 +259,11 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_last_error();
   }
 
-  std::string escape_string(const std::string &s) const override;
-  std::string escape_string(const char *buffer, size_t len) const override;
+  uint32_t get_server_status() const override {
+    return _impl->get_server_status();
+  }
+
+  std::string escape_string(std::string_view s) const override;
 
   socket_t get_socket_fd() const override {
     if (!_impl || !_impl->_mysql) throw std::logic_error("Invalid session");
