@@ -41,6 +41,7 @@ ADD_SUBDIRECTORY(libs/secret-store-api)
 ADD_SUBDIRECTORY(libs/rest)
 ADD_SUBDIRECTORY(libs/storage)
 ADD_SUBDIRECTORY(libs/oci)
+ADD_SUBDIRECTORY(libs/azure)
 ADD_SUBDIRECTORY(libs/ssh)
 ADD_SUBDIRECTORY(libs/aws)
 ADD_SUBDIRECTORY(scripting)
@@ -68,6 +69,7 @@ merge_convenience_libraries(mysqlshdk-static
     storage
     parser
     oci
+    azure
     aws
     tinyxml2 SKIP_INSTALL)
 

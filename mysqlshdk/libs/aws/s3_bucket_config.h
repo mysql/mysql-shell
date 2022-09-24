@@ -37,7 +37,8 @@ namespace aws {
 
 class S3_bucket;
 
-class S3_bucket_config : public storage::backend::object_storage::Config {
+class S3_bucket_config
+    : public storage::backend::object_storage::Bucket_config {
  public:
   S3_bucket_config() = delete;
 
@@ -59,14 +60,12 @@ class S3_bucket_config : public storage::backend::object_storage::Config {
 
   std::unique_ptr<rest::Signer> signer() const override;
 
-  std::unique_ptr<storage::backend::object_storage::Bucket> bucket()
+  std::unique_ptr<storage::backend::object_storage::Container> container()
       const override;
 
   std::unique_ptr<S3_bucket> s3_bucket() const;
 
   const std::string &hash() const override;
-
-  void set_part_size(std::size_t size) { m_part_size = size; }
 
  private:
   friend class Aws_signer;

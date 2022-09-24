@@ -418,7 +418,8 @@ void Shell_cli_mapper::add_cmdline_argument(const std::string &cmdline_arg) {
   //   a new argument (starts with -)
   bool handled_as_value = false;
   if (m_waiting_value) {
-    if (cmdline_arg.at(0) != '-' || cmdline_arg.size() == 1) {
+    if (cmdline_arg.empty() || cmdline_arg.at(0) != '-' ||
+        cmdline_arg.size() == 1) {
       m_cmdline_args.back().definition.append(" " + cmdline_arg);
       m_cmdline_args.back().value = interpret_string_value(cmdline_arg);
       m_cmdline_args.back().user_type.reset();

@@ -30,6 +30,8 @@
 #include <openssl/ssl.h>
 #if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
 #include <openssl/encoder.h>
+#else
+#include <openssl/hmac.h>
 #endif
 #include <algorithm>
 #include <cassert>
@@ -327,5 +329,79 @@ std::vector<unsigned char> md5(const char *data, size_t size) {
   return md_value;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L /* 1.1.x */
+
+HMAC_CTX *HMAC_CTX_new() {
+  HMAC_CTX *ctx = new HMAC_CTX();
+  HMAC_CTX_init(ctx);
+  return ctx;
+}
+
+void HMAC_CTX_free(HMAC_CTX *ctx) {
+  HMAC_CTX_cleanup(ctx);
+  delete ctx;
+}
+
+#endif  // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+std::vector<unsigned char> hmac_sha256(const std::vector<unsigned char> &key,
+                                       const std::string &data) {
+  std::vector<unsigned char> hash;
+
+#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
+  EVP_MAC *mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+  std::unique_ptr<EVP_MAC_CTX, decltype(&EVP_MAC_CTX_free)> ctx(
+      EVP_MAC_CTX_new(mac), EVP_MAC_CTX_free);
+
+  OSSL_PARAM params[2], *p = params;
+
+  char digest[] = "SHA256";
+
+  *p++ = OSSL_PARAM_construct_utf8_string("digest", digest, 0);
+  *p = OSSL_PARAM_construct_end();
+
+  if (!EVP_MAC_init(ctx.get(), key.data(), key.size(), params)) {
+    throw std::runtime_error("Cannot initialize HMAC context.");
+  }
+
+  if (!EVP_MAC_update(ctx.get(),
+                      reinterpret_cast<const unsigned char *>(data.data()),
+                      data.size())) {
+    throw std::runtime_error("Cannot update HMAC signature.");
+  }
+
+  size_t hash_len = EVP_MAX_MD_SIZE;
+  hash.resize(hash_len);
+
+  if (!EVP_MAC_final(ctx.get(), hash.data(), &hash_len, hash_len)) {
+    throw std::runtime_error("Cannot finalize HMAC signature.");
+  }
+#else
+  std::unique_ptr<HMAC_CTX, decltype(&HMAC_CTX_free)> ctx(HMAC_CTX_new(),
+                                                          HMAC_CTX_free);
+  const auto md = EVP_sha256();
+
+  if (!HMAC_Init_ex(ctx.get(), key.data(), key.size(), md, nullptr)) {
+    throw std::runtime_error("Cannot initialize HMAC context.");
+  }
+
+  if (!HMAC_Update(ctx.get(),
+                   reinterpret_cast<const unsigned char *>(data.data()),
+                   data.size())) {
+    throw std::runtime_error("Cannot update HMAC signature.");
+  }
+
+  unsigned int hash_len = EVP_MAX_MD_SIZE;
+  hash.resize(hash_len);
+
+  if (!HMAC_Final(ctx.get(), hash.data(), &hash_len)) {
+    throw std::runtime_error("Cannot finalize HMAC signature.");
+  }
+#endif
+
+  hash.resize(hash_len);
+
+  return hash;
+}
 }  // namespace ssl
 }  // namespace shcore

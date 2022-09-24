@@ -28,11 +28,20 @@
 #include "mysqlshdk/libs/storage/utils.h"
 
 #include "mysqlshdk/libs/storage/backend/object_storage.h"
+#include "mysqlshdk/libs/storage/backend/object_storage_options.h"
 
 namespace mysqlshdk {
 namespace storage {
 namespace backend {
 namespace object_storage {
+
+Config::Config(const Object_storage_options &options, std::size_t part_size)
+    : m_container_name(options.m_container_name),
+      m_config_file(options.m_config_file),
+      m_part_size(part_size),
+      m_container_name_option(options.get_main_option()) {
+  assert(!m_container_name.empty());
+}
 
 std::string Config::describe_url(const std::string &url) const {
   return "prefix='" + url + "'";
@@ -55,9 +64,13 @@ void Config::fail_if_uri(const std::string &path) const {
   if (!mysqlshdk::storage::utils::get_scheme(path).empty()) {
     throw std::runtime_error(shcore::str_format(
         "The option '%s' can not be used when the path contains a scheme.",
-        m_bucket_option.c_str()));
+        m_container_name_option.c_str()));
   }
 }
+
+Bucket_config::Bucket_config(const Bucket_options &options)
+    : Config(options, DEFAULT_MULTIPART_PART_SIZE),
+      m_config_profile(options.m_config_profile) {}
 
 }  // namespace object_storage
 }  // namespace backend

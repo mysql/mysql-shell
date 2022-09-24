@@ -28,7 +28,7 @@
 #include <string>
 
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/storage/backend/object_storage_bucket_options.h"
+#include "mysqlshdk/libs/storage/backend/object_storage_options.h"
 
 namespace mysqlshdk {
 namespace aws {
@@ -36,8 +36,7 @@ namespace aws {
 class S3_bucket_config;
 
 class S3_bucket_options
-    : public storage::backend::object_storage::Bucket_options<
-          S3_bucket_options> {
+    : public storage::backend::object_storage::Bucket_options {
  public:
   S3_bucket_options() = default;
 
@@ -71,6 +70,10 @@ class S3_bucket_options
   friend class S3_bucket_config;
 
   void on_unpacked_options() const override;
+
+  const char *get_main_option() const override { return bucket_name_option(); }
+  std::vector<const char *> get_secondary_options() const override;
+  bool has_value(const char *option) const override;
 
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
       const override;

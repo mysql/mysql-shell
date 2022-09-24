@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_REST_REQUEST_H_
 #define MYSQLSHDK_LIBS_REST_REQUEST_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -40,6 +41,8 @@ class Retry_strategy;
 
 enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
 
+using Query = std::map<std::string, std::optional<std::string>>;
+
 /**
  * A REST request.
  */
@@ -52,18 +55,23 @@ struct Request {
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
    */
-  explicit Request(Masked_string path, Headers headers = {})
-      : m_path(std::move(path)), m_headers(std::move(headers)) {}
+  explicit Request(Masked_string path, Headers headers = {}, Query query = {});
 
   /**
    * Type of the request.
    */
+
   Type type;
 
   /**
    * Path to the request.
    */
   const Masked_string &path() const { return m_path; }
+
+  /**
+   * Path and query to the request
+   */
+  const Masked_string &full_path() const { return m_full_path; }
 
   /**
    * Optional body which is going to be sent along with the request.
@@ -81,6 +89,11 @@ struct Request {
   virtual const Headers &headers() const { return m_headers; }
 
   /**
+   * Query parameters for the request.
+   */
+  virtual const Query &query() const { return m_query; }
+
+  /**
    * Retry strategy to use.
    */
   Retry_strategy *retry_strategy = nullptr;
@@ -89,6 +102,10 @@ struct Request {
   Masked_string m_path;
 
   Headers m_headers;
+
+  Query m_query;
+
+  Masked_string m_full_path;
 };
 
 struct Json_request final : public Request {

@@ -114,7 +114,7 @@ class Directory : public mysqlshdk::storage::IDirectory {
 
  protected:
   std::string m_name;
-  std::unique_ptr<Bucket> m_bucket;
+  std::unique_ptr<Container> m_container;
 
   // Used to simulate a directory has been created
   bool m_created;
@@ -266,7 +266,7 @@ class Object : public mysqlshdk::storage::IFile {
  protected:
   std::string m_name;
   std::string m_prefix;
-  std::unique_ptr<Bucket> m_bucket;
+  std::unique_ptr<Container> m_container;
   mysqlshdk::utils::nullable<Mode> m_open_mode;
   size_t m_max_part_size;
 

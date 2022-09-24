@@ -23,12 +23,6 @@
 
 #include "mysqlshdk/libs/aws/aws_signer.h"
 
-#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
-#include <openssl/evp.h>
-#else
-#include <openssl/hmac.h>
-#endif
-
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -81,82 +75,6 @@ std::string hex(const std::vector<unsigned char> &hash) {
 
 std::string hex_sha256(const char *data, size_t size) {
   return hex(shcore::ssl::sha256(data, size));
-}
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L /* 1.1.x */
-
-HMAC_CTX *HMAC_CTX_new() {
-  HMAC_CTX *ctx = new HMAC_CTX();
-  HMAC_CTX_init(ctx);
-  return ctx;
-}
-
-void HMAC_CTX_free(HMAC_CTX *ctx) {
-  HMAC_CTX_cleanup(ctx);
-  delete ctx;
-}
-
-#endif  // OPENSSL_VERSION_NUMBER < 0x10100000L
-
-std::vector<unsigned char> hmac_sha256(const std::vector<unsigned char> &key,
-                                       const std::string &data) {
-  std::vector<unsigned char> hash;
-
-#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
-  EVP_MAC *mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
-  std::unique_ptr<EVP_MAC_CTX, decltype(&EVP_MAC_CTX_free)> ctx(
-      EVP_MAC_CTX_new(mac), EVP_MAC_CTX_free);
-
-  OSSL_PARAM params[2], *p = params;
-
-  const char *digest = "SHA256";
-
-  *p++ =
-      OSSL_PARAM_construct_utf8_string("digest", const_cast<char *>(digest), 0);
-  *p = OSSL_PARAM_construct_end();
-
-  if (!EVP_MAC_init(ctx.get(), key.data(), key.size(), params)) {
-    throw std::runtime_error("Cannot initialize HMAC context.");
-  }
-
-  if (!EVP_MAC_update(ctx.get(),
-                      reinterpret_cast<const unsigned char *>(data.data()),
-                      data.size())) {
-    throw std::runtime_error("Cannot update HMAC signature.");
-  }
-
-  size_t hash_len = EVP_MAX_MD_SIZE;
-  hash.resize(hash_len);
-
-  if (!EVP_MAC_final(ctx.get(), hash.data(), &hash_len, hash_len)) {
-    throw std::runtime_error("Cannot finalize HMAC signature.");
-  }
-#else
-  std::unique_ptr<HMAC_CTX, decltype(&HMAC_CTX_free)> ctx(HMAC_CTX_new(),
-                                                          HMAC_CTX_free);
-  const auto md = EVP_sha256();
-
-  if (!HMAC_Init_ex(ctx.get(), key.data(), key.size(), md, nullptr)) {
-    throw std::runtime_error("Cannot initialize HMAC context.");
-  }
-
-  if (!HMAC_Update(ctx.get(),
-                   reinterpret_cast<const unsigned char *>(data.data()),
-                   data.size())) {
-    throw std::runtime_error("Cannot update HMAC signature.");
-  }
-
-  unsigned int hash_len = EVP_MAX_MD_SIZE;
-  hash.resize(hash_len);
-
-  if (!HMAC_Final(ctx.get(), hash.data(), &hash_len)) {
-    throw std::runtime_error("Cannot finalize HMAC signature.");
-  }
-#endif
-
-  hash.resize(hash_len);
-
-  return hash;
 }
 
 }  // namespace
@@ -228,7 +146,7 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   canonical_request += '\n';
 
   // CanonicalURI & CanonicalQueryString
-  const auto &path = request->path().real();
+  const auto &path = request->full_path().real();
   const auto query_pos = path.find('?');
 
   assert('/' == path.front());
@@ -313,15 +231,19 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
 
   // calculate signature
   // DateKey = HMAC-SHA256("AWS4"+"<SecretAccessKey>", "<YYYYMMDD>")
-  const auto date_key = hmac_sha256(m_secret_access_key, short_date);
+  const auto date_key =
+      shcore::ssl::hmac_sha256(m_secret_access_key, short_date);
   // DateRegionKey = HMAC-SHA256(<DateKey>, "<aws-region>")
-  const auto date_region_key = hmac_sha256(date_key, m_region);
+  const auto date_region_key = shcore::ssl::hmac_sha256(date_key, m_region);
   // DateRegionServiceKey = HMAC-SHA256(<DateRegionKey>, "<aws-service>")
-  const auto date_region_service_key = hmac_sha256(date_region_key, m_service);
+  const auto date_region_service_key =
+      shcore::ssl::hmac_sha256(date_region_key, m_service);
   // SigningKey = HMAC-SHA256(<DateRegionServiceKey>, "aws4_request")
-  const auto signing_key = hmac_sha256(date_region_service_key, "aws4_request");
+  const auto signing_key =
+      shcore::ssl::hmac_sha256(date_region_service_key, "aws4_request");
   // signature = Hex(HMAC-SHA256(SigningKey, StringToSign))
-  const auto signature = hex(hmac_sha256(signing_key, string_to_sign));
+  const auto signature =
+      hex(shcore::ssl::hmac_sha256(signing_key, string_to_sign));
 
   // add Authorization header:
   // AWS4-HMAC-SHA256 Credential=<access key ID>/<Scope>,

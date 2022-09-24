@@ -31,6 +31,7 @@
 #include <unordered_set>
 #include <utility>
 
+#include "mysqlshdk/libs/rest/rest_utils.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/utils_encoding.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -41,6 +42,7 @@ namespace aws {
 
 using rest::Base_response_buffer;
 using rest::Headers;
+using rest::parse_xml;
 using rest::Response;
 using rest::Response_error;
 using rest::Signed_request;
@@ -80,23 +82,10 @@ inline std::string encode_query(const std::string &data) {
   return shcore::pctencode(data);
 }
 
-std::unique_ptr<tinyxml2::XMLDocument> parse_xml(
-    const rest::Base_response_buffer &buffer) {
-  auto xml = std::make_unique<tinyxml2::XMLDocument>();
-
-  if (tinyxml2::XMLError::XML_SUCCESS !=
-      xml->Parse(buffer.data(), buffer.size())) {
-    throw shcore::Exception::runtime_error("Failed to parse AWS response: " +
-                                           std::string{xml->ErrorStr()});
-  }
-
-  return xml;
-}
-
 }  // namespace
 
 S3_bucket::S3_bucket(const S3_bucket_config_ptr &config)
-    : storage::backend::object_storage::Bucket(config),
+    : storage::backend::object_storage::Container(config),
       m_config(config),
       // bucket-related requests, path-style: /bucket, virtual-style: /
       m_bucket_path("/" + (config->path_style_access()
@@ -343,8 +332,8 @@ rest::Signed_request S3_bucket::create_multipart_upload_request(
 }
 
 std::string S3_bucket::parse_create_multipart_upload(
-    const rest::Base_response_buffer &buffer) {
-  const auto xml = parse_xml(buffer);
+    const rest::String_response &response) {
+  const auto xml = parse_xml(response.buffer);
   const auto root = xml->FirstChildElement("InitiateMultipartUploadResult");
 
   if (!root) {
@@ -361,7 +350,7 @@ std::string S3_bucket::parse_create_multipart_upload(
 }
 
 rest::Signed_request S3_bucket::upload_part_request(
-    const Multipart_object &object, size_t part_num) {
+    const Multipart_object &object, size_t part_num, size_t /*size*/) {
   // UploadPart
   Query query = {{"partNumber", std::to_string(part_num)},
                  {"uploadId", object.upload_id}};

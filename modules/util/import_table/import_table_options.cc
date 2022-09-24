@@ -139,6 +139,7 @@ const shcore::Option_pack_def<Import_table_option_pack>
           .include(&Import_table_option_pack::m_dialect)
           .include(&Import_table_option_pack::m_oci_bucket_options)
           .include(&Import_table_option_pack::m_s3_bucket_options)
+          .include(&Import_table_option_pack::m_blob_storage_options)
           .on_done(&Import_table_option_pack::on_unpacked_options);
 
   return opts;
@@ -329,6 +330,8 @@ void Import_table_option_pack::set_max_rate(const std::string &value) {
 
 void Import_table_option_pack::on_unpacked_options() {
   m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
+  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
+  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
 
   if (m_oci_bucket_options) {
     m_storage_config = m_oci_bucket_options.config();
@@ -336,6 +339,10 @@ void Import_table_option_pack::on_unpacked_options() {
 
   if (m_s3_bucket_options) {
     m_storage_config = m_s3_bucket_options.config();
+  }
+
+  if (m_blob_storage_options) {
+    m_storage_config = m_blob_storage_options.config();
   }
 }
 

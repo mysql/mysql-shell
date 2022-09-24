@@ -37,7 +37,8 @@ namespace oci {
 class Oci_bucket;
 class Oci_setup;
 
-class Oci_bucket_config : public storage::backend::object_storage::Config {
+class Oci_bucket_config
+    : public storage::backend::object_storage::Bucket_config {
  public:
   Oci_bucket_config() = delete;
 
@@ -59,14 +60,12 @@ class Oci_bucket_config : public storage::backend::object_storage::Config {
 
   std::unique_ptr<rest::Signer> signer() const override;
 
-  std::unique_ptr<storage::backend::object_storage::Bucket> bucket()
+  std::unique_ptr<storage::backend::object_storage::Container> container()
       const override;
 
   std::unique_ptr<Oci_bucket> oci_bucket() const;
 
   const std::string &hash() const override;
-
-  void set_part_size(std::size_t size) { m_part_size = size; }
 
  protected:
   std::string describe_self() const override;

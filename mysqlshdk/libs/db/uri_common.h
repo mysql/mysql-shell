@@ -111,6 +111,9 @@ inline Tokens_mask user_transport() {
 inline Tokens_mask scheme_user_transport() {
   return Tokens_mask(Tokens::Scheme).set(Tokens::User).set(Tokens::Transport);
 }
+inline Tokens_mask scheme_transport() {
+  return Tokens_mask(Tokens::Scheme).set(Tokens::Transport);
+}
 }  // namespace formats
 
 class IUri_data_base {

@@ -66,17 +66,17 @@ struct Object_details {
   std::string time_created;
 };
 
-class Bucket {
+class Container {
  public:
-  Bucket() = delete;
+  Container() = delete;
 
-  Bucket(const Bucket &) = delete;
-  Bucket(Bucket &&) = default;
+  Container(const Container &) = delete;
+  Container(Container &&) = default;
 
-  Bucket &operator=(const Bucket &) = delete;
-  Bucket &operator=(Bucket &&) = delete;
+  Container &operator=(const Container &) = delete;
+  Container &operator=(Container &&) = delete;
 
-  virtual ~Bucket() = default;
+  virtual ~Container() = default;
 
   /**
    * Lists all objects in the bucket.
@@ -115,6 +115,11 @@ class Bucket {
    * @throws Response_error if the given object does not exist.
    */
   void delete_object(const std::string &object_name);
+
+  /**
+   * Determines whether the object renaming is allowed.
+   */
+  virtual bool has_object_rename() const { return true; }
 
   /**
    * Renames an object.
@@ -229,7 +234,7 @@ class Bucket {
    *
    * @param object_name: the name of the multipart object to be discarded.
    */
-  void abort_multipart_upload(const Multipart_object &object);
+  virtual void abort_multipart_upload(const Multipart_object &object);
 
   /**
    * Provides configuration of this bucket;
@@ -239,7 +244,7 @@ class Bucket {
   const Config_ptr &config() const { return m_config; }
 
  protected:
-  explicit Bucket(const Config_ptr &config);
+  explicit Container(const Config_ptr &config);
 
   rest::Signed_rest_service *ensure_connection();
 
@@ -269,6 +274,12 @@ class Bucket {
                                      const std::string &src_name,
                                      const std::string &new_name) = 0;
 
+  virtual rest::Type multipart_request_method() const {
+    return rest::Type::POST;
+  }
+
+  virtual std::string get_create_multipart_upload_content() const { return {}; }
+
   virtual rest::Signed_request list_multipart_uploads_request(size_t limit) = 0;
 
   virtual std::vector<Multipart_object> parse_list_multipart_uploads(
@@ -284,11 +295,16 @@ class Bucket {
   virtual rest::Signed_request create_multipart_upload_request(
       const std::string &object_name, std::string *request_body) = 0;
 
+  virtual void on_multipart_upload_created(
+      const std::string & /*object_name*/) {}
+
   virtual std::string parse_create_multipart_upload(
-      const rest::Base_response_buffer &buffer) = 0;
+      const rest::String_response &response) = 0;
+
+  virtual std::string parse_multipart_upload(const rest::Response &response);
 
   virtual rest::Signed_request upload_part_request(
-      const Multipart_object &object, size_t part_num) = 0;
+      const Multipart_object &object, size_t part_num, size_t size) = 0;
 
   virtual rest::Signed_request commit_multipart_upload_request(
       const Multipart_object &object,
@@ -297,6 +313,14 @@ class Bucket {
 
   virtual rest::Signed_request abort_multipart_upload_request(
       const Multipart_object &object) = 0;
+
+  virtual void validate_range(const std::optional<size_t> & /*from_byte*/,
+                              const std::optional<size_t> & /*to_byte*/) const {
+    // NOOP: By default any range is valid
+  }
+
+  void handle_multipart_request(rest::Signed_request *request,
+                                rest::Response *response = nullptr);
 
   Config_ptr m_config;
   rest::Signed_rest_service *m_rest_service = nullptr;

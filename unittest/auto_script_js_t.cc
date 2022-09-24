@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/azure/signer.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -28,6 +29,7 @@
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/mysqlshdk/libs/azure/test_utils.h"
 #include "unittest/shell_script_tester.h"
 
 extern "C" const char *g_test_home;
@@ -505,6 +507,90 @@ TEST_P(Pager_test, run_and_check) {
 
 INSTANTIATE_TEST_SUITE_P(Pager_scripted, Pager_test,
                          testing::ValuesIn(find_js_tests("js_pager", ".js")),
+                         fmt_param);
+
+class Azure_tests : public Auto_script_js {
+ public:
+  void SetUp() override {
+    Auto_script_js::SetUp();
+    auto config = testing::get_config("devtesting");
+    m_azure_configured = (config && config->valid());
+    if (m_azure_configured) {
+      m_endpoint = config->endpoint() + config->endpoint_path();
+      m_using_emulator = m_endpoint.find("127.0.0.1") != std::string::npos;
+      m_account = config->account_name();
+      m_key = config->account_key();
+
+      auto signer = config->signer();
+      auto azure_signer =
+          dynamic_cast<mysqlshdk::azure::Signer *>(signer.get());
+      m_account_rwl_sas_token = azure_signer->create_account_sas_token();
+      m_account_rl_sas_token =
+          azure_signer->create_account_sas_token(mysqlshdk::azure::k_read_list);
+    }
+  }
+
+  void TearDown() override {
+    Auto_script_js::TearDown();
+    if (m_azure_configured) {
+      mysqlshdk::azure::Blob_container container(
+          testing::get_config("devtesting"));
+
+      testing::clean_container(container);
+    }
+  }
+
+  static void SetUpTestCase() { testing::create_container("devtesting"); }
+
+  static void TearDownTestCase() { testing::delete_container("devtesting"); }
+
+  void set_defaults() override {
+    Auto_script_js::set_defaults();
+
+    execute("let __container_name = 'devtesting';");
+    execute(shcore::str_format("let __azure_configured = %s;",
+                               m_azure_configured ? "true" : "false"));
+    execute(shcore::str_format("let __azure_emulator = %s;",
+                               m_using_emulator ? "true" : "false"));
+    execute(
+        shcore::str_format("let __azure_endpoint = '%s';", m_endpoint.c_str()));
+    execute(
+        shcore::str_format("let __azure_account = '%s';", m_account.c_str()));
+    execute(shcore::str_format("let __azure_key = '%s';", m_key.c_str()));
+    execute(shcore::str_format("let __azure_account_rwl_sas_token = '%s';",
+                               m_account_rwl_sas_token.c_str()));
+    execute(shcore::str_format("let __azure_account_rl_sas_token = '%s';",
+                               m_account_rl_sas_token.c_str()));
+
+    // Updates the sys.path to enable loading modules at the js_azure/scripts
+    // folder
+    execute("var __paths = []");
+    execute("for(p in sys.path) { __paths.push(sys.path[p]); }");
+    execute(shcore::str_format(
+        "__paths.push('%s');",
+        shcore::path::join_path(g_test_home, "scripts", "auto", "js_azure",
+                                "scripts")
+            .c_str()));
+    execute("sys.path = __paths");
+  }
+
+ private:
+  bool m_azure_configured = false;
+  std::string m_account;
+  std::string m_key;
+  std::string m_endpoint;
+  std::string m_account_rwl_sas_token;
+  std::string m_account_rl_sas_token;
+  bool m_using_emulator;
+};
+
+TEST_P(Azure_tests, run_and_check) {
+  SCOPED_TRACE("Azure_tests::run_and_check()");
+  run_and_check();
+}
+
+INSTANTIATE_TEST_SUITE_P(Azure_scripted, Azure_tests,
+                         testing::ValuesIn(find_js_tests("js_azure", ".js")),
                          fmt_param);
 
 }  // namespace tests

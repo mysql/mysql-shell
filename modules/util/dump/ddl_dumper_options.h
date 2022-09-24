@@ -27,6 +27,7 @@
 #include <string>
 
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
+#include "mysqlshdk/libs/azure/blob_storage_options.h"
 
 #include "modules/util/dump/dump_manifest_options.h"
 #include "modules/util/dump/dump_options.h"
@@ -95,6 +96,7 @@ class Ddl_dumper_options : public Dump_options {
   // this should be in the Dump_options class, but storing it at the same level
   // as OCI options helps in handling both option groups at the same time
   mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
+  mysqlshdk::azure::Blob_storage_options m_blob_storage_options;
 
   bool m_split = true;
   uint64_t m_bytes_per_chunk;

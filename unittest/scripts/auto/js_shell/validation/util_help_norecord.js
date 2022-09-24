@@ -297,6 +297,15 @@ DESCRIPTION
         instead of the default one.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
 
       Requirements
 
@@ -582,6 +591,52 @@ DESCRIPTION
       6. If region is missing, or is empty, a default value of us-east-1 is
          used instead.
 
+      Dumping to a Container in the Azure Blob Storage
+
+      If the azureContainerName option is used, the dump is stored in the
+      specified Azure container. Connection is established using the
+      configuration at the local Azure configuration file.The directory
+      structure is simulated within the blob name.
+
+      The azureConfigFile option cannot be used if the azureContainerName
+      option is not set or set to an empty string.
+
+      Handling of the Azure settings
+
+      7. The following settings are read from the storage section in the config
+         file:
+
+      - connection_string
+      - account
+      - key
+      - sas_token
+
+      Additionally, the connection options may be defined using the standard
+      Azure environment variables:
+
+      - AZURE_STORAGE_CONNECTION_STRING
+      - AZURE_STORAGE_ACCOUNT
+      - AZURE_STORAGE_KEY
+      - AZURE_STORAGE_SAS_TOKEN
+
+      The Azure configuration values are evaluated in the following precedence:
+
+      - Options parameter - Environment Variables - Configuration File
+
+      If a connection string is defined either case in the environment variable
+      or the configuration option, the individual configuration values for
+      account and key will be ignored.
+
+      If a SAS Token is defined, it will be used for the authorization
+      (ignoring any defined account key).
+
+      The default Azure Blob Endpoint to be used in the operations is defined
+      by:
+
+      https://<account>.blob.core.windows.net
+
+      Unless a different EndPoint is defined in the connection string.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -723,6 +778,15 @@ DESCRIPTION
         instead of the default one.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
 
       Requirements
 
@@ -997,6 +1061,52 @@ DESCRIPTION
       6. If region is missing, or is empty, a default value of us-east-1 is
          used instead.
 
+      Dumping to a Container in the Azure Blob Storage
+
+      If the azureContainerName option is used, the dump is stored in the
+      specified Azure container. Connection is established using the
+      configuration at the local Azure configuration file.The directory
+      structure is simulated within the blob name.
+
+      The azureConfigFile option cannot be used if the azureContainerName
+      option is not set or set to an empty string.
+
+      Handling of the Azure settings
+
+      7. The following settings are read from the storage section in the config
+         file:
+
+      - connection_string
+      - account
+      - key
+      - sas_token
+
+      Additionally, the connection options may be defined using the standard
+      Azure environment variables:
+
+      - AZURE_STORAGE_CONNECTION_STRING
+      - AZURE_STORAGE_ACCOUNT
+      - AZURE_STORAGE_KEY
+      - AZURE_STORAGE_SAS_TOKEN
+
+      The Azure configuration values are evaluated in the following precedence:
+
+      - Options parameter - Environment Variables - Configuration File
+
+      If a connection string is defined either case in the environment variable
+      or the configuration option, the individual configuration values for
+      account and key will be ignored.
+
+      If a SAS Token is defined, it will be used for the authorization
+      (ignoring any defined account key).
+
+      The default Azure Blob Endpoint to be used in the operations is defined
+      by:
+
+      https://<account>.blob.core.windows.net
+
+      Unless a different EndPoint is defined in the connection string.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -1126,6 +1236,15 @@ DESCRIPTION
         instead of the default one.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
 
       Requirements
 
@@ -1406,6 +1525,52 @@ DESCRIPTION
       6. If region is missing, or is empty, a default value of us-east-1 is
          used instead.
 
+      Dumping to a Container in the Azure Blob Storage
+
+      If the azureContainerName option is used, the dump is stored in the
+      specified Azure container. Connection is established using the
+      configuration at the local Azure configuration file.The directory
+      structure is simulated within the blob name.
+
+      The azureConfigFile option cannot be used if the azureContainerName
+      option is not set or set to an empty string.
+
+      Handling of the Azure settings
+
+      7. The following settings are read from the storage section in the config
+         file:
+
+      - connection_string
+      - account
+      - key
+      - sas_token
+
+      Additionally, the connection options may be defined using the standard
+      Azure environment variables:
+
+      - AZURE_STORAGE_CONNECTION_STRING
+      - AZURE_STORAGE_ACCOUNT
+      - AZURE_STORAGE_KEY
+      - AZURE_STORAGE_SAS_TOKEN
+
+      The Azure configuration values are evaluated in the following precedence:
+
+      - Options parameter - Environment Variables - Configuration File
+
+      If a connection string is defined either case in the environment variable
+      or the configuration option, the individual configuration values for
+      account and key will be ignored.
+
+      If a SAS Token is defined, it will be used for the authorization
+      (ignoring any defined account key).
+
+      The default Azure Blob Endpoint to be used in the operations is defined
+      by:
+
+      https://<account>.blob.core.windows.net
+
+      Unless a different EndPoint is defined in the connection string.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -1497,6 +1662,15 @@ DESCRIPTION
         instead of the default one.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
 
       Requirements
 
@@ -1586,6 +1760,52 @@ DESCRIPTION
          authenticate the user.
       6. If region is missing, or is empty, a default value of us-east-1 is
          used instead.
+
+      Dumping to a Container in the Azure Blob Storage
+
+      If the azureContainerName option is used, the dump is stored in the
+      specified Azure container. Connection is established using the
+      configuration at the local Azure configuration file.The directory
+      structure is simulated within the blob name.
+
+      The azureConfigFile option cannot be used if the azureContainerName
+      option is not set or set to an empty string.
+
+      Handling of the Azure settings
+
+      7. The following settings are read from the storage section in the config
+         file:
+
+      - connection_string
+      - account
+      - key
+      - sas_token
+
+      Additionally, the connection options may be defined using the standard
+      Azure environment variables:
+
+      - AZURE_STORAGE_CONNECTION_STRING
+      - AZURE_STORAGE_ACCOUNT
+      - AZURE_STORAGE_KEY
+      - AZURE_STORAGE_SAS_TOKEN
+
+      The Azure configuration values are evaluated in the following precedence:
+
+      - Options parameter - Environment Variables - Configuration File
+
+      If a connection string is defined either case in the environment variable
+      or the configuration option, the individual configuration values for
+      account and key will be ignored.
+
+      If a SAS Token is defined, it will be used for the authorization
+      (ignoring any defined account key).
+
+      The default Azure Blob Endpoint to be used in the operations is defined
+      by:
+
+      https://<account>.blob.core.windows.net
+
+      Unless a different EndPoint is defined in the connection string.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:
@@ -1739,6 +1959,9 @@ DESCRIPTION
       If the s3BucketName option is given, the path argument must specify a
       plain path in that AWS S3 bucket.
 
+      If the azureContainerName option is given, the path argument must specify
+      a plain path in that Azure container.
+
       Options dictionary:
 
       - schema: string (default: current shell active schema) - Name of target
@@ -1878,6 +2101,62 @@ DESCRIPTION
       6. If region is missing, or is empty, a default value of us-east-1 is
          used instead.
 
+      Azure Blob Storage Options
+
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
+
+      If the azureContainerName option is used, the dump is stored in the
+      specified Azure container. Connection is established using the
+      configuration at the local Azure configuration file.The directory
+      structure is simulated within the blob name.
+
+      The azureConfigFile option cannot be used if the azureContainerName
+      option is not set or set to an empty string.
+
+      Handling of the Azure settings
+
+      7. The following settings are read from the storage section in the config
+         file:
+
+      - connection_string
+      - account
+      - key
+      - sas_token
+
+      Additionally, the connection options may be defined using the standard
+      Azure environment variables:
+
+      - AZURE_STORAGE_CONNECTION_STRING
+      - AZURE_STORAGE_ACCOUNT
+      - AZURE_STORAGE_KEY
+      - AZURE_STORAGE_SAS_TOKEN
+
+      The Azure configuration values are evaluated in the following precedence:
+
+      - Options parameter - Environment Variables - Configuration File
+
+      If a connection string is defined either case in the environment variable
+      or the configuration option, the individual configuration values for
+      account and key will be ignored.
+
+      If a SAS Token is defined, it will be used for the authorization
+      (ignoring any defined account key).
+
+      The default Azure Blob Endpoint to be used in the operations is defined
+      by:
+
+      https://<account>.blob.core.windows.net
+
+      Unless a different EndPoint is defined in the connection string.
+
       dialect predefines following set of options fieldsTerminatedBy (FT),
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
       (FESC) and linesTerminatedBy (LT) in following manner:
@@ -1941,9 +2220,10 @@ DESCRIPTION
 
       loadDump() will load a dump from the specified path. It transparently
       handles compressed files and directly streams data when loading from
-      remote storage (currently HTTP, OCI Object Storage and AWS S3 Object
-      Storage). If the 'waitDumpTimeout' option is set, it will load a dump
-      on-the-fly, loading table data chunks as the dumper produces them.
+      remote storage (currently HTTP, OCI Object Storage, AWS S3 Object Storage
+      and Azure Containers). If the 'waitDumpTimeout' option is set, it will
+      load a dump on-the-fly, loading table data chunks as the dumper produces
+      them.
 
       Table data will be loaded in parallel using the configured number of
       threads (4 by default). Multiple threads per table can be used if the
@@ -2123,6 +2403,15 @@ DESCRIPTION
         instead of the default one.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
 
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
@@ -2199,3 +2488,4 @@ DESCRIPTION
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
+

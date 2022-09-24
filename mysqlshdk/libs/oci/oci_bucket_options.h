@@ -28,7 +28,7 @@
 #include <string>
 
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/storage/backend/object_storage_bucket_options.h"
+#include "mysqlshdk/libs/storage/backend/object_storage_options.h"
 
 namespace mysqlshdk {
 namespace oci {
@@ -36,8 +36,7 @@ namespace oci {
 class Oci_bucket_config;
 
 class Oci_bucket_options
-    : public storage::backend::object_storage::Bucket_options<
-          Oci_bucket_options> {
+    : public storage::backend::object_storage::Bucket_options {
  public:
   Oci_bucket_options() = default;
 
@@ -62,15 +61,18 @@ class Oci_bucket_options
   std::shared_ptr<Oci_bucket_config> oci_config() const;
 
  protected:
-  void on_unpacked_options() const override;
-
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
       const override;
 
   std::string m_namespace;
 
+  const char *get_main_option() const override { return bucket_name_option(); }
+
  private:
   friend class Oci_bucket_config;
+
+  std::vector<const char *> get_secondary_options() const override;
+  bool has_value(const char *option) const override;
 };
 
 }  // namespace oci

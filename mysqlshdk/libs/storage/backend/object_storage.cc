@@ -32,14 +32,14 @@ namespace backend {
 namespace object_storage {
 
 Directory::Directory(const Config_ptr &config, const std::string &name)
-    : m_name(name), m_bucket(config->bucket()), m_created(false) {}
+    : m_name(name), m_container(config->container()), m_created(false) {}
 
 bool Directory::exists() const {
   if (m_name.empty() || m_created) {
     // An empty name represents the root directory
     // check if connection can be established
     try {
-      m_bucket->list_objects("", 1, false);
+      m_container->list_objects("", 1, false);
     } catch (const rest::Response_error &error) {
       throw rest::to_exception(error);
     }
@@ -47,8 +47,17 @@ bool Directory::exists() const {
   } else {
     // If it has a name then we need to make sure it is a directory, it will be
     // verified by listing 1 object using as prefix as '<m_name>/'
-    auto files = list_files(true);
-    return !files.empty();
+    try {
+      auto files = list_files(true);
+      return !files.empty();
+    } catch (const shcore::Exception &error) {
+      // If the server sends a NOT_FOUND (404) error, it means the target URL
+      // and so the directory does not exist.
+      if (error.code() == SHERR_NETWORK_NOT_FOUND) {
+        return false;
+      }
+      throw;
+    }
   }
 }
 
@@ -61,7 +70,7 @@ std::unordered_set<IDirectory::File_info> Directory::list_files(
   std::vector<Object_details> objects;
 
   try {
-    objects = m_bucket->list_objects(prefix, 0, false);
+    objects = m_container->list_objects(prefix, 0, false);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }
@@ -81,7 +90,7 @@ std::unordered_set<IDirectory::File_info> Directory::list_files(
     std::vector<Multipart_object> uploads;
 
     try {
-      uploads = m_bucket->list_multipart_uploads();
+      uploads = m_container->list_multipart_uploads();
     } catch (const rest::Response_error &error) {
       throw rest::to_exception(error);
     }
@@ -112,7 +121,7 @@ std::unordered_set<IDirectory::File_info> Directory::filter_files(
   std::vector<Object_details> objects;
 
   try {
-    objects = m_bucket->list_objects(prefix, 0, false);
+    objects = m_container->list_objects(prefix, 0, false);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }
@@ -142,7 +151,7 @@ std::string Directory::join_path(const std::string &a,
 
 std::unique_ptr<IFile> Directory::file(const std::string &name,
                                        const File_options &) const {
-  return std::make_unique<Object>(m_bucket->config(), name,
+  return std::make_unique<Object>(m_container->config(), name,
                                   join_path(m_name, ""));
 }
 
@@ -150,7 +159,7 @@ Object::Object(const Config_ptr &config, const std::string &name,
                const std::string &prefix)
     : m_name(name),
       m_prefix(prefix),
-      m_bucket(config->bucket()),
+      m_container(config->container()),
       m_max_part_size(config->part_size()),
       m_writer{},
       m_reader{} {}
@@ -169,7 +178,7 @@ void Object::open(storage::Mode mode) {
       std::vector<Multipart_object> uploads;
 
       try {
-        uploads = m_bucket->list_multipart_uploads();
+        uploads = m_container->list_multipart_uploads();
       } catch (const rest::Response_error &error) {
         throw rest::to_exception(error);
       }
@@ -184,7 +193,7 @@ void Object::open(storage::Mode mode) {
         try {
           // Verifies if the file exists, if not, an error will be thrown by
           // head_object()
-          m_bucket->head_object(full_path().real());
+          m_container->head_object(full_path().real());
 
           throw std::invalid_argument(
               "Object Storage only supports APPEND mode for in-progress "
@@ -223,7 +232,7 @@ size_t Object::file_size() const {
   } else if (m_writer) {
     return m_writer->size();
   } else {
-    return m_bucket->head_object(full_path().real());
+    return m_container->head_object(full_path().real());
   }
 }
 
@@ -251,7 +260,8 @@ std::unique_ptr<IDirectory> Object::parent() const {
   // if the full path does not contain a backslash then the parent directory
   // is the root directory
   return std::make_unique<Directory>(
-      m_bucket->config(), std::string::npos == pos ? "" : path.substr(0, pos));
+      m_container->config(),
+      std::string::npos == pos ? "" : path.substr(0, pos));
 }
 
 off64_t Object::seek(off64_t offset) {
@@ -296,14 +306,14 @@ ssize_t Object::write(const void *buffer, size_t length) {
 
 void Object::rename(const std::string &new_name) {
   try {
-    m_bucket->rename_object(m_prefix + m_name, m_prefix + new_name);
+    m_container->rename_object(m_prefix + m_name, m_prefix + new_name);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }
   m_name = new_name;
 }
 
-void Object::remove() { m_bucket->delete_object(full_path().real()); }
+void Object::remove() { m_container->delete_object(full_path().real()); }
 
 Object::Writer::Writer(Object *owner, Multipart_object *object)
     : File_handler(owner), m_is_multipart(false) {
@@ -313,7 +323,8 @@ Object::Writer::Writer(Object *owner, Multipart_object *object)
     m_is_multipart = true;
 
     try {
-      m_parts = m_object->m_bucket->list_multipart_uploaded_parts(m_multipart);
+      m_parts =
+          m_object->m_container->list_multipart_uploaded_parts(m_multipart);
     } catch (const rest::Response_error &error) {
       throw rest::to_exception(error);
     }
@@ -342,7 +353,7 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
   // Initializes the multipart as soon as FILE_PART_SIZE data is provided
   if (!m_is_multipart && to_send > MY_MAX_PART_SIZE) {
     try {
-      m_multipart = m_object->m_bucket->create_multipart_upload(
+      m_multipart = m_object->m_container->create_multipart_upload(
           m_object->full_path().real());
     } catch (const rest::Response_error &error) {
       throw rest::to_exception(error);
@@ -373,7 +384,7 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
     }
 
     try {
-      m_parts.push_back(m_object->m_bucket->upload_part(
+      m_parts.push_back(m_object->m_container->upload_part(
           m_multipart, m_parts.size() + 1, part, MY_MAX_PART_SIZE));
     } catch (const rest::Response_error &error) {
       abort_multipart_upload("failure uploading part", error.format());
@@ -399,11 +410,11 @@ void Object::Writer::close() {
     // MULTIPART UPLOAD STARTED: Sends last part if any and commits the upload
     try {
       if (!m_buffer.empty()) {
-        m_parts.push_back(m_object->m_bucket->upload_part(
+        m_parts.push_back(m_object->m_container->upload_part(
             m_multipart, m_parts.size() + 1, m_buffer.data(), m_buffer.size()));
       }
 
-      m_object->m_bucket->commit_multipart_upload(m_multipart, m_parts);
+      m_object->m_container->commit_multipart_upload(m_multipart, m_parts);
     } catch (const rest::Response_error &error) {
       abort_multipart_upload("failure completing the upload", error.format());
       throw rest::to_exception(error);
@@ -415,8 +426,8 @@ void Object::Writer::close() {
     // NO UPLOAD STARTED: Sends whatever buffered data in a single PUT
     try {
       if (!m_buffer.empty()) {
-        m_object->m_bucket->put_object(m_object->full_path().real(),
-                                       m_buffer.data(), m_buffer.size());
+        m_object->m_container->put_object(m_object->full_path().real(),
+                                          m_buffer.data(), m_buffer.size());
       }
     } catch (const rest::Response_error &error) {
       throw rest::to_exception(error);
@@ -455,7 +466,7 @@ void Object::Writer::abort_multipart_upload(const char *context,
     reset();
 
     try {
-      m_object->m_bucket->abort_multipart_upload(m_multipart);
+      m_object->m_container->abort_multipart_upload(m_multipart);
     } catch (const rest::Response_error &inner_error) {
       log_error(
           "Error cancelling multipart upload after %s, error: %s\nobject: "
@@ -468,7 +479,7 @@ void Object::Writer::abort_multipart_upload(const char *context,
 
 Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   try {
-    m_size = m_object->m_bucket->head_object(m_object->full_path().real());
+    m_size = m_object->m_container->head_object(m_object->full_path().real());
   } catch (const rest::Response_error &error) {
     std::string prefix;
 
@@ -510,8 +521,8 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
 
   size_t read = 0;
   try {
-    read = m_object->m_bucket->get_object(m_object->full_path().real(),
-                                          &rbuffer, first, last);
+    read = m_object->m_container->get_object(m_object->full_path().real(),
+                                             &rbuffer, first, last);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }

@@ -40,7 +40,7 @@ namespace mysqlshdk {
 namespace oci {
 
 Oci_bucket_config::Oci_bucket_config(const Oci_bucket_options &options)
-    : Config(options), m_namespace(options.m_namespace) {
+    : Bucket_config(options), m_namespace(options.m_namespace) {
   if (m_config_file.empty()) {
     m_config_file = mysqlsh::current_shell_options()->get().oci_config_file;
   }
@@ -128,8 +128,8 @@ std::unique_ptr<rest::Signer> Oci_bucket_config::signer() const {
   return std::make_unique<Oci_signer>(*this);
 }
 
-std::unique_ptr<storage::backend::object_storage::Bucket>
-Oci_bucket_config::bucket() const {
+std::unique_ptr<storage::backend::object_storage::Container>
+Oci_bucket_config::container() const {
   return oci_bucket();
 }
 
@@ -145,7 +145,7 @@ const std::string &Oci_bucket_config::hash() const {
     m_hash += '-';
     m_hash += m_endpoint;
     m_hash += '-';
-    m_hash += m_bucket_name;
+    m_hash += m_container_name;
     m_hash += '-';
     m_hash += m_config_file;
     m_hash += '-';
@@ -166,7 +166,7 @@ const std::string &Oci_bucket_config::hash() const {
 }
 
 std::string Oci_bucket_config::describe_self() const {
-  return "OCI ObjectStorage bucket=" + m_bucket_name;
+  return "OCI ObjectStorage bucket=" + m_container_name;
 }
 
 }  // namespace oci

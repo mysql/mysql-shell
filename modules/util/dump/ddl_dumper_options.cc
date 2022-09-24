@@ -80,6 +80,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("partitions", &Ddl_dumper_options::set_partitions)
           .include(&Ddl_dumper_options::m_dump_manifest_options)
           .include(&Ddl_dumper_options::m_s3_bucket_options)
+          .include(&Ddl_dumper_options::m_blob_storage_options)
           .on_done(&Ddl_dumper_options::on_unpacked_options)
           .on_log(&Ddl_dumper_options::on_log_options);
 
@@ -101,6 +102,8 @@ void Ddl_dumper_options::set_compatibility_options(
 
 void Ddl_dumper_options::on_unpacked_options() {
   m_s3_bucket_options.throw_on_conflict(m_dump_manifest_options);
+  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
+  m_blob_storage_options.throw_on_conflict(m_dump_manifest_options);
 
   if (m_dump_manifest_options) {
     set_storage_config(m_dump_manifest_options.config());
@@ -108,6 +111,10 @@ void Ddl_dumper_options::on_unpacked_options() {
 
   if (m_s3_bucket_options) {
     set_storage_config(m_s3_bucket_options.config());
+  }
+
+  if (m_blob_storage_options) {
+    set_storage_config(m_blob_storage_options.config());
   }
 
   if (m_bytes_per_chunk < expand_to_bytes(k_minimum_chunk_size)) {

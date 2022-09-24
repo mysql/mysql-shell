@@ -38,7 +38,8 @@ const shcore::Option_pack_def<Dump_manifest_options>
     &Dump_manifest_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Dump_manifest_options>()
-          .optional(bucket_name_option(), &Dump_manifest_options::m_bucket_name)
+          .optional(bucket_name_option(),
+                    &Dump_manifest_options::m_container_name)
           .optional(namespace_option(), &Dump_manifest_options::m_namespace)
           .optional(config_file_option(), &Dump_manifest_options::m_config_file)
           .optional(profile_option(), &Dump_manifest_options::m_config_profile)
@@ -54,7 +55,7 @@ const shcore::Option_pack_def<Dump_manifest_options>
 void Dump_manifest_options::on_unpacked_options() const {
   Oci_bucket_options::on_unpacked_options();
 
-  if (m_bucket_name.empty() && m_par_manifest) {
+  if (m_container_name.empty() && m_par_manifest) {
     throw std::invalid_argument(shcore::str_format(
         s_option_error, par_manifest_option(), bucket_name_option()));
   }

@@ -31,18 +31,14 @@
 #include "mysqlshdk/libs/rest/signed_rest_service.h"
 #include "mysqlshdk/libs/storage/config.h"
 
-#include "mysqlshdk/libs/storage/backend/object_storage_bucket_options.h"
-
 namespace mysqlshdk {
 namespace storage {
 namespace backend {
 namespace object_storage {
 
-class Bucket;
-
-template <class T>
+class Container;
+class Object_storage_options;
 class Bucket_options;
-
 class Config : public storage::Config, public rest::Signed_rest_service_config {
  public:
   Config() = delete;
@@ -57,31 +53,21 @@ class Config : public storage::Config, public rest::Signed_rest_service_config {
 
   bool valid() const override { return true; }
 
-  const std::string &bucket_name() const { return m_bucket_name; }
+  const std::string &container_name() const { return m_container_name; }
 
   std::size_t part_size() const { return m_part_size; }
-
-  virtual std::unique_ptr<Bucket> bucket() const = 0;
+  void set_part_size(std::size_t size) { m_part_size = size; }
 
   virtual const std::string &hash() const = 0;
 
-  // 128 MB
-  static constexpr std::size_t DEFAULT_MULTIPART_PART_SIZE = 128 * 1024 * 1024;
+  virtual std::unique_ptr<Container> container() const = 0;
 
  protected:
-  template <class T>
-  explicit Config(const Bucket_options<T> &options)
-      : m_bucket_name(options.m_bucket_name),
-        m_config_file(options.m_config_file),
-        m_config_profile(options.m_config_profile),
-        m_bucket_option(T::bucket_name_option()) {
-    assert(!m_bucket_name.empty());
-  }
+  explicit Config(const Object_storage_options &options, std::size_t part_size);
 
-  std::string m_bucket_name;
+  std::string m_container_name;
   std::string m_config_file;
-  std::string m_config_profile;
-  std::size_t m_part_size = DEFAULT_MULTIPART_PART_SIZE;
+  std::size_t m_part_size;
 
  private:
   std::string describe_url(const std::string &url) const override;
@@ -93,7 +79,31 @@ class Config : public storage::Config, public rest::Signed_rest_service_config {
 
   void fail_if_uri(const std::string &path) const;
 
-  std::string m_bucket_option;
+  std::string m_container_name_option;
+};
+
+class Container;
+class Bucket_config : public Config {
+ public:
+  // 128 MB
+  static constexpr std::size_t DEFAULT_MULTIPART_PART_SIZE = 128 * 1024 * 1024;
+
+  const std::string &bucket_name() const { return container_name(); }
+
+ protected:
+  Bucket_config() = delete;
+
+  Bucket_config(const Bucket_config &) = delete;
+  Bucket_config(Bucket_config &&) = default;
+
+  Bucket_config &operator=(const Bucket_config &) = delete;
+  Bucket_config &operator=(Bucket_config &&) = default;
+
+  ~Bucket_config() override = default;
+
+ protected:
+  explicit Bucket_config(const Bucket_options &options);
+  std::string m_config_profile;
 };
 
 using Config_ptr = std::shared_ptr<const Config>;

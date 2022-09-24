@@ -51,11 +51,11 @@ FI_DEFINE(os_put_object, ([](const mysqlshdk::utils::FI::Args &args) {
 
 }  // namespace
 
-Bucket::Bucket(const Config_ptr &config) : m_config(config) {
+Container::Container(const Config_ptr &config) : m_config(config) {
   assert(m_config && m_config->valid());
 }
 
-std::vector<Object_details> Bucket::list_objects(
+std::vector<Object_details> Container::list_objects(
     const std::string &prefix, size_t limit, bool recursive,
     const Object_details::Fields_mask &fields,
     std::unordered_set<std::string> *out_prefixes) {
@@ -111,7 +111,7 @@ std::vector<Object_details> Bucket::list_objects(
   return result;
 }
 
-size_t Bucket::head_object(const std::string &object_name) {
+size_t Container::head_object(const std::string &object_name) {
   auto request = head_object_request(object_name);
   Response response;
 
@@ -125,7 +125,7 @@ size_t Bucket::head_object(const std::string &object_name) {
   return response.content_length();
 }
 
-void Bucket::delete_object(const std::string &object_name) {
+void Container::delete_object(const std::string &object_name) {
   auto request = delete_object_request(object_name);
 
   try {
@@ -136,8 +136,8 @@ void Bucket::delete_object(const std::string &object_name) {
   }
 }
 
-void Bucket::rename_object(const std::string &src_name,
-                           const std::string &new_name) {
+void Container::rename_object(const std::string &src_name,
+                              const std::string &new_name) {
   try {
     execute_rename_object(ensure_connection(), src_name, new_name);
   } catch (const Response_error &error) {
@@ -147,8 +147,8 @@ void Bucket::rename_object(const std::string &src_name,
   }
 }
 
-void Bucket::put_object(const std::string &object_name, const char *data,
-                        size_t size) {
+void Container::put_object(const std::string &object_name, const char *data,
+                           size_t size) {
   Headers headers{{"content-type", "application/octet-stream"}};
 
   auto request = put_object_request(object_name, std::move(headers));
@@ -166,14 +166,16 @@ void Bucket::put_object(const std::string &object_name, const char *data,
   }
 }
 
-size_t Bucket::get_object(const std::string &object_name,
-                          mysqlshdk::rest::Base_response_buffer *buffer,
-                          const std::optional<size_t> &from_byte,
-                          const std::optional<size_t> &to_byte) {
+size_t Container::get_object(const std::string &object_name,
+                             mysqlshdk::rest::Base_response_buffer *buffer,
+                             const std::optional<size_t> &from_byte,
+                             const std::optional<size_t> &to_byte) {
   Headers headers;
   std::string range;
 
   if (from_byte || to_byte) {
+    validate_range(from_byte, to_byte);
+
     range = shcore::str_format(
         "bytes=%s-%s", (!from_byte ? "" : std::to_string(*from_byte).c_str()),
         (!to_byte ? "" : std::to_string(*to_byte).c_str()));
@@ -196,27 +198,27 @@ size_t Bucket::get_object(const std::string &object_name,
   return buffer->size();
 }
 
-size_t Bucket::get_object(const std::string &object_name,
-                          mysqlshdk::rest::Base_response_buffer *buffer,
-                          size_t from_byte, size_t to_byte) {
+size_t Container::get_object(const std::string &object_name,
+                             mysqlshdk::rest::Base_response_buffer *buffer,
+                             size_t from_byte, size_t to_byte) {
   return get_object(object_name, buffer, std::optional<size_t>{from_byte},
                     std::optional<size_t>{to_byte});
 }
 
-size_t Bucket::get_object(const std::string &object_name,
-                          mysqlshdk::rest::Base_response_buffer *buffer,
-                          size_t from_byte) {
+size_t Container::get_object(const std::string &object_name,
+                             mysqlshdk::rest::Base_response_buffer *buffer,
+                             size_t from_byte) {
   return get_object(object_name, buffer, std::optional<size_t>{from_byte},
                     std::optional<size_t>{});
 }
 
-size_t Bucket::get_object(const std::string &object_name,
-                          mysqlshdk::rest::Base_response_buffer *buffer) {
+size_t Container::get_object(const std::string &object_name,
+                             mysqlshdk::rest::Base_response_buffer *buffer) {
   return get_object(object_name, buffer, std::optional<size_t>{},
                     std::optional<size_t>{});
 }
 
-std::vector<Multipart_object> Bucket::list_multipart_uploads(size_t limit) {
+std::vector<Multipart_object> Container::list_multipart_uploads(size_t limit) {
   auto request = list_multipart_uploads_request(limit);
   rest::String_response response;
 
@@ -243,7 +245,7 @@ std::vector<Multipart_object> Bucket::list_multipart_uploads(size_t limit) {
   }
 }
 
-std::vector<Multipart_object_part> Bucket::list_multipart_uploaded_parts(
+std::vector<Multipart_object_part> Container::list_multipart_uploaded_parts(
     const Multipart_object &object, size_t limit) {
   auto request = list_multipart_uploaded_parts_request(object, limit);
   rest::String_response response;
@@ -271,9 +273,21 @@ std::vector<Multipart_object_part> Bucket::list_multipart_uploaded_parts(
   }
 }
 
-Multipart_object Bucket::create_multipart_upload(
+void Container::handle_multipart_request(rest::Signed_request *request,
+                                         rest::Response *response) {
+  auto method = multipart_request_method();
+  assert(method == rest::Type::POST || method == rest::Type::PUT);
+
+  if (method == rest::Type::POST) {
+    ensure_connection()->post(request, response);
+  } else if (method == rest::Type::PUT) {
+    ensure_connection()->put(request, response);
+  }
+}
+
+Multipart_object Container::create_multipart_upload(
     const std::string &object_name) {
-  std::string body;
+  std::string body = get_create_multipart_upload_content();
   auto request = create_multipart_upload_request(object_name, &body);
   request.body = body.c_str();
   request.size = body.size();
@@ -281,7 +295,7 @@ Multipart_object Bucket::create_multipart_upload(
   rest::String_response response;
 
   try {
-    ensure_connection()->post(&request, &response);
+    handle_multipart_request(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(),
                          "Failed to create a multipart upload for object '" +
@@ -289,7 +303,10 @@ Multipart_object Bucket::create_multipart_upload(
   }
 
   try {
-    return {object_name, parse_create_multipart_upload(response.buffer)};
+    Multipart_object ret_val{object_name,
+                             parse_create_multipart_upload(response)};
+    on_multipart_upload_created(object_name);
+    return ret_val;
   } catch (const shcore::Exception &error) {
     const auto msg =
         "Failed to parse 'create multipart upload' response for object '" +
@@ -303,10 +320,10 @@ Multipart_object Bucket::create_multipart_upload(
   }
 }
 
-Multipart_object_part Bucket::upload_part(const Multipart_object &object,
-                                          size_t part_num, const char *body,
-                                          size_t size) {
-  auto request = upload_part_request(object, part_num);
+Multipart_object_part Container::upload_part(const Multipart_object &object,
+                                             size_t part_num, const char *body,
+                                             size_t size) {
+  auto request = upload_part_request(object, part_num, size);
   request.body = body;
   request.size = size;
   Response response;
@@ -320,10 +337,14 @@ Multipart_object_part Bucket::upload_part(const Multipart_object &object,
                            part_num, object.name.c_str(), error.what()));
   }
 
-  return {part_num, response.headers.at("ETag"), size};
+  return {part_num, parse_multipart_upload(response), size};
 }
 
-void Bucket::commit_multipart_upload(
+std::string Container::parse_multipart_upload(const rest::Response &response) {
+  return response.headers.at("ETag");
+}
+
+void Container::commit_multipart_upload(
     const Multipart_object &object,
     const std::vector<Multipart_object_part> &parts) {
   std::string body;
@@ -332,7 +353,7 @@ void Bucket::commit_multipart_upload(
   request.size = body.size();
 
   try {
-    ensure_connection()->post(&request);
+    handle_multipart_request(&request);
   } catch (const Response_error &error) {
     throw Response_error(error.code(),
                          "Failed to commit multipart upload for object '" +
@@ -340,7 +361,7 @@ void Bucket::commit_multipart_upload(
   }
 }
 
-void Bucket::abort_multipart_upload(const Multipart_object &object) {
+void Container::abort_multipart_upload(const Multipart_object &object) {
   auto request = abort_multipart_upload_request(object);
 
   try {
@@ -352,7 +373,7 @@ void Bucket::abort_multipart_upload(const Multipart_object &object) {
   }
 }
 
-rest::Signed_rest_service *Bucket::ensure_connection() {
+rest::Signed_rest_service *Container::ensure_connection() {
   static thread_local std::unordered_map<
       std::string, std::unique_ptr<rest::Signed_rest_service>>
       services;

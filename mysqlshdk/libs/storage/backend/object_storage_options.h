@@ -37,49 +37,44 @@ namespace storage {
 namespace backend {
 namespace object_storage {
 
-class Config;
-
-template <class T>
-class Bucket_options {
+class Object_storage_options {
  public:
-  Bucket_options() = default;
+  Object_storage_options() = default;
 
-  Bucket_options(const Bucket_options &) = default;
-  Bucket_options(Bucket_options &&) = default;
+  Object_storage_options(const Object_storage_options &) = default;
+  Object_storage_options(Object_storage_options &&) = default;
 
-  Bucket_options &operator=(const Bucket_options &) = default;
-  Bucket_options &operator=(Bucket_options &&) = default;
+  Object_storage_options &operator=(const Object_storage_options &) = default;
+  Object_storage_options &operator=(Object_storage_options &&) = default;
 
-  virtual ~Bucket_options() = default;
+  virtual ~Object_storage_options() = default;
 
-  explicit operator bool() const { return !m_bucket_name.empty(); }
+  explicit operator bool() const { return !m_container_name.empty(); }
 
   std::shared_ptr<Config> config() const {
     assert(*this);
     return create_config();
   }
 
-  template <class U>
-  void throw_on_conflict(const U &other) const {
+  void throw_on_conflict(const Object_storage_options &other) const {
     if (*this && other) {
       throw std::invalid_argument(
           shcore::str_format("The option '%s' cannot be used when the value of "
                              "'%s' option is set.",
-                             T::bucket_name_option(), U::bucket_name_option()));
+                             get_main_option(), other.get_main_option()));
     }
   }
 
  protected:
-  virtual void on_unpacked_options() const {
-    if (m_bucket_name.empty()) {
-      if (!m_config_file.empty()) {
-        throw std::invalid_argument(shcore::str_format(
-            s_option_error, T::config_file_option(), T::bucket_name_option()));
-      }
+  virtual const char *get_main_option() const = 0;
 
-      if (!m_config_profile.empty()) {
-        throw std::invalid_argument(shcore::str_format(
-            s_option_error, T::profile_option(), T::bucket_name_option()));
+  virtual void on_unpacked_options() const {
+    if (!has_value(get_main_option())) {
+      for (const auto &option : get_secondary_options()) {
+        if (has_value(option)) {
+          throw std::invalid_argument(
+              shcore::str_format(s_option_error, option, get_main_option()));
+        }
       }
     }
   }
@@ -88,14 +83,27 @@ class Bucket_options {
       "The option '%s' cannot be used when the value of '%s' option is not "
       "set.";
 
-  std::string m_bucket_name;
+  std::string m_container_name;
   std::string m_config_file;
-  std::string m_config_profile;
 
  private:
   friend class Config;
 
   virtual std::shared_ptr<Config> create_config() const = 0;
+
+  virtual std::vector<const char *> get_secondary_options() const = 0;
+  virtual bool has_value(const char *option) const = 0;
+};
+
+class Bucket_options : public Object_storage_options {
+ public:
+  Bucket_options() = default;
+
+  Bucket_options(const Bucket_options &) = default;
+
+  virtual ~Bucket_options() = default;
+
+  std::string m_config_profile;
 };
 
 }  // namespace object_storage

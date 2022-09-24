@@ -29,6 +29,7 @@
 #include <unordered_set>
 
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
+#include "mysqlshdk/libs/azure/blob_storage_options.h"
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
 
 #include "modules/util/dump/dump_options.h"
@@ -106,6 +107,7 @@ class Export_table_options : public Dump_options {
 
   mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
   mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
+  mysqlshdk::azure::Blob_storage_options m_blob_storage_options;
 };
 
 }  // namespace dump

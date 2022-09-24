@@ -32,8 +32,10 @@ set(rest_SOURCES
   error_codes.cc
   rest_service.cc
   response.cc
+  request.cc
   retry_strategy.cc
   signed_rest_service.cc
+  rest_utils.cc
 )
 
 add_convenience_library(rest

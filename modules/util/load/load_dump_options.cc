@@ -217,6 +217,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("sessionInitSql", &Load_dump_options::m_session_init_sql)
           .include(&Load_dump_options::m_oci_bucket_options)
           .include(&Load_dump_options::m_s3_bucket_options)
+          .include(&Load_dump_options::m_blob_storage_options)
           .on_done(&Load_dump_options::on_unpacked_options)
           .on_log(&Load_dump_options::on_log_options);
 
@@ -539,6 +540,8 @@ std::string Load_dump_options::target_import_info() const {
 
 void Load_dump_options::on_unpacked_options() {
   m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
+  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
+  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
 
   if (m_oci_bucket_options) {
     m_storage_config = m_oci_bucket_options.config();
@@ -546,6 +549,10 @@ void Load_dump_options::on_unpacked_options() {
 
   if (m_s3_bucket_options) {
     m_storage_config = m_s3_bucket_options.config();
+  }
+
+  if (m_blob_storage_options) {
+    m_storage_config = m_blob_storage_options.config();
   }
 
   if (!m_load_data && !m_load_ddl && !m_load_users &&

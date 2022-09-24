@@ -38,22 +38,13 @@ const shcore::Option_pack_def<Oci_bucket_options>
     &Oci_bucket_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Oci_bucket_options>()
-          .optional(bucket_name_option(), &Oci_bucket_options::m_bucket_name)
+          .optional(bucket_name_option(), &Oci_bucket_options::m_container_name)
           .optional(namespace_option(), &Oci_bucket_options::m_namespace)
           .optional(config_file_option(), &Oci_bucket_options::m_config_file)
           .optional(profile_option(), &Oci_bucket_options::m_config_profile)
           .on_done(&Oci_bucket_options::on_unpacked_options);
 
   return opts;
-}
-
-void Oci_bucket_options::on_unpacked_options() const {
-  if (m_bucket_name.empty() && !m_namespace.empty()) {
-    throw std::invalid_argument(shcore::str_format(
-        s_option_error, namespace_option(), bucket_name_option()));
-  }
-
-  Bucket_options::on_unpacked_options();
 }
 
 std::shared_ptr<Oci_bucket_config> Oci_bucket_options::oci_config() const {
@@ -63,6 +54,23 @@ std::shared_ptr<Oci_bucket_config> Oci_bucket_options::oci_config() const {
 std::shared_ptr<storage::backend::object_storage::Config>
 Oci_bucket_options::create_config() const {
   return oci_config();
+}
+
+std::vector<const char *> Oci_bucket_options::get_secondary_options() const {
+  return {config_file_option(), profile_option(), namespace_option()};
+}
+
+bool Oci_bucket_options::has_value(const char *option) const {
+  if (shcore::str_caseeq(option, bucket_name_option())) {
+    return !m_container_name.empty();
+  } else if (shcore::str_caseeq(option, config_file_option())) {
+    return !m_config_file.empty();
+  } else if (shcore::str_caseeq(option, profile_option())) {
+    return !m_config_profile.empty();
+  } else if (shcore::str_caseeq(option, namespace_option())) {
+    return !m_namespace.empty();
+  }
+  return false;
 }
 
 }  // namespace oci

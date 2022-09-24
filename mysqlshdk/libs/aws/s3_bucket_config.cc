@@ -73,7 +73,7 @@ bool valid_as_virtual_path(const std::string &bucket_name) {
 }  // namespace
 
 S3_bucket_config::S3_bucket_config(const S3_bucket_options &options)
-    : Config(options), m_credentials_file(options.m_credentials_file) {
+    : Bucket_config(options), m_credentials_file(options.m_credentials_file) {
   const auto config_file_path = [](const std::string &filename) {
     static const auto s_home_dir = shcore::get_home_dir();
     return shcore::path::join_path(s_home_dir, ".aws", filename);
@@ -112,8 +112,8 @@ S3_bucket_config::S3_bucket_config(const S3_bucket_options &options)
   } else {
     // if bucket can be used as a virtual path, the following URI is used:
     // <bucket>.s3.<region>.amazonaws.com
-    if (valid_as_virtual_path(m_bucket_name)) {
-      m_host = m_bucket_name + ".";
+    if (valid_as_virtual_path(m_container_name)) {
+      m_host = m_container_name + ".";
     } else {
       use_path_style_access();
     }
@@ -127,8 +127,8 @@ std::unique_ptr<rest::Signer> S3_bucket_config::signer() const {
   return std::make_unique<Aws_signer>(*this);
 }
 
-std::unique_ptr<storage::backend::object_storage::Bucket>
-S3_bucket_config::bucket() const {
+std::unique_ptr<storage::backend::object_storage::Container>
+S3_bucket_config::container() const {
   return s3_bucket();
 }
 
@@ -144,7 +144,7 @@ const std::string &S3_bucket_config::hash() const {
     m_hash += '-';
     m_hash += m_endpoint;
     m_hash += '-';
-    m_hash += m_bucket_name;
+    m_hash += m_container_name;
     m_hash += '-';
     m_hash += m_config_file;
     m_hash += '-';
@@ -161,7 +161,7 @@ const std::string &S3_bucket_config::hash() const {
 }
 
 std::string S3_bucket_config::describe_self() const {
-  return "AWS S3 bucket=" + m_bucket_name;
+  return "AWS S3 bucket=" + m_container_name;
 }
 
 void S3_bucket_config::load_profile(const std::string &path,

@@ -83,7 +83,8 @@ Signed_rest_service::Signed_rest_service(
     const Signed_rest_service_config &config)
     : m_endpoint{config.service_endpoint()},
       m_label{config.service_label()},
-      m_signer{config.signer()} {}
+      m_signer{config.signer()},
+      m_enable_signature_caching(config.signature_caching_enabled()) {}
 
 Response::Status_code Signed_rest_service::get(Signed_request *request,
                                                Response *response) {
@@ -155,7 +156,7 @@ void Signed_rest_service::clear_cache(time_t now) {
 
 bool Signed_rest_service::valid_headers(const Signed_request *request,
                                         time_t now) const {
-  const auto &path = request->path().real();
+  const auto &path = request->full_path().real();
   const auto method = request->type;
 
   // we assume that headers were cached, and that body did not change (no need
@@ -168,7 +169,7 @@ Headers Signed_rest_service::make_headers(const Signed_request *request,
                                           time_t now) {
   clear_cache(now);
 
-  const auto &path = request->path().real();
+  const auto &path = request->full_path().real();
   const auto method = request->type;
   auto &cached_time = m_signed_header_cache_time[path][method];
 
@@ -178,7 +179,8 @@ Headers Signed_rest_service::make_headers(const Signed_request *request,
   //
   // Any requests with body are exceptions as the signature may include the body
   // sha256
-  if (now - cached_time > k_header_cache_ttl || request->size) {
+  if (now - cached_time > k_header_cache_ttl || request->size ||
+      !m_enable_signature_caching) {
     m_cached_header[path][method] = m_signer->sign_request(request, now);
     cached_time = now;
   }

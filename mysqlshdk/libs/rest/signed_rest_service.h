@@ -39,8 +39,9 @@ class Signed_rest_service;
 
 struct Signed_request : public rest::Request {
  public:
-  explicit Signed_request(Masked_string path, rest::Headers headers = {})
-      : Request(std::move(path), std::move(headers)) {}
+  explicit Signed_request(Masked_string path, rest::Headers headers = {},
+                          rest::Query query = {})
+      : Request(std::move(path), std::move(headers), std::move(query)) {}
 
   const Headers &headers() const override;
 
@@ -93,6 +94,8 @@ class Signed_rest_service_config {
   virtual const std::string &service_label() const = 0;
 
   virtual std::unique_ptr<Signer> signer() const = 0;
+
+  virtual bool signature_caching_enabled() const { return true; }
 };
 
 class Signed_rest_service {
@@ -145,6 +148,7 @@ class Signed_rest_service {
   std::string m_endpoint;
   std::string m_label;
   std::unique_ptr<Signer> m_signer;
+  bool m_enable_signature_caching;
 };
 
 }  // namespace rest

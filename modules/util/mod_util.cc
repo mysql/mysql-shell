@@ -474,6 +474,63 @@ void Util::import_json(
   importer.print_stats();
 }
 
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AZURE_COMMON_OPTIONS, R"*(
+@li <b>azureContainerName</b>: string (default: not set) - Name of the Azure
+container to use. The container must already exist.
+@li <b>azureConfigFile</b>: string (default: not set) - Use the specified Azure
+configuration file instead of the one at the default location.
+@li <b>azureStorageAccount</b>: string (default: not set) - The account to be used
+for the operation.
+@li <b>azureStorageSasToken</b>: string (default: not set) - Azure Shared Access
+Signature (SAS) token, to be used for the authentication of the operation, instead of a key.)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AZURE_COMMON_OPTION_DETAILS, R"*(
+If the <b>azureContainerName</b> option is used, the dump is stored in the specified
+Azure container. Connection is established using the configuration at the
+local Azure configuration file.The directory structure is simulated
+within the blob name.
+
+The <b>azureConfigFile</b> option cannot be used if the <b>azureContainerName</b>
+option is not set or set to an empty string.
+
+<b>Handling of the Azure settings</b>
+
+-# The following settings are read from the <b>storage</b> section in the <b>config</b>
+file:
+@li <b>connection_string</b>
+@li <b>account</b>
+@li <b>key</b>
+@li <b>sas_token</b>
+
+Additionally, the connection options may be defined using the standard Azure environment
+variables:
+@li <b>AZURE_STORAGE_CONNECTION_STRING</b>
+@li <b>AZURE_STORAGE_ACCOUNT</b>
+@li <b>AZURE_STORAGE_KEY</b>
+@li <b>AZURE_STORAGE_SAS_TOKEN</b>
+
+The Azure configuration values are evaluated in the following precedence:
+
+- Options parameter
+- Environment Variables
+- Configuration File
+
+If a connection string is defined either case in the environment variable or the configuration
+option, the individual configuration values for account and key will be ignored.
+
+If a SAS Token is defined, it will be used for the authorization (ignoring any defined account key).
+
+The default Azure Blob Endpoint to be used in the operations is defined by:
+
+https://@<account@>.blob.core.windows.net
+
+Unless a different EndPoint is defined in the connection string.)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS, R"*(
+<b>Dumping to a Container in the Azure Blob Storage</b>
+
+${TOPIC_UTIL_AZURE_COMMON_OPTION_DETAILS})*");
+
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AWS_COMMON_OPTIONS, R"*(
 @li <b>s3BucketName</b>: string (default: not set) - Name of the AWS S3 bucket
 to use. The bucket must already exist.
@@ -539,7 +596,10 @@ oci.configFile global shell options and can be overridden with ociProfile and
 ociConfigFile, respectively.
 
 If the <b>s3BucketName</b> option is given, the path argument must specify a
-plain path in that AWS S3 bucket.)*");
+plain path in that AWS S3 bucket.
+
+If the <b>azureContainerName</b> option is given, the path argument must specify a
+plain path in that Azure container.)*");
 
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_OCI_OPTIONS_DETAIL, R"*(
 <b>OCI Object Storage Options</b>
@@ -655,6 +715,12 @@ ${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS}
+
+<b>Azure Blob Storage Options</b>
+
+${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+
+${TOPIC_UTIL_AZURE_COMMON_OPTION_DETAILS}
 
 <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
 fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
@@ -883,9 +949,9 @@ using a single PAR
 
 <<<loadDump>>>() will load a dump from the specified path. It transparently
 handles compressed files and directly streams data when loading from remote
-storage (currently HTTP, OCI Object Storage and AWS S3 Object Storage). If the
-'waitDumpTimeout' option is set, it will load a dump on-the-fly, loading table
-data chunks as the dumper produces them.
+storage (currently HTTP, OCI Object Storage, AWS S3 Object Storage and Azure
+Containers). If the 'waitDumpTimeout' option is set, it will load a dump
+on-the-fly, loading table data chunks as the dumper produces them.
 
 Table data will be loaded in parallel using the configured number of threads
 (4 by default). Multiple threads per table can be used if the dump was created
@@ -1041,6 +1107,7 @@ seconds) passes.
 list of SQL statements in each session about to load data.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
+${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
 
 Connection options set in the global session, such as compression, ssl-mode, etc.
 are inherited by load sessions.
@@ -1582,6 +1649,8 @@ ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS}
 
 <b>Details</b>
@@ -1604,6 +1673,8 @@ i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 
 ${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -1676,6 +1747,8 @@ ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS}
 @li Views and triggers to be dumped must not use qualified names to reference
 other views or tables.
@@ -1709,6 +1782,8 @@ ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
 
 ${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -1779,6 +1854,8 @@ ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
 <b>Options</b>
@@ -1789,6 +1866,8 @@ ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
 
 ${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -1867,6 +1946,8 @@ ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 
+${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
 Dumps cannot be created for the following schemas:
@@ -1887,6 +1968,8 @@ ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
 
 ${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
+
+${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.

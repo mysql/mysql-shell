@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/rest/rest_service.h"
 
 #include <curl/curl.h>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -32,6 +33,10 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+
+#include "mysqlshdk/libs/db/generic_uri.h"
+#include "mysqlshdk/libs/db/uri_parser.h"
+#include "mysqlshdk/libs/db/utils_connection.h"
 
 #ifdef _WIN32
 #include <openssl/ssl.h>
@@ -165,7 +170,7 @@ void log_failed_request(const std::string &base_url, const Request &request,
 
   log_warning("Request failed: %s %s %s%s", base_url.c_str(),
               shcore::str_upper(type_name(request.type)).c_str(),
-              request.path().masked().c_str(), full_context.c_str());
+              request.full_path().masked().c_str(), full_context.c_str());
   log_info("REQUEST HEADERS:\n%s", format_headers(request.headers()).c_str());
 }
 
@@ -216,6 +221,11 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_USERAGENT,
                      get_user_agent().c_str());
 
+    mysqlshdk::db::uri::Generic_uri url;
+    mysqlshdk::db::uri::Uri_parser parser(mysqlshdk::db::uri::Type::Generic);
+    parser.parse(m_base_url.real(), &url);
+    m_port = url.port;
+
 #if LIBCURL_VERSION_NUM >= 0x071900
     // CURLOPT_TCP_KEEPALIVE was added in libcurl 7.25.0
     curl_easy_setopt(m_handle.get(), CURLOPT_TCP_KEEPALIVE, 1L);
@@ -263,7 +273,7 @@ class Rest_service::Impl {
       log_debug("%s-%d: %s %s %s", m_id.c_str(), m_request_sequence,
                 m_base_url.masked().c_str(),
                 shcore::str_upper(type_name(request.type)).c_str(),
-                request.path().masked().c_str());
+                request.full_path().masked().c_str());
 
       if (shcore::current_logger()->get_log_level() >=
           shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
@@ -296,7 +306,7 @@ class Rest_service::Impl {
 
     log_request(*request);
 
-    set_url(request->path().real());
+    set_url(request->full_path().real());
     // body needs to be set before the type, because it implicitly sets type
     // to POST
     set_body(request->body, request->size, synch);
@@ -418,6 +428,10 @@ class Rest_service::Impl {
   void set_url(const std::string &path) {
     curl_easy_setopt(m_handle.get(), CURLOPT_URL,
                      (m_base_url.real() + path).c_str());
+
+    if (m_port.has_value()) {
+      curl_easy_setopt(m_handle.get(), CURLOPT_PORT, m_port.value());
+    }
   }
 
   std::unique_ptr<curl_slist, void (*)(curl_slist *)> set_headers(
@@ -471,6 +485,8 @@ class Rest_service::Impl {
   char m_error_buffer[CURL_ERROR_SIZE];
 
   Masked_string m_base_url;
+
+  std::optional<int> m_port;
 
   Headers m_default_headers;
 

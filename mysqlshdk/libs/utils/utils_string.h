@@ -126,6 +126,16 @@ struct Case_insensitive_comparator {
   }
 };
 
+struct Lexicographical_comparator {
+  bool operator()(const std::string &a, const std::string &b) const {
+    return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+  }
+
+  bool operator()(const std::wstring &a, const std::wstring &b) const {
+    return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+  }
+};
+
 namespace internal {
 
 template <typename Char>

@@ -60,6 +60,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/aws/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/oci/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/azure/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/textui/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/gr/group_replication_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/innodbcluster/*.cc"

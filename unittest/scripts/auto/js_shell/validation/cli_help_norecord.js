@@ -58,6 +58,11 @@ The following operations are available at 'shell options':
       configuration file.
 
 //@<OUT> CLI util --help
+The following object provides command line operations at 'util':
+
+   debug
+      Debugging and diagnostic utilities.
+
 The following operations are available at 'util':
 
    check-for-server-upgrade
@@ -361,6 +366,22 @@ OPTIONS
             Use the specified AWS S3 API endpoint instead of the default one.
             Default: not set.
 
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
+
 --excludeTables=<str list>
             List of tables or views to be excluded from the dump in the format
             of schema.table. Default: empty.
@@ -579,6 +600,22 @@ OPTIONS
             Use the specified AWS S3 API endpoint instead of the default one.
             Default: not set.
 
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
+
 --excludeTables=<str list>
             List of tables or views to be excluded from the dump in the format
             of schema.table. Default: empty.
@@ -778,6 +815,22 @@ OPTIONS
             Use the specified AWS S3 API endpoint instead of the default one.
             Default: not set.
 
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
+
 --all=<bool>
             Dump all views and tables from the specified schema. Default:
             false.
@@ -884,6 +937,22 @@ OPTIONS
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
             Default: not set.
+
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
 
 //@<OUT> CLI util import-json --help
 NAME
@@ -1101,6 +1170,22 @@ OPTIONS
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
             Default: not set.
+
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
 
 //@<OUT> CLI util load-dump --help
 NAME
@@ -1323,3 +1408,20 @@ OPTIONS
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
             Default: not set.
+
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
+

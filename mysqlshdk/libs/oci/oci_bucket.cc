@@ -76,7 +76,7 @@ std::string encode_json(Args &&... args) {
 }  // namespace
 
 Oci_bucket::Oci_bucket(const Oci_bucket_config_ptr &config)
-    : storage::backend::object_storage::Bucket(config),
+    : storage::backend::object_storage::Container(config),
       m_config(config),
       kNamespacePath{shcore::str_format(
           "/n/%s/b/", pctencode_path(config->oci_namespace()).c_str())},
@@ -260,14 +260,14 @@ rest::Signed_request Oci_bucket::create_multipart_upload_request(
 }
 
 std::string Oci_bucket::parse_create_multipart_upload(
-    const rest::Base_response_buffer &buffer) {
-  return shcore::Value::parse(buffer.data(), buffer.size())
+    const rest::String_response &response) {
+  return shcore::Value::parse(response.buffer.data(), response.buffer.size())
       .as_map()
       ->get_string("uploadId");
 }
 
 rest::Signed_request Oci_bucket::upload_part_request(
-    const Multipart_object &object, size_t part_num) {
+    const Multipart_object &object, size_t part_num, size_t /*size*/) {
   return Signed_request{shcore::str_format(kUploadPartFormat.c_str(),
                                            pctencode_path(object.name).c_str(),
                                            object.upload_id.c_str(), part_num)};

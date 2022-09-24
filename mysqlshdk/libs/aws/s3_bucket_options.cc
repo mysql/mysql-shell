@@ -38,7 +38,7 @@ namespace aws {
 const shcore::Option_pack_def<S3_bucket_options> &S3_bucket_options::options() {
   static const auto opts =
       shcore::Option_pack_def<S3_bucket_options>()
-          .optional(bucket_name_option(), &S3_bucket_options::m_bucket_name)
+          .optional(bucket_name_option(), &S3_bucket_options::m_container_name)
           .optional(credentials_file_option(),
                     &S3_bucket_options::m_credentials_file)
           .optional(config_file_option(), &S3_bucket_options::m_config_file)
@@ -51,19 +51,7 @@ const shcore::Option_pack_def<S3_bucket_options> &S3_bucket_options::options() {
 }
 
 void S3_bucket_options::on_unpacked_options() const {
-  Bucket_options::on_unpacked_options();
-
-  if (m_bucket_name.empty()) {
-    if (!m_credentials_file.empty()) {
-      throw std::invalid_argument(shcore::str_format(
-          s_option_error, credentials_file_option(), bucket_name_option()));
-    }
-
-    if (!m_endpoint_override.empty()) {
-      throw std::invalid_argument(shcore::str_format(
-          s_option_error, endpoint_override_option(), bucket_name_option()));
-    }
-  }
+  Object_storage_options::on_unpacked_options();
 
   if (!m_endpoint_override.empty()) {
     using storage::utils::get_scheme;
@@ -96,5 +84,24 @@ S3_bucket_options::create_config() const {
   return s3_config();
 }
 
+std::vector<const char *> S3_bucket_options::get_secondary_options() const {
+  return {config_file_option(), profile_option(), credentials_file_option(),
+          endpoint_override_option()};
+}
+
+bool S3_bucket_options::has_value(const char *option) const {
+  if (shcore::str_caseeq(option, bucket_name_option())) {
+    return !m_container_name.empty();
+  } else if (shcore::str_caseeq(option, config_file_option())) {
+    return !m_config_file.empty();
+  } else if (shcore::str_caseeq(option, profile_option())) {
+    return !m_config_profile.empty();
+  } else if (shcore::str_caseeq(option, credentials_file_option())) {
+    return !m_credentials_file.empty();
+  } else if (shcore::str_caseeq(option, endpoint_override_option())) {
+    return !m_endpoint_override.empty();
+  }
+  return false;
+}
 }  // namespace aws
 }  // namespace mysqlshdk

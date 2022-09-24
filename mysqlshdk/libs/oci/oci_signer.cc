@@ -93,7 +93,7 @@ Oci_signer::Oci_signer(const Oci_bucket_config &config)
 rest::Headers Oci_signer::sign_request(const rest::Signed_request *request,
                                        time_t now) const {
   rest::Headers all_headers;
-  const auto &path = request->path().real();
+  const auto &path = request->full_path().real();
   const auto method = request->type;
   const auto &headers = request->unsigned_headers();
 

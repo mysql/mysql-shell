@@ -97,6 +97,9 @@ std::vector<unsigned char> sha256(const char *data, size_t size);
  */
 std::vector<unsigned char> md5(const char *data, size_t size);
 
+std::vector<unsigned char> hmac_sha256(const std::vector<unsigned char> &key,
+                                       const std::string &data);
+
 }  // namespace ssl
 }  // namespace shcore
 

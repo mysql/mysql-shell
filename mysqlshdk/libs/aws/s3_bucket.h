@@ -44,7 +44,7 @@ using storage::backend::object_storage::Multipart_object;
 using storage::backend::object_storage::Multipart_object_part;
 using storage::backend::object_storage::Object_details;
 
-class S3_bucket : public storage::backend::object_storage::Bucket {
+class S3_bucket : public storage::backend::object_storage::Container {
  public:
   S3_bucket() = delete;
 
@@ -115,10 +115,11 @@ class S3_bucket : public storage::backend::object_storage::Bucket {
       const std::string &object_name, std::string *request_body) override;
 
   std::string parse_create_multipart_upload(
-      const rest::Base_response_buffer &buffer) override;
+      const rest::String_response &response) override;
 
   rest::Signed_request upload_part_request(const Multipart_object &object,
-                                           size_t part_num) override;
+                                           size_t part_num,
+                                           size_t size) override;
 
   rest::Signed_request commit_multipart_upload_request(
       const Multipart_object &object,

@@ -45,6 +45,7 @@ const shcore::Option_pack_def<Export_table_options>
           .optional("partitions", &Export_table_options::m_partitions)
           .include(&Export_table_options::m_oci_bucket_options)
           .include(&Export_table_options::m_s3_bucket_options)
+          .include(&Export_table_options::m_blob_storage_options)
           .on_done(&Export_table_options::on_unpacked_options)
           .on_log(&Export_table_options::on_log_options);
 
@@ -53,6 +54,8 @@ const shcore::Option_pack_def<Export_table_options>
 
 void Export_table_options::on_unpacked_options() {
   m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
+  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
+  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
 
   if (m_oci_bucket_options) {
     set_storage_config(m_oci_bucket_options.config());
@@ -60,6 +63,10 @@ void Export_table_options::on_unpacked_options() {
 
   if (m_s3_bucket_options) {
     set_storage_config(m_s3_bucket_options.config());
+  }
+
+  if (m_blob_storage_options) {
+    set_storage_config(m_blob_storage_options.config());
   }
 }
 
