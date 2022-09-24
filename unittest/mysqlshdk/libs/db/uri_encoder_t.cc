@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2021 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2022 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,7 @@
 
 #include <gtest_clean.h>
 #include <stdexcept>
+#include "mysqlshdk/libs/db/file_uri.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 
@@ -30,6 +31,7 @@ using mysqlshdk::db::uri::DIGIT;
 using mysqlshdk::db::uri::HEXDIG;
 using mysqlshdk::db::uri::SUBDELIMITERS;
 using mysqlshdk::db::uri::Tokens;
+using mysqlshdk::db::uri::Type;
 using mysqlshdk::db::uri::UNRESERVED;
 using mysqlshdk::db::uri::Uri_encoder;
 using mysqlshdk::db::uri::Uri_parser;
@@ -52,6 +54,7 @@ TEST(Uri_encoder, encode_scheme) {
 
   EXPECT_EQ("mysqlx", encoder.encode_scheme("mysqlx"));
   EXPECT_EQ("mysql", encoder.encode_scheme("mysql"));
+  EXPECT_EQ("sample", encoder.encode_scheme("sample"));
 
   MY_EXPECT_THROW(std::invalid_argument,
                   "Scheme extension [ssh] is not supported",
@@ -61,11 +64,6 @@ TEST(Uri_encoder, encode_scheme) {
                   "Invalid scheme format [mysql+ssh+], only one extension "
                   "is supported",
                   encoder.encode_scheme("mysql+ssh+"));
-
-  MY_EXPECT_THROW(std::invalid_argument,
-                  "Invalid scheme [sample], supported schemes include: "
-                  "mysql, mysqlx",
-                  encoder.encode_scheme("sample"));
 }
 
 TEST(Uri_encoder, encode_user_info) {
@@ -266,32 +264,17 @@ TEST(Uri_encoder, encode_values) {
 }
 
 TEST(Uri_encoder, encode_uri) {
-  Uri_encoder encoder(false);
+  Uri_encoder encoder;
   mysqlshdk::ssh::Ssh_connection_options ssh;
   ssh.set_host("example.com");
   ssh.set_user("user");
   ssh.set_password("password");
   ssh.set_port(22);
+  ssh.set_default_data();
 
-  EXPECT_EQ("ssh://user@example.com:22",
+  EXPECT_EQ("ssh://user:password@example.com:22",
             encoder.encode_uri(
                 ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
-
-  mysqlshdk::db::uri::Tokens_mask tm(Tokens::Scheme);
-  tm.set(Tokens::User)
-      .set(Tokens::Password)
-      .set(Tokens::Transport)
-      .set(Tokens::Schema);
-
-  MY_EXPECT_THROW(std::invalid_argument,
-                  "encode_uri doesn't support Tokens::Schema and Tokens::Query",
-                  encoder.encode_uri(ssh, tm));
-
-  tm.unset(Tokens::Schema);
-  tm.set(Tokens::Query);
-  MY_EXPECT_THROW(std::invalid_argument,
-                  "encode_uri doesn't support Tokens::Schema and Tokens::Query",
-                  encoder.encode_uri(ssh, tm));
 
   ssh.clear_user();
   ssh.clear_password();
@@ -306,12 +289,12 @@ TEST(Uri_encoder, encode_uri) {
 
   ssh.set_user("user");
   ssh.set_password("password");
-  EXPECT_EQ("ssh://user@localhost:22",
+  EXPECT_EQ("ssh://user:password@localhost:22",
             encoder.encode_uri(
                 ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
 
   ssh.clear_port();
-  EXPECT_EQ("ssh://user@localhost",
+  EXPECT_EQ("ssh://user:password@localhost",
             encoder.encode_uri(
                 ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
 
@@ -328,17 +311,17 @@ TEST(Uri_encoder, encode_uri) {
 }
 
 TEST(Uri_encoder, encode_file_uri) {
-  Uri_parser parser(false);
-  mysqlshdk::db::Connection_options data =
-      parser.parse("file:/sample/file/path");
+  Uri_parser parser(Type::File);
+  mysqlshdk::db::uri::File_uri data;
+  parser.parse("file:/sample/file/path", &data);
 
   mysqlshdk::db::uri::Tokens_mask tm(Tokens::Scheme);
   tm.set(Tokens::Transport);
 
-  Uri_encoder encoder(false);
+  Uri_encoder encoder;
   EXPECT_EQ("file:/sample/file/path", encoder.encode_uri(data, tm));
 
   tm.unset(Tokens::Transport);
-  EXPECT_EQ("file:/", encoder.encode_uri(data, tm));
+  EXPECT_EQ("file:", encoder.encode_uri(data, tm));
 }
 }  // namespace testing

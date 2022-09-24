@@ -26,9 +26,9 @@
 
 #include <set>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
-#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/base_tokenizer.h"
 
@@ -38,10 +38,8 @@ namespace uri {
 
 class SHCORE_PUBLIC Uri_encoder {
  public:
-  explicit Uri_encoder(bool devapi = true);
-  std::string encode_uri(const Connection_options &info,
-                         Tokens_mask format = formats::full_no_password());
-  std::string encode_uri(const ssh::Ssh_connection_options &info,
+  Uri_encoder() = default;
+  std::string encode_uri(const IUri_encodable &info,
                          Tokens_mask format = formats::full_no_password());
   std::string encode_scheme(const std::string &data);
   std::string encode_socket(const std::string &socket);
@@ -59,7 +57,6 @@ class SHCORE_PUBLIC Uri_encoder {
 
  private:
   shcore::BaseTokenizer _tokenizer;
-  std::set<std::string> m_allowed_schemes;
   std::string process(const std::string &data);
 };
 

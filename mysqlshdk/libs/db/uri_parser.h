@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,7 +33,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/ssh/ssh_connection_options.h"
+#include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/base_tokenizer.h"
 #include "mysqlshdk/libs/utils/connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
@@ -58,27 +58,26 @@
 namespace mysqlshdk {
 namespace db {
 namespace uri {
+
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 class SHCORE_PUBLIC Uri_parser {
  public:
-  explicit Uri_parser(bool devapi = true);
+  explicit Uri_parser(Type type = Type::DevApi);
+  void parse(const std::string &input, IUri_parsable *handler);
   mysqlshdk::db::Connection_options parse(
       const std::string &input,
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
-  mysqlshdk::ssh::Ssh_connection_options parse_ssh_uri(
-      const std::string &input,
-      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
-
  private:
-  mysqlshdk::db::Connection_options *_data;
+  Type m_type;
+  IUri_parsable *_data;
   std::string _input;
   shcore::BaseTokenizer _tokenizer;
   std::map<std::string, std::pair<size_t, size_t>> _chunks;
   void preprocess(const std::string &input);
-  std::set<std::string> m_allowed_schemes;
+  std::string m_scheme;
 
-  std::string parse_scheme();
+  void parse_scheme();
   void parse_userinfo();
   void parse_target();
   void parse_host();
@@ -103,16 +102,15 @@ class SHCORE_PUBLIC Uri_parser {
                                   const std::string &finalizers = "",
                                   const std::string &forbidden_delimiters = "");
 
-  char percent_decode(const std::string &value) const;
   std::string get_input_chunk(const std::pair<size_t, size_t> &range);
 
   bool input_contains(const std::string &what,
                       size_t position = std::string::npos);
 
-  friend std::string hide_password_in_uri(std::string uri, bool devapi);
+  friend std::string hide_password_in_uri(std::string uri);
 };
 
-std::string hide_password_in_uri(std::string uri, bool devapi = true);
+std::string hide_password_in_uri(std::string uri);
 
 }  // namespace uri
 }  // namespace db

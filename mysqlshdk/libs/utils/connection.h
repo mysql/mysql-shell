@@ -23,7 +23,10 @@
 
 #ifndef MYSQLSHDK_LIBS_UTILS_CONNECTION_H_
 #define MYSQLSHDK_LIBS_UTILS_CONNECTION_H_
+
 #include <string>
+#include <unordered_set>
+
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
@@ -31,12 +34,18 @@
 
 namespace mysqlshdk {
 
-class SHCORE_PUBLIC IConnection {
+using mysqlshdk::db::uri::Uri_serializable;
+
+class SHCORE_PUBLIC IConnection : public Uri_serializable {
  public:
   IConnection(
       const std::string &options_name,
-      utils::Comparison_mode mode = utils::Comparison_mode::CASE_INSENSITIVE)
-      : m_mode(mode), m_options(m_mode, options_name) {
+      utils::Comparison_mode mode = utils::Comparison_mode::CASE_INSENSITIVE,
+      const std::unordered_set<std::string> &allowed_schemes = {"mysql",
+                                                                "mysqlx"})
+      : Uri_serializable(allowed_schemes),
+        m_mode(mode),
+        m_options(m_mode, options_name) {
     for (auto o :
          {mysqlshdk::db::kHost, mysqlshdk::db::kScheme, mysqlshdk::db::kUser,
           mysqlshdk::db::kPassword, mysqlshdk::db::kPath})
@@ -47,6 +56,7 @@ class SHCORE_PUBLIC IConnection {
   utils::Comparison_mode get_mode() const { return m_mode; }
 
   virtual void set_scheme(const std::string &scheme) {
+    validate_allowed_scheme(scheme);
     _set_fixed(db::kScheme, scheme);
   }
   virtual void set_user(const std::string &user) {
@@ -100,7 +110,8 @@ class SHCORE_PUBLIC IConnection {
   virtual bool has(const std::string &name) const {
     return m_options.has(name);
   }
-  virtual bool has_value(const std::string &name) const {
+
+  bool has_value(const std::string &name) const override {
     if (m_options.has(name)) return m_options.has_value(name);
     return false;
   }
@@ -120,10 +131,6 @@ class SHCORE_PUBLIC IConnection {
   virtual void clear_host() { clear_value(db::kHost); }
   virtual void clear_port() { m_port.reset(); }
   virtual void clear_path() { clear_value(db::kPath); }
-
-  virtual std::string as_uri(
-      db::uri::Tokens_mask format =
-          db::uri::formats::full_no_password()) const = 0;
 
   virtual void set_default_data() = 0;
 

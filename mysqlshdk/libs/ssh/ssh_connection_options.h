@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,10 +166,6 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
 
   bool has_data() const override { return has_host(); }
 
-  std::string as_uri(
-      mysqlshdk::db::uri::Tokens_mask format =
-          mysqlshdk::db::uri::formats::no_schema_no_query()) const override;
-
   std::string key_file_uri() const;
 
   void set_default_data() override;
@@ -177,6 +173,25 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
   void preload_ssh_config();
 
   bool interactive();
+
+  void set(const std::string &name, const std::string &value) override;
+  void set(const std::string &name, int value) override;
+  void set(const std::string &name,
+           const std::vector<std::string> & /*values*/) override {
+    throw std::invalid_argument(
+        shcore::str_format("Invalid SSH connection option: %s", name.c_str()));
+  }
+
+  mysqlshdk::db::uri::Type get_type() const override {
+    return mysqlshdk::db::uri::Type::Ssh;
+  }
+  bool has_value(const std::string &name) const override;
+  const std::string &get(const std::string &name) const override;
+  int get_numeric(const std::string &name) const override;
+  std::vector<std::pair<std::string, mysqlshdk::null_string>> query_attributes()
+      const override {
+    return {};
+  };
 
  private:
   void check_key_encryption(const std::string &path);

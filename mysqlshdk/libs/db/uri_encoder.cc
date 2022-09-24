@@ -22,10 +22,10 @@
  */
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
+
 #include <algorithm>
 #include <sstream>
-#include <string>
-#include <vector>
+
 #include "utils/utils_general.h"
 #include "utils/utils_net.h"
 #include "utils/utils_string.h"
@@ -33,47 +33,45 @@
 namespace mysqlshdk {
 namespace db {
 namespace uri {
+using mysqlshdk::db::uri::Type;
 
-Uri_encoder::Uri_encoder(bool devapi) {
-  m_allowed_schemes = {"mysql", "mysqlx"};
-  if (!devapi) {
-    m_allowed_schemes.emplace("file");
-    m_allowed_schemes.emplace("ssh");
-  }
-}
-
-std::string Uri_encoder::encode_uri(const Connection_options &info,
+std::string Uri_encoder::encode_uri(const IUri_encodable &info,
                                     Tokens_mask format) {
+  auto type = info.get_type();
+
   std::string ret_val;
-  if (info.has_scheme() &&
-      info.get_scheme() == "file") {  // this is the simplest use case
-    if (format.is_set(Tokens::Scheme))
-      ret_val.append(encode_scheme(info.get_scheme())).append(":/");
+  std::string scheme;
+  std::string host;
+  if (info.has_value(db::kScheme)) scheme = info.get(db::kScheme);
+  if (info.has_value(db::kHost)) host = info.get(db::kHost);
+
+  if (format.is_set(Tokens::Scheme) && !scheme.empty()) {
+    ret_val.append(encode_scheme(scheme));
+  }
+
+  if (type == Type::File ||
+      (type == Type::Generic &&
+       scheme == "file")) {  // this is the simplest use case
+    if (!ret_val.empty()) ret_val.append(":");
 
     if (format.is_set(Tokens::Transport)) {
-      if (info.has_host()) ret_val.append(encode_host(info.get_host()));
+      if (!host.empty()) ret_val.append("//").append(encode_host(host));
 
-      if (info.has_path()) {
-        if ((info.has_host() || info.get_path()[1] == ':') &&
-            info.get_path()[0] != '/')
-          ret_val.append("/");
-        if (info.get_path()[0] == '/') ret_val.pop_back();
-
-        ret_val.append(info.get_path());
+      if (info.has_value(db::kPath)) {
+        ret_val.append(info.get(db::kPath));
       }
     }
     return ret_val;
   }
 
-  if (format.is_set(Tokens::Scheme) && info.has_scheme())
-    ret_val.append(encode_scheme(info.get_scheme())).append("://");
+  if (!ret_val.empty()) ret_val.append("://");
 
   std::string user_data;
-  if (format.is_set(Tokens::User) && info.has_user()) {
-    user_data = encode_userinfo(info.get_user());
+  if (format.is_set(Tokens::User) && info.has_value(db::kUser)) {
+    user_data = encode_userinfo(info.get(db::kUser));
 
-    if (format.is_set(Tokens::Password) && info.has_password())
-      user_data.append(":").append(encode_userinfo(info.get_password()));
+    if (format.is_set(Tokens::Password) && info.has_value(db::kPassword))
+      user_data.append(":").append(encode_userinfo(info.get(db::kPassword)));
   }
 
   if (!user_data.empty()) {
@@ -81,102 +79,52 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
   }
 
   if (format.is_set(Tokens::Transport)) {
-    if (info.has_transport_type()) {
-      auto type = info.get_transport_type();
-      if (type == Tcp || (type == Socket && info.get_socket().empty())) {
-        if (info.has_host())
-          ret_val.append(encode_host(info.get_host()));
-        else
-          ret_val.append("localhost");
-
-        if (info.has_port())
-          ret_val.append(":").append(
-              encode_port(std::to_string(info.get_port())));
-      } else if (type == Socket) {
-        ret_val.append(encode_socket(info.get_socket()));
-      } else {
-        ret_val.append("\\\\.\\").append(encode_value(info.get_pipe()));
-      }
+    if (info.has_value(db::kSocket)) {
+      ret_val.append(encode_socket(info.get(db::kSocket)));
+    } else if (info.has_value(db::kPipe)) {
+      ret_val.append("\\\\.\\").append(encode_value(info.get(db::kPipe)));
     } else {
-      if (info.has_host())
-        ret_val.append(encode_host(info.get_host()));
-      else
+      if (!host.empty()) {
+        ret_val.append(encode_host(host));
+      } else if (scheme != "file") {
         ret_val.append("localhost");
+      }
+      if (info.has_value(db::kPort))
+        ret_val.append(":").append(
+            encode_port(std::to_string(info.get_numeric(db::kPort))));
     }
   }
 
-  if (format.is_set(Tokens::Schema) && info.has_schema())
-    ret_val.append("/").append(info.get_schema());
+  if (format.is_set(Tokens::Path)) {
+    if (type == Type::DevApi) {
+      if (info.has_value(db::kSchema)) {
+        ret_val.append("/").append(encode_path_segment(info.get(db::kSchema)));
+      }
+    } else if (info.has_value(db::kPath)) {
+      ret_val.append(pctencode_path(info.get(db::kPath)));
+    }
+  }
 
   // All the SSL attributes come in the format of attribute=value
   if (format.is_set(Tokens::Query)) {
     std::vector<std::string> attributes;
-    for (auto ssl_attribute : mysqlshdk::db::Ssl_options::option_str_list) {
-      if (info.has_value(ssl_attribute)) {
-        attributes.push_back(std::string(ssl_attribute) + "=" +
-                             encode_value(info.get(ssl_attribute)));
-      }
-    }
 
-    auto extra_options = info.get_extra_options();
-    for (const auto &option : extra_options) {
+    auto query_attributes = info.query_attributes();
+    for (const auto &attribute : query_attributes) {
       // We must ensure only the attributes supported on the query part are
       // included (i.e. discarding internal ones)
-      if (uri_connection_attributes.find(option.first) !=
-              uri_connection_attributes.end() ||
-          uri_extra_options.find(option.first) != uri_extra_options.end()) {
-        if (option.second.is_null()) {
-          attributes.push_back(encode_attribute(option.first));
-        } else {
-          attributes.push_back(encode_attribute(option.first) + "=" +
-                               encode_value(*option.second));
-        }
+      if (attribute.second.is_null()) {
+        attributes.push_back(encode_attribute(attribute.first));
+      } else {
+        attributes.push_back(encode_attribute(attribute.first) + "=" +
+                             encode_value(*attribute.second));
       }
     }
-
-    if (info.has_compression_level())
-      attributes.push_back(
-          encode_attribute(kCompressionLevel) + "=" +
-          encode_value(std::to_string(info.get_compression_level())));
 
     if (!attributes.empty())
       ret_val.append("?").append(shcore::str_join(attributes, "&"));
   }
 
-  return ret_val;
-}
-
-std::string Uri_encoder::encode_uri(const ssh::Ssh_connection_options &info,
-                                    Tokens_mask format) {
-  if (format.is_set(Tokens::Schema) || format.is_set(Tokens::Query)) {
-    throw std::invalid_argument(
-        "encode_uri doesn't support Tokens::Schema and Tokens::Query");
-  }
-
-  std::string ret_val;
-  if (format.is_set(Tokens::Scheme) && info.has_scheme())
-    ret_val.append(encode_scheme(info.get_scheme())).append("://");
-
-  bool has_user_info = false;
-  if (format.is_set(Tokens::User) && info.has_user()) {
-    has_user_info = true;
-    ret_val.append(encode_userinfo(info.get_user()));
-  }
-
-  if (!ret_val.empty() && has_user_info) ret_val.append("@");
-
-  if (format.is_set(Tokens::Transport)) {
-    if (info.has_host())
-      ret_val.append(encode_host(info.get_host()));
-    else
-      ret_val.append("localhost");
-
-    if (info.has_port())
-      ret_val.append(":").append(encode_port(std::to_string(info.get_port())));
-
-    if (format.is_set(Tokens::Schema) && info.has_path())
-      ret_val.append(info.get_path());
-  }
   return ret_val;
 }
 
@@ -212,18 +160,6 @@ std::string Uri_encoder::encode_scheme(const std::string &data) {
           shcore::str_format("Scheme extension [%s] is "
                              "not supported",
                              ext.c_str()));
-  }
-
-  // Validate on unique supported schema formats
-  // In the future we may support additional stuff, like extensions
-  if (m_allowed_schemes.find(ret_val) == m_allowed_schemes.end()) {
-    throw std::invalid_argument(
-        shcore::str_format("Invalid scheme [%s], "
-                           "supported schemes include: %s",
-                           data.c_str(),
-                           shcore::str_join(m_allowed_schemes.begin(),
-                                            m_allowed_schemes.end(), ", ")
-                               .c_str()));
   }
 
   return ret_val;

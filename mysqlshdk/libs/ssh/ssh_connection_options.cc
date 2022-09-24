@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,8 +43,8 @@ Ssh_connection_options::Ssh_connection_options(
     mysqlshdk::utils::nullable_options::Comparison_mode mode)
     : Ssh_connection_options(mode) {
   try {
-    mysqlshdk::db::uri::Uri_parser parser(false);
-    *this = parser.parse_ssh_uri(uri, m_options.get_mode());
+    mysqlshdk::db::uri::Uri_parser parser(mysqlshdk::db::uri::Type::Ssh);
+    parser.parse(uri, this);
   } catch (const std::invalid_argument &error) {
     std::string msg = "Invalid URI: ";
     msg.append(error.what());
@@ -54,19 +54,12 @@ Ssh_connection_options::Ssh_connection_options(
 
 Ssh_connection_options::Ssh_connection_options(
     mysqlshdk::utils::nullable_options::Comparison_mode mode)
-    : IConnection("ssh_connection", mode), m_key_encrypted(false) {
+    : IConnection("ssh_connection", mode, {"ssh"}), m_key_encrypted(false) {
   for (const auto &o :
        {mysqlshdk::db::kSshRemoteHost, mysqlshdk::db::kSshConfigFile,
         mysqlshdk::db::kSshIdentityFile})
     m_options.set(o, nullptr,
                   mysqlshdk::utils::nullable_options::Set_mode::CREATE);
-  set_scheme("ssh");
-}
-
-std::string Ssh_connection_options::as_uri(
-    mysqlshdk::db::uri::Tokens_mask format) const {
-  mysqlshdk::db::uri::Uri_encoder encoder(false);
-  return encoder.encode_uri(*this, format);
 }
 
 std::string Ssh_connection_options::key_file_uri() const {
@@ -79,10 +72,12 @@ std::string Ssh_connection_options::key_file_uri() const {
 void Ssh_connection_options::set_default_data() {
   // Default values
   if (!has_config_file()) {
-    const auto &config_file =
-        mysqlsh::current_shell_options(true)->get().ssh.config_file;
-    if (!config_file.empty()) {
-      set_config_file(config_file);
+    auto options = mysqlsh::current_shell_options(true);
+    if (options) {
+      const auto &config_file = options->get().ssh.config_file;
+      if (!config_file.empty()) {
+        set_config_file(config_file);
+      }
     }
   }
 
@@ -90,6 +85,7 @@ void Ssh_connection_options::set_default_data() {
 
   if (!has_user()) set_user(shcore::get_system_user());
   if (!has_port()) set_port(22);
+  if (!has_scheme()) set_scheme("ssh");
 }
 
 void Ssh_connection_options::preload_ssh_config() {
@@ -215,6 +211,56 @@ void Ssh_connection_options::set_config_file(const std::string &file) {
           shcore::str_format("Invalid SSH configuration file: %s", err.what()));
     }
   }
+}
+
+void Ssh_connection_options::set(const std::string &name,
+                                 const std::string &value) {
+  if (compare(name, db::kScheme) == 0) {
+    set_scheme(value);
+  } else if (compare(name, db::kUser) == 0) {
+    set_user(value);
+  } else if (compare(name, db::kPassword) == 0) {
+    set_password(value);
+  } else if (compare(name, db::kHost) == 0) {
+    set_host(value);
+  } else {
+    throw std::invalid_argument("Invalid SSH connection option '" + name +
+                                "'.");
+  }
+}
+
+void Ssh_connection_options::set(const std::string &name, int value) {
+  if (name == db::kPort) {
+    set_port(value);
+  } else {
+    throw std::invalid_argument("Invalid SSH connection option '" + name +
+                                "'.");
+  }
+}
+
+bool Ssh_connection_options::has_value(const std::string &name) const {
+  if (m_options.has(name))
+    return m_options.has_value(name);
+  else if (m_options.compare(name, db::kPort) == 0)
+    return !m_port.is_null();
+
+  return false;
+}
+
+const std::string &Ssh_connection_options::get(const std::string &name) const {
+  if (name == db::kScheme) return get_scheme();
+  if (name == db::kUser) return get_user();
+  if (name == db::kPassword) return get_password();
+  if (name == db::kHost) return get_host();
+
+  throw std::invalid_argument("Invalid SSH connection option '" + name + "'.");
+}
+
+int Ssh_connection_options::get_numeric(const std::string &name) const {
+  if (name == db::kPort) return get_port();
+
+  throw std::invalid_argument(shcore::str_format(
+      "Invalid SSH numeric connection option: %s", name.c_str()));
 }
 
 }  // namespace ssh

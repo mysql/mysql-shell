@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,8 @@
 #include <vector>
 
 #include "mysql-secret-store/include/mysql-secret-store/api.h"
+#include "mysqlshdk/libs/db/generic_uri.h"
+#include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -353,10 +355,14 @@ class Shell_api_tester : public Helper_tester {
 
     EXPECT_TRUE(list(&specs));
     expect_no_error();
-    auto copts = mysqlsh::Connection_options{url};
+    mysqlshdk::db::uri::Generic_uri copts;
+    mysqlshdk::db::uri::Uri_parser parser(mysqlshdk::db::uri::Type::Generic);
+    parser.parse(url, &copts);
+
     auto tokens = mysqlshdk::db::uri::formats::user_transport();
-    if (copts.has_scheme() &&
-        (copts.get_scheme() == "ssh" || copts.get_scheme() == "file"))
+    if (copts.has_value(mysqlshdk::db::kScheme) &&
+        (copts.get(mysqlshdk::db::kScheme) == "ssh" ||
+         copts.get(mysqlshdk::db::kScheme) == "file"))
       tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
     auto normalized = copts.as_uri(tokens);
     return specs.end() !=
@@ -809,19 +815,22 @@ class Config_editor_invoker {
     std::vector<std::string> args = {"set", "--skip-warn", "--password"};
     args.emplace_back("--login-path=" + name);
 
-    mysqlsh::Connection_options options{url};
+    mysqlshdk::db::uri::Generic_uri options;
+    mysqlshdk::db::uri::Uri_parser parser(mysqlshdk::db::uri::Type::Generic);
+    parser.parse(url, &options);
 
-    if (options.has_user()) {
-      args.emplace_back("--user=" + options.get_user());
+    if (options.has_value(mysqlshdk::db::kUser)) {
+      args.emplace_back("--user=" + options.get(mysqlshdk::db::kUser));
     }
-    if (options.has_host()) {
-      args.emplace_back("--host=" + options.get_host());
+    if (options.has_value(mysqlshdk::db::kHost)) {
+      args.emplace_back("--host=" + options.get(mysqlshdk::db::kHost));
     }
-    if (options.has_port()) {
-      args.emplace_back("--port=" + std::to_string(options.get_port()));
+    if (options.has_value(mysqlshdk::db::kPort)) {
+      args.emplace_back("--port=" + std::to_string(options.get_numeric(
+                                        mysqlshdk::db::kPort)));
     }
-    if (options.has_socket()) {
-      args.emplace_back("--socket=" + options.get_socket());
+    if (options.has_value(mysqlshdk::db::kSocket)) {
+      args.emplace_back("--socket=" + options.get(mysqlshdk::db::kSocket));
     }
 
     invoke(args, true, secret);

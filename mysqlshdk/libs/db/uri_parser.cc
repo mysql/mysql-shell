@@ -20,9 +20,12 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
 #include "mysqlshdk/libs/db/uri_parser.h"
+
 #include <cctype>
+
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/generic_uri.h"
 #include "utils/utils_string.h"
 
 // Avoid warnings from protobuf and rapidjson
@@ -68,21 +71,9 @@ namespace uri {
 #define IS_RESERVED(x) RESERVED.find(x) != std::string::npos
 #define IS_UNRESERVED(x) UNRESERVED.find(x) != std::string::npos
 
-const std::map<char, char> kUriHexLiterals = {
-    {'1', 1},  {'2', 2},  {'3', 3},  {'4', 4},  {'5', 5},  {'6', 6},
-    {'7', 7},  {'8', 8},  {'9', 9},  {'A', 10}, {'B', 11}, {'C', 12},
-    {'D', 13}, {'E', 14}, {'F', 15}, {'a', 10}, {'b', 11}, {'c', 12},
-    {'d', 13}, {'e', 14}, {'f', 15}};
+Uri_parser::Uri_parser(Type type) : m_type(type), _data(nullptr) {}
 
-Uri_parser::Uri_parser(bool devapi) : _data(nullptr) {
-  m_allowed_schemes = {"mysql", "mysqlx"};
-  if (!devapi) {
-    m_allowed_schemes.emplace("file");
-    m_allowed_schemes.emplace("ssh");
-  }
-}
-
-std::string Uri_parser::parse_scheme() {
+void Uri_parser::parse_scheme() {
   if (_chunks.find(URI_SCHEME) != _chunks.end()) {
     // Does schema parsing based on RFC3986
     _tokenizer.reset();
@@ -96,7 +87,7 @@ std::string Uri_parser::parse_scheme() {
 
     _tokenizer.process(_chunks[URI_SCHEME]);
 
-    std::string scheme = _tokenizer.consume_token("alphanumeric");
+    m_scheme = _tokenizer.consume_token("alphanumeric");
 
     if (_tokenizer.tokens_available()) {
       std::string scheme_ext;
@@ -110,25 +101,10 @@ std::string Uri_parser::parse_scheme() {
       else
         throw std::invalid_argument(shcore::str_format(
             "Scheme extension [%s] is not supported", scheme_ext.c_str()));
-
-      // TODO(rennox): Internally not supporting URI shcheme extensions
-      // _data->set_scheme_ext(scheme_ext);
     }
 
-    // Validate on unique supported schema formats
-    // In the future we may support additional stuff, like extensions
-    if (m_allowed_schemes.find(scheme) == m_allowed_schemes.end()) {
-      throw std::invalid_argument(
-          shcore::str_format("Invalid scheme [%s], supported schemes "
-                             "include: %s",
-                             scheme.c_str(),
-                             shcore::str_join(m_allowed_schemes.begin(),
-                                              m_allowed_schemes.end(), ", ")
-                                 .c_str()));
-    }
-    return scheme;
+    if (!m_scheme.empty()) _data->set(db::kScheme, m_scheme);
   }
-  return "";
 }
 
 void Uri_parser::parse_userinfo() {
@@ -151,7 +127,7 @@ void Uri_parser::parse_userinfo() {
         has_password = true;
       else if (_tokenizer.cur_token_type_is("pct-encoded"))
         (has_password ? password : user) +=
-            percent_decode(_tokenizer.peek_token().get_text());
+            shcore::pctdecode(_tokenizer.peek_token().get_text());
       else
         (has_password ? password : user) += _tokenizer.peek_token().get_text();
 
@@ -161,8 +137,8 @@ void Uri_parser::parse_userinfo() {
     // At this point the user name can't be empty
     if (user.empty()) throw std::invalid_argument("Missing user name");
 
-    _data->set_user(user);
-    if (has_password) _data->set_password(password);
+    _data->set(db::kUser, user);
+    if (has_password) _data->set(db::kPassword, password);
   }
 }
 
@@ -172,18 +148,16 @@ void Uri_parser::parse_target() {
     const size_t end = _chunks[URI_TARGET].second;
 
     if (input_contains(".", start) && start == end) {
-      _data->set_host(".");
+      _data->set(db::kHost, std::string("."));
     } else if (input_contains(".", start) || input_contains("/", start) ||
                input_contains("(.", start) || input_contains("(/", start)) {
       auto offset = start;
       {
-        std::string scheme = "";
-        if (_data->has_scheme()) scheme = _data->get_scheme();
         std::string socket;
-        if (_input[start] == '/' && scheme == "file") {
+        if (_input[start] == '/' && m_scheme == "file") {
           // it means there was no target for file which is possible and it
           // means it's localhost
-          _data->set_host("localhost");
+          _data->set(db::kHost, std::string("localhost"));
           return;
         } else if (_input[start] == '/') {
           // When it starts with / the symbol is skipped and rest is parsed
@@ -192,9 +166,9 @@ void Uri_parser::parse_target() {
           start++;
           offset++;
         }
-        if (scheme != "file") {
+        if (m_scheme != "file") {
           socket += parse_value({start, end}, &offset, "");
-          _data->set_socket(socket);
+          _data->set(db::kSocket, socket);
         }
       }
 
@@ -227,7 +201,7 @@ void Uri_parser::parse_target() {
         throw std::invalid_argument("Named pipe cannot be empty.");
       }
 
-      _data->set_pipe(pipe);
+      _data->set(db::kPipe, pipe);
 
       if (offset <= end)
         throw std::invalid_argument(
@@ -382,7 +356,7 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
             // reserved characters, cannot be used in zone ID
             throw_unexpected_data();
           } else if (type == "zone-delimiter" || type == "pct-encoded") {
-            zone_id += percent_decode(text);
+            zone_id += shcore::pctdecode(text);
           } else {
             zone_id += text;
           }
@@ -464,7 +438,7 @@ void Uri_parser::parse_ipv6(const std::pair<size_t, size_t> &range,
           "specification");
   }
 
-  _data->set_host(host);
+  _data->set(db::kHost, host);
 }
 
 void Uri_parser::parse_port(const std::pair<size_t, size_t> &range,
@@ -491,7 +465,7 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range,
     if (port < 0 || port > 65535)
       throw std::invalid_argument("Port is out of the valid range: 0 - 65535");
 
-    _data->set_port(port);
+    _data->set(db::kPort, port);
   } else {
     throw std::invalid_argument("Missing port number");
   }
@@ -526,7 +500,7 @@ void Uri_parser::parse_host() {
              !_tokenizer.cur_token_type_is(":")) {
         std::string data = _tokenizer.peek_token().get_text();
         if (_tokenizer.cur_token_type_is("pct-encoded"))
-          host += percent_decode(data);
+          host += shcore::pctdecode(data);
         else
           host += data;
 
@@ -536,7 +510,7 @@ void Uri_parser::parse_host() {
       }
     }
 
-    _data->set_host(host);
+    _data->set(db::kHost, host);
   }
 
   if (offset <= _chunks[URI_TARGET].second)
@@ -545,38 +519,55 @@ void Uri_parser::parse_host() {
 
 void Uri_parser::parse_path() {
   if (_chunks.find(URI_PATH) != _chunks.end()) {
-    _tokenizer.reset();
-    _tokenizer.set_allow_spaces(false);
-    _tokenizer.set_simple_tokens(":@/");
-    _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
-    _tokenizer.set_complex_token("unreserved", UNRESERVED);
-    _tokenizer.set_complex_token("sub-delims", SUBDELIMITERS);
+    switch (m_type) {
+      case Type::Ssh:
+        throw std::invalid_argument(
+            "Invalid SSH URI given, only user, host, port can be used");
+      case Type::Generic:
+      case Type::File: {
+        auto path = _input.substr(
+            _chunks[URI_PATH].first,
+            _chunks[URI_PATH].second - _chunks[URI_PATH].first + 1);
+        if (m_type == Type::Generic && m_scheme != "file")
+          path = shcore::pctdecode(path);
+        _data->set(db::kPath, path);
+        break;
+      }
+      case Type::DevApi:
+        _tokenizer.reset();
+        _tokenizer.set_allow_spaces(false);
+        _tokenizer.set_simple_tokens(":@/");
+        _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
+        _tokenizer.set_complex_token("unreserved", UNRESERVED);
+        _tokenizer.set_complex_token("sub-delims", SUBDELIMITERS);
 
 #ifdef _WIN32
-    // on Windows we have to replace the \ with /, we do this only for file
-    // scheme
-    if (_data->has_scheme() && _data->get_scheme() == "file") {
-      std::replace(_input.begin() + _chunks[URI_PATH].first,
-                   _input.begin() + _chunks[URI_PATH].second, '\\', '/');
-      _tokenizer.set_input(_input);
-    }
+        // on Windows we have to replace the \ with /, we do this only for file
+        // scheme
+        if (m_scheme == "file") {
+          std::replace(_input.begin() + _chunks[URI_PATH].first,
+                       _input.begin() + _chunks[URI_PATH].second, '\\', '/');
+          _tokenizer.set_input(_input);
+        }
 #endif
 
-    _tokenizer.process(_chunks[URI_PATH]);
+        _tokenizer.process(_chunks[URI_PATH]);
 
-    // In generic URI there's PATH which becomes SCHEMA in MySQL URI
+        // In generic URI there's PATH which becomes SCHEMA in MySQL URI
 
-    std::string schema;
-    while (_tokenizer.tokens_available()) {
-      if (_tokenizer.cur_token_type_is("pct-encoded"))
-        schema += percent_decode(_tokenizer.peek_token().get_text());
-      else
-        schema += _tokenizer.peek_token().get_text();
+        std::string schema;
+        while (_tokenizer.tokens_available()) {
+          if (_tokenizer.cur_token_type_is("pct-encoded"))
+            schema += shcore::pctdecode(_tokenizer.peek_token().get_text());
+          else
+            schema += _tokenizer.peek_token().get_text();
 
-      _tokenizer.consume_any_token();
+          _tokenizer.consume_any_token();
+        }
+
+        if (!schema.empty()) _data->set(db::kSchema, schema);
+        break;
     }
-
-    if (!schema.empty()) _data->set_schema(schema);
   }
 }
 
@@ -615,7 +606,7 @@ void Uri_parser::parse_attribute(const std::pair<size_t, size_t> &range,
 
       break;
     } else if (_tokenizer.cur_token_type_is("pct-encoded")) {
-      attribute += percent_decode(_tokenizer.peek_token().get_text());
+      attribute += shcore::pctdecode(_tokenizer.peek_token().get_text());
     } else {
       attribute += _tokenizer.peek_token().get_text();
     }
@@ -681,23 +672,6 @@ std::string Uri_parser::parse_value(const std::pair<size_t, size_t> &range,
   return ret_val;
 }
 
-char Uri_parser::percent_decode(const std::string &value) const {
-  int ret_val = 0;
-
-  try {
-    ret_val += kUriHexLiterals.at(value[1]) * 16;
-  } catch (const std::out_of_range &) {
-    ret_val += 0;
-  }
-  try {
-    ret_val += kUriHexLiterals.at(value[2]);
-  } catch (const std::out_of_range &) {
-    ret_val += 0;
-  }
-
-  return ret_val;
-}
-
 std::string Uri_parser::get_input_chunk(
     const std::pair<size_t, size_t> &range) {
   return _input.substr(range.first, range.second - range.first + 1);
@@ -735,7 +709,7 @@ std::string Uri_parser::parse_unencoded_value(
   while (_tokenizer.tokens_available()) {
     auto token = _tokenizer.consume_any_token();
     if (token.get_type() == "pct-encoded")
-      value += percent_decode(token.get_text());
+      value += shcore::pctdecode(token.get_text());
     else
       value += token.get_text();
 
@@ -781,7 +755,7 @@ std::string Uri_parser::parse_encoded_value(
          !_tokenizer.cur_token_type_is("end")) {
     auto token = _tokenizer.consume_any_token();
     if (token.get_type() == "pct-encoded")
-      value += percent_decode(token.get_text());
+      value += shcore::pctdecode(token.get_text());
     else
       value += token.get_text();
 
@@ -808,20 +782,25 @@ void Uri_parser::preprocess(const std::string &input) {
   if (position != std::string::npos) {
     if (position) {
       _chunks[URI_SCHEME] = {0, position - 1};
+      // We need to parse scheme ASAP as some parts of uri depends on that
+      parse_scheme();
+      if (!m_scheme.empty()) _data->set(db::kScheme, m_scheme);
+
       if (position + 3 <= input.size()) {
-        if (input[position + 2] == '/')
+        if (input[position + 2] == '/') {
           first_char = position + 3;
-        else
+        } else if (m_scheme == "file") {
+          // This is a local file, we are done!
+          _chunks[URI_PATH] = {position + 1, last_char};
+          return;
+        } else {
           first_char = position + 2;
+        }
       }
     } else {
       throw std::invalid_argument("Scheme is missing");
     }
   }
-
-  // We need to parse scheme ASAP as some parts of uri depends on that
-  auto scheme = parse_scheme();
-  if (!scheme.empty()) _data->set_scheme(scheme);
 
   // 2) Trims from the input the userinfo component if found
   // It is safe to look for the first @ symbol since before the
@@ -845,39 +824,6 @@ void Uri_parser::preprocess(const std::string &input) {
     last_char = position - 1;
   }
 
-  // 3.1) A special case for the file scheme.
-  // it actually can be in form:
-  // file:/
-  // file://
-  // file:///
-  // where all three forms are perfectly valid.
-  // but for our use case we will support only the very basic one which is
-  // file:/
-
-  if (scheme == "file") {
-    // we have to set the position to be fixed otherwise the file:// would also
-    // match which is something we don't want to setting it to fixed 6 means
-    // it's the first character after file:/
-    first_char = 6;
-    if (input[first_char] == '/') {
-      std::string msg = "Unexpected data [";
-      msg.push_back(input[first_char]);
-      msg += "] at position " + std::to_string(first_char);
-      throw std::invalid_argument(msg);
-    }
-
-#ifdef _WIN32
-    // on Windows we care about everything after /  as we will do a conversion
-    // later
-    size_t first = first_char;
-#else
-    // on other system we have to consume first / as this is absolute path
-    size_t first = first_char - 1;
-#endif
-    _chunks[URI_PATH] = {first, last_char};
-    return;
-  }
-
   // 4) Gotta find the path component if any, path component starts with /
   //    but if the target is a socket it may also start with / so we need to
   //    find the right / defining a path component
@@ -886,7 +832,13 @@ void Uri_parser::preprocess(const std::string &input) {
   // so if / is on the first position it is not the path but the socket
   // definition
 
-  position = input.rfind("/", last_char);
+  int path_offset = 0;
+  if (m_type == Type::Generic)
+    position = input.find("/", first_char);
+  else {
+    position = input.rfind("/", last_char);
+    path_offset = 1;
+  }
 
   if (position != std::string::npos && position > first_char) {
     bool has_path = false;
@@ -905,7 +857,7 @@ void Uri_parser::preprocess(const std::string &input) {
     // Path component was found
     if (has_path) {
       if (position < last_char) {
-        _chunks[URI_PATH] = {position + 1, last_char};
+        _chunks[URI_PATH] = {position + path_offset, last_char};
         last_char = position - 1;
       } else {
         last_char--;
@@ -923,46 +875,18 @@ void Uri_parser::preprocess(const std::string &input) {
 Connection_options Uri_parser::parse(const std::string &input,
                                      Comparison_mode mode) {
   Connection_options data(mode);
-  _data = &data;
+  parse(input, &data);
+  return data;
+}
+
+void Uri_parser::parse(const std::string &input, IUri_parsable *handler) {
+  _data = handler;
+
   preprocess(input);
   parse_userinfo();
   parse_target();
   parse_path();
   parse_query();
-  return data;
-}
-
-mysqlshdk::ssh::Ssh_connection_options Uri_parser::parse_ssh_uri(
-    const std::string &input, Comparison_mode mode) {
-  auto parsed_connection = parse(input, mode);
-  Connection_options cleaned_uri(parsed_connection);
-  cleaned_uri.clear_scheme();
-  cleaned_uri.clear_host();
-  cleaned_uri.clear_user();
-  cleaned_uri.clear_port();
-  if (cleaned_uri.has_data())
-    throw std::invalid_argument(
-        "Invalid SSH URI given, only user, host, port can be used");
-  if (!parsed_connection.has_host())  // Host is mandatory for ssh
-    throw std::invalid_argument("Invalid SSH URI given, host is mandatory");
-  mysqlshdk::ssh::Ssh_connection_options ssh_config;
-  ssh_config.set_host(parsed_connection.get_host());
-  try {
-    ssh_config.set_password(parsed_connection.get_password());
-  } catch (const std::invalid_argument &) {
-    // no op it can be null
-  }
-  try {
-    ssh_config.set_user(parsed_connection.get_user());
-  } catch (const std::invalid_argument &) {
-    // no op it can be null
-  }
-  try {
-    ssh_config.set_port(parsed_connection.get_port());
-  } catch (const std::invalid_argument &) {
-    // it can be null we don't care as by default we're set with 22
-  }
-  return ssh_config;
 }
 
 bool Uri_parser::input_contains(const std::string &what, size_t index) {
@@ -976,10 +900,12 @@ bool Uri_parser::input_contains(const std::string &what, size_t index) {
   return ret_val;
 }
 
-std::string hide_password_in_uri(std::string uri, bool devapi) {
-  Uri_parser parser(devapi);
-  mysqlshdk::db::Connection_options conn_opts;
-  parser._data = &conn_opts;
+std::string hide_password_in_uri(std::string uri) {
+  // The type doesn't really matter since only user data is parsed on this
+  // operation and it is common in all cases
+  Uri_parser parser(Type::Generic);
+  Generic_uri uri_data;
+  parser._data = &uri_data;
   parser.preprocess(uri);
 
   if (parser._chunks.find(URI_USER_INFO) == parser._chunks.end()) {
@@ -988,7 +914,7 @@ std::string hide_password_in_uri(std::string uri, bool devapi) {
 
   auto [first, last] = parser._chunks[URI_USER_INFO];
   parser.parse_userinfo();
-  const auto &username = parser._data->get_user();
+  auto &username = uri_data.get(db::kUser);
   uri.replace(first, last - first + 1, username);
 
   return uri;

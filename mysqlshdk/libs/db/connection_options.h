@@ -94,8 +94,6 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   int64_t get_compression_level() const;
   const Mfa_passwords &get_mfa_passwords() const;
 
-  const std::string &get(const std::string &name) const;
-
   const Ssl_options &get_ssl_options() const { return m_ssl_options; }
   Ssl_options &get_ssl_options() { return m_ssl_options; }
 
@@ -123,8 +121,16 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   }
   bool has_compression_level() const { return !m_compress_level.is_null(); }
 
+  mysqlshdk::db::uri::Type get_type() const override {
+    return mysqlshdk::db::uri::Type::DevApi;
+  }
   bool has(const std::string &name) const override;
   bool has_value(const std::string &name) const override;
+  const std::string &get(const std::string &name) const override;
+  int get_numeric(const std::string &name) const override;
+  std::vector<std::pair<std::string, mysqlshdk::null_string>> query_attributes()
+      const override;
+
   bool has_ssh_options() const;
 
   void set_host(const std::string &host) override;
@@ -146,9 +152,11 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
     m_mfa_passwords = mfa_passwords;
   }
 
+  void set(const std::string &attribute, const std::string &value) override;
+  void set(const std::string &attribute, int value) override;
   void set(const std::string &attribute,
-           const std::vector<std::string> &values);
-  void set(const std::string &attribute, const std::string &value);
+           const std::vector<std::string> &values) override;
+
   void set_unchecked(const std::string &name, const char *value = nullptr);
 
   void clear_host() override;
@@ -165,9 +173,6 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   bool operator==(const Connection_options &other) const;
   bool operator!=(const Connection_options &other) const;
-
-  std::string as_uri(uri::Tokens_mask format =
-                         uri::formats::full_no_password()) const override;
 
   std::string uri_endpoint() const {
     return as_uri(uri::formats::only_transport());

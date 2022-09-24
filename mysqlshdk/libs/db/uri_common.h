@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,9 +21,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mysqlshdk/libs/utils/enumset.h"
+#include "mysqlshdk/libs/utils/nullable_options.h"
 
 #ifndef MYSQLSHDK_LIBS_DB_URI_COMMON_H_
 #define MYSQLSHDK_LIBS_DB_URI_COMMON_H_
+
+#include <optional>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
 namespace mysqlshdk {
 namespace db {
@@ -49,12 +55,14 @@ const char UNRESERVED[] =
     "0123456789"
     "-._~";
 
+enum class Type { DevApi, Ssh, File, Generic };
+
 enum Tokens {
   Scheme = 0,
   User = 1,
   Password = 2,
   Transport = 3,
-  Schema = 4,
+  Path = 4,
   Query = 5
 };
 
@@ -73,27 +81,27 @@ inline Tokens_mask full() {
       .set(Tokens::User)
       .set(Tokens::Password)
       .set(Tokens::Transport)
-      .set(Tokens::Schema)
+      .set(Tokens::Path)
       .set(Tokens::Query);
 }
 inline Tokens_mask full_no_password() {
   return Tokens_mask(Tokens::Scheme)
       .set(Tokens::User)
       .set(Tokens::Transport)
-      .set(Tokens::Schema)
+      .set(Tokens::Path)
       .set(Tokens::Query);
 }
 inline Tokens_mask no_scheme() {
   return Tokens_mask(Tokens::User)
       .set(Tokens::Password)
       .set(Tokens::Transport)
-      .set(Tokens::Schema)
+      .set(Tokens::Path)
       .set(Tokens::Query);
 }
 inline Tokens_mask no_scheme_no_password() {
   return Tokens_mask(Tokens::User)
       .set(Tokens::Transport)
-      .set(Tokens::Schema)
+      .set(Tokens::Path)
       .set(Tokens::Query);
 }
 inline Tokens_mask only_transport() { return Tokens_mask(Tokens::Transport); }
@@ -104,6 +112,63 @@ inline Tokens_mask scheme_user_transport() {
   return Tokens_mask(Tokens::Scheme).set(Tokens::User).set(Tokens::Transport);
 }
 }  // namespace formats
+
+class IUri_data_base {
+ public:
+  virtual ~IUri_data_base() = default;
+  virtual mysqlshdk::db::uri::Type get_type() const = 0;
+  virtual std::string as_uri(
+      uri::Tokens_mask format = formats::full_no_password()) const = 0;
+};
+
+class IUri_parsable : public virtual IUri_data_base {
+ public:
+  ~IUri_parsable() override = default;
+  virtual void set(const std::string &name, const std::string &value) = 0;
+  virtual void set(const std::string &name, int value) = 0;
+  virtual void set(const std::string &name,
+                   const std::vector<std::string> &values) = 0;
+  bool is_allowed_scheme(const std::string &name) const;
+
+ protected:
+  void validate_allowed_scheme(const std::string &scheme) const;
+
+ private:
+  virtual const std::unordered_set<std::string> &allowed_schemes() const = 0;
+};
+
+class IUri_encodable : public virtual IUri_data_base {
+ public:
+  ~IUri_encodable() override = default;
+  virtual bool has_value(const std::string &name) const = 0;
+  virtual const std::string &get(const std::string &name) const = 0;
+  virtual int get_numeric(const std::string &name) const = 0;
+  virtual std::vector<std::pair<std::string, mysqlshdk::null_string>>
+  query_attributes() const = 0;
+};
+
+class Uri_serializable : public IUri_parsable, public IUri_encodable {
+ public:
+  explicit Uri_serializable(
+      const std::unordered_set<std::string> &allowed_schemes);
+
+  Uri_serializable(const Uri_serializable &) = default;
+  Uri_serializable(Uri_serializable &&) = default;
+
+  Uri_serializable &operator=(const Uri_serializable &) = default;
+  Uri_serializable &operator=(Uri_serializable &&) = default;
+
+  ~Uri_serializable() override = default;
+
+  const std::unordered_set<std::string> &allowed_schemes() const override;
+
+  std::string as_uri(
+      uri::Tokens_mask format = formats::full_no_password()) const override;
+
+ private:
+  std::unordered_set<std::string> m_allowed_schemes;
+};
+
 }  // namespace uri
 }  // namespace db
 }  // namespace mysqlshdk

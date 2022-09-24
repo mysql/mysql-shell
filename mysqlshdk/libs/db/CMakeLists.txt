@@ -35,6 +35,9 @@ set(db_SOURCE
     row.cc
     row_copy.cc
     mutable_result.cc
+    uri_common.cc
+    generic_uri.cc
+    file_uri.cc
     utils/diff.cc
     utils/utils.cc
     mysql/session.cc
@@ -55,7 +58,6 @@ set(db_SOURCE
     replay/replayer.cc
     replay/trace.cc
 )
-
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   SET(mysqlsh_tests_SRC

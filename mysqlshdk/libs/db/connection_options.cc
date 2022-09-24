@@ -26,6 +26,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
+#include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -64,7 +65,7 @@ Connection_options::Connection_options(const std::string &uri,
                                        Comparison_mode mode)
     : Connection_options(mode) {
   try {
-    uri::Uri_parser parser(false);
+    uri::Uri_parser parser(mysqlshdk::db::uri::Type::DevApi);
     *this = parser.parse(uri, m_options.get_mode());
   } catch (const std::invalid_argument &error) {
     std::string msg = "Invalid URI: ";
@@ -357,9 +358,22 @@ void Connection_options::set(const std::string &name,
     m_warnings.emplace_back("'" + name +
                             "' connection option is deprecated, use '" + iname +
                             "' option instead.");
-
-  if (m_options.has(iname)) {
-    m_options.set(iname, value, Set_mode::CREATE_AND_UPDATE);
+  if (compare(iname, db::kScheme) == 0) {
+    set_scheme(value);
+  } else if (compare(iname, db::kUser) == 0) {
+    set_user(value);
+  } else if (compare(iname, db::kPassword) == 0) {
+    set_password(value);
+  } else if (compare(iname, db::kHost) == 0) {
+    set_host(value);
+  } else if (compare(iname, db::kPath) == 0) {
+    set_path(value);
+  } else if (compare(iname, db::kSocket) == 0) {
+    set_socket(value);
+  } else if (compare(iname, db::kPipe) == 0) {
+    set_pipe(value);
+  } else if (compare(iname, db::kSchema) == 0) {
+    set_schema(value);
   } else if (m_ssl_options.has(iname)) {
     m_ssl_options.set(iname, value);
   } else if (iname == kCompression) {
@@ -411,6 +425,16 @@ void Connection_options::set(const std::string &name,
   }
 }
 
+void Connection_options::set(const std::string &name, int value) {
+  if (name == db::kPort) {
+    set_port(value);
+  } else if (name == db::kCompressionLevel) {
+    set_compression_level(value);
+  } else {
+    throw std::invalid_argument("Invalid connection option '" + name + "'.");
+  }
+}
+
 void Connection_options::set_unchecked(const std::string &name,
                                        const char *value) {
   m_extra_options.set(name, value);
@@ -441,6 +465,8 @@ void Connection_options::set(const std::string &name,
 bool Connection_options::has(const std::string &name) const {
   std::string iname = get_iname(name);
 
+  if (iname == db::kCompressionLevel) return has_compression_level();
+
   return m_options.has(iname) || m_ssl_options.has(iname) ||
          m_extra_options.has(iname) || m_options.compare(iname, kPort) == 0;
 }
@@ -458,6 +484,35 @@ bool Connection_options::has_value(const std::string &name) const {
     return m_extra_options.has_value(iname);
 
   return false;
+}
+
+std::vector<std::pair<std::string, mysqlshdk::null_string>>
+Connection_options::query_attributes() const {
+  std::vector<std::pair<std::string, mysqlshdk::null_string>> attributes;
+
+  // From SSL options, only the options with value are considered
+  for (const auto &ssl_option : m_ssl_options) {
+    if (!ssl_option.second.is_null()) {
+      attributes.push_back(ssl_option);
+    }
+  }
+
+  // From the extra options, only the predefined list of attributes is
+  // considered, with or without value
+  for (const auto &option : m_extra_options) {
+    if (uri_connection_attributes.find(option.first) !=
+            uri_connection_attributes.end() ||
+        uri_extra_options.find(option.first) != uri_extra_options.end()) {
+      attributes.push_back(option);
+    }
+  }
+
+  if (has_compression_level()) {
+    attributes.push_back(
+        {kCompressionLevel, std::to_string(get_compression_level())});
+  }
+
+  return attributes;
 }
 
 bool Connection_options::has_ssh_options() const {
@@ -507,14 +562,21 @@ const Mfa_passwords &Connection_options::get_mfa_passwords() const {
 }
 
 const std::string &Connection_options::get(const std::string &name) const {
-  if (m_options.has(name))
-    return get_value(name);
-  else if (m_ssl_options.has(name))
-    return m_ssl_options.get_value(name);
-  else if (m_extra_options.has(name))
-    return m_extra_options.get_value(name);
-  else
-    return get_value(name);  // <-- This will throw the standard message
+  std::string iname = get_iname(name);
+  if (m_ssl_options.has(iname))
+    return m_ssl_options.get_value(iname);
+  else if (m_extra_options.has(iname))
+    return m_extra_options.get_value(iname);
+
+  return get_value(name);
+}
+
+int Connection_options::get_numeric(const std::string &name) const {
+  if (name == db::kPort) return get_port();
+  if (name == db::kCompressionLevel) return get_compression_level();
+
+  throw std::invalid_argument(
+      shcore::str_format("Invalid URI property: %s", name.c_str()));
 }
 
 bool Connection_options::has_mfa_passwords() const {
@@ -568,12 +630,6 @@ void Connection_options::remove(const std::string &name) {
         "clear instead!!");
 
   m_extra_options.remove(name);
-}
-
-std::string Connection_options::as_uri(
-    mysqlshdk::db::uri::Tokens_mask format) const {
-  Uri_encoder encoder(false);
-  return encoder.encode_uri(*this, format);
 }
 
 bool Connection_options::operator==(const Connection_options &other) const {
@@ -633,8 +689,8 @@ void Connection_options::set_default_data() {
 }
 
 void Connection_options::set_plugins_dir() {
-  // Use the plugin dir from the shell options if not included on the connection
-  // options already
+  // Use the plugin dir from the shell options if not included on the
+  // connection options already
   if (!has(mysqlshdk::db::kMysqlPluginDir)) {
     // NOTE:Allowing empty options as required for many tests
     // In the case of the shell binary that will never be the case

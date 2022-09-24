@@ -69,7 +69,7 @@ class Ssh_connection_options_t : public tests::Shell_base_test {
 TEST_F(Ssh_connection_options_t, default_initialization) {
   Ssh_connection_options ssh_config;
 
-  ASSERT_TRUE(ssh_config.has_scheme());
+  ASSERT_FALSE(ssh_config.has_scheme());
   ASSERT_FALSE(ssh_config.has_user());
   ASSERT_FALSE(ssh_config.has_password());
   ASSERT_FALSE(ssh_config.has_host());
@@ -107,10 +107,12 @@ TEST_F(Ssh_connection_options_t, default_initialization) {
 TEST_F(Ssh_connection_options_t, scheme_functions) {
   Ssh_connection_options ssh_configs;
   std::string msg;
-
-  ssh_configs.set_scheme("mysqlx");
+  EXPECT_THROW_LIKE(ssh_configs.set_scheme("mysqlx"), std::invalid_argument,
+                    "Invalid scheme [mysqlx], supported schemes include: ssh");
+  EXPECT_FALSE(ssh_configs.has_scheme());
+  ssh_configs.set_scheme("ssh");
   EXPECT_TRUE(ssh_configs.has_scheme());
-  EXPECT_STREQ("mysqlx", ssh_configs.get_scheme().c_str());
+  EXPECT_STREQ("ssh", ssh_configs.get_scheme().c_str());
   EXPECT_NO_THROW(ssh_configs.clear_scheme());
   EXPECT_FALSE(ssh_configs.has_scheme());
   msg = "The ssh_connection option '";

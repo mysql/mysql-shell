@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,6 +63,7 @@ class SHCORE_PUBLIC MapSslModeNameToValue {
 constexpr const char kHost[] = "host";
 constexpr const char kPort[] = "port";
 constexpr const char kSocket[] = "socket";
+constexpr const char kPipe[] = "pipe";
 constexpr const char kScheme[] = "scheme";
 // schema in mysql uri is actually a path in generic URI
 // so this two will point to the exact same place then

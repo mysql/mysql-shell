@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,17 +21,21 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/db/file_uri.h"
+#include "mysqlshdk/libs/db/generic_uri.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 
 using mysqlshdk::db::Transport_type;
+using mysqlshdk::db::uri::Type;
 using mysqlshdk::db::uri::Uri_parser;
 namespace testing {
 mysqlshdk::utils::nullable<const char *> no_string;
 mysqlshdk::utils::nullable<int> no_int;
 
+#define NO_SCHEME no_string
 #define NO_SCHEMA no_string
 #define NO_USER no_string
 #define NO_PASSWORD no_string
@@ -46,16 +50,34 @@ mysqlshdk::utils::nullable<int> no_int;
 
 namespace proj_parser_tests {
 void validate_bad_uri(const std::string &connstring, const std::string &error,
-                      bool is_devapi_uri = false) {
+                      Type type = Type::DevApi) {
   SCOPED_TRACE(connstring);
 
-  Uri_parser parser(!is_devapi_uri);
+  Uri_parser parser(type);
 
   try {
-    if (is_devapi_uri)
-      parser.parse_ssh_uri(connstring);
-    else
-      parser.parse(connstring);
+    switch (type) {
+      case Type::DevApi: {
+        mysqlshdk::db::Connection_options options;
+        parser.parse(connstring, &options);
+        break;
+      }
+      case Type::Ssh: {
+        mysqlshdk::ssh::Ssh_connection_options options;
+        parser.parse(connstring, &options);
+        break;
+      }
+      case Type::Generic: {
+        mysqlshdk::db::uri::Generic_uri options;
+        parser.parse(connstring, &options);
+        break;
+      }
+      case Type::File: {
+        mysqlshdk::db::uri::File_uri options;
+        parser.parse(connstring, &options);
+        break;
+      }
+    }
 
     if (!error.empty()) {
       SCOPED_TRACE("MISSING ERROR: " + error);
@@ -84,7 +106,8 @@ void validate_uri(
     const mysqlshdk::utils::nullable<int> &port,
     const mysqlshdk::utils::nullable<const char *> &sock,
     const mysqlshdk::utils::nullable<const char *> &db, bool /* has_password */,
-    bool /* has_port */, Transport_type target_type,
+    bool /* has_port */, Transport_type target_type, bool reverse_check = true,
+    bool generic_check = true,
     const std::map<std::string, std::vector<std::string>> *attributes = 0) {
   SCOPED_TRACE(connstring);
 
@@ -92,6 +115,22 @@ void validate_uri(
 
   try {
     mysqlshdk::db::Connection_options data = parser.parse(connstring);
+
+    // TEST to ensure the URI is re-generated identical after parsed
+    if (reverse_check) {
+      SCOPED_TRACE("Testing decode DevAPI URI");
+      ASSERT_EQ(connstring,
+                data.as_uri(mysqlshdk::db::uri::Tokens_mask::all()));
+
+      // TEST to ensure the URI is re-generated identical after parsed using the
+      // Generic parser
+      if (generic_check) {
+        SCOPED_TRACE("Testing decode Generic URI");
+        mysqlshdk::db::uri::Generic_uri uri(connstring);
+        ASSERT_EQ(connstring,
+                  uri.as_uri(mysqlshdk::db::uri::Tokens_mask::all()));
+      }
+    }
 
     if (scheme.is_null())
       ASSERT_FALSE(data.has_scheme());
@@ -170,13 +209,20 @@ void validate_ssh_uri(const std::string &connstring,
                       const mysqlshdk::utils::nullable<const char *> &user,
                       const mysqlshdk::utils::nullable<const char *> &password,
                       const mysqlshdk::utils::nullable<const char *> &host,
-                      const mysqlshdk::utils::nullable<int> &port) {
+                      const mysqlshdk::utils::nullable<int> &port,
+                      bool reverse_check = true) {
   SCOPED_TRACE(connstring);
 
-  Uri_parser parser(false);
+  Uri_parser parser(Type::Ssh);
 
   try {
-    auto data = parser.parse_ssh_uri(connstring);
+    mysqlshdk::ssh::Ssh_connection_options data;
+    parser.parse(connstring, &data);
+
+    if (reverse_check) {
+      ASSERT_EQ(connstring,
+                data.as_uri(mysqlshdk::db::uri::Tokens_mask::all()));
+    }
 
     if (scheme.is_null())
       ASSERT_FALSE(data.has_scheme());
@@ -192,7 +238,6 @@ void validate_ssh_uri(const std::string &connstring,
       ASSERT_FALSE(data.has_password());
     else
       ASSERT_STREQ(*password, data.get_password().c_str());
-
     if (host.is_null())
       ASSERT_FALSE(data.has_host());
     else
@@ -210,19 +255,70 @@ void validate_ssh_uri(const std::string &connstring,
   }
 }
 
+void validate_file_uri(const std::string &connstring,
+                       const mysqlshdk::utils::nullable<const char *> &scheme,
+                       const mysqlshdk::utils::nullable<const char *> &host,
+                       const mysqlshdk::utils::nullable<const char *> &path,
+                       bool reverse_check = true, bool generic_check = true) {
+  SCOPED_TRACE(connstring);
+
+  try {
+    mysqlshdk::db::uri::File_uri data;
+    mysqlshdk::db::uri::Uri_parser parser(Type::File);
+    parser.parse(connstring, &data);
+
+    // TEST to ensure the URI is re-generated identical after parsed
+    if (reverse_check) {
+      SCOPED_TRACE("Testing decode File URI");
+      ASSERT_EQ(connstring,
+                data.as_uri(mysqlshdk::db::uri::Tokens_mask::all()));
+
+      // TEST to ensure the URI is re-generated identical after parsed using the
+      // Generic parser
+      if (generic_check) {
+        SCOPED_TRACE("Testing decode Generic URI");
+        mysqlshdk::db::uri::Generic_uri uri(connstring);
+        ASSERT_EQ(connstring,
+                  uri.as_uri(mysqlshdk::db::uri::Tokens_mask::all()));
+      }
+    }
+
+    if (scheme.is_null())
+      ASSERT_FALSE(data.has_value(mysqlshdk::db::kScheme));
+    else
+      ASSERT_STREQ(*scheme, data.get(mysqlshdk::db::kScheme).c_str());
+
+    if (host.is_null())
+      ASSERT_FALSE(data.has_value(mysqlshdk::db::kHost));
+    else
+      ASSERT_STREQ(*host, data.get(mysqlshdk::db::kHost).c_str());
+
+    if (path.is_null())
+      ASSERT_FALSE(data.has_value(mysqlshdk::db::kPath));
+    else
+      ASSERT_STREQ(*path, data.get(mysqlshdk::db::kPath).c_str());
+
+  } catch (const std::invalid_argument &err) {
+    std::string found_error(err.what());
+
+    SCOPED_TRACE("UNEXPECTED ERROR: " + found_error);
+    FAIL();
+  }
+}
+
 void validate_ipv6(const std::string &address,
                    const std::string &expected = "") {
   std::string result =
       expected.empty() ? address.substr(1, address.length() - 2) : expected;
   validate_uri("mysqlx://user:sample@" + address + ":2540/testing", "mysqlx",
                "user", "sample", result.c_str(), 2540, NO_SOCK, "testing",
-               HAS_PASSWORD, HAS_PORT, Transport_type::Tcp);
+               HAS_PASSWORD, HAS_PORT, Transport_type::Tcp, expected.empty());
 }
 
 TEST(Uri_parser, parse_scheme) {
   validate_uri("mysqlx://mysql.com", "mysqlx", NO_USER, NO_PASSWORD,
                "mysql.com", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD,
-               HAS_NO_PORT, Transport_type::Tcp);
+               HAS_NO_PORT, Transport_type::Tcp, true, false);
   validate_uri("mysql://mysql.com", "mysql", NO_USER, NO_PASSWORD, "mysql.com",
                NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_NO_PORT,
                Transport_type::Tcp);
@@ -233,15 +329,15 @@ TEST(Uri_parser, parse_scheme) {
   validate_ssh_uri("ssh://mysql.com", "ssh", NO_USER, NO_PASSWORD, "mysql.com",
                    NO_PORT);
 
-  validate_ssh_uri("mysql.com", "ssh", NO_USER, NO_PASSWORD, "mysql.com",
+  validate_ssh_uri("mysql.com", NO_SCHEME, NO_USER, NO_PASSWORD, "mysql.com",
                    NO_PORT);
 
   //                0    0    1    1    2    2    3    3    4    4    5    5
   //                0    5    0    5    0    5    0    5    0    5    0    5
   validate_bad_uri("://mysql.com", "Scheme is missing");
   validate_bad_uri("other://mysql.com",
-                   "Invalid scheme [other], supported schemes include: mysql, "
-                   "mysqlx");
+                   "Invalid scheme [other], supported schemes include: mysqlx, "
+                   "mysql");
   validate_bad_uri("mysqlx ://mysql.com", "Illegal space found at position 6");
   validate_bad_uri("mysq=lx://mysql.com",
                    "Illegal character [=] found at position 4");
@@ -251,21 +347,20 @@ TEST(Uri_parser, parse_scheme) {
   validate_bad_uri("mysqlx+ssh://mysql.com",
                    "Scheme extension [ssh] is not supported");
 
-  validate_bad_uri("://mysql.com", "Scheme is missing", true);
+  validate_bad_uri("://mysql.com", "Scheme is missing", Type::Ssh);
   validate_bad_uri("other://mysql.com",
-                   "Invalid scheme [other], supported schemes include: file, "
-                   "mysql, mysqlx, ssh",
-                   true);
+                   "Invalid scheme [other], supported schemes include: ssh",
+                   Type::Ssh);
   validate_bad_uri("ssh ://mysql.com", "Illegal space found at position 3",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ss=h://mysql.com",
-                   "Illegal character [=] found at position 2", true);
+                   "Illegal character [=] found at position 2", Type::Ssh);
   validate_bad_uri("mysqlx+ssh+other://mysql.com",
                    "Invalid scheme format [mysqlx+ssh+other], only one "
                    "extension is supported",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("mysqlx+ssh://mysql.com",
-                   "Scheme extension [ssh] is not supported", true);
+                   "Scheme extension [ssh] is not supported", Type::Ssh);
 }
 
 TEST(Uri_parser, parse_user_info) {
@@ -313,10 +408,10 @@ TEST(Uri_parser, parse_user_info) {
                HAS_NO_PASSWORD, HAS_NO_PORT, Transport_type::Tcp);
   validate_uri("mysqlx://user%2Aname@mysql.com", "mysqlx", "user*name",
                NO_PASSWORD, "mysql.com", NO_PORT, NO_SOCK, NO_DB,
-               HAS_NO_PASSWORD, HAS_NO_PORT, Transport_type::Tcp);
+               HAS_NO_PASSWORD, HAS_NO_PORT, Transport_type::Tcp, false);
   validate_uri("mysqlx://user%2Aname:password@mysql.com", "mysqlx", "user*name",
                "password", "mysql.com", NO_PORT, NO_SOCK, NO_DB, HAS_PASSWORD,
-               HAS_NO_PORT, Transport_type::Tcp);
+               HAS_NO_PORT, Transport_type::Tcp, false);
 
   validate_ssh_uri("ssh://user@mysql.com", "ssh", "user", NO_PASSWORD,
                    "mysql.com", NO_PORT);
@@ -352,10 +447,9 @@ TEST(Uri_parser, parse_user_info) {
   validate_ssh_uri("ssh://user=name@mysql.com", "ssh", "user=name", NO_PASSWORD,
                    "mysql.com", NO_PORT);
   validate_ssh_uri("ssh://user%2Aname@mysql.com", "ssh", "user*name",
-                   NO_PASSWORD, "mysql.com", NO_PORT);
-  validate_bad_uri("ssh://user%2Aname:password@mysql.com",
-                   "Invalid SSH URI given, only user, host, port can be used",
-                   true);
+                   NO_PASSWORD, "mysql.com", NO_PORT, false);
+  validate_ssh_uri("ssh://user%2Aname:password@mysql.com", "ssh", "user*name",
+                   "password", "mysql.com", NO_PORT, false);
 
   //                0    0    1    1    2    2    3    3    4    4    5    5
   //                0    5    0    5    0    5    0    5    0    5    0    5
@@ -370,16 +464,16 @@ TEST(Uri_parser, parse_user_info) {
                    "Illegal character [@] found at position 29");
   validate_bad_uri("mysqlx://:password@mysql.com", "Missing user name");
 
-  validate_bad_uri("ssh://@mysql.com", "Missing user information", true);
+  validate_bad_uri("ssh://@mysql.com", "Missing user information", Type::Ssh);
   validate_bad_uri("ssh ://user_name@mysql.com",
-                   "Illegal space found at position 3", true);
+                   "Illegal space found at position 3", Type::Ssh);
   validate_bad_uri("ssh://user%name@mysql.com",
-                   "Illegal character [%] found at position 10", true);
+                   "Illegal character [%] found at position 10", Type::Ssh);
   validate_bad_uri("ssh://user%1name@mysql.com",
-                   "Illegal character [%] found at position 10", true);
+                   "Illegal character [%] found at position 10", Type::Ssh);
   validate_bad_uri("ssh://user%2Aname:p@ssword@mysql.com",
-                   "Illegal character [@] found at position 26", true);
-  validate_bad_uri("ssh://:password@mysql.com", "Missing user name", true);
+                   "Illegal character [@] found at position 26", Type::Ssh);
+  validate_bad_uri("ssh://:password@mysql.com", "Missing user name", Type::Ssh);
 }
 
 TEST(Uri_parser, parse_host_name) {
@@ -442,10 +536,10 @@ TEST(Uri_parser, parse_host_name) {
                HAS_NO_PORT, Transport_type::Tcp);
   validate_uri("mysqlx://user@mysql1%2ecom", "mysqlx", "user", NO_PASSWORD,
                "mysql1.com", NO_PORT, NO_SOCK, NO_DB, HAS_NO_PASSWORD,
-               HAS_NO_PORT, Transport_type::Tcp);
+               HAS_NO_PORT, Transport_type::Tcp, false);
   validate_uri("mysqlx://user@mysql1%2ecom:2845", "mysqlx", "user", NO_PASSWORD,
                "mysql1.com", 2845, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_PORT,
-               Transport_type::Tcp);
+               Transport_type::Tcp, false);
 
   validate_ssh_uri("ssh://user@localhost:3306", "ssh", "user", NO_PASSWORD,
                    "localhost", 3306);
@@ -480,9 +574,9 @@ TEST(Uri_parser, parse_host_name) {
   validate_ssh_uri("ssh://user@mysql1=com", "ssh", "user", NO_PASSWORD,
                    "mysql1=com", NO_PORT);
   validate_ssh_uri("ssh://user@mysql1%2ecom", "ssh", "user", NO_PASSWORD,
-                   "mysql1.com", NO_PORT);
+                   "mysql1.com", NO_PORT, false);
   validate_ssh_uri("ssh://user@mysql1%2ecom:2845", "ssh", "user", NO_PASSWORD,
-                   "mysql1.com", 2845);
+                   "mysql1.com", 2845, false);
 
   //                0    0    1    1    2    2    3    3    4    4    5    5
   //                0    5    0    5    0    5    0    5    0    5    0    5
@@ -500,16 +594,17 @@ TEST(Uri_parser, parse_host_name) {
 
   // ssh part
   validate_bad_uri("ssh://user@mysql1%com",
-                   "Illegal character [%] found at position 17", true);
+                   "Illegal character [%] found at position 17", Type::Ssh);
   validate_bad_uri("ssh://user@mysql1%cgcom",
-                   "Illegal character [%] found at position 17", true);
+                   "Illegal character [%] found at position 17", Type::Ssh);
   validate_bad_uri("ssh://user@mysql1%2ecom:65538",
-                   "Port is out of the valid range: 0 - 65535", true);
-  validate_bad_uri("ssh://user@mysql1%2ecom:", "Missing port number", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
+  validate_bad_uri("ssh://user@mysql1%2ecom:", "Missing port number",
+                   Type::Ssh);
   validate_bad_uri("ssh://user@mysql1%2ecom:2845f",
-                   "Illegal character [f] found at position 28", true);
+                   "Illegal character [f] found at position 28", Type::Ssh);
   validate_bad_uri("ssh://user@mysql1%2ecom:invalid",
-                   "Illegal character [i] found at position 24", true);
+                   "Illegal character [i] found at position 24", Type::Ssh);
 }
 
 TEST(Uri_parser, parse_host_ipv4) {
@@ -592,42 +687,43 @@ TEST(Uri_parser, parse_host_ipv4) {
   validate_bad_uri("ssh://user@256.255.255.255",
                    "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 11",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user@255.256.255.255",
                    "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 15",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user@255.255.256.255",
                    "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 19",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user@255.255.255.256",
                    "Octet value out of bounds [256], valid range for IPv4 is "
                    "0 to 255 at position 23",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:68000",
-                   "Port is out of the valid range: 0 - 65535", true);
-  validate_bad_uri("ssh://user@10.150.123.45:", "Missing port number", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
+  validate_bad_uri("ssh://user@10.150.123.45:", "Missing port number",
+                   Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:2845f",
-                   "Illegal character [f] found at position 29", true);
+                   "Illegal character [f] found at position 29", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:2147483647",
-                   "Port is out of the valid range: 0 - 65535", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:2147483648",
-                   "Port is out of the valid range: 0 - 65535", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:4294967295",
-                   "Port is out of the valid range: 0 - 65535", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:4294967296",
-                   "Port is out of the valid range: 0 - 65535", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:928482174821947214627846278",
-                   "Port is out of the valid range: 0 - 65535", true);
+                   "Port is out of the valid range: 0 - 65535", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:-4294967296",
-                   "Illegal character [-] found at position 25", true);
+                   "Illegal character [-] found at position 25", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:-1",
-                   "Illegal character [-] found at position 25", true);
+                   "Illegal character [-] found at position 25", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:-0",
-                   "Illegal character [-] found at position 25", true);
+                   "Illegal character [-] found at position 25", Type::Ssh);
   validate_bad_uri("ssh://user@10.150.123.45:invalid",
-                   "Illegal character [i] found at position 25", true);
+                   "Illegal character [i] found at position 25", Type::Ssh);
 }
 
 TEST(Uri_parser, parse_host_ipv6) {
@@ -767,51 +863,51 @@ TEST(Uri_parser, parse_host_ipv6) {
 
   // ssh
   validate_bad_uri("ssh://user:sample@[A:B:C:D:E:G:7:8]:2540/testing",
-                   "Unexpected data [G] found at position 29", true);
+                   "Unexpected data [G] found at position 29", Type::Ssh);
   validate_bad_uri(
       "ssh://user:sample@[A:B:C:D:E:A1B23:7:8]:2540/testing",
       "Invalid IPv6 value [A1B23], maximum 4 hexadecimal digits accepted",
-      true);
+      Type::Ssh);
   validate_bad_uri(
       "ssh://user:sample@[A:B:C:D:E:F:7:8:9]:2540/testing",
       "Invalid IPv6: the number of segments does not match the specification",
-      true);
+      Type::Ssh);
   validate_bad_uri(
       "ssh://user:sample@[::1:2:3:4:5:6:7:8]:2540/testing",
       "Invalid IPv6: the number of segments does not match the specification",
-      true);
+      Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1::3:4::6:7:8]:2540/testing",
-                   "Unexpected data [:] found at position 26", true);
+                   "Unexpected data [:] found at position 26", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2:3:4:5:6:7]:8]:2540/testing",
                    "Invalid IPv6: the number of segments does not match the "
                    "specification",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user:sample@[[1:2:3:4:5:6:7:8]]:2540/testing",
-                   "Unexpected data [[] found at position 19", true);
+                   "Unexpected data [[] found at position 19", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[.1:2:3:4:5:6:7:8]:2540/testing",
-                   "Unexpected data [.] found at position 19", true);
+                   "Unexpected data [.] found at position 19", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1[:2:3:4:5:6:7:8]:2540/testing",
                    "Expected token type : at position 20 but found type [ ([)",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1.:2:3:4:5:6:7:8]:2540/testing",
                    "Expected token type : at position 20 but found type . (.)",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:[2:3:4:5:6:7:8]:2540/testing",
-                   "Unexpected data [[] found at position 21", true);
+                   "Unexpected data [[] found at position 21", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:.2:3:4:5:6:7:8]:2540/testing",
-                   "Unexpected data [.] found at position 21", true);
+                   "Unexpected data [.] found at position 21", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2[2:3:4:5:6:7:8]:2540/testing",
                    "Expected token type : at position 22 but found type [ ([)",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2.2:3:4:5:6:7:8]:2540/testing",
                    "Expected token type : at position 22 but found type . (.)",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2[:3:4:5:6:7:8]:2540/testing",
                    "Expected token type : at position 22 but found type [ ([)",
-                   true);
+                   Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2.:3:4:5:6:7:8]:2540/testing",
                    "Expected token type : at position 22 but found type . (.)",
-                   true);
+                   Type::Ssh);
 
   // zone ID
   validate_ipv6("[fe80::850a:5a7c:6ab7:aec4%25enp0s3]",
@@ -848,21 +944,21 @@ TEST(Uri_parser, parse_host_ipv6) {
 
   // ssh
   validate_bad_uri("ssh://user:sample@[1:2:3:4:5:6:7:8%25eth:]:2540/testing",
-                   "Unexpected data [:] found at position 40", true);
+                   "Unexpected data [:] found at position 40", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2:3:4:5:6:7:8%25eth[]:2540/testing",
-                   "Unexpected data [[] found at position 40", true);
+                   "Unexpected data [[] found at position 40", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2:3:4:5:6:7:8%25eth]]:2540/testing",
-                   "Illegal character []] found at position 41", true);
+                   "Illegal character []] found at position 41", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2:3:4:5:6:7:8%25eth#]:2540/testing",
-                   "Illegal character [#] found at position 40", true);
+                   "Illegal character [#] found at position 40", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2:x:4:5:6:7:8%25eth0]:2540/testing",
-                   "Unexpected data [x] found at position 23", true);
+                   "Unexpected data [x] found at position 23", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2%3A3:4:5:6:7:8%25eth0]:2540/testing",
-                   "Unexpected data [%3A] found at position 22", true);
+                   "Unexpected data [%3A] found at position 22", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1%252:3:4:5:6:7:8%25eth0]:2540/testing",
-                   "Unexpected data [:] found at position 24", true);
+                   "Unexpected data [:] found at position 24", Type::Ssh);
   validate_bad_uri("ssh://user:sample@[1:2:3:4:5:6:7:8%25]:2540/testing",
-                   "Zone ID cannot be empty", true);
+                   "Zone ID cannot be empty", Type::Ssh);
 
   // IPv6 + zone ID
   // Complete
@@ -962,12 +1058,18 @@ TEST(Uri_parser, parse_host_ipv6) {
 }
 
 TEST(Uri_parser, parse_socket) {
-  validate_uri("mysqlx://user:password@/socket/schema", "mysqlx", "user",
-               "password", NO_HOST, NO_PORT, "/socket", "schema", HAS_PASSWORD,
-               HAS_NO_PORT, Transport_type::Socket);
-  validate_uri("mysqlx://user:password@/socket/", "mysqlx", "user", "password",
+  validate_uri("mysqlx://user:password@/socket", "mysqlx", "user", "password",
                NO_HOST, NO_PORT, "/socket", NO_SCHEMA, HAS_PASSWORD,
                HAS_NO_PORT, Transport_type::Socket);
+
+  validate_uri("mysqlx://user:password@/socket/schema", "mysqlx", "user",
+               "password", NO_HOST, NO_PORT, "/socket", "schema", HAS_PASSWORD,
+               HAS_NO_PORT, Transport_type::Socket, true, false);
+
+  // TODO(rennox): Should parser/encoder include the trailing / on these cases??
+  validate_uri("mysqlx://user:password@/socket/", "mysqlx", "user", "password",
+               NO_HOST, NO_PORT, "/socket", NO_SCHEMA, HAS_PASSWORD,
+               HAS_NO_PORT, Transport_type::Socket, false);
   validate_uri("mysqlx://user:password@/socket", "mysqlx", "user", "password",
                NO_HOST, NO_PORT, "/socket", NO_SCHEMA, HAS_PASSWORD,
                HAS_NO_PORT, Transport_type::Socket);
@@ -976,79 +1078,94 @@ TEST(Uri_parser, parse_socket) {
                Transport_type::Tcp);
   validate_uri("mysqlx://user:password@a/", "mysqlx", "user", "password", "a",
                NO_PORT, NO_SOCK, NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Tcp);
+               Transport_type::Tcp, false);
 
   validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "/path/to/socket",
-               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               true, false);
   validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket/", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "/path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket, false);
   validate_uri("mysqlx://user:password@/path%2Fto%2Fsocket", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "/path/to/socket", NO_SCHEMA,
                HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
 
+  // TODO(rennox): Should encoder re-create the same path? probably it should,
+  // considering the path between parenthesis is to avoid percent encoding by
+  // DevAPI standard
   validate_uri("mysqlx://user:password@(/path/to/mysql.sock)/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "/path/to/mysql.sock",
-               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@(/path/to/mysql.sock)/", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "/path/to/mysql.sock",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@(/path/to/mysql.sock)", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "/path/to/mysql.sock", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket, false);
 
   validate_uri("mysqlx://user:password@(/path\\to\\mysql.sock)/schema",
                "mysqlx", "user", "password", NO_HOST, NO_PORT,
                "/path\\to\\mysql.sock", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Socket);
+               Transport_type::Socket, false);
   validate_uri("mysqlx://user:password@(/path\\to\\mysql.sock)/", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "/path\\to\\mysql.sock",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@(/path\\to\\mysql.sock)", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "/path\\to\\mysql.sock",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
 
   validate_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "./path/to/socket",
-               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               true, false);
   validate_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket/", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "./path/to/socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@.%2Fpath%2Fto%2Fsocket", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "./path/to/socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               true, false);
 
   validate_uri("mysqlx://user:password@(./path/to/socket)/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "./path/to/socket",
-               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@(./path/to/socket)/", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "./path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket, false);
   validate_uri("mysqlx://user:password@(./path/to/socket)", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "./path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket, false);
 
   validate_uri("mysqlx://user:password@..%2Fpath%2Fto%2Fsocket/schema",
                "mysqlx", "user", "password", NO_HOST, NO_PORT,
                "../path/to/socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Socket);
+               Transport_type::Socket, false);
   validate_uri("mysqlx://user:password@..%2Fpath%2Fto%2Fsocket/", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "../path/to/socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@..%2Fpath%2Fto%2Fsocket", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "../path/to/socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
 
   validate_uri("mysqlx://user:password@(../path/to/socket)/schema", "mysqlx",
                "user", "password", NO_HOST, NO_PORT, "../path/to/socket",
-               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               "schema", HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket,
+               false);
   validate_uri("mysqlx://user:password@(../path/to/socket)/", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "../path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket, false);
   validate_uri("mysqlx://user:password@(../path/to/socket)", "mysqlx", "user",
                "password", NO_HOST, NO_PORT, "../path/to/socket", NO_SCHEMA,
-               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket);
+               HAS_PASSWORD, HAS_NO_PORT, Transport_type::Socket, false);
 
   validate_bad_uri("mysqlx://user:password@/path/to/socket/schema",
                    "Illegal character [/] found at position 28");
@@ -1059,66 +1176,72 @@ TEST(Uri_parser, parse_socket) {
 }
 
 TEST(Uri_parser, parse_pipe) {
+  // TODO(rennox): Another case to be reviewed, should the encoder produce the
+  // exact path that was originally parsed??
   validate_uri("mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket/schema",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket/",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@\\\\.\\d%3A%5Cpath%5Cto%5Csocket",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
 
   validate_uri("mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)/schema",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)/",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@(\\\\.\\d:%5Cpath%5Cto%5Csocket)",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
 
   validate_uri("mysql://user:password@\\\\.\\d%3A%2Fpath%2Fto%2Fsocket/schema",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:/path/to/socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@\\\\.\\d%3A%2Fpath%2Fto%2Fsocket/",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:/path/to/socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@\\\\.\\d%3A%2Fpath%2Fto%2Fsocket",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:/path/to/socket", NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
 
   validate_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)/schema",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:/path/to/socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)/", "mysql",
                "user", "password", NO_HOST, NO_PORT, "d:/path/to/socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe,
+               false);
   validate_uri("mysql://user:password@(\\\\.\\d:/path/to/socket)", "mysql",
                "user", "password", NO_HOST, NO_PORT, "d:/path/to/socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe,
+               false);
 
   validate_uri("mysql://user:password@(\\\\.\\d:\\path\\to\\socket)/schema",
                "mysql", "user", "password", NO_HOST, NO_PORT,
                "d:\\path\\to\\socket", "schema", HAS_PASSWORD, HAS_NO_PORT,
-               Transport_type::Pipe);
+               Transport_type::Pipe, false);
   validate_uri("mysql://user:password@(\\\\.\\d:\\path\\to\\socket)/", "mysql",
                "user", "password", NO_HOST, NO_PORT, "d:\\path\\to\\socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe,
+               false);
   validate_uri("mysql://user:password@(\\\\.\\d:\\path\\to\\socket)", "mysql",
                "user", "password", NO_HOST, NO_PORT, "d:\\path\\to\\socket",
-               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe);
+               NO_SCHEMA, HAS_PASSWORD, HAS_NO_PORT, Transport_type::Pipe,
+               false);
 
   validate_bad_uri(
       "mysql://user:password@\\\\.\\d:%5Cpath%5Cto%5Csocket/schema",
@@ -1141,16 +1264,16 @@ TEST(Uri_parser, parse_pipe) {
 TEST(Uri_parser, parse_path) {
   validate_uri("mysqlx://user@10.150.123.45:2845/", "mysqlx", "user",
                NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, NO_DB,
-               HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp);
+               HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, false);
   validate_uri("mysqlx://user@10.150.123.45:2845/world", "mysqlx", "user",
                NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world",
                HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp);
   validate_uri("mysqlx://user@10.150.123.45:2845/world@x", "mysqlx", "user",
                NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world@x",
-               HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp);
+               HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, true, false);
   validate_uri("mysqlx://user@10.150.123.45:2845/world:x", "mysqlx", "user",
                NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world:x",
-               HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp);
+               HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, true, false);
   validate_uri("mysqlx://user@10.150.123.45:2845/world%20x", "mysqlx", "user",
                NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world x",
                HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp);
@@ -1187,62 +1310,42 @@ TEST(Uri_parser, parse_query) {
       "path&"
       "ssl-cipher=(/what/e/ver)",
       "mysqlx", "user", NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, "world",
-      HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, &atts);
+      HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp, false, false, &atts);
 }
 
 TEST(Uri_parser, parse_file) {
-  Uri_parser parser(false);
-  mysqlshdk::db::Connection_options data;
-  try {
-    data = parser.parse("file:/sample/file/path");
-    ASSERT_STREQ("file", data.get_scheme().c_str());
-    ASSERT_STREQ("/sample/file/path", data.get_path().c_str());
-    ASSERT_FALSE(data.has_host());
-#ifdef _WIN32
-    data = parser.parse("file:/c:\\path");
-    ASSERT_STREQ("c:/path", data.get_path().c_str());
-#endif
-  } catch (const std::invalid_argument &err) {
-    std::string found_error(err.what());
-    SCOPED_TRACE("UNEXPECTED ERROR: " + found_error);
-    FAIL();
-  }
-
-  validate_bad_uri("\\\\?\\c:\\sample",
-                   "Illegal character [\\] found at position 0");
-  validate_bad_uri("file://sample/file/path",
-                   "Unexpected data [/] at position 6", true);
-  validate_bad_uri("file:///sample/file/path",
-                   "Unexpected data [/] at position 6", true);
+  validate_file_uri("file:/sample/file/path", "file", NO_HOST,
+                    "/sample/file/path");
+  validate_file_uri("file://user", "file", "user", "");
+  validate_file_uri("file:/some%20path", "file", NO_HOST, "/some%20path");
 }
 
 TEST(Uri_parser, hide_password_in_uri) {
-  auto check = [](bool devapi, const std::string &expect,
+  auto check = [](mysqlshdk::db::uri::Type /*type*/, const std::string &expect,
                   const std::string &input) {
-    EXPECT_EQ(expect, mysqlshdk::db::uri::hide_password_in_uri(input, devapi));
+    EXPECT_EQ(expect, mysqlshdk::db::uri::hide_password_in_uri(input));
     EXPECT_LE(expect.size(), input.size());
   };
 
   {
-    bool devapi = true;
-    check(devapi, "root@abcroot123.com:3306",
+    mysqlshdk::db::uri::Type type = mysqlshdk::db::uri::Type::DevApi;
+    check(type, "root@abcroot123.com:3306",
           "%72%6f%6f%74:123456@abcroot123.com:3306");
-    check(devapi, "abcroot123.com:3306", "abcroot123.com:3306");
-    check(devapi, "root@abcroot123.com:3306",
-          "%72%6f%6f%74@abcroot123.com:3306");
-    check(devapi, "mysql://ro@(/path/to/whatever/socket.sock)",
+    check(type, "abcroot123.com:3306", "abcroot123.com:3306");
+    check(type, "root@abcroot123.com:3306", "%72%6f%6f%74@abcroot123.com:3306");
+    check(type, "mysql://ro@(/path/to/whatever/socket.sock)",
           "mysql://ro:::ot:fd%40safdsa@(/path/to/whatever/socket.sock)");
-    check(devapi, "mysql://ro@(/path/to/whatever/socket.sock)",
+    check(type, "mysql://ro@(/path/to/whatever/socket.sock)",
           "mysql://ro@(/path/to/whatever/socket.sock)");
   }
   {
-    bool devapi = false;
-    check(devapi, "ssh://mysql.com", "ssh://mysql.com");
-    check(devapi, "ssh://user.name@mysql.com", "ssh://user.name:pwd@mysql.com");
-    check(devapi, "ssh://user.name@mysql.com", "ssh://user.name@mysql.com");
-    check(devapi, "ssh://user@10.150.123.45:2845",
+    mysqlshdk::db::uri::Type type = mysqlshdk::db::uri::Type::Ssh;
+    check(type, "ssh://mysql.com", "ssh://mysql.com");
+    check(type, "ssh://user.name@mysql.com", "ssh://user.name:pwd@mysql.com");
+    check(type, "ssh://user.name@mysql.com", "ssh://user.name@mysql.com");
+    check(type, "ssh://user@10.150.123.45:2845",
           "ssh://user:pass@10.150.123.45:2845");
-    check(devapi, "ssh://user@10.150.123.45:2845",
+    check(type, "ssh://user@10.150.123.45:2845",
           "ssh://user@10.150.123.45:2845");
   }
 }

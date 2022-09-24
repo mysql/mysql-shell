@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,9 @@
 
 #include "mysql-secret-store/login-path/entry.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/file_uri.h"
+#include "mysqlshdk/libs/db/generic_uri.h"
+#include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -101,36 +104,57 @@ void validate_secret_type(const common::Secret_id &id) {
 
 std::string get_url(const Entry &entry, bool encode) {
   if (encode) {
-    mysqlshdk::db::Connection_options options;
+    mysqlshdk::db::uri::Generic_uri uri_opts;
+    mysqlshdk::db::uri::File_uri file_opts;
+    mysqlshdk::db::Connection_options conn_opts;
+    mysqlshdk::ssh::Ssh_connection_options ssh_opts;
+
+    mysqlshdk::db::uri::IUri_parsable *options;
+
+    if (!entry.scheme.empty()) {
+      if (conn_opts.is_allowed_scheme(entry.scheme))
+        options = &conn_opts;
+      else if (ssh_opts.is_allowed_scheme(entry.scheme))
+        options = &ssh_opts;
+      else if (file_opts.is_allowed_scheme(entry.scheme))
+        options = &file_opts;
+      else
+        options = &uri_opts;
+    } else {
+      if (!entry.socket.empty())
+        options = &conn_opts;
+      else
+        options = &uri_opts;
+    }
+
     if (!entry.user.empty()) {
-      options.set_user(entry.user);
+      options->set(mysqlshdk::db::kUser, entry.user);
     }
     if (!entry.host.empty()) {
-      options.set_host(entry.host);
+      options->set(mysqlshdk::db::kHost, entry.host);
     }
     if (!entry.port.empty()) {
-      options.set_port(std::stoi(entry.port));
+      options->set(mysqlshdk::db::kPort, std::stoi(entry.port));
     }
     if (!entry.socket.empty()) {
-      options.set_socket(entry.socket);
+      options->set(mysqlshdk::db::kSocket, entry.socket);
     }
 
-    if (entry.scheme == k_scheme_name_file ||
-        entry.scheme == k_scheme_name_ssh) {
-      try {
-        // if we're here, it should be safe to parse this, otherwise we do
-        // nothing and fallback to the old code.
-        mysqlshdk::db::Connection_options tmp_opts(entry.name);
-        auto tokens = mysqlshdk::db::uri::formats::user_transport();
-        tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
-        return tmp_opts.as_uri((tokens));
-      } catch (...) {
-        // no op we do nothing here, just fallback to the default handling as it
-        // looks like name is something we can't handle
+    try {
+      if (entry.scheme == k_scheme_name_file) {
+        return mysqlshdk::db::uri::File_uri(entry.name)
+            .as_uri(mysqlshdk::db::uri::formats::scheme_user_transport());
+
+      } else if (entry.scheme == k_scheme_name_ssh) {
+        return mysqlshdk::ssh::Ssh_connection_options(entry.name)
+            .as_uri(mysqlshdk::db::uri::formats::scheme_user_transport());
       }
+    } catch (...) {
+      // no op we do nothing here, just fallback to the default handling as it
+      // looks like name is something we can't handle
     }
 
-    return options.as_uri(mysqlshdk::db::uri::formats::user_transport());
+    return options->as_uri(mysqlshdk::db::uri::formats::user_transport());
 
   } else {
     // for those two, we don't change the name
@@ -159,13 +183,13 @@ std::string get_name(const Entry &entry) {
   return clean_name(get_url(entry, false));
 }
 
-std::string get_name(mysqlshdk::IConnection *connection, const Entry &entry) {
+std::string get_name(mysqlshdk::db::uri::Uri_serializable *connection,
+                     const Entry &entry) {
   assert(connection != nullptr);
   std::string name;
   if (entry.scheme == k_scheme_name_file || entry.scheme == k_scheme_name_ssh) {
-    auto tokens = mysqlshdk::db::uri::formats::user_transport();
-    tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
-    name = connection->as_uri(tokens);
+    name = connection->as_uri(
+        mysqlshdk::db::uri::formats::scheme_user_transport());
   } else {
     name = get_url(entry, false);
   }
@@ -229,9 +253,9 @@ void Login_path_helper::erase(const common::Secret_id &id) {
     } else {
       // two entries mean that original login-path section had both port and
       // socket, we need to remove only port or only socket
-      mysqlshdk::db::Connection_options options{id.url};
+      mysqlshdk::db::uri::Generic_uri options{id.url};
 
-      if (options.has_port()) {
+      if (options.has_value(mysqlshdk::db::kPort)) {
         m_invoker.erase_port(entry);
       } else {
         m_invoker.erase_socket(entry);
@@ -336,10 +360,18 @@ Entry Login_path_helper::find(const common::Secret_id &secret) {
 
       // fall through
 
-    default:
-      throw Helper_exception{
+    default: {
+      std::vector<std::string> data;
+      for (const auto &entry : result) {
+        data.push_back(get_encoded_url(entry));
+      }
+
+      throw Helper_exception{shcore::str_format(
           "Multiple entries match the secret, unable to deduce which one to "
-          "return."};
+          "return: [%s], [%s], [%s]",
+          secret.url.c_str(), encoded_entry.c_str(),
+          shcore::str_join(data, ", ").c_str())};
+    }
   }
 }
 
@@ -351,22 +383,22 @@ Entry Login_path_helper::to_entry(const common::Secret_id &secret) const {
   entry.has_password = true;
   entry.entry_type = Entry_type::SET_BY_HELPER;
 
-  mysqlshdk::db::Connection_options options{secret.url};
+  mysqlshdk::db::uri::Generic_uri options{secret.url};
 
-  if (options.has_scheme()) {
-    entry.scheme = options.get_scheme();
+  if (options.has_value(mysqlshdk::db::kScheme)) {
+    entry.scheme = options.get(mysqlshdk::db::kScheme);
   }
-  if (options.has_user()) {
-    entry.user = options.get_user();
+  if (options.has_value(mysqlshdk::db::kUser)) {
+    entry.user = options.get(mysqlshdk::db::kUser);
   }
-  if (options.has_host()) {
-    entry.host = options.get_host();
+  if (options.has_value(mysqlshdk::db::kHost)) {
+    entry.host = options.get(mysqlshdk::db::kHost);
   }
-  if (options.has_port()) {
-    entry.port = std::to_string(options.get_port());
+  if (options.has_value(mysqlshdk::db::kPort)) {
+    entry.port = std::to_string(options.get_numeric(mysqlshdk::db::kPort));
   }
-  if (options.has_socket()) {
-    entry.socket = options.get_socket();
+  if (options.has_value(mysqlshdk::db::kSocket)) {
+    entry.socket = options.get(mysqlshdk::db::kSocket);
   }
 
   entry.name = get_name(&options, entry);

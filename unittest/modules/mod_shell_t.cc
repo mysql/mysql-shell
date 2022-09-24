@@ -221,10 +221,10 @@ TEST_F(mod_shell_test, parse_uri) {
 
     EXPECT_EQ(
         "user@host?ssl-ca=%2Fpath%2Fto%2Fca.pem&ssl-capath=%2Fpath%2Fto%"
-        "2Fcapath&ssl-cert=%2Fpath%2Fto%2Fcert.pem&ssl-key=%2Fpath%2Fto%2Fkey."
-        "pem&ssl-crl=%2Fpath%2Fto%2Fcrl.txt&ssl-crlpath=%2Fpath%2Fto%2Fcrlpath&"
-        "ssl-cipher=%2Fpath%2Fto%2Fcipher&tls-version=TLSv1.0&ssl-mode="
-        "required",
+        "2Fcapath&ssl-cert=%2Fpath%2Fto%2Fcert.pem&ssl-cipher=%2Fpath%2Fto%"
+        "2Fcipher&ssl-crl=%2Fpath%2Fto%2Fcrl.txt&ssl-crlpath=%2Fpath%2Fto%"
+        "2Fcrlpath&ssl-key=%2Fpath%2Fto%2Fkey.pem&ssl-mode=required&tls-"
+        "version=TLSv1.0",
         _shell->unparse_uri(dict));
   }
 
@@ -250,8 +250,8 @@ TEST_F(mod_shell_test, parse_uri) {
                  dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());
 
     EXPECT_EQ(
-        "user@host?tls-version=TLSv1.1%2CTLSv1.2&tls-ciphersuites=ECDHE-ECDSA-"
-        "AES128-GCM-SHA256%3AECDHE-ECDSA-AES256-GCM-SHA384",
+        "user@host?tls-ciphersuites=ECDHE-ECDSA-AES128-GCM-SHA256%3AECDHE-"
+        "ECDSA-AES256-GCM-SHA384&tls-version=TLSv1.1%2CTLSv1.2",
         _shell->unparse_uri(dict));
   }
 
@@ -277,8 +277,8 @@ TEST_F(mod_shell_test, parse_uri) {
                  dict->get_string(mysqlshdk::db::kSslTlsVersion).c_str());
 
     EXPECT_EQ(
-        "user@host?tls-version=TLSv1.1%2CTLSv1.2&tls-ciphersuites=ECDHE-ECDSA-"
-        "AES128-GCM-SHA256%3AECDHE-ECDSA-AES256-GCM-SHA384",
+        "user@host?tls-ciphersuites=ECDHE-ECDSA-AES128-GCM-SHA256%3AECDHE-"
+        "ECDSA-AES256-GCM-SHA384&tls-version=TLSv1.1%2CTLSv1.2",
         _shell->unparse_uri(dict));
   }
 }

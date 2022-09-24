@@ -65,6 +65,7 @@ void obfuscate_uri_password(const std::string &nopassword_uri, char *argv) {
 namespace mysqlsh {
 
 using mysqlshdk::db::Transport_type;
+using mysqlshdk::db::uri::Type;
 
 bool Shell_options::Storage::has_connection_data(
     bool require_main_options) const {
@@ -1091,7 +1092,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
 
     {
       char *value = const_cast<char *>(iterator->value());
-      const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value, true);
+      const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value);
       obfuscate_uri_password(nopwd, value);
     }
 
@@ -1119,7 +1120,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
         shcore::get_ssh_connection_options(storage.ssh.uri, false);
     if (storage.ssh.uri_data.has_password()) {
       char *value = const_cast<char *>(iterator->value());
-      const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value, false);
+      const auto nopwd = mysqlshdk::db::uri::hide_password_in_uri(value);
       obfuscate_uri_password(nopwd, value);
     }
 

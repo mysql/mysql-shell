@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,10 @@
 #include "mysql-secret-store/include/helper.h"
 #include "mysql-secret-store/include/mysql-secret-store/api.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/file_uri.h"
+#include "mysqlshdk/libs/db/generic_uri.h"
+#include "mysqlshdk/libs/db/uri_parser.h"
+#include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/secret-store-api/helper_invoker.h"
 
 using mysql::secret_store::common::k_scheme_name_file;
@@ -54,60 +58,77 @@ void throw_json_error(const std::string &msg) {
 }
 
 std::string validate_url(const std::string &url) {
-  using mysqlshdk::db::Connection_options;
+  using mysqlshdk::db::uri::Generic_uri;
+  using mysqlshdk::db::uri::Type;
+  using mysqlshdk::db::uri::Uri_parser;
 
   auto throw_exception = [](const std::string &msg) {
     throw std::runtime_error{"Invalid URL: " + msg};
   };
 
-  Connection_options options;
+  Generic_uri options;
   try {
-    options = Connection_options{url};
+    Uri_parser parser(Type::Generic);
+    parser.parse(url, &options);
   } catch (const std::exception &e) {
     throw_exception(e.what());
   }
 
-  if (options.has_scheme() && options.get_scheme() != k_scheme_name_file &&
-      options.get_scheme() != k_scheme_name_ssh) {
-    throw_exception("Only ssh and file schemes are allowed");
+  std::optional<std::string> scheme;
+  if (options.has_value(mysqlshdk::db::kScheme))
+    scheme = options.get(mysqlshdk::db::kScheme);
+
+  if (scheme.has_value() && scheme.value() != k_scheme_name_file &&
+      scheme.value() != k_scheme_name_ssh) {
+    throw_exception(shcore::str_format(
+        "Only ssh and file schemes are allowed: %s", url.c_str()));
   }
+
+  if (options.has_value(mysqlshdk::db::kPassword)) {
+    throw_exception(
+        shcore::str_format("URL should not have a password: %s", url.c_str()));
+  }
+
+  if (std::string::npos != url.find("?")) {
+    throw_exception(
+        shcore::str_format("URL should not have options: %s", url.c_str()));
+  }
+
+  std::optional<std::string> user;
+  if (options.has_value(mysqlshdk::db::kUser))
+    user = options.get(mysqlshdk::db::kUser);
+
   // we need different handling for file
-  if (options.has_scheme() && options.get_scheme() == k_scheme_name_file) {
-    if (options.has_user()) {
-      throw_exception("URL should not have a user");
+  if (scheme == k_scheme_name_file) {
+    if (user.has_value()) {
+      throw_exception(
+          shcore::str_format("URL should not have a user: %s", url.c_str()));
     }
-    if (!options.has_path()) {
-      throw_exception("URL does not have a path");
-    }
-    if (options.has_password()) {
-      throw_exception("URL should not have a password");
-    }
-    if (std::string::npos != url.find("?")) {
-      throw_exception("URL should not have options");
+    if (!options.has_value(mysqlshdk::db::kPath)) {
+      throw_exception(
+          shcore::str_format("URL does not have a path: %s", url.c_str()));
     }
   } else {
-    if (!options.has_user()) {
-      throw_exception("URL does not have a user");
+    if (!user.has_value()) {
+      throw_exception(
+          shcore::str_format("URL does not have a user: %s", url.c_str()));
     }
-    if (!options.has_host() && !options.has_socket()) {
-      throw_exception("URL does not have a host");
+    if (!options.has_value(mysqlshdk::db::kHost) &&
+        !options.has_value(mysqlshdk::db::kSocket)) {
+      throw_exception(
+          shcore::str_format("URL does not have a host: %s", url.c_str()));
     }
-    if (options.has_schema()) {
-      throw_exception("URL should not have a schema");
-    }
-    if (options.has_password()) {
-      throw_exception("URL should not have a password");
-    }
-    if (std::string::npos != url.find("?")) {
-      throw_exception("URL should not have options");
+    if (options.has_value(mysqlshdk::db::kSchema)) {
+      throw_exception(
+          shcore::str_format("URL should not have a schema: %s", url.c_str()));
     }
   }
 
   auto tokens = mysqlshdk::db::uri::formats::user_transport();
-  if (options.has_scheme() && (options.get_scheme() == k_scheme_name_ssh ||
-                               options.get_scheme() == k_scheme_name_file)) {
+  if (scheme.has_value()) {
     tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
   }
+
   return options.as_uri(tokens);
 }
 

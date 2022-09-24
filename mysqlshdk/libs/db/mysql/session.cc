@@ -135,8 +135,7 @@ void Session_impl::connect(
 
   if (connection_options.has(mysqlshdk::db::kServerPublicKeyPath)) {
     std::string server_public_key =
-        connection_options.get_extra_options().get_value(
-            mysqlshdk::db::kServerPublicKeyPath);
+        connection_options.get(mysqlshdk::db::kServerPublicKeyPath);
     mysql_options(_mysql, MYSQL_SERVER_PUBLIC_KEY, server_public_key.c_str());
   }
 
