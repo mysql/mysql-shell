@@ -551,7 +551,7 @@ Dump_manifest_reader::Dump_manifest_reader(
     // to read their data using the associated PAR in the manifest.
     m_reader = std::make_shared<Manifest_reader>(
         std::make_unique<mysqlshdk::storage::backend::Http_object>(
-            mysqlshdk::oci::anonymize_par(config->par().full_url), true),
+            mysqlshdk::oci::anonymize_par(config->par().full_url()), true),
         m_config->par().object_prefix);
   }
 }

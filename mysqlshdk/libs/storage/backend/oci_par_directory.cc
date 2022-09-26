@@ -31,14 +31,7 @@ namespace storage {
 namespace backend {
 namespace oci {
 
-namespace {
-
-std::string encode_query(const std::string &data) {
-  mysqlshdk::db::uri::Uri_encoder encoder;
-  return encoder.encode_query(data);
-}
-
-}  // namespace
+using mysqlshdk::db::uri::pctencode_query_value;
 
 Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
     : Http_directory(config, true), m_config(config) {
@@ -46,7 +39,7 @@ Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
 }
 
 Masked_string Oci_par_directory::full_path() const {
-  return ::mysqlshdk::oci::anonymize_par(m_config->par().full_url);
+  return ::mysqlshdk::oci::anonymize_par(m_config->par().full_url());
 }
 
 std::string Oci_par_directory::get_list_url() const {
@@ -55,11 +48,11 @@ std::string Oci_par_directory::get_list_url() const {
   std::string url = "?fields=name,size&delimiter=/";
 
   if (!m_config->par().object_prefix.empty()) {
-    url += "&prefix=" + encode_query(m_config->par().object_prefix);
+    url += "&prefix=" + pctencode_query_value(m_config->par().object_prefix);
   }
 
   if (!m_next_start_with.empty()) {
-    url += "&start=" + encode_query(m_next_start_with);
+    url += "&start=" + pctencode_query_value(m_next_start_with);
   }
 
   return url;

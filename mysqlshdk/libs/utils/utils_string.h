@@ -650,18 +650,13 @@ std::wstring truncate(const wchar_t *str, const size_t length,
 bool is_valid_utf8(const std::string &s);
 
 /**
- * Generates a percent encoded string based on RFC-3986
+ * Generates a percent encoded string based on RFC-3986, only unreserved
+ * characters are not encoded.
  */
 std::string pctencode(const std::string &s);
 
 /**
- * Generates a percent encoded string based on RFC-3986, but does not encode
- * slashes.
- */
-std::string pctencode_path(const std::string &s);
-
-/**
- * Decodes a string that is percent encoded based on RFC-3986
+ * Decodes a string that is percent encoded based on RFC-3986.
  */
 std::string pctdecode(const std::string &s);
 

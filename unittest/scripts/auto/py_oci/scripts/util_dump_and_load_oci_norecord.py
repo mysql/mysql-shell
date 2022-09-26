@@ -154,6 +154,30 @@ EXPECT_THROWS(lambda: util.dump_schemas(["world"], dump_dir, {"osBucketName": "a
 EXPECT_THROWS(lambda: util.dump_tables("sakila", ["actor"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to list objects using prefix")
 EXPECT_THROWS(lambda: util.export_table("sakila.actor", os.path.join(dump_dir, "out.txt"), {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to list objects using prefix")
 
+#@<> BUG#34599319 - dump&load when paths contain spaces and other characters that need to be URL-encoded
+tested_schema = "test schema"
+tested_table = "fish & chips"
+dump_dir = "shell test/dump & load"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+# prepare the dump
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+util.dump_schemas([tested_schema], dump_dir, {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file})
+
+#@<> BUG#34599319 - test
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "progressFile": ""}), "load_dump() with URL-encoded file names")
+EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
+
+#@<> BUG#34599319 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
 #@<> Cleanup
 testutil.rmfile("progress.txt")
 testutil.destroy_sandbox(__mysql_sandbox_port1)

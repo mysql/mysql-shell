@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -394,6 +394,38 @@ std::string Uri_encoder::process(const std::string &data) {
   }
 
   return ret_val;
+}
+
+namespace {
+
+std::string pctencode_path_segment(const std::string &s) {
+  Uri_encoder encoder;
+  return encoder.encode_path_segment(s, false);
+}
+
+}  // namespace
+
+std::string pctencode_path(const std::string &s) {
+  std::size_t pos = 0;
+  std::string path;
+
+  do {
+    auto next_pos = s.find('/', pos);
+    path += pctencode_path_segment(s.substr(pos, next_pos - pos));
+    pos = next_pos;
+
+    if (std::string::npos != pos) {
+      ++pos;
+      path += '/';
+    }
+  } while (std::string::npos != pos);
+
+  return path;
+}
+
+std::string pctencode_query_value(const std::string &s) {
+  Uri_encoder encoder;
+  return encoder.encode_value(s);
 }
 
 }  // namespace uri

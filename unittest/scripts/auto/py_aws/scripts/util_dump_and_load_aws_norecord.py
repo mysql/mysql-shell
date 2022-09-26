@@ -345,5 +345,37 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, aws_se
     with write_profile(local_aws_credentials_file, local_aws_profile + "-invalid", {}):
         EXPECT_SUCCESS({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
+#@<> BUG#34599319 - dump&load when paths contain spaces and other characters that need to be URL-encoded
+tested_schema = "test schema"
+tested_table = "fish & chips"
+bug_34599319_dump_dir = "shell test/dump & load"
+
+setup_session(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+aws_options = get_options({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })
+
+# prepare the dump
+clean_bucket()
+
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, aws_settings):
+    util.dump_schemas([tested_schema], bug_34599319_dump_dir, aws_options)
+
+#@<> BUG#34599319 - test
+setup_session(__sandbox_uri2)
+wipeout_server(session)
+
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, aws_settings):
+    EXPECT_NO_THROWS(lambda: util.load_dump(bug_34599319_dump_dir, aws_options), "load_dump() with URL-encoded file names")
+
+EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
+
+#@<> BUG#34599319 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
 #@<> cleanup
 cleanup_tests(load_tests = True)

@@ -60,7 +60,6 @@ struct PAR {
 enum class PAR_type { MANIFEST, PREFIX, GENERAL, NONE };
 
 struct PAR_structure {
-  std::string full_url;
   std::string region;
   std::string domain;
   std::string par_id;
@@ -69,6 +68,7 @@ struct PAR_structure {
   std::string object_prefix;
   std::string object_name;
 
+  std::string full_url() const;
   std::string par_url() const;
   std::string object_path() const;
   std::string endpoint() const;
@@ -138,7 +138,15 @@ class PAR_config : public IPAR_config {
 
  protected:
   void validate_url(const std::string &url) const {
-    if (!valid() || m_par.full_url != url) {
+    bool invalid = !valid();
+
+    if (!invalid) {
+      PAR_structure par;
+      parse_par(url, &par);
+      invalid = invalid || m_par.full_url() != par.full_url();
+    }
+
+    if (invalid) {
       // Any other name is not supported.
       throw std::invalid_argument("Invalid " + to_string(m_par.type()) +
                                   " PAR: " + url);

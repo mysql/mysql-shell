@@ -54,14 +54,29 @@ constexpr std::size_t k_min_part_size = 5242880;  // 5 MiB
 constexpr std::size_t k_max_part_size = std::min<uint64_t>(
     UINT64_C(5368709120), std::numeric_limits<std::size_t>::max());
 
-inline std::string encode_path(const std::string &data) {
-  // signer expects that path segments are URL-encoded, slashes should not be
-  // encoded
-  return shcore::pctencode_path(data);
+std::string encode_path(const std::string &data) {
+  // signer expects that path is URL-encoded, all bytes except the unreserved
+  // characters and the slash character must be encoded
+  std::size_t pos = 0;
+  std::string path;
+
+  do {
+    auto next_pos = data.find('/', pos);
+    path += shcore::pctencode(data.substr(pos, next_pos - pos));
+    pos = next_pos;
+
+    if (std::string::npos != pos) {
+      ++pos;
+      path += '/';
+    }
+  } while (std::string::npos != pos);
+
+  return path;
 }
 
 inline std::string encode_query(const std::string &data) {
-  // signer expects that query parameters are URL-encoded
+  // signer expects that query parameters are URL-encoded, all bytes except the
+  // unreserved characters must be encoded
   return shcore::pctencode(data);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 namespace mysqlshdk {
 namespace db {
 namespace uri {
+
 class SHCORE_PUBLIC Uri_encoder {
  public:
   explicit Uri_encoder(bool devapi = true);
@@ -61,6 +62,19 @@ class SHCORE_PUBLIC Uri_encoder {
   std::set<std::string> m_allowed_schemes;
   std::string process(const std::string &data);
 };
+
+/**
+ * Generates a percent encoded string based on RFC-3986, section 3.3 - output
+ * string is encoded as a path component of an URI.
+ */
+std::string pctencode_path(const std::string &s);
+
+/**
+ * Generates a percent encoded string based on RFC-3986, section 3.4 - output
+ * string is encoded as a value in a query component of an URI.
+ */
+std::string pctencode_query_value(const std::string &s);
+
 }  // namespace uri
 }  // namespace db
 }  // namespace mysqlshdk

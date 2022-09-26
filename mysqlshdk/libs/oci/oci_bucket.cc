@@ -44,15 +44,9 @@ using rest::String_response;
 const size_t MAX_LIST_OBJECTS_LIMIT = 1000;
 
 namespace {
-std::string encode_path(const std::string &data) {
-  mysqlshdk::db::uri::Uri_encoder encoder;
-  return encoder.encode_path_segment(data, false);
-}
 
-std::string encode_query(const std::string &data) {
-  mysqlshdk::db::uri::Uri_encoder encoder;
-  return encoder.encode_query(data);
-}
+using mysqlshdk::db::uri::pctencode_path;
+using mysqlshdk::db::uri::pctencode_query_value;
 
 namespace detail {
 
@@ -85,8 +79,8 @@ Oci_bucket::Oci_bucket(const Oci_bucket_config_ptr &config)
     : storage::backend::object_storage::Bucket(config),
       m_config(config),
       kNamespacePath{shcore::str_format(
-          "/n/%s/b/", encode_path(config->oci_namespace()).c_str())},
-      kBucketPath{kNamespacePath + encode_path(config->bucket_name()) + "/"},
+          "/n/%s/b/", pctencode_path(config->oci_namespace()).c_str())},
+      kBucketPath{kNamespacePath + pctencode_path(config->bucket_name()) + "/"},
       kListObjectsPath{kBucketPath + "o"},
       kObjectActionFormat{kBucketPath + "o/%s"},
       kRenameObjectPath{kBucketPath + "actions/renameObject"},
@@ -101,7 +95,7 @@ rest::Signed_request Oci_bucket::list_objects_request(
   std::vector<std::string> parameters;
 
   if (!prefix.empty()) {
-    parameters.emplace_back("prefix=" + encode_query(prefix));
+    parameters.emplace_back("prefix=" + pctencode_query_value(prefix));
   }
 
   if (limit) {
@@ -135,7 +129,7 @@ rest::Signed_request Oci_bucket::list_objects_request(
   }
 
   if (!start_from.empty()) {
-    parameters.emplace_back("start=" + encode_query(start_from));
+    parameters.emplace_back("start=" + pctencode_query_value(start_from));
   }
 
   auto path = kListObjectsPath;
@@ -236,7 +230,7 @@ std::vector<Multipart_object> Oci_bucket::parse_list_multipart_uploads(
 
 rest::Signed_request Oci_bucket::list_multipart_uploaded_parts_request(
     const Multipart_object &object, size_t limit) {
-  auto path = kMultipartActionPath + "/" + encode_path(object.name);
+  auto path = kMultipartActionPath + "/" + pctencode_path(object.name);
   path.append("?uploadId=" + object.upload_id);
   if (limit) path.append("&limit=" + std::to_string(limit));
   return Signed_request(std::move(path));
@@ -275,7 +269,7 @@ std::string Oci_bucket::parse_create_multipart_upload(
 rest::Signed_request Oci_bucket::upload_part_request(
     const Multipart_object &object, size_t part_num) {
   return Signed_request{shcore::str_format(kUploadPartFormat.c_str(),
-                                           encode_path(object.name).c_str(),
+                                           pctencode_path(object.name).c_str(),
                                            object.upload_id.c_str(), part_num)};
 }
 
@@ -293,14 +287,14 @@ rest::Signed_request Oci_bucket::commit_multipart_upload_request(
   *request_body = encode_json("partsToCommit", std::move(etags));
 
   return Signed_request{shcore::str_format(kMultipartActionFormat.c_str(),
-                                           encode_path(object.name).c_str(),
+                                           pctencode_path(object.name).c_str(),
                                            object.upload_id.c_str())};
 }
 
 rest::Signed_request Oci_bucket::abort_multipart_upload_request(
     const Multipart_object &object) {
   return Signed_request{shcore::str_format(kMultipartActionFormat.c_str(),
-                                           encode_path(object.name).c_str(),
+                                           pctencode_path(object.name).c_str(),
                                            object.upload_id.c_str())};
 }
 
@@ -409,7 +403,7 @@ std::vector<PAR> Oci_bucket::list_preauthenticated_requests(
   std::vector<std::string> parameters;
 
   if (!prefix.empty())
-    parameters.emplace_back("prefix=" + encode_query(prefix));
+    parameters.emplace_back("prefix=" + pctencode_query_value(prefix));
 
   // Only sets the limit when the request will be satisfied in one call,
   // otherwise the limit will be set after the necessary calls to fulfill the
@@ -418,7 +412,8 @@ std::vector<PAR> Oci_bucket::list_preauthenticated_requests(
     parameters.emplace_back("limit=" + std::to_string(limit));
   }
 
-  if (!page.empty()) parameters.emplace_back("page=" + encode_query(page));
+  if (!page.empty())
+    parameters.emplace_back("page=" + pctencode_query_value(page));
 
   auto path = kParActionPath;
   if (!parameters.empty()) {
@@ -495,7 +490,7 @@ void Oci_bucket::create(const std::string &compartment_id) {
 
   // CreateBucketDetails
   const auto body = encode_json("compartmentId", compartment_id, "name",
-                                encode_path(m_config->bucket_name()));
+                                pctencode_path(m_config->bucket_name()));
 
   auto request = Signed_request(kNamespacePath);
   request.body = body.c_str();
@@ -516,7 +511,7 @@ void Oci_bucket::delete_() {
 Signed_request Oci_bucket::create_request(const std::string &object_name,
                                           Headers headers) const {
   return Signed_request(shcore::str_format(kObjectActionFormat.c_str(),
-                                           encode_path(object_name).c_str()),
+                                           pctencode_path(object_name).c_str()),
                         std::move(headers));
 }
 
