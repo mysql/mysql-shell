@@ -1020,6 +1020,14 @@ shcore::Array_t instance_diagnostics(
         "cluster.rescan() to update the metadata."));
   }
 
+  try {
+    mysqlshdk::utils::split_host_and_port(instance_md.md.grendpoint);
+  } catch (const std::invalid_argument &e) {
+    issues->push_back(shcore::Value(
+        "ERROR: Invalid or missing information of Group Replication's network "
+        "address in metadata. Use Cluster.rescan() to update the metadata."));
+  }
+
   // check if value of report_host matches what's in the metadata
   if (instance) check_host_metadata(issues, instance, instance_md);
 

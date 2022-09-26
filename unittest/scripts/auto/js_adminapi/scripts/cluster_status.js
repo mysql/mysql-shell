@@ -540,6 +540,40 @@ shell.connect(__sandbox_uri2);
 var cluster = dba.getCluster();
 cluster.status();
 
+//@<> BUG#34395705: check for invalid "grLocal"
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"]["zzLabel"]);
+
+//with empty value
+session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET addresses = json_merge_patch(addresses, json_object('grLocal', "")) WHERE address='${hostname}:${__mysql_sandbox_port2}'`);
+
+status = cluster.status();
+EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"]["zzLabel"]);
+EXPECT_EQ(1, status["defaultReplicaSet"]["topology"]["zzLabel"]["instanceErrors"].length);
+EXPECT_EQ("ERROR: Invalid or missing information of Group Replication's network address in metadata. Use Cluster.rescan() to update the metadata.", status["defaultReplicaSet"]["topology"]["zzLabel"]["instanceErrors"][0])
+
+cluster.rescan();
+EXPECT_OUTPUT_CONTAINS("Updating instance metadata..");
+
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"]["zzLabel"]);
+
+//with incorrect value
+WIPE_STDOUT()
+
+session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET addresses = json_merge_patch(addresses, json_object('grLocal', "-----")) WHERE address='${hostname}:${__mysql_sandbox_port2}'`);
+
+status = cluster.status();
+EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"]["zzLabel"]);
+EXPECT_EQ(1, status["defaultReplicaSet"]["topology"]["zzLabel"]["instanceErrors"].length);
+EXPECT_EQ("ERROR: Invalid or missing information of Group Replication's network address in metadata. Use Cluster.rescan() to update the metadata.", status["defaultReplicaSet"]["topology"]["zzLabel"]["instanceErrors"][0])
+
+cluster.rescan();
+EXPECT_OUTPUT_CONTAINS("Updating instance metadata..");
+
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"]["zzLabel"]);
+
 //@<> Check that cluster.status() timeout is < 10s
 // Bug #30884174   CLUSTER.STATUS() HANGS FOR TOO LONG WHEN CONNECTION/READ TIMEOUTS HAPPEN
 
