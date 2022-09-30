@@ -688,6 +688,10 @@ Each parallel connection sets the following session variables:
 @li SET unique_checks = 0
 @li SET foreign_key_checks = 0
 @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+Note: because of storage engine limitations, table locks held by MyISAM will
+cause imports of such tables to be sequential, regardless of the number of
+threads used.
 )*");
 /**
  * \ingroup util
