@@ -193,7 +193,7 @@ class Shell_options final : public shcore::Options {
 
     int exit_code = 0;
 
-    bool has_connection_data() const;
+    bool has_connection_data(bool require_main_options = false) const;
     mysqlshdk::db::Connection_options connection_options() const;
 
     bool has_multi_passwords() const {

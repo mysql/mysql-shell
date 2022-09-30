@@ -66,7 +66,15 @@ namespace mysqlsh {
 
 using mysqlshdk::db::Transport_type;
 
-bool Shell_options::Storage::has_connection_data() const {
+bool Shell_options::Storage::has_connection_data(
+    bool require_main_options) const {
+  if (require_main_options) {
+    return connection_data.has_user() || connection_data.has_host() ||
+           connection_data.has_port() || connection_data.has_socket() ||
+           connection_data.has_pipe() || connection_data.has_password() ||
+           prompt_password;
+  }
+
   return connection_data.has_data() || prompt_password;
 }
 

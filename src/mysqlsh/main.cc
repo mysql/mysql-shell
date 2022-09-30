@@ -817,7 +817,7 @@ int main(int argc, char **argv) {
       }
 
       // Open the default shell session
-      if (options.has_connection_data()) {
+      if (options.has_connection_data(true)) {
         try {
           auto restore_print_on_error =
               shcore::Scoped_callback([shell]() { shell->restore_print(); });
