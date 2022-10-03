@@ -1914,6 +1914,10 @@ DESCRIPTION
       - SET foreign_key_checks = 0
       - SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
+      Note: because of storage engine limitations, table locks held by MyISAM
+      will cause imports of such tables to be sequential, regardless of the
+      number of threads used.
+
 #@<OUT> util load_dump help
 NAME
       load_dump - Loads database dumps created by MySQL Shell.
