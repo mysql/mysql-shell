@@ -314,7 +314,7 @@ def dump_diff(f, key_label, instance_labels, diff, header):
         column_widths = [0] * len(instance_labels)
         for key, values in data:
             for i, v in enumerate(values):
-                column_widths[i] = max(column_widths[i], len(v))
+                column_widths[i] = max(column_widths[i], len(v) if v else 0)
         return column_widths
 
     if header:
