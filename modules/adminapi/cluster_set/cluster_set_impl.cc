@@ -2021,9 +2021,6 @@ void Cluster_set_impl::set_primary_cluster(
   check_preconditions("setPrimaryCluster");
 
   auto console = current_console();
-
-  shcore::Scoped_callback_list undo_list;
-
   console->print_info("Switching the primary cluster of the clusterset to '" +
                       cluster_name + "'");
   if (options.dry_run)
@@ -2105,6 +2102,33 @@ void Cluster_set_impl::set_primary_cluster(
 
   console->print_info();
 
+  // make sure that all instances have the most up-to-date GTID
+  console->print_info(
+      "** Waiting for the promoted cluster to apply pending received "
+      "transactions...");
+
+  if (!options.dry_run) {
+    mysqlshdk::mysql::Replication_channel channel;
+    if (get_channel_status(*promoted, mysqlshdk::gr::k_gr_applier_channel,
+                           &channel)) {
+      switch (channel.status()) {
+        case mysqlshdk::mysql::Replication_channel::OFF:
+        case mysqlshdk::mysql::Replication_channel::APPLIER_OFF:
+        case mysqlshdk::mysql::Replication_channel::APPLIER_ERROR:
+          break;
+        default: {
+          auto timeout =
+              (options.timeout <= 0)
+                  ? options.timeout
+                  : current_shell_options()->get().dba_gtid_wait_timeout;
+          wait_for_apply_retrieved_trx(*promoted,
+                                       mysqlshdk::gr::k_gr_applier_channel,
+                                       std::chrono::seconds{timeout}, true);
+        }
+      }
+    }
+  }
+
   ensure_transaction_set_consistent_and_recoverable(
       promoted.get(), primary.get(), primary_cluster.get(), false,
       options.dry_run, nullptr);
@@ -2127,6 +2151,8 @@ void Cluster_set_impl::set_primary_cluster(
 
   // Restore the transaction_size_limit value to the original one
   restore_transaction_size_limit(promoted_cluster.get(), options.dry_run);
+
+  shcore::Scoped_callback_list undo_list;
 
   try {
     console->print_info("* Updating metadata");
@@ -2567,6 +2593,36 @@ void Cluster_set_impl::force_primary_cluster(
     lock_instances.emplace_back(c->get_primary_master());
   }
 
+  // make sure that all instances have the most up-to-date GTID
+  {
+    console->print_info(
+        "** Waiting for instances to apply pending received transactions...");
+
+    if (!options.dry_run) {
+      auto check_pending_transactions = [](const mysqlshdk::mysql::IInstance
+                                               &instance,
+                                           std::chrono::seconds timeout) {
+        mysqlshdk::mysql::Replication_channel channel;
+        if (!get_channel_status(instance, mysqlshdk::gr::k_gr_applier_channel,
+                                &channel))
+          return;
+
+        if (auto status = channel.status();
+            (status == mysqlshdk::mysql::Replication_channel::OFF) ||
+            (status == mysqlshdk::mysql::Replication_channel::APPLIER_OFF) ||
+            (status == mysqlshdk::mysql::Replication_channel::APPLIER_ERROR))
+          return;
+
+        wait_for_apply_retrieved_trx(
+            instance, mysqlshdk::gr::k_gr_applier_channel, timeout, true);
+      };
+
+      for (const auto &c : lock_clusters)
+        check_pending_transactions(*c->get_cluster_server(),
+                                   options.get_timeout());
+    }
+  }
+
   console->print_info(
       "** Checking whether target cluster has the most recent GTID set");
   check_gtid_set_most_recent(promoted.get(), lock_clusters);
@@ -2657,8 +2713,6 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
     mysqlshdk::mysql::IInstance *replica, mysqlshdk::mysql::IInstance *primary,
     Cluster_impl *primary_cluster, bool allow_unrecoverable, bool dry_run,
     bool *out_is_recoverable) {
-  auto console = current_console();
-
   mysqlshdk::mysql::Gtid_set missing_view_gtids;
   mysqlshdk::mysql::Gtid_set errant_gtids;
   mysqlshdk::mysql::Gtid_set missing_gtids;
@@ -2708,7 +2762,7 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
   if (out_is_recoverable) *out_is_recoverable = true;
 
   if (!errant_gtids.empty()) {
-    console->print_info(shcore::str_format(
+    current_console()->print_info(shcore::str_format(
         "%s has the following errant transactions not present at %s: %s",
         replica->descr().c_str(), primary_cluster->get_name().c_str(),
         errant_gtids.str().c_str()));
@@ -2716,6 +2770,8 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
         "Errant transactions detected at " + replica->descr(),
         SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
   }
+
+  auto console = current_console();
 
   if (!unrecoverable_gtids.empty()) {
     auto msg = shcore::str_format(

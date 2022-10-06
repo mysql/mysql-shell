@@ -1,6 +1,6 @@
 //@<> INCLUDE gr_utils.inc
 
-//@<> Check deprecated options
+//@<> Check options
 EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {user:""}); }, "Dba.rebootClusterFromCompleteOutage: The shell must be connected to a member of the InnoDB cluster being managed");
 EXPECT_OUTPUT_CONTAINS("WARNING: The 'user' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
 
@@ -17,6 +17,10 @@ EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {primary:""})
 EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {primary:"host"}); }, "Invalid value 'host' for 'primary' option: port is missing");
 EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {primary:":12"}); }, "Invalid value ':12' for 'primary' option: host cannot be empty.");
 EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {primary:":port"}); }, "Invalid value ':port' for 'primary' option: Invalid URI: Illegal character [p] found at position 1");
+
+testutil.wipeAllOutput();
+EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {timeout:""}); }, "Option 'timeout' UInteger expected, but value is String");
+EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {timeout:-1}); }, "Option 'timeout' UInteger expected, but Integer value is out of range");
 
 //@<> Initialization
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
@@ -220,6 +224,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ERROR");
 testutil.stopGroup([__mysql_sandbox_port1]);
 
 shell.connect(__sandbox_uri1);
+
 EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage(); });
 EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (OFFLINE), '${hostname}:${__mysql_sandbox_port2}' (ERROR), '${hostname}:${__mysql_sandbox_port3}' (ERROR)`);
 EXPECT_OUTPUT_CONTAINS(`Stopping Group Replication on '${hostname}:${__mysql_sandbox_port2}'...`);

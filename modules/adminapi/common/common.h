@@ -165,9 +165,9 @@ class cancel_sync : public std::exception {};
 class MetadataStorage;
 
 // Maximum Cluster Name length
-constexpr const int k_cluster_name_max_length = 63;
+inline constexpr const int k_cluster_name_max_length = 63;
 
-constexpr const char k_cluster_name_allowed_chars[] =
+inline constexpr const char k_cluster_name_allowed_chars[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-";
 
 void SHCORE_PUBLIC parse_fully_qualified_cluster_name(
@@ -179,95 +179,101 @@ void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
 // Default names
-constexpr const char k_default_domain_partition_name[] = "default";
-constexpr const char k_default_domain_name[] = "mydb";
-constexpr const char *k_replicaset_channel_name = "";
-constexpr const char *k_clusterset_async_channel_name =
+inline constexpr const char k_default_domain_partition_name[] = "default";
+inline constexpr const char k_default_domain_name[] = "mydb";
+inline constexpr const char *k_replicaset_channel_name = "";
+inline constexpr const char *k_clusterset_async_channel_name =
     "clusterset_replication";
 
 // TODO(alfredo) - all server configuration constants and general functions
 // should be moved to repl_config.h
 
 // common keys for group replication and clone configuration options
-constexpr const char kExitStateAction[] = "exitStateAction";
-constexpr const char kGrExitStateAction[] =
+inline constexpr const char kExitStateAction[] = "exitStateAction";
+inline constexpr const char kGrExitStateAction[] =
     "group_replication_exit_state_action";
-constexpr const char kGroupSeeds[] = "groupSeeds";
-constexpr const char kGrGroupSeeds[] = "group_replication_group_seeds";
-constexpr const char kIpWhitelist[] = "ipWhitelist";
-constexpr const char kIpAllowlist[] = "ipAllowlist";
-constexpr const char kGrIpWhitelist[] = "group_replication_ip_whitelist";
-constexpr const char kGrIpAllowlist[] = "group_replication_ip_allowlist";
-constexpr const char kLocalAddress[] = "localAddress";
-constexpr const char kGrLocalAddress[] = "group_replication_local_address";
-constexpr const char kMemberWeight[] = "memberWeight";
-constexpr const char kGrMemberWeight[] = "group_replication_member_weight";
-constexpr const char kExpelTimeout[] = "expelTimeout";
-constexpr const char kGrExpelTimeout[] =
+inline constexpr const char kGroupSeeds[] = "groupSeeds";
+inline constexpr const char kGrGroupSeeds[] = "group_replication_group_seeds";
+inline constexpr const char kIpWhitelist[] = "ipWhitelist";
+inline constexpr const char kIpAllowlist[] = "ipAllowlist";
+inline constexpr const char kGrIpWhitelist[] = "group_replication_ip_whitelist";
+inline constexpr const char kGrIpAllowlist[] = "group_replication_ip_allowlist";
+inline constexpr const char kLocalAddress[] = "localAddress";
+inline constexpr const char kGrLocalAddress[] =
+    "group_replication_local_address";
+inline constexpr const char kMemberWeight[] = "memberWeight";
+inline constexpr const char kGrMemberWeight[] =
+    "group_replication_member_weight";
+inline constexpr const char kExpelTimeout[] = "expelTimeout";
+inline constexpr const char kGrExpelTimeout[] =
     "group_replication_member_expel_timeout";
-constexpr const char kFailoverConsistency[] = "failoverConsistency";
-constexpr const char kGrFailoverConsistency[] = "group_replication_consistency";
-constexpr const char kConsistency[] = "consistency";
-constexpr const char kGrConsistency[] = "group_replication_consistency";
-constexpr const char kGroupName[] = "groupName";
-constexpr const char kGrGroupName[] = "group_replication_group_name";
-constexpr const char kMemberSslMode[] = "memberSslMode";
-constexpr const char kGrMemberSslMode[] = "group_replication_ssl_mode";
-constexpr const char kClusterName[] = "clusterName";
-constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
-constexpr const char kGrAutoRejoinTries[] =
+inline constexpr const char kFailoverConsistency[] = "failoverConsistency";
+inline constexpr const char kGrFailoverConsistency[] =
+    "group_replication_consistency";
+inline constexpr const char kConsistency[] = "consistency";
+inline constexpr const char kGrConsistency[] = "group_replication_consistency";
+inline constexpr const char kGroupName[] = "groupName";
+inline constexpr const char kGrGroupName[] = "group_replication_group_name";
+inline constexpr const char kMemberSslMode[] = "memberSslMode";
+inline constexpr const char kGrMemberSslMode[] = "group_replication_ssl_mode";
+inline constexpr const char kClusterName[] = "clusterName";
+inline constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
+inline constexpr const char kGrAutoRejoinTries[] =
     "group_replication_autorejoin_tries";
-constexpr const char kManualStartOnBoot[] = "manualStartOnBoot";
-constexpr const char kDisableClone[] = "disableClone";
-constexpr const char kTags[] = "tags";
-constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
-constexpr const char kAdoptFromAR[] = "adoptFromAR";
-constexpr const char kDryRun[] = "dryRun";
-constexpr const char kInstanceLabel[] = "instanceLabel";
-constexpr const char kSandboxDir[] = "sandboxDir";
-constexpr const char kPortX[] = "portx";
-constexpr const char kAllowRootFrom[] = "allowRootFrom";
-constexpr const char kIgnoreSslError[] = "ignoreSslError";
-constexpr const char kMysqldOptions[] = "mysqldOptions";
-constexpr const char kMyCnfPath[] = "mycnfPath";
-constexpr const char kVerifyMyCnf[] = "verifyMyCnf";
-constexpr const char kOutputMycnfPath[] = "outputMycnfPath";
-constexpr const char kInteractive[] = "interactive";
-constexpr const char kClusterAdmin[] = "clusterAdmin";
-constexpr const char kClusterAdminPassword[] = "clusterAdminPassword";
-constexpr const char kRestart[] = "restart";
-constexpr const char kClearReadOnly[] = "clearReadOnly";
-constexpr const char kApplierWorkerThreads[] = "applierWorkerThreads";
-constexpr const char kMultiPrimary[] = "multiPrimary";
-constexpr const char kMultiMaster[] = "multiMaster";
-constexpr const char kForce[] = "force";
-constexpr const char kAdoptFromGR[] = "adoptFromGR";
-constexpr const char kAddInstances[] = "addInstances";
-constexpr const char kRemoveInstances[] = "removeInstances";
-constexpr const char kRejoinInstances[] = "rejoinInstances";
-constexpr const char kWaitRecovery[] = "waitRecovery";
-constexpr const char kRecoveryVerbosity[] = "recoveryProgress";
-constexpr const char kLabel[] = "label";
-constexpr const char kExtended[] = "extended";
-constexpr const char kQueryMembers[] = "queryMembers";
-constexpr const char kOnlyUpgradeRequired[] = "onlyUpgradeRequired";
-constexpr const char kUpdate[] = "update";
-constexpr const char kUpdateTopologyMode[] = "updateTopologyMode";
-constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
-constexpr const char kUpdateViewChangeUuid[] = "updateViewChangeUuid";
-constexpr const char kAll[] = "all";
-constexpr const char kTimeout[] = "timeout";
-constexpr const char kInvalidateErrorInstances[] = "invalidateErrorInstances";
-constexpr const char kClusterSetReplicationSslMode[] =
+inline constexpr const char kManualStartOnBoot[] = "manualStartOnBoot";
+inline constexpr const char kDisableClone[] = "disableClone";
+inline constexpr const char kTags[] = "tags";
+inline constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
+inline constexpr const char kAdoptFromAR[] = "adoptFromAR";
+inline constexpr const char kDryRun[] = "dryRun";
+inline constexpr const char kInstanceLabel[] = "instanceLabel";
+inline constexpr const char kSandboxDir[] = "sandboxDir";
+inline constexpr const char kPortX[] = "portx";
+inline constexpr const char kAllowRootFrom[] = "allowRootFrom";
+inline constexpr const char kIgnoreSslError[] = "ignoreSslError";
+inline constexpr const char kMysqldOptions[] = "mysqldOptions";
+inline constexpr const char kMyCnfPath[] = "mycnfPath";
+inline constexpr const char kVerifyMyCnf[] = "verifyMyCnf";
+inline constexpr const char kOutputMycnfPath[] = "outputMycnfPath";
+inline constexpr const char kInteractive[] = "interactive";
+inline constexpr const char kClusterAdmin[] = "clusterAdmin";
+inline constexpr const char kClusterAdminPassword[] = "clusterAdminPassword";
+inline constexpr const char kRestart[] = "restart";
+inline constexpr const char kClearReadOnly[] = "clearReadOnly";
+inline constexpr const char kApplierWorkerThreads[] = "applierWorkerThreads";
+inline constexpr const char kMultiPrimary[] = "multiPrimary";
+inline constexpr const char kMultiMaster[] = "multiMaster";
+inline constexpr const char kForce[] = "force";
+inline constexpr const char kAdoptFromGR[] = "adoptFromGR";
+inline constexpr const char kAddInstances[] = "addInstances";
+inline constexpr const char kRemoveInstances[] = "removeInstances";
+inline constexpr const char kRejoinInstances[] = "rejoinInstances";
+inline constexpr const char kWaitRecovery[] = "waitRecovery";
+inline constexpr const char kRecoveryVerbosity[] = "recoveryProgress";
+inline constexpr const char kLabel[] = "label";
+inline constexpr const char kExtended[] = "extended";
+inline constexpr const char kQueryMembers[] = "queryMembers";
+inline constexpr const char kOnlyUpgradeRequired[] = "onlyUpgradeRequired";
+inline constexpr const char kUpdate[] = "update";
+inline constexpr const char kUpdateTopologyMode[] = "updateTopologyMode";
+inline constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
+inline constexpr const char kUpdateViewChangeUuid[] = "updateViewChangeUuid";
+inline constexpr const char kAll[] = "all";
+inline constexpr const char kTimeout[] = "timeout";
+inline constexpr const char kInvalidateErrorInstances[] =
+    "invalidateErrorInstances";
+inline constexpr const char kClusterSetReplicationSslMode[] =
     "clusterSetReplicationSslMode";
-constexpr const char kReplicationAllowedHost[] = "replicationAllowedHost";
-constexpr const char kCommunicationStack[] = "communicationStack";
-constexpr const char kSwitchCommunicationStack[] = "switchCommunicationStack";
-constexpr const char kTransactionSizeLimit[] = "transactionSizeLimit";
-constexpr const char kGrTransactionSizeLimit[] =
+inline constexpr const char kReplicationAllowedHost[] =
+    "replicationAllowedHost";
+inline constexpr const char kCommunicationStack[] = "communicationStack";
+inline constexpr const char kSwitchCommunicationStack[] =
+    "switchCommunicationStack";
+inline constexpr const char kTransactionSizeLimit[] = "transactionSizeLimit";
+inline constexpr const char kGrTransactionSizeLimit[] =
     "group_replication_transaction_size_limit";
 
-constexpr const int k_group_replication_members_limit = 9;
+inline constexpr const int k_group_replication_members_limit = 9;
 
 // Group Replication configuration option availability regarding MySQL Server
 // version
@@ -618,6 +624,28 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout,
                             bool cancelable = false);
+
+/*
+ * Synchronize transactions on target instance.
+ *
+ * Wait for gtid_set to be applied on the specified target instance. Function
+ * will monitor for replication errors on the named channel and throw an
+ * exception if an error is detected.
+ *
+ * @param target_instance instance to wait for transaction to be applied.
+ * @param gtid_set the transaction set to wait for
+ * @param channel_name the name of the channel to monitor
+ * @param timeout number of seconds to wait
+ * @param cancelable boolean to indicate if the operation is cancelable with
+ * SIGINT or not
+ *
+ * @throw RuntimeError if the timeout is reached when waiting for
+ * transactions to be applied or replication errors are detected.
+ */
+void wait_for_apply_retrieved_trx(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::string &channel_name, std::chrono::seconds timeout,
+    bool silent = true);
 
 void execute_script(const std::shared_ptr<Instance> &group_server,
                     const std::string &script, const std::string &context);

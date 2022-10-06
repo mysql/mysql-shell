@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_REPLICA_SET_API_OPTIONS_H_
 #define MODULES_ADMINAPI_REPLICA_SET_API_OPTIONS_H_
 
+#include <optional>
 #include <string>
 
 #include "modules/adminapi/common/api_options.h"
@@ -32,7 +33,6 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -69,13 +69,13 @@ struct Gtid_wait_timeout_option {
   int timeout() const;
 
  private:
-  mysqlshdk::utils::nullable<int> m_timeout;
+  std::optional<int> m_timeout;
 };
 
 struct Remove_instance_options : public Gtid_wait_timeout_option {
   static const shcore::Option_pack_def<Remove_instance_options> &options();
 
-  mysqlshdk::null_bool force;
+  std::optional<bool> force;
 };
 
 struct Status_options {

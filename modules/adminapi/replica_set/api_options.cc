@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -91,7 +91,7 @@ const shcore::Option_pack_def<Gtid_wait_timeout_option>
 }
 
 int Gtid_wait_timeout_option::timeout() const {
-  return m_timeout.get_safe(
+  return m_timeout.value_or(
       current_shell_options()->get().dba_gtid_wait_timeout);
 }
 

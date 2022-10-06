@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,9 +170,20 @@ const shcore::Option_pack_def<Force_primary_cluster_options>
   static const auto opts =
       shcore::Option_pack_def<Force_primary_cluster_options>()
           .include<Invalidate_replica_clusters_option>()
-          .optional(kDryRun, &Force_primary_cluster_options::dry_run);
+          .optional(kDryRun, &Force_primary_cluster_options::dry_run)
+          .optional(kTimeout, &Force_primary_cluster_options::set_timeout, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE);
 
   return opts;
+}
+
+void Force_primary_cluster_options::set_timeout(uint32_t timeout_seconds) {
+  timeout = std::chrono::seconds{timeout_seconds};
+}
+
+std::chrono::seconds Force_primary_cluster_options::get_timeout() const {
+  return timeout.value_or(std::chrono::seconds{
+      current_shell_options()->get().dba_gtid_wait_timeout});
 }
 
 const shcore::Option_pack_def<Rejoin_cluster_options>
