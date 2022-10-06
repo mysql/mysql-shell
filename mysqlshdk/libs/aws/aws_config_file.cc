@@ -104,11 +104,11 @@ bool Aws_config_file::load() {
         auto key = shcore::str_strip(line.substr(0, equals));
         auto value = shcore::str_strip(line.substr(equals + 1));
 
-        if ("aws_access_key_id" == key) {
+        if (access_key_id() == key) {
           current_profile->access_key_id = value;
-        } else if ("aws_secret_access_key" == key) {
+        } else if (secret_access_key() == key) {
           current_profile->secret_access_key = value;
-        } else if ("aws_session_token" == key) {
+        } else if (session_token() == key) {
           current_profile->session_token = value;
         } else {
           current_profile->settings.emplace(std::move(key), std::move(value));

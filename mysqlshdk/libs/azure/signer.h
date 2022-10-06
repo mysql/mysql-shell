@@ -97,6 +97,8 @@ class Signer : public rest::Signer {
 
   bool refresh_auth_data() override { return false; }
 
+  bool auth_data_expired(time_t) const override { return false; }
+
   void set_secret_access_key(const std::string &key);
 
   std::string create_account_sas_token(

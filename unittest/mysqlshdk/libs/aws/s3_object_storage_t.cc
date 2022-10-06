@@ -540,7 +540,7 @@ TEST_P(Object_storage_test, file_auto_cancel_multipart_upload) {
   EXPECT_THROW_LIKE(bucket.list_multipart_uploaded_parts(uploads[0]),
                     Response_error,
                     "Failed to list uploaded parts for object "
-                    "'test/sample\".txt': No such upload");
+                    "'test/sample\".txt': ");
 
   EXPECT_TRUE(bucket.list_multipart_uploads().empty());
 }

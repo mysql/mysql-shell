@@ -8,8 +8,9 @@
 setup_tests(load_tests = True)
 
 #@<> helpers
-def EXPECT_SUCCESS(options = {}):
-    aws_options = get_options(options)
+def EXPECT_SUCCESS(options = {}, excluded_options = []):
+    aws_options = get_options(options, excluded_options)
+    print(f"--> EXPECT_SUCCESS -> {aws_options}")
     def dump(method, *args):
         method = "dump_" + method
         print(f"--> Executing util.{method}()")
@@ -28,8 +29,9 @@ def EXPECT_SUCCESS(options = {}):
     dump("tables", "world", [ "Country" ])
     load()
 
-def EXPECT_FAIL(error, msg, options = {}, argument_error = True):
-    aws_options = get_options(options)
+def EXPECT_FAIL(error, msg, options = {}, excluded_options = [], argument_error = True):
+    aws_options = get_options(options, excluded_options)
+    print(f"--> EXPECT_FAIL -> {aws_options}")
     def full_msg(method, options_arg):
         is_re = is_re_instance(msg)
         m = f"{re.escape(error) if is_re else error}: Util.{method}: {f'Argument #{options_arg}: ' if argument_error else ''}{msg.pattern if is_re else msg}"
@@ -57,11 +59,11 @@ help_text = """
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
-        credentials file instead of the one at the default location.
+        credentials file.
       - s3ConfigFile: string (default: not set) - Use the specified AWS config
-        file instead of the one at the default location.
-      - s3Profile: string (default: not set) - Use the specified AWS profile
-        instead of the default one.
+        file.
+      - s3Profile: string (default: not set) - Use the specified AWS profile.
+      - s3Region: string (default: not set) - Use the specified AWS region.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
 """
@@ -75,7 +77,11 @@ EXPECT_TRUE(help_text in util.help("load_dump"))
 EXPECT_SUCCESS()
 
 #@<> WL14387-TSFR_2_1_2
-EXPECT_FAIL("RuntimeError", f"The 'aws_access_key_id' setting for the profile 'non-existing-profile' was not found in neither '{MYSQLSH_AWS_CONFIG_FILE}' nor '{MYSQLSH_AWS_SHARED_CREDENTIALS_FILE}' files.", { "s3Profile": "non-existing-profile" })
+WIPE_SHELL_LOG()
+EXPECT_FAIL("RuntimeError", "Could not select the AWS credentials provider, please see log for more details", { "s3Profile": "non-existing-profile" })
+EXPECT_SHELL_LOG_CONTAINS(f"Warning: The credentials file at '{MYSQLSH_AWS_SHARED_CREDENTIALS_FILE}' does not contain a profile named: 'non-existing-profile'.")
+EXPECT_SHELL_LOG_CONTAINS(f"Warning: The config file at '{MYSQLSH_AWS_CONFIG_FILE}' does not contain a profile named: 'non-existing-profile'.")
+EXPECT_SHELL_LOG_CONTAINS("Info: The environment variables are not going to be used to fetch AWS credentials, because the 's3Profile' option is set.")
 
 #@<> WL14387-TSFR_2_1_4
 #    WL14387-TSFR_4_2_1
@@ -123,7 +129,7 @@ shell.options["logLevel"] = current_log_level
 #@<> WL14387-TSFR_4_1
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
     with write_profile(local_aws_credentials_file, local_aws_profile, {}):
-        EXPECT_FAIL("RuntimeError", f"The 'aws_access_key_id' setting for the profile '{local_aws_profile}' was not found in neither '{local_aws_config_file}' nor '{local_aws_credentials_file}' files.", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found in: credentials file ({local_aws_credentials_file}), config file ({local_aws_config_file}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_4_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
@@ -206,17 +212,18 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
 shell.options["logLevel"] = current_log_level
 
 #@<> WL14387-TSFR_5_1
+# BUG#34604763 - partial credentials are an error
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region), "aws_access_key_id": aws_settings["aws_access_key_id"] }):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
-        EXPECT_SUCCESS({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}), missing the value of 'aws_access_key_id'", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_5_2
 current_log_level = shell.options["logLevel"]
 shell.options["logLevel"] = 8
 aws_session_token = random_string(20)
 
-with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region), "aws_access_key_id": "invalid", "aws_secret_access_key": "invalid", "aws_session_token": "invalid" }):
-    with write_profile(local_aws_credentials_file, local_aws_profile, { **aws_settings, "aws_session_token": aws_session_token }):
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, { **aws_settings, "aws_session_token": aws_session_token }):
+    with write_profile(local_aws_credentials_file, local_aws_profile, { "region": aws_settings.get("region", default_aws_region), "aws_session_token": "invalid" }):
         # token is temporary, so we cannot use a predefined one for our testing, instead we check if the token we set is sent along with the headers
         setup_session(__sandbox_uri1)
         clean_bucket()
@@ -237,18 +244,18 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "reg
 #@<> WL14387-TSFR_5_1_1
 with write_profile(default_aws_config_file, "profile " + local_aws_profile, {}):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
-        EXPECT_FAIL("RuntimeError", f"The 'aws_access_key_id' setting for the profile '{local_aws_profile}' was not found in neither '{default_aws_config_file}' nor '{local_aws_credentials_file}' files.", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}), missing the value of 'aws_access_key_id'", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_5_2_1
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "aws_secret_access_key": "", "aws_access_key_id": "invalid" }):
     with write_profile(local_aws_credentials_file, local_aws_profile, {}):
         # aws_access_key_id is invalid, so we're expecting an 403 Forbidden error
-        EXPECT_FAIL("Error: Shell Error (54403)", re.compile(".* \(403\)"), { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file }, False)
+        EXPECT_FAIL("Error: Shell Error (54403)", re.compile(".* \(403\)"), { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file }, argument_error = False)
 
 #@<> WL14387-TSFR_5_2_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region) }):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"] }):
-        EXPECT_FAIL("RuntimeError", f"The 'aws_secret_access_key' setting for the profile '{local_aws_profile}' was not found in neither '{local_aws_config_file}' nor '{local_aws_credentials_file}' files.", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}), missing the value of 'aws_secret_access_key'", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_5_3_1
 current_log_level = shell.options["logLevel"]
@@ -287,8 +294,8 @@ import threading
 class RejectGet(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     def do_GET(self):
-        response = "<Error><Message>Nothing's here!</Message></Error>"
-        self.send_response(404)
+        response = "<Error><Message>Access forbidden!</Message></Error>"
+        self.send_response(403)
         self.send_header('Content-Type', 'application/xml')
         self.send_header('Content-Length', str(len(response)))
         self.end_headers()
@@ -310,11 +317,11 @@ current_log_level = shell.options["logLevel"]
 shell.options["logLevel"] = 8
 
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { **aws_settings, "region": default_aws_region }):
-    # operation will fail, because our test server sends 404, we're checking here if the specified endpoint is used
+    # operation will fail, because our test server sends 403, we're checking here if the specified endpoint is used
     setup_session(__sandbox_uri1)
     clean_bucket()
     WIPE_SHELL_LOG()
-    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": f"http://127.0.0.1:{http_port}/", "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), "Nothing's here! (404)")
+    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": f"http://127.0.0.1:{http_port}/", "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), "Access forbidden! (403)")
     EXPECT_SHELL_LOG_CONTAINS(f"http://127.0.0.1:{http_port} GET")
 
 shell.options["logLevel"] = current_log_level
@@ -376,6 +383,11 @@ EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
 
 #@<> BUG#34599319 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
+#@<> BUG#34604763 - new s3Region option
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": "invalid" }):
+    with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"], "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
+        EXPECT_SUCCESS({ "s3Region": aws_settings.get("region", default_aws_region), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> cleanup
 cleanup_tests(load_tests = True)

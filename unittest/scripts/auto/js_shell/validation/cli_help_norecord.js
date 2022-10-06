@@ -351,16 +351,16 @@ OPTIONS
             Default: not set.
 
 --s3CredentialsFile=<str>
-            Use the specified AWS credentials file instead of the one at the
-            default location. Default: not set.
+            Use the specified AWS credentials file. Default: not set.
 
 --s3ConfigFile=<str>
-            Use the specified AWS config file instead of the one at the default
-            location. Default: not set.
+            Use the specified AWS config file. Default: not set.
 
 --s3Profile=<str>
-            Use the specified AWS profile instead of the default one. Default:
-            not set.
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
 
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
@@ -585,16 +585,16 @@ OPTIONS
             Default: not set.
 
 --s3CredentialsFile=<str>
-            Use the specified AWS credentials file instead of the one at the
-            default location. Default: not set.
+            Use the specified AWS credentials file. Default: not set.
 
 --s3ConfigFile=<str>
-            Use the specified AWS config file instead of the one at the default
-            location. Default: not set.
+            Use the specified AWS config file. Default: not set.
 
 --s3Profile=<str>
-            Use the specified AWS profile instead of the default one. Default:
-            not set.
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
 
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
@@ -800,16 +800,16 @@ OPTIONS
             Default: not set.
 
 --s3CredentialsFile=<str>
-            Use the specified AWS credentials file instead of the one at the
-            default location. Default: not set.
+            Use the specified AWS credentials file. Default: not set.
 
 --s3ConfigFile=<str>
-            Use the specified AWS config file instead of the one at the default
-            location. Default: not set.
+            Use the specified AWS config file. Default: not set.
 
 --s3Profile=<str>
-            Use the specified AWS profile instead of the default one. Default:
-            not set.
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
 
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
@@ -923,16 +923,16 @@ OPTIONS
             Default: not set.
 
 --s3CredentialsFile=<str>
-            Use the specified AWS credentials file instead of the one at the
-            default location. Default: not set.
+            Use the specified AWS credentials file. Default: not set.
 
 --s3ConfigFile=<str>
-            Use the specified AWS config file instead of the one at the default
-            location. Default: not set.
+            Use the specified AWS config file. Default: not set.
 
 --s3Profile=<str>
-            Use the specified AWS profile instead of the default one. Default:
-            not set.
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
 
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
@@ -1156,16 +1156,16 @@ OPTIONS
             Default: not set.
 
 --s3CredentialsFile=<str>
-            Use the specified AWS credentials file instead of the one at the
-            default location. Default: not set.
+            Use the specified AWS credentials file. Default: not set.
 
 --s3ConfigFile=<str>
-            Use the specified AWS config file instead of the one at the default
-            location. Default: not set.
+            Use the specified AWS config file. Default: not set.
 
 --s3Profile=<str>
-            Use the specified AWS profile instead of the default one. Default:
-            not set.
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
 
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.
@@ -1394,16 +1394,16 @@ OPTIONS
             Default: not set.
 
 --s3CredentialsFile=<str>
-            Use the specified AWS credentials file instead of the one at the
-            default location. Default: not set.
+            Use the specified AWS credentials file. Default: not set.
 
 --s3ConfigFile=<str>
-            Use the specified AWS config file instead of the one at the default
-            location. Default: not set.
+            Use the specified AWS config file. Default: not set.
 
 --s3Profile=<str>
-            Use the specified AWS profile instead of the default one. Default:
-            not set.
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
 
 --s3EndpointOverride=<str>
             Use the specified AWS S3 API endpoint instead of the default one.

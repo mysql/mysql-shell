@@ -58,6 +58,8 @@ class S3_bucket_options
 
   static constexpr const char *profile_option() { return "s3Profile"; }
 
+  static constexpr const char *region_option() { return "s3Region"; }
+
   static constexpr const char *endpoint_override_option() {
     return "s3EndpointOverride";
   }
@@ -79,6 +81,7 @@ class S3_bucket_options
       const override;
 
   std::string m_credentials_file;
+  std::string m_region;
   std::string m_endpoint_override;
 };
 

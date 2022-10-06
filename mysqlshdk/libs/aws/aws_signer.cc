@@ -80,17 +80,14 @@ std::string hex_sha256(const char *data, size_t size) {
 }  // namespace
 
 Aws_signer::Aws_signer(const S3_bucket_config &config)
-    : m_host(config.m_host),
-      m_access_key_id(config.m_access_key_id),
-      m_session_token(config.m_session_token),
-      m_region(config.m_region) {
-  if (config.m_secret_access_key) {
-    set_secret_access_key(*config.m_secret_access_key);
-  }
+    : m_host(config.host()),
+      m_region(config.region()),
+      m_credentials_provider(config.credentials_provider()) {
+  update_credentials();
 }
 
 bool Aws_signer::should_sign_request(const rest::Signed_request *) const {
-  return m_access_key_id && !m_secret_access_key.empty();
+  return !m_credentials->anonymous_access();
 }
 
 rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
@@ -128,8 +125,8 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   result[k_date_header] = date;
   result[k_hash_header] = payload_hash;
 
-  if (m_session_token) {
-    result[k_token_header] = *m_session_token;
+  if (const auto &token = m_credentials->session_token(); !token.empty()) {
+    result[k_token_header] = token;
   }
 
   // CanonicalRequest = <HTTPMethod>\n
@@ -251,7 +248,7 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   std::string authorization;
   authorization.reserve(512);
   authorization += "AWS4-HMAC-SHA256 Credential=";
-  authorization += m_access_key_id.value_or(std::string{});
+  authorization += m_credentials->access_key_id();
   authorization += '/';
   authorization += scope;
   authorization += ", SignedHeaders=";
@@ -268,8 +265,28 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   return result;
 }
 
-void Aws_signer::set_secret_access_key(const std::string &key) {
+bool Aws_signer::refresh_auth_data() { return update_credentials(); }
+
+bool Aws_signer::auth_data_expired(time_t now) const {
+  return m_credentials->expired(now);
+}
+
+bool Aws_signer::update_credentials() {
+  if (auto credentials = m_credentials_provider->credentials()) {
+    if (!m_credentials || *credentials != *m_credentials) {
+      set_credentials(std::move(credentials));
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void Aws_signer::set_credentials(std::shared_ptr<Aws_credentials> credentials) {
+  m_credentials = std::move(credentials);
+
   static constexpr auto prefix_size = 4;
+  const auto &key = m_credentials->secret_access_key();
 
   m_secret_access_key.resize(prefix_size + key.size());
 

@@ -1000,6 +1000,15 @@ EXPECT_FAIL("ValueError", "Argument #2: The option 's3Profile' cannot be used wh
 #@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string dumps to a local directory
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "s3BucketName": "", "s3Profile": "", "showProgress": False })
 
+#@<> s3Region - string option
+TEST_STRING_OPTION("s3Region")
+
+#@<> s3Region cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #2: The option 's3Region' cannot be used when the value of 's3BucketName' option is not set", test_output_relative, { "s3Region": "region" })
+
+#@<> s3BucketName and s3Region both set to an empty string dumps to a local directory
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "s3BucketName": "", "s3Region": "", "showProgress": False })
+
 #@<> s3EndpointOverride - string option
 TEST_STRING_OPTION("s3EndpointOverride")
 

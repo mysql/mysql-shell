@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/libs/rest/signed_rest_service.h"
 
+#include "mysqlshdk/libs/aws/aws_credentials.h"
 #include "mysqlshdk/libs/aws/s3_bucket_config.h"
 
 namespace mysqlshdk {
@@ -63,7 +64,9 @@ class Aws_signer : public rest::Signer {
   rest::Headers sign_request(const rest::Signed_request *request,
                              time_t now) const override;
 
-  bool refresh_auth_data() override { return false; }
+  bool refresh_auth_data() override;
+
+  bool auth_data_expired(time_t now) const override;
 
  private:
 #ifdef FRIEND_TEST
@@ -72,15 +75,17 @@ class Aws_signer : public rest::Signer {
 
   Aws_signer() = default;
 
-  void set_secret_access_key(const std::string &key);
+  bool update_credentials();
+
+  void set_credentials(std::shared_ptr<Aws_credentials> credentials);
 
   std::string m_host;
-  std::optional<std::string> m_access_key_id;
-  std::vector<unsigned char> m_secret_access_key;
-  std::optional<std::string> m_session_token;
   std::string m_region;
   std::string m_service = "s3";
   bool m_sign_all_headers = false;
+  Aws_credentials_provider *m_credentials_provider;
+  std::shared_ptr<Aws_credentials> m_credentials;
+  std::vector<unsigned char> m_secret_access_key;
 };
 
 }  // namespace aws

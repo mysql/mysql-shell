@@ -41,8 +41,8 @@ class Aws_signer_test : public testing::Test {
     Aws_signer signer;
 
     signer.m_host = k_host;
-    signer.m_access_key_id = k_access_key_id;
-    signer.set_secret_access_key("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY");
+    signer.set_credentials(std::make_shared<Aws_credentials>(
+        k_access_key_id, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"));
     signer.m_region = k_region;
     signer.m_sign_all_headers = true;
 

@@ -154,15 +154,30 @@ void Signed_rest_service::clear_cache(time_t now) {
   }
 }
 
+void Signed_rest_service::invalidate_cache() {
+  m_cached_header.clear();
+  m_signed_header_cache_time.clear();
+  m_cache_cleared_at = 0;
+}
+
 bool Signed_rest_service::valid_headers(const Signed_request *request,
                                         time_t now) const {
   const auto &path = request->full_path().real();
   const auto method = request->type;
+  const auto methods = m_signed_header_cache_time.find(path);
 
-  // we assume that headers were cached, and that body did not change (no need
-  // to rehash the body)
-  return now - m_signed_header_cache_time.at(path).at(method) <=
-         k_header_cache_ttl;
+  if (m_signed_header_cache_time.end() == methods) {
+    return false;
+  }
+
+  const auto time = methods->second.find(method);
+
+  if (methods->second.end() == time) {
+    return false;
+  }
+
+  // we assume that body did not change (no need to rehash the body)
+  return now - time->second <= k_header_cache_ttl;
 }
 
 Headers Signed_rest_service::make_headers(const Signed_request *request,
@@ -171,7 +186,7 @@ Headers Signed_rest_service::make_headers(const Signed_request *request,
 
   const auto &path = request->full_path().real();
   const auto method = request->type;
-  auto &cached_time = m_signed_header_cache_time[path][method];
+  const auto cached_time = m_signed_header_cache_time[path][method];
 
   // Maximum Allowed Client Clock Skew from the server's clock for OCI requests
   // is 5 minutes, 15 minutes in case of AWS. We can exploit that feature to
@@ -181,8 +196,13 @@ Headers Signed_rest_service::make_headers(const Signed_request *request,
   // sha256
   if (now - cached_time > k_header_cache_ttl || request->size ||
       !m_enable_signature_caching) {
+    // make sure the credentials are up to date
+    if (m_signer->auth_data_expired(now) && m_signer->refresh_auth_data()) {
+      invalidate_cache();
+    }
+
     m_cached_header[path][method] = m_signer->sign_request(request, now);
-    cached_time = now;
+    m_signed_header_cache_time[path][method] = now;
   }
 
   auto final_headers = m_cached_header[path][method];
@@ -229,8 +249,7 @@ Response::Status_code Signed_rest_service::execute(Signed_request *request,
 
     if (retry) {
       // we've refreshed the authorization data, cache is no longer valid
-      m_signed_header_cache_time.clear();
-      m_cached_header.clear();
+      invalidate_cache();
     }
   } while (retry);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,9 +98,9 @@ std::string preprocess_markup(const std::string &line, Highlights *highlights) {
   // Some characters need to be specified using special doxygen format to
   // to prevent generating doxygen warnings.
   std::vector<std::pair<const char *, const char *>> replacements = {
-      {"@<", "<"},   {"@>", ">"},     {"&nbsp;", " "}, {"@li", "-"},
-      {"@%", "%"},   {"@@", "@"},     {"\\\\", "\\"},  {"<br>", "\n"},
-      {"@::", "::"}, {"&quot;", "\""}};
+      {"@<", "<"},   {"@>", ">"},      {"&nbsp;", " "},  {"@li", "-"},
+      {"@%", "%"},   {"@@", "@"},      {"\\\\", "\\"},   {"<br>", "\n"},
+      {"@::", "::"}, {"&quot;", "\""}, {"%http", "http"}};
 
   for (const auto &rpl : replacements) {
     ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);
@@ -598,7 +598,7 @@ std::string format_markup_text(const std::vector<std::string> &lines,
     int next_list_item = 1;
 
     std::string new_line;
-    for (auto line : lines) {
+    for (const auto &line : lines) {
       if (!ret_val.empty()) ret_val += "\n";
 
       if (shcore::str_beginswith(line.c_str(), "@code") &&
@@ -716,6 +716,10 @@ std::string format_markup_text(const std::vector<std::string> &lines,
 
           warning.replace(left_padding, 10, textui::warning("ATTENTION:"));
           ret_val += warning;
+        } else if (0 == line.find(". ")) {
+          // end of a numbered list
+          next_list_item = 1;
+          ret_val += format_markup_text(line.substr(2), width, left_padding);
         } else {
           ret_val += format_markup_text(line, width, left_padding);
         }

@@ -73,6 +73,8 @@ class Signer {
                                time_t now) const = 0;
 
   virtual bool refresh_auth_data() = 0;
+
+  virtual bool auth_data_expired(time_t now) const = 0;
 };
 
 class Signed_rest_service_config {
@@ -137,6 +139,8 @@ class Signed_rest_service {
   bool valid_headers(const Signed_request *request, time_t now) const;
 
   void clear_cache(time_t now);
+
+  void invalidate_cache();
 
   using Method_time = std::unordered_map<Type, time_t>;
   std::unordered_map<std::string, Method_time> m_signed_header_cache_time;

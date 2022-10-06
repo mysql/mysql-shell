@@ -36,6 +36,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -198,8 +199,8 @@ struct SHCORE_PUBLIC Value {
     size_t count(const std::string &k) const { return _map.count(k); }
 
     template <class T>
-    std::pair<iterator, bool> emplace(const std::string &key, const T &v) {
-      return _map.emplace(key, Value(v));
+    std::pair<iterator, bool> emplace(const std::string &key, T &&v) {
+      return _map.emplace(key, Value(std::forward<T>(v)));
     }
 
    private:
@@ -229,6 +230,7 @@ struct SHCORE_PUBLIC Value {
   explicit Value(std::string &&s, bool binary = false);
   explicit Value(const char *);
   explicit Value(const char *, size_t n, bool binary = false);
+  explicit Value(std::string_view s, bool binary = false);
   explicit Value(std::wstring_view s);
   explicit Value(std::nullptr_t);
   explicit Value(int i);

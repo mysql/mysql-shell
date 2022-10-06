@@ -8,7 +8,7 @@ import os.path
 
 ## helpers
 
-def get_options(opts = {}):
+def get_options(opts = {}, excluded_opts = []):
     if not hasattr(get_options, "aws_options"):
         get_options.aws_options = {}
         def set_option(name, variable):
@@ -19,8 +19,12 @@ def get_options(opts = {}):
         set_option("s3CredentialsFile", "MYSQLSH_AWS_SHARED_CREDENTIALS_FILE")
         set_option("s3ConfigFile", "MYSQLSH_AWS_CONFIG_FILE")
         set_option("s3Profile", "MYSQLSH_AWS_PROFILE")
+        set_option("s3Region", "MYSQLSH_AWS_REGION")
         set_option("s3EndpointOverride", "MYSQLSH_S3_ENDPOINT_OVERRIDE")
-    return {**get_options.aws_options, **opts}
+    result = {**get_options.aws_options, **opts}
+    for opt in excluded_opts:
+        result.pop(opt, None)
+    return result
 
 def clean_bucket():
     return testutil.clean_s3_bucket(get_options())
@@ -54,6 +58,11 @@ def cleanup_tests(load_tests = False):
     testutil.destroy_sandbox(__mysql_sandbox_port1)
     if load_tests:
         testutil.destroy_sandbox(__mysql_sandbox_port2)
+    del_global_variable("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE")
+    del_global_variable("MYSQLSH_AWS_CONFIG_FILE")
+    del_global_variable("MYSQLSH_AWS_PROFILE")
+    del_global_variable("MYSQLSH_AWS_REGION")
+    del_global_variable("MYSQLSH_S3_ENDPOINT_OVERRIDE")
 
 def remove_local_progress_file():
     remove_file(local_progress_file)
@@ -92,6 +101,15 @@ def write_profile(path, profile, settings, extra_profiles = None):
     stack.callback(lambda: os.remove(path))
     return stack
 
+def set_env_var(name, value):
+    stack = ExitStack()
+    if name in os.environ:
+        old_value = os.environ[name]
+        stack.callback(lambda: os.environ.update({name: old_value}))
+    os.environ[name] = value
+    stack.callback(lambda: os.environ.pop(name, None))
+    return stack
+
 def get_scope(region):
     return f"{datetime.datetime.today().strftime('%Y%m%d')}/{region}/s3/aws4_request"
 
@@ -118,12 +136,18 @@ def set_global_variable(name, default_value):
     if value is None:
         globals()[name] = default_value
 
+def del_global_variable(name):
+    value = globals().get(name)
+    if value is not None:
+        del globals()[name]
+
 # call it to initialize the AWS options
 get_options()
 # set global variable, if they were not specified
 set_global_variable("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE", default_aws_credentials_file)
 set_global_variable("MYSQLSH_AWS_CONFIG_FILE", default_aws_config_file)
 set_global_variable("MYSQLSH_AWS_PROFILE", default_aws_profile)
+set_global_variable("MYSQLSH_AWS_REGION", default_aws_region)
 set_global_variable("MYSQLSH_S3_ENDPOINT_OVERRIDE", default_s3_endpoint_override)
 
 aws_settings = read_profile()

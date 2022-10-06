@@ -25,7 +25,11 @@ ENDIF()
 
 set(aws_SOURCES
   aws_config_file.cc
+  aws_credentials.cc
+  aws_credentials_provider.cc
   aws_signer.cc
+  config_credentials_provider.cc
+  env_credentials_provider.cc
   s3_bucket.cc
   s3_bucket_config.cc
   s3_bucket_options.cc

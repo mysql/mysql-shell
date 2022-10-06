@@ -98,6 +98,7 @@ class Aws_s3_tests : public testing::Test,
     read_var("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE", &m_credentials_file, false);
     read_var("MYSQLSH_AWS_CONFIG_FILE", &m_config_file, false);
     read_var("MYSQLSH_AWS_PROFILE", &m_profile, false);
+    read_var("MYSQLSH_AWS_REGION", &m_region, false);
     read_var("MYSQLSH_S3_ENDPOINT_OVERRIDE", &m_endpoint_override, false);
 
     if (!should_skip()) {
@@ -126,6 +127,7 @@ class Aws_s3_tests : public testing::Test,
         S3_bucket_options::credentials_file_option(), m_credentials_file,
         S3_bucket_options::config_file_option(), m_config_file,
         S3_bucket_options::profile_option(), m_profile,
+        S3_bucket_options::region_option(), m_region,
         S3_bucket_options::endpoint_override_option(), m_endpoint_override);
 
     S3_bucket_options parsed_options;
@@ -189,6 +191,7 @@ class Aws_s3_tests : public testing::Test,
   std::string m_credentials_file;
   std::string m_config_file;
   std::string m_profile;
+  std::string m_region;
   std::string m_endpoint_override;
 };
 
