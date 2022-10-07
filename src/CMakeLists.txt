@@ -407,3 +407,18 @@ IF(BUNDLED_ANTLR_DIR)
     endforeach()
   ENDIF()
 ENDIF()
+
+# If defined, installs the client authentication plugins
+IF(CLIENT_PLUGINS_PATH)
+  FILE(GLOB AUTH_CLIENT_PLUGINS "${CLIENT_PLUGINS_PATH}/authentication*client*${LIBRARY_SUFIX}")
+
+  INSTALL(PROGRAMS ${AUTH_CLIENT_PLUGINS} DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}" COMPONENT main)
+
+  # Install the authentication client plugins
+  ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_MYSQL_PLUGINS_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy ${AUTH_CLIENT_PLUGINS}
+                "${CONFIG_BINARY_DIR}/${INSTALL_MYSQL_PLUGINS_DIR}")
+ELSE()
+  MESSAGE(STATUS "Skipping bundling Authentication Client Plugins!")
+ENDIF()

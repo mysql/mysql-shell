@@ -323,7 +323,7 @@
  logSql                          error
  logSql.ignorePattern            *SELECT*:SHOW*
  logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD*
- mysqlPluginDir                  ""
+ mysqlPluginDir                  [[*]]plugins
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
  outputFormat                    table
@@ -362,7 +362,7 @@
  logSql                          error (Compiled default)
  logSql.ignorePattern            *SELECT*:SHOW* (Compiled default)
  logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD* (Compiled default)
- mysqlPluginDir                  "" (Compiled default)
+ mysqlPluginDir                  [[*]]plugins (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
  outputFormat                    table (Compiled default)
@@ -482,7 +482,7 @@
  logSql                          error
  logSql.ignorePattern            *SELECT*:SHOW*
  logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD*
- mysqlPluginDir                  ""
+ mysqlPluginDir                  [[*]]plugins
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
  outputFormat                    table
@@ -522,7 +522,7 @@ Switching to SQL mode... Commands end with ;
  logSql                          error (Compiled default)
  logSql.ignorePattern            *SELECT*:SHOW* (Compiled default)
  logSql.ignorePatternUnsafe      *IDENTIFIED*:*PASSWORD* (Compiled default)
- mysqlPluginDir                  "" (Compiled default)
+ mysqlPluginDir                  [[*]]plugins (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
  outputFormat                    table (Compiled default)

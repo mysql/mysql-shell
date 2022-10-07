@@ -201,8 +201,6 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   void set_default_data() override;
 
-  void set_plugins_dir();
-
   int compare(const std::string &lhs, const std::string &rhs) const {
     return m_options.compare(lhs, rhs);
   }
@@ -234,6 +232,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 };
 
 int64_t default_connect_timeout();
+std::string default_mysql_plugins_dir();
 
 }  // namespace db
 }  // namespace mysqlshdk

@@ -294,7 +294,14 @@ usr/lib/mysqlsh/libssh*.so*
 ")
 endif()
 
-if (BUNDLED_MYSQL_CONFIG_EDITOR)
+if (MYSQL_SOURCE_DIR)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"# For client authentication plugins
+usr/lib/mysql/plugins/authentication*client.so
+")
+endif()
+
+if (BUNDLED_MYSQL_CONFIG_EDITOR OR MYSQL_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "
 usr/libexec/mysqlsh/mysql_config_editor

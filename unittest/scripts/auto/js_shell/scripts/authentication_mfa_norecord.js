@@ -25,7 +25,6 @@ var test_list = {
 
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', server_conf);
 
-shell.options.mysqlPluginDir = `${MYSQL_PLUGIN_DIR}`;
 shell.connect(__sandbox_uri1);
 session.runSql("CREATE DATABASE test_user_db");
 session.runSql(`CREATE USER '${LDAP_SIMPLE_USER}' IDENTIFIED BY 'abc'`);

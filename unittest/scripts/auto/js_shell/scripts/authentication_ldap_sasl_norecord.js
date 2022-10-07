@@ -57,7 +57,6 @@ WIPE_OUTPUT();
 testutil.callMysqlsh(["--", "shell", "options", "unset-persist", "mysqlPluginDir"]);
 
 //@<> Interactive LDAP Simple TCP session {sasl_available}
-shell.options.mysqlPluginDir = MYSQL_PLUGIN_DIR;
 
 var interactive_variants = [];
 interactive_variants.push(function () {

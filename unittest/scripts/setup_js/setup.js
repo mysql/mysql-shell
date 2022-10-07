@@ -250,14 +250,10 @@ function hasAuthEnvironment(context) {
                  'LDAP_KERBEROS_USER_SEARCH_ATTR',
                  'LDAP_KERBEROS_USER',
                  'LDAP_KERBEROS_PWD',
-                 'LDAP_KERBEROS_AUTH_STRING',
-                 'MYSQL_PLUGIN_DIR'];
+                 'LDAP_KERBEROS_AUTH_STRING'];
   } else if (context == 'KERBEROS') {
     variables = ['KERBEROS_USER',
-                 'KERBEROS_PWD',
-                 'MYSQL_PLUGIN_DIR'];
-  } else if (context == 'FIDO') {
-    variables = ['MYSQL_PLUGIN_DIR'];
+                 'KERBEROS_PWD'];
   }
 
   let missing=[];

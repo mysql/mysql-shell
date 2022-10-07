@@ -256,12 +256,13 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_NET_BUFFER_LENGTH, &opt_net_buffer_length);
   }
 
+  auto mysql_plugin_dir = mysqlshdk::db::default_mysql_plugins_dir();
   if (connection_options.has(mysqlshdk::db::kMysqlPluginDir)) {
-    auto mysql_plugin_dir =
-        connection_options.get(mysqlshdk::db::kMysqlPluginDir);
-    if (!mysql_plugin_dir.empty()) {
-      mysql_options(_mysql, MYSQL_PLUGIN_DIR, mysql_plugin_dir.c_str());
-    }
+    mysql_plugin_dir = connection_options.get(mysqlshdk::db::kMysqlPluginDir);
+  }
+
+  if (!mysql_plugin_dir.empty()) {
+    mysql_options(_mysql, MYSQL_PLUGIN_DIR, mysql_plugin_dir.c_str());
   }
 
   DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());

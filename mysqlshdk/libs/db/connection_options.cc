@@ -667,8 +667,6 @@ void Connection_options::set_default_data() {
     set_user(shcore::get_system_user());
   }
 
-  set_plugins_dir();
-
   if (!has_host() &&
       (!has_transport_type() || get_transport_type() == mysqlshdk::db::Tcp))
     set_host("localhost");
@@ -685,20 +683,6 @@ void Connection_options::set_default_data() {
 
   if (m_ssh_options.has_data()) {
     m_ssh_options.set_default_data();
-  }
-}
-
-void Connection_options::set_plugins_dir() {
-  // Use the plugin dir from the shell options if not included on the
-  // connection options already
-  if (!has(mysqlshdk::db::kMysqlPluginDir)) {
-    // NOTE:Allowing empty options as required for many tests
-    // In the case of the shell binary that will never be the case
-    auto options = mysqlsh::current_shell_options(true);
-    if (options && !options->get().mysql_plugin_dir.empty()) {
-      set(mysqlshdk::db::kMysqlPluginDir,
-          mysqlsh::current_shell_options()->get().mysql_plugin_dir);
-    }
   }
 }
 
@@ -784,6 +768,17 @@ int64_t default_connect_timeout() {
   const auto &storage =
       options ? options->get() : mysqlsh::Shell_options::Storage();
   return storage.connect_timeout * 1000;
+}
+
+std::string default_mysql_plugins_dir() {
+  // some tests execute SQL before options are available, in that case use the
+  // default value
+
+  if (const auto options = mysqlsh::current_shell_options(true)) {
+    return options->get().mysql_plugin_dir;
+  }
+
+  return "";
 }
 
 }  // namespace db

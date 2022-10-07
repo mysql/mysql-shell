@@ -27,7 +27,7 @@ rootsess.runSql("CREATE USER remo_pass@'%' IDENTIFIED WITH caching_sha2_password
 
 // Try all combinations using caching_sha2_password
 // ================================================
-// This new plugin has a peculiar behaviour:
+// This new plugin has a peculiar behavior:
 // 1st authentication must be either without SSL and --get-server-public-key or with --get-server-public-key
 // after that, it can be without SSL
 // UNLESS password is not set

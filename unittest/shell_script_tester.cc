@@ -1737,7 +1737,6 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("LDAP_SASL_USER");
   def_string_var_from_env("LDAP_SASL_PWD");
   def_string_var_from_env("LDAP_SASL_GROUP_SEARCH_FILTER");
-  def_string_var_from_env("MYSQL_PLUGIN_DIR");
 
   // Simple LDAP SASL Authentication Variables
   def_string_var_from_env("LDAP_KERBEROS_SERVER_HOST");

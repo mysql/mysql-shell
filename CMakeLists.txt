@@ -856,6 +856,41 @@ ADD_DEFINITIONS(-DLIBEXECDIR="libexec")
 SET(INSTALL_LIBEXECDIR "libexec/mysqlsh")
 ENDIF()
 SET(INSTALL_LIBDIR "lib/mysqlsh")
+IF(MYSQL_BUILD_DIR)
+  IF(WIN32)
+    SET(INSTALL_MYSQL_PLUGINS_DIR "lib\\\\mysql\\\\plugins")
+  ELSE()
+    SET(INSTALL_MYSQL_PLUGINS_DIR "lib/mysql/plugins")
+  ENDIF()
+
+  # Searches for the authentication client plugins on the server build path
+  SET(ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
+  IF(WIN32)
+    SET(LIBRARY_SUFIX .dll)
+    set(_plugin_subdirs "plugin_output_directory/${CMAKE_BUILD_TYPE}")
+  ELSE()
+    SET(LIBRARY_SUFIX .so)
+    set(_plugin_subdirs "plugin_output_directory")
+  ENDIF()
+
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES ${LIBRARY_SUFIX})
+
+  # Searches authentication_oci_client which is present in all platforms
+  FIND_LIBRARY(CLIENT_PLUGIN_LIB
+    NAME "authentication_oci_client${LIBRARY_SUFIX}"
+    PATHS "${MYSQL_BUILD_DIR}"
+    PATH_SUFFIXES ${_plugin_subdirs}
+    NO_DEFAULT_PATH)
+
+  IF (CLIENT_PLUGIN_LIB)
+    GET_FILENAME_COMPONENT(CLIENT_PLUGINS_PATH ${CLIENT_PLUGIN_LIB} DIRECTORY)
+  ENDIF()
+
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+
+  ADD_DEFINITIONS(-DDEFAULT_MYSQL_PLUGIN_DIR="${INSTALL_MYSQL_PLUGINS_DIR}")
+ENDIF()
 SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
 SET(INSTALL_DOCDIR "share/mysqlsh/Docs")

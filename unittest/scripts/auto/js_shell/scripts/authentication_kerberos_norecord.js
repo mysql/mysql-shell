@@ -38,8 +38,7 @@ args = ["--mysql", "--host=localhost",
     `--port=${__mysql_sandbox_port1}`,
     '--schema=test_user_db',
     '--auth-method=authentication_kerberos_client',
-    "--credential-store-helper=plaintext",
-    `--mysql-plugin-dir=${MYSQL_PLUGIN_DIR}`]
+    "--credential-store-helper=plaintext"]
 
 // WL14553-TSFR_9_4 - No user/password provided
 testutil.callMysqlsh(args.concat(["-i"]));
@@ -96,7 +95,6 @@ for (variant_index in cli_variants) {
 
 
 //@<> Test TGT with interactive shell connections
-shell.options.mysqlPluginDir = MYSQL_PLUGIN_DIR;
 ok_variants = []
 // Full credentials will cause the TGT to be created
 ok_variants.push(function () {
