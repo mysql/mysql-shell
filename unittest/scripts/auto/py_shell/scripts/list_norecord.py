@@ -296,13 +296,18 @@ for s in all_slices:
     TEST(s)
 
 #@<> __dir__
-all_methods = sorted(shlist().__dir__())
-# list does not have __getstate__(), __setstate__() and remove_all()
-all_methods.remove("__getstate__")
-all_methods.remove("__setstate__")
-all_methods.remove("remove_all")
+actual_methods = sorted(shlist().__dir__())
+# list does not have remove_all()
+actual_methods.remove("remove_all")
 
-EXPECT_EQ(sorted(list().__dir__()), all_methods)
+expected_methods = sorted(list().__dir__())
+# we don't want to compare any state-related methods
+for m in ["__getstate__", "__setstate__"]:
+    for l in [actual_methods, expected_methods]:
+        if m in l:
+            l.remove(m)
+
+EXPECT_EQ(actual_methods, expected_methods)
 
 #@<> __doc__
 EXPECT_EQ("""List() -> new empty shcore array

@@ -45,6 +45,8 @@
 
 #ifdef _WINDOWS
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 // used to identify a proper SHELL context object as a PyCObject
@@ -56,46 +58,133 @@ namespace shcore {
 
 namespace {
 
-using py_char_t = wchar_t;
-#define PY_CHAR_T_LITERAL(x) L##x
+void check_status(PyStatus status, const char *context) {
+  assert(context);
 
-void copy_py_char_t(const char *src, size_t src_len, py_char_t *dst,
-                    size_t dst_len, const char *error) {
-  const auto converted = utf8_to_wide(src, src_len);
-  const auto converted_length = converted.length();
+  if (PyStatus_Exception(status)) {
+    mysqlsh::current_console()->print_error(
+        "Unable to configure Python, failed to " + std::string{context});
+    Py_ExitStatusException(status);
+  }
+}
 
-  if (converted_length >= dst_len) {
-    throw std::runtime_error(error);
+std::wstring python_home() {
+  std::string home;
+#ifdef _WIN32
+#define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
+  {
+    // If not will associate what should be the right path in a standard
+    // distribution
+    std::string python_path = shcore::get_mysqlx_home_path();
+
+    if (!python_path.empty()) {
+      python_path =
+          shcore::path::join_path(python_path, "lib", "Python" MAJOR_MINOR);
+    } else {
+      // Not a standard distribution
+      python_path = shcore::get_binary_folder();
+      python_path = shcore::path::join_path(python_path, "Python" MAJOR_MINOR);
+    }
+
+    log_info("Setting Python home to '%s'", python_path.c_str());
+    home = python_path;
+  }
+#undef MAJOR_MINOR
+#else  // !_WIN32
+#if HAVE_PYTHON == 2
+  {
+    // Set path to the bundled python version.
+    std::string python_path = shcore::path::join_path(
+        shcore::get_mysqlx_home_path(), "lib", "mysqlsh");
+    if (shcore::is_folder(python_path)) {
+      // Override the system Python install with the bundled one
+      log_info("Setting Python home to '%s'", python_path.c_str());
+      home = python_path;
+    }
+  }
+#else   // HAVE_PYTHON != 2
+  const auto env_value = getenv("PYTHONHOME");
+
+  // If PYTHONHOME is available, honors it
+  if (env_value) {
+    log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
+    home = env_value;
+  }
+#endif  // HAVE_PYTHON != 2
+#endif  // !_WIN32
+  return utf8_to_wide(home);
+}
+
+std::wstring program_name() {
+  return utf8_to_wide(g_mysqlsh_path, strlen(g_mysqlsh_path));
+}
+
+void pre_initialize_python() {
+  PyPreConfig pre_config;
+  PyPreConfig_InitPythonConfig(&pre_config);
+
+#ifdef _WIN32
+  // Do not load user preferred locale on Windows (it is not UTF-8)
+  pre_config.configure_locale = 0;
+  pre_config.coerce_c_locale = 0;
+  pre_config.coerce_c_locale_warn = 0;
+#endif  // _WIN32
+
+  check_status(Py_PreInitialize(&pre_config), "pre-initialize");
+}
+
+auto remove_int_signal() {
+#ifdef _WIN32
+  // on Windows there's no sigaction() and no siginterrupt()
+  return signal(SIGINT, SIG_DFL);
+#else   // !_WIN32
+  // we need to use sigaction() here to make sure sa_flags are properly
+  // restored, signal() would explicitly set them to 0 or SA_RESTART, depending
+  // on whether siginterrupt() was called
+  struct sigaction default_action;
+  memset(&default_action, 0, sizeof(default_action));
+  default_action.sa_handler = SIG_DFL;
+  sigemptyset(&default_action.sa_mask);
+  default_action.sa_flags = 0;
+
+  struct sigaction prev_action;
+  memset(&prev_action, 0, sizeof(prev_action));
+
+  sigaction(SIGINT, &default_action, &prev_action);
+
+  return prev_action;
+#endif  // !_WIN32
+}
+
+template <typename T>
+void restore_int_signal(T prev) {
+#ifdef _WIN32
+  signal(SIGINT, prev);
+#else   // !_WIN32
+  sigaction(SIGINT, &prev, nullptr);
+#endif  // !_WIN32
+}
+
+void initialize_python() {
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  shcore::on_leave_scope clear_config([&config]() { PyConfig_Clear(&config); });
+
+  config.install_signal_handlers = 1;
+
+  if (const auto home = python_home(); !home.empty()) {
+    check_status(PyConfig_SetString(&config, &config.home, home.c_str()),
+                 "set Python home");
   }
 
-  wmemcpy(dst, converted.c_str(), converted_length);
-  dst[converted_length] = PY_CHAR_T_LITERAL('\0');
-}
+  check_status(
+      PyConfig_SetString(&config, &config.program_name, program_name().c_str()),
+      "set program name");
 
-std::vector<std::wstring> to_py_char_t(const std::vector<std::string> &in) {
-  std::vector<std::wstring> out;
+  // we want config.argv to be set to an array holding an empty string, this is
+  // done by default by Python
 
-  for (const auto &s : in) {
-    out.emplace_back(utf8_to_wide(s));
-  }
-
-  return out;
-}
-
-void set_python_home(const std::string &home) {
-  if (home.empty()) return;
-
-  static py_char_t path[1000];
-  copy_py_char_t(home.c_str(), home.length(), path, array_size(path),
-                 "Python home path too long");
-  Py_SetPythonHome(path);
-}
-
-void set_program_name() {
-  static py_char_t name[1000];
-  copy_py_char_t(g_mysqlsh_path, strlen(g_mysqlsh_path), name, array_size(name),
-                 "Python program name too long");
-  Py_SetProgramName(name);
+  check_status(Py_InitializeFromConfig(&config), "initialize");
 }
 
 py::Release py_register_module(const std::string &name, PyMethodDef *members) {
@@ -305,71 +394,7 @@ std::string Python_init_singleton::get_new_scope_name() {
 
 Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
   if (!Py_IsInitialized()) {
-    std::string home;
-#ifdef _WIN32
-
-#if PY_VERSION_HEX >= 0x03080000
-    // Do not load user preffered locale on Windows (it is not utf8)
-    PyPreConfig pre_config;
-    PyPreConfig_InitPythonConfig(&pre_config);
-    pre_config.configure_locale = 0;
-    pre_config.coerce_c_locale = 0;
-    pre_config.coerce_c_locale_warn = 0;
-    auto status = Py_PreInitialize(&pre_config);
-    if (PyStatus_Exception(status)) {
-      mysqlsh::current_console()->print_error(
-          "Unable to preconfigure Python locale");
-      Py_ExitStatusException(status);
-    }
-#endif
-
-#define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
-    {
-      // If not will associate what should be the right path in
-      // a standard distribution
-      std::string python_path = shcore::get_mysqlx_home_path();
-
-      if (!python_path.empty()) {
-        python_path =
-            shcore::path::join_path(python_path, "lib", "Python" MAJOR_MINOR);
-      } else {
-        // Not a standard distribution
-        python_path = shcore::get_binary_folder();
-        python_path =
-            shcore::path::join_path(python_path, "Python" MAJOR_MINOR);
-      }
-
-      log_info("Setting Python home to '%s'", python_path.c_str());
-      home = python_path;
-    }
-#undef MAJOR_MINOR
-#else  // !_WIN32
-
-#if HAVE_PYTHON == 2
-    {
-      // Set path to the bundled python version.
-      std::string python_path = shcore::path::join_path(
-          shcore::get_mysqlx_home_path(), "lib", "mysqlsh");
-      if (shcore::is_folder(python_path)) {
-        // Override the system Python install with the bundled one
-        log_info("Setting Python home to '%s'", python_path.c_str());
-        home = python_path;
-      }
-    }
-#else
-    const auto env_value = getenv("PYTHONHOME");
-
-    // If PYTHONHOME is available, honors it
-    if (env_value) {
-      log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
-      home = env_value;
-    }
-#endif
-
-#endif  // !_WIN32
-    set_python_home(home);
-    set_program_name();
-
+    pre_initialize_python();
     // Initialize the signals, so we can use PyErr_SetInterrupt().
     //
     // Python 3.5+ uses PyErr_CheckSignals() to double check if time.sleep()
@@ -405,37 +430,9 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
     // SIGINT set, but with no Python signal handler. We can continue to use
     // our own signal handler, and deliver the CTRL-C notification to Python
     // via PyErr_SetInterrupt().
-    {
-#ifdef _WIN32
-      // on Windows there's no sigaction() and no siginterrupt()
-      const auto prev_signal = signal(SIGINT, SIG_DFL);
-#else   // !_WIN32
-      // we need to use sigaction() here to make sure sa_flags are properly
-      // restored, signal() would explicitly set them to 0 or SA_RESTART,
-      // depending on whether siginterrupt() was called
-      struct sigaction default_action;
-      memset(&default_action, 0, sizeof(default_action));
-      default_action.sa_handler = SIG_DFL;
-      sigemptyset(&default_action.sa_mask);
-      default_action.sa_flags = 0;
-
-      struct sigaction prev_action;
-      memset(&prev_action, 0, sizeof(prev_action));
-
-      sigaction(SIGINT, &default_action, &prev_action);
-#endif  // !_WIN32
-
-      Py_Initialize();
-
-#ifdef _WIN32
-      signal(SIGINT, prev_signal);
-#else   // !_WIN32
-      sigaction(SIGINT, &prev_action, nullptr);
-#endif  // !_WIN32
-    }
-
-    py_char_t *argv[] = {const_cast<py_char_t *>(PY_CHAR_T_LITERAL(""))};
-    PySys_SetArgvEx(1, argv, 0);
+    auto prev_signal = remove_int_signal();
+    initialize_python();
+    restore_int_signal(std::move(prev_signal));
 
     m_local_initialization = true;
   }
@@ -446,9 +443,7 @@ unsigned int Python_init_singleton::s_cnt = 0;
 
 Python_context::Python_context(bool redirect_stdio) {
   m_compiler_flags.cf_flags = 0;
-#if PY_VERSION_HEX >= 0x03080000
   m_compiler_flags.cf_feature_version = PY_MINOR_VERSION;
-#endif
 
   Python_init_singleton::init_python();
 
@@ -652,17 +647,68 @@ Python_context *Python_context::get_and_check() {
 }
 
 void Python_context::set_argv(const std::vector<std::string> &argv) {
-  WillEnterPython lock;
-  if (!argv.empty()) {
-    const auto &input = to_py_char_t(argv);
-    std::vector<const py_char_t *> argvv;
-
-    for (const auto &s : input) argvv.push_back(s.c_str());
-
-    argvv.push_back(nullptr);
-
-    PySys_SetArgv(argv.size(), const_cast<py_char_t **>(argvv.data()));
+  if (argv.empty()) {
+    return;
   }
+
+  // convert arguments to wide char
+  std::vector<std::wstring> wargv;
+  std::vector<wchar_t *> pargv;
+
+  wargv.reserve(argv.size());
+  pargv.reserve(argv.size());
+
+  for (const auto &s : argv) {
+    wargv.emplace_back(utf8_to_wide(s));
+    pargv.emplace_back(wargv.back().data());
+  }
+
+  WillEnterPython lock;
+
+#if PY_VERSION_HEX >= 0x030b0000
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  shcore::on_leave_scope clear_config([&config]() { PyConfig_Clear(&config); });
+
+  // don't parse argv looking for Python's command line arguments
+  config.parse_argv = 0;
+  check_status(PyConfig_SetArgv(&config, pargv.size(), pargv.data()),
+               "set argv");
+  check_status(Py_InitializeFromConfig(&config), "initialize argv");
+
+  {
+    // prepend parent directory of argv[0] to sys.path
+    auto path = get_absolute_path(argv[0]);
+
+#ifndef _WIN32
+    {
+      // resolve a potential symlink
+      std::string link;
+      link.resize(PATH_MAX);
+
+      if (const auto len = ::readlink(path.c_str(), link.data(), link.length());
+          len > 0) {
+        link.resize(len);
+
+        if (!path::is_absolute(link)) {
+          link = get_absolute_path(link, path::dirname(path));
+        }
+
+        path = std::move(link);
+      }
+    }
+#endif  // !_WIN32
+
+    const auto parent = path::dirname(path);
+    const auto sys_path = PySys_GetObject("path");
+    const py::Release python_path{PyString_FromString(parent.c_str())};
+    PyList_Insert(sys_path, 0, python_path.get());
+  }
+#else   // PY_VERSION_HEX < 0x030b0000
+  // the above code also works for Python < 3.11, but for some reason the call
+  // to Py_InitializeFromConfig() clears the sys.path
+  PySys_SetArgv(pargv.size(), pargv.data());
+#endif  // PY_VERSION_HEX < 0x030b0000
 }
 
 Value Python_context::execute(const std::string &code,
