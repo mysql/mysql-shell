@@ -891,9 +891,11 @@ shcore::Value ClusterSet::list_routers(const std::string &router) {
 
 REGISTER_HELP_FUNCTION(setRoutingOption, ClusterSet);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETROUTINGOPTION, R"*(
-Changes the value of either a global Routing option or of a single Router instance.
+Changes the value of either a global Routing option or of a single Router
+instance.
 
-@param router optional identifier of the target router instance (e.g. 192.168.45.70@::system).
+@param router optional identifier of the target router instance (e.g.
+192.168.45.70@::system).
 @param option The Router option to be changed.
 @param value The value that the option shall get (or null to unset).
 
@@ -901,14 +903,19 @@ Changes the value of either a global Routing option or of a single Router instan
 
 The accepted options are:
 
-@li target_cluster: Target Cluster for Router routing operations.
+@li target_cluster: Target Cluster for Router routing operations. Default value
+is 'primary'.
 @li invalidated_cluster_policy: Routing policy to be taken when the target
-cluster is detected as being invalidated.
-@li stats_updates_frequency: Frequency of Router check-in updates.
+cluster is detected as being invalidated. Default value is 'drop_all'.
+@li stats_updates_frequency: Frequency of Router check-in updates. Default
+value is 0.
+@li use_replica_primary_as_rw: Enable/Disable the RW Port in Replica Clusters.
+Disabled by default.
 
 The target_cluster option supports the following values:
 
-@li primary: follow the Primary Cluster whenever it changes in runtime
+@li primary: Follow the Primary Cluster whenever it changes in runtime (
+default).
 @li @<clusterName@>: Use the Cluster named @<clusterName@> as target.
 
 The invalidated_cluster_policy option supports the following values:
@@ -916,11 +923,11 @@ The invalidated_cluster_policy option supports the following values:
 @li accept_ro: all the RW connections are be dropped and no new RW connections
 are be accepted. RO connections keep being accepted and handled.
 @li drop_all: all connections to the target Cluster are closed and no new
-connections will be accepted.
+connections will be accepted (default).
 
 The stats_updates_frequency option accepts positive integers and sets the
-frequency of Router check-in updates in seconds in the Metadata. If set to 0 (
-default), no periodic updates are done. Router will round up the value to be a
+frequency of Router check-in updates in seconds in the Metadata. If set to 0
+(default), no periodic updates are done. Router will round up the value to be a
 multiple of Router's TTL, i.e.:
 
 @li If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
@@ -930,9 +937,17 @@ stats_updates_frequency=1, effective frequency is 30 seconds.
 the TTL, e.g. TTL=5, stats_updates_frequency=11, effective frequency is 15
 seconds; TTL=5, stats_updates_frequency=13, effective frequency is 15 seconds.
 
-If the value is null, the option value is cleared and the default value takes
-effect.
-)*");
+If the value is null, the option value is cleared and the default value (0)
+takes effect.
+
+The use_replica_primary_as_rw option accepts a boolean value to configure
+whether the Router should enable or disable the RW Port for the target Cluster.
+
+When enabled, forces the RW port of Routers targeting a specific Cluster
+(target_cluster != 'primary') to always route to the PRIMARY of that Cluster,
+even when it is in a REPLICA cluster and thus, read-only. By default, the
+option is false and Router blocks connections to the RW port in this
+scenario.)*");
 
 #if DOXYGEN_JS
 Undefined ClusterSet::setRoutingOption(String option, String value) {}
