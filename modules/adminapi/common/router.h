@@ -45,10 +45,14 @@ constexpr inline auto k_router_option_target_cluster_primary = "primary";
 constexpr inline auto k_router_option_stats_updates_frequency =
     "stats_updates_frequency";
 
-constexpr inline std::array<decltype(k_router_option_target_cluster), 3>
+constexpr inline auto k_router_option_use_replica_primary_as_rw =
+    "use_replica_primary_as_rw";
+
+constexpr inline std::array<decltype(k_router_option_target_cluster), 4>
     k_router_options = {k_router_option_invalidated_cluster_routing_policy,
                         k_router_option_target_cluster,
-                        k_router_option_stats_updates_frequency};
+                        k_router_option_stats_updates_frequency,
+                        k_router_option_use_replica_primary_as_rw};
 
 extern const Router_options_metadata k_default_router_options;
 

@@ -40,7 +40,8 @@ const Router_options_metadata k_default_router_options = {
           k_router_option_invalidated_cluster_routing_policy_drop_all)},
      {k_router_option_target_cluster,
       shcore::Value(k_router_option_target_cluster_primary)},
-     {k_router_option_stats_updates_frequency, shcore::Value(0)}}};
+     {k_router_option_stats_updates_frequency, shcore::Value(0)},
+     {k_router_option_use_replica_primary_as_rw, shcore::Value(false)}}};
 
 inline bool is_router_upgrade_required(
     const mysqlshdk::utils::Version &version) {
@@ -279,6 +280,13 @@ void validate_router_option(const Cluster_set_impl &cluster_set,
               k_router_option_stats_updates_frequency +
               "', value is expected to be a positive integer.");
         }
+      }
+    } else if (name == k_router_option_use_replica_primary_as_rw) {
+      if (value.get_type() != shcore::Value_type::Bool) {
+        throw shcore::Exception::argument_error(
+            std::string("Invalid value for routing option '") +
+            k_router_option_use_replica_primary_as_rw +
+            "', value is expected to be a boolean.");
       }
     }
   }

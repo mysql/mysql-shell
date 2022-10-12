@@ -91,6 +91,11 @@ clusterset.routingOptions(cm_router);
 clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', 15);
 clusterset.routingOptions(cm_router);
 
+clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', false);
+clusterset.routingOptions(cm_router);
+clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', true);
+clusterset.routingOptions(cm_router);
+
 //@<> clusterset.setRoutingOption for a router, invalid values
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, "target_cluster", 'any_not_supported_value'); },
   "Invalid value for routing option 'target_cluster', accepted values 'primary' or valid cluster name");
@@ -125,6 +130,18 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', -1); },
   "Invalid value for routing option 'stats_updates_frequency', value is expected to be a positive integer.");
 
+// use_replica_primary_as_rw
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', ''); },
+  "Invalid value for routing option 'use_replica_primary_as_rw', value is expected to be a boolean.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', 'foo'); },
+  "Invalid value for routing option 'use_replica_primary_as_rw', value is expected to be a boolean.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', ['1']); },
+  "Invalid value for routing option 'use_replica_primary_as_rw', value is expected to be a boolean.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', {'value':'1'}); },
+  "Invalid value for routing option 'use_replica_primary_as_rw', value is expected to be a boolean.");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', -1); },
+  "Invalid value for routing option 'use_replica_primary_as_rw', value is expected to be a boolean.");
+
 //@<> Router does not belong to the clusterset
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra", 'invalidated_cluster_policy', 'drop_all'); },
   "Router 'abra' is not part of this ClusterSet");
@@ -144,6 +161,10 @@ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', null);
 clusterset.routingOptions(cm_router);
 clusterset.routingOptions();
 
+clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', null);
+clusterset.routingOptions(cm_router);
+clusterset.routingOptions();
+
 //@ clusterset.setRoutingOption all valid values
 clusterset.setRoutingOption("target_cluster", "primary");
 clusterset.routingOptions();
@@ -152,6 +173,10 @@ clusterset.routingOptions();
 clusterset.setRoutingOption('invalidated_cluster_policy', 'drop_all');
 clusterset.routingOptions();
 clusterset.setRoutingOption('invalidated_cluster_policy', 'accept_ro');
+clusterset.routingOptions();
+clusterset.setRoutingOption('use_replica_primary_as_rw', false);
+clusterset.routingOptions();
+clusterset.setRoutingOption('use_replica_primary_as_rw', true);
 clusterset.routingOptions();
 clusterset.setRoutingOption(cm_router, "target_cluster", cluster.getName());
 clusterset.routingOptions();
@@ -193,6 +218,9 @@ clusterset.setRoutingOption('invalidated_cluster_policy', null);
 clusterset.routingOptions();
 
 clusterset.setRoutingOption('stats_updates_frequency', null);
+clusterset.routingOptions();
+
+clusterset.setRoutingOption('use_replica_primary_as_rw', null);
 clusterset.routingOptions();
 
 clusterset.setRoutingOption(cr_router, 'target_cluster', null);

@@ -758,14 +758,19 @@ RETURNS
 DESCRIPTION
       The accepted options are:
 
-      - target_cluster: Target Cluster for Router routing operations.
+      - target_cluster: Target Cluster for Router routing operations. Default
+        value is 'primary'.
       - invalidated_cluster_policy: Routing policy to be taken when the target
-        cluster is detected as being invalidated.
-      - stats_updates_frequency: Frequency of Router check-in updates.
+        cluster is detected as being invalidated. Default value is 'drop_all'.
+      - stats_updates_frequency: Frequency of Router check-in updates. Default
+        value is 0.
+      - use_replica_primary_as_rw: Enable/Disable the RW Port in Replica
+        Clusters. Disabled by default.
 
       The target_cluster option supports the following values:
 
-      - primary: follow the Primary Cluster whenever it changes in runtime
+      - primary: Follow the Primary Cluster whenever it changes in runtime (
+        default).
       - <clusterName>: Use the Cluster named <clusterName> as target.
 
       The invalidated_cluster_policy option supports the following values:
@@ -774,11 +779,11 @@ DESCRIPTION
         connections are be accepted. RO connections keep being accepted and
         handled.
       - drop_all: all connections to the target Cluster are closed and no new
-        connections will be accepted.
+        connections will be accepted (default).
 
       The stats_updates_frequency option accepts positive integers and sets the
       frequency of Router check-in updates in seconds in the Metadata. If set
-      to 0 ( default), no periodic updates are done. Router will round up the
+      to 0 (default), no periodic updates are done. Router will round up the
       value to be a multiple of Router's TTL, i.e.:
 
       - If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
@@ -789,8 +794,17 @@ DESCRIPTION
         is 15 seconds.
 
       If the value is null, the option value is cleared and the default value
-      takes effect.
+      (0) takes effect.
 
+      The use_replica_primary_as_rw option accepts a boolean value to configure
+      whether the Router should enable or disable the RW Port for the target
+      Cluster.
+
+      When enabled, forces the RW port of Routers targeting a specific Cluster
+      (target_cluster != 'primary') to always route to the PRIMARY of that
+      Cluster, even when it is in a REPLICA cluster and thus, read-only. By
+      default, the option is false and Router blocks connections to the RW port
+      in this scenario.
 
 //@<OUT> setOption
 NAME

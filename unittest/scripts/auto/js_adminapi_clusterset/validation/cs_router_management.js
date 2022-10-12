@@ -4,7 +4,8 @@
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {},
@@ -75,13 +76,32 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
         "target_cluster": "cluster"
     }
 }
+Routing option 'use_replica_primary_as_rw' successfully updated in router 'routerhost1::system'.
+{
+    "routerhost1::system": {
+        "invalidated_cluster_policy": "accept_ro",
+        "stats_updates_frequency": 15,
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": false
+    }
+}
+Routing option 'use_replica_primary_as_rw' successfully updated in router 'routerhost1::system'.
+{
+    "routerhost1::system": {
+        "invalidated_cluster_policy": "accept_ro",
+        "stats_updates_frequency": 15,
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
+    }
+}
 
 //@<OUT> Resetting router option value for a single router,
 Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
 {
     "routerhost1::system": {
         "invalidated_cluster_policy": "accept_ro",
-        "stats_updates_frequency": 15
+        "stats_updates_frequency": 15,
+        "use_replica_primary_as_rw": true
     }
 }
 {
@@ -89,12 +109,14 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {
             "invalidated_cluster_policy": "accept_ro",
-            "stats_updates_frequency": 15
+            "stats_updates_frequency": 15,
+            "use_replica_primary_as_rw": true
         },
         "routerhost2::": {},
         "routerhost2::another": {},
@@ -104,7 +126,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
 Routing option 'invalidated_cluster_policy' successfully updated in router 'routerhost1::system'.
 {
     "routerhost1::system": {
-        "stats_updates_frequency": 15
+        "stats_updates_frequency": 15,
+        "use_replica_primary_as_rw": true
     }
 }
 {
@@ -112,11 +135,13 @@ Routing option 'invalidated_cluster_policy' successfully updated in router 'rout
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {
-            "stats_updates_frequency": 15
+            "stats_updates_frequency": 15,
+            "use_replica_primary_as_rw": true
         },
         "routerhost2::": {},
         "routerhost2::another": {},
@@ -125,6 +150,29 @@ Routing option 'invalidated_cluster_policy' successfully updated in router 'rout
 }
 Routing option 'stats_updates_frequency' successfully updated in router 'routerhost1::system'.
 {
+    "routerhost1::system": {
+        "use_replica_primary_as_rw": true
+    }
+}
+{
+    "domainName": "clusterset",
+    "global": {
+        "invalidated_cluster_policy": "drop_all",
+        "stats_updates_frequency": 0,
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
+    },
+    "routers": {
+        "routerhost1::system": {
+            "use_replica_primary_as_rw": true
+        },
+        "routerhost2::": {},
+        "routerhost2::another": {},
+        "routerhost2::system": {}
+    }
+}
+Routing option 'use_replica_primary_as_rw' successfully updated in router 'routerhost1::system'.
+{
     "routerhost1::system": {}
 }
 {
@@ -132,7 +180,8 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {},
@@ -142,6 +191,7 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
     }
 }
 
+
 //@<OUT> clusterset.setRoutingOption all valid values
 Routing option 'target_cluster' successfully updated.
 {
@@ -149,7 +199,8 @@ Routing option 'target_cluster' successfully updated.
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {},
@@ -164,7 +215,8 @@ Routing option 'target_cluster' successfully updated.
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {},
@@ -179,7 +231,8 @@ Routing option 'invalidated_cluster_policy' successfully updated.
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {},
@@ -194,7 +247,40 @@ Routing option 'invalidated_cluster_policy' successfully updated.
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 0,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": false
+    },
+    "routers": {
+        "routerhost1::system": {},
+        "routerhost2::": {},
+        "routerhost2::another": {},
+        "routerhost2::system": {}
+    }
+}
+Routing option 'use_replica_primary_as_rw' successfully updated.
+{
+    "domainName": "clusterset",
+    "global": {
+        "invalidated_cluster_policy": "accept_ro",
+        "stats_updates_frequency": 0,
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": false
+    },
+    "routers": {
+        "routerhost1::system": {},
+        "routerhost2::": {},
+        "routerhost2::another": {},
+        "routerhost2::system": {}
+    }
+}
+Routing option 'use_replica_primary_as_rw' successfully updated.
+{
+    "domainName": "clusterset",
+    "global": {
+        "invalidated_cluster_policy": "accept_ro",
+        "stats_updates_frequency": 0,
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {},
@@ -209,7 +295,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 0,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -226,7 +313,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 0,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -245,7 +333,8 @@ Routing option 'invalidated_cluster_policy' successfully updated in router 'rout
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 0,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -266,7 +355,8 @@ Routing option 'stats_updates_frequency' successfully updated.
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 11,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -287,7 +377,8 @@ Routing option 'stats_updates_frequency' successfully updated in router 'routerh
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 11,
-        "target_cluster": "cluster"
+        "target_cluster": "cluster",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -311,7 +402,8 @@ Routing option 'target_cluster' successfully updated.
     "global": {
         "invalidated_cluster_policy": "accept_ro",
         "stats_updates_frequency": 11,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -333,7 +425,8 @@ Routing option 'invalidated_cluster_policy' successfully updated.
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 11,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": true
     },
     "routers": {
         "routerhost1::system": {
@@ -355,7 +448,31 @@ Routing option 'stats_updates_frequency' successfully updated.
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": true
+    },
+    "routers": {
+        "routerhost1::system": {
+            "target_cluster": "cluster"
+        },
+        "routerhost2::": {
+            "invalidated_cluster_policy": "accept_ro",
+            "stats_updates_frequency": 222
+        },
+        "routerhost2::another": {},
+        "routerhost2::system": {
+            "target_cluster": "replicacluster"
+        }
+    }
+}
+Routing option 'use_replica_primary_as_rw' successfully updated.
+{
+    "domainName": "clusterset",
+    "global": {
+        "invalidated_cluster_policy": "drop_all",
+        "stats_updates_frequency": 0,
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {
@@ -377,7 +494,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "stats_updates_frequency": 0,
-        "target_cluster": "primary"
+        "target_cluster": "primary",
+        "use_replica_primary_as_rw": false
     },
     "routers": {
         "routerhost1::system": {
