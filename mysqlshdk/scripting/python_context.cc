@@ -595,8 +595,6 @@ Python_context::~Python_context() {
     PySys_SetObject(const_cast<char *>("stderr"),
                     PySys_GetObject(const_cast<char *>("real_stderr")));
 
-    m_stored_objects.clear();
-
     _shell_stderr_module.reset();
     _shell_stdout_module.reset();
     _shell_stdin_module.reset();
@@ -1796,15 +1794,6 @@ std::string Python_context::fetch_and_clear_exception() {
   Py_XDECREF(tb);
 
   return exception;
-}
-
-std::weak_ptr<py::Store> Python_context::store(PyObject *object) {
-  m_stored_objects.emplace_back(std::make_shared<py::Store>(object));
-  return m_stored_objects.back();
-}
-
-void Python_context::erase(const std::shared_ptr<py::Store> &object) {
-  m_stored_objects.remove(object);
 }
 
 }  // namespace shcore

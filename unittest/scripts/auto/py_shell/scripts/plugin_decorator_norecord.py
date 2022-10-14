@@ -562,5 +562,42 @@ testutil.call_mysqlsh(["--", "util", "sample", "test-function"], "", shell_env)
 EXPECT_STDOUT_CONTAINS("My custom function at util.")
 EXPECT_STDOUT_CONTAINS(f"My inner function at util.sample.")
 
+
+#@<> Plugin call with python object as parameter
+plugin_code = f'''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+@plugin
+class sample():
+    """
+    A sample plugin
+    """
+
+@plugin_function("sample.test")
+def test(session, sql):
+    session.run_sql(sql)
+'''
+
+script_code = f'''
+class DrySession():
+    def run_sql(self, sql):
+        print(f"EXECUTED SQL: {{sql}}")
+
+session = DrySession()
+
+sample.test(session, "SELECT * FROM SAKILA.ACTOR")
+'''
+
+
+testutil.rmfile(sample_path)
+testutil.create_file(sample_path, plugin_code)
+testutil.create_file("my-script.py", script_code)
+
+testutil.call_mysqlsh(["--py", "-f", "my-script.py"], "", shell_env)
+
+EXPECT_STDOUT_CONTAINS("EXECUTED SQL: SELECT * FROM SAKILA.ACTOR")
+
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)
+testutil.rmfile("my-script.py")

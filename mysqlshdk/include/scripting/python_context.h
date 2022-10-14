@@ -112,9 +112,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   bool raw_execute(const std::vector<std::string> &statements,
                    std::string *error = nullptr);
 
-  std::weak_ptr<py::Store> store(PyObject *object);
-  void erase(const std::shared_ptr<py::Store> &object);
-
   py::Release create_datetime_object(int year, int month, int day, int hour,
                                      int minute, int second, int useconds);
   PyTypeObject *get_datetime_type() const {
@@ -201,8 +198,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   void init_shell_function_type();
 
   py::Store m_captured_eval_result;
-
-  std::list<std::shared_ptr<py::Store>> m_stored_objects;
 
  protected:
   py::Store _shell_list_class;

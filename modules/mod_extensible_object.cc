@@ -962,13 +962,15 @@ void Extensible_object::get_param_help_detail(
       const auto &classes =
           param->validator<shcore::Object_validator>()->allowed();
 
-      if (classes.size() == 1)
-        help_entry += " must be a " + classes[0] + " object.";
-      else
-        help_entry +=
-            " must be any of " + shcore::str_join(classes, ", ") + ".";
+      if (!classes.empty()) {
+        if (classes.size() == 1)
+          help_entry += " must be a " + classes[0] + " object.";
+        else
+          help_entry +=
+              " must be any of " + shcore::str_join(classes, ", ") + ".";
 
-      details->emplace_back(std::move(help_entry));
+        details->emplace_back(std::move(help_entry));
+      }
 
       break;
     }
