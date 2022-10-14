@@ -200,7 +200,7 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
       shcore::sleep_ms(1000);
     }
   } catch (const shcore::Exception &e) {
-    if (e.code() == ER_SLAVE_CHANNEL_DOES_NOT_EXIST) {
+    if (e.code() == ER_REPLICA_CHANNEL_DOES_NOT_EXIST) {
       log_info("Trying to stop non-existing channel '%s', ignoring...",
                channel_name.c_str());
       return true;

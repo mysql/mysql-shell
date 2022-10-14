@@ -1671,7 +1671,7 @@ void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
           reset_channel(instance.get(), k_clusterset_async_channel_name, true,
                         dry_run);
         } catch (const shcore::Exception &e) {
-          if (e.code() != ER_SLAVE_CHANNEL_DOES_NOT_EXIST) {
+          if (e.code() != ER_REPLICA_CHANNEL_DOES_NOT_EXIST) {
             throw;
           }
         }
