@@ -27,10 +27,25 @@
 
 using namespace shcore;
 
-Python_function::Python_function(Python_context *context, PyObject *function)
-    : _py(context) {
-  m_function = _py->store(function);
+Python_object::Python_object(PyObject *object) : m_object(object) {
+  py::Release class_obj{PyObject_GetAttrString(object, "__class__")};
+  py::Release class_name{PyObject_GetAttrString(class_obj.get(), "__name__")};
+  Python_context::pystring_to_string(class_name.get(), &m_class);
+}
 
+Python_object::~Python_object() {
+  WillEnterPython lock;
+  m_object.reset();
+}
+
+std::string Python_object::class_name() const {
+  return m_class.empty() ? "PythonObject" : m_class;
+}
+
+PyObject *Python_object::object() { return m_object.get(); }
+
+Python_function::Python_function(Python_context *context, PyObject *function)
+    : _py(context), m_function(function) {
   py::Release name{PyObject_GetAttrString(function, "__name__")};
   Python_context::pystring_to_string(name.get(), &m_name);
 
@@ -46,9 +61,7 @@ Python_function::Python_function(Python_context *context, PyObject *function)
 
 Python_function::~Python_function() {
   WillEnterPython lock;
-  if (auto ref = m_function.lock()) {
-    _py->erase(ref);
-  }
+  m_function.reset();
 }
 
 const std::vector<std::pair<std::string, Value_type>>
@@ -74,66 +87,60 @@ bool Python_function::operator!=(const Function_base &UNUSED(other)) const {
 }
 
 Value Python_function::invoke(const Argument_list &args) {
-  if (auto function = m_function.lock()) {
-    WillEnterPython lock;
+  WillEnterPython lock;
 
-    auto argc = args.size();
+  auto argc = args.size();
 
-    // If the function caller provides more parameters than the ones defined in
-    // the function, the last parameter should be handled as follows:
-    // - If Dictionary, it's data is passed as kwargs
-    // - If Undefined, then kwards is empty
-    // - Any other case will fall into passing it as normal parameter
-    py::Release kw_args;
+  // If the function caller provides more parameters than the ones defined in
+  // the function, the last parameter should be handled as follows:
+  // - If Dictionary, it's data is passed as kwargs
+  // - If Undefined, then kwards is empty
+  // - Any other case will fall into passing it as normal parameter
+  py::Release kw_args;
 
-    if (argc == (m_arg_count + 1) &&
-        (args[argc - 1].type == shcore::Value_type::Map ||
-         args[argc - 1].type == shcore::Value_type::Undefined)) {
-      // We remove the last parameter from the parameter list
-      argc--;
+  if (argc == (m_arg_count + 1) &&
+      (args[argc - 1].type == shcore::Value_type::Map ||
+       args[argc - 1].type == shcore::Value_type::Undefined)) {
+    // We remove the last parameter from the parameter list
+    argc--;
 
-      // Sets the kwargs from the dictionary if any
-      if (args[argc].type == shcore::Value_type::Map) {
-        kw_args = py::Release{PyDict_New()};
-        auto kwd_dictionary = args[argc].as_map();
-        for (auto item = kwd_dictionary->begin(); item != kwd_dictionary->end();
-             item++) {
-          auto conv = _py->convert(item->second);
-          PyDict_SetItemString(kw_args.get(), item->first.c_str(), conv.get());
-        }
+    // Sets the kwargs from the dictionary if any
+    if (args[argc].type == shcore::Value_type::Map) {
+      kw_args = py::Release{PyDict_New()};
+      auto kwd_dictionary = args[argc].as_map();
+      for (auto item = kwd_dictionary->begin(); item != kwd_dictionary->end();
+           item++) {
+        auto conv = _py->convert(item->second);
+        PyDict_SetItemString(kw_args.get(), item->first.c_str(), conv.get());
       }
     }
+  }
 
-    py::Release ret_val;
-    {
-      py::Release argv{PyTuple_New(argc)};
+  py::Release ret_val;
+  {
+    py::Release argv{PyTuple_New(argc)};
 
-      for (size_t index = 0; index < argc; ++index)
-        PyTuple_SetItem(argv.get(), index, _py->convert(args[index]).release());
+    for (size_t index = 0; index < argc; ++index)
+      PyTuple_SetItem(argv.get(), index, _py->convert(args[index]).release());
 
-      ret_val = py::Release{
-          PyObject_Call(function->get(), argv.get(), kw_args.get())};
+    ret_val =
+        py::Release{PyObject_Call(m_function.get(), argv.get(), kw_args.get())};
+  }
+
+  if (!ret_val) {
+    // converts mysqlsh.Error to shcore::Error and throws the exception, if
+    // the Python exception is something else, then just returns
+    _py->throw_if_mysqlsh_error();
+
+    constexpr auto error = "User-defined function threw an exception";
+    std::string details = _py->fetch_and_clear_exception();
+
+    if (!details.empty()) {
+      details = ": " + details;
     }
 
-    if (!ret_val) {
-      // converts mysqlsh.Error to shcore::Error and throws the exception, if
-      // the Python exception is something else, then just returns
-      _py->throw_if_mysqlsh_error();
-
-      constexpr auto error = "User-defined function threw an exception";
-      std::string details = _py->fetch_and_clear_exception();
-
-      if (!details.empty()) {
-        details = ": " + details;
-      }
-
-      throw Exception::scripting_error(error + details);
-    } else {
-      return _py->convert(ret_val.get());
-    }
+    throw Exception::scripting_error(error + details);
   } else {
-    throw Exception::scripting_error(
-        "Bound function does not exist anymore, it seems that Python context "
-        "was released");
+    return _py->convert(ret_val.get());
   }
 }

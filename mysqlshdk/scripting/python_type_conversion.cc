@@ -216,20 +216,8 @@ Value convert(PyObject *py, Python_context **context, bool is_binary) {
     return shcore::Value(Object_bridge_ref(new Date(hour, min, sec, usec)));
   }
 
-  {
-    py::Release obj_repr{PyObject_Repr(py)};
-    std::string s;
-    Value ret_val;
-
-    if (Python_context::pystring_to_string(obj_repr, &s)) ret_val = Value(s);
-
-    if (ret_val) return ret_val;
-
-    throw std::invalid_argument(
-        "Cannot convert Python value to internal value");
-  }
-
-  return {};
+  // Any other object gets simply wrapped
+  return Value(std::make_shared<Python_object>(py));
 }
 
 py::Release convert(const Value &value, Python_context * /*context*/) {
@@ -252,6 +240,9 @@ py::Release convert(const Value &value, Python_context * /*context*/) {
       return py::Release{PyFloat_FromDouble(value.value.d)};
       break;
     case Object: {
+      if (auto object = value.as_object<Python_object>())
+        return py::Release{object->object()};
+
       if (value.as_object()->class_name() != "Date")
         return wrap(*value.value.o);
 

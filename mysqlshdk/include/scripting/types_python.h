@@ -26,13 +26,27 @@
 
 // python_context.h has to be included first
 
-#include "scripting/python_context.h"
+#include "mysqlshdk/include/scripting/python_context.h"
 
 #include <memory>
 
-#include "scripting/types.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 
 namespace shcore {
+
+class SHCORE_PUBLIC Python_object : public Cpp_object_bridge {
+ public:
+  explicit Python_object(PyObject *object);
+  ~Python_object() override;
+
+  std::string class_name() const override;
+  PyObject *object();
+
+ private:
+  py::Store m_object;
+  std::string m_class;
+};
 
 class SHCORE_PUBLIC Python_function final : public Function_base {
  public:
@@ -54,7 +68,7 @@ class SHCORE_PUBLIC Python_function final : public Function_base {
 
  private:
   Python_context *_py{nullptr};
-  std::weak_ptr<py::Store> m_function;
+  py::Store m_function;
   std::string m_name;
   uint64_t m_arg_count{0};
 };
