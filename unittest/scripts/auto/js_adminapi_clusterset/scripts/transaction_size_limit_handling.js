@@ -16,9 +16,46 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 
+//@<> group_replication_transaction_size_limit handling tests
+
+// Set a value for group_replication_transaction_size_limit on the .cnf file
+testutil.changeSandboxConf(__mysql_sandbox_port1, "group_replication_transaction_size_limit", "123456781");
+testutil.restartSandbox(__mysql_sandbox_port1);
+
 shell.connect(__sandbox_uri1);
 
-var transaction_size_limit_set_cluster = 123456789;
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("primary_cluster", {gtidSetIsComplete: true}) });
+
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+
+var clusterset;
+EXPECT_NO_THROWS(function() { clusterset = cluster.createClusterSet("cs"); });
+
+// The transaction_size_limit must remain unchanged in the primary cluster
+var session1 = mysql.getSession(__sandbox_uri1);
+var transaction_size_limit = session1.runSql("select @@group_replication_transaction_size_limit").fetchOne()[0];
+EXPECT_EQ(123456781, transaction_size_limit);
+
+var replica_cluster;
+EXPECT_NO_THROWS(function() { replica_cluster = clusterset.createReplicaCluster(__sandbox_uri3, "replica_cluster"); });
+
+var session3 = mysql.getSession(__sandbox_uri3);
+
+// The transaction_size_limit must be set to the maximum in the replica cluster
+var transaction_size_limit = session3.runSql("select @@group_replication_transaction_size_limit").fetchOne()[0];
+EXPECT_EQ(0, transaction_size_limit);
+
+var session2 = mysql.getSession(__sandbox_uri2);
+var session3 = mysql.getSession(__sandbox_uri3);
+reset_instance(session3);
+reset_instance(session2);
+reset_instance(session1);
+
+// Define a transaction_size_limit using the option 'transactionSizeLimit'
+// while the server has a different value set in the .cnf file
+shell.connect(__sandbox_uri1);
+
+var transaction_size_limit_set_cluster = 123456783;
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("primary_cluster", {gtidSetIsComplete: true, transactionSizeLimit: transaction_size_limit_set_cluster}) });
 
@@ -27,9 +64,39 @@ EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
 var clusterset;
 EXPECT_NO_THROWS(function() { clusterset = cluster.createClusterSet("cs"); });
 
-//@<> create a Replica Cluster
+var session1 = mysql.getSession(__sandbox_uri1);
+var transaction_size_limit = session1.runSql("select @@group_replication_transaction_size_limit").fetchOne()[0];
+EXPECT_EQ(transaction_size_limit_set_cluster, transaction_size_limit);
+
 var replica_cluster;
-EXPECT_NO_THROWS(function() { replica_cluster = clusterset.createReplicaCluster(__sandbox_uri3, "replica_cluster"); });
+EXPECT_NO_THROWS(function() { replica_cluster = clusterset.createReplicaCluster(__sandbox_uri3, "replica_cluster", {recoveryMethod: "clone"}); });
+
+var session3 = mysql.getSession(__sandbox_uri3);
+
+// The transaction_size_limit must be set to the maximum in the replica cluster
+var transaction_size_limit = session3.runSql("select @@group_replication_transaction_size_limit").fetchOne()[0];
+EXPECT_EQ(0, transaction_size_limit);
+
+var session2 = mysql.getSession(__sandbox_uri2);
+reset_instance(session3);
+reset_instance(session2);
+reset_instance(session1);
+
+// Define a transaction_size_limit using the option 'transactionSizeLimit'
+var transaction_size_limit_set_cluster = 123456789;
+
+shell.connect(__sandbox_uri1);
+
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("primary_cluster", {gtidSetIsComplete: true, transactionSizeLimit: transaction_size_limit_set_cluster}) });
+
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+
+var clusterset;
+EXPECT_NO_THROWS(function() { clusterset = cluster.createClusterSet("cs"); });
+
+// create the Replica Cluster
+var replica_cluster;
+EXPECT_NO_THROWS(function() { replica_cluster = clusterset.createReplicaCluster(__sandbox_uri3, "replica_cluster", {recoveryMethod: "clone"}); });
 
 var session3 = mysql.getSession(__sandbox_uri3);
 
@@ -125,7 +192,7 @@ EXPECT_EQ(undefined, replica_cluster.status()["defaultReplicaSet"]["topology"][_
 //@<> Failover must ensure the elected Cluster has the value restored
 
 // Add another replica cluster
-EXPECT_NO_THROWS(function() { clusterset.createReplicaCluster(__sandbox_uri4, "another_replica_cluster"); });
+EXPECT_NO_THROWS(function() { clusterset.createReplicaCluster(__sandbox_uri4, "another_replica_cluster", {recoveryMethod: "clone"}); });
 
 testutil.killSandbox(__mysql_sandbox_port3);
 

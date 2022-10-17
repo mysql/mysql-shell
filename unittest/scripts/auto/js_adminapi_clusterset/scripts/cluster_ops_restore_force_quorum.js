@@ -1,8 +1,6 @@
 //@ {VER(>=8.0.27)}
 
-// Tests various positive and negative scenarios for InnoDB Cluster restore operations
-// on Clusters that are part of a ClusterSet:
-//   - dba.rebootClusterFromCompleteOutage()
+// Tests various positive and negative scenarios for InnoDB Cluster restore operations on Clusters that are part of a ClusterSet:
 //   - <Cluster>.forceQuorumUsingPartitionOf()
 
 function force_quorum_loss(ports) {
@@ -14,9 +12,13 @@ function force_quorum_loss(ports) {
   EXPECT_EQ("NO_QUORUM", dba.getCluster().status()["defaultReplicaSet"]["status"]);
 }
 
-function rejoin_instances(ports) {
+function rejoin_instances(ports, cluster) {
   for (var port of ports) {
     testutil.startSandbox(port);
+    if (cluster) {
+      var uri = hostname + ":" + port;
+      cluster.rejoinInstance(uri);
+    }
     testutil.waitMemberState(port, "ONLINE");
   }
 }
@@ -24,7 +26,7 @@ function rejoin_instances(ports) {
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup + Create primary cluster + add Replica Cluster
-var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {"manualStartOnBoot": true});
 var session = scene.session
 var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
@@ -33,7 +35,7 @@ testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
 
 cs = cluster.createClusterSet("domain");
 
-replicacluster = cs.createReplicaCluster(__sandbox_uri3, "replica");
+replicacluster = cs.createReplicaCluster(__sandbox_uri3, "replica", {"manualStartOnBoot": true});
 replicacluster.addInstance(__sandbox_uri4);
 replicacluster.addInstance(__sandbox_uri5);
 
@@ -52,7 +54,7 @@ ensure_cs_replication_channel_ready(__sandbox_uri3, __mysql_sandbox_port3);
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri3], cluster, replicacluster);
 
-rejoin_instances([__mysql_sandbox_port4, __mysql_sandbox_port5]);
+rejoin_instances([__mysql_sandbox_port4, __mysql_sandbox_port5], replicacluster);
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4, __sandbox_uri5], cluster, replicacluster);
 
@@ -72,7 +74,7 @@ replicacluster = dba.getCluster();
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster);
 
-rejoin_instances([__mysql_sandbox_port3, __mysql_sandbox_port5])
+rejoin_instances([__mysql_sandbox_port3, __mysql_sandbox_port5], replicacluster)
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3, __sandbox_uri5], cluster, replicacluster);
 
@@ -90,7 +92,7 @@ force_quorum_loss([__mysql_sandbox_port2, __mysql_sandbox_port4])
 cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
 cluster = dba.getCluster()
 
-rejoin_instances([__mysql_sandbox_port2, __mysql_sandbox_port4])
+rejoin_instances([__mysql_sandbox_port2, __mysql_sandbox_port4], cluster)
 
 shell.connect(__sandbox_uri3);
 replicacluster = dba.getCluster();
@@ -106,7 +108,7 @@ force_quorum_loss([__mysql_sandbox_port1, __mysql_sandbox_port2])
 cluster = dba.getCluster();
 cluster.forceQuorumUsingPartitionOf(__sandbox_uri4);
 
-rejoin_instances([__mysql_sandbox_port1, __mysql_sandbox_port2])
+rejoin_instances([__mysql_sandbox_port1, __mysql_sandbox_port2], cluster)
 
 shell.connect(__sandbox_uri3);
 replicacluster = dba.getCluster();
@@ -136,55 +138,10 @@ replicacluster = dba.getCluster();
 
 EXPECT_NO_THROWS(function(){ replicacluster.forceQuorumUsingPartitionOf(__sandbox_uri3); });
 
-rejoin_instances([__mysql_sandbox_port5]);
-
 var session3 = mysql.getSession(__sandbox_uri3);
-var session5 = mysql.getSession(__sandbox_uri5);
 
 var sro3 = session3.runSql("select @@global.super_read_only").fetchOne()[0];
-var sro5 = session5.runSql("select @@global.super_read_only").fetchOne()[0];
 
-EXPECT_EQ(1, sro3);
-EXPECT_EQ(1, sro5);
-
-//@<> Rebooting from complete outage a PRIMARY Cluster
-testutil.startSandbox(__mysql_sandbox_port4)
-
-shell.connect(__sandbox_uri1);
-
-EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
-
-//@<> Rebooting from complete outage a REPLICA Cluster with PRIMARY OK
-testutil.stopGroup([__mysql_sandbox_port3, __mysql_sandbox_port5]);
-
-shell.connect(__sandbox_uri3);
-
-// BUG#33223867: dba.rebootClusterFromCompleteOutage() is failing for replica cluster in CS
-// When using the rejoinInstances option in rebootCluster*() of a Replica Cluster, the command would fail since it wouldn't wait
-// for the seed instance to become ONLINE within the group before trying to rejoin the remaining instances
-EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica"); });
-EXPECT_OUTPUT_CONTAINS("* Waiting for seed instance to become ONLINE...");
-
-var sro3 = session.runSql("select @@global.super_read_only").fetchOne()[0];
-EXPECT_EQ(1, sro3);
-
-ensure_cs_replication_channel_ready(__sandbox_uri3, __mysql_sandbox_port4);
-ensure_cs_replication_channel_ready(__sandbox_uri5, __mysql_sandbox_port4);
-
-// Check that the cluster rejoined the ClusterSet
-CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri5], cluster, replicacluster);
-
-//@<> Rebooting from complete outage a REPLICA Cluster with PRIMARY NOT_OK
-
-// shutdown REPLICA and PRIMARY
-testutil.stopGroup([__mysql_sandbox_port3, __mysql_sandbox_port5, __mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port4]);
-
-shell.connect(__sandbox_uri3);
-
-EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica"); });
-EXPECT_OUTPUT_CONTAINS("WARNING: Unable to rejoin Cluster to the ClusterSet (primary Cluster is unreachable). Please call ClusterSet.rejoinCluster() to manually rejoin this Cluster back into the ClusterSet.");
-
-var sro3 = session.runSql("select @@global.super_read_only").fetchOne()[0];
 EXPECT_EQ(1, sro3);
 
 //@<> Cleanup
