@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -75,7 +75,7 @@ class Logger_test : public ::testing::Test {
 
   static bool get_log_file_contents(const char *filename,
                                     std::string *contents) {
-    return shcore::load_text_file(get_log_file(filename), *contents);
+    return shcore::load_text_file(get_log_file(filename), *contents, false);
   }
 
   void SetUp() override {

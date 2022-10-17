@@ -209,8 +209,7 @@ invalidate_cluster(c2, c1);
 
 cs.status();
 
-session4.runSql("stop group_replication");
-session6.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port4,__mysql_sandbox_port6]);
 
 EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Could not connect to a PRIMARY member of cluster 'cluster2'");
 

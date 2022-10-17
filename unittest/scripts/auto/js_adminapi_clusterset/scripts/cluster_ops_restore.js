@@ -127,8 +127,9 @@ session5.runSql("SET GLOBAL super_read_only=0")
 force_quorum_loss([__mysql_sandbox_port5])
 
 // Make the PRIMARY cluster unavailable
-testutil.killSandbox(__mysql_sandbox_port1);
-testutil.killSandbox(__mysql_sandbox_port2);
+testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+
+disable_auto_rejoin(__mysql_sandbox_port4);
 testutil.killSandbox(__mysql_sandbox_port4);
 
 replicacluster = dba.getCluster();
@@ -147,8 +148,6 @@ EXPECT_EQ(1, sro3);
 EXPECT_EQ(1, sro5);
 
 //@<> Rebooting from complete outage a PRIMARY Cluster
-testutil.startSandbox(__mysql_sandbox_port1)
-testutil.startSandbox(__mysql_sandbox_port2)
 testutil.startSandbox(__mysql_sandbox_port4)
 
 shell.connect(__sandbox_uri1);
@@ -156,16 +155,7 @@ shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 
 //@<> Rebooting from complete outage a REPLICA Cluster with PRIMARY OK
-disable_auto_rejoin(__mysql_sandbox_port3);
-disable_auto_rejoin(__mysql_sandbox_port5);
-
-shell.connect(__sandbox_uri3);
-testutil.killSandbox(__mysql_sandbox_port5);
-testutil.waitMemberState(__mysql_sandbox_port5, "(MISSING),UNREACHABLE");
-testutil.killSandbox(__mysql_sandbox_port3);
-
-testutil.startSandbox(__mysql_sandbox_port3)
-testutil.startSandbox(__mysql_sandbox_port5)
+testutil.stopGroup([__mysql_sandbox_port3, __mysql_sandbox_port5]);
 
 shell.connect(__sandbox_uri3);
 
@@ -186,34 +176,8 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri5], cluster, replicacluster)
 
 //@<> Rebooting from complete outage a REPLICA Cluster with PRIMARY NOT_OK
 
-// shutdown REPLICA
-disable_auto_rejoin(__mysql_sandbox_port3);
-disable_auto_rejoin(__mysql_sandbox_port5);
-
-shell.connect(__sandbox_uri3);
-testutil.killSandbox(__mysql_sandbox_port5);
-testutil.waitMemberState(__mysql_sandbox_port5, "(MISSING),UNREACHABLE");
-testutil.killSandbox(__mysql_sandbox_port3);
-
-testutil.startSandbox(__mysql_sandbox_port3)
-testutil.startSandbox(__mysql_sandbox_port5)
-
-// shutdown PRIMARY
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
-disable_auto_rejoin(__mysql_sandbox_port4);
-
-shell.connect(__sandbox_uri1);
-
-testutil.killSandbox(__mysql_sandbox_port4);
-testutil.waitMemberState(__mysql_sandbox_port4, "(MISSING),UNREACHABLE");
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
-testutil.killSandbox(__mysql_sandbox_port1);
-
-testutil.startSandbox(__mysql_sandbox_port1)
-testutil.startSandbox(__mysql_sandbox_port2)
-testutil.startSandbox(__mysql_sandbox_port4)
+// shutdown REPLICA and PRIMARY
+testutil.stopGroup([__mysql_sandbox_port3, __mysql_sandbox_port5, __mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port4]);
 
 shell.connect(__sandbox_uri3);
 

@@ -8,9 +8,10 @@ os.makedirs(outdir)
 
 if sys.platform not in ("win32", "cygwin", "msys"):
     # add a dummy sudo so that tests don't try to use it for real
-    with open(outdir+"/sudo", "w+") as f:
-        f.write("echo 'IT WORKS!!!'\n")
-    os.chmod(outdir+"/sudo",0o555)
+    for bin in ["sudo", "top", "egrep", "dmesg", "netstat", "sysctl", "lsblk"]:
+        with open(outdir+"/"+bin, "w+") as f:
+            f.write("echo 'IT WORKS!!!'\n")
+        os.chmod(outdir+"/"+bin,0o555)
     env_path="PATH="+outdir+":"+os.environ.get("PATH")
 else:
     env_path=""

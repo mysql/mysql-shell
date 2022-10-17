@@ -37,19 +37,7 @@ EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}
 
 //@<> FR1 reboot should work even if metadata is dropped
 
-
-// disable auto-start to speed up test
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
-disable_auto_rejoin(__mysql_sandbox_port3);
-
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.killSandbox(__mysql_sandbox_port1);
-
-testutil.startSandbox(__mysql_sandbox_port1);
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port3);
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 shell.connect(__sandbox_uri3);
 dba.dropMetadataSchema({force: true, clearReadOnly: true});
@@ -82,10 +70,9 @@ dba.configureLocalInstance(__sandbox_uri1);
 dba.configureLocalInstance(__sandbox_uri2);
 dba.configureLocalInstance(__sandbox_uri3);
 
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.killSandbox(__mysql_sandbox_port2);
 testutil.killSandbox(__mysql_sandbox_port1);
-
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.killSandbox(__mysql_sandbox_port3);
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
@@ -164,20 +151,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> FR1 must work if member is OFFLINE
-shell.connect(__sandbox_uri2);
-session.runSql("STOP GROUP_REPLICATION;");
-shell.connect(__sandbox_uri1);
-testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
-
-// disable auto-start to speed up test
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port3);
-
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.killSandbox(__mysql_sandbox_port1);
-
-testutil.startSandbox(__mysql_sandbox_port3);
-testutil.startSandbox(__mysql_sandbox_port1);
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function () { cluster = dba.rebootClusterFromCompleteOutage("cluster", {dryRun: true}); });
@@ -229,11 +203,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ERROR");
 shell.connect(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ERROR");
 
-
-// disable auto-start to speed up test
-disable_auto_rejoin(__mysql_sandbox_port1);
-testutil.killSandbox(__mysql_sandbox_port1);
-testutil.startSandbox(__mysql_sandbox_port1);
+testutil.stopGroup([__mysql_sandbox_port1]);
 
 shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage(); });
@@ -330,16 +300,8 @@ dba.configureLocalInstance(__sandbox_uri3);
 
 disable_auto_rejoin(__mysql_sandbox_port3);
 
-shell.connect(__sandbox_uri1);
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 testutil.killSandbox(__mysql_sandbox_port3);
-testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
-session.close();
-testutil.killSandbox(__mysql_sandbox_port1);
-
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri1);
 
@@ -361,16 +323,7 @@ EXPECT_EQ(3, Object.keys(status["defaultReplicaSet"]["topology"]).length);
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"]);
 
 //@<> FR4 Check if fails due to divergent GTIDs
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
-disable_auto_rejoin(__mysql_sandbox_port3);
-
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.killSandbox(__mysql_sandbox_port1);
-testutil.startSandbox(__mysql_sandbox_port3);
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port1);
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("SET GLOBAL super_read_only=0");
@@ -405,14 +358,10 @@ EXPECT_OUTPUT_CONTAINS(`Not rejoining instance '${hostname}:${__mysql_sandbox_po
 
 //restore cluster
 cluster.removeInstance(__sandbox_uri2, {force: true});
-if (testutil.versionCheck(__version, ">=", "8.0.17")) {
-    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
-} else {
-    session2 = mysql.getSession(__sandbox_uri2);
-    reset_instance(session2);
-    session2.close();
-    cluster.addInstance(__sandbox_uri2);
-}
+session2 = mysql.getSession(__sandbox_uri2);
+reset_instance(session2);
+session2.close();
+cluster.addInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -421,17 +370,7 @@ EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__my
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"]);
 
 //@<> FR5 pick a new primary
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
-disable_auto_rejoin(__mysql_sandbox_port3);
-
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.killSandbox(__mysql_sandbox_port1);
-
-testutil.startSandbox(__mysql_sandbox_port3);
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port1);
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 shell.connect(__sandbox_uri1);
 

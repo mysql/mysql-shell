@@ -92,8 +92,12 @@ class Shell_log_sql_parameterized_tests
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
 
+    // workaround issue in windows where files can't be deleted because
+    // "it's in use by another process"
+    static int counter = 0;
     m_log_path =
-        shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
+        shcore::path::join_path(shcore::get_user_config_path(),
+                                "mysqlsh" + std::to_string(++counter) + ".log");
     m_logger = shcore::Logger::create_instance(m_log_path.c_str(), false,
                                                shcore::Logger::LOG_DEBUG);
     m_log_sql = std::make_shared<shcore::Log_sql>(*_opts);
@@ -131,7 +135,25 @@ class Shell_log_sql_parameterized_tests
         true});
   }
 
-  void TearDown() override { delete_file(m_log_path); }
+  void TearDown() override {
+    m_logger.reset();
+    // workaround windows
+    for (int i = 0; i < 5; i++) {
+      try {
+        delete_file(m_log_path);
+        break;
+      } catch (const std::runtime_error &e) {
+        if (strstr(e.what(),
+                   "The process cannot access the file because it is being "
+                   "used by another process.")) {
+          std::cout << e.what() << "\n";
+          shcore::sleep_ms(500);
+        } else {
+          throw;
+        }
+      }
+    }
+  }
 
   int grep_log(const std::string &pattern) {
     return grep_count(m_log_path, pattern);

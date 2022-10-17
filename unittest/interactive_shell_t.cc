@@ -1114,7 +1114,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
 
   // User Config path is executed last
   std::string user_backup;
-  bool user_existed = shcore::load_text_file(user_path, user_backup);
+  bool user_existed = shcore::load_text_file(user_path, user_backup, false);
 
   std::ofstream out;
   out.open(user_path, std::ios_base::trunc);
@@ -1132,7 +1132,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
 
   // Binary Config path is executed first
   std::string bin_backup;
-  bool bin_existed = shcore::load_text_file(bin_path, user_backup);
+  bool bin_existed = shcore::load_text_file(bin_path, user_backup, false);
 
   out.open(bin_path, std::ios_base::app);
   if (!out.fail()) {

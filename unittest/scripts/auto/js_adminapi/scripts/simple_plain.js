@@ -172,8 +172,7 @@ expected_pids2 = get_open_sessions(session2);
 cluster.rejoinInstance(__sandbox_uri2);
 
 //@<> rebootClusterFromCompleteOutage
-session1.runSql("STOP group_replication");
-session2.runSql("STOP group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 
 cluster = dba.rebootClusterFromCompleteOutage();
 

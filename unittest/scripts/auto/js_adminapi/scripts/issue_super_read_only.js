@@ -117,8 +117,7 @@ testutil.restartSandbox(__mysql_sandbox_port2);
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 
-session1.runSql("stop group_replication");
-session2.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 
 EXPECT_EQ(1, session1.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro at primary");
 EXPECT_EQ(1, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro at secondary");

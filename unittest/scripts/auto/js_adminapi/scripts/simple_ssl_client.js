@@ -123,9 +123,7 @@ session3 = mysql.getSession(ssl_sandbox_uri3);
 cluster.rejoinInstance(ssl_sandbox_uri3);
 
 //@ rebootCluster
-session3.runSql("stop group_replication");
-session2.runSql("stop group_replication");
-session1.runSql("stop group_replication");
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 shell.connect(ssl_sandbox_uri1);
 cluster = dba.rebootClusterFromCompleteOutage("clus");

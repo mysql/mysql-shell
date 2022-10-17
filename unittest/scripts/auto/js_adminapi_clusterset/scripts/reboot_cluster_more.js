@@ -1,19 +1,5 @@
 //@ {VER(>=8.0.27)}
 
-function invalidate_replica() {
-    disable_auto_rejoin(__mysql_sandbox_port4);
-    disable_auto_rejoin(__mysql_sandbox_port5);
-    disable_auto_rejoin(__mysql_sandbox_port6);
-
-    testutil.killSandbox(__mysql_sandbox_port4);
-    testutil.killSandbox(__mysql_sandbox_port5);
-    testutil.killSandbox(__mysql_sandbox_port6);
-
-    testutil.startSandbox(__mysql_sandbox_port4);
-    testutil.startSandbox(__mysql_sandbox_port5);
-    testutil.startSandbox(__mysql_sandbox_port6);
-}
-
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup + Create primary cluster + add Replica Cluster
@@ -154,6 +140,9 @@ testutil.waitMemberState(__mysql_sandbox_port6, "OFFLINE (MISSING)");
 
 cs.createReplicaCluster(__sandbox_uri6, "replica2");
 
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
 testutil.killSandbox(__mysql_sandbox_port1);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.killSandbox(__mysql_sandbox_port3);
@@ -221,7 +210,7 @@ CHECK_CLUSTER_SET(session);
 
 //@<> FR6: The command must automatically rejoin a Replica Cluster to its ClusterSet by ensuring the ClusterSet replication channel is configured in all members of the Cluster.
 
-invalidate_replica();
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
 
 shell.connect(__sandbox_uri4);
 
@@ -254,7 +243,7 @@ CHECK_CLUSTER_SET(session);
 
 //@<> FR6: Reboot Replica by connecting to a secondary member
 
-invalidate_replica();
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
 
 shell.connect(__sandbox_uri5);
 
@@ -333,7 +322,7 @@ testutil.killSandbox(__mysql_sandbox_port1);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.killSandbox(__mysql_sandbox_port3);
 
-invalidate_replica();
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
 
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
@@ -374,7 +363,7 @@ session.runSql("stop replica for channel 'clusterset_replication'");
 session.runSql("STOP group_replication"); //view-change-events
 session.runSql("START group_replication");
 
-invalidate_replica();
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
 
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
@@ -391,7 +380,7 @@ session.runSql("set global super_read_only=1");
 testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port4);
 testutil.waitMemberTransactions(__mysql_sandbox_port6, __mysql_sandbox_port4);
 
-invalidate_replica();
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
 
 testutil.wipeAllOutput();
 
@@ -430,11 +419,7 @@ testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
 //<> FR6.1.5: The Cluster's executed transaction set (GTID_EXECUTED) must not be empty
 // The replica cluster has more than one instance so rebootClusterFromCompleteOutage should pick the best one (in terms of GTID)
 
-disable_auto_rejoin(__mysql_sandbox_port5);
-disable_auto_rejoin(__mysql_sandbox_port6);
-
-testutil.killSandbox(__mysql_sandbox_port5);
-testutil.killSandbox(__mysql_sandbox_port6);
+testutil.stopGroup([__mysql_sandbox_port5,__mysql_sandbox_port6]);
 
 shell.connect(__sandbox_uri4);
 session.runSql("STOP replica FOR CHANNEL 'clusterset_replication'");
@@ -443,9 +428,6 @@ session.runSql("SET GLOBAL super_read_only = 0");
 session.runSql("STOP group_replication;")
 session.runSql("RESET MASTER");
 session.runSql("SET GLOBAL super_read_only = 1");
-
-testutil.startSandbox(__mysql_sandbox_port5);
-testutil.startSandbox(__mysql_sandbox_port6);
 
 EXPECT_THROWS(function(){
     replica = dba.rebootClusterFromCompleteOutage("replica");
