@@ -824,7 +824,7 @@ function EXPECT_JSON_EQ(expected, actual, note) {
   if (typeof expected == "object" && typeof actual == "object" && !Array.isArray(expected) && !Array.isArray(actual)) {
     diffs = compare_objects(expected, actual, "$");
     if (diffs > 0) {
-      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected.</red> "+note;
+      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected.</red> "+note+"\n\t<yellow>Actual:</yellow> " + JSON.stringify(actual, undefined, 2) + "\n\t<yellow>Expected:</yellow> " + JSON.stringify(expected, undefined, 2);
       testutil.fail(context);
     }
   } else {

@@ -209,5 +209,41 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "reg
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"], "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
         EXPECT_SUCCESS({ "s3Region": aws_settings.get("region", default_aws_region), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
+#@<> BUG#34657730 - util.export_table() should output remote options needed to import this dump
+# setup
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+dump_dir = "bug_34657730"
+
+dump_session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+dump_session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+dump_session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, something BINARY)", [ tested_schema, tested_table ])
+dump_session.run_sql("INSERT INTO !.! (id) VALUES (302)", [ tested_schema, tested_table ])
+dump_session.run_sql("INSERT INTO !.! (something) VALUES (char(0))", [ tested_schema, tested_table ])
+
+# prepare the dump
+setup_session(__sandbox_uri1)
+clean_bucket()
+WIPE_OUTPUT()
+util.export_table(quote_identifier(tested_schema, tested_table), dump_dir, get_options())
+
+# capture the import command
+full_stdout_output = testutil.fetch_captured_stdout(False)
+index_of_util = full_stdout_output.find("util.")
+EXPECT_NE(-1, index_of_util)
+util_import_table_code = full_stdout_output[index_of_util:]
+
+#@<> BUG#34657730 - test
+wipeout_server(load_session)
+load_session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+load_session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, something BINARY)", [ tested_schema, tested_table ])
+
+setup_session(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: exec(util_import_table_code), "importing data")
+EXPECT_EQ(md5_table(dump_session, tested_schema, tested_table), md5_table(load_session, tested_schema, tested_table))
+
+#@<> BUG#34657730 - cleanup
+dump_session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
 #@<> cleanup
 cleanup_tests(load_tests = True)

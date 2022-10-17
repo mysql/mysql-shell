@@ -176,6 +176,45 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {"osBucketName": OS_BUCKET_NAM
 EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
 
 #@<> BUG#34599319 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
+#@<> BUG#34657730 - util.export_table() should output remote options needed to import this dump
+# setup
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+dump_dir = "bug_34657730"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, something BINARY)", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (id) VALUES (302)", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (something) VALUES (char(0))", [ tested_schema, tested_table ])
+
+# prepare the dump
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+WIPE_OUTPUT()
+util.export_table(quote_identifier(tested_schema, tested_table), dump_dir, {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file})
+
+# capture the import command
+full_stdout_output = testutil.fetch_captured_stdout(False)
+index_of_util = full_stdout_output.find("util.")
+EXPECT_NE(-1, index_of_util)
+util_import_table_code = full_stdout_output[index_of_util:]
+
+#@<> BUG#34657730 - test
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, something BINARY)", [ tested_schema, tested_table ])
+
+EXPECT_NO_THROWS(lambda: exec(util_import_table_code), "importing data")
+EXPECT_EQ(md5_table(session1, tested_schema, tested_table), md5_table(session2, tested_schema, tested_table))
+
+#@<> BUG#34657730 - cleanup
+shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> Cleanup

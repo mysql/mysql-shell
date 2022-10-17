@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,10 @@
 
 #include "mysqlshdk/include/scripting/naming_style.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/aws/s3_bucket_options.h"
+#include "mysqlshdk/libs/azure/blob_storage_options.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
+#include "mysqlshdk/libs/storage/backend/object_storage_options.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -83,10 +87,14 @@ void Export_table::summary() const {
   if (original) {
     const auto add_nonempty = [&original, &options](const std::string &name) {
       const auto value = original->find(name);
+      bool added = false;
 
       if (original->end() != value && !value->second.as_string().empty()) {
         options->emplace(name, value->second);
+        added = true;
       }
+
+      return added;
     };
     const auto add_if_present = [&original, &options](const std::string &name) {
       const auto value = original->find(name);
@@ -104,14 +112,26 @@ void Export_table::summary() const {
     add_if_present("fieldsOptionallyEnclosed");
     add_if_present("linesTerminatedBy");
 
-    // OCI options
-    constexpr auto k_os_bucket_name = "osBucketName";
-    add_nonempty(k_os_bucket_name);
+    {
+      // handle remote options (OCI, AWS, Azure, etc.)
+      std::vector<std::unique_ptr<
+          mysqlshdk::storage::backend::object_storage::Object_storage_options>>
+          remote_options;
 
-    if (options->end() != options->find(k_os_bucket_name)) {
-      add_nonempty("osNamespace");
-      add_nonempty("ociConfigFile");
-      add_nonempty("ociProfile");
+      remote_options.emplace_back(
+          std::make_unique<mysqlshdk::oci::Oci_bucket_options>());
+      remote_options.emplace_back(
+          std::make_unique<mysqlshdk::aws::S3_bucket_options>());
+      remote_options.emplace_back(
+          std::make_unique<mysqlshdk::azure::Blob_storage_options>());
+
+      for (const auto &remote : remote_options) {
+        if (add_nonempty(remote->get_main_option())) {
+          for (const auto name : remote->get_secondary_options()) {
+            add_nonempty(name);
+          }
+        }
+      }
     }
   }
 

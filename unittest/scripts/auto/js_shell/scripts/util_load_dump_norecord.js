@@ -237,6 +237,8 @@ util.importJson(__import_data_path+'/primer-dataset-id.json', {schema: "test"});
 session.runSql("analyze table test.`primer-dataset-id`");
 util.dumpInstance(__tmp_dir+"/ldtest/dump-big", {bytesPerChunk: "128k"});
 
+// we're using '!' placeholders in our queries, and X session does not support this, switch to classic protocol
+shell.connect("mysql://root:old@localhost:"+__mysql_sandbox_port1);
 var reference_big=snapshot_instance(session);
 
 function EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session, reference_snapshot) {
@@ -538,7 +540,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadD
 
 var snap=snapshot_instance(session);
 
-EXPECT_EQ(null, snap["schemas"]["sakila"]["tables"]["film"]["count"]);
+EXPECT_EQ(0, snap["schemas"]["sakila"]["tables"]["film"]["count"]);
 EXPECT_JSON_EQ(reference["schemas"]["sakila"]["tables"]["country"], snap["schemas"]["sakila"]["tables"]["country"]);
 EXPECT_JSON_EQ(reference["schemas"]["sakila"]["tables"]["city"], snap["schemas"]["sakila"]["tables"]["city"]);
 
