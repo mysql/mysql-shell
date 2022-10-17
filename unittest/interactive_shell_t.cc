@@ -916,6 +916,26 @@ TEST_F(Interactive_shell_test, shell_command_use) {
   execute("use \\w mysql");
   MY_EXPECT_STDERR_CONTAINS("Incorrect number of arguments for use command");
   output_handler.wipe_all();
+
+  execute("create schema `backtick``quote`;");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("use `backtick``quote`;");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `backtick`quote`.");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("drop schema `backtick``quote`;");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("create schema \"double\"\"quote\";");
+  MY_EXPECT_STDERR_CONTAINS(
+      "You have an error in your SQL syntax; check the manual "
+      "that corresponds to your MySQL server version for the right syntax to "
+      "use near '\"double\"\"quote\"' at line 1");
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_sql_use) {
