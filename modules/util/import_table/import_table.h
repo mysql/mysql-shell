@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,7 +88,6 @@ class Import_table final {
   void progress_shutdown();
 
   std::atomic<size_t> m_prog_sent_bytes{0};
-  dump::Progress_thread m_progress_thread;
   size_t m_total_bytes = 0;
 
   shcore::Synchronized_queue<File_import_info> m_range_queue;
@@ -103,6 +102,11 @@ class Import_table final {
   // Store messages from errors that are not critical for import procedure, but
   // required for setting non-zero exit code.
   std::vector<std::string> noncritical_errors;
+
+  // progress thread needs to be placed after any of the fields it uses, in
+  // order to ensure that it is destroyed (and stopped) before any of those
+  // fields
+  dump::Progress_thread m_progress_thread;
 };
 
 }  // namespace import_table
