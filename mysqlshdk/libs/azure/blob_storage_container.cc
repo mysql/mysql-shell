@@ -170,7 +170,7 @@ void Blob_container::add_sas_token(mysqlshdk::rest::Query *query) const {
   assert(query);
   // Adds the SAS URL Token
   for (const auto &item : m_storage_config->m_sas_token_data) {
-    if (item.second.is_null())
+    if (!item.second.has_value())
       (*query)[item.first] = {};
     else
       (*query)[item.first] = *item.second;

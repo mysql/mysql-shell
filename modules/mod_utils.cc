@@ -305,7 +305,7 @@ shcore::Value::Map_type_ref get_connection_map(
   }
 
   for (auto &option : connection_options.get_extra_options()) {
-    if (option.second.is_null())
+    if (!option.second.has_value())
       (*map)[option.first] = shcore::Value();
     else {
       if (shcore::str_caseeq(option.first, mysqlshdk::db::kConnectTimeout)) {

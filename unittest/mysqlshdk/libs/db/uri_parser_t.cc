@@ -21,10 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <optional>
 #include "mysqlshdk/libs/db/file_uri.h"
 #include "mysqlshdk/libs/db/generic_uri.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 
@@ -32,8 +32,8 @@ using mysqlshdk::db::Transport_type;
 using mysqlshdk::db::uri::Type;
 using mysqlshdk::db::uri::Uri_parser;
 namespace testing {
-mysqlshdk::utils::nullable<const char *> no_string;
-mysqlshdk::utils::nullable<int> no_int;
+std::optional<const char *> no_string;
+std::optional<int> no_int;
 
 #define NO_SCHEME no_string
 #define NO_SCHEMA no_string
@@ -98,14 +98,12 @@ void validate_bad_uri(const std::string &connstring, const std::string &error,
 }
 
 void validate_uri(
-    const std::string &connstring,
-    const mysqlshdk::utils::nullable<const char *> &scheme,
-    const mysqlshdk::utils::nullable<const char *> &user,
-    const mysqlshdk::utils::nullable<const char *> &password,
-    const mysqlshdk::utils::nullable<const char *> &host,
-    const mysqlshdk::utils::nullable<int> &port,
-    const mysqlshdk::utils::nullable<const char *> &sock,
-    const mysqlshdk::utils::nullable<const char *> &db, bool /* has_password */,
+    const std::string &connstring, const std::optional<const char *> &scheme,
+    const std::optional<const char *> &user,
+    const std::optional<const char *> &password,
+    const std::optional<const char *> &host, const std::optional<int> &port,
+    const std::optional<const char *> &sock,
+    const std::optional<const char *> &db, bool /* has_password */,
     bool /* has_port */, Transport_type target_type, bool reverse_check = true,
     bool generic_check = true,
     const std::map<std::string, std::vector<std::string>> *attributes = 0) {
@@ -132,17 +130,17 @@ void validate_uri(
       }
     }
 
-    if (scheme.is_null())
+    if (!scheme.has_value())
       ASSERT_FALSE(data.has_scheme());
     else
       ASSERT_STREQ(*scheme, data.get_scheme().c_str());
 
-    if (user.is_null())
+    if (!user.has_value())
       ASSERT_FALSE(data.has_user());
     else
       ASSERT_STREQ(*user, data.get_user().c_str());
 
-    if (password.is_null())
+    if (!password.has_value())
       ASSERT_FALSE(data.has_password());
     else
       ASSERT_STREQ(*password, data.get_password().c_str());
@@ -154,24 +152,24 @@ void validate_uri(
 
       switch (data.get_transport_type()) {
         case Transport_type::Tcp:
-          if (host.is_null())
+          if (!host.has_value())
             ASSERT_FALSE(data.has_password());
           else
             ASSERT_STREQ(*host, data.get_host().c_str());
 
-          if (port.is_null())
+          if (!port.has_value())
             ASSERT_FALSE(data.has_port());
           else
             ASSERT_EQ(*port, data.get_port());
           break;
         case Transport_type::Socket:
-          if (sock.is_null())
+          if (!sock.has_value())
             ASSERT_FALSE(data.has_socket());
           else
             ASSERT_STREQ(*sock, data.get_socket().c_str());
           break;
         case Transport_type::Pipe:
-          if (sock.is_null())
+          if (!sock.has_value())
             ASSERT_FALSE(data.has_socket());
           else
             ASSERT_STREQ(*sock, data.get_pipe().c_str());
@@ -179,7 +177,7 @@ void validate_uri(
       }
     }
 
-    if (db.is_null())
+    if (!db.has_value())
       ASSERT_FALSE(data.has_schema());
     else
       ASSERT_STREQ(*db, data.get_schema().c_str());
@@ -205,11 +203,11 @@ void validate_uri(
 }
 
 void validate_ssh_uri(const std::string &connstring,
-                      const mysqlshdk::utils::nullable<const char *> &scheme,
-                      const mysqlshdk::utils::nullable<const char *> &user,
-                      const mysqlshdk::utils::nullable<const char *> &password,
-                      const mysqlshdk::utils::nullable<const char *> &host,
-                      const mysqlshdk::utils::nullable<int> &port,
+                      const std::optional<const char *> &scheme,
+                      const std::optional<const char *> &user,
+                      const std::optional<const char *> &password,
+                      const std::optional<const char *> &host,
+                      const std::optional<int> &port,
                       bool reverse_check = true) {
   SCOPED_TRACE(connstring);
 
@@ -224,26 +222,26 @@ void validate_ssh_uri(const std::string &connstring,
                 data.as_uri(mysqlshdk::db::uri::Tokens_mask::all()));
     }
 
-    if (scheme.is_null())
+    if (!scheme.has_value())
       ASSERT_FALSE(data.has_scheme());
     else
       ASSERT_STREQ(*scheme, data.get_scheme().c_str());
 
-    if (user.is_null())
+    if (!user.has_value())
       ASSERT_FALSE(data.has_user());
     else
       ASSERT_STREQ(*user, data.get_user().c_str());
 
-    if (password.is_null())
+    if (!password.has_value())
       ASSERT_FALSE(data.has_password());
     else
       ASSERT_STREQ(*password, data.get_password().c_str());
-    if (host.is_null())
+    if (!host.has_value())
       ASSERT_FALSE(data.has_host());
     else
       ASSERT_STREQ(*host, data.get_host().c_str());
 
-    if (port.is_null())
+    if (!port.has_value())
       ASSERT_FALSE(data.has_port());
     else
       ASSERT_EQ(*port, data.get_port());
@@ -256,9 +254,9 @@ void validate_ssh_uri(const std::string &connstring,
 }
 
 void validate_file_uri(const std::string &connstring,
-                       const mysqlshdk::utils::nullable<const char *> &scheme,
-                       const mysqlshdk::utils::nullable<const char *> &host,
-                       const mysqlshdk::utils::nullable<const char *> &path,
+                       const std::optional<const char *> &scheme,
+                       const std::optional<const char *> &host,
+                       const std::optional<const char *> &path,
                        bool reverse_check = true, bool generic_check = true) {
   SCOPED_TRACE(connstring);
 
@@ -283,17 +281,17 @@ void validate_file_uri(const std::string &connstring,
       }
     }
 
-    if (scheme.is_null())
+    if (!scheme.has_value())
       ASSERT_FALSE(data.has_value(mysqlshdk::db::kScheme));
     else
       ASSERT_STREQ(*scheme, data.get(mysqlshdk::db::kScheme).c_str());
 
-    if (host.is_null())
+    if (!host.has_value())
       ASSERT_FALSE(data.has_value(mysqlshdk::db::kHost));
     else
       ASSERT_STREQ(*host, data.get(mysqlshdk::db::kHost).c_str());
 
-    if (path.is_null())
+    if (!path.has_value())
       ASSERT_FALSE(data.has_value(mysqlshdk::db::kPath));
     else
       ASSERT_STREQ(*path, data.get(mysqlshdk::db::kPath).c_str());

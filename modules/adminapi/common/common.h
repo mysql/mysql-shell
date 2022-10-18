@@ -41,6 +41,7 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/enumset.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
 
@@ -413,7 +414,7 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type);
 
-mysqlshdk::db::nullable<Cluster_ssl_mode> resolve_ssl_mode(
+mysqlshdk::utils::nullable<Cluster_ssl_mode> resolve_ssl_mode(
     const mysqlshdk::mysql::IInstance &instance,
     const Cluster_ssl_mode &ssl_mode, bool *have_ssl);
 

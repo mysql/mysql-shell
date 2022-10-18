@@ -25,12 +25,12 @@
 #define MYSQLSHDK_LIBS_AZURE_BLOB_STORAGE_CONFIG_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
 #include "mysqlshdk/libs/rest/signed_rest_service.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_config.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace azure {
@@ -105,7 +105,8 @@ class Blob_storage_config : public Config {
   std::string m_account_name;
   std::string m_account_key;
   std::string m_sas_token;
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> m_sas_token_data;
+  std::vector<std::pair<std::string, std::optional<std::string>>>
+      m_sas_token_data;
   mutable std::string m_hash;
 
   std::string m_sas_token_source;

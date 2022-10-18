@@ -32,7 +32,6 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::db::uri::Uri_encoder;
-using mysqlshdk::utils::nullable;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::nullable_options::Set_mode;
 
@@ -159,7 +158,7 @@ ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
     int fallback_port) {
   if (m_ssh_options.has_data()) {
     int mysql_port = fallback_port;
-    if (!m_port.is_null()) {
+    if (m_port.has_value()) {
       mysql_port = *m_port;
     } else if (has_scheme()) {
       if (get_scheme() == "mysql") {
@@ -199,8 +198,8 @@ void Connection_options::set_pipe(const std::string &pipe) {
 #else
   const bool win32 = false;
 #endif
-  if ((!m_transport_type.is_null() && *m_transport_type == Socket) ||
-      !m_port.is_null() ||
+  if ((m_transport_type.has_value() && *m_transport_type == Socket) ||
+      m_port.has_value() ||
       (m_options.has_value(kHost) &&
        (get_value(kHost) != "localhost" &&  // only localhost means "use socket"
         !(get_value(kHost) == "." && win32))))
@@ -253,8 +252,8 @@ void Connection_options::set_compression_algorithms(
 }
 
 void Connection_options::set_socket(const std::string &socket) {
-  if ((!m_transport_type.is_null() && *m_transport_type == Pipe) ||
-      !m_port.is_null() ||
+  if ((m_transport_type.has_value() && *m_transport_type == Pipe) ||
+      m_port.has_value() ||
       (has_value(kHost) &&
        get_value(kHost) != "localhost"))  // only localhost means "use socket"
     raise_connection_type_error(socket.empty()
@@ -270,14 +269,14 @@ void Connection_options::raise_connection_type_error(
   std::string type;
   std::string target;
 
-  if (has_value(kHost) || !m_port.is_null()) {
+  if (has_value(kHost) || m_port.has_value()) {
     if (has_value(kHost)) {
       if (get_value(kHost) != "localhost") type = "tcp ";
 
       target = "to '" + get_value(kHost);
     }
 
-    if (!m_port.is_null()) {
+    if (m_port.has_value()) {
       if (target.empty())
         target = "to port '";
       else
@@ -303,7 +302,7 @@ void Connection_options::raise_connection_type_error(
 }
 
 void Connection_options::set_host(const std::string &host) {
-  if (!m_transport_type.is_null() && *m_transport_type != Tcp &&
+  if (m_transport_type.has_value() && *m_transport_type != Tcp &&
       host != "localhost"
 #ifdef _WIN32
       && host != "."
@@ -317,7 +316,7 @@ void Connection_options::set_host(const std::string &host) {
 #endif  // _WIN32
   )
     m_transport_type = Tcp;
-  else if (m_port.is_null())
+  else if (!m_port.has_value())
     m_transport_type.reset();
 
   m_options.set(kHost, host, Set_mode::CREATE_AND_UPDATE);
@@ -479,20 +478,20 @@ bool Connection_options::has_value(const std::string &name) const {
   else if (m_ssl_options.has(iname))
     return m_ssl_options.has_value(iname);
   else if (m_options.compare(iname, kPort) == 0)
-    return !m_port.is_null();
+    return m_port.has_value();
   else if (m_extra_options.has(iname))
     return m_extra_options.has_value(iname);
 
   return false;
 }
 
-std::vector<std::pair<std::string, mysqlshdk::null_string>>
+std::vector<std::pair<std::string, std::optional<std::string>>>
 Connection_options::query_attributes() const {
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> attributes;
+  std::vector<std::pair<std::string, std::optional<std::string>>> attributes;
 
   // From SSL options, only the options with value are considered
   for (const auto &ssl_option : m_ssl_options) {
-    if (!ssl_option.second.is_null()) {
+    if (ssl_option.second.has_value()) {
       attributes.push_back(ssl_option);
     }
   }
@@ -520,7 +519,7 @@ bool Connection_options::has_ssh_options() const {
 }
 
 int Connection_options::get_port() const {
-  if (m_port.is_null()) {
+  if (!m_port.has_value()) {
     throw std::invalid_argument(
         shcore::str_format("The connection option '%s' has no value.", kPort));
   }
@@ -544,14 +543,14 @@ int Connection_options::get_target_port() const {
 }
 
 Transport_type Connection_options::get_transport_type() const {
-  if (m_transport_type.is_null())
+  if (!m_transport_type.has_value())
     throw std::invalid_argument("Transport Type is undefined.");
 
   return *m_transport_type;
 }
 
 int64_t Connection_options::get_compression_level() const {
-  if (m_compress_level.is_null())
+  if (!m_compress_level.has_value())
     throw std::invalid_argument("Compression level is undefined.");
   return *m_compress_level;
 }
@@ -593,8 +592,8 @@ void Connection_options::clear_mfa_passwords() {
 }
 
 void Connection_options::clear_host() {
-  if (!m_transport_type.is_null() && *m_transport_type == Transport_type::Tcp &&
-      m_port.is_null())
+  if (m_transport_type.has_value() &&
+      *m_transport_type == Transport_type::Tcp && !m_port.has_value())
     m_transport_type.reset();
 
   clear_value(kHost);

@@ -273,10 +273,10 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
  *   - If SSL mode is not supported and member_ssl_mode is REQUIRED, VERIFY_CA
  *     or VERIFY_IDENTITY
  */
-mysqlshdk::db::nullable<Cluster_ssl_mode> resolve_ssl_mode(
+mysqlshdk::utils::nullable<Cluster_ssl_mode> resolve_ssl_mode(
     const mysqlshdk::mysql::IInstance &instance,
     const Cluster_ssl_mode &ssl_mode, bool *have_ssl) {
-  mysqlshdk::db::nullable<Cluster_ssl_mode> resolved_ssl_mode;
+  mysqlshdk::utils::nullable<Cluster_ssl_mode> resolved_ssl_mode;
   std::string have_ssl_str = *instance.get_sysvar_string("have_ssl");
 
   // The instance supports SSL

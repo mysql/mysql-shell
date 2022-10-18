@@ -25,9 +25,12 @@
 
 #include "mysqlshdk/libs/db/uri_common.h"
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -60,8 +63,8 @@ struct File_uri : public Uri_serializable {
         shcore::str_format("Invalid component in file URI: %s", name.c_str()));
   };
 
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> query_attributes()
-      const override {
+  std::vector<std::pair<std::string, std::optional<std::string>>>
+  query_attributes() const override {
     return {};
   }
 

@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_CONNECTION_H_
 #define MYSQLSHDK_LIBS_UTILS_CONNECTION_H_
 
+#include <optional>
 #include <string>
 #include <unordered_set>
 
@@ -74,7 +75,7 @@ class SHCORE_PUBLIC IConnection : public Uri_serializable {
   }
 
   virtual void set_port(int port) {
-    if (m_port.is_null()) {
+    if (!m_port.has_value()) {
       m_port = port;
     } else {
       throw std::invalid_argument(shcore::str_format(
@@ -92,7 +93,7 @@ class SHCORE_PUBLIC IConnection : public Uri_serializable {
   virtual const std::string &get_host() const { return get_value(db::kHost); }
   virtual const std::string &get_path() const { return get_value(db::kPath); }
   virtual int get_port() const {
-    if (m_port.is_null()) {
+    if (!m_port.has_value()) {
       throw std::invalid_argument(
           shcore::str_format("The option '%s' has no value.", db::kPort));
     }
@@ -104,7 +105,7 @@ class SHCORE_PUBLIC IConnection : public Uri_serializable {
   virtual bool has_user() const { return has_value(db::kUser); }
   virtual bool has_password() const { return has_value(db::kPassword); }
   virtual bool has_host() const { return has_value(db::kHost); }
-  virtual bool has_port() const { return !m_port.is_null(); }
+  virtual bool has_port() const { return m_port.has_value(); }
   virtual bool has_path() const { return has_value(db::kPath); }
 
   virtual bool has(const std::string &name) const {
@@ -156,7 +157,7 @@ class SHCORE_PUBLIC IConnection : public Uri_serializable {
   }
   utils::Comparison_mode m_mode;
   utils::Nullable_options m_options;
-  utils::nullable<int> m_port;
+  std::optional<int> m_port;
 };
 }  // namespace mysqlshdk
 #endif  // MYSQLSHDK_LIBS_UTILS_CONNECTION_H_

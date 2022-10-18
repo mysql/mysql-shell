@@ -46,7 +46,6 @@ enum class SessionType { Auto, X, Classic };
 
 namespace mysqlshdk {
 namespace db {
-using utils::nullable;
 using utils::Nullable_options;
 using utils::nullable_options::Comparison_mode;
 enum Transport_type { Tcp, Socket, Pipe };
@@ -114,12 +113,12 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   bool has_schema() const { return has_value(kSchema); }
   bool has_socket() const { return has_value(kSocket); }
   bool has_pipe() const { return has_value(kSocket); }
-  bool has_transport_type() const { return !m_transport_type.is_null(); }
+  bool has_transport_type() const { return m_transport_type.has_value(); }
   bool has_compression() const { return m_extra_options.has(kCompression); }
   bool has_compression_algorithms() const {
     return m_extra_options.has(kCompressionAlgorithms);
   }
-  bool has_compression_level() const { return !m_compress_level.is_null(); }
+  bool has_compression_level() const { return m_compress_level.has_value(); }
 
   mysqlshdk::db::uri::Type get_type() const override {
     return mysqlshdk::db::uri::Type::DevApi;
@@ -128,8 +127,8 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   bool has_value(const std::string &name) const override;
   const std::string &get(const std::string &name) const override;
   int get_numeric(const std::string &name) const override;
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> query_attributes()
-      const override;
+  std::vector<std::pair<std::string, std::optional<std::string>>>
+  query_attributes() const override;
 
   bool has_ssh_options() const;
 
@@ -218,8 +217,8 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void raise_connection_type_error(const std::string &source);
   void check_compression_conflicts();
 
-  nullable<Transport_type> m_transport_type;
-  nullable<int64_t> m_compress_level;
+  std::optional<Transport_type> m_transport_type;
+  std::optional<int64_t> m_compress_level;
 
   Ssl_options m_ssl_options;
   ssh::Ssh_connection_options m_ssh_options;

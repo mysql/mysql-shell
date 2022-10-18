@@ -34,7 +34,6 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/enumset.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {

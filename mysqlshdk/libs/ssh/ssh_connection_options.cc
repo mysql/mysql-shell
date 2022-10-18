@@ -29,7 +29,6 @@
 #include "mysqlshdk/libs/ssh/ssh_session_options.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/nullable_options.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -146,9 +145,9 @@ void Ssh_connection_options::dump_config() const {
   if (has_config_file())
     log_debug2("SSH: config file: %s", get_config_file().c_str());
   log_debug2("SSH: local host: %s", m_sourcehost.c_str());
-  if (!m_local_port.is_null()) log_debug2("SSH local port: %d", *m_local_port);
+  if (m_local_port.has_value()) log_debug2("SSH local port: %d", *m_local_port);
   log_debug2("SSH: remote host: %s", get_remote_host().c_str());
-  if (!m_remote_port.is_null())
+  if (m_remote_port.has_value())
     log_debug2("SSH remote port: %d", *m_remote_port);
   log_debug2("SSH: remote ssh host: %s", get_host().c_str());
   if (has_port()) {
@@ -242,7 +241,7 @@ bool Ssh_connection_options::has_value(const std::string &name) const {
   if (m_options.has(name))
     return m_options.has_value(name);
   else if (m_options.compare(name, db::kPort) == 0)
-    return !m_port.is_null();
+    return m_port.has_value();
 
   return false;
 }

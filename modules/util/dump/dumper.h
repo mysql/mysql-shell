@@ -40,7 +40,6 @@
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/version.h"
 

@@ -291,10 +291,8 @@ void Blob_storage_config::validate_config() const {
     for (const auto &name : {"sv", "sp", "se", "st", "spr", "sig"}) {
       const auto &item = std::find_if(
           m_sas_token_data.begin(), m_sas_token_data.end(),
-          [&name](
-              const std::pair<std::string, mysqlshdk::null_string> &member) {
-            return member.first == name;
-          });
+          [&name](const std::pair<std::string, std::optional<std::string>>
+                      &member) { return member.first == name; });
 
       if (item == m_sas_token_data.end()) {
         throw std::invalid_argument(shcore::str_format(

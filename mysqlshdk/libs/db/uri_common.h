@@ -21,7 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mysqlshdk/libs/utils/enumset.h"
-#include "mysqlshdk/libs/utils/nullable_options.h"
 
 #ifndef MYSQLSHDK_LIBS_DB_URI_COMMON_H_
 #define MYSQLSHDK_LIBS_DB_URI_COMMON_H_
@@ -146,7 +145,7 @@ class IUri_encodable : public virtual IUri_data_base {
   virtual bool has_value(const std::string &name) const = 0;
   virtual const std::string &get(const std::string &name) const = 0;
   virtual int get_numeric(const std::string &name) const = 0;
-  virtual std::vector<std::pair<std::string, mysqlshdk::null_string>>
+  virtual std::vector<std::pair<std::string, std::optional<std::string>>>
   query_attributes() const = 0;
 };
 
