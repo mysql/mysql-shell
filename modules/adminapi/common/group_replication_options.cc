@@ -142,22 +142,22 @@ void validate_exit_state_action_supported(
  * @throw RuntimeError if the value is not supported on the target instance
  * @throw argument_error if the value provided is empty
  */
-void validate_consistency_supported(const mysqlshdk::utils::Version &version,
-                                    const mysqlshdk::null_string &consistency) {
+void validate_consistency_supported(
+    const mysqlshdk::utils::Version &version,
+    const std::optional<std::string> &consistency) {
   // TODO(rennox): Remove the empty validation
-  if (!consistency.is_null()) {
-    if (shcore::str_strip(*consistency).empty()) {
-      throw shcore::Exception::argument_error(
-          shcore::str_format("Invalid value for %s, string value cannot be "
-                             "empty.",
-                             kConsistency));
-    }
-    if (!is_option_supported(version, kConsistency,
-                             k_global_cluster_supported_options)) {
-      throw std::runtime_error(shcore::str_format(
-          "Option '%s' not supported on target server version: '%s'",
-          kConsistency, version.get_full().c_str()));
-    }
+  if (!consistency.has_value()) return;
+
+  if (shcore::str_strip(*consistency).empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kConsistency));
+  }
+
+  if (!is_option_supported(version, kConsistency,
+                           k_global_cluster_supported_options)) {
+    throw std::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kConsistency, version.get_full().c_str()));
   }
 }
 
@@ -173,8 +173,8 @@ void validate_consistency_supported(const mysqlshdk::utils::Version &version,
  */
 void validate_expel_timeout_supported(
     const mysqlshdk::utils::Version &version,
-    const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout) {
-  if (expel_timeout.is_null()) return;
+    std::optional<std::int64_t> expel_timeout) {
+  if (!expel_timeout.has_value()) return;
 
   if ((*expel_timeout) < 0) {
     throw shcore::Exception::argument_error(shcore::str_format(
@@ -360,13 +360,13 @@ void validate_communication_stack_supported(
 void Group_replication_options::check_option_values(
     const mysqlshdk::utils::Version &version, int canonical_port) {
   // Validate communicationStack
-  if (!communication_stack.is_null()) {
+  if (communication_stack.has_value()) {
     validate_communication_stack_supported(version);
   }
 
   // Validate ipWhitelist and ipAllowlist
   {
-    if (!ip_allowlist.is_null()) {
+    if (ip_allowlist.has_value()) {
       if (!shcore::str_caseeq(*ip_allowlist, "AUTOMATIC")) {
         validate_ip_whitelist_option(version, *ip_allowlist,
                                      ip_allowlist_option_name);
@@ -374,16 +374,16 @@ void Group_replication_options::check_option_values(
     }
   }
 
-  if (!local_address.is_null()) {
+  if (local_address.has_value()) {
     validate_local_address_option(
-        *local_address, communication_stack.get_safe(), canonical_port);
+        *local_address, communication_stack.value_or(""), canonical_port);
   }
 
   // Validate if the exitStateAction option is supported on the target
   // instance and if is not empty.
   // The validation for the value set is handled at the group-replication
   // level
-  if (!exit_state_action.is_null()) {
+  if (exit_state_action.has_value()) {
     validate_exit_state_action_supported(version, *exit_state_action);
   } else {
     // exitStateAction default value should only be set if supported in
@@ -403,11 +403,11 @@ void Group_replication_options::check_option_values(
   // instance and if it used in the optional parameters.
   // The validation for the value set is handled at the group-replication
   // level
-  if (!member_weight.is_null()) {
+  if (member_weight.has_value()) {
     validate_member_weight_supported(version);
   }
 
-  if (!consistency.is_null()) {
+  if (consistency.has_value()) {
     // Validate if the consistency option is supported on the target
     // instance and if is not empty.
     // The validation for the value set is handled at the group-replication
@@ -415,20 +415,19 @@ void Group_replication_options::check_option_values(
     validate_consistency_supported(version, consistency);
   }
 
-  if (!expel_timeout.is_null()) {
+  if (expel_timeout.has_value()) {
     // Validate if the expelTimeout option is supported on the target
     // instance and if it is within the valid range [0, 3600].
     validate_expel_timeout_supported(version, expel_timeout);
   }
 
-  if (!auto_rejoin_tries.is_null()) {
+  if (auto_rejoin_tries.has_value()) {
     // Validate if the auto_rejoin_tries option is supported on the target
     validate_auto_rejoin_tries_supported(version);
 
     // Print warning if auto-rejoin is set (not 0).
     if (*auto_rejoin_tries != 0) {
-      auto console = mysqlsh::current_console(true);
-      if (console) {
+      if (auto console = mysqlsh::current_console(true); console) {
         console->print_warning(
             "The member will only proceed according to its exitStateAction if "
             "auto-rejoin fails (i.e. all retry attempts are exhausted).");
@@ -442,23 +441,23 @@ void Group_replication_options::read_option_values(
     const mysqlshdk::mysql::IInstance &instance, bool switching_comm_stack) {
   mysqlshdk::utils::Version version = instance.get_version();
 
-  if (group_name.is_null()) {
+  if (!group_name.has_value()) {
     group_name = instance.get_sysvar_string("group_replication_group_name");
   }
 
   if (ssl_mode == Cluster_ssl_mode::NONE) {
     ssl_mode = to_cluster_ssl_mode(
-        instance.get_sysvar_string("group_replication_ssl_mode").get_safe());
+        instance.get_sysvar_string("group_replication_ssl_mode").value_or(""));
   }
 
-  if (group_seeds.is_null() && !switching_comm_stack) {
+  if (!group_seeds.has_value() && !switching_comm_stack) {
     group_seeds = instance.get_sysvar_string("group_replication_group_seeds");
 
     // Set group_seeds to NULL if value read is empty (to be overridden).
-    if (!group_seeds.is_null() && group_seeds->empty()) group_seeds.reset();
+    if (group_seeds.has_value() && group_seeds->empty()) group_seeds.reset();
   }
 
-  if (ip_allowlist.is_null() && !switching_comm_stack) {
+  if (!ip_allowlist.has_value() && !switching_comm_stack) {
     if (version < mysqlshdk::utils::Version(8, 0, 22)) {
       ip_allowlist =
           instance.get_sysvar_string("group_replication_ip_whitelist");
@@ -468,37 +467,38 @@ void Group_replication_options::read_option_values(
     }
   }
 
-  if (local_address.is_null() && !switching_comm_stack) {
+  if (!local_address.has_value() && !switching_comm_stack) {
     local_address =
         instance.get_sysvar_string("group_replication_local_address");
     // group_replication_local_address will be "" when it's not set, but we
     // don't allow setting it to ""
-    if (!local_address.is_null() && *local_address == "")
-      local_address = nullptr;
+    if (local_address.has_value() && *local_address == "")
+      local_address = std::nullopt;
   }
 
-  if (member_weight.is_null() &&
+  if (!member_weight.has_value() &&
       version >= mysqlshdk::utils::Version(8, 0, 2)) {
     member_weight = instance.get_sysvar_int("group_replication_member_weight");
   }
 
-  if (exit_state_action.is_null() &&
+  if (!exit_state_action.has_value() &&
       version >= mysqlshdk::utils::Version(8, 0, 12)) {
     exit_state_action =
         instance.get_sysvar_string("group_replication_exit_state_action");
   }
 
-  if (expel_timeout.is_null() &&
+  if (!expel_timeout.has_value() &&
       version >= mysqlshdk::utils::Version(8, 0, 13)) {
     expel_timeout =
         instance.get_sysvar_int("group_replication_member_expel_timeout");
   }
 
-  if (consistency.is_null() && version >= mysqlshdk::utils::Version(8, 0, 14)) {
+  if (!consistency.has_value() &&
+      version >= mysqlshdk::utils::Version(8, 0, 14)) {
     consistency = instance.get_sysvar_string("group_replication_consistency");
   }
 
-  if (auto_rejoin_tries.is_null() &&
+  if (!auto_rejoin_tries.has_value() &&
       version >= mysqlshdk::utils::Version(8, 0, 16)) {
     auto_rejoin_tries =
         instance.get_sysvar_int("group_replication_autorejoin_tries");
@@ -561,7 +561,7 @@ void Group_replication_options::set_consistency(const std::string &option,
 
   if (option == kFailoverConsistency) {
     handle_deprecated_option(kFailoverConsistency, kConsistency,
-                             !consistency.is_null(), false);
+                             consistency.has_value(), false);
   }
 
   consistency = stripped_value;
@@ -653,7 +653,7 @@ void Rejoin_group_replication_options::set_ip_allowlist(
 
   if (option == kIpWhitelist) {
     handle_deprecated_option(kIpWhitelist, kIpAllowlist,
-                             !ip_allowlist.is_null(), true);
+                             ip_allowlist.has_value(), true);
   }
 
   ip_allowlist = value;

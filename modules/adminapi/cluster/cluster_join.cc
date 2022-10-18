@@ -129,8 +129,8 @@ void Cluster_join::resolve_local_address(
       check_type == checks::Check_type::REJOIN) {
     communication_stack = m_cluster->get_communication_stack();
   } else if (check_type == checks::Check_type::BOOTSTRAP &&
-             !gr_options->communication_stack.is_null()) {
-    communication_stack = gr_options->communication_stack.get_safe();
+             gr_options->communication_stack.has_value()) {
+    communication_stack = gr_options->communication_stack.value_or("");
   } else {
     // The default value for communicationStack must be 'mysql' if the target
     // instance is running 8.0.27+
@@ -143,7 +143,7 @@ void Cluster_join::resolve_local_address(
   }
 
   gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
-      user_gr_options.local_address.get_safe().empty()
+      user_gr_options.local_address.value_or("").empty()
           ? gr_options->local_address
           : user_gr_options.local_address,
       communication_stack, hostname, *m_target_instance->get_sysvar_int("port"),
@@ -153,9 +153,9 @@ void Cluster_join::resolve_local_address(
   // Validate that the local_address value we want to use as well as the
   // local address values in use on the cluster are compatible with the
   // version of the instance being added to the cluster.
-  validate_local_address_ip_compatibility(gr_options->local_address.get_safe(),
-                                          gr_options->group_seeds.get_safe(),
-                                          check_type);
+  validate_local_address_ip_compatibility(
+      gr_options->local_address.value_or(""),
+      gr_options->group_seeds.value_or(""), check_type);
 }
 
 void Cluster_join::validate_local_address_ip_compatibility(
@@ -374,7 +374,7 @@ void Cluster_join::restore_group_replication_account() const {
 
   mysqlshdk::mysql::change_replication_credentials(
       *m_target_instance, m_gr_opts.recovery_credentials->user,
-      m_gr_opts.recovery_credentials->password.get_safe(),
+      m_gr_opts.recovery_credentials->password.value_or(""),
       mysqlshdk::gr::k_gr_recovery_channel);
 
   // Update the recovery account to the right one
@@ -699,7 +699,7 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
       std::string view_change_uuid_persisted =
           m_target_instance
               ->get_persisted_value("group_replication_view_change_uuid")
-              .get_safe();
+              .value_or("");
 
       if (!view_change_uuid_persisted.empty()) {
         m_gr_opts.view_change_uuid = view_change_uuid_persisted;
@@ -991,9 +991,9 @@ void Cluster_join::prepare_join(
   check_instance_configuration(checks::Check_type::JOIN);
 
   // Validate localAddress
-  if (!m_gr_opts.local_address.is_null()) {
+  if (m_gr_opts.local_address.has_value()) {
     validate_local_address_option(*m_gr_opts.local_address,
-                                  m_gr_opts.communication_stack.get_safe(),
+                                  m_gr_opts.communication_stack.value_or(""),
                                   m_target_instance->get_canonical_port());
   }
 
@@ -1018,7 +1018,7 @@ bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch, Intent intent) {
     std::string persisted_comm_stack =
         m_target_instance
             ->get_sysvar_string("group_replication_communication_stack")
-            .get_safe(kCommunicationStackXCom);
+            .value_or(kCommunicationStackXCom);
 
     if (persisted_comm_stack != m_comm_stack) {
       m_is_switching_comm_stack = true;
@@ -1060,14 +1060,15 @@ void Cluster_join::create_local_replication_user() {
   // transaction
   mysqlshdk::mysql::Suppress_binary_log nobinlog(m_target_instance.get());
 
-  if (m_target_instance->get_sysvar_bool("super_read_only").get_safe()) {
+  if (m_target_instance->get_sysvar_bool("super_read_only", false)) {
     m_target_instance->set_sysvar("super_read_only", false);
   }
 
   mysqlshdk::mysql::Auth_options repl_account;
 
   std::tie(repl_account, std::ignore) = m_cluster->create_replication_user(
-      m_target_instance.get(), true, m_gr_opts.recovery_credentials.get_safe(),
+      m_target_instance.get(), true,
+      m_gr_opts.recovery_credentials.value_or(mysqlshdk::mysql::Auth_options{}),
       false);
 
   // Change GR's recovery replication credentials in all possible
@@ -1104,38 +1105,39 @@ void Cluster_join::clean_replication_user() {
 }
 
 void Cluster_join::log_used_gr_options() {
-  if (!m_gr_opts.local_address.is_null() && !m_gr_opts.local_address->empty()) {
+  if (m_gr_opts.local_address.has_value() &&
+      !m_gr_opts.local_address->empty()) {
     log_info("Using Group Replication local address: %s",
              m_gr_opts.local_address->c_str());
   }
 
-  if (!m_gr_opts.group_seeds.is_null() && !m_gr_opts.group_seeds->empty()) {
+  if (m_gr_opts.group_seeds.has_value() && !m_gr_opts.group_seeds->empty()) {
     log_info("Using Group Replication group seeds: %s",
              m_gr_opts.group_seeds->c_str());
   }
 
-  if (!m_gr_opts.exit_state_action.is_null() &&
+  if (m_gr_opts.exit_state_action.has_value() &&
       !m_gr_opts.exit_state_action->empty()) {
     log_info("Using Group Replication exit state action: %s",
              m_gr_opts.exit_state_action->c_str());
   }
 
-  if (!m_gr_opts.member_weight.is_null()) {
+  if (m_gr_opts.member_weight.has_value()) {
     log_info("Using Group Replication member weight: %s",
              std::to_string(*m_gr_opts.member_weight).c_str());
   }
 
-  if (!m_gr_opts.consistency.is_null() && !m_gr_opts.consistency->empty()) {
+  if (m_gr_opts.consistency.has_value() && !m_gr_opts.consistency->empty()) {
     log_info("Using Group Replication failover consistency: %s",
              m_gr_opts.consistency->c_str());
   }
 
-  if (!m_gr_opts.expel_timeout.is_null()) {
+  if (m_gr_opts.expel_timeout.has_value()) {
     log_info("Using Group Replication expel timeout: %s",
              std::to_string(*m_gr_opts.expel_timeout).c_str());
   }
 
-  if (!m_gr_opts.auto_rejoin_tries.is_null()) {
+  if (m_gr_opts.auto_rejoin_tries.has_value()) {
     log_info("Using Group Replication auto-rejoin tries: %s",
              std::to_string(*m_gr_opts.auto_rejoin_tries).c_str());
   }
@@ -1251,7 +1253,7 @@ void Cluster_join::validate_add_rejoin_options() const {
   // ipAllowList cannot be used by addInstance/rejoinInstance when the
   // communication stack in use by the Cluster is 'MySQL'
   if (m_cluster->get_communication_stack() == kCommunicationStackMySQL &&
-      !m_gr_opts.ip_allowlist.is_null()) {
+      m_gr_opts.ip_allowlist.has_value()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Cannot use '%s' when the Cluster's communication stack is "
         "'%s'",
@@ -1603,7 +1605,7 @@ void Cluster_join::rejoin(bool ignore_cluster_set) {
   //       the cluster excluding the joining node, thus cluster_count must
   //       exclude the rejoining node (cluster size - 1) since it already
   //       belongs to the metadata (BUG#30174191).
-  mysqlshdk::utils::nullable<uint64_t> cluster_count =
+  std::optional<uint64_t> cluster_count =
       m_cluster->get_metadata_storage()->get_cluster_size(m_cluster->get_id()) -
       1;
 
@@ -1689,7 +1691,7 @@ void Cluster_join::reboot() {
   //   - The recovery credentials have the required Grants
   //
   // For those reasons, we must simply re-create the recovery account
-  if (m_gr_opts.communication_stack.get_safe() == kCommunicationStackMySQL) {
+  if (m_gr_opts.communication_stack.value_or("") == kCommunicationStackMySQL) {
     // If it's a Replica cluster, we must disable the binary logging and
     // ensure the are created later
     if (m_cluster->is_cluster_set_member() &&
@@ -1698,7 +1700,7 @@ void Cluster_join::reboot() {
     }
 
     // Disable SRO if enabled
-    if (m_target_instance->get_sysvar_bool("super_read_only").get_safe()) {
+    if (m_target_instance->get_sysvar_bool("super_read_only", false)) {
       m_target_instance->set_sysvar("super_read_only", false);
     }
 
@@ -1764,7 +1766,8 @@ void Cluster_join::reboot() {
     // NOTE: Instances in RECOVERING must be skipped since won't be used
     // as donor and the change source command would fail anyway
     mysqlshdk::mysql::change_replication_credentials(
-        *m_target_instance, repl_account.user, repl_account.password.get_safe(),
+        *m_target_instance, repl_account.user,
+        repl_account.password.value_or(""),
         mysqlshdk::gr::k_gr_recovery_channel);
 
     if (m_cluster->is_cluster_set_member() &&
@@ -1791,18 +1794,18 @@ void Cluster_join::reboot() {
 
   if (m_is_autorejoining) ensure_not_auto_rejoining(m_target_instance.get());
 
-  if (!m_gr_opts.group_name.is_null() && !m_gr_opts.group_name->empty()) {
+  if (m_gr_opts.group_name.has_value() && !m_gr_opts.group_name->empty()) {
     log_info("Using Group Replication group name: %s",
              m_gr_opts.group_name->c_str());
   }
 
   // Get the value for transaction size limit stored in the Metadata if it
   // wasn't set by the caller
-  if (m_gr_opts.transaction_size_limit.is_null()) {
+  if (!m_gr_opts.transaction_size_limit.has_value()) {
     int64_t transaction_size_limit;
 
-    shcore::Value value;
-    if (m_cluster->get_metadata_storage()->query_cluster_attribute(
+    if (shcore::Value value;
+        m_cluster->get_metadata_storage()->query_cluster_attribute(
             m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
             &value)) {
       transaction_size_limit = value.as_int();
@@ -1846,7 +1849,7 @@ void Cluster_join::reboot() {
   // for local_address
   // Do it only when communicationStack is used and it's not a replica cluster
   // to not introduce errant transactions
-  if (!m_gr_opts.communication_stack.is_null() &&
+  if (m_gr_opts.communication_stack.has_value() &&
       (!m_cluster->is_cluster_set_member() ||
        m_cluster->is_primary_cluster())) {
     m_cluster->update_metadata_for_instance(*m_target_instance);

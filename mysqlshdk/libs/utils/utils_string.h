@@ -126,6 +126,21 @@ struct Case_insensitive_comparator {
   }
 };
 
+struct Case_comparator {
+  bool case_sensitive{true};
+  Case_comparator(bool p_case_sensitive) : case_sensitive{p_case_sensitive} {}
+
+  bool operator()(const std::string &a, const std::string &b) const {
+    return case_sensitive ? Case_sensitive_comparator()(a, b)
+                          : Case_insensitive_comparator()(a, b);
+  }
+
+  bool operator()(const std::wstring &a, const std::wstring &b) const {
+    return case_sensitive ? Case_sensitive_comparator()(a, b)
+                          : Case_insensitive_comparator()(a, b);
+  }
+};
+
 struct Lexicographical_comparator {
   bool operator()(const std::string &a, const std::string &b) const {
     return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());

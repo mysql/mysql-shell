@@ -349,9 +349,8 @@ shcore::Value Dissolve::execute() {
   console->print_info("* Dissolving the Cluster...");
 
   // Disable super_read_only mode if it is enabled.
-  bool super_read_only = m_cluster->get_cluster_server()
-                             ->get_sysvar_bool("super_read_only")
-                             .get_safe();
+  bool super_read_only = m_cluster->get_cluster_server()->get_sysvar_bool(
+      "super_read_only", false);
   if (super_read_only) {
     log_info(
         "Disabling super_read_only mode on instance '%s' to run dissolve().",

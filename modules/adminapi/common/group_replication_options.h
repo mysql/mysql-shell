@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,7 +33,6 @@
 #include "modules/mod_common.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -78,23 +78,22 @@ struct Group_replication_options {
 
   Unpack_target target;
 
-  mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options>
-      recovery_credentials;
+  std::optional<mysqlshdk::mysql::Auth_options> recovery_credentials;
 
-  mysqlshdk::null_string group_name;
-  mysqlshdk::null_string view_change_uuid;
+  std::optional<std::string> group_name;
+  std::optional<std::string> view_change_uuid;
   Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
-  mysqlshdk::null_string ip_allowlist;
-  mysqlshdk::null_string local_address;
-  mysqlshdk::null_string group_seeds;
-  mysqlshdk::null_string exit_state_action;
-  mysqlshdk::null_string consistency;
-  mysqlshdk::utils::nullable<int64_t> member_weight;
-  mysqlshdk::utils::nullable<int64_t> expel_timeout;
-  mysqlshdk::utils::nullable<int64_t> auto_rejoin_tries;
-  mysqlshdk::null_bool manual_start_on_boot;
-  mysqlshdk::null_string communication_stack;
-  mysqlshdk::utils::nullable<int64_t> transaction_size_limit;
+  std::optional<std::string> ip_allowlist;
+  std::optional<std::string> local_address;
+  std::optional<std::string> group_seeds;
+  std::optional<std::string> exit_state_action;
+  std::optional<std::string> consistency;
+  std::optional<int64_t> member_weight;
+  std::optional<int64_t> expel_timeout;
+  std::optional<int64_t> auto_rejoin_tries;
+  std::optional<bool> manual_start_on_boot;
+  std::optional<std::string> communication_stack;
+  std::optional<int64_t> transaction_size_limit;
 
   std::string ip_allowlist_option_name;
 };

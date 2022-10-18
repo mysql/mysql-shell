@@ -477,8 +477,8 @@ void Cluster_impl::validate_variable_compatibility(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &var_name) const {
   auto cluster_inst = get_cluster_server();
-  auto instance_val = target_instance.get_sysvar_string(var_name).get_safe();
-  auto cluster_val = cluster_inst->get_sysvar_string(var_name).get_safe();
+  auto instance_val = target_instance.get_sysvar_string(var_name).value_or("");
+  auto cluster_val = cluster_inst->get_sysvar_string(var_name).value_or("");
   std::string instance_address =
       target_instance.get_connection_options().as_uri(
           mysqlshdk::db::uri::formats::only_transport());
@@ -486,19 +486,20 @@ void Cluster_impl::validate_variable_compatibility(
       "Validating if '%s' variable has the same value on target instance '%s' "
       "as it does on the cluster.",
       var_name.c_str(), instance_address.c_str());
+
   // If values are different between cluster and target instance throw an
   // exception.
-  if (instance_val != cluster_val) {
-    auto console = mysqlsh::current_console();
-    console->print_error(shcore::str_format(
-        "Cannot join instance '%s' to cluster: incompatible '%s' value.",
-        instance_address.c_str(), var_name.c_str()));
-    throw shcore::Exception::runtime_error(
-        shcore::str_format("The '%s' value '%s' of the instance '%s' is "
-                           "different from the value of the cluster '%s'.",
-                           var_name.c_str(), instance_val.c_str(),
-                           instance_address.c_str(), cluster_val.c_str()));
-  }
+  if (instance_val == cluster_val) return;
+
+  auto console = mysqlsh::current_console();
+  console->print_error(shcore::str_format(
+      "Cannot join instance '%s' to cluster: incompatible '%s' value.",
+      instance_address.c_str(), var_name.c_str()));
+  throw shcore::Exception::runtime_error(
+      shcore::str_format("The '%s' value '%s' of the instance '%s' is "
+                         "different from the value of the cluster '%s'.",
+                         var_name.c_str(), instance_val.c_str(),
+                         instance_address.c_str(), cluster_val.c_str()));
 }
 
 /**
@@ -832,17 +833,15 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
       }
 
       // Determine if SET PERSIST is supported.
-      mysqlshdk::utils::nullable<bool> support_set_persist =
+      std::optional<bool> support_set_persist =
           instance->is_set_persist_supported();
       mysqlshdk::mysql::Var_qualifier set_type =
           mysqlshdk::mysql::Var_qualifier::GLOBAL;
       bool skip = false;
-      if (!support_set_persist.is_null() && *support_set_persist) {
-        if (persist_only) {
-          set_type = mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY;
-        } else {
-          set_type = mysqlshdk::mysql::Var_qualifier::PERSIST;
-        }
+      if (support_set_persist.value_or(false)) {
+        set_type = persist_only ? mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY
+                                : mysqlshdk::mysql::Var_qualifier::PERSIST;
+
       } else {
         // If we want persist_only but it's not supported, we skip it since it
         // can't help us
@@ -860,7 +859,7 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
 
       // Print a warning if SET PERSIST is not supported, for users to execute
       // dba.configureLocalInstance().
-      if (support_set_persist.is_null()) {
+      if (!support_set_persist.has_value()) {
         console->print_warning(
             "Instance '" + instance_def.first.endpoint +
             "' cannot persist configuration since MySQL version " +
@@ -869,7 +868,7 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
             "(MySQL version >= 8.0.11 required). Please use the dba." +
             "<<<configureLocalInstance>>>() command locally to persist the "
             "changes.");
-      } else if (!*support_set_persist) {
+      } else if (!support_set_persist.value()) {
         console->print_warning(
             "Instance '" + instance_def.first.endpoint +
             "' will not load the persisted cluster configuration upon reboot "
@@ -900,8 +899,8 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
 
 void Cluster_impl::query_group_wide_option_values(
     mysqlshdk::mysql::IInstance *target_instance,
-    mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
-    mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout) const {
+    std::optional<std::string> *out_gr_consistency,
+    std::optional<int64_t> *out_gr_member_expel_timeout) const {
   auto console = mysqlsh::current_console();
 
   Option_info<std::string> gr_consistency;
@@ -928,12 +927,11 @@ void Cluster_impl::query_group_wide_option_values(
                          const std::shared_ptr<Instance> &instance,
                          const mysqlshdk::gr::Member &) {
                        {
-                         mysqlshdk::utils::nullable<std::string> value;
-                         value = instance->get_sysvar_string(
+                         auto value = instance->get_sysvar_string(
                              "group_replication_consistency",
                              mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
-                         if (value.is_null()) {
+                         if (!value.has_value()) {
                            gr_consistency.found_not_supported = true;
                          } else if (*value != "EVENTUAL" && *value != "0") {
                            gr_consistency.found_non_default = true;
@@ -942,12 +940,11 @@ void Cluster_impl::query_group_wide_option_values(
                        }
 
                        {
-                         mysqlshdk::utils::nullable<std::int64_t> value;
-                         value = instance->get_sysvar_int(
+                         auto value = instance->get_sysvar_int(
                              "group_replication_member_expel_timeout",
                              mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
-                         if (value.is_null()) {
+                         if (!value.has_value()) {
                            gr_member_expel_timeout.found_not_supported = true;
                          } else if (*value != 0) {
                            gr_member_expel_timeout.found_non_default = true;
@@ -976,12 +973,13 @@ void Cluster_impl::query_group_wide_option_values(
           " primary.");
     }
   } else {
-    *out_gr_consistency = "EVENTUAL";
+    if (out_gr_consistency) *out_gr_consistency = "EVENTUAL";
 
     if (gr_consistency.found_non_default) {
       // if we found any non default group_replication_consistency value, then
       // we use that value on the instance being added
-      *out_gr_consistency = gr_consistency.non_default_value;
+      if (out_gr_consistency)
+        *out_gr_consistency = gr_consistency.non_default_value;
 
       if (gr_consistency.found_not_supported) {
         console->print_warning(
@@ -1009,12 +1007,14 @@ void Cluster_impl::query_group_wide_option_values(
           "same behavior as a member with expelTimeout=0.");
     }
   } else {
-    *out_gr_member_expel_timeout = int64_t();
+    if (out_gr_member_expel_timeout) *out_gr_member_expel_timeout = 0;
 
     if (gr_member_expel_timeout.found_non_default) {
       // if we found any non default group_replication_member_expel_timeout
       // value, then we use that value on the instance being added
-      *out_gr_member_expel_timeout = gr_member_expel_timeout.non_default_value;
+      if (out_gr_member_expel_timeout)
+        *out_gr_member_expel_timeout =
+            gr_member_expel_timeout.non_default_value;
 
       if (gr_member_expel_timeout.found_not_supported) {
         console->print_warning(
@@ -1546,7 +1546,7 @@ void Cluster_impl::enable_super_read_only_globally() const {
   // Enable super_read_only on the primary member
   auto primary = get_cluster_server();
 
-  if (!primary->get_sysvar_bool("super_read_only").get_safe()) {
+  if (!primary->get_sysvar_bool("super_read_only", false)) {
     console->print_info("* Enabling super_read_only on '" + primary->descr() +
                         "'...");
     primary->set_sysvar("super_read_only", true);
@@ -1598,7 +1598,7 @@ void Cluster_impl::fence_all_traffic() {
       [=](const std::shared_ptr<Instance> &instance,
           const mysqlshdk::gr::Member &) {
         // Every secondary should be already super_read_only
-        if (!instance->get_sysvar_bool("super_read_only").get_safe()) {
+        if (!instance->get_sysvar_bool("super_read_only", false)) {
           console->print_info("* Enabling super_read_only on '" +
                               instance->descr() + "'...");
           instance->set_sysvar("super_read_only", true);
@@ -1693,18 +1693,17 @@ void Cluster_impl::unfence_writes() {
 
   // Check if offline_mode is enabled and disable it on all members
   using mysqlshdk::gr::Member_state;
-  execute_in_members(
-      {Member_state::ONLINE, Member_state::RECOVERING},
-      get_cluster_server()->get_connection_options(), {},
-      [=](const std::shared_ptr<Instance> &instance,
-          const mysqlshdk::gr::Member &) {
-        if (instance->get_sysvar_bool("offline_mode").get_safe()) {
-          console->print_info("* Disabling offline_mode on '" +
-                              instance->descr() + "'...");
-          instance->set_sysvar("offline_mode", false);
-        }
-        return true;
-      });
+  execute_in_members({Member_state::ONLINE, Member_state::RECOVERING},
+                     get_cluster_server()->get_connection_options(), {},
+                     [=](const std::shared_ptr<Instance> &instance,
+                         const mysqlshdk::gr::Member &) {
+                       if (instance->get_sysvar_bool("offline_mode", false)) {
+                         console->print_info("* Disabling offline_mode on '" +
+                                             instance->descr() + "'...");
+                         instance->set_sysvar("offline_mode", false);
+                       }
+                       return true;
+                     });
 
   // Enable the GR member action mysql_disable_super_read_only_if_primary
   console->print_info(
@@ -1714,7 +1713,7 @@ void Cluster_impl::unfence_writes() {
       mysqlshdk::gr::k_gr_member_action_after_primary_election);
 
   // Disable super_read_only on the primary member
-  if (primary->get_sysvar_bool("super_read_only").get_safe()) {
+  if (primary->get_sysvar_bool("super_read_only", false)) {
     console->print_info("* Disabling super_read_only on the primary '" +
                         primary->descr() + "'...");
     primary->set_sysvar("super_read_only", false);
@@ -1780,7 +1779,7 @@ bool Cluster_impl::is_fenced_from_writes() const {
   }
 
   // Check if SRO is enabled on the primary member
-  if (!primary->get_sysvar_bool("super_read_only").get_safe()) {
+  if (!primary->get_sysvar_bool("super_read_only", false)) {
     return false;
   }
 
@@ -2161,7 +2160,7 @@ void Cluster_impl::force_quorum_using_partition_of(
         std::string group_peer_instance_xcom_address =
             instance_session
                 ->get_sysvar_string("group_replication_local_address")
-                .get_safe();
+                .value_or("");
 
         group_peers.append(group_peer_instance_xcom_address);
         group_peers.append(",");
@@ -2289,14 +2288,14 @@ const std::string Cluster_impl::get_communication_stack() const {
   // sysvar doesn't exist (< 8.0.27)
   return get_cluster_server()
       ->get_sysvar_string("group_replication_communication_stack")
-      .get_safe(kCommunicationStackXCom);
+      .value_or(kCommunicationStackXCom);
 }
 
 int64_t Cluster_impl::get_transaction_size_limit() const {
   // Get it from the primary member
   return get_cluster_server()
       ->get_sysvar_int(kGrTransactionSizeLimit)
-      .get_safe();
+      .value_or(0);
 }
 
 shcore::Value Cluster_impl::check_instance_state(
@@ -2505,7 +2504,7 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
   bool mysql_comm_stack_available = mysql_comm_stack_available_all_members &&
                                     mysql_comm_stack_available_on_target;
 
-  if (creds.password.is_null())
+  if (!creds.password)
     return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, {host},
                                                 {}, clone_available, false,
                                                 mysql_comm_stack_available),
@@ -2552,7 +2551,7 @@ std::pair<std::string, std::string> Cluster_impl::recreate_replication_user(
       create_replication_user(target.get(), false, {}, false);
 
   mysqlshdk::mysql::change_replication_credentials(
-      *target, repl_account.user, repl_account.password.get_safe(),
+      *target, repl_account.user, repl_account.password.value_or(""),
       mysqlshdk::gr::k_gr_recovery_channel);
 
   return std::pair<std::string, std::string>(repl_account.user,
@@ -3313,7 +3312,7 @@ void Cluster_impl::_set_option(const std::string &option,
   // Prepare the Set_option command execution (validations).
   op_cluster_set_option->prepare();
 
-  // Execute Set_instance_option operations.
+  // Execute Set_option operations.
   op_cluster_set_option->execute();
 }
 

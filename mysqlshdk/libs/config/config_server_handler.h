@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,7 +59,7 @@ class Config_server_handler : public IConfig_handler {
    * sets
    */
   explicit Config_server_handler(mysql::IInstance *instance,
-                                 const mysql::Var_qualifier &var_qualifier);
+                                 mysql::Var_qualifier var_qualifier);
 
   /**
    * Constructor
@@ -69,9 +69,8 @@ class Config_server_handler : public IConfig_handler {
    * @param var_qualifier type of variable qualifier to be used for the gets and
    * sets
    */
-  explicit Config_server_handler(
-      const std::shared_ptr<mysql::IInstance> &instance,
-      const mysql::Var_qualifier &var_qualifier);
+  explicit Config_server_handler(std::shared_ptr<mysql::IInstance> instance,
+                                 mysql::Var_qualifier var_qualifier);
 
   /**
    * Destructor
@@ -86,7 +85,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable boolean with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<bool> get_bool(const std::string &name) const override;
+  std::optional<bool> get_bool(const std::string &name) const override;
 
   /**
    * Get the string value for the specified server configuration (system
@@ -96,8 +95,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable string with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<std::string> get_string(
-      const std::string &name) const override;
+  std::optional<std::string> get_string(const std::string &name) const override;
 
   /**
    * Get the integer value for the specified server configuration (system
@@ -107,7 +105,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable integer with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<int64_t> get_int(const std::string &name) const override;
+  std::optional<int64_t> get_int(const std::string &name) const override;
 
   /**
    * Set the given server configuration (system variable) with the specified
@@ -119,7 +117,7 @@ class Config_server_handler : public IConfig_handler {
    *                messages if defined.
    * @throw std::invalid_argument if the specified value is null.
    */
-  void set(const std::string &name, const utils::nullable<bool> &value,
+  void set(const std::string &name, std::optional<bool> value,
            const std::string &context = "") override;
 
   /**
@@ -132,7 +130,7 @@ class Config_server_handler : public IConfig_handler {
    *                messages if defined.
    * @throw std::invalid_argument if the specified value is null.
    */
-  void set(const std::string &name, const utils::nullable<int64_t> &value,
+  void set(const std::string &name, std::optional<int64_t> value,
            const std::string &context = "") override;
 
   /**
@@ -145,7 +143,7 @@ class Config_server_handler : public IConfig_handler {
    *                messages if defined.
    * @throw std::invalid_argument if the specified value is null.
    */
-  void set(const std::string &name, const utils::nullable<std::string> &value,
+  void set(const std::string &name, const std::optional<std::string> &value,
            const std::string &context = "") override;
 
   /**
@@ -173,8 +171,8 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable boolean with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<bool> get_bool(
-      const std::string &name, const mysql::Var_qualifier var_qualifier) const;
+  std::optional<bool> get_bool(const std::string &name,
+                               const mysql::Var_qualifier var_qualifier) const;
 
   /**
    * Get the string value for the specified server configuration (system
@@ -186,7 +184,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable string with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<std::string> get_string(
+  std::optional<std::string> get_string(
       const std::string &name, const mysql::Var_qualifier var_qualifier) const;
 
   /**
@@ -199,7 +197,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable integer with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<int64_t> get_int(
+  std::optional<int64_t> get_int(
       const std::string &name, const mysql::Var_qualifier var_qualifier) const;
 
   /**
@@ -215,7 +213,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable boolean with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<bool> get_bool_now(
+  std::optional<bool> get_bool_now(
       const std::string &name, const mysql::Var_qualifier var_qualifier) const;
 
   /**
@@ -231,7 +229,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable string with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<std::string> get_string_now(
+  std::optional<std::string> get_string_now(
       const std::string &name, const mysql::Var_qualifier var_qualifier) const;
 
   /**
@@ -247,7 +245,7 @@ class Config_server_handler : public IConfig_handler {
    * @return nullable integer with the value for the specified configuration.
    * @throw std::out_of_range if the specified configuration does not exist.
    */
-  utils::nullable<int64_t> get_int_now(
+  std::optional<int64_t> get_int_now(
       const std::string &name, const mysql::Var_qualifier var_qualifier) const;
 
   /**
@@ -258,7 +256,7 @@ class Config_server_handler : public IConfig_handler {
    * @param value nullable string with the value to set.
    * @param var_qualifier Var_qualifier with the qualifier used to set the
    *        variable.
-   * @param delay time in ms to wait after actually setting the variable when
+   * @param delay time to wait after actually setting the variable when
    *              executing the apply() function. By default 0, do not wait.
    *              NOTE: This allow to workaround BUG#27629719, ensuring
    *              different timestamps are set for variable that need to be set
@@ -269,25 +267,34 @@ class Config_server_handler : public IConfig_handler {
    *
    */
   template <typename T>
-  void set(const std::string &name, const utils::nullable<T> &value,
-           const mysql::Var_qualifier var_qualifier, uint32_t delay = 0,
+  void set(const std::string &name, const std::optional<T> &value,
+           const mysql::Var_qualifier var_qualifier,
+           std::chrono::milliseconds delay = std::chrono::milliseconds::zero(),
            const std::string &context = "") {
     // The value cannot be null (not supported by set_sysvar())
-    if (value.is_null()) {
+    if (!value)
       throw std::invalid_argument{"The value parameter cannot be null."};
-    }
 
     // NOTE: PERSIST_ONLY variables are only stored in the internal sequence of
     // changes to apply, but not on the map that hold a cache of the changes.
     shcore::Value val = nullable_type_to_value(value);
-    m_change_sequence.emplace_back(name, val, var_qualifier, delay, context);
+
+    {
+      VarData var_data;
+      var_data.name = name;
+      var_data.value = val;
+      var_data.qualifier = var_qualifier;
+      var_data.timeout = delay;
+      var_data.context = context;
+      m_change_sequence.emplace_back(std::move(var_data));
+    }
 
     // Store variable changes in an internal cache (used by get()).
     if (var_qualifier == mysql::Var_qualifier::GLOBAL ||
         var_qualifier == mysql::Var_qualifier::PERSIST) {
-      m_global_change_tracker[name] = val;
+      m_global_change_tracker[name] = std::move(val);
     } else if (var_qualifier == mysql::Var_qualifier::SESSION) {
-      m_session_change_tracker[name] = val;
+      m_session_change_tracker[name] = std::move(val);
     }
   }
 
@@ -300,29 +307,27 @@ class Config_server_handler : public IConfig_handler {
    * @param var_qualifier Optional Var_qualifier with the qualifier used to set
    *        the variable. If not specified, the default qualifier set when
    *        creating the handler is used.
-   * @param delay time in ms to wait after setting the variable. By default 0,
-   *              do not wait.
-   *              NOTE: This allow to workaround BUG#27629719, ensuring
-   *              different timestamps are set for variable that need to be set
-   *              in a specific order.
+   * @param delay time to wait after setting the variable. By default 0, do not
+   *        wait. NOTE: This allow to workaround BUG#27629719, ensuring
+   *        different timestamps are set for variable that need to be set in a
+   *        specific order.
    * @throw std::invalid_argument if the specified value is null.
    * @throw mysqlshdk::db::Error if any error occurs trying to set specified
    *        configuration on the server.
    */
   template <typename T>
-  void set_now(const std::string &name, const utils::nullable<T> &value,
-               const mysql::Var_qualifier var_qualifier, uint32_t delay = 0) {
+  void set_now(
+      const std::string &name, const std::optional<T> &value,
+      const mysql::Var_qualifier var_qualifier,
+      std::chrono::milliseconds delay = std::chrono::milliseconds::zero()) {
     // The value cannot be null (not supported by set_sysvar()).
-    if (value.is_null()) {
+    if (!value)
       throw std::invalid_argument{"The value parameter cannot be null."};
-    }
 
     m_instance->set_sysvar(name, *value, var_qualifier);
 
     // Sleep after setting the variable if delay is defined (> 0).
-    if (delay > 0) {
-      shcore::sleep_ms(delay);
-    }
+    if (delay.count() > 0) shcore::sleep(delay);
   }
 
   /**
@@ -348,59 +353,54 @@ class Config_server_handler : public IConfig_handler {
    * @throw std::runtime_error if an error occurs trying to get the persisted
    *        value (e.g., for 5.7 servers that do not support SET PERSIST).
    */
-  utils::nullable<std::string> get_persisted_value(
-      const std::string &name) const;
+  std::optional<std::string> get_persisted_value(const std::string &name) const;
 
  private:
   /**
    * Auxiliary function to convert a shcore::Value (holding a bool) to a
-   * mysqlshdk::utils::nullable<bool>.
+   * mysqlshdk::std::optional<bool>.
    *
    * @param value Value (with the bool) to convert
-   * @return utils::nullable<bool> object corresponding to the specified Value
+   * @return std::optional<bool> object corresponding to the specified Value
    *         object (with a bool).
    */
-  static utils::nullable<bool> value_to_nullable_bool(
-      const shcore::Value &value);
+  static std::optional<bool> value_to_nullable_bool(const shcore::Value &value);
 
   /**
    * Auxiliary function to convert a shcore::Value (holding a int64_t) to a
-   * mysqlshdk::utils::nullable<int64_t>.
+   * mysqlshdk::std::optional<int64_t>.
    *
    * @param value Value (with the int64_t) to convert
-   * @return utils::nullable<int64_t> object corresponding to the specified
+   * @return std::optional<int64_t> object corresponding to the specified
    *         Value object (with a int64_t).
    */
-  static utils::nullable<int64_t> value_to_nullable_int(
+  static std::optional<int64_t> value_to_nullable_int(
       const shcore::Value &value);
 
   /**
    * Auxiliary function to convert a shcore::Value (holding a std::string) to a
-   * mysqlshdk::utils::nullable<std::string>.
+   * mysqlshdk::std::optional<std::string>.
    *
    * @param value Value (with the std::string) to convert
-   * @return utils::nullable<std::string> object corresponding to the specified
+   * @return std::optional<std::string> object corresponding to the specified
    *         Value object (with a std::string).
    */
-  static utils::nullable<std::string> value_to_nullable_string(
+  static std::optional<std::string> value_to_nullable_string(
       const shcore::Value &value);
 
   /**
-   * Auxiliary function to convert a mysqlshdk::utils::nullable<T> object to
+   * Auxiliary function to convert a mysqlshdk::std::optional<T> object to
    * corresponding shcore::Value object holding the value of type T.
    *
    * @tparam T type of the base value: bool, int64_t, or std::string.
-   * @param value utils::nullable<T> object to convert.
+   * @param value std::optional<T> object to convert.
    * @return shcore::Value object corresponding to the specified
-   *         utils::nullable<T> object (with a T value).
+   *         std::optional<T> object (with a T value).
    */
   template <typename T>
-  shcore::Value nullable_type_to_value(const utils::nullable<T> &value) {
-    if (value.is_null()) {
-      return shcore::Value::Null();
-    } else {
-      return shcore::Value(*value);
-    }
+  shcore::Value nullable_type_to_value(const std::optional<T> &value) {
+    if (!value) return shcore::Value::Null();
+    return shcore::Value(*value);
   }
 
   mysql::IInstance *m_instance;
@@ -408,13 +408,17 @@ class Config_server_handler : public IConfig_handler {
   mysql::Var_qualifier m_var_qualifier;
   mysql::Var_qualifier m_get_scope;
 
-  // List of tuples with the change to apply. Each tuple contains the name of
-  // the variable, the value to set, the variable qualifier to use, the
-  // time in ms to wait (if any, by default 0), and an optional variable context
-  // to use in error messages if defined.
-  std::vector<std::tuple<std::string, shcore::Value, mysql::Var_qualifier,
-                         uint32_t, std::string>>
-      m_change_sequence;
+  struct VarData {
+    std::string name;
+    shcore::Value value;
+    mysql::Var_qualifier qualifier;
+    std::chrono::milliseconds timeout;
+    std::string context;
+  };
+
+  // List of tuples with the change to apply.
+  std::vector<VarData> m_change_sequence;
+
   std::map<std::string, shcore::Value> m_global_change_tracker;
   std::map<std::string, shcore::Value> m_session_change_tracker;
 };

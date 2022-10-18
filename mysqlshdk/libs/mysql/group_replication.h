@@ -26,6 +26,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -34,7 +35,6 @@
 #include "mysql/instance.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 #ifdef _WIN32
@@ -45,20 +45,20 @@ namespace mysqlshdk {
 // TODO(.) namespace gr should probably be renamed to mysql
 namespace gr {
 
-static constexpr const char k_gr_plugin_name[] = "group_replication";
-static constexpr const char k_group_recovery_user_prefix[] =
+inline constexpr const char k_gr_plugin_name[] = "group_replication";
+inline constexpr const char k_group_recovery_user_prefix[] =
     "mysql_innodb_cluster_";
-static constexpr const char k_group_recovery_old_user_prefix[] =
+inline constexpr const char k_group_recovery_old_user_prefix[] =
     "mysql_innodb_cluster_r";
-static constexpr const char k_gr_applier_channel[] =
+inline constexpr const char k_gr_applier_channel[] =
     "group_replication_applier";
-static constexpr const char k_gr_recovery_channel[] =
+inline constexpr const char k_gr_recovery_channel[] =
     "group_replication_recovery";
-static constexpr const char k_gr_disable_super_read_only_if_primary[] =
+inline constexpr const char k_gr_disable_super_read_only_if_primary[] =
     "mysql_disable_super_read_only_if_primary";
-static constexpr const char k_gr_member_action_after_primary_election[] =
+inline constexpr const char k_gr_member_action_after_primary_election[] =
     "AFTER_PRIMARY_ELECTION";
-static constexpr const char k_gr_start_failover_channels_if_primary[] =
+inline constexpr const char k_gr_start_failover_channels_if_primary[] =
     "mysql_start_failover_channels_if_primary";
 
 /**
@@ -204,7 +204,7 @@ bool is_protocol_upgrade_possible(
  * @return map with all the group_replication variables and respective values
  * found on the provided instance.
  */
-std::map<std::string, utils::nullable<std::string>> get_all_configurations(
+std::map<std::string, std::optional<std::string>> get_all_configurations(
     const mysqlshdk::mysql::IInstance &instance);
 
 // Functions to manage the GR plugin
@@ -261,9 +261,8 @@ mysql::User_privileges_result check_replication_user(
 mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
-    const mysqlshdk::utils::nullable<std::string> &password,
-    bool clone_supported = false, bool auto_failover = false,
-    bool mysql_comm_stack_supported = false);
+    const std::optional<std::string> &password, bool clone_supported = false,
+    bool auto_failover = false, bool mysql_comm_stack_supported = false);
 
 /**
  * Checks if the thread for a delayed initialization of the group replication is

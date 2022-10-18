@@ -113,8 +113,6 @@ void Create_replica_cluster::ensure_compatible_clone_donor(
    *   - It has the same operating system as the recipient
    */
 
-  auto console = current_console();
-
   const auto target =
       Scoped_instance(m_cluster_set->connect_target_instance(instance_def));
 
@@ -196,10 +194,9 @@ void Create_replica_cluster::handle_clone(
 
   // Ensure the cloneDonor is valid
   std::string donor;
-  if (!m_options.clone_options.clone_donor.is_null()) {
-    ensure_compatible_clone_donor(
-        m_options.clone_options.clone_donor.get_safe());
-    donor = m_options.clone_options.clone_donor.get_safe();
+  if (m_options.clone_options.clone_donor.has_value()) {
+    donor = *m_options.clone_options.clone_donor;
+    ensure_compatible_clone_donor(donor);
   } else {
     // Pick the primary instance of the primary cluster as donor
     donor = m_primary_instance->get_canonical_address();
@@ -239,7 +236,7 @@ void Create_replica_cluster::handle_clone(
   // Check if super_read_only is enabled. If so it must be disabled to create
   // the account
   if (!dry_run &&
-      m_target_instance->get_sysvar_bool("super_read_only").get_safe()) {
+      m_target_instance->get_sysvar_bool("super_read_only", false)) {
     m_target_instance->set_sysvar("super_read_only", false);
   }
 
@@ -608,7 +605,7 @@ void Create_replica_cluster::prepare() {
 
   // Store the current value of super_read_only
   bool super_read_only =
-      m_target_instance->get_sysvar_bool("super_read_only").get_safe();
+      m_target_instance->get_sysvar_bool("super_read_only", false);
 
   try {
     shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options =
@@ -884,9 +881,9 @@ shcore::Value Create_replica_cluster::execute() {
              m_target_instance->descr().c_str());
     if (!m_options.dry_run) {
       bool super_read_only =
-          m_target_instance->get_sysvar_bool("super_read_only").get_safe();
+          m_target_instance->get_sysvar_bool("super_read_only", false);
       bool skip_replica_start =
-          m_target_instance->get_sysvar_bool("skip_replica_start").get_safe();
+          m_target_instance->get_sysvar_bool("skip_replica_start", false);
 
       if (!super_read_only) {
         m_target_instance->set_sysvar("super_read_only", true);

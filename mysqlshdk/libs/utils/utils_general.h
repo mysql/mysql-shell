@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_GENERAL_H_
 
 #include <charconv>
+#include <chrono>
 #include <functional>
 #include <set>
 #include <sstream>
@@ -285,6 +286,7 @@ std::string SHCORE_PUBLIC str_subvars(
     std::string_view var_begin = "<<<", std::string_view var_end = ">>>");
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
+void SHCORE_PUBLIC sleep(std::chrono::milliseconds duration);
 
 OperatingSystem SHCORE_PUBLIC get_os_type();
 

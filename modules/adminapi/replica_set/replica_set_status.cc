@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,10 +57,11 @@ void instance_diagnostics(shcore::Dictionary_t status,
   if (server.primary_master && instance.is_fenced()) {
     std::vector<std::string> vars;
 
-    if (instance.read_only.get_safe()) vars.push_back("read_only=ON");
-    if (instance.super_read_only.get_safe())
+    if (instance.read_only.value_or(false)) vars.push_back("read_only=ON");
+    if (instance.super_read_only.value_or(false))
       vars.push_back("super_read_only=ON");
-    if (instance.offline_mode.get_safe()) vars.push_back("offline_mode=ON");
+    if (instance.offline_mode.value_or(false))
+      vars.push_back("offline_mode=ON");
 
     issues->push_back(
         shcore::Value("ERROR: Instance is a PRIMARY but is READ-ONLY: " +
@@ -68,7 +69,7 @@ void instance_diagnostics(shcore::Dictionary_t status,
   }
 
   // SECONDARY that's not SRO
-  if (!server.primary_master && !instance.super_read_only.get_safe()) {
+  if (!server.primary_master && !instance.super_read_only.value_or(false)) {
     issues->push_back(shcore::Value(
         "ERROR: Instance is NOT a PRIMARY but super_read_only "
         "option is OFF. Accidental updates to this instance are possible "
@@ -76,12 +77,12 @@ void instance_diagnostics(shcore::Dictionary_t status,
   }
 
   // GTID consistency
-  if (server.errant_transaction_count.get_safe() > 0) {
+  if (server.errant_transaction_count.value_or(0) > 0) {
     issues->push_back(shcore::Value(shcore::str_format(
         "ERROR: %s errant transaction(s) detected. Topology changes will not "
         "be possible until the instance is removed from the replicaset to "
         "have the inconsistency repaired.",
-        std::to_string(server.errant_transaction_count.get_safe()).c_str())));
+        std::to_string(*server.errant_transaction_count).c_str())));
   }
 
   if (server.primary_master) {
@@ -170,11 +171,10 @@ void instance_diagnostics(shcore::Dictionary_t status,
     auto required_values =
         parallel_applier_aux.get_required_values(instance.version);
 
-    for (const auto &setting : required_values) {
-      std::string current_value =
-          current_values[std::get<0>(setting)].get_safe();
+    for (const auto &[name, value] : required_values) {
+      auto current_value = current_values[name].value_or("");
 
-      if (!current_value.empty() && current_value != std::get<1>(setting)) {
+      if (!current_value.empty() && current_value != value) {
         issues->push_back(shcore::Value(
             "NOTE: The required parallel-appliers settings are not enabled on "
             "the instance. Use dba.configureReplicaSetInstance() to fix it."));
@@ -238,11 +238,11 @@ shcore::Dictionary_t server_status(const topology::Server &server,
 
   if (opts.show_details) {
     shcore::Array_t array = shcore::make_array();
-    if (instance->read_only.get_safe())
+    if (instance->read_only.value_or(false))
       array->push_back(shcore::Value("read_only"));
-    if (instance->super_read_only.get_safe())
+    if (instance->super_read_only.value_or(false))
       array->push_back(shcore::Value("super_read_only"));
-    if (instance->offline_mode.get_safe())
+    if (instance->offline_mode.value_or(false))
       array->push_back(shcore::Value("offline_mode"));
 
     status->set("fenceSysVars", shcore::Value(array));
@@ -294,7 +294,7 @@ shcore::Dictionary_t server_status(const topology::Server &server,
       size_t count = 0;
 
       // only show consistency status info if there's something wrong
-      if (!server.errant_transaction_count.is_null()) {
+      if (server.errant_transaction_count.has_value()) {
         count = *server.errant_transaction_count;
         txstatus = shcore::Value(count == 0 ? "OK" : "INCONSISTENT");
         if (count > 0) {

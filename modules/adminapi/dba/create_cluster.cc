@@ -74,12 +74,11 @@ Create_cluster::~Create_cluster() = default;
 void Create_cluster::validate_create_cluster_options() {
   auto console = mysqlsh::current_console();
 
-  if (!m_options.gr_options.auto_rejoin_tries.is_null() &&
+  if (m_options.gr_options.auto_rejoin_tries.has_value() &&
       *m_options.gr_options.auto_rejoin_tries != 0) {
-    std::string warn_msg =
+    console->print_warning(
         "The member will only proceed according to its exitStateAction if "
-        "auto-rejoin fails (i.e. all retry attempts are exhausted).";
-    console->print_warning(warn_msg);
+        "auto-rejoin fails (i.e. all retry attempts are exhausted).");
     console->print_info();
   }
 
@@ -87,7 +86,7 @@ void Create_cluster::validate_create_cluster_options() {
   TargetType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type == mysqlsh::dba::TargetType::GroupReplication) {
-    if (!m_options.adopt_from_gr && m_options.interactive()) {
+    if (!m_options.adopt_from_gr.has_value() && m_options.interactive()) {
       if (console->confirm(
               "You are connected to an instance that belongs to an unmanaged "
               "replication group.\nDo you want to setup an InnoDB Cluster "
@@ -126,17 +125,17 @@ void Create_cluster::validate_create_cluster_options() {
 
   // Using communicationStack and adoptFromGR and/or ipAllowlist/ipWhitelist at
   // the same time is forbidden
-  if (m_options.adopt_from_gr &&
-      !m_options.gr_options.communication_stack.is_null()) {
+  if (m_options.adopt_from_gr.value_or(false) &&
+      m_options.gr_options.communication_stack.has_value()) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Cannot use the '%s' option if '%s' is set "
                            "to true.",
                            kCommunicationStack, kAdoptFromGR));
   }
 
-  if (m_options.gr_options.communication_stack.get_safe() ==
+  if (m_options.gr_options.communication_stack.value_or("") ==
           kCommunicationStackMySQL &&
-      !m_options.gr_options.ip_allowlist.is_null()) {
+      m_options.gr_options.ip_allowlist.has_value()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Cannot use '%s' when setting the '%s' option to '%s'",
         m_options.gr_options.ip_allowlist_option_name.c_str(),
@@ -187,14 +186,10 @@ void Create_cluster::validate_create_cluster_options() {
 void Create_cluster::resolve_ssl_mode() {
   bool have_ssl;
   bool require_secure_transport =
-      m_target_instance->get_sysvar_bool("require_secure_transport").get_safe();
+      m_target_instance->get_sysvar_bool("require_secure_transport", false);
 
   auto resolved_ssl_mode = mysqlsh::dba::resolve_ssl_mode(
       *m_target_instance, m_options.gr_options.ssl_mode, &have_ssl);
-
-  if (resolved_ssl_mode.is_null()) {
-    throw std::logic_error("Unable to resolve SSL mode");
-  }
 
   if (have_ssl) {
     // sslMode is DISABLED but instance requires SSL
@@ -227,7 +222,7 @@ void Create_cluster::resolve_ssl_mode() {
     }
   }
 
-  m_options.gr_options.ssl_mode = resolved_ssl_mode.get_safe();
+  m_options.gr_options.ssl_mode = resolved_ssl_mode;
 
   log_info("SSL mode used to configure the cluster: '%s'",
            to_string(m_options.gr_options.ssl_mode).c_str());
@@ -275,15 +270,15 @@ void Create_cluster::prepare() {
   // instance is running 8.0.27+
   // NOTE: When adoptFromGR is used, we don't set the communication stack since
   // the one in use by the unmanaged GR group must be kept
-  if (m_options.gr_options.communication_stack.is_null() &&
-      !m_options.adopt_from_gr &&
+  if (!m_options.gr_options.communication_stack.has_value() &&
+      !m_options.adopt_from_gr.has_value() &&
       m_target_instance->get_version() >=
           k_mysql_communication_stack_initial_version) {
     m_options.gr_options.communication_stack = kCommunicationStackMySQL;
 
     // Verify if the allowlist is used when the communication stack is MySQL by
     // default
-    if (!m_options.gr_options.ip_allowlist.is_null()) {
+    if (m_options.gr_options.ip_allowlist.has_value()) {
       throw shcore::Exception::argument_error(shcore::str_format(
           "Cannot use '%s' when the '%s' is '%s'",
           m_options.gr_options.ip_allowlist_option_name.c_str(),
@@ -291,10 +286,10 @@ void Create_cluster::prepare() {
     }
 
     // Validate localAddress if the communication stack is MySQL by default
-    if (!m_options.gr_options.local_address.is_null()) {
+    if (m_options.gr_options.local_address.has_value()) {
       validate_local_address_option(
           *m_options.gr_options.local_address,
-          m_options.gr_options.communication_stack.get_safe(),
+          m_options.gr_options.communication_stack.value_or(""),
           m_target_instance->get_canonical_port());
     }
   }
@@ -324,7 +319,7 @@ void Create_cluster::prepare() {
 
   // Disable super_read_only mode if it is enabled.
   bool super_read_only =
-      m_target_instance->get_sysvar_bool("super_read_only").get_safe();
+      m_target_instance->get_sysvar_bool("super_read_only", false);
   if (super_read_only) {
     console->print_info("Disabling super_read_only mode on instance '" +
                         m_target_instance->descr() + "'.");
@@ -347,7 +342,7 @@ void Create_cluster::prepare() {
       // NOTE: In 8.0.16 the default value became READ_ONLY so we must not
       // change it
       auto instance_version = m_target_instance->get_version();
-      if (m_options.gr_options.exit_state_action.is_null() &&
+      if (!m_options.gr_options.exit_state_action.has_value() &&
           is_option_supported(instance_version, kExpelTimeout,
                               k_global_cluster_supported_options) &&
           instance_version < mysqlshdk::utils::Version("8.0.16")) {
@@ -387,7 +382,7 @@ void Create_cluster::prepare() {
       validate_local_address_ip_compatibility();
 
       // Generate the GR group name (if needed).
-      if (m_options.gr_options.group_name.is_null()) {
+      if (!m_options.gr_options.group_name.has_value()) {
         m_options.gr_options.group_name =
             mysqlshdk::gr::generate_uuid(*m_target_instance);
       }
@@ -452,52 +447,52 @@ void Create_cluster::log_used_gr_options() {
              to_string(m_options.gr_options.ssl_mode).c_str());
   }
 
-  if (!m_options.gr_options.group_name.is_null()) {
+  if (m_options.gr_options.group_name.has_value()) {
     log_info("Using Group Replication group name: %s",
              m_options.gr_options.group_name->c_str());
   }
 
-  if (!m_options.gr_options.local_address.is_null()) {
+  if (m_options.gr_options.local_address.has_value()) {
     log_info("Using Group Replication local address: %s",
              m_options.gr_options.local_address->c_str());
   }
 
-  if (!m_options.gr_options.group_seeds.is_null()) {
+  if (m_options.gr_options.group_seeds.has_value()) {
     log_info("Using Group Replication group seeds: %s",
              m_options.gr_options.group_seeds->c_str());
   }
 
-  if (!m_options.gr_options.exit_state_action.is_null()) {
+  if (m_options.gr_options.exit_state_action.has_value()) {
     log_info("Using Group Replication exit state action: %s",
              m_options.gr_options.exit_state_action->c_str());
   }
 
-  if (!m_options.gr_options.member_weight.is_null()) {
+  if (m_options.gr_options.member_weight.has_value()) {
     log_info("Using Group Replication member weight: %s",
              std::to_string(*m_options.gr_options.member_weight).c_str());
   }
 
-  if (!m_options.gr_options.consistency.is_null()) {
+  if (m_options.gr_options.consistency.has_value()) {
     log_info("Using Group Replication failover consistency: %s",
              m_options.gr_options.consistency->c_str());
   }
 
-  if (!m_options.gr_options.expel_timeout.is_null()) {
+  if (m_options.gr_options.expel_timeout.has_value()) {
     log_info("Using Group Replication expel timeout: %s",
              std::to_string(*m_options.gr_options.expel_timeout).c_str());
   }
 
-  if (!m_options.gr_options.auto_rejoin_tries.is_null()) {
+  if (m_options.gr_options.auto_rejoin_tries.has_value()) {
     log_info("Using Group Replication auto-rejoin tries: %s",
              std::to_string(*m_options.gr_options.auto_rejoin_tries).c_str());
   }
 
-  if (!m_options.gr_options.communication_stack.is_null()) {
+  if (m_options.gr_options.communication_stack.has_value()) {
     log_info("Using Group Replication Communication Stack: %s",
              m_options.gr_options.communication_stack->c_str());
   }
 
-  if (!m_options.gr_options.transaction_size_limit.is_null()) {
+  if (m_options.gr_options.transaction_size_limit.has_value()) {
     log_info(
         "Using Group Replication transaction size limit: %s",
         std::to_string(*m_options.gr_options.transaction_size_limit).c_str());
@@ -662,17 +657,17 @@ void Create_cluster::persist_sro_all(Cluster_impl *cluster) {
 
   auto config = cluster->create_config_object({}, false, true);
 
-  config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
+  config->set("super_read_only", std::optional<bool>(true));
 
   config->apply();
 }
 
 void Create_cluster::validate_local_address_ip_compatibility() const {
   // local_address must have some value
-  assert(!m_options.gr_options.local_address.is_null() &&
-         !m_options.gr_options.local_address.get_safe().empty());
+  assert(m_options.gr_options.local_address.has_value() &&
+         !m_options.gr_options.local_address->empty());
 
-  std::string local_address = m_options.gr_options.local_address.get_safe();
+  std::string local_address = m_options.gr_options.local_address.value_or("");
 
   // Validate that the group_replication_local_address is valid for the version
   // of the target instance.
@@ -751,7 +746,7 @@ shcore::Value Create_cluster::execute() {
 
   // Get the current value of group_replication_transaction_size_limit
   int64_t original_transaction_size_limit =
-      m_target_instance->get_sysvar_int(kGrTransactionSizeLimit).get_safe();
+      m_target_instance->get_sysvar_int(kGrTransactionSizeLimit).value_or(0);
   ;
 
   shcore::Scoped_callback_list undo_list;
@@ -783,7 +778,7 @@ shcore::Value Create_cluster::execute() {
       // When using the communicationStack 'MySQL' the recovery channel must be
       // set-up before starting GR because GR requires that the recovery channel
       // is configured in order to obtain the credentials information
-      if (m_options.gr_options.communication_stack.get_safe() ==
+      if (m_options.gr_options.communication_stack.value_or("") ==
           kCommunicationStackMySQL) {
         // Create the Recovery account and configure GR's recovery channel.
         // If creating a Replica Cluster, suppress the binary log otherwise
@@ -795,7 +790,7 @@ shcore::Value Create_cluster::execute() {
         // Check if super_read_only is enabled. If so it must be disabled to
         // create the account. This might happen if super_read_only is persisted
         // and we're creating a Replica Cluster
-        if (m_target_instance->get_sysvar_bool("super_read_only").get_safe()) {
+        if (m_target_instance->get_sysvar_bool("super_read_only", false)) {
           m_target_instance->set_sysvar("super_read_only", false);
         }
 
@@ -900,7 +895,7 @@ shcore::Value Create_cluster::execute() {
     // TODO(miguel): build and add the list of allowed operations
     metadata->update_cluster_capability(
         cluster_impl->get_id(), kCommunicationStack,
-        m_options.gr_options.communication_stack.get_safe(), {});
+        m_options.gr_options.communication_stack.value_or(""), {});
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_assume_gtid_set_complete,
@@ -909,7 +904,7 @@ shcore::Value Create_cluster::execute() {
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_manual_start_on_boot,
-        m_options.gr_options.manual_start_on_boot.get_safe(false)
+        m_options.gr_options.manual_start_on_boot.value_or(false)
             ? shcore::Value::True()
             : shcore::Value::False());
 
@@ -917,10 +912,10 @@ shcore::Value Create_cluster::execute() {
                                        k_cluster_attribute_default,
                                        shcore::Value::True());
 
-    if (!m_options.gr_options.view_change_uuid.is_null()) {
+    if (m_options.gr_options.view_change_uuid) {
       metadata->update_cluster_attribute(
           cluster_impl->get_id(), "group_replication_view_change_uuid",
-          shcore::Value(m_options.gr_options.view_change_uuid.get_safe()));
+          shcore::Value(m_options.gr_options.view_change_uuid.value_or("")));
     }
 
     // Store in the Metadata the value of
@@ -936,7 +931,7 @@ shcore::Value Create_cluster::execute() {
           cluster_impl->get_id(), k_cluster_attribute_transaction_size_limit,
           shcore::Value(
               m_target_instance->get_sysvar_int(kGrTransactionSizeLimit)
-                  .get_safe()));
+                  .value_or(0)));
     }
 
     // Insert instance into the metadata.
@@ -972,9 +967,9 @@ shcore::Value Create_cluster::execute() {
       // PRIMARY Cluster too (create_recovery_account will create it at the MD
       // server)
       if (m_create_replica_cluster ||
-          m_options.gr_options.communication_stack.is_null() ||
-          m_options.gr_options.communication_stack.get_safe() ==
-              kCommunicationStackXCom) {
+          !m_options.gr_options.communication_stack.has_value() ||
+          (m_options.gr_options.communication_stack.value() ==
+           kCommunicationStackXCom)) {
         std::string repl_account;
         create_recovery_account(m_target_instance.get(), cluster_impl.get(),
                                 &repl_account);
@@ -999,8 +994,7 @@ shcore::Value Create_cluster::execute() {
     // Handle the clone options
     {
       // If disableClone: true, uninstall the plugin and update the Metadata
-      if (!m_options.clone_options.disable_clone.is_null() &&
-          *m_options.clone_options.disable_clone) {
+      if (m_options.clone_options.disable_clone.value_or(false)) {
         mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
         cluster_impl->set_disable_clone_option(
             *m_options.clone_options.disable_clone);

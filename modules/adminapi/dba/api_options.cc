@@ -303,22 +303,22 @@ void Reboot_cluster_options::check_option_values(
   // Using switchCommunicationStack set to 'mysql' and ipAllowlist at the same
   // time is forbidden
   if (switch_communication_stack.value_or("") == kCommunicationStackMySQL &&
-      !gr_options.ip_allowlist.is_null()) {
+      gr_options.ip_allowlist.has_value()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Cannot use '%s' when setting the '%s' option to '%s'", kIpAllowlist,
         kSwitchCommunicationStack, kCommunicationStackMySQL));
   }
 
   if (!switch_communication_stack && comm_stack == kCommunicationStackMySQL &&
-      !gr_options.ip_allowlist.is_null()) {
+      gr_options.ip_allowlist.has_value()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Cannot use '%s' when the Cluster's communication stack is '%s'",
         gr_options.ip_allowlist_option_name.c_str(), kCommunicationStackMySQL));
   }
 
   // Validate the usage of the localAddress option
-  if (!gr_options.local_address.is_null()) {
-    validate_local_address_option(gr_options.local_address.get_safe(),
+  if (gr_options.local_address.has_value()) {
+    validate_local_address_option(gr_options.local_address.value_or(""),
                                   switch_communication_stack.value_or(""),
                                   canonical_port);
   }

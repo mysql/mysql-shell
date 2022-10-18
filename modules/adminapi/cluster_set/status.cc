@@ -203,9 +203,8 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
     *out_received_gtid_set =
         mysqlshdk::mysql::Gtid_set::from_received_transaction_set(
             *cluster_server, k_clusterset_async_channel_name);
-    *out_view_change_uuid =
-        cluster_server->get_sysvar_string("group_replication_view_change_uuid")
-            .get_safe();
+    *out_view_change_uuid = cluster_server->get_sysvar_string(
+        "group_replication_view_change_uuid", "");
   }
 
   if (add_repl_info && cluster->get_cluster_server()) {

@@ -705,8 +705,8 @@ bool Cluster_set_impl::check_gtid_consistency(Cluster_impl *cluster) const {
 
   auto my_gtid_set = mysqlshdk::mysql::Gtid_set::from_gtid_executed(
       *cluster->get_cluster_server());
-  auto my_view_change_uuid = *cluster->get_cluster_server()->get_sysvar_string(
-      "group_replication_view_change_uuid");
+  auto my_view_change_uuid = cluster->get_cluster_server()->get_sysvar_string(
+      "group_replication_view_change_uuid", "");
   auto my_received_gtid_set =
       mysqlshdk::mysql::Gtid_set::from_received_transaction_set(
           *cluster->get_cluster_server(), k_clusterset_async_channel_name);
@@ -1065,8 +1065,7 @@ void Cluster_set_impl::remove_cluster(
         auto config =
             target_cluster->create_config_object({}, true, true, true);
 
-        config->set("skip_replica_start",
-                    mysqlshdk::utils::nullable<bool>(false));
+        config->set("skip_replica_start", std::optional<bool>(false));
         config->apply();
 
         undo_list.push_front([=]() {
@@ -1074,8 +1073,7 @@ void Cluster_set_impl::remove_cluster(
           auto config_undo =
               target_cluster->create_config_object({}, true, true, true);
 
-          config_undo->set("skip_replica_start",
-                           mysqlshdk::utils::nullable<bool>(true));
+          config_undo->set("skip_replica_start", std::optional<bool>(true));
           config_undo->apply();
         });
 
@@ -1148,7 +1146,7 @@ void Cluster_set_impl::remove_cluster(
 
               change_replication_credentials(
                   *target_cluster->get_cluster_server(), repl_credentials.user,
-                  repl_credentials.password.get_safe(),
+                  repl_credentials.password.value_or(""),
                   k_clusterset_async_channel_name);
 
               start_channel(target_cluster->get_cluster_server().get(),
@@ -1300,7 +1298,7 @@ void Cluster_set_impl::remove_cluster(
         for (const auto &reachable_member : cluster_reachable_members) {
           // Check if super_read_only is enabled. If so it must be
           // disabled to reset the ClusterSet settings
-          if (reachable_member->get_sysvar_bool("super_read_only").get_safe()) {
+          if (reachable_member->get_sysvar_bool("super_read_only", false)) {
             reachable_member->set_sysvar("super_read_only", false);
           }
 
@@ -1590,7 +1588,7 @@ void Cluster_set_impl::ensure_replica_settings(Cluster_impl *replica,
       replica->get_cluster_server()->get_connection_options(), {},
       [dry_run](const std::shared_ptr<Instance> &instance,
                 const mysqlshdk::gr::Member &) {
-        if (!instance->get_sysvar_bool("super_read_only").get_safe()) {
+        if (!instance->get_sysvar_bool("super_read_only", false)) {
           log_info("Enabling super_read_only at '%s'",
                    instance->descr().c_str());
           if (!dry_run) {
@@ -1927,7 +1925,7 @@ void Cluster_set_impl::restore_transaction_size_limit(Cluster_impl *replica,
   int64_t current_transaction_size_limit =
       replica->get_cluster_server()
           ->get_sysvar_int(kGrTransactionSizeLimit)
-          .get_safe();
+          .value_or(0);
 
   // Get the transaction_size_limit value from the metadata
   if (get_metadata_storage()->query_cluster_attribute(
@@ -1952,9 +1950,8 @@ void Cluster_set_impl::restore_transaction_size_limit(Cluster_impl *replica,
       std::unique_ptr<mysqlshdk::config::Config> config =
           replica->create_config_object({}, false, false, true, true);
 
-      config->set(
-          kGrTransactionSizeLimit,
-          mysqlshdk::utils::nullable<std::int64_t>(transaction_size_limit));
+      config->set(kGrTransactionSizeLimit,
+                  std::optional<std::int64_t>(transaction_size_limit));
 
       config->apply();
     }
@@ -1998,9 +1995,7 @@ void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *replica,
     std::unique_ptr<mysqlshdk::config::Config> config =
         replica->create_config_object({}, false, false, true);
 
-    config->set(
-        kGrTransactionSizeLimit,
-        mysqlshdk::utils::nullable<std::int64_t>(static_cast<int64_t>(0)));
+    config->set(kGrTransactionSizeLimit, std::optional<std::int64_t>(0));
 
     config->apply();
   }
@@ -2281,8 +2276,8 @@ void Cluster_set_impl::reconcile_view_change_gtids(
   Gtid_set gtid_set = missing_view_gtids;
   if (gtid_set.empty()) {
     Gtid_set primary_gtid_set = Gtid_set::from_gtid_executed(*primary);
-    std::string view_change_uuid =
-        *replica->get_sysvar_string("group_replication_view_change_uuid");
+    auto view_change_uuid =
+        replica->get_sysvar_string("group_replication_view_change_uuid", "");
 
     gtid_set =
         Gtid_set::from_gtid_executed(*replica).get_gtids_from(view_change_uuid);
@@ -2449,9 +2444,17 @@ void Cluster_set_impl::check_gtid_set_most_recent(
         auto gtid_set =
             mysqlshdk::mysql::Gtid_set::from_gtid_executed(*instance);
 
-        std::string uuid =
-            instance->get_sysvar_string("group_replication_view_change_uuid")
-                .get_safe();
+        /*
+        NOTE: this is not the correct way to handle this: if the query returns
+        std::nullopt, then it will convert to an empty string: this compromises
+        the execution of the command. Although this error is very very rare (and
+        implies much bigger underlying issues), it should be treated as such
+        (maybe raise an exception) so that it can be handled properly. That,
+        however, means that logic to deal with the exception must be created
+        further up the stack.
+        */
+        auto uuid = instance->get_sysvar_string(
+            "group_replication_view_change_uuid", "");
 
         auto view_changes = gtid_set.get_gtids_from(uuid);
         if (out_view_changes) *out_view_changes = view_changes;

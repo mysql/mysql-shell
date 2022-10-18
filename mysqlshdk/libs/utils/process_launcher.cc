@@ -691,7 +691,7 @@ void Process::close() {
 
   if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH) report_error(NULL);
   if (errno != ESRCH) {
-    sleep(1);
+    ::sleep(1);
     if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH) report_error(NULL);
   }
 }

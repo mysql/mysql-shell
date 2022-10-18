@@ -220,7 +220,7 @@ int Instance::ensure_lock_service_udfs_installed(bool skip_fail_install_warn) {
       // Check if instance is read-only otherwise it will fail to install
       // the locking UDFs (e.g., it might happen for clusters created with an
       // older MySQL Shell version).
-      bool super_read_only = *get_sysvar_bool("super_read_only");
+      bool super_read_only = get_sysvar_bool("super_read_only", false);
       if (super_read_only) {
         // Temporarly disable super_read_only to install UDFs.
         set_sysvar("super_read_only", false,

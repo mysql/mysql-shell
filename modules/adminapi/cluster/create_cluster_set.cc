@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -108,10 +108,8 @@ void Create_cluster_set::check_gr_configuration() {
   auto console = mysqlsh::current_console();
 
   // Check if group_replication_view_change_uuid is set on the cluster
-  std::string view_change_uuid =
-      m_cluster->get_primary_master()
-          ->get_sysvar_string("group_replication_view_change_uuid")
-          .get_safe();
+  auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
+      "group_replication_view_change_uuid", "");
 
   if (view_change_uuid == "AUTOMATIC") {
     console->print_error(
@@ -140,17 +138,12 @@ void Create_cluster_set::check_gr_configuration() {
 void Create_cluster_set::resolve_ssl_mode() {
   bool have_ssl;
   bool require_secure_transport =
-      m_cluster->get_cluster_server()
-          ->get_sysvar_bool("require_secure_transport")
-          .get_safe();
+      m_cluster->get_cluster_server()->get_sysvar_bool(
+          "require_secure_transport", false);
 
   // Resolve the Replication Channel SSL Mode
   auto resolved_ssl_mode = mysqlsh::dba::resolve_ssl_mode(
       *m_cluster->get_cluster_server(), m_options.ssl_mode, &have_ssl);
-
-  if (resolved_ssl_mode.is_null()) {
-    throw std::logic_error("Unable to resolve SSL mode");
-  }
 
   if (have_ssl) {
     // sslMode is DISABLED but instance requires SSL
@@ -182,7 +175,7 @@ void Create_cluster_set::resolve_ssl_mode() {
     }
   }
 
-  m_options.ssl_mode = resolved_ssl_mode.get_safe();
+  m_options.ssl_mode = resolved_ssl_mode;
 
   log_info(
       "SSL mode used to configure the ClusterSet replication channels: '%s'",
@@ -279,9 +272,8 @@ void Create_cluster_set::prepare() {
   resolve_ssl_mode();
 
   // Disable super_read_only mode if it is enabled.
-  bool super_read_only = m_cluster->get_primary_master()
-                             ->get_sysvar_bool("super_read_only")
-                             .get_safe();
+  auto super_read_only = m_cluster->get_primary_master()->get_sysvar_bool(
+      "super_read_only", false);
   if (super_read_only) {
     log_info("Disabling super_read_only mode on instance '%s'.",
              m_cluster->get_primary_master()->descr().c_str());
@@ -320,14 +312,13 @@ shcore::Value Create_cluster_set::execute() {
 
       config = m_cluster->create_config_object({}, false, true);
 
-      config->set("skip_replica_start", mysqlshdk::utils::nullable<bool>(true));
+      config->set("skip_replica_start", std::optional<bool>{true});
 
       config->apply();
 
       undo_list.push_front([&config]() {
         log_info("Revert: Clearing skip_replica_start");
-        config->set("skip_replica_start",
-                    mysqlshdk::utils::nullable<bool>(false));
+        config->set("skip_replica_start", std::optional<bool>{false});
         config->apply();
       });
 

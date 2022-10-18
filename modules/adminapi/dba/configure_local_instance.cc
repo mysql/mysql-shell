@@ -127,8 +127,7 @@ shcore::Value Configure_local_instance::execute() {
     console->print_info("Persisting the cluster settings...");
 
     // make sure super_read_only=1 is persisted to disk
-    m_cfg->set_for_handler("super_read_only",
-                           mysqlshdk::utils::nullable<bool>(true),
+    m_cfg->set_for_handler("super_read_only", std::optional<bool>(true),
                            mysqlshdk::config::k_dft_cfg_file_handler);
 
     mysqlsh::dba::persist_gr_configurations(*m_target_instance, m_cfg.get());

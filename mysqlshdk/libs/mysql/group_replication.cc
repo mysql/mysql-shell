@@ -599,15 +599,15 @@ bool uninstall_group_replication_plugin(
  * @return A map with all the current GR configurations (variables) and their
  *         respective values.
  */
-std::map<std::string, utils::nullable<std::string>> get_all_configurations(
+std::map<std::string, std::optional<std::string>> get_all_configurations(
     const mysqlshdk::mysql::IInstance &instance) {
   // Get all GR system variables.
-  std::map<std::string, utils::nullable<std::string>> gr_vars =
+  std::map<std::string, std::optional<std::string>> gr_vars =
       instance.get_system_variables_like(
           "group_replication_%", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
   // Get all auto_increment variables.
-  std::map<std::string, utils::nullable<std::string>> auto_inc_vars =
+  std::map<std::string, std::optional<std::string>> auto_inc_vars =
       instance.get_system_variables_like(
           "auto_increment_%", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
@@ -701,8 +701,8 @@ mysql::User_privileges_result check_replication_user(
 mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
-    const mysqlshdk::utils::nullable<std::string> &password,
-    bool clone_supported, bool auto_failover, bool mysql_comm_stack_supported) {
+    const std::optional<std::string> &password, bool clone_supported,
+    bool auto_failover, bool mysql_comm_stack_supported) {
   mysqlshdk::mysql::Auth_options creds;
   assert(!hosts.empty());
   assert(!username.empty());
@@ -737,7 +737,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     // Accounts are created at the primary replica regardless of who will use
     // them, since they'll get replicated everywhere.
 
-    if (password.is_null()) {
+    if (!password.has_value()) {
       std::string repl_password;
       for (auto &hostname : hosts) {
         log_debug(
@@ -757,10 +757,10 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
             creds.user.c_str(), hostname.c_str(), primary.descr().c_str());
       }
       // re-create replication with a given password
-      mysqlshdk::mysql::create_user_with_password(
-          primary, creds.user, hosts, grants, password.get_safe(), true);
+      mysqlshdk::mysql::create_user_with_password(primary, creds.user, hosts,
+                                                  grants, *password, true);
 
-      creds.password = password.get_safe();
+      creds.password = *password;
     }
     creds.ssl_options = primary.get_connection_options().get_ssl_options();
   } catch (std::exception &e) {
@@ -870,8 +870,8 @@ void update_auto_increment(mysqlshdk::config::Config *config,
     // Set auto-increment for single-primary topology:
     // - auto_increment_increment = 1
     // - auto_increment_offset = 2
-    config->set("auto_increment_increment", utils::nullable<int64_t>{1});
-    config->set("auto_increment_offset", utils::nullable<int64_t>{2});
+    config->set("auto_increment_increment", std::optional<int64_t>{1});
+    config->set("auto_increment_offset", std::optional<int64_t>{2});
   } else if (topology_mode == Topology_mode::MULTI_PRIMARY) {
     // Set auto-increment for multi-primary topology:
     // - auto_increment_increment = n;
@@ -884,16 +884,15 @@ void update_auto_increment(mysqlshdk::config::Config *config,
       size = handler_names.size();
     }
     int64_t n = (size > 7) ? size : 7;
-    config->set("auto_increment_increment", utils::nullable<int64_t>{n});
+    config->set("auto_increment_increment", std::optional<int64_t>{n});
 
     // Each instance has a different server_id therefore each handler is set
     // individually here.
     for (std::string handler_name : handler_names) {
-      mysqlshdk::utils::nullable<int64_t> server_id =
-          config->get_int("server_id", handler_name);
-      int64_t offset = 1 + *server_id % n;
+      auto server_id = config->get_int("server_id", handler_name);
+      int64_t offset = 1 + (*server_id) % n;
       config->set_for_handler("auto_increment_offset",
-                              utils::nullable<int64_t>{offset}, handler_name);
+                              std::optional<int64_t>{offset}, handler_name);
     }
   }
 }
@@ -1003,32 +1002,29 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
 void check_instance_check_installed_schema_version(
     const mysqlshdk::mysql::IInstance &instance,
     mysqlshdk::utils::Version lowest_cluster_version) {
-  mysqlshdk::utils::nullable<bool> gr_allow_lower_version_join =
-      instance.get_sysvar_bool(
-          "group_replication_allow_local_lower_version_join");
+  auto gr_allow_lower_version_join = instance.get_sysvar_bool(
+      "group_replication_allow_local_lower_version_join", false);
 
   // If gr_allow_lower_version_join is NULL then it means the variable is not
   // available, e.g., if the GR plugin is not installed which happens by default
   // on 5.7 servers. In that case, we apply the expected behaviour for the
   // default variable value (false).
-  if (gr_allow_lower_version_join.is_null() || !*gr_allow_lower_version_join) {
-    mysqlshdk::utils::Version version = instance.get_version();
+  if (gr_allow_lower_version_join) return;
 
-    if (version <= mysqlshdk::utils::Version(8, 0, 16)) {
-      if (version.get_major() < lowest_cluster_version.get_major()) {
-        throw std::runtime_error(
-            "Instance major version '" + std::to_string(version.get_major()) +
-            "' cannot be lower than the cluster lowest major version '" +
-            std::to_string(lowest_cluster_version.get_major()) + "'.");
-      }
-    } else {
-      if (version < lowest_cluster_version) {
-        throw std::runtime_error(
-            "Instance version '" + version.get_base() +
-            "' cannot be lower than the cluster lowest version '" +
-            lowest_cluster_version.get_base() + "'.");
-      }
+  mysqlshdk::utils::Version version = instance.get_version();
+
+  if (version <= mysqlshdk::utils::Version(8, 0, 16)) {
+    if (version.get_major() < lowest_cluster_version.get_major()) {
+      throw std::runtime_error(
+          "Instance major version '" + std::to_string(version.get_major()) +
+          "' cannot be lower than the cluster lowest major version '" +
+          std::to_string(lowest_cluster_version.get_major()) + "'.");
     }
+  } else if (version < lowest_cluster_version) {
+    throw std::runtime_error(
+        "Instance version '" + version.get_base() +
+        "' cannot be lower than the cluster lowest version '" +
+        lowest_cluster_version.get_base() + "'.");
   }
 }
 
@@ -1183,7 +1179,7 @@ void execute_member_action_udf(const mysqlshdk::mysql::IInstance &instance,
   // Get the value of super_read_only to disable it if enabled.
   // Changing a GR member action configuration is only possible with
   // super_read_only disabled.
-  bool super_read_only = instance.get_sysvar_bool("super_read_only").get_safe();
+  bool super_read_only = instance.get_sysvar_bool("super_read_only", false);
 
   if (super_read_only) {
     log_info(

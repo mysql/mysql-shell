@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,7 @@ class Clone_test : public tests::Shell_base_test {
 TEST_F(Clone_test, plugin_installation) {
   using mysqlshdk::db::Type;
 
-  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  auto mock_session = std::make_shared<Mock_session>();
   mysqlshdk::mysql::Instance instance{mock_session};
 
   // TEST: Clone plugin already installed.
@@ -50,14 +50,6 @@ TEST_F(Clone_test, plugin_installation) {
             "SELECT plugin_status FROM information_schema.plugins WHERE "
             "plugin_name = 'clone'")
         .then_return({{"", {"plugin_status"}, {Type::String}, {{"ACTIVE"}}}});
-    mock_session
-        ->expect_query(
-            "show GLOBAL variables where `variable_name` in"
-            " ('super_read_only')")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String, Type::String},
-                       {{"super_read_only", "OFF"}}}});
 
     bool res = mysqlshdk::mysql::install_clone_plugin(instance, nullptr);
     EXPECT_FALSE(res);

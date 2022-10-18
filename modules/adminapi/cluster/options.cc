@@ -181,18 +181,15 @@ shcore::Array_t Options::get_instance_options(
   // listed with the null value, as expected.
   for (const auto &cfg : k_instance_options) {
     shcore::Dictionary_t option = shcore::make_dict();
-    mysqlshdk::utils::nullable<std::string> value = instance.get_sysvar_string(
+    auto value = instance.get_sysvar_string(
         cfg.second, mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
     (*option)["option"] = shcore::Value(cfg.first);
     (*option)["variable"] = shcore::Value(cfg.second);
 
     // Check if the option exists in the target server
-    if (!value.is_null()) {
-      (*option)["value"] = shcore::Value(*value);
-    } else {
-      (*option)["value"] = shcore::Value::Null();
-    }
+    (*option)["value"] =
+        value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
 
     array->push_back(shcore::Value(option));
   }
@@ -202,31 +199,24 @@ shcore::Array_t Options::get_instance_options(
   if (m_all) {
     auto option_supported_by_adminapi = [](const std::string &cfg) {
       for (const auto &it : k_instance_options) {
-        if (it.second == cfg) {
-          return true;
-        }
+        if (it.second == cfg) return true;
       }
       return false;
     };
 
     log_debug("Get all group replication configurations.");
-    std::map<std::string, mysqlshdk::utils::nullable<std::string>> gr_cfgs =
+    std::map<std::string, std::optional<std::string>> gr_cfgs =
         mysqlshdk::gr::get_all_configurations(instance);
 
-    for (const auto &cfg : gr_cfgs) {
-      shcore::Dictionary_t option = shcore::make_dict();
-
+    for (const auto &[name, value] : gr_cfgs) {
       // If the option is part of the list of supported options by the AdminAPI,
       // skip it as it was already retrieved before
-      if (option_supported_by_adminapi(cfg.first)) {
-        continue;
-      }
+      if (option_supported_by_adminapi(name)) continue;
 
-      (*option)["variable"] = shcore::Value(cfg.first);
+      shcore::Dictionary_t option = shcore::make_dict();
 
-      if (!cfg.second.is_null()) {
-        (*option)["value"] = shcore::Value(*cfg.second);
-      }
+      (*option)["variable"] = shcore::Value(name);
+      if (value) (*option)["value"] = shcore::Value(*value);
 
       array->push_back(shcore::Value(option));
     }
@@ -236,15 +226,13 @@ shcore::Array_t Options::get_instance_options(
   auto parallel_applier_options_values =
       parallel_applier_options.get_current_settings(instance.get_version());
 
-  for (const auto &cfg : parallel_applier_options_values) {
+  for (const auto &[name, value] : parallel_applier_options_values) {
     shcore::Dictionary_t option = shcore::make_dict();
-    (*option)["variable"] = shcore::Value(cfg.first);
+    (*option)["variable"] = shcore::Value(name);
     // Check if the option exists in the target server
-    if (!cfg.second.is_null()) {
-      (*option)["value"] = shcore::Value(cfg.second.get_safe());
-    } else {
-      (*option)["value"] = shcore::Value::Null();
-    }
+    (*option)["value"] =
+        value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
+
     array->push_back(shcore::Value(option));
   }
 

@@ -25,10 +25,12 @@
 #define MODULES_UTIL_LOAD_LOAD_DUMP_OPTIONS_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
+
 #include "modules/mod_utils.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -197,7 +199,7 @@ class Load_dump_options {
   }
 
   bool auto_create_pks_supported() const {
-    return !m_sql_generate_invisible_primary_key.is_null();
+    return m_sql_generate_invisible_primary_key.has_value();
   }
 
   bool sql_generate_invisible_primary_key() const;
@@ -299,7 +301,7 @@ class Load_dump_options {
   bool m_is_mds = false;
   bool m_show_metadata = false;
   mysqlshdk::null_bool m_create_invisible_pks;
-  mysqlshdk::null_bool m_sql_generate_invisible_primary_key;
+  std::optional<bool> m_sql_generate_invisible_primary_key;
 
   mysqlshdk::utils::nullable<uint64_t> m_max_bytes_per_transaction;
 

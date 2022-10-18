@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,6 @@
 
 #include "my_config.h"
 #include "mysqlshdk/libs/config/config_file.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -35,7 +34,7 @@
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 using mysqlshdk::config::Config_file;
-using mysqlshdk::utils::nullable;
+using std::optional;
 extern "C" const char *g_test_home;
 
 namespace testing {
@@ -62,7 +61,8 @@ class ConfigFileTest : public tests::Shell_base_test {
  * @param cfg Config_file object to check.
  */
 void check_config_file_data(
-    const std::map<std::string, std::map<std::string, nullable<std::string>>>
+    const std::map<std::string,
+                   std::map<std::string, std::optional<std::string>>>
         &expected_data,
     const Config_file &cfg) {
   // Make sure the number of groups is the same, i.e. that there are no
@@ -75,11 +75,11 @@ void check_config_file_data(
     EXPECT_EQ(cfg.options(grp).size(), grp_pair.second.size());
     for (const auto &opt_pair : grp_pair.second) {
       std::string opt = opt_pair.first;
-      nullable<std::string> expected_val = opt_pair.second;
-      nullable<std::string> value = cfg.get(grp, opt);
+      std::optional<std::string> expected_val = opt_pair.second;
+      std::optional<std::string> value = cfg.get(grp, opt);
       std::string str_expected_val =
-          expected_val.is_null() ? "NULL" : "'" + (*expected_val) + "'";
-      std::string str_value = value.is_null() ? "NULL" : "'" + (*value) + "'";
+          !expected_val ? "NULL" : "'" + (*expected_val) + "'";
+      std::string str_value = !value ? "NULL" : "'" + (*value) + "'";
       // Verify that the value for each option in all groups matches what is
       // expected.
       EXPECT_EQ(expected_val, value)
@@ -96,73 +96,88 @@ TEST_F(ConfigFileTest, test_read) {
   Config_file cfg = Config_file();
   std::string cfg_path =
       shcore::path::join_path(m_option_files_basedir, "my.cnf");
-  std::map<std::string, std::map<std::string, nullable<std::string>>> data = {
-      {"default",
-       {{"password", nullable<std::string>("54321")},
-        {"repeated_value", nullable<std::string>("what")}}},
-      {"client",
-       {{"password", nullable<std::string>("12345")},
-        {"port", nullable<std::string>("1000")},
-        {"socket", nullable<std::string>("/var/run/mysqld/mysqld.sock")},
-        {"ssl-ca", nullable<std::string>("dummyCA")},
-        {"ssl-cert", nullable<std::string>("dummyCert")},
-        {"ssl-key", nullable<std::string>("dummyKey")},
-        {"ssl-cipher", nullable<std::string>("AES256-SHA:CAMELLIA256-SHA")},
-        {"CaseSensitiveOptions", nullable<std::string>("Yes")},
-        {"option_to_delete_with_value", nullable<std::string>("20")},
-        {"option_to_delete_without_value", nullable<std::string>()}}},
-      {"mysqld_safe",
-       {{"socket", nullable<std::string>("/var/run/mysqld/mysqld1.sock")},
-        {"nice", nullable<std::string>("0")},
-        {"valid_v1", nullable<std::string>("include comment ( #) symbol")},
-        {"valid_v2", nullable<std::string>("include comment ( #) symbol")}}},
-      {"mysqld",
-       {{"option_to_delete_with_value", nullable<std::string>("20")},
-        {"option_to_delete_without_value", nullable<std::string>()},
-        {"master-info-repository", nullable<std::string>("FILE")},
-        {"user", nullable<std::string>("mysql")},
-        {"pid-file", nullable<std::string>("/var/run/mysqld/mysqld.pid")},
-        {"socket", nullable<std::string>("/var/run/mysqld/mysqld2.sock")},
-        {"port", nullable<std::string>("1001")},
-        {"basedir", nullable<std::string>("/usr")},
-        {"datadir", nullable<std::string>("/var/lib/mysql")},
-        {"tmpdir", nullable<std::string>("/tmp")},
-        {"to_override", nullable<std::string>()},
-        {"to_override_with_value", nullable<std::string>("old_val")},
-        {"no_comment_no_value", nullable<std::string>()},
-        {"lc-messages-dir", nullable<std::string>("/usr/share/mysql")},
-        {"skip-external-locking", nullable<std::string>()},
-        {"binlog", nullable<std::string>("True")},
-        {"multivalue", nullable<std::string>("Noooooooooooooooo")},
-        {"semi-colon", nullable<std::string>(";")},
-        {"bind-address", nullable<std::string>("127.0.0.1")},
-        {"log_error", nullable<std::string>("/var/log/mysql/error.log")}}},
-      {"delete_section",
-       {{"option_to_drop_with_no_value", nullable<std::string>()},
-        {"option_to_drop_with_value", nullable<std::string>("value")},
-        {"option_to_drop_with_value2", nullable<std::string>("value")}}},
-      {"escape_sequences",
-       {{"backspace", nullable<std::string>("\b")},
-        {"tab", nullable<std::string>("\t")},
-        {"newline", nullable<std::string>("\n")},
-        {"carriage-return", nullable<std::string>("\r")},
-        {"backslash", nullable<std::string>("\\")},
-        {"space", nullable<std::string>(" ")},
-        {"not_esc_seq_char", nullable<std::string>("\\S")}}},
-      {"path_options",
-       {{"win_path_no_esc_seq_char1",
-         nullable<std::string>("C:\\Program Files\\MySQL\\MySQL Server 5.7")},
-        {"win_path_no_esc_seq_char2",
-         nullable<std::string>("C:\\Program Files\\MySQL\\MySQL Server 5.7")},
-        {"win_path_esc_seq_char",
-         nullable<std::string>("C:\\Program Files\\MySQL\\MySQL Server 5.7")},
-        {"win_path_with_posix_sep",
-         nullable<std::string>("C:/Program Files/MySQL/MySQL Server 5.7")}}},
-      {"empty section", {}},
-      {"delete_section2",
-       {{"option_to_drop_with_no_value", nullable<std::string>()},
-        {"option_to_drop_with_value", nullable<std::string>("value")},
-        {"option_to_drop_with_value2", nullable<std::string>("value")}}}};
+  std::map<std::string, std::map<std::string, std::optional<std::string>>>
+      data = {
+          {"default",
+           {{"password", std::optional<std::string>("54321")},
+            {"repeated_value", std::optional<std::string>("what")}}},
+          {"client",
+           {{"password", std::optional<std::string>("12345")},
+            {"port", std::optional<std::string>("1000")},
+            {"socket",
+             std::optional<std::string>("/var/run/mysqld/mysqld.sock")},
+            {"ssl-ca", std::optional<std::string>("dummyCA")},
+            {"ssl-cert", std::optional<std::string>("dummyCert")},
+            {"ssl-key", std::optional<std::string>("dummyKey")},
+            {"ssl-cipher",
+             std::optional<std::string>("AES256-SHA:CAMELLIA256-SHA")},
+            {"CaseSensitiveOptions", std::optional<std::string>("Yes")},
+            {"option_to_delete_with_value", std::optional<std::string>("20")},
+            {"option_to_delete_without_value", std::optional<std::string>()}}},
+          {"mysqld_safe",
+           {{"socket",
+             std::optional<std::string>("/var/run/mysqld/mysqld1.sock")},
+            {"nice", std::optional<std::string>("0")},
+            {"valid_v1",
+             std::optional<std::string>("include comment ( #) symbol")},
+            {"valid_v2",
+             std::optional<std::string>("include comment ( #) symbol")}}},
+          {"mysqld",
+           {{"option_to_delete_with_value", std::optional<std::string>("20")},
+            {"option_to_delete_without_value", std::optional<std::string>()},
+            {"master-info-repository", std::optional<std::string>("FILE")},
+            {"user", std::optional<std::string>("mysql")},
+            {"pid-file",
+             std::optional<std::string>("/var/run/mysqld/mysqld.pid")},
+            {"socket",
+             std::optional<std::string>("/var/run/mysqld/mysqld2.sock")},
+            {"port", std::optional<std::string>("1001")},
+            {"basedir", std::optional<std::string>("/usr")},
+            {"datadir", std::optional<std::string>("/var/lib/mysql")},
+            {"tmpdir", std::optional<std::string>("/tmp")},
+            {"to_override", std::optional<std::string>()},
+            {"to_override_with_value", std::optional<std::string>("old_val")},
+            {"no_comment_no_value", std::optional<std::string>()},
+            {"lc-messages-dir", std::optional<std::string>("/usr/share/mysql")},
+            {"skip-external-locking", std::optional<std::string>()},
+            {"binlog", std::optional<std::string>("True")},
+            {"multivalue", std::optional<std::string>("Noooooooooooooooo")},
+            {"semi-colon", std::optional<std::string>(";")},
+            {"bind-address", std::optional<std::string>("127.0.0.1")},
+            {"log_error",
+             std::optional<std::string>("/var/log/mysql/error.log")}}},
+          {"delete_section",
+           {{"option_to_drop_with_no_value", std::optional<std::string>()},
+            {"option_to_drop_with_value", std::optional<std::string>("value")},
+            {"option_to_drop_with_value2",
+             std::optional<std::string>("value")}}},
+          {"escape_sequences",
+           {{"backspace", std::optional<std::string>("\b")},
+            {"tab", std::optional<std::string>("\t")},
+            {"newline", std::optional<std::string>("\n")},
+            {"carriage-return", std::optional<std::string>("\r")},
+            {"backslash", std::optional<std::string>("\\")},
+            {"space", std::optional<std::string>(" ")},
+            {"not_esc_seq_char", std::optional<std::string>("\\S")}}},
+          {"path_options",
+           {{"win_path_no_esc_seq_char1",
+             std::optional<std::string>(
+                 "C:\\Program Files\\MySQL\\MySQL Server 5.7")},
+            {"win_path_no_esc_seq_char2",
+             std::optional<std::string>(
+                 "C:\\Program Files\\MySQL\\MySQL Server 5.7")},
+            {"win_path_esc_seq_char",
+             std::optional<std::string>(
+                 "C:\\Program Files\\MySQL\\MySQL Server 5.7")},
+            {"win_path_with_posix_sep",
+             std::optional<std::string>(
+                 "C:/Program Files/MySQL/MySQL Server 5.7")}}},
+          {"empty section", {}},
+          {"delete_section2",
+           {{"option_to_drop_with_no_value", std::optional<std::string>()},
+            {"option_to_drop_with_value", std::optional<std::string>("value")},
+            {"option_to_drop_with_value2",
+             std::optional<std::string>("value")}}}};
   {
     SCOPED_TRACE("Test read of file: my.cnf");
     cfg.read(cfg_path);
@@ -202,8 +217,8 @@ TEST_F(ConfigFileTest, test_read) {
                                        "my_duplicated_grp.cnf");
     cfg.read(cfg_path);
     data = {{"client",
-             {{"password", nullable<std::string>("0000")},
-              {"port", nullable<std::string>("1000")}}}};
+             {{"password", std::optional<std::string>("0000")},
+              {"port", std::optional<std::string>("1000")}}}};
     check_config_file_data(data, cfg);
   }
   {
@@ -213,17 +228,17 @@ TEST_F(ConfigFileTest, test_read) {
         shcore::path::join_path(m_option_files_basedir, "my_include.cnf");
     cfg.read(cfg_path);
     data = {{"group1",
-             {{"option1", nullable<std::string>("153")},
-              {"option2", nullable<std::string>("20")}}},
+             {{"option1", std::optional<std::string>("153")},
+              {"option2", std::optional<std::string>("20")}}},
             {"group2",
-             {{"option11", nullable<std::string>("11")},
-              {"option1", nullable<std::string>("203")},
-              {"option2", nullable<std::string>("303")},
-              {"option22", nullable<std::string>("22")}}},
-            {"group3", {{"option3", nullable<std::string>("33")}}},
-            {"group4", {{"option3", nullable<std::string>("200")}}},
-            {"mysql", {{"user", nullable<std::string>("myuser")}}},
-            {"client", {{"user", nullable<std::string>("spam")}}}};
+             {{"option11", std::optional<std::string>("11")},
+              {"option1", std::optional<std::string>("203")},
+              {"option2", std::optional<std::string>("303")},
+              {"option22", std::optional<std::string>("22")}}},
+            {"group3", {{"option3", std::optional<std::string>("33")}}},
+            {"group4", {{"option3", std::optional<std::string>("200")}}},
+            {"mysql", {{"user", std::optional<std::string>("myuser")}}},
+            {"client", {{"user", std::optional<std::string>("spam")}}}};
     check_config_file_data(data, cfg);
   }
   {
@@ -233,18 +248,18 @@ TEST_F(ConfigFileTest, test_read) {
         shcore::path::join_path(m_option_files_basedir, "my_include_all.cnf");
     cfg.read(cfg_path);
     data = {{"group1",
-             {{"option1", nullable<std::string>("15")},
-              {"option2", nullable<std::string>("20")},
-              {"option3", nullable<std::string>("0")}}},
+             {{"option1", std::optional<std::string>("15")},
+              {"option2", std::optional<std::string>("20")},
+              {"option3", std::optional<std::string>("0")}}},
             {"group2",
-             {{"option1", nullable<std::string>("20")},
-              {"option2", nullable<std::string>("30")},
-              {"option3", nullable<std::string>("3")},
-              {"option22", nullable<std::string>("22")}}},
-            {"group3", {{"option3", nullable<std::string>("3")}}},
-            {"group4", {{"option3", nullable<std::string>("200")}}},
-            {"mysql", {{"user", nullable<std::string>("dam")}}},
-            {"client", {{"user", nullable<std::string>("spam")}}}};
+             {{"option1", std::optional<std::string>("20")},
+              {"option2", std::optional<std::string>("30")},
+              {"option3", std::optional<std::string>("3")},
+              {"option22", std::optional<std::string>("22")}}},
+            {"group3", {{"option3", std::optional<std::string>("3")}}},
+            {"group4", {{"option3", std::optional<std::string>("200")}}},
+            {"mysql", {{"user", std::optional<std::string>("dam")}}},
+            {"client", {{"user", std::optional<std::string>("spam")}}}};
     check_config_file_data(data, cfg);
   }
   {
@@ -254,13 +269,13 @@ TEST_F(ConfigFileTest, test_read) {
         shcore::path::join_path(m_option_files_basedir, "my_include_loopA.cnf");
     cfg.read(cfg_path);
     data = {{"group1",
-             {{"option1", nullable<std::string>("11")},
-              {"option2", nullable<std::string>("13")}}},
+             {{"option1", std::optional<std::string>("11")},
+              {"option2", std::optional<std::string>("13")}}},
             {"group2",
-             {{"option1", nullable<std::string>("21")},
-              {"option2", nullable<std::string>("22")}}},
-            {"group4", {{"option3", nullable<std::string>("200")}}},
-            {"mysql", {{"user", nullable<std::string>("myuserB")}}}};
+             {{"option1", std::optional<std::string>("21")},
+              {"option2", std::optional<std::string>("22")}}},
+            {"group4", {{"option3", std::optional<std::string>("200")}}},
+            {"mysql", {{"user", std::optional<std::string>("myuserB")}}}};
     check_config_file_data(data, cfg);
   }
   {
@@ -383,7 +398,7 @@ TEST_F(ConfigFileTest, test_write) {
 
     Config_file cfg = Config_file();
     cfg.add_group("mysqld");
-    cfg.set("mysqld", "test_option", nullable<std::string>("test_value"));
+    cfg.set("mysqld", "test_option", std::optional<std::string>("test_value"));
     EXPECT_NO_THROW(cfg.write(res_cfg_path));
     Config_file cfg_res = Config_file();
     cfg_res.read(res_cfg_path);
@@ -479,32 +494,35 @@ TEST_F(ConfigFileTest, test_write) {
 
     Config_file cfg = Config_file();
     cfg.read(res_cfg_path);
-    cfg.set("default", "new_option", nullable<std::string>("with value"));
-    cfg.set("default", "new_option_no_value", nullable<std::string>());
-    cfg.set("default", "new_option_empty_value", nullable<std::string>(""));
+    cfg.set("default", "new_option", std::optional<std::string>("with value"));
+    cfg.set("default", "new_option_no_value", std::optional<std::string>());
+    cfg.set("default", "new_option_empty_value",
+            std::optional<std::string>(""));
     cfg.remove_option("client", "option_to_delete-with_value");
     cfg.remove_option("client", "option_to_delete-without_value");
-    cfg.set("client", "MyNameIs", nullable<std::string>("007"));
+    cfg.set("client", "MyNameIs", std::optional<std::string>("007"));
     cfg.remove_option("mysqld", "loose_option_to_delete_with_value");
     cfg.remove_option("MySQLd", "loose-option_to_delete_without_value");
-    cfg.set("mysqld", "to_override", nullable<std::string>("True"));
+    cfg.set("mysqld", "to_override", std::optional<std::string>("True"));
     cfg.set("MySQLd", "to_override_with_value",
-            nullable<std::string>("new_val"));
-    cfg.set("mysqld", "binlog", nullable<std::string>());
+            std::optional<std::string>("new_val"));
+    cfg.set("mysqld", "binlog", std::optional<std::string>());
     cfg.remove_option("mysqld", "master-info-repository");
     cfg.remove_group("delete_section");
     cfg.remove_group("delete_section2");
     cfg.add_group("IAmNew");
     cfg.set("iamnew", "loose_option-with-prefix",
-            nullable<std::string>("need_quote_with_#_symbol"));
+            std::optional<std::string>("need_quote_with_#_symbol"));
     cfg.set("iamnew", "new_option1",
-            nullable<std::string>("need_quote_different_from_'_with_#_symbol"));
+            std::optional<std::string>(
+                "need_quote_different_from_'_with_#_symbol"));
     cfg.set("iamnew", "new_option2",
-            nullable<std::string>("still need \" ' quote with space"));
-    cfg.set("iamnew", "new_option_no-value", nullable<std::string>());
-    cfg.set("empty section", "new_option_no-value", nullable<std::string>());
+            std::optional<std::string>("still need \" ' quote with space"));
+    cfg.set("iamnew", "new_option_no-value", std::optional<std::string>());
+    cfg.set("empty section", "new_option_no-value",
+            std::optional<std::string>());
     cfg.set("empty section", "new_option_value",
-            nullable<std::string>("value"));
+            std::optional<std::string>("value"));
     EXPECT_NO_THROW(cfg.write(res_cfg_path));
     Config_file cfg_res = Config_file();
     cfg_res.read(res_cfg_path);
@@ -693,7 +711,7 @@ TEST_F(ConfigFileTest, test_options) {
   EXPECT_FALSE(cfg.has_option("test_group", "test_option"));
 
   // Setting a new option to a non-existing group throws an exception.
-  mysqlshdk::utils::nullable<std::string> value("test value");
+  std::optional<std::string> value("test value");
   EXPECT_THROW(cfg.set("no_group", "test_option", value), std::out_of_range);
 
   // Adding (set) new options (with and without value) to an existing group.
@@ -704,8 +722,7 @@ TEST_F(ConfigFileTest, test_options) {
   EXPECT_TRUE(cfg.has_option("tesT_grouP", "test-option"));
   EXPECT_TRUE(cfg.has_option("tesT_grouP", "loose-test-option"));
   EXPECT_TRUE(cfg.has_option("tesT_grouP", "loose_test_option"));
-  cfg.set("test_group", "loose_no_value_option",
-          mysqlshdk::utils::nullable<std::string>());
+  cfg.set("test_group", "loose_no_value_option", std::optional<std::string>());
   EXPECT_TRUE(cfg.has_option("test_group", "no_value_option"));
   EXPECT_TRUE(cfg.has_option("test_group", "no-value_option"));
   EXPECT_TRUE(cfg.has_option("test_group", "loose-no_value_option"));
@@ -724,24 +741,22 @@ TEST_F(ConfigFileTest, test_options) {
   // Get value of added options.
   // NOTE: Options can use '-' and '_' interchangeably, and have the 'loose_'
   // prefix, but they are case sensitive.
-  mysqlshdk::utils::nullable<std::string> ret_value =
-      cfg.get("test_group", "test-option");
-  EXPECT_FALSE(ret_value.is_null());
+  std::optional<std::string> ret_value = cfg.get("test_group", "test-option");
+  EXPECT_FALSE(!ret_value.has_value());
   EXPECT_EQ(*value, *ret_value);
   ret_value = cfg.get("test_group", "loose-test_option");
-  EXPECT_FALSE(ret_value.is_null());
+  EXPECT_FALSE(!ret_value.has_value());
   EXPECT_EQ(*value, *ret_value);
   ret_value = cfg.get("test_group", "loose_no_value_option");
-  EXPECT_TRUE(ret_value.is_null());
+  EXPECT_TRUE(!ret_value.has_value());
   ret_value = cfg.get("test_group", "no-value-option");
-  EXPECT_TRUE(ret_value.is_null());
+  EXPECT_TRUE(!ret_value.has_value());
 
   // Changing (set) existing options (with and without value),
   // Switch value of previously set options.
   // NOTE: Options can use '-' and '_' interchangeably, and have the 'loose_'
   // prefix, but they are case sensitive.
-  cfg.set("test_group", "loose-test_option",
-          mysqlshdk::utils::nullable<std::string>());
+  cfg.set("test_group", "loose-test_option", std::optional<std::string>());
   EXPECT_TRUE(cfg.has_option("test_group", "test-option"));
   cfg.set("test_group", "no-value-option", value);
   EXPECT_TRUE(cfg.has_option("test_group", "loose_no_value_option"));
@@ -754,14 +769,14 @@ TEST_F(ConfigFileTest, test_options) {
   // NOTE: Options can use '-' and '_' interchangeably, and have the 'loose_'
   // prefix, but they are case sensitive.
   ret_value = cfg.get("test_group", "test-option");
-  EXPECT_TRUE(ret_value.is_null());
+  EXPECT_TRUE(!ret_value.has_value());
   ret_value = cfg.get("test_group", "loose-test_option");
-  EXPECT_TRUE(ret_value.is_null());
+  EXPECT_TRUE(!ret_value.has_value());
   ret_value = cfg.get("test_group", "loose_no_value_option");
-  EXPECT_FALSE(ret_value.is_null());
+  EXPECT_FALSE(!ret_value.has_value());
   EXPECT_EQ(*value, *ret_value);
   ret_value = cfg.get("test_group", "no-value-option");
-  EXPECT_FALSE(ret_value.is_null());
+  EXPECT_FALSE(!ret_value.has_value());
   EXPECT_EQ(*value, *ret_value);
 
   // Removing an option from a non existing group throws an exception.

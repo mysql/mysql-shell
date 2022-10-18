@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,13 @@
 #ifndef MODULES_ADMINAPI_COMMON_CLONE_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_CLONE_OPTIONS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
+
 #include "modules/mod_common.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -65,11 +66,11 @@ struct Clone_options {
 
   Unpack_target target;
 
-  mysqlshdk::null_bool disable_clone;
+  std::optional<bool> disable_clone;
   bool gtid_set_is_complete = false;
   mysqlshdk::utils::nullable<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
-  mysqlshdk::null_string clone_donor;
+  std::optional<std::string> clone_donor;
 };
 
 struct Join_cluster_clone_options : public Clone_options {

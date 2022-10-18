@@ -2112,14 +2112,14 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
     // Change all groups (sections) if * is used for the group.
     std::vector<std::string> groups = cfg.groups();
     for (auto const &group : groups) {
-      cfg.set(group, option, mysqlshdk::utils::nullable<std::string>(value));
+      cfg.set(group, option, std::optional<std::string>(value));
     }
   } else {
     if (!cfg.has_group(section)) {
       // Create the group (section) if it does not exist.
       cfg.add_group(section);
     }
-    cfg.set(section, option, mysqlshdk::utils::nullable<std::string>(value));
+    cfg.set(section, option, std::optional<std::string>(value));
   }
 
   // Apply change to option file.
@@ -2132,7 +2132,7 @@ std::string Testutils::get_sandbox_conf(int port, const std::string &option) {
   mysqlshdk::config::Config_file cfg;
   cfg.read(cfgfile_path);
 
-  return cfg.get("mysqld", option).get_safe();
+  return cfg.get("mysqld", option).value_or("");
 }
 
 /**
@@ -4136,28 +4136,25 @@ shcore::Dictionary_t Testutils::get_oci_config() {
 
   shcore::Dictionary_t ret_val;
 
-  if (config.has_group(oci_config_profile)) {
-    ret_val = shcore::make_dict();
+  if (!config.has_group(oci_config_profile)) return ret_val;
 
-    auto set_option = [&ret_val, &config,
-                       &oci_config_profile](const std::string &option) {
-      if (config.has_option(oci_config_profile, option)) {
-        auto value = config.get(oci_config_profile, option);
+  ret_val = shcore::make_dict();
 
-        if (value.is_null())
-          (*ret_val)[option] = shcore::Value::Null();
-        else
-          (*ret_val)[option] = shcore::Value(*value);
-      }
-    };
+  auto set_option = [&ret_val, &config,
+                     &oci_config_profile](const std::string &option) {
+    if (!config.has_option(oci_config_profile, option)) return;
 
-    set_option("fingerprint");
-    set_option("key_file");
-    set_option("pass_phrase");
-    set_option("tenancy");
-    set_option("region");
-    set_option("user");
-  }
+    auto value = config.get(oci_config_profile, option);
+    (*ret_val)[option] =
+        value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
+  };
+
+  set_option("fingerprint");
+  set_option("key_file");
+  set_option("pass_phrase");
+  set_option("tenancy");
+  set_option("region");
+  set_option("user");
 
   return ret_val;
 }

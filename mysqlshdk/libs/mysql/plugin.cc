@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,19 +32,21 @@ bool install_plugin(const std::string &plugin,
                     const mysqlshdk::mysql::IInstance &instance,
                     mysqlshdk::config::Config *config) {
   // Get plugin state.
-  utils::nullable<std::string> plugin_state =
-      instance.get_plugin_status(plugin);
+  std::optional<std::string> plugin_state = instance.get_plugin_status(plugin);
+
+  // plugin is already active.
+  if (plugin_state.has_value() && (plugin_state == "ACTIVE")) return false;
 
   // Get the current value of super_read_only
   // TODO(.) Move out the super_read_only handling to the caller
-  utils::nullable<bool> current_super_read_only = instance.get_sysvar_bool(
-      "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  auto current_super_read_only =
+      instance.get_sysvar_bool("super_read_only", false);
 
   // Install the plugin if no state info is available (not installed).
   bool res = false;
-  if (plugin_state.is_null()) {
+  if (!plugin_state.has_value()) {
     // Disable super_read_only if needed
-    if (!current_super_read_only.is_null() && *current_super_read_only) {
+    if (current_super_read_only) {
       instance.set_sysvar("super_read_only", false,
                           mysqlshdk::mysql::Var_qualifier::GLOBAL);
     }
@@ -54,19 +56,16 @@ bool install_plugin(const std::string &plugin,
     res = true;
 
     // Re-enable super_read_only if needed.
-    if (!current_super_read_only.is_null() && *current_super_read_only) {
-      instance.set_sysvar("super_read_only", *current_super_read_only,
+    if (current_super_read_only) {
+      instance.set_sysvar("super_read_only", true,
                           mysqlshdk::mysql::Var_qualifier::GLOBAL);
     }
 
     // Check the plugin state after installation;
     plugin_state = instance.get_plugin_status(plugin);
-  } else if ((*plugin_state).compare("ACTIVE") == 0) {
-    // plugin is already active.
-    return false;
   }
 
-  if (!plugin_state.is_null() && (*plugin_state).compare("DISABLED") == 0) {
+  if (plugin_state.has_value() && (plugin_state == "DISABLED")) {
     // If the plugin is disabled then try to activate and install it, but it
     // can only be done if the option file is available.
     if (config &&
@@ -76,12 +75,11 @@ bool install_plugin(const std::string &plugin,
           dynamic_cast<mysqlshdk::config::Config_file_handler *>(
               config->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
       auto clone_plugin_status = cfg_file_handler->get_string(plugin);
-      cfg_file_handler->set_now(plugin, utils::nullable<std::string>("ON"));
+      cfg_file_handler->set_now(plugin, std::string{"ON"});
 
       try {
         // Disable super_read_only if needed
-        utils::nullable<bool> read_only;
-        if (!read_only.is_null() && *read_only) {
+        if (current_super_read_only) {
           instance.set_sysvar("super_read_only", false,
                               mysqlshdk::mysql::Var_qualifier::GLOBAL);
         }
@@ -94,8 +92,8 @@ bool install_plugin(const std::string &plugin,
         instance.install_plugin(plugin);
 
         // Re-enable super_read_only if needed.
-        if (!read_only.is_null() && *read_only) {
-          instance.set_sysvar("super_read_only", *read_only,
+        if (current_super_read_only) {
+          instance.set_sysvar("super_read_only", true,
                               mysqlshdk::mysql::Var_qualifier::GLOBAL);
         }
 
@@ -109,17 +107,13 @@ bool install_plugin(const std::string &plugin,
     }
   }
 
-  if (!plugin_state.is_null()) {
+  if (plugin_state.has_value() && (plugin_state != "ACTIVE")) {
     // Raise an exception if the plugin is not active (disabled, deleted or
     // inactive), cannot be enabled online.
-    if ((*plugin_state).compare("ACTIVE") != 0) {
-      std::string enable_error =
-          plugin +
-          " plugin is %s and cannot be enabled on runtime. Please enable "
-          "the plugin and restart the server.";
-      throw std::runtime_error(
-          shcore::str_format(enable_error.c_str(), plugin_state->c_str()));
-    }
+    throw std::runtime_error(shcore::str_format(
+        "%s plugin is %s and cannot be enabled on runtime. Please enable "
+        "the plugin and restart the server.",
+        plugin.c_str(), plugin_state->c_str()));
   }
 
   // Plugin installed and not disabled (active).
@@ -130,41 +124,40 @@ bool uninstall_plugin(const std::string &plugin,
                       const mysqlshdk::mysql::IInstance &instance,
                       mysqlshdk::config::Config *config) {
   // Get plugin state.
-  utils::nullable<std::string> plugin_state =
-      instance.get_plugin_status(plugin);
+  std::optional<std::string> plugin_state = instance.get_plugin_status(plugin);
+
+  // plugin is not installed.
+  if (!plugin_state.has_value()) return false;
 
   // Get the current value of super_read_only
-  utils::nullable<bool> current_super_read_only = instance.get_sysvar_bool(
-      "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  auto current_super_read_only =
+      instance.get_sysvar_bool("super_read_only", false);
 
-  if (!plugin_state.is_null()) {
-    if (!current_super_read_only.is_null() && *current_super_read_only) {
-      instance.set_sysvar("super_read_only", false,
-                          mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    }
-
-    // Uninstall the plugin if state info is available (installed).
-    instance.uninstall_plugin(plugin);
-
-    // Re-enable super_read_only if needed.
-    if (!current_super_read_only.is_null() && *current_super_read_only) {
-      instance.set_sysvar("super_read_only", *current_super_read_only,
-                          mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    }
-
-    // If the config file handler is available disable the plugin.
-    if (config &&
-        config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
-      mysqlshdk::config::Config_file_handler *cfg_file_handler =
-          static_cast<mysqlshdk::config::Config_file_handler *>(
-              config->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
-      cfg_file_handler->set_now(plugin, utils::nullable<std::string>("OFF"));
-    }
-    return true;
-  } else {
-    // plugin is not installed.
-    return false;
+  // Disable super_read_only if needed
+  if (current_super_read_only) {
+    instance.set_sysvar("super_read_only", false,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
   }
+
+  // Uninstall the plugin if state info is available (installed).
+  instance.uninstall_plugin(plugin);
+
+  // Re-enable super_read_only if needed.
+  if (current_super_read_only) {
+    instance.set_sysvar("super_read_only", true,
+                        mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  }
+
+  // If the config file handler is available disable the plugin.
+  if (config &&
+      config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
+    mysqlshdk::config::Config_file_handler *cfg_file_handler =
+        static_cast<mysqlshdk::config::Config_file_handler *>(
+            config->get_handler(mysqlshdk::config::k_dft_cfg_file_handler));
+    cfg_file_handler->set_now(plugin, std::string{"OFF"});
+  }
+
+  return true;
 }
 
 }  // namespace mysql

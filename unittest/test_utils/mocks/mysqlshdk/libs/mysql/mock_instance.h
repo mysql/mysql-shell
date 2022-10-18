@@ -26,12 +26,12 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 namespace mysqlshdk {
@@ -54,21 +54,19 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_METHOD1(register_warnings_callback, void(const Warnings_callback &));
 
   MOCK_METHOD1(cache_global_sysvars, void(bool));
-  MOCK_CONST_METHOD1(
-      get_cached_global_sysvar,
-      mysqlshdk::utils::nullable<std::string>(const std::string &));
+  MOCK_CONST_METHOD1(get_cached_global_sysvar,
+                     std::optional<std::string>(const std::string &));
   MOCK_CONST_METHOD1(get_cached_global_sysvar_as_bool,
-                     mysqlshdk::utils::nullable<bool>(const std::string &));
+                     std::optional<bool>(const std::string &));
 
-  MOCK_CONST_METHOD2(get_sysvar_bool,
-                     mysqlshdk::utils::nullable<bool>(const std::string &,
-                                                      const Var_qualifier));
+  MOCK_CONST_METHOD2(get_sysvar_bool, std::optional<bool>(const std::string &,
+                                                          const Var_qualifier));
   MOCK_CONST_METHOD2(get_sysvar_string,
-                     mysqlshdk::utils::nullable<std::string>(
-                         const std::string &, const Var_qualifier));
+                     std::optional<std::string>(const std::string &,
+                                                const Var_qualifier));
   MOCK_CONST_METHOD2(get_sysvar_int,
-                     mysqlshdk::utils::nullable<int64_t>(const std::string &,
-                                                         const Var_qualifier));
+                     std::optional<int64_t>(const std::string &,
+                                            const Var_qualifier));
   MOCK_CONST_METHOD3(set_sysvar, void(const std::string &, const std::string &,
                                       const Var_qualifier));
   MOCK_CONST_METHOD3(set_sysvar, void(const std::string &, const int64_t,
@@ -83,17 +81,16 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD1(is_read_only, bool(bool super));
   MOCK_CONST_METHOD0(get_version, mysqlshdk::utils::Version());
 
-  MOCK_CONST_METHOD2(
-      get_system_variables_like,
-      std::map<std::string, mysqlshdk::utils::nullable<std::string>>(
-          const std::string &, const Var_qualifier));
+  MOCK_CONST_METHOD2(get_system_variables_like,
+                     std::map<std::string, std::optional<std::string>>(
+                         const std::string &, const Var_qualifier));
 
   MOCK_CONST_METHOD0(get_session, std::shared_ptr<mysqlshdk::db::ISession>());
   MOCK_CONST_METHOD0(close_session, void());
   MOCK_CONST_METHOD1(install_plugin, void(const std::string &));
   MOCK_CONST_METHOD1(uninstall_plugin, void(const std::string &));
-  MOCK_CONST_METHOD1(get_plugin_status, mysqlshdk::utils::nullable<std::string>(
-                                            const std::string &));
+  MOCK_CONST_METHOD1(get_plugin_status,
+                     std::optional<std::string>(const std::string &));
   MOCK_CONST_METHOD5(
       create_user,
       void(const std::string &, const std::string &, const std::string &,
@@ -126,11 +123,9 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
     // method for now
     return {};
   }
-  MOCK_CONST_METHOD0(is_set_persist_supported,
-                     mysqlshdk::utils::nullable<bool>());
-  MOCK_CONST_METHOD1(
-      get_persisted_value,
-      mysqlshdk::utils::nullable<std::string>(const std::string &));
+  MOCK_CONST_METHOD0(is_set_persist_supported, std::optional<bool>());
+  MOCK_CONST_METHOD1(get_persisted_value,
+                     std::optional<std::string>(const std::string &));
 
   MOCK_CONST_METHOD0(get_fence_sysvars, std::vector<std::string>());
 

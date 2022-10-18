@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,13 +25,13 @@
 #define MYSQLSHDK_LIBS_CONFIG_CONFIG_FILE_H_
 
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
@@ -161,12 +161,12 @@ class Config_file final {
    *
    * @param group string with the name of the group the option belongs to.
    * @param option string with the name of the option to get its value.
-   * @return nullable string with the value for the specified option.
+   * @return optional string with the value for the specified option.
    * @throw a out_of_range exception if the specified option (and group) does
    *        not exist.
    */
-  utils::nullable<std::string> get(const std::string &group,
-                                   const std::string &option) const;
+  std::optional<std::string> get(const std::string &group,
+                                 const std::string &option) const;
 
   /**
    * Set the value for the specified option in an existing group.
@@ -178,11 +178,11 @@ class Config_file final {
    *
    * @param group string with the name of the group the option belongs to.
    * @param option string with the name of the option to set.
-   * @param value nullable string value that will be set.
+   * @param value optional string value that will be set.
    * @throw a out_of_range exception if the specified group does not exist.
    */
   void set(const std::string &group, const std::string &option,
-           const utils::nullable<std::string> &value);
+           const std::optional<std::string> &value);
 
   /**
    * Remove the specified option.
@@ -225,22 +225,13 @@ class Config_file final {
   };
 
   Case m_group_case;
-
   Escape m_escape_characters;
 
-  typedef std::map<Option_key, mysqlshdk::utils::nullable<std::string>>
-      Option_map;
-  typedef bool (*compare_func)(const std::string &, const std::string &);
-  typedef std::map<std::string, Option_map, compare_func> container;
-
-  typedef container::const_iterator const_iterator;
-  typedef container::iterator iterator;
+  using Option_map = std::map<Option_key, std::optional<std::string>>;
+  using container = std::map<std::string, Option_map, shcore::Case_comparator>;
 
   // Map holding all options and respective values for all groups
   container m_configmap;
-
-  static bool comp(const std::string &lhs, const std::string &rhs);
-  static bool icomp(const std::string &lhs, const std::string &rhs);
 
   /**
    * Auxiliary function to create an OptionKey to be used internally.
@@ -249,41 +240,6 @@ class Config_file final {
    * @return an OptionKey object to use internally in the configuration map.
    */
   Option_key convert_option_to_key(const std::string &option) const;
-
-  /**
-   * Auxiliary function to get the list of other included files to read.
-   *
-   * Other options files can be included using the !include and !includedir.
-   * This function retrieves the valid list of those files.
-   *
-   * NOTE: This function is recursive.
-   *
-   * @param cnf_path string with the path to the MySQL option file to search of
-   *        other included option files using the !include and !includedir
-   *        directives.
-   * @param out_files resulting set with the path (string) of all the other
-   *        included option files.
-   * @param recursive_depth recursive call depth.
-   */
-  void get_include_files(const std::string &cnf_path,
-                         std::set<std::string> *out_files,
-                         unsigned int recursive_depth) const;
-
-  /**
-   * Auxiliary method to parse a group line.
-   * Note: This function assumes the input string is trimmed.
-   *
-   * @param line string with the group line to parse.
-   * @param line_number integer with the number of the line being parsed.
-   * @param cnf_path string with the path of the option file being parsed.
-   * @return a string with the group name (if successfully parsed).
-   *
-   * @throw std::runtime_error if the group line cannot be parsed (invalid
-   *        group line).
-   */
-  std::string parse_group_line(const std::string &line,
-                               unsigned int line_number,
-                               const std::string &cnf_path) const;
 
   /**
    * Auxiliary function to parse escape sequences from an option file.
@@ -335,24 +291,24 @@ class Config_file final {
    * @param line string with the option line to parse.
    * @param line_number integer with the number of the line being parsed.
    * @param cnf_path string with the path of the option file being parsed.
-   * @return a tuple with the option name, the corresponding value (if
-   *         successfully parsed), and remaining text after the value (e.g.,
-   *         inline comment; to be able to preserve it when writing to a file).
+   * @return the parse results.
    * @throw std::runtime_error if the option line cannot be parsed (invalid
    *        option line).
    */
-  std::tuple<std::string, utils::nullable<std::string>, std::string>
-  parse_option_line(const std::string &line, unsigned int line_number,
-                    const std::string &cnf_path) const;
+  struct Parse_result {
+    std::string name;
+    std::optional<std::string> value;
+    std::string remaining_text;
 
-  /**
-   * Auxiliary method that returns a vector with all the configuration files
-   * found inside a given directory.
-   * @param dir_path path of the directory to search for config files
-   * @return a vector with all the config files found.
-   */
-  std::vector<std::string> get_config_files_in_dir(
-      const std::string &dir_path) const;
+    Parse_result(std::string p_name, std::optional<std::string> p_value,
+                 std::string p_remaining_text) noexcept
+        : name{std::move(p_name)},
+          value{std::move(p_value)},
+          remaining_text{std::move(p_remaining_text)} {}
+  };
+  Parse_result parse_option_line(const std::string &line,
+                                 unsigned int line_number,
+                                 const std::string &cnf_path) const;
 
   /**
    * Auxiliary method to read a configuration file
@@ -368,18 +324,6 @@ class Config_file final {
   void read_recursive_aux(const std::string &cnf_path,
                           unsigned int recursive_depth, container *out_map,
                           const std::string &group_prefix = "") const;
-
-  /**
-   * Auxiliary function parse the path from the !include and !includedir
-   * directives.
-   * @param line String with the line with the !include(dir) directive
-   * @param base_path base path used to calculate an absolute path if the
-   *        !include(dir) directive has a relative path
-   * @return string with the absolute path of the !include(dir) directive
-   * @throws runtime_error if neither directive is found on line.
-   */
-  std::string parse_include_path(const std::string &line,
-                                 const std::string &base_path = "") const;
 };
 
 /**

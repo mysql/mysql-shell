@@ -82,24 +82,25 @@ void Set_option::ensure_option_valid() {
         "Please use the consistency option instead.");
   } else if (m_option == kClusterName) {
     // Validate if the clusterName value is valid
-    if (!m_value_int.is_null() || !m_value_bool.is_null()) {
+    if (!m_value_str.has_value()) {
       throw shcore::Exception::argument_error(
           "Invalid value for 'clusterName': Argument #2 is expected to be a "
           "string.");
-    } else {
-      mysqlsh::dba::validate_cluster_name(*m_value_str,
-                                          Cluster_type::GROUP_REPLICATION);
     }
+
+    mysqlsh::dba::validate_cluster_name(*m_value_str,
+                                        Cluster_type::GROUP_REPLICATION);
+
   } else if (m_option == kDisableClone) {
     // Validate if the disableClone value is valid
     // Ensure disableClone is a boolean or integer value
-    if (!m_value_str.is_null()) {
+    if (m_value_str.has_value()) {
       throw shcore::Exception::type_error(
           "Invalid value for 'disableClone': Argument #2 is expected to be a "
           "boolean.");
     }
   } else if (m_option == kReplicationAllowedHost) {
-    if (m_value_str.is_null() || m_value_str->empty()) {
+    if (!m_value_str.has_value() || m_value_str->empty()) {
       throw shcore::Exception::argument_error(
           "Invalid value for 'replicationAllowedHost': Argument #2 is expected "
           "to be a string.");
@@ -112,7 +113,7 @@ void Set_option::ensure_option_valid() {
     throw shcore::Exception::runtime_error(
         "Option '" + m_option + "' not supported on Replica Clusters.");
   } else if (m_option == kIpAllowlist) {
-    if (m_value_str.is_null())
+    if (!m_value_str.has_value())
       throw shcore::Exception::argument_error(
           "Invalid value for 'ipAllowlist': Argument #2 is expected "
           "to be a string.");
@@ -253,8 +254,8 @@ void Set_option::prepare() {
     // Get the Cluster Config Object
     m_cfg = m_cluster->create_config_object();
 
-    if (m_option == kAutoRejoinTries && !m_value_int.is_null() &&
-        *m_value_int != 0) {
+    if (m_option == kAutoRejoinTries && m_value_int.has_value() &&
+        (*m_value_int != 0)) {
       auto console = mysqlsh::current_console();
       std::string warn_msg =
           "Each cluster member will only proceed according to its "
@@ -280,13 +281,14 @@ shcore::Value Set_option::execute() {
     std::string option_gr_variable =
         k_global_cluster_supported_options.at(m_option).option_variable;
 
-    console->print_info(
-        "Setting the value of '" + m_option + "' to '" +
-        (m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str) +
-        "' in all cluster members ...");
+    console->print_info("Setting the value of '" + m_option + "' to '" +
+                        (!m_value_str.has_value()
+                             ? shcore::lexical_cast<std::string>(*m_value_int)
+                             : *m_value_str) +
+                        "' in all cluster members ...");
     console->print_info();
 
-    if (!m_value_str.is_null()) {
+    if (m_value_str.has_value()) {
       m_cfg->set(option_gr_variable, m_value_str);
     } else {
       m_cfg->set(option_gr_variable, m_value_int);
@@ -309,8 +311,9 @@ shcore::Value Set_option::execute() {
 
     console->print_info("Successfully set the value of '" + m_option +
                         "' to '" +
-                        ((m_value_str.is_null() ? std::to_string(*m_value_int)
-                                                : *m_value_str)) +
+                        ((!m_value_str.has_value()
+                              ? shcore::lexical_cast<std::string>(*m_value_int)
+                              : *m_value_str)) +
                         "' in the '" + m_cluster->get_name() + "' cluster.");
 
     return shcore::Value();
@@ -346,8 +349,7 @@ shcore::Value Set_option::execute() {
     } else if (m_option == kDisableClone) {
       // Ensure forceClone is a boolean or integer value
       std::string m_value_printable =
-          ((!m_value_bool.is_null() && *m_value_bool == true) ||
-           (!m_value_int.is_null() && *m_value_int >= 1))
+          m_value_bool.value_or(false) || (m_value_int.value_or(0) >= 1)
               ? "true"
               : "false";
 
@@ -355,13 +357,9 @@ shcore::Value Set_option::execute() {
                           m_value_printable + "' in the Cluster ...");
       console->print_info();
 
-      if (!m_value_int.is_null()) {
-        if (*m_value_int >= 1) {
-          update_disable_clone_option(true);
-        } else {
-          update_disable_clone_option(false);
-        }
-      } else if (!m_value_bool.is_null()) {
+      if (m_value_int.has_value()) {
+        update_disable_clone_option((*m_value_int >= 1));
+      } else if (m_value_bool.has_value()) {
         update_disable_clone_option(*m_value_bool);
       }
 
@@ -383,8 +381,6 @@ shcore::Value Set_option::execute() {
 
   return shcore::Value();
 }
-
-void Set_option::rollback() {}
 
 void Set_option::finish() {
   // Close all sessions to cluster instances.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,29 +33,29 @@ void Parallel_applier_options::read_option_values(
     const mysqlshdk::mysql::IInstance &instance) {
   mysqlshdk::utils::Version version = instance.get_version();
 
-  if (binlog_transaction_dependency_tracking.is_null()) {
+  if (!binlog_transaction_dependency_tracking.has_value()) {
     binlog_transaction_dependency_tracking =
         instance.get_sysvar_string(kBinlogTransactionDependencyTracking);
   }
 
-  if (replica_preserve_commit_order.is_null()) {
+  if (!replica_preserve_commit_order.has_value()) {
     replica_preserve_commit_order = instance.get_sysvar_string(
         mysqlshdk::mysql::get_replication_option_keyword(
             version, kReplicaPreserveCommitOrder));
   }
 
-  if (replica_parallel_type.is_null()) {
+  if (!replica_parallel_type.has_value()) {
     replica_parallel_type = instance.get_sysvar_string(
         mysqlshdk::mysql::get_replication_option_keyword(version,
                                                          kReplicaParallelType));
   }
 
-  if (transaction_write_set_extraction.is_null()) {
+  if (!transaction_write_set_extraction.has_value()) {
     transaction_write_set_extraction =
         instance.get_sysvar_string(kTransactionWriteSetExtraction);
   }
 
-  if (replica_parallel_workers.is_null()) {
+  if (!replica_parallel_workers.has_value()) {
     replica_parallel_workers = instance.get_sysvar_int(
         mysqlshdk::mysql::get_replication_option_keyword(
             version, kReplicaParallelWorkers));
@@ -83,10 +83,10 @@ Parallel_applier_options::get_required_values(
   return req_cfgs;
 }
 
-std::map<std::string, mysqlshdk::utils::nullable<std::string>>
+std::map<std::string, std::optional<std::string>>
 Parallel_applier_options::get_current_settings(
     const mysqlshdk::utils::Version &version) const {
-  std::map<std::string, mysqlshdk::utils::nullable<std::string>> ret_val;
+  std::map<std::string, std::optional<std::string>> ret_val;
 
   ret_val[mysqlshdk::mysql::get_replication_option_keyword(
       version, kReplicaParallelType)] = replica_parallel_type;
@@ -97,7 +97,7 @@ Parallel_applier_options::get_current_settings(
   ret_val[kTransactionWriteSetExtraction] = transaction_write_set_extraction;
   ret_val[mysqlshdk::mysql::get_replication_option_keyword(
       version, kReplicaParallelWorkers)] =
-      std::to_string(replica_parallel_workers.get_safe());
+      std::to_string(replica_parallel_workers.value_or(0));
 
   return ret_val;
 }

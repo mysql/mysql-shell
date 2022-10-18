@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,27 +39,25 @@ bool uninstall_clone_plugin(const mysqlshdk::mysql::IInstance &instance,
 
 bool is_clone_available(const mysqlshdk::mysql::IInstance &instance) {
   // Check if clone is supported
-  if (instance.get_version() >= k_mysql_clone_plugin_initial_version) {
-    log_debug("Checking if instance '%s' has the clone plugin installed",
+  if (instance.get_version() < k_mysql_clone_plugin_initial_version)
+    return false;
+
+  log_debug("Checking if instance '%s' has the clone plugin installed",
+            instance.descr().c_str());
+
+  std::optional<std::string> plugin_state =
+      instance.get_plugin_status(k_mysql_clone_plugin_name);
+
+  // Check if the plugin_state is "DISABLED"
+  if (plugin_state.has_value() && (plugin_state == "DISABLED"))
+    log_debug("Instance '%s' has the clone plugin disabled",
               instance.descr().c_str());
 
-    mysqlshdk::utils::nullable<std::string> plugin_state =
-        instance.get_plugin_status(k_mysql_clone_plugin_name);
-
-    // Check if the plugin_state is "DISABLED"
-    if (!plugin_state.is_null() && (*plugin_state).compare("DISABLED") == 0) {
-      log_debug("Instance '%s' has the clone plugin disabled",
-                instance.descr().c_str());
-    }
-
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 int64_t force_clone(const mysqlshdk::mysql::IInstance &instance) {
-  mysqlshdk::utils::nullable<int64_t> current_threshold =
+  auto current_threshold =
       instance.get_sysvar_int("group_replication_clone_threshold");
 
   // Set the threshold to 1 to force a clone
@@ -67,11 +65,7 @@ int64_t force_clone(const mysqlshdk::mysql::IInstance &instance) {
 
   // Return the value if we can obtain it, otherwise return -1 to flag that the
   // default should be used
-  if (!current_threshold.is_null()) {
-    return *current_threshold;
-  } else {
-    return -1;
-  }
+  return current_threshold.value_or(-1);
 }
 
 void do_clone(const mysqlshdk::mysql::IInstance &recipient,

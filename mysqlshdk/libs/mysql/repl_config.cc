@@ -82,7 +82,7 @@ void check_variable_compliance(const std::vector<std::string> &values,
   // convert value to a string that we can lookup in the valid_values vector
   try {
     auto nullable_value = handler.get_string(change->var_name);
-    if (nullable_value.is_null()) {
+    if (!nullable_value.has_value()) {
       value = k_no_value;
     } else {
       value = shcore::str_upper(*nullable_value);
@@ -104,7 +104,7 @@ void check_variable_compliance(const std::vector<std::string> &values,
       try {
         auto value_var_old_name = handler.get_string(var_old_name);
 
-        if (!value_var_old_name.is_null()) {
+        if (value_var_old_name.has_value()) {
           value = shcore::str_upper(*value_var_old_name);
         }
       } catch (const std::out_of_range &) {
@@ -135,39 +135,39 @@ void check_variable_compliance(const std::vector<std::string> &values,
 void check_persisted_value_compliance(
     const std::vector<std::string> &values, bool allowed_values,
     const config::Config_server_handler &srv_handler, Invalid_config *change) {
-  mysqlshdk::utils::nullable<std::string> persisted_value =
+  std::optional<std::string> persisted_value =
       srv_handler.get_persisted_value(change->var_name);
 
   // Check only needed if there is a persisted value.
-  if (!persisted_value.is_null()) {
-    std::string value = shcore::str_upper(*persisted_value);
+  if (!persisted_value.has_value()) return;
 
-    if (change->current_val != value) {
-      // When the persisted value is different from the current sysvar value
-      // check if it is valid and take the necessary action.
+  std::string value = shcore::str_upper(*persisted_value);
 
-      auto found_it = std::find(values.begin(), values.end(), value);
-      if ((found_it == values.end() && allowed_values) ||
-          (found_it != values.end() && !allowed_values)) {
-        // Persisted value is invalid, thus it must to be changed:
-        // if sysvar values is correct then the persisted value must be changed
-        // but restart is not required, otherwise maintain the current change.
-        if (!change->types.is_set(Config_type::SERVER)) {
-          // Sysvar value is correct
-          change->types.set(Config_type::SERVER);
-          change->restart = false;
-        }
-      } else {
-        // Persisted value is valid, thus only a restart is required.
-        change->restart = true;
-        change->types.unset(Config_type::SERVER);
-        change->types.set(Config_type::RESTART_ONLY);
+  if (change->current_val != value) {
+    // When the persisted value is different from the current sysvar value
+    // check if it is valid and take the necessary action.
+
+    auto found_it = std::find(values.begin(), values.end(), value);
+    if ((found_it == values.end() && allowed_values) ||
+        (found_it != values.end() && !allowed_values)) {
+      // Persisted value is invalid, thus it must to be changed:
+      // if sysvar values is correct then the persisted value must be changed
+      // but restart is not required, otherwise maintain the current change.
+      if (!change->types.is_set(Config_type::SERVER)) {
+        // Sysvar value is correct
+        change->types.set(Config_type::SERVER);
+        change->restart = false;
       }
+    } else {
+      // Persisted value is valid, thus only a restart is required.
+      change->restart = true;
+      change->types.unset(Config_type::SERVER);
+      change->types.set(Config_type::RESTART_ONLY);
     }
-
-    // Add persisted value information when available.
-    change->persisted_val = value;
   }
+
+  // Add persisted value information when available.
+  change->persisted_val = value;
 }
 
 /**
@@ -287,12 +287,12 @@ void check_server_variables_compatibility(
 
     // Check if MTS is enabled (slave_parallel_workers > 0) and if so, add
     // extra requirements.
-    utils::nullable<int64_t> slave_p_workers = config.get_int(
+    auto slave_p_workers = config.get_int(
         mysqlshdk::mysql::get_replication_option_keyword(
             instance_version, mysqlsh::dba::kReplicaParallelWorkers),
         mysqlshdk::config::k_dft_cfg_server_handler);
-    if (group_replication && !slave_p_workers.is_null() &&
-        *slave_p_workers > 0 && instance_version < utils::Version(8, 0, 23)) {
+    if (group_replication && (slave_p_workers.value_or(0) > 0) &&
+        instance_version < utils::Version(8, 0, 23)) {
       std::vector<std::string> slave_parallel_vec = {"LOGICAL_CLOCK"};
       std::vector<std::string> slave_commit_vec = {"ON", "1"};
       requirements.emplace_back(

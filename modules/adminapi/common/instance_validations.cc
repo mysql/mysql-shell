@@ -339,7 +339,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
 std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
     mysqlshdk::config::Config *const config, Cluster_type cluster_type,
-    const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
+    std::optional<bool> can_persist, bool *restart_needed,
     bool *mycnf_change_needed, bool *sysvar_change_needed,
     shcore::Value *ret_val) {
   // Check supported innodb_page_size (must be > 4k). See: BUG#27329079
@@ -442,7 +442,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
         base_msg += ": an option file is required";
       } else {
         if (*mycnf_change_needed) {
-          if (can_persist.is_null()) {
+          if (!can_persist.has_value()) {
             // 5.7 server, set persist is not supported
             base_msg += ": an option file is required";
           } else if (!*can_persist) {
@@ -464,19 +464,19 @@ void validate_performance_schema_enabled(
     const mysqlshdk::mysql::IInstance &instance) {
   log_info("Checking if performance_schema is enabled on instance '%s'.",
            instance.descr().c_str());
-  mysqlshdk::utils::nullable<bool> ps_enabled = instance.get_sysvar_bool(
-      "performance_schema", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
-  auto console = mysqlsh::current_console();
-  if (ps_enabled.is_null() || !*ps_enabled) {
-    console->print_error("Instance '" + instance.descr() +
-                         "' has the performance_schema "
-                         "disabled (performance_schema=OFF). Instances must "
-                         "have the performance_schema enabled to for InnoDB "
-                         "Cluster usage.");
-    throw shcore::Exception::runtime_error(
-        "performance_schema disabled on target instance.");
+  if (instance.get_sysvar_bool("performance_schema", false)) {
+    return;
   }
+
+  mysqlsh::current_console()->print_error(shcore::str_format(
+      "Instance '%s' has the performance_schema disabled "
+      "(performance_schema=OFF). Instances must have the performance_schema "
+      "enabled to for InnoDB Cluster usage.",
+      instance.descr().c_str()));
+
+  throw shcore::Exception::runtime_error(
+      "performance_schema disabled on target instance.");
 }
 
 void ensure_instance_not_belong_to_cluster(

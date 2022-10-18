@@ -1021,6 +1021,9 @@ std::string SHCORE_PUBLIC unquote_sql_string(const std::string &s) {
 }
 
 void sleep_ms(uint32_t ms) { shcore::current_interrupt()->wait(ms); }
+void sleep(std::chrono::milliseconds duration) {
+  shcore::current_interrupt()->wait(duration.count());
+}
 
 /*
  * Determines the current Operating System

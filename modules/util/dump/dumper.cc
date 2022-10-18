@@ -3998,9 +3998,9 @@ void Dumper::fetch_server_information() {
   const auto instance = mysqlshdk::mysql::Instance(session());
 
   m_server_version = Schema_dumper{session()}.server_version();
-  m_binlog_enabled = instance.get_sysvar_bool("log_bin").get_safe(false);
+  m_binlog_enabled = instance.get_sysvar_bool("log_bin").value_or(false);
   m_gtid_enabled = shcore::str_ibeginswith(
-      instance.get_sysvar_string("gtid_mode").get_safe("OFF"), "ON");
+      instance.get_sysvar_string("gtid_mode").value_or("OFF"), "ON");
 
   DBUG_EXECUTE_IF("dumper_binlog_disabled", { m_binlog_enabled = false; });
   DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });

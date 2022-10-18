@@ -27,6 +27,7 @@
 #include <cassert>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -34,7 +35,6 @@
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 using Warnings_callback =
@@ -55,13 +55,9 @@ enum class Var_qualifier {
   PERSIST_ONLY,
 };
 
-// Define the fence sysvar list.
-const std::vector<std::string> k_fence_sysvars{"read_only", "super_read_only",
-                                               "offline_mode"};
-
 struct Auth_options {
   std::string user;
-  mysqlshdk::utils::nullable<std::string> password;
+  std::optional<std::string> password;
   db::Ssl_options ssl_options;
 
   Auth_options() = default;
@@ -109,15 +105,51 @@ class IInstance {
 
   virtual void refresh() = 0;
 
-  virtual utils::nullable<bool> get_sysvar_bool(
-      const std::string &name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
-  virtual utils::nullable<std::string> get_sysvar_string(
-      const std::string &name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
-  virtual utils::nullable<int64_t> get_sysvar_int(
-      const std::string &name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
+  virtual std::optional<bool> get_sysvar_bool(
+      const std::string &name, const Var_qualifier scope) const = 0;
+  virtual std::optional<std::string> get_sysvar_string(
+      const std::string &name, const Var_qualifier scope) const = 0;
+  virtual std::optional<int64_t> get_sysvar_int(
+      const std::string &name, const Var_qualifier scope) const = 0;
+
+  // get_sysvar_ with a default value
+  bool get_sysvar_bool(const std::string &name, const Var_qualifier scope,
+                       bool default_value) const {
+    return get_sysvar_bool(name, scope).value_or(default_value);
+  }
+  std::string get_sysvar_string(const std::string &name,
+                                const Var_qualifier scope,
+                                const std::string &default_value) const {
+    return get_sysvar_string(name, scope).value_or(default_value);
+  }
+  int64_t get_sysvar_int(const std::string &name, const Var_qualifier scope,
+                         int64_t default_value) const {
+    return get_sysvar_int(name, scope).value_or(default_value);
+  }
+
+  // get_sysvar_ without scope (defaults to GLOBAL), with and without a
+  // default value
+  std::optional<bool> get_sysvar_bool(const std::string &name) const {
+    return get_sysvar_bool(name, Var_qualifier::GLOBAL);
+  }
+  std::optional<std::string> get_sysvar_string(const std::string &name) const {
+    return get_sysvar_string(name, Var_qualifier::GLOBAL);
+  }
+  std::optional<int64_t> get_sysvar_int(const std::string &name) const {
+    return get_sysvar_int(name, Var_qualifier::GLOBAL);
+  }
+  bool get_sysvar_bool(const std::string &name, bool default_value) const {
+    return get_sysvar_bool(name, Var_qualifier::GLOBAL).value_or(default_value);
+  }
+  std::string get_sysvar_string(const std::string &name,
+                                const std::string &default_value) const {
+    return get_sysvar_string(name, Var_qualifier::GLOBAL)
+        .value_or(default_value);
+  }
+  int64_t get_sysvar_int(const std::string &name, int64_t default_value) const {
+    return get_sysvar_int(name, Var_qualifier::GLOBAL).value_or(default_value);
+  }
+
   virtual void set_sysvar(
       const std::string &name, const std::string &value,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
@@ -130,13 +162,14 @@ class IInstance {
   virtual void set_sysvar_default(
       const std::string &name,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
+
   virtual bool has_variable_compiled_value(const std::string &name) const = 0;
   virtual bool is_performance_schema_enabled() const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
 
-  virtual std::map<std::string, utils::nullable<std::string>>
+  virtual std::map<std::string, std::optional<std::string>>
   get_system_variables_like(
       const std::string &pattern,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
@@ -145,7 +178,7 @@ class IInstance {
   virtual void close_session() const = 0;
   virtual void install_plugin(const std::string &plugin_name) const = 0;
   virtual void uninstall_plugin(const std::string &plugin_name) const = 0;
-  virtual utils::nullable<std::string> get_plugin_status(
+  virtual std::optional<std::string> get_plugin_status(
       const std::string &plugin_name) const = 0;
   virtual void create_user(
       const std::string &user, const std::string &host, const std::string &pwd,
@@ -166,8 +199,8 @@ class IInstance {
       bool allow_skip_grants_user = false) const = 0;
   virtual std::unique_ptr<User_privileges> get_current_user_privileges(
       bool allow_skip_grants_user = false) const = 0;
-  virtual utils::nullable<bool> is_set_persist_supported() const = 0;
-  virtual utils::nullable<std::string> get_persisted_value(
+  virtual std::optional<bool> is_set_persist_supported() const = 0;
+  virtual std::optional<std::string> get_persisted_value(
       const std::string &variable_name) const = 0;
 
   virtual std::vector<std::string> get_fence_sysvars() const = 0;
@@ -228,12 +261,10 @@ struct Suppress_binary_log {
     try {
       m_instance->suppress_binary_log(false);
     } catch (...) {
-      exception = std::current_exception();
     }
   }
 
   IInstance *m_instance;
-  std::exception_ptr exception;
 };
 
 /**
@@ -262,15 +293,17 @@ class Instance : public IInstance {
   // values that cannot change) to query the DB again, if they use a cache.
   void refresh() override;
 
-  utils::nullable<bool> get_sysvar_bool(
-      const std::string &name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
-  utils::nullable<std::string> get_sysvar_string(
-      const std::string &name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
-  utils::nullable<int64_t> get_sysvar_int(
-      const std::string &name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
+  std::optional<bool> get_sysvar_bool(const std::string &name,
+                                      const Var_qualifier scope) const override;
+  std::optional<std::string> get_sysvar_string(
+      const std::string &name, const Var_qualifier scope) const override;
+  std::optional<int64_t> get_sysvar_int(
+      const std::string &name, const Var_qualifier scope) const override;
+
+  // expose the overloaded methods
+  using IInstance::get_sysvar_bool;
+  using IInstance::get_sysvar_int;
+  using IInstance::get_sysvar_string;
 
   void set_sysvar(
       const std::string &name, const std::string &value,
@@ -284,6 +317,7 @@ class Instance : public IInstance {
   void set_sysvar_default(
       const std::string &name,
       const Var_qualifier qualifier = Var_qualifier::GLOBAL) const override;
+
   bool has_variable_compiled_value(const std::string &name) const override;
   bool is_performance_schema_enabled() const override;
 
@@ -292,15 +326,15 @@ class Instance : public IInstance {
   }
 
   void close_session() const override { _session->close(); }
-  std::map<std::string, utils::nullable<std::string>> get_system_variables(
+  std::map<std::string, std::optional<std::string>> get_system_variables(
       const std::vector<std::string> &names,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const;
-  std::map<std::string, utils::nullable<std::string>> get_system_variables_like(
+  std::map<std::string, std::optional<std::string>> get_system_variables_like(
       const std::string &pattern,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
-  utils::nullable<std::string> get_plugin_status(
+  std::optional<std::string> get_plugin_status(
       const std::string &plugin_name) const override;
   void create_user(
       const std::string &user, const std::string &host, const std::string &pwd,
@@ -340,11 +374,11 @@ class Instance : public IInstance {
    * Supported for server versions >= 8.0.11 as long as 'persisted_globals_load'
    * is enabled.
    *
-   * @return mysqlshdk::utils::nullable<bool> object with the value true if SET
+   * @return optional bool object with the value true if SET
    *         PERSIST is support, false if it is supported but
    *         'persisted_globals_load' is disabled, and null if not supported.
    */
-  utils::nullable<bool> is_set_persist_supported() const override;
+  std::optional<bool> is_set_persist_supported() const override;
 
   /**
    * Return the persisted value for the given variable.
@@ -359,7 +393,7 @@ class Instance : public IInstance {
    * @return nullable string with the persisted value for the specified
    *         variable, or null if no persisted value was found.
    */
-  utils::nullable<std::string> get_persisted_value(
+  std::optional<std::string> get_persisted_value(
       const std::string &variable_name) const override;
 
   std::vector<std::string> get_fence_sysvars() const override;
@@ -387,7 +421,7 @@ class Instance : public IInstance {
   mutable std::string m_version_compile_os;
   mutable std::string m_version_compile_machine;
   mutable std::string m_uuid;
-  mutable mysqlshdk::utils::nullable<uint32_t> m_id;
+  mutable std::optional<uint32_t> m_id;
   mutable std::string m_group_name;
   mutable std::string m_hostname;
   mutable int m_port = 0;

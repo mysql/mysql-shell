@@ -27,16 +27,16 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
-
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace config {
 
-static constexpr char k_dft_cfg_server_handler[] = "config_server";
-static constexpr char k_dft_cfg_file_handler[] = "config_file";
+inline constexpr char k_dft_cfg_server_handler[] = "config_server";
+inline constexpr char k_dft_cfg_file_handler[] = "config_file";
 
 /**
  * Interface to be implemented by any configuration handler.
@@ -58,17 +58,16 @@ class IConfig_handler {
  public:
   virtual ~IConfig_handler() = default;
 
-  virtual utils::nullable<bool> get_bool(const std::string &name) const = 0;
-  virtual utils::nullable<std::string> get_string(
+  virtual std::optional<bool> get_bool(const std::string &name) const = 0;
+  virtual std::optional<std::string> get_string(
       const std::string &name) const = 0;
-  virtual utils::nullable<int64_t> get_int(const std::string &name) const = 0;
-  virtual void set(const std::string &name, const utils::nullable<bool> &value,
+  virtual std::optional<int64_t> get_int(const std::string &name) const = 0;
+  virtual void set(const std::string &name, std::optional<bool> value,
+                   const std::string &context) = 0;
+  virtual void set(const std::string &name, std::optional<int64_t> value,
                    const std::string &context) = 0;
   virtual void set(const std::string &name,
-                   const utils::nullable<int64_t> &value,
-                   const std::string &context) = 0;
-  virtual void set(const std::string &name,
-                   const utils::nullable<std::string> &value,
+                   const std::optional<std::string> &value,
                    const std::string &context) = 0;
   virtual void apply() = 0;
 
@@ -108,7 +107,7 @@ class Config : public IConfig_handler {
    * @return nullable boolean with the value for the specified configuration
    *         (from the default configuration handler).
    */
-  utils::nullable<bool> get_bool(const std::string &name) const override;
+  std::optional<bool> get_bool(const std::string &name) const override;
 
   /**
    * Get the string value for the specified configuration from the default
@@ -118,8 +117,7 @@ class Config : public IConfig_handler {
    * @return nullable string with the value for the specified configuration
    *         (from the default configuration handler).
    */
-  utils::nullable<std::string> get_string(
-      const std::string &name) const override;
+  std::optional<std::string> get_string(const std::string &name) const override;
 
   /**
    * Get the integer value for the specified configuration from the default
@@ -129,7 +127,7 @@ class Config : public IConfig_handler {
    * @return nullable integer with the value for the specified configuration
    *         (from the default configuration handler).
    */
-  utils::nullable<int64_t> get_int(const std::string &name) const override;
+  std::optional<int64_t> get_int(const std::string &name) const override;
 
   /**
    * Set the given configuration with the specified value (on all registered
@@ -140,7 +138,7 @@ class Config : public IConfig_handler {
    * @param context string with the configuration context to include in error
    *                messages if defined.
    */
-  void set(const std::string &name, const utils::nullable<bool> &value,
+  void set(const std::string &name, std::optional<bool> value,
            const std::string &context = "") override;
 
   /**
@@ -152,7 +150,7 @@ class Config : public IConfig_handler {
    * @param context string with the configuration context to include in error
    *                messages if defined.
    */
-  void set(const std::string &name, const utils::nullable<int64_t> &value,
+  void set(const std::string &name, std::optional<int64_t> value,
            const std::string &context = "") override;
 
   /**
@@ -164,7 +162,7 @@ class Config : public IConfig_handler {
    * @param context string with the configuration context to include in error
    *                messages if defined.
    */
-  void set(const std::string &name, const utils::nullable<std::string> &value,
+  void set(const std::string &name, const std::optional<std::string> &value,
            const std::string &context = "") override;
 
   /**
@@ -242,8 +240,8 @@ class Config : public IConfig_handler {
    *         (from the specified configuration handler).
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  utils::nullable<bool> get_bool(const std::string &name,
-                                 const std::string &handler_name) const;
+  std::optional<bool> get_bool(const std::string &name,
+                               const std::string &handler_name) const;
 
   /**
    * Get the string value for the specified configuration from the given
@@ -255,8 +253,8 @@ class Config : public IConfig_handler {
    *         (from the specified configuration handler).
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  utils::nullable<std::string> get_string(
-      const std::string &name, const std::string &handler_name) const;
+  std::optional<std::string> get_string(const std::string &name,
+                                        const std::string &handler_name) const;
 
   /**
    * Get the integer value for the specified configuration from the given
@@ -268,8 +266,8 @@ class Config : public IConfig_handler {
    *         (from the specified configuration handler).
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  utils::nullable<int64_t> get_int(const std::string &name,
-                                   const std::string &handler_name) const;
+  std::optional<int64_t> get_int(const std::string &name,
+                                 const std::string &handler_name) const;
 
   /**
    * Set the given configuration with the specified value on a specific
@@ -282,8 +280,7 @@ class Config : public IConfig_handler {
    *                messages if defined.
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  void set_for_handler(const std::string &name,
-                       const utils::nullable<bool> &value,
+  void set_for_handler(const std::string &name, std::optional<bool> value,
                        const std::string &handler_name,
                        const std::string &context = "");
 
@@ -298,8 +295,7 @@ class Config : public IConfig_handler {
    *                messages if defined.
    * @throw std::out_of_range if the specified handler does not exist.
    */
-  void set_for_handler(const std::string &name,
-                       const utils::nullable<int64_t> &value,
+  void set_for_handler(const std::string &name, std::optional<int64_t> value,
                        const std::string &handler_name,
                        const std::string &context = "");
 
@@ -315,7 +311,7 @@ class Config : public IConfig_handler {
    * @throw std::out_of_range if the specified handler does not exist.
    */
   void set_for_handler(const std::string &name,
-                       const utils::nullable<std::string> &value,
+                       const std::optional<std::string> &value,
                        const std::string &handler_name,
                        const std::string &context = "");
 
@@ -368,10 +364,10 @@ class Config : public IConfig_handler {
  * @param context (optional) string with the option context to appear in error
  *                messages.
  */
-void set_indexable_option(
-    mysqlshdk::config::Config *config, const std::string &option_name,
-    const mysqlshdk::utils::nullable<std::string> &option_value,
-    const std::string &context = "");
+void set_indexable_option(mysqlshdk::config::Config *config,
+                          const std::string &option_name,
+                          const std::optional<std::string> &option_value,
+                          const std::string &context = "");
 
 }  // namespace config
 }  // namespace mysqlshdk

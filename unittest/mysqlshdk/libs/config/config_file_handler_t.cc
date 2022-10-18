@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,7 @@
 
 using mysqlshdk::config::Config_file;
 using mysqlshdk::config::Config_file_handler;
-using mysqlshdk::utils::nullable;
+
 extern "C" const char *g_test_home;
 
 namespace testing {
@@ -59,7 +59,7 @@ TEST_F(Config_file_handler_test, test_get_bool) {
       Config_file_handler("uuid1", m_base_cfg_path, m_base_cfg_path);
   Config_file_handler cfg_handler_no_mysql_section = Config_file_handler(
       "uuid1", m_no_mysql_section_cfg_path, m_no_mysql_section_cfg_path);
-  mysqlshdk::utils::nullable<bool> res = cfg_handler.get_bool("bool_true1");
+  std::optional<bool> res = cfg_handler.get_bool("bool_true1");
   EXPECT_TRUE(*res);
   res = cfg_handler.get_bool("bool_true2");
   EXPECT_TRUE(*res);
@@ -73,7 +73,7 @@ TEST_F(Config_file_handler_test, test_get_bool) {
   EXPECT_FALSE(*res);
   // option without value should return null boolean
   res = cfg_handler.get_bool("no_comment_no-value");
-  EXPECT_TRUE(res.is_null());
+  EXPECT_TRUE(!res.has_value());
   // getting a bool value for option that cannot be converted
   EXPECT_THROW_LIKE(cfg_handler.get_bool("datadir"), std::runtime_error,
                     "The value of option 'datadir' cannot be converted to a "
@@ -93,7 +93,7 @@ TEST_F(Config_file_handler_test, test_get_int) {
       Config_file_handler("uuid1", m_base_cfg_path, m_base_cfg_path);
   Config_file_handler cfg_handler_no_mysql_section = Config_file_handler(
       "uuid1", m_no_mysql_section_cfg_path, m_no_mysql_section_cfg_path);
-  mysqlshdk::utils::nullable<int64_t> res = cfg_handler.get_int("positive_int");
+  std::optional<int64_t> res = cfg_handler.get_int("positive_int");
   EXPECT_EQ(*res, 123456);
   res = cfg_handler.get_int("negative_int");
   EXPECT_EQ(*res, -123456);
@@ -103,7 +103,7 @@ TEST_F(Config_file_handler_test, test_get_int) {
   EXPECT_EQ(*res, 0);
   // option without value should return null int
   res = cfg_handler.get_int("no_comment_no-value");
-  EXPECT_TRUE(res.is_null());
+  EXPECT_TRUE(!res.has_value());
   // getting an int value for option that cannot be converted
   EXPECT_THROW_LIKE(cfg_handler.get_int("datadir"), std::runtime_error,
                     "The value '/var/lib/mysql' for option 'datadir' cannot be "
@@ -127,7 +127,7 @@ TEST_F(Config_file_handler_test, test_get_string) {
       Config_file_handler("uuid1", m_base_cfg_path, m_base_cfg_path);
   Config_file_handler cfg_handler_no_mysql_section = Config_file_handler(
       "uuid1", m_no_mysql_section_cfg_path, m_no_mysql_section_cfg_path);
-  mysqlshdk::utils::nullable<std::string> res = cfg_handler.get_string("port");
+  std::optional<std::string> res = cfg_handler.get_string("port");
   EXPECT_STREQ((*res).c_str(), "1001");
   res = cfg_handler.get_string("backspace");
   EXPECT_STREQ((*res).c_str(), "\b");
@@ -154,7 +154,7 @@ TEST_F(Config_file_handler_test, test_get_string) {
 
   // option without value should return null string
   res = cfg_handler.get_string("no_comment_no-value");
-  EXPECT_TRUE(res.is_null());
+  EXPECT_TRUE(!res.has_value());
   // getting a string value for option that doesn't exist
   EXPECT_THROW_LIKE(cfg_handler.get_string("not there"), std::out_of_range,
                     "Option 'not there' does not exist in group 'mysqld'.")
@@ -178,7 +178,7 @@ TEST_F(Config_file_handler_test, test_set) {
         std::out_of_range,
         "Option 'set_bool_true' does not exist in group 'mysqld'.");
     cfg_handler_no_mysql_section.set("set_bool_true",
-                                     mysqlshdk::utils::nullable<bool>(true));
+                                     std::optional<bool>(true));
     EXPECT_TRUE(*(cfg_handler_no_mysql_section.get_bool("set_bool_true")));
 
     EXPECT_THROW_LIKE(
@@ -186,7 +186,7 @@ TEST_F(Config_file_handler_test, test_set) {
         std::out_of_range,
         "Option 'set_bool_false' does not exist in group 'mysqld'.");
     cfg_handler_no_mysql_section.set("set_bool_false",
-                                     mysqlshdk::utils::nullable<bool>(false));
+                                     std::optional<bool>(false));
     EXPECT_FALSE(*(cfg_handler_no_mysql_section.get_bool("set_bool_false")));
   }
   {
@@ -195,7 +195,7 @@ TEST_F(Config_file_handler_test, test_set) {
                       std::out_of_range,
                       "Option 'set_int_123' does not exist in group 'mysqld'.");
     cfg_handler_no_mysql_section.set("set_int_123",
-                                     mysqlshdk::utils::nullable<int64_t>(123));
+                                     std::optional<int64_t>(123));
     EXPECT_EQ(*(cfg_handler_no_mysql_section.get_int("set_int_123")), 123);
   }
   {
@@ -204,8 +204,8 @@ TEST_F(Config_file_handler_test, test_set) {
         cfg_handler_no_mysql_section.get_string("set_string_val"),
         std::out_of_range,
         "Option 'set_string_val' does not exist in group 'mysqld'.");
-    cfg_handler_no_mysql_section.set(
-        "set_string_val", mysqlshdk::utils::nullable<std::string>("val"));
+    cfg_handler_no_mysql_section.set("set_string_val",
+                                     std::optional<std::string>("val"));
     EXPECT_STREQ(
         (*(cfg_handler_no_mysql_section.get_string("set_string_val"))).c_str(),
         "val");
@@ -215,33 +215,32 @@ TEST_F(Config_file_handler_test, test_set) {
     // Test set with bool
     SCOPED_TRACE("Testing set method with existing bool");
     EXPECT_TRUE(*(cfg_handler.get_bool("bool-true3")));
-    cfg_handler.set("bool-true3", mysqlshdk::utils::nullable<bool>(false));
+    cfg_handler.set("bool-true3", std::optional<bool>(false));
     EXPECT_FALSE(*(cfg_handler.get_bool("bool-true3")));
-    cfg_handler.set("bool-true3", mysqlshdk::utils::nullable<bool>(true));
+    cfg_handler.set("bool-true3", std::optional<bool>(true));
     EXPECT_TRUE(*(cfg_handler.get_bool("bool-true3")));
   }
   {
     // test set int
     SCOPED_TRACE("Testing set method with existing int");
     EXPECT_EQ(*(cfg_handler.get_int("positive-int")), 123456);
-    cfg_handler.set("positive-int", mysqlshdk::utils::nullable<int64_t>(-25));
+    cfg_handler.set("positive-int", std::optional<int64_t>(-25));
     EXPECT_EQ(*(cfg_handler.get_int("positive-int")), -25);
   }
   {
     // test set string
     SCOPED_TRACE("Testing set method with existing string");
     EXPECT_STREQ((*(cfg_handler.get_string("space"))).c_str(), " ");
-    cfg_handler.set("space",
-                    mysqlshdk::utils::nullable<std::string>("hey space"));
+    cfg_handler.set("space", std::optional<std::string>("hey space"));
     EXPECT_STREQ((*(cfg_handler.get_string("space"))).c_str(), "hey space");
   }
   {
     // setting a value to null
     SCOPED_TRACE("Testing set method with null value");
-    cfg_handler.set("null", mysqlshdk::utils::nullable<std::string>());
-    EXPECT_TRUE(cfg_handler.get_bool("null").is_null());
-    EXPECT_TRUE(cfg_handler.get_int("null").is_null());
-    EXPECT_TRUE(cfg_handler.get_string("null").is_null());
+    cfg_handler.set("null", std::optional<std::string>());
+    EXPECT_TRUE(!cfg_handler.get_bool("null"));
+    EXPECT_TRUE(!cfg_handler.get_int("null"));
+    EXPECT_TRUE(!cfg_handler.get_string("null"));
   }
 }
 
@@ -258,20 +257,17 @@ TEST_F(Config_file_handler_test, test_apply) {
         Config_file_handler("uuid1", res_cfg_path, res_cfg_path);
 
     // set some existing options
-    cfg_handler.set("bool-true3", mysqlshdk::utils::nullable<bool>(false));
-    cfg_handler.set("positive-int", mysqlshdk::utils::nullable<int64_t>(-25));
-    cfg_handler.set("space",
-                    mysqlshdk::utils::nullable<std::string>("hey space"));
-    cfg_handler.set("binlog", mysqlshdk::utils::nullable<std::string>());
+    cfg_handler.set("bool-true3", std::optional<bool>(false));
+    cfg_handler.set("positive-int", std::optional<int64_t>(-25));
+    cfg_handler.set("space", std::optional<std::string>("hey space"));
+    cfg_handler.set("binlog", std::optional<std::string>());
 
     // set new options
-    cfg_handler.set("new_bool_true", mysqlshdk::utils::nullable<bool>(true));
-    cfg_handler.set("new_negative_int",
-                    mysqlshdk::utils::nullable<int64_t>(-93));
-    cfg_handler.set("new_positive_int",
-                    mysqlshdk::utils::nullable<int64_t>(93));
+    cfg_handler.set("new_bool_true", std::optional<bool>(true));
+    cfg_handler.set("new_negative_int", std::optional<int64_t>(-93));
+    cfg_handler.set("new_positive_int", std::optional<int64_t>(93));
 
-    cfg_handler.set("null", mysqlshdk::utils::nullable<std::string>());
+    cfg_handler.set("null", std::optional<std::string>());
     // open the file on another handler and check changes have not been
     // persisted before the apply
     Config_file_handler cfg_handler_cbefore =
@@ -303,16 +299,16 @@ TEST_F(Config_file_handler_test, test_apply) {
               *(cfg_handler.get_int("positive_int")));
     EXPECT_EQ(*(cfg_handler_cafter.get_string("space")),
               *(cfg_handler.get_string("space")));
-    EXPECT_EQ((cfg_handler_cafter.get_string("binlog")).is_null(),
-              (cfg_handler.get_string("binlog")).is_null());
+    EXPECT_EQ(!cfg_handler_cafter.get_string("binlog"),
+              !cfg_handler.get_string("binlog"));
     EXPECT_EQ(*(cfg_handler_cafter.get_bool("new_bool_true")),
               *(cfg_handler.get_bool("new_bool_true")));
     EXPECT_EQ(*(cfg_handler_cafter.get_int("new_negative_int")),
               *(cfg_handler.get_int("new_negative_int")));
     EXPECT_EQ(*(cfg_handler_cafter.get_int("new_positive_int")),
               *(cfg_handler.get_int("new_positive_int")));
-    EXPECT_EQ((cfg_handler_cafter.get_string("null")).is_null(),
-              (cfg_handler.get_string("null")).is_null());
+    EXPECT_EQ(!cfg_handler_cafter.get_string("null"),
+              !cfg_handler.get_string("null"));
 
     // Check that the other sections were not deleted after the apply
     // (BUG#29349014)
@@ -344,22 +340,17 @@ TEST_F(Config_file_handler_test, test_apply) {
         Config_file_handler("uuid1", res_cfg_path, new_res_cfg_path);
 
     // set some existing options
-    cfg_handler_out.set("bool-true3", mysqlshdk::utils::nullable<bool>(false));
-    cfg_handler_out.set("positive-int",
-                        mysqlshdk::utils::nullable<int64_t>(-25));
-    cfg_handler_out.set("space",
-                        mysqlshdk::utils::nullable<std::string>("hey space"));
-    cfg_handler_out.set("binlog", mysqlshdk::utils::nullable<std::string>());
+    cfg_handler_out.set("bool-true3", std::optional<bool>(false));
+    cfg_handler_out.set("positive-int", std::optional<int64_t>(-25));
+    cfg_handler_out.set("space", std::optional<std::string>("hey space"));
+    cfg_handler_out.set("binlog", std::optional<std::string>());
 
     // set new options
-    cfg_handler_out.set("new_bool_true",
-                        mysqlshdk::utils::nullable<bool>(true));
-    cfg_handler_out.set("new_negative_int",
-                        mysqlshdk::utils::nullable<int64_t>(-93));
-    cfg_handler_out.set("new_positive_int",
-                        mysqlshdk::utils::nullable<int64_t>(93));
+    cfg_handler_out.set("new_bool_true", std::optional<bool>(true));
+    cfg_handler_out.set("new_negative_int", std::optional<int64_t>(-93));
+    cfg_handler_out.set("new_positive_int", std::optional<int64_t>(93));
 
-    cfg_handler_out.set("null", mysqlshdk::utils::nullable<std::string>());
+    cfg_handler_out.set("null", std::optional<std::string>());
 
     // apply changes
     cfg_handler_out.apply();
@@ -393,16 +384,16 @@ TEST_F(Config_file_handler_test, test_apply) {
               *(cfg_handler_out.get_int("positive_int")));
     EXPECT_EQ(*(cfg_handler_out_cafter.get_string("space")),
               *(cfg_handler_out.get_string("space")));
-    EXPECT_EQ((cfg_handler_out_cafter.get_string("binlog")).is_null(),
-              (cfg_handler_out.get_string("binlog")).is_null());
+    EXPECT_EQ(!cfg_handler_out_cafter.get_string("binlog"),
+              !cfg_handler_out.get_string("binlog"));
     EXPECT_EQ(*(cfg_handler_out_cafter.get_bool("new_bool_true")),
               *(cfg_handler_out.get_bool("new_bool_true")));
     EXPECT_EQ(*(cfg_handler_out_cafter.get_int("new_negative_int")),
               *(cfg_handler_out.get_int("new_negative_int")));
     EXPECT_EQ(*(cfg_handler_out_cafter.get_int("new_positive_int")),
               *(cfg_handler_out.get_int("new_positive_int")));
-    EXPECT_EQ((cfg_handler_out_cafter.get_string("null")).is_null(),
-              (cfg_handler_out.get_string("null")).is_null());
+    EXPECT_EQ(!cfg_handler_out_cafter.get_string("null"),
+              !cfg_handler_out.get_string("null"));
 
     // Delete configuration files that were created
     shcore::delete_file(res_cfg_path, true);
@@ -411,7 +402,6 @@ TEST_F(Config_file_handler_test, test_apply) {
 }
 
 TEST_F(Config_file_handler_test, test_remove) {
-  using mysqlshdk::utils::nullable;
   {
     SCOPED_TRACE("Testing removing an option from 'mysqld' group.");
     Config_file_handler cfg_handler =
@@ -453,55 +443,55 @@ TEST_F(Config_file_handler_test, test_set_now) {
   Config_file_handler cfg_handler = Config_file_handler("abc1", res_cfg_path);
 
   // Set new options immediately (do not wait for apply()).
-  cfg_handler.set_now("bool_true", nullable<bool>(true));
-  cfg_handler.set_now("positive-int", nullable<int64_t>(25));
-  cfg_handler.set_now("negative_int", nullable<int64_t>(-93));
-  cfg_handler.set_now("space", nullable<std::string>("hey space"));
-  cfg_handler.set_now("null", nullable<std::string>());
+  cfg_handler.set_now("bool_true", std::optional<bool>(true));
+  cfg_handler.set_now("positive-int", std::optional<int64_t>(25));
+  cfg_handler.set_now("negative_int", std::optional<int64_t>(-93));
+  cfg_handler.set_now("space", std::optional<std::string>("hey space"));
+  cfg_handler.set_now("null", std::optional<std::string>());
   EXPECT_EQ("abc1", cfg_handler.get_server_uuid());
 
   // Open the file on another handler and confirm changes have been applied.
   Config_file_handler cfg_handler_res =
       Config_file_handler("abc2", res_cfg_path, res_cfg_path);
-  nullable<bool> bool_val = cfg_handler_res.get_bool("bool_true");
-  EXPECT_FALSE(bool_val.is_null());
+  std::optional<bool> bool_val = cfg_handler_res.get_bool("bool_true");
+  EXPECT_FALSE(!bool_val.has_value());
   EXPECT_TRUE(*bool_val);
-  nullable<int64_t> int_val = cfg_handler_res.get_int("positive_int");
-  EXPECT_FALSE(int_val.is_null());
+  std::optional<int64_t> int_val = cfg_handler_res.get_int("positive_int");
+  EXPECT_FALSE(!int_val.has_value());
   EXPECT_EQ(25, *int_val);
   int_val = cfg_handler_res.get_int("negative_int");
-  EXPECT_FALSE(int_val.is_null());
+  EXPECT_FALSE(!int_val.has_value());
   EXPECT_EQ(-93, *int_val);
-  nullable<std::string> str_val = cfg_handler_res.get_string("space");
-  EXPECT_FALSE(str_val.is_null());
+  std::optional<std::string> str_val = cfg_handler_res.get_string("space");
+  EXPECT_FALSE(!str_val.has_value());
   EXPECT_STREQ("hey space", (*str_val).c_str());
   str_val = cfg_handler_res.get_string("null");
-  EXPECT_TRUE(str_val.is_null());
+  EXPECT_TRUE(!str_val.has_value());
   EXPECT_EQ("abc2", cfg_handler_res.get_server_uuid());
 
   // Set some existing options immediately (do not wait for apply()).
-  cfg_handler.set_now("bool_true", nullable<bool>(false));
-  cfg_handler.set_now("positive-int", nullable<int64_t>(52));
-  cfg_handler.set_now("negative_int", nullable<int64_t>(-39));
-  cfg_handler.set_now("space", nullable<std::string>("hey still space"));
-  cfg_handler.set_now("null", nullable<std::string>());
+  cfg_handler.set_now("bool_true", std::optional<bool>(false));
+  cfg_handler.set_now("positive-int", std::optional<int64_t>(52));
+  cfg_handler.set_now("negative_int", std::optional<int64_t>(-39));
+  cfg_handler.set_now("space", std::optional<std::string>("hey still space"));
+  cfg_handler.set_now("null", std::optional<std::string>());
 
   // Open the file on another handler and confirm changes have been applied.
   cfg_handler_res = Config_file_handler("abc3", res_cfg_path, res_cfg_path);
   bool_val = cfg_handler_res.get_bool("bool_true");
-  EXPECT_FALSE(bool_val.is_null());
+  EXPECT_FALSE(!bool_val.has_value());
   EXPECT_FALSE(*bool_val);
   int_val = cfg_handler_res.get_int("positive_int");
-  EXPECT_FALSE(int_val.is_null());
+  EXPECT_FALSE(!int_val.has_value());
   EXPECT_EQ(52, *int_val);
   int_val = cfg_handler_res.get_int("negative_int");
-  EXPECT_FALSE(int_val.is_null());
+  EXPECT_FALSE(!int_val.has_value());
   EXPECT_EQ(-39, *int_val);
   str_val = cfg_handler_res.get_string("space");
-  EXPECT_FALSE(str_val.is_null());
+  EXPECT_FALSE(!str_val.has_value());
   EXPECT_STREQ("hey still space", (*str_val).c_str());
   str_val = cfg_handler_res.get_string("null");
-  EXPECT_TRUE(str_val.is_null());
+  EXPECT_TRUE(!str_val.has_value());
   EXPECT_EQ("abc3", cfg_handler_res.get_server_uuid());
 
   // Delete option file that was created.
