@@ -1919,7 +1919,11 @@ py::Release wrap(const std::shared_ptr<Value::Array_type> &array) {
   // PyObject_New only initializes Python's object fields, zero-initialize base
   // list object
   wrapper->base.ob_item = nullptr;
+#if PY_VERSION_HEX >= 0x03090000
+  Py_SET_SIZE(&wrapper->base, 0);
+#else
   Py_SIZE(&wrapper->base) = 0;
+#endif
   wrapper->base.allocated = 0;
 
   return py::Release{reinterpret_cast<PyObject *>(wrapper)};

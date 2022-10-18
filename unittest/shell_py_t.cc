@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
+
+#include <Python.h>
 
 namespace mysqlsh {
 
@@ -75,15 +77,24 @@ TEST_F(Shell_python, help) {
   execute("help()");
   EXPECT_EQ("", output_handler.std_err);
   MY_EXPECT_STDOUT_NOT_CONTAINS("AttributeError");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "You are now leaving help and returning to the Python interpreter");
   output_handler.wipe_all();
 
   output_handler.feed_to_prompt("spam");
   output_handler.feed_to_prompt("");
   execute("help()");
-  // "No Python ..." if PY_VERSION_HEX >= 0x03050000, else "no Python ..."
-  MY_EXPECT_STDOUT_CONTAINS("o Python documentation found for 'spam'");
+
+#if PY_VERSION_HEX >= 0x030b0000
+  // starting with Python 3.11, querying for a non-existing entry results in an
+  // exception
+  MY_EXPECT_STDERR_CONTAINS(
+      "ImportError: No Python documentation found for 'spam'");
+#else   // PY_VERSION_HEX < 0x030b0000
+  MY_EXPECT_STDOUT_CONTAINS("No Python documentation found for 'spam'");
   MY_EXPECT_STDOUT_CONTAINS(
       "You are now leaving help and returning to the Python interpreter");
+#endif  // PY_VERSION_HEX < 0x030b0000
 }
 #endif
 
