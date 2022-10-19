@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -109,8 +109,8 @@ class Resultset_dumper_base {
  protected:
   Resultset_dumper_base(mysqlshdk::db::IResult *target,
                         std::unique_ptr<Resultset_printer> printer,
-                        const std::string &wrap_json,
-                        const std::string &format);
+                        const std::string &wrap_json, const std::string &format,
+                        bool show_column_type_info = false);
 
   size_t dump_tabbed();
   size_t dump_table();
@@ -118,6 +118,7 @@ class Resultset_dumper_base {
   size_t dump_documents(bool is_doc_result);
   size_t dump_json(const std::string &item_label, bool is_doc_result);
   void dump_warnings();
+  void dump_metadata();
 
   size_t format_vertical(bool has_header, bool align_right,
                          size_t min_label_width);
@@ -127,6 +128,7 @@ class Resultset_dumper_base {
   std::string m_format;
   bool m_cancelled = false;
   std::unique_ptr<Resultset_printer> m_printer;
+  bool m_show_column_type_info;
 };
 
 /**
@@ -137,8 +139,9 @@ class Resultset_dumper : public Resultset_dumper_base {
  public:
   Resultset_dumper(mysqlshdk::db::IResult *target, const std::string &wrap_json,
                    const std::string &format, bool show_warnings,
-                   bool show_stats);
-  explicit Resultset_dumper(mysqlshdk::db::IResult *target);
+                   bool show_stats, bool show_column_type_info = false);
+  explicit Resultset_dumper(mysqlshdk::db::IResult *target,
+                            bool show_column_type_info = false);
 
   ~Resultset_dumper() override = default;
 

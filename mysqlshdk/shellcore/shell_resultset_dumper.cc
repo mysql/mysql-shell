@@ -492,27 +492,32 @@ class String_printer : public Resultset_printer {
 
 Resultset_dumper_base::Resultset_dumper_base(
     mysqlshdk::db::IResult *target, std::unique_ptr<Resultset_printer> printer,
-    const std::string &wrap_json, const std::string &format)
+    const std::string &wrap_json, const std::string &format,
+    bool show_column_type_info)
     : m_result(target),
       m_wrap_json(wrap_json),
       m_format(format),
-      m_printer(std::move(printer)) {
+      m_printer(std::move(printer)),
+      m_show_column_type_info(show_column_type_info) {
   if (m_format == "ndjson") m_format = "json/raw";
 }
 
-Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target)
+Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
+                                   bool show_column_type_info)
     : Resultset_dumper(target,
                        mysqlsh::current_shell_options()->get().wrap_json,
                        mysqlsh::current_shell_options()->get().result_format,
                        mysqlsh::current_shell_options()->get().show_warnings,
-                       mysqlsh::current_shell_options()->get().interactive) {}
+                       mysqlsh::current_shell_options()->get().interactive,
+                       show_column_type_info) {}
 
 Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
                                    const std::string &wrap_json,
                                    const std::string &format,
-                                   bool show_warnings, bool show_stats)
+                                   bool show_warnings, bool show_stats,
+                                   bool show_column_type_info)
     : Resultset_dumper_base(target, std::make_unique<Console_printer>(),
-                            wrap_json, format),
+                            wrap_json, format, show_column_type_info),
       m_show_warnings(show_warnings),
       m_show_stats(show_stats) {}
 
@@ -525,11 +530,11 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
     return true;
   });
 
-  if (m_wrap_json != "off") {
-    total_count = dump_json(item_label, is_doc_result);
-  } else {
-    bool first = true;
-    do {
+  bool first = true;
+  do {
+    if (m_wrap_json != "off") {
+      total_count = dump_json(item_label, is_doc_result);
+    } else {
       size_t count = 0;
       // Prints a blank line between multi-results
       if (first) {
@@ -539,6 +544,8 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
       }
 
       if (m_result->has_resultset()) {
+        if (m_show_column_type_info) dump_metadata();
+
         if (is_doc_result || m_format.find("json") != std::string::npos)
           count = dump_documents(is_doc_result);
         else if (m_format == "vertical")
@@ -579,9 +586,8 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
 
       // Prints the warnings if there were any
       if (warning_count && m_show_warnings) dump_warnings();
-
-    } while (m_result->next_resultset() && !m_cancelled);
-  }
+    }
+  } while (m_result->next_resultset() && !m_cancelled);
 
   if (m_cancelled)
     m_printer->println(
@@ -816,6 +822,8 @@ size_t Resultset_dumper_base::dump_json(const std::string &item_label,
 
   size_t row_count = 0;
   if (m_result->has_resultset()) {
+    if (m_show_column_type_info) dump_metadata();
+
     const auto &metadata = m_result->get_metadata();
     auto row = m_result->fetch_one();
     while (row) {
@@ -1051,6 +1059,44 @@ void Resultset_dumper_base::dump_warnings() {
                                          warning->code, warning->msg.c_str())));
 
     warning = m_result->fetch_one_warning();
+  }
+}
+
+namespace {
+void column_to_json(shcore::JSON_dumper *dumper,
+                    const mysqlshdk::db::Column &column) {
+  dumper->start_object();
+  std::stringstream ss(to_string(column));
+  std::string line;
+  while (std::getline(ss, line)) {
+    auto sep = line.find(":");
+    assert(sep + 1 < line.length());
+    dumper->append_string(line.substr(0, sep));
+    dumper->append_string(shcore::str_strip(line.substr(sep + 1)));
+  }
+  dumper->end_object();
+}
+}  // namespace
+
+void Resultset_dumper_base::dump_metadata() {
+  const auto &cols = m_result->get_metadata();
+  if (m_wrap_json != "off") {
+    shcore::JSON_dumper dumper(
+        m_wrap_json == "json",
+        mysqlsh::current_shell_options()->get().binary_limit);
+    dumper.start_object();
+    for (std::size_t i = 0; i < cols.size(); i++) {
+      dumper.append_string(shcore::str_format("Field %zu", i + 1));
+      column_to_json(&dumper, cols[i]);
+    }
+    dumper.end_object();
+    m_printer->raw_print(dumper.str());
+    m_printer->raw_print("\n");
+  } else {
+    for (std::size_t i = 0; i < cols.size(); i++) {
+      m_printer->println(shcore::str_format("Field %zu", i + 1));
+      m_printer->println(to_string(cols[i]));
+    }
   }
 }
 

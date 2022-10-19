@@ -1800,37 +1800,6 @@ void Mysql_shell::process_sql_result(
       pager = current_console()->enable_pager();
     }
 
-    if (options().show_column_type_info) {
-      auto cols = result->get_metadata();
-      auto console = mysqlsh::current_console();
-      if (options().wrap_json != "off") {
-        shcore::JSON_dumper dumper(options().wrap_json == "json",
-                                   options().binary_limit);
-        dumper.start_object();
-        for (std::size_t i = 0; i < cols.size(); i++) {
-          dumper.append_string(shcore::str_format("Field %zu", i + 1));
-          dumper.start_object();
-          std::stringstream ss(to_string(cols[i]));
-          std::string line;
-          while (std::getline(ss, line)) {
-            auto sep = line.find(":");
-            assert(sep + 1 < line.length());
-            dumper.append_string(line.substr(0, sep));
-            dumper.append_string(shcore::str_strip(line.substr(sep + 1)));
-          }
-          dumper.end_object();
-        }
-        dumper.end_object();
-        console->raw_print(dumper.str(), mysqlsh::Output_stream::STDOUT, false);
-        console->raw_print("\n", mysqlsh::Output_stream::STDOUT, false);
-      } else {
-        for (std::size_t i = 0; i < cols.size(); i++) {
-          console->println(shcore::str_format("Field %zu", i + 1));
-          console->println(to_string(cols[i]));
-        }
-      }
-    }
-
     auto old_format = options().result_format;
     if (info.show_vertical)
       mysqlsh::current_shell_options()->set_result_format("vertical");
@@ -1838,7 +1807,9 @@ void Mysql_shell::process_sql_result(
       mysqlsh::current_shell_options()->set_result_format(old_format);
     });
 
-    Resultset_dumper dumper(result.get());
+    Resultset_dumper dumper(
+        result.get(),
+        mysqlsh::current_shell_options()->get().show_column_type_info);
     dumper.dump("row", false, false);
 
     auto cresult = dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get());

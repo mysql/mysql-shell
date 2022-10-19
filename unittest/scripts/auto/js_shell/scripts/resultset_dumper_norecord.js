@@ -187,8 +187,22 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`+------+------+------+------+------+----------
 | 0x01 | 0x02 | 0x05 | 0x09 | 0x11 | 0x00000000015695 | 0x00000000002AFC0C |
 +------+------+------+------+------+------------------+--------------------+`);
 
+//@ Show Column Info Multiple Results
+function callMysqlsh(additional_args) {
+  base_args = [__mysqluripwd, "--quiet-start=2"]
+  testutil.callMysqlsh(base_args.concat(additional_args), "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+}
+
+session.runSql("CREATE SCHEMA bug34716739");
+session.runSql("CREATE PROCEDURE bug34716739.my_proc() BEGIN SELECT 1; SELECT 2; END;");
+callMysqlsh(["--column-type-info", "--sql", "-e", "call bug34716739.my_proc()"])
+
+//@<> Multiple Results JSON Mode
+callMysqlsh(["--json=raw", "--sql", "-e", "call bug34716739.my_proc()"])
+
 //@<> cleanup
-//session.dropSchema('resultset_dumper');
+session.runSql("DROP SCHEMA IF EXISTS bug34716739");
+session.runSql("DROP SCHEMA IF EXISTS resultset_dumper");
 session.close();
 
 //----------------------------------------------------------------
