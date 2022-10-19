@@ -1205,7 +1205,15 @@ void Command_line_shell::print_cmd_line_helper() {
 --login-path=#          Read this path from the login file.");
 
   my_print_default_files("my");
-  println("The following groups are read: mysqlsh client");
+  {
+    std::string groups;
+    if (my_defaults_group_suffix) {
+      for (const auto *g : {"mysqlsh", "client"}) {
+        groups.append(" ").append(g).append(my_defaults_group_suffix);
+      }
+    }
+    println("The following groups are read: mysqlsh client" + groups);
+  }
 
   println("");
   println("Usage examples:");

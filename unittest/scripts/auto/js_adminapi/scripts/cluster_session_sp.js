@@ -372,9 +372,9 @@ EXPECT_NO_THROWS(function() { cluster = dba.getCluster(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: Error connecting to Cluster: MYSQLSH 51004: Unable to connect to the primary member of the Cluster: 'Can't connect to MySQL server on");
 EXPECT_OUTPUT_CONTAINS("Retrying getCluster() using a secondary member");
 
-//@ SP - getCluster() on session to secondary with primary failover not complete - auto-redirect to secondary
-testutil.waitMemberState(__mysql_sandbox_port1, "UNREACHABLE");
+testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING),UNREACHABLE");
 
+//@ SP - getCluster() on session to secondary with primary failover not complete - auto-redirect to secondary {VER(>=8.0)}
 var cluster = dba.getCluster();
 EXPECT_OUTPUT_CONTAINS("WARNING: Error connecting to Cluster: MYSQLSH 51004: Unable to find a primary member in the Cluster");
 EXPECT_OUTPUT_CONTAINS("Retrying getCluster() using a secondary member");
@@ -382,7 +382,10 @@ EXPECT_OUTPUT_CONTAINS("Retrying getCluster() using a secondary member");
 shell.status();
 cluster.status();
 
+//@ SP - Dissolve the single-primary cluster while still connected to a secondary
 testutil.startSandbox(__mysql_sandbox_port1);
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 if (__version_num < 80000) {
   cluster.rejoinInstance(__sandbox_uri1);
@@ -392,8 +395,6 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 cluster.disconnect();
 
-//@ SP - Dissolve the single-primary cluster while still connected to a secondary
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("select * from performance_schema.replication_group_members");
 cluster = dba.getCluster();
 cluster.removeInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

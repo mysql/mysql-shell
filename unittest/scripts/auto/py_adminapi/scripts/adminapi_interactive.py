@@ -239,12 +239,12 @@ c.status()
 #@ Restart instance 2 - quorum-loss
 testutil.start_sandbox(__mysql_sandbox_port2)
 testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port2, 'root')
-testutil.wait_member_state(__mysql_sandbox_port2, "ONLINE")
+testutil.wait_member_state(__mysql_sandbox_port2, "ONLINE", True)
 
 #@ Restart instance 3 - quorum-loss
 testutil.start_sandbox(__mysql_sandbox_port3)
 testutil.wait_for_delayed_g_r_start(__mysql_sandbox_port3, 'root')
-testutil.wait_member_state(__mysql_sandbox_port3, "ONLINE")
+testutil.wait_member_state(__mysql_sandbox_port3, "ONLINE", True)
 
 #@<OUT> Verify the final cluster status
 c.status()
