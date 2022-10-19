@@ -113,7 +113,7 @@ std::string Uri_encoder::encode_uri(const IUri_encodable &info,
     for (const auto &attribute : query_attributes) {
       // We must ensure only the attributes supported on the query part are
       // included (i.e. discarding internal ones)
-      if (attribute.second.is_null()) {
+      if (!attribute.second.has_value()) {
         attributes.push_back(encode_attribute(attribute.first));
       } else {
         attributes.push_back(encode_attribute(attribute.first) + "=" +

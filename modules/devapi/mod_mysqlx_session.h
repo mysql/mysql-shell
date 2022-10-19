@@ -35,7 +35,6 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/base_session.h"
-#include "utils/nullable.h"
 
 namespace shcore {
 class Proxy_object;

@@ -28,7 +28,6 @@
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/libs/utils/nullable_options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {

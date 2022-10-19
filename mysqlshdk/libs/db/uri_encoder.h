@@ -36,7 +36,7 @@ namespace mysqlshdk {
 namespace db {
 namespace uri {
 
-class SHCORE_PUBLIC Uri_encoder {
+class Uri_encoder {
  public:
   Uri_encoder() = default;
   std::string encode_uri(const IUri_encodable &info,

@@ -23,11 +23,13 @@
 
 #ifndef MYSQLSHDK_LIBS_SSH_SSH_CONNECTION_OPTIONS_H_
 #define MYSQLSHDK_LIBS_SSH_SSH_CONNECTION_OPTIONS_H_
+#include <optional>
 #include <set>
 #include <string>
+
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/connection.h"
-#include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/nullable_options.h"
 
 namespace mysqlshdk {
 namespace ssh {
@@ -56,7 +58,7 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
   }
 
   void set_remote_port(int port) {
-    if (m_remote_port.is_null()) {
+    if (!m_remote_port.has_value()) {
       m_remote_port = port;
     } else {
       throw std::invalid_argument(shcore::str_format(
@@ -66,7 +68,7 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
   }
 
   void set_local_port(int port) {
-    if (m_local_port.is_null()) {
+    if (!m_local_port.has_value()) {
       m_local_port = port;
     } else {
       throw std::invalid_argument(shcore::str_format(
@@ -96,8 +98,8 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
   virtual bool has_remote_host() const {
     return has_value(mysqlshdk::db::kSshRemoteHost);
   }
-  virtual bool has_remote_port() const { return !m_remote_port.is_null(); }
-  virtual bool has_local_port() const { return !m_local_port.is_null(); }
+  virtual bool has_remote_port() const { return m_remote_port.has_value(); }
+  virtual bool has_local_port() const { return m_local_port.has_value(); }
 
   bool has_key_file() const {
     return has_value(mysqlshdk::db::kSshIdentityFile);
@@ -119,7 +121,7 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
    * The port of the remote service that will be forwarded.
    */
   const int &get_remote_port() const {
-    if (m_remote_port.is_null()) {
+    if (!m_remote_port.has_value()) {
       throw std::runtime_error(
           "Internal option 'ssh-remote-port' has no value.");
     }
@@ -128,7 +130,7 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
   }
 
   const int &get_local_port() const {
-    if (m_local_port.is_null()) {
+    if (!m_local_port.has_value()) {
       throw std::runtime_error(
           "Internal option 'ssh-local-port' has no value.");
     }
@@ -188,16 +190,16 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
   bool has_value(const std::string &name) const override;
   const std::string &get(const std::string &name) const override;
   int get_numeric(const std::string &name) const override;
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> query_attributes()
-      const override {
+  std::vector<std::pair<std::string, std::optional<std::string>>>
+  query_attributes() const override {
     return {};
   };
 
  private:
   void check_key_encryption(const std::string &path);
 
-  mysqlshdk::utils::nullable<int> m_remote_port;
-  mysqlshdk::utils::nullable<int> m_local_port;
+  std::optional<int> m_remote_port;
+  std::optional<int> m_local_port;
   std::size_t m_connection_timeout = 10;
   std::string m_sourcehost = "127.0.0.1";
   bool m_key_encrypted = false;

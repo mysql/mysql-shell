@@ -115,7 +115,7 @@ void Session_impl::connect(
     for (const auto &att : _connection_options.get_connection_attributes()) {
       std::string attribute = att.first;
       std::string value;
-      if (!att.second.is_null()) {
+      if (att.second.has_value()) {
         value = *att.second;
       }
 

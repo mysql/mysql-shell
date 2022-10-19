@@ -33,7 +33,6 @@
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {

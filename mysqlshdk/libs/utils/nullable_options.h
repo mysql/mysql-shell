@@ -26,11 +26,11 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -49,7 +49,7 @@ enum class Comparison_mode { CASE_SENSITIVE, CASE_INSENSITIVE };
 using nullable_options::Comparison_mode;
 using nullable_options::Set_mode;
 
-typedef std::map<std::string, mysqlshdk::utils::nullable<std::string>,
+typedef std::map<std::string, std::optional<std::string>,
                  bool (*)(const std::string &, const std::string &)>
     container;
 typedef container::const_iterator const_iterator;

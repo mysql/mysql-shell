@@ -66,7 +66,7 @@ bool Nullable_options::has(const std::string &name) const {
 bool Nullable_options::has_value(const std::string &name) const {
   if (!has(name)) throw_invalid_option(name);
 
-  return !_options.at(name).is_null();
+  return _options.at(name).has_value();
 }
 
 void Nullable_options::set(const std::string &name, const std::string &value,
@@ -106,7 +106,7 @@ void Nullable_options::set(const std::string &name, const char *value,
   if (value)
     _options[name] = value;
   else
-    _options[name] = nullable<std::string>();
+    _options[name] = {};
 }
 
 void Nullable_options::set_default(const std::string &name, const char *value) {
@@ -157,7 +157,7 @@ void Nullable_options::remove(const std::string &name) {
 void Nullable_options::override_from(const Nullable_options &options,
                                      bool skip_null) {
   for (auto &o : options._options) {
-    if (!o.second.is_null())
+    if (o.second.has_value())
       set(o.first, *o.second, Set_mode::CREATE_AND_UPDATE);
     else if (!skip_null)
       set(o.first, nullptr, Set_mode::CREATE_AND_UPDATE);

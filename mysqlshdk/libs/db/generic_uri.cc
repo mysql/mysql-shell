@@ -75,7 +75,8 @@ bool Generic_uri::has_value(const std::string &name) const {
 
   const auto &item = std::find_if(
       query.begin(), query.end(),
-      [&name](const std::pair<std::string, mysqlshdk::null_string> &member) {
+      [&name](
+          const std::pair<std::string, std::optional<std::string>> &member) {
         return member.first == name;
       });
 
@@ -91,7 +92,8 @@ const std::string &Generic_uri::get(const std::string &name) const {
 
   const auto &item = std::find_if(
       query.begin(), query.end(),
-      [&name](const std::pair<std::string, mysqlshdk::null_string> &member) {
+      [&name](
+          const std::pair<std::string, std::optional<std::string>> &member) {
         return member.first == name;
       });
 
@@ -113,9 +115,9 @@ int Generic_uri::get_numeric(const std::string &name) const {
       shcore::str_format("Invalid URI property: %s", name.c_str()));
 }
 
-std::vector<std::pair<std::string, mysqlshdk::null_string>>
+std::vector<std::pair<std::string, std::optional<std::string>>>
 Generic_uri::query_attributes() const {
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> attributes;
+  std::vector<std::pair<std::string, std::optional<std::string>>> attributes;
   for (const auto &att : query) {
     if (att.first != db::kSocket) {
       attributes.push_back(att);

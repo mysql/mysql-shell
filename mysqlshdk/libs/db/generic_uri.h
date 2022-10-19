@@ -21,7 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mysqlshdk/libs/db/uri_common.h"
-#include "mysqlshdk/libs/utils/nullable_options.h"
 
 #ifndef MYSQLSHDK_LIBS_DB_GENERIC_URI_H_
 #define MYSQLSHDK_LIBS_DB_GENERIC_URI_H_
@@ -60,8 +59,8 @@ struct Generic_uri : public Uri_serializable {
   bool has_value(const std::string &name) const override;
   const std::string &get(const std::string &name) const override;
   int get_numeric(const std::string &name) const override;
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> query_attributes()
-      const override;
+  std::vector<std::pair<std::string, std::optional<std::string>>>
+  query_attributes() const override;
 
   std::string scheme;
   std::string user;
@@ -69,7 +68,7 @@ struct Generic_uri : public Uri_serializable {
   std::string host;
   std::optional<int> port;
   std::string path;
-  std::vector<std::pair<std::string, mysqlshdk::null_string>> query;
+  std::vector<std::pair<std::string, std::optional<std::string>>> query;
 };
 
 }  // namespace uri
