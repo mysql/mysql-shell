@@ -55,7 +55,7 @@ prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_u
 //@<> upgradeMetadata, installed version is greater than current version
 set_metadata_version(major, minor, patch + 1)
 var installed_version = testutil.getInstalledMetadataVersion();
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is newer than the version version supported by this Shell (installed: ${installed_version}, shell: ${current_version})`);
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is newer than the version supported by this Shell (installed: ${installed_version}, shell: ${current_version})`);
 
 //@<> upgradeMetadata, installed version is unknown
 set_metadata_version(major, minor, -1)
