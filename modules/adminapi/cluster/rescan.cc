@@ -209,7 +209,8 @@ void Rescan::prepare() {
   }
 }
 
-void Rescan::check_mismatched_hostnames(shcore::Array_t instances) const {
+void Rescan::check_mismatched_hostnames_addresses(
+    shcore::Array_t instances) const {
   m_cluster->execute_in_members(
       [&instances](const std::shared_ptr<Instance> &instance,
                    const Instance_md_and_gr_member &info) {
@@ -217,6 +218,15 @@ void Rescan::check_mismatched_hostnames(shcore::Array_t instances) const {
         for (const auto &i : *instances) {
           if (i.as_map()->get_string("member_id") == instance->get_uuid())
             return true;
+        }
+
+        bool grendpoint_valid = true;
+        try {
+          mysqlshdk::utils::split_host_and_port(info.first.grendpoint);
+        } catch (const std::invalid_argument &e) {
+          log_debug("Unable to parse endpoint: %s",
+                    info.first.grendpoint.c_str());
+          grendpoint_valid = false;
         }
 
         auto address = instance->get_canonical_address();
@@ -239,17 +249,20 @@ void Rescan::check_mismatched_hostnames(shcore::Array_t instances) const {
             info.second.uuid.c_str(), info.second.host.c_str(),
             info.second.port);
 
-        if (!mysqlshdk::utils::are_endpoints_equal(info.first.endpoint,
-                                                   address) ||
-            !mysqlshdk::utils::are_endpoints_equal(info.first.address,
-                                                   address)) {
-          instances->emplace_back(shcore::Value(shcore::make_dict(
-              "member_id", shcore::Value(instance->get_uuid()), "id",
-              shcore::Value(info.first.id), "label",
-              shcore::Value(info.first.label), "host",
-              shcore::Value(instance->get_canonical_address()), "old_host",
-              shcore::Value(info.first.endpoint))));
+        if (grendpoint_valid &&
+            mysqlshdk::utils::are_endpoints_equal(info.first.endpoint,
+                                                  address) &&
+            mysqlshdk::utils::are_endpoints_equal(info.first.address,
+                                                  address)) {
+          return true;
         }
+
+        instances->emplace_back(shcore::Value(
+            shcore::make_dict("member_id", shcore::Value(instance->get_uuid()),
+                              "id", shcore::Value(info.first.id), "label",
+                              shcore::Value(info.first.label), "host",
+                              shcore::Value(instance->get_canonical_address()),
+                              "old_host", shcore::Value(info.first.endpoint))));
 
         return true;
       },
@@ -343,7 +356,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
     }
   }
 
-  check_mismatched_hostnames(updated_instances);
+  check_mismatched_hostnames_addresses(updated_instances);
 
   // Add the missing_instances list to the result Map
   (*cluster_map)["unavailableInstances"] = shcore::Value(unavailable_instances);
@@ -584,13 +597,16 @@ void Rescan::update_metadata_for_instances(
           instance_map->get_string("member_id").c_str()));
     } else {
       // member address changed
-      console->print_info(
-          shcore::str_format("The instance '%s' is part of the cluster but its "
-                             "reported address has changed. "
-                             "Old address: %s. Current address: %s.",
-                             instance_address.c_str(),
-                             instance_map->get_string("old_host").c_str(),
-                             instance_map->get_string("host").c_str()));
+      if (instance_map->get_string("old_host") !=
+          instance_map->get_string("host")) {
+        console->print_info(shcore::str_format(
+            "The instance '%s' is part of the cluster but its "
+            "reported address has changed. "
+            "Old address: %s. Current address: %s.",
+            instance_address.c_str(),
+            instance_map->get_string("old_host").c_str(),
+            instance_map->get_string("host").c_str()));
+      }
 
       // update instance label if it's the default value
       if (instance_map->get_string("label") ==

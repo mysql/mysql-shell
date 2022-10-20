@@ -223,7 +223,7 @@ class Rescan : public Command_interface {
    */
   void ensure_recovery_accounts_match();
 
-  void check_mismatched_hostnames(shcore::Array_t instances) const;
+  void check_mismatched_hostnames_addresses(shcore::Array_t instances) const;
 };
 
 }  // namespace cluster

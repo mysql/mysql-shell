@@ -163,7 +163,7 @@ Credential_manager &Credential_manager::get() {
 void Credential_manager::initialize() {
   if (!m_is_initialized) {
     set_logger([](std::string_view msg) {
-      log_debug2("%*.s", (int)msg.size(), msg.data());
+      log_debug2("%.*s", (int)msg.size(), msg.data());
     });
 
     if (k_disabled_helper_name == m_helper_string) {
