@@ -341,42 +341,6 @@ TEST_F(Shell_js_dba_tests, interactive) {
   validate_interactive("dba_interactive.js");
 }
 
-TEST_F(Shell_js_dba_tests, cluster_interactive) {
-  _options->interactive = true;
-  reset_replayable_shell();
-
-  // we want to catch log_info output
-  output_handler.set_log_level(shcore::Logger::LOG_INFO);
-
-  //@ Cluster: removeInstance errors
-  output_handler.prompts.push_back({"*", "no", {}});
-  output_handler.prompts.push_back({"*", "yes", {}});
-
-  // @<OUT> Cluster: dissolve error: not empty
-  output_handler.prompts.push_back({"*", "no", {}});
-
-  //@# Cluster: rejoin_instance with interaction, error
-  output_handler.passwords.push_back({"*", "n", {}});
-
-  //@# Cluster: rejoin_instance with interaction, error 2
-  output_handler.passwords.push_back({"*", "n", {}});
-
-  // @<OUT> Cluster: rejoinInstance with interaction, ok
-  output_handler.passwords.push_back({"*", "root", {}});
-
-  // @<OUT> Cluster: final dissolve
-  output_handler.prompts.push_back({"*", "yes", {}});
-
-  // Tests cluster functionality, adding, removing instances
-  // error conditions
-  // Lets the cluster empty
-  validate_interactive("dba_cluster_interactive.js");
-
-  std::vector<std::string> log{
-      "Creating recovery account 'mysql_innodb_cluster_"};
-  MY_EXPECT_LOG_CONTAINS(log);
-}
-
 TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   _options->interactive = true;
   reset_replayable_shell();

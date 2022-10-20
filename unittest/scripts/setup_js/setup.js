@@ -1592,6 +1592,31 @@ function validate_crud_functions(crud, expected) {
   }
 }
 
+function validateMembers(obj, expected) {
+    var actual = dir(obj);
+    // Ensures expected members are on the actual list
+    var missing = [];
+    for(exp of expected) {
+        var pos = actual.indexOf(exp);
+        if(pos == -1){
+            missing.push(exp);
+        } else {
+            actual.splice(pos, 1);
+        }
+    }
+    var errors = [];
+    if(missing.length) {
+        errors.push("Missing Members: " + missing.join(", "));
+    }
+    // help is ignored cuz it's always available
+    if (actual.length > 1  || (actual.length == 1 && actual[0] != 'help')) {
+      errors.push("Extra Members: " + actual.join(", "));
+    }
+    if (errors.length) {
+      testutil.fail(errors.join("\n"));
+    }
+}
+
 function WARNING_SKIPPED_TEST(reason) {
   return false;
 }

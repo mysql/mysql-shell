@@ -613,7 +613,7 @@ void Create_replica_cluster::prepare() {
 
     m_op_create_cluster = std::make_unique<Create_cluster>(
         m_cluster_set->get_metadata_storage(), m_target_instance,
-        m_cluster_name, *options);
+        m_cluster_set->get_primary_master(), m_cluster_name, *options);
     // Validations for InnoDB Cluster compliance are done now. It includes:
     //   - clusterName validation.
     //   - Must not belong to an InnoDB Cluster or ReplicaSet, i.e. must be a

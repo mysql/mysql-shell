@@ -16,7 +16,7 @@ shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, us
 var __busy_port = __mysql_sandbox_port1 * 10 + 1;
 var __valid_portx = (__mysql_sandbox_port1 * 10 + 9).toString();
 testutil.deploySandbox(__busy_port, "root", {"loose_mysqlx_port": __valid_portx, report_host: hostname});
-var cluster;
+
 if (__version_num < 80027) {
   cluster = dba.createCluster('test');
 } else {

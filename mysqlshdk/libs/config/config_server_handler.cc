@@ -111,7 +111,7 @@ void Config_server_handler::apply() {
         m_instance->set_sysvar(var.name, value, var.qualifier);
       } else if (var.value.type == shcore::Value_type::Integer) {
         int64_t value = *value_to_nullable_int(var.value);
-        log_debug("Set '%s'=%ld", var.name.c_str(), value);
+        log_debug("Set '%s'=%" PRId64, var.name.c_str(), value);
         m_instance->set_sysvar(var.name, value, var.qualifier);
       } else {
         std::string value = *value_to_nullable_string(var.value);

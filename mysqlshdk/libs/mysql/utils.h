@@ -143,15 +143,17 @@ inline void assert_transaction_is_open(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   try {
     // if there's an active transaction, this will throw
-    session->execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+    session->execute(
+        "/*NOTRACE;THROW(1568)*/SET TRANSACTION ISOLATION LEVEL REPEATABLE "
+        "READ");
     // no exception -> transaction is not active
     assert(false);
   } catch (const mysqlshdk::db::Error &e) {
     // make sure correct error is reported
     assert(e.code() == ER_CANT_CHANGE_TX_CHARACTERISTICS);
   } catch (...) {
-    // any other exception means that something else went wrong
-    assert(false);
+    // any other exception means that something else went wrong (or debug
+    // exception)
   }
 }
 

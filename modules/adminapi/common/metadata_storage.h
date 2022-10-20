@@ -579,10 +579,12 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   class Transaction {
    public:
-    explicit Transaction(const std::shared_ptr<MetadataStorage> &md,
-                         bool check_for_auto_commits = false)
-        : _md(md), m_check_for_auto_commits(check_for_auto_commits) {
+    explicit Transaction(const std::shared_ptr<MetadataStorage> &md)
+        : _md(md), m_check_for_auto_commits(false) {
       md->execute_sql("START TRANSACTION");
+#ifndef NDEBUG
+      if (getenv("MYSQLSH_TEST_ALL")) m_check_for_auto_commits = true;
+#endif
     }
 
     ~Transaction() {

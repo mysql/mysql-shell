@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_DBA_CREATE_CLUSTER_H_
 #define MODULES_ADMINAPI_DBA_CREATE_CLUSTER_H_
 
+#include <memory>
 #include <string>
 
 #include "modules/adminapi/common/clone_options.h"
@@ -45,6 +46,7 @@ class Create_cluster : public Command_interface {
 
   Create_cluster(const std::shared_ptr<MetadataStorage> &metadata,
                  const std::shared_ptr<Instance> &target_instance,
+                 const std::shared_ptr<Instance> &primary_master,
                  const std::string &cluster_name,
                  const Create_cluster_options &options);
 
@@ -114,6 +116,7 @@ class Create_cluster : public Command_interface {
  private:
   std::shared_ptr<MetadataStorage> m_metadata;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_primary_master;
   const std::string m_cluster_name;
   Create_cluster_options m_options;
   bool m_retrying = false;
@@ -127,7 +130,8 @@ class Create_cluster : public Command_interface {
   void resolve_ssl_mode();
   void log_used_gr_options();
   void prepare_metadata_schema();
-  void create_recovery_account(mysqlshdk::mysql::IInstance *target,
+  void create_recovery_account(mysqlshdk::mysql::IInstance *primary,
+                               mysqlshdk::mysql::IInstance *target,
                                Cluster_impl *cluster = nullptr,
                                std::string *out_username = nullptr);
   void store_recovery_account_metadata(mysqlshdk::mysql::IInstance *target,

@@ -58,14 +58,18 @@ Create_cluster::Create_cluster(const std::shared_ptr<Instance> &target_instance,
                                const Create_cluster_options &options)
     : m_target_instance(target_instance),
       m_cluster_name(cluster_name),
-      m_options(options) {}
+      m_options(options) {
+  if (!options.adopt_from_gr) m_primary_master = target_instance;
+}
 
 Create_cluster::Create_cluster(const std::shared_ptr<MetadataStorage> &metadata,
                                const std::shared_ptr<Instance> &target_instance,
+                               const std::shared_ptr<Instance> &primary_master,
                                const std::string &cluster_name,
                                const Create_cluster_options &options)
     : m_metadata(metadata),
       m_target_instance(target_instance),
+      m_primary_master(primary_master),
       m_cluster_name(cluster_name),
       m_options(options) {}
 
@@ -315,6 +319,7 @@ void Create_cluster::prepare() {
   // secondary will end up having super_read_only disabled.
   if (m_options.get_adopt_from_gr()) {
     m_target_instance = get_primary_member_from_group(m_target_instance);
+    m_primary_master = m_target_instance;
   }
 
   // Disable super_read_only mode if it is enabled.
@@ -513,8 +518,8 @@ void Create_cluster::prepare_metadata_schema() {
 }
 
 void Create_cluster::create_recovery_account(
-    mysqlshdk::mysql::IInstance *target, Cluster_impl *cluster,
-    std::string *out_username) {
+    mysqlshdk::mysql::IInstance *primary, mysqlshdk::mysql::IInstance *target,
+    Cluster_impl *cluster, std::string *out_username) {
   // Setup recovery account for this seed instance, which will be used
   // when/if it needs to rejoin.
   std::string repl_account_host;
@@ -541,7 +546,7 @@ void Create_cluster::create_recovery_account(
           "deleted and created again with a new password.",
           repl_account.user.c_str(), repl_account_host.c_str(),
           m_target_instance->descr().c_str()));
-      m_target_instance->drop_user(repl_account.user, repl_account_host);
+      primary->drop_user(repl_account.user, repl_account_host);
     }
 
     auto target_version = m_target_instance->get_version();
@@ -554,7 +559,7 @@ void Create_cluster::create_recovery_account(
         target_version >= k_mysql_communication_stack_initial_version;
 
     repl_account = mysqlshdk::gr::create_recovery_user(
-        repl_account.user, *m_target_instance, {repl_account_host}, {},
+        repl_account.user, *primary, {repl_account_host}, {},
         clone_available_on_target, false,
         mysql_communication_stack_available_on_target);
   }
@@ -621,7 +626,8 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
 
         std::string new_user;
 
-        create_recovery_account(target.get(), cluster, &new_user);
+        create_recovery_account(m_target_instance.get(), target.get(), cluster,
+                                &new_user);
         store_recovery_account_metadata(target.get(), *cluster);
 
         new_users.insert(new_user);
@@ -747,7 +753,6 @@ shcore::Value Create_cluster::execute() {
   // Get the current value of group_replication_transaction_size_limit
   int64_t original_transaction_size_limit =
       m_target_instance->get_sysvar_int(kGrTransactionSizeLimit).value_or(0);
-  ;
 
   shcore::Scoped_callback_list undo_list;
 
@@ -800,10 +805,12 @@ shcore::Value Create_cluster::execute() {
           mysqlshdk::mysql::Suppress_binary_log nobinlog(
               m_target_instance.get());
 
-          create_recovery_account(m_target_instance.get(), nullptr,
+          create_recovery_account(m_target_instance.get(),
+                                  m_target_instance.get(), nullptr,
                                   &repl_account);
         } else {
-          create_recovery_account(m_target_instance.get(), nullptr,
+          create_recovery_account(m_primary_master.get(),
+                                  m_target_instance.get(), nullptr,
                                   &repl_account);
         }
 
@@ -813,7 +820,7 @@ shcore::Value Create_cluster::execute() {
               m_options.replication_allowed_host.empty()
                   ? "%"
                   : m_options.replication_allowed_host;
-          m_target_instance->drop_user(repl_account, repl_account_host);
+          m_primary_master->drop_user(repl_account, repl_account_host);
         });
       }
 
@@ -853,7 +860,16 @@ shcore::Value Create_cluster::execute() {
     if (!m_metadata) {
       // Create the Metadata Schema.
       prepare_metadata_schema();
-      metadata = std::make_shared<MetadataStorage>(m_target_instance);
+
+      // Open a separate metadata connection to not mix MD transactions and
+      // other auto-committing operations on the same session
+
+      auto ipool = current_ipool();
+
+      auto inst =
+          ipool->connect_unchecked(m_target_instance->get_connection_options());
+
+      metadata = std::make_shared<MetadataStorage>(inst);
     } else {
       metadata = m_metadata;
     }
@@ -872,7 +888,8 @@ shcore::Value Create_cluster::execute() {
             : mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
 
     auto cluster_impl = std::make_shared<Cluster_impl>(
-        cluster_name, group_name, m_target_instance, metadata, topology_mode);
+        cluster_name, group_name, m_target_instance, m_primary_master, metadata,
+        topology_mode);
 
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"
@@ -964,14 +981,14 @@ shcore::Value Create_cluster::execute() {
 
       // Create the recovery account and update the Metadata
       // NOTE: If the Cluster is a REPLICA the account must be created at the
-      // PRIMARY Cluster too (create_recovery_account will create it at the MD
-      // server)
+      // PRIMARY Cluster too
       if (m_create_replica_cluster ||
           !m_options.gr_options.communication_stack.has_value() ||
           (m_options.gr_options.communication_stack.value() ==
            kCommunicationStackXCom)) {
         std::string repl_account;
-        create_recovery_account(m_target_instance.get(), cluster_impl.get(),
+        create_recovery_account(m_target_instance.get(),
+                                m_target_instance.get(), cluster_impl.get(),
                                 &repl_account);
 
         // Drop the recovery account if GR fails to start
@@ -980,7 +997,7 @@ shcore::Value Create_cluster::execute() {
               m_options.replication_allowed_host.empty()
                   ? "%"
                   : m_options.replication_allowed_host;
-          m_target_instance->drop_user(repl_account, repl_account_host);
+          m_primary_master->drop_user(repl_account, repl_account_host);
         });
 
         store_recovery_account_metadata(m_target_instance.get(), *cluster_impl);
