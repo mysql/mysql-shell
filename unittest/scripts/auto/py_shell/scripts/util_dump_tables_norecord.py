@@ -123,7 +123,7 @@ def recreate_verification_schema():
     session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
     session.run_sql("CREATE SCHEMA !;", [ verification_schema ])
 
-def EXPECT_SUCCESS(schema, tables, output_url, options = {}, views = []):
+def EXPECT_SUCCESS(schema, tables, output_url, options = {}, views = [], check_number_of_tables = True):
     WIPE_STDOUT()
     shutil.rmtree(test_output_absolute, True)
     EXPECT_FALSE(os.path.isdir(test_output_absolute))
@@ -132,7 +132,8 @@ def EXPECT_SUCCESS(schema, tables, output_url, options = {}, views = []):
         tables = get_all_tables(schema, False)
     if not "dryRun" in options:
         EXPECT_TRUE(os.path.isdir(test_output_absolute))
-        EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(tables)))
+        if check_number_of_tables:
+            EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(tables)))
 
 def EXPECT_FAIL(error, msg, schema, tables, output_url, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
@@ -1790,47 +1791,58 @@ session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ /*!80000 , BACKUP_ADM
 
 tested_schema = "test_schema"
 tested_table = "test_table"
-tables_to_create = 100
 reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
-session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-
-for i in range(tables_to_create):
-    session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
 
 # constantly create tables
-create_tables = f"""v = {tables_to_create}
+def constantly_create_tables():
+    tables_to_create = 500
+    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+    for i in range(tables_to_create):
+        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
+    create_tables = f"""v = {tables_to_create}
 while True:
     session.run_sql("CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
     v = v + 1
 session.close()
 """
+    # run a process which constantly creates tables
+    pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
+    # wait a bit for process to start
+    time.sleep(1)
+    return pid
 
-# run a process which constantly creates tables
-pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
-# wait a bit for process to start
-time.sleep(3)
 # connect
 shell.connect(test_user_uri(__mysql_sandbox_port1))
 
-# test
-EXPECT_SUCCESS(tested_schema, [ f"{tested_table}_{i}" for i in range(tables_to_create) ], test_output_absolute, { "consistent": True, "showProgress": False })
+#@<> BUG#33697289 create a process which will add tables in the background
+pid = constantly_create_tables()
+
+#@<> BUG#33697289 test - backup lock is not available
+EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False, "threads": 1 }, check_number_of_tables = False)
 EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: Backup lock is not {0} and DDL changes were not blocked. The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+
+#@<> BUG#33697289 terminate the process immediately
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#33697289 create a process which will add tables in the background (2) {not __dbug_off}
+pid = constantly_create_tables()
 
 #@<> BUG#33697289 warning if gtid is disabled and DDL changes {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
 
-EXPECT_SUCCESS(tested_schema, [ f"{tested_table}_{i}" for i in range(tables_to_create) ], test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False, "threads": 1 }, check_number_of_tables = False)
 EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: Backup lock is not {0} and DDL changes were not blocked. The binlog position has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
 
 testutil.dbug_set("")
 
-#@<> BUG#33697289 terminate the process immediately, it will not stop on its own
+#@<> BUG#33697289 terminate the process immediately, it will not stop on its own {not __dbug_off}
 testutil.wait_mysqlsh_async(pid, 0)
 
 #@<> BUG#33697289 warning if binlog and gtid are disabled {not __dbug_off}
 testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
 
-EXPECT_SUCCESS(tested_schema, [ f"{tested_table}_{i}" for i in range(tables_to_create) ], test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS(f"""
 WARNING: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK.
     Backup lock is not {reason} and DDL changes cannot be blocked.
