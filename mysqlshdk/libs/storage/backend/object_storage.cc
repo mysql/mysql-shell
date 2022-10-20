@@ -23,6 +23,8 @@
 
 #include "mysqlshdk/libs/storage/backend/object_storage.h"
 
+#include <iterator>
+
 #include "mysqlshdk/libs/rest/error_codes.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -32,33 +34,26 @@ namespace backend {
 namespace object_storage {
 
 Directory::Directory(const Config_ptr &config, const std::string &name)
-    : m_name(name), m_container(config->container()), m_created(false) {}
+    : m_name(name),
+      m_prefix(m_name.empty() ? "" : m_name + "/"),
+      m_container(config->container()),
+      m_created(false) {}
 
 bool Directory::exists() const {
-  if (m_name.empty() || m_created) {
-    // An empty name represents the root directory
-    // check if connection can be established
-    try {
-      m_container->list_objects("", 1, false);
-    } catch (const rest::Response_error &error) {
-      throw rest::to_exception(error);
+  try {
+    const auto objects = m_container->list_objects(m_prefix, 1, false);
+
+    // an empty prefix represents the root directory, in that case we've just
+    // checked that connection can be established
+    if (!objects.empty() || m_prefix.empty() || m_created) {
+      return true;
     }
-    return true;
-  } else {
-    // If it has a name then we need to make sure it is a directory, it will be
-    // verified by listing 1 object using as prefix as '<m_name>/'
-    try {
-      auto files = list_files(true);
-      return !files.empty();
-    } catch (const shcore::Exception &error) {
-      // If the server sends a NOT_FOUND (404) error, it means the target URL
-      // and so the directory does not exist.
-      if (error.code() == SHERR_NETWORK_NOT_FOUND) {
-        return false;
-      }
-      throw;
-    }
+  } catch (const rest::Response_error &error) {
+    throw rest::to_exception(error);
   }
+
+  // use multipart uploads as the last resort
+  return !list_multipart_uploads().empty();
 }
 
 void Directory::create() { m_created = true; }
@@ -66,47 +61,56 @@ void Directory::create() { m_created = true; }
 std::unordered_set<IDirectory::File_info> Directory::list_files(
     bool hidden_files) const {
   std::unordered_set<IDirectory::File_info> files;
-  std::string prefix = m_name.empty() ? "" : m_name + "/";
   std::vector<Object_details> objects;
 
   try {
-    objects = m_container->list_objects(prefix, 0, false);
+    objects = m_container->list_objects(m_prefix, 0, false);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }
 
-  if (prefix.empty()) {
+  if (m_prefix.empty()) {
     for (auto &object : objects) {
       files.emplace(std::move(object.name), object.size);
     }
   } else {
     for (const auto &object : objects) {
-      files.emplace(object.name.substr(prefix.size()), object.size);
+      files.emplace(object.name.substr(m_prefix.size()), object.size);
     }
   }
 
   if (hidden_files) {
     // Active multipart uploads to the target path should be considered files
-    std::vector<Multipart_object> uploads;
+    auto uploads = list_multipart_uploads();
+    files.insert(std::make_move_iterator(uploads.begin()),
+                 std::make_move_iterator(uploads.end()));
+  }
 
-    try {
-      uploads = m_container->list_multipart_uploads();
-    } catch (const rest::Response_error &error) {
-      throw rest::to_exception(error);
-    }
+  return files;
+}
 
-    if (prefix.empty()) {
-      for (auto &upload : uploads) {
-        // Only uploads not having '/' in the name belong to the root folder
-        if (upload.name.find("/") == std::string::npos) {
-          files.emplace(std::move(upload.name), 0);
-        }
+std::unordered_set<IDirectory::File_info> Directory::list_multipart_uploads()
+    const {
+  std::unordered_set<IDirectory::File_info> files;
+  std::vector<Multipart_object> uploads;
+
+  try {
+    uploads = m_container->list_multipart_uploads();
+  } catch (const rest::Response_error &error) {
+    throw rest::to_exception(error);
+  }
+
+  if (m_prefix.empty()) {
+    for (auto &upload : uploads) {
+      // Only uploads not having '/' in the name belong to the root folder
+      if (upload.name.find("/") == std::string::npos) {
+        files.emplace(std::move(upload.name), 0);
       }
-    } else {
-      for (const auto &upload : uploads) {
-        if (shcore::str_beginswith(upload.name, prefix)) {
-          files.emplace(upload.name.substr(prefix.size()), 0);
-        }
+    }
+  } else {
+    for (const auto &upload : uploads) {
+      if (shcore::str_beginswith(upload.name, m_prefix)) {
+        files.emplace(upload.name.substr(m_prefix.size()), 0);
       }
     }
   }
@@ -117,16 +121,15 @@ std::unordered_set<IDirectory::File_info> Directory::list_files(
 std::unordered_set<IDirectory::File_info> Directory::filter_files(
     const std::string &pattern) const {
   std::unordered_set<IDirectory::File_info> files;
-  std::string prefix = m_name.empty() ? "" : m_name + "/";
   std::vector<Object_details> objects;
 
   try {
-    objects = m_container->list_objects(prefix, 0, false);
+    objects = m_container->list_objects(m_prefix, 0, false);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }
 
-  if (prefix.empty()) {
+  if (m_prefix.empty()) {
     for (auto &object : objects) {
       if (shcore::match_glob(pattern, object.name)) {
         files.emplace(std::move(object.name), object.size);
@@ -134,7 +137,7 @@ std::unordered_set<IDirectory::File_info> Directory::filter_files(
     }
   } else {
     for (const auto &object : objects) {
-      auto file_name = object.name.substr(prefix.size());
+      auto file_name = object.name.substr(m_prefix.size());
       if (!file_name.empty() && shcore::match_glob(pattern, file_name)) {
         files.emplace(std::move(file_name), object.size);
       }

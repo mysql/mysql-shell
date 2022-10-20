@@ -114,12 +114,16 @@ class Directory : public mysqlshdk::storage::IDirectory {
 
  protected:
   std::string m_name;
+  std::string m_prefix;
   std::unique_ptr<Container> m_container;
 
   // Used to simulate a directory has been created
   bool m_created;
   std::string join_path(const std::string &a,
                         const std::string &b) const override;
+
+ private:
+  std::unordered_set<IDirectory::File_info> list_multipart_uploads() const;
 };
 
 /**
