@@ -139,5 +139,5 @@ dryRun finished.
 @+---------------+@
 
 //@# gtidSetIsCompatible
-@| {"adopted": 0, "opt_gtidSetIsComplete": false, "opt_replicationAllowedHost": "%"} |@
-@| {"adopted": 0, "opt_gtidSetIsComplete": true, "opt_replicationAllowedHost": "%"} |@
+@| {"adopted": 0, "opt_gtidSetIsComplete": false, "opt_replicationSslMode": "REQUIRED", "opt_replicationAllowedHost": "%"} |@
+@| {"adopted": 0, "opt_gtidSetIsComplete": true, "opt_replicationSslMode": "REQUIRED", "opt_replicationAllowedHost": "%"} |@

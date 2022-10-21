@@ -1760,12 +1760,13 @@ Creates a MySQL InnoDB ReplicaSet.
 
 @returns The created replicaset object.
 
-This function will create a managed replicaset using MySQL master/slave
+This function will create a managed ReplicaSet using MySQL asynchronous
 replication, as opposed to Group Replication. The MySQL instance the shell is
-connected to will be the initial PRIMARY of the replica set.
+connected to will be the initial PRIMARY of the ReplicaSet. The replication
+channel will have TLS encryption enabled by default.
 
 The function will perform several checks to ensure the instance state and
-configuration are compatible with a managed replicaset and if so, a metadata
+configuration are compatible with a managed ReplicaSet and if so, a metadata
 schema will be initialized there.
 
 New replica instances can be added through the <<<addInstance>>>() function of
@@ -1787,7 +1788,7 @@ Among its limitations are:
 
 <b>Pre-Requisites</b>
 
-The following is a non-exhaustive list of requirements for managed replicasets.
+The following is a non-exhaustive list of requirements for managed ReplicaSets.
 The dba.<<<configureInstance>>>() command can be used to make necessary
 configuration changes automatically.
 

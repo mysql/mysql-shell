@@ -127,6 +127,30 @@ reset_instance(session);
 reset_instance(session2);
 setup_slave(session2, __mysql_sandbox_port1);
 
+//@<> SSL=1
+session1 = mysql.getSession(__sandbox_uri1);
+
+session2.runSql("STOP SLAVE");
+session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_ssl=1", [__mysql_sandbox_port1]);
+session2.runSql("START SLAVE");
+
+dba.createReplicaSet("myrs", {adoptFromAR:1});
+
+reset_instance(session1);
+reset_instance(session2);
+setup_slave(session2, __mysql_sandbox_port1);
+
+//@<> SSL=0
+session2.runSql("STOP SLAVE");
+session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_ssl=0", [__mysql_sandbox_port1]);
+session2.runSql("START SLAVE");
+
+dba.createReplicaSet("myrs", {adoptFromAR:1});
+
+reset_instance(session1);
+reset_instance(session2);
+setup_slave(session2, __mysql_sandbox_port1);
+
 //@ replication filters (should fail)
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo)");
 dba.createReplicaSet("myrs", {adoptFromAR:true});
@@ -287,22 +311,6 @@ testutil.restartSandbox(__mysql_sandbox_port3);
 session3 = mysql.getSession(__sandbox_uri3);
 
 // unsupported replication options
-
-//@ unsupported option: SSL (should fail)
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_ssl=1", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
-
-dba.createReplicaSet("myrs", {adoptFromAR:1});
-
-//@ unsupported option: SSL=0
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_ssl=0", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
-
-dba.createReplicaSet("myrs", {adoptFromAR:1});
-
-reset_instance(session1);
-reset_instance(session2);
 
 //@ unsupported option: delay (should fail)
 reset_instance(session2);

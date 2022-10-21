@@ -36,11 +36,12 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
                    const std::string &master_host, int master_port,
                    const std::string &channel_name,
                    const Auth_options &credentials,
-                   const mysqlsh::dba::Cluster_ssl_mode &ssl_mode,
+                   mysqlsh::dba::Cluster_ssl_mode ssl_mode,
                    const mysqlshdk::utils::nullable<int> master_connect_retry,
                    const mysqlshdk::utils::nullable<int> master_retry_count,
                    const mysqlshdk::utils::nullable<bool> auto_failover,
                    const mysqlshdk::utils::nullable<int> master_delay) {
+  assert(ssl_mode != mysqlsh::dba::Cluster_ssl_mode::AUTO);
   log_info(
       "Setting up async source for channel '%s' of %s to %s:%i (user "
       "%s)",
@@ -60,7 +61,8 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
     if (ssl_mode != mysqlsh::dba::Cluster_ssl_mode::NONE) {
       bool enable_ssl = false;
 
-      if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::REQUIRED) {
+      if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::REQUIRED ||
+          ssl_mode == mysqlsh::dba::Cluster_ssl_mode::AUTO) {
         enable_ssl = true;
       } else if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA ||
                  ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY) {

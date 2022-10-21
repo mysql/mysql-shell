@@ -243,8 +243,8 @@ void Cluster_join::validate_local_address_ip_compatibility(
  */
 void Cluster_join::resolve_ssl_mode() {
   if (m_primary_instance) {
-    resolve_instance_ssl_mode(*m_target_instance, *m_primary_instance,
-                              &m_gr_opts.ssl_mode);
+    resolve_instance_ssl_mode_option(*m_target_instance, *m_primary_instance,
+                                     &m_gr_opts.ssl_mode);
     log_info("SSL mode used to configure the instance: '%s'",
              to_string(m_gr_opts.ssl_mode).c_str());
   }

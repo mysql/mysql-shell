@@ -68,6 +68,9 @@ namespace dba {
 
 constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
 
+constexpr const char k_replica_set_attribute_ssl_mode[] =
+    "opt_replicationSslMode";
+
 // # of seconds to wait until clone starts
 constexpr const int k_clone_start_timeout = 30;
 
@@ -345,6 +348,11 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
   m_primary_master = m_cluster_server;
   m_primary_master->retain();
 
+  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::AUTO;
+
+  resolve_ssl_mode_option("replicationSslMode", "ReplicaSet", *m_cluster_server,
+                          &ssl_mode);
+
   console->print_info("* Updating metadata...");
 
   try {
@@ -361,6 +369,10 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
           options.replication_allowed_host.empty()
               ? shcore::Value("%")
               : shcore::Value(options.replication_allowed_host));
+
+      m_metadata_storage->update_cluster_attribute(
+          id, k_replica_set_attribute_ssl_mode,
+          shcore::Value(to_string(ssl_mode)));
     }
 
     // create repl user to be used in the future
@@ -482,9 +494,18 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
   }
 }
 
+void Replica_set_impl::read_replication_options(
+    Async_replication_options *ar_options) {
+  shcore::Value ssl_mode;
+  get_metadata_storage()->query_cluster_attribute(
+      get_id(), k_replica_set_attribute_ssl_mode, &ssl_mode);
+  if (ssl_mode)
+    ar_options->ssl_mode = to_cluster_ssl_mode(ssl_mode.as_string());
+}
+
 void Replica_set_impl::validate_add_instance(
     Global_topology_manager *topology, mysqlshdk::mysql::IInstance * /*master*/,
-    Instance *target_instance, const Async_replication_options &ar_options,
+    Instance *target_instance, Async_replication_options *ar_options,
     Clone_options *clone_options, bool interactive) {
   auto console = current_console();
 
@@ -584,9 +605,12 @@ void Replica_set_impl::validate_add_instance(
 
   validate_unique_server_id(target_instance, topology);
 
+  validate_instance_ssl_mode(Cluster_type::ASYNC_REPLICATION, *target_instance,
+                             ar_options->ssl_mode);
+
   // check consistency of the global topology
   console->print_info();
-  topology->validate_add_replica(nullptr, target_instance, ar_options);
+  topology->validate_add_replica(nullptr, target_instance, *ar_options);
 
   std::shared_ptr<Instance> donor_instance = get_cluster_server();
 
@@ -653,9 +677,11 @@ void Replica_set_impl::add_instance(
   console->print_info("Adding instance to the replicaset...");
   console->print_info();
 
+  read_replication_options(&ar_options);
+
   console->print_info("* Performing validation checks");
   validate_add_instance(topology.get(), get_primary_master().get(),
-                        target_instance.get(), ar_options, &clone_options,
+                        target_instance.get(), &ar_options, &clone_options,
                         interactive);
 
   console->print_info("* Updating topology");

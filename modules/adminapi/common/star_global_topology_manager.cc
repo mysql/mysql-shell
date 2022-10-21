@@ -140,8 +140,6 @@ void validate_unsupported_options(
 
   check_equal(std::string(source_term + "_CONNECT_RETRY").c_str(),
               master_info.connect_retry, k_default_connect_retry);
-  check_equal(std::string(source_term + "_SSL").c_str(),
-              master_info.enabled_ssl, 0);
   check_equal(std::string(source_term + "_SSL_VERIFY_SERVER_CERT").c_str(),
               master_info.ssl_verify_server_cert, 0);
   check_equal(std::string(source_term + "_HEARTBEAT_PERIOD").c_str(),

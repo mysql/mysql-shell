@@ -687,20 +687,8 @@ void Create_replica_cluster::prepare() {
   std::string ssl_mode_str = ssl_mode.as_string();
   m_ssl_mode = to_cluster_ssl_mode(ssl_mode_str);
 
-  // Validate if the target instance supports SSL
-  std::string have_ssl = *m_target_instance->get_sysvar_string("have_ssl");
-
-  // The instance does not support SSL
-  if (!shcore::str_caseeq(have_ssl, "YES") &&
-      m_ssl_mode == Cluster_ssl_mode::REQUIRED) {
-    console->print_error(
-        "The ClusterSet's clusterSetReplicationSslMode is 'REQUIRED', "
-        "however, the target instance does not support SSL. Please enable SSL "
-        "support on the target instance.");
-
-    throw shcore::Exception("Unsupported SSL Mode.",
-                            SHERR_DBA_CLUSTER_UNSUPPORTED_SSL_MODE);
-  }
+  resolve_ssl_mode_option("clusterSetReplicationSslMode", "Replica Cluster",
+                          *m_target_instance, &m_ssl_mode);
 
   DBUG_EXECUTE_IF("dba_abort_create_replica_cluster",
                   { throw std::logic_error("debug"); });

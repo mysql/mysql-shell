@@ -723,12 +723,13 @@ RETURNS
       The created replicaset object.
 
 DESCRIPTION
-      This function will create a managed replicaset using MySQL master/slave
+      This function will create a managed ReplicaSet using MySQL asynchronous
       replication, as opposed to Group Replication. The MySQL instance the
-      shell is connected to will be the initial PRIMARY of the replica set.
+      shell is connected to will be the initial PRIMARY of the ReplicaSet. The
+      replication channel will have TLS encryption enabled by default.
 
       The function will perform several checks to ensure the instance state and
-      configuration are compatible with a managed replicaset and if so, a
+      configuration are compatible with a managed ReplicaSet and if so, a
       metadata schema will be initialized there.
 
       New replica instances can be added through the addInstance() function of
@@ -751,7 +752,7 @@ DESCRIPTION
       Pre-Requisites
 
       The following is a non-exhaustive list of requirements for managed
-      replicasets. The dba.configureInstance() command can be used to make
+      ReplicaSets. The dba.configureInstance() command can be used to make
       necessary configuration changes automatically.
 
       - MySQL 8.0 or newer required

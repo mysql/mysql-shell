@@ -11,7 +11,7 @@ dba.createCluster("dev", {"clusterAdminType": "local"});
 //@<> createCluster() with memberSslMode DISABLED but require_secure_transport enabled
 session.runSql("SET GLOBAL require_secure_transport = TRUE");
 
-EXPECT_THROWS_TYPE(function(){dba.createCluster("dev", {memberSslMode: "DISABLED"});}, `The instance '127.0.0.1:${__mysql_sandbox_port1}' requires secure connections, to create the cluster either turn off require_secure_transport or use the memberSslMode option with 'REQUIRED', 'VERIFY_CA' or 'VERIFY_IDENTITY' value.`, "ArgumentError");
+EXPECT_THROWS_TYPE(function(){dba.createCluster("dev", {memberSslMode: "DISABLED"});}, `The instance '127.0.0.1:${__mysql_sandbox_port1}' requires secure connections, to create the Cluster either turn off require_secure_transport or use the memberSslMode option with 'REQUIRED', 'VERIFY_CA' or 'VERIFY_IDENTITY' value.`, "ArgumentError");
 
 //@<> createCluster() with memberSslMode VERIFY_CA but CA options not set {VER(>=8.0.0)}
 session.runSql("SET GLOBAL ssl_ca = DEFAULT");
@@ -35,7 +35,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port1, "default_authentication_plugin
 testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'unsecure', password: 'root'});
 
-EXPECT_THROWS_TYPE(function(){dba.createCluster("dev", {memberSslMode: "REQUIRED"});}, `The instance '127.0.0.1:${__mysql_sandbox_port1}' does not have SSL enabled, to create the cluster either use an instance with SSL enabled, remove the memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.`, "ArgumentError");
+EXPECT_THROWS_TYPE(function(){dba.createCluster("dev", {memberSslMode: "REQUIRED"});}, `The instance '127.0.0.1:${__mysql_sandbox_port1}' does not have TLS enabled, to create the Cluster either use an instance with TLS enabled, remove the memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.`, "ArgumentError");
 
 //@ Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
