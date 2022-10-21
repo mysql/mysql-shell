@@ -175,6 +175,8 @@ class Dump_options {
 
   virtual bool consistent_dump() const = 0;
 
+  virtual bool skip_consistency_checks() const = 0;
+
   virtual bool dump_events() const = 0;
 
   virtual bool dump_routines() const = 0;

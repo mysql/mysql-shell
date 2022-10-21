@@ -238,6 +238,9 @@ DESCRIPTION
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
+      - skipConsistencyChecks: bool (default: false) - Skips additional
+        consistency checks which are executed when running consistent dumps and
+        i.e. backup lock cannot not be acquired.
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
@@ -769,6 +772,9 @@ DESCRIPTION
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
+      - skipConsistencyChecks: bool (default: false) - Skips additional
+        consistency checks which are executed when running consistent dumps and
+        i.e. backup lock cannot not be acquired.
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
@@ -1277,6 +1283,9 @@ DESCRIPTION
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
+      - skipConsistencyChecks: bool (default: false) - Skips additional
+        consistency checks which are executed when running consistent dumps and
+        i.e. backup lock cannot not be acquired.
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.

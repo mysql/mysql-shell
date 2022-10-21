@@ -1564,7 +1564,7 @@ std::vector<std::string> tokenize(const std::string &s) {
   std::vector<std::string> tokens;
   mysqlshdk::utils::SQL_iterator it(s, 0, false);
   while (it.valid()) {
-    tokens.push_back(it.next_token());
+    tokens.push_back(std::string{it.next_token()});
   }
   return tokens;
 }

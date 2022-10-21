@@ -240,7 +240,7 @@ void User_privileges::parse_grant(const std::string &statement) {
     // not appear in the statement
     grant = false;
   } else {
-    throw std::logic_error("Unsupported grant statement: " + type);
+    throw std::logic_error("Unsupported grant statement: " + std::string{type});
   }
 
   if (!grant_all) {
@@ -249,7 +249,7 @@ void User_privileges::parse_grant(const std::string &statement) {
 
     do {
       bool add_privilege = true;
-      auto privilege = it.next_token();
+      std::string privilege{it.next_token()};
 
       do {
         auto token = it.next_token();
@@ -276,7 +276,8 @@ void User_privileges::parse_grant(const std::string &statement) {
         all_privileges_done = shcore::str_caseeq(token, "ON");
 
         if (!privilege_done && !all_privileges_done) {
-          privilege += " " + token;
+          privilege += ' ';
+          privilege += token;
         } else if (add_privilege) {
           privileges.emplace(std::exchange(privilege, {}));
         }
@@ -420,7 +421,7 @@ std::set<std::string> User_privileges::get_mandatory_roles(
 
   while (it.valid()) {
     // user name
-    auto account = it.next_token();
+    std::string account{it.next_token()};
     // @ or ,
     const auto token = it.next_token();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,7 @@ using Gtid = std::string;
 using Gtid_range = std::tuple<std::string, uint64_t, uint64_t>;
 
 std::string to_string(const Gtid_range &range);
+uint64_t count(const Gtid_range &range);
 
 class Gtid_set {
  public:

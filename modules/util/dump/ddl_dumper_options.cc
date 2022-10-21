@@ -68,6 +68,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("dataOnly", &Ddl_dumper_options::m_data_only)
           .optional("dryRun", &Ddl_dumper_options::m_dry_run)
           .optional("consistent", &Ddl_dumper_options::m_consistent_dump)
+          .optional("skipConsistencyChecks",
+                    &Ddl_dumper_options::m_skip_consistency_checks)
           .optional("ocimds", &Ddl_dumper_options::set_ocimds)
           .optional("compatibility",
                     &Ddl_dumper_options::set_compatibility_options)

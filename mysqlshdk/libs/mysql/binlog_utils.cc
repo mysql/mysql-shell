@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,8 +22,12 @@
  */
 
 #include "mysqlshdk/libs/mysql/binlog_utils.h"
+
 #include <vector>
+
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -68,15 +72,31 @@ size_t inject_gtid_set(const mysqlshdk::mysql::IInstance &server,
 
 [[maybe_unused]] void list_binlog_events(
     const mysqlshdk::mysql::IInstance &server, const std::string &log_name,
-    uint64_t start_position, uint64_t offset, uint64_t limit,
-    const std::function<bool(const Gtid &, const Binlog_event &)> &fn) {
+    const std::function<bool(const Gtid &gtid, const Binlog_event &)> &fn,
+    std::optional<uint64_t> start_position, std::optional<uint64_t> limit,
+    std::optional<uint64_t> offset) {
+  auto query = shcore::sqlformat("SHOW BINLOG EVENTS IN ?", log_name);
+
+  if (start_position.has_value()) {
+    query += " FROM ";
+    query += std::to_string(*start_position);
+  }
+
+  if (limit.has_value()) {
+    query += " LIMIT ";
+
+    if (offset.has_value()) {
+      query += std::to_string(*offset);
+      query += ',';
+    }
+
+    query += std::to_string(*limit);
+  }
+
   Gtid last_gtid;
-  const std::string prefix = "SET @@SESSION.GTID_NEXT=";
+  const auto res = server.query(query);
 
-  auto res = server.queryf("SHOW BINLOG EVENTS IN ? FROM ? LIMIT ?, ?",
-                           log_name, start_position, offset, limit);
-
-  while (auto row = res->fetch_one_named()) {
+  while (const auto row = res->fetch_one_named()) {
     Binlog_event event;
 
     event.server_id = row.get_uint("Server_id");
@@ -86,12 +106,16 @@ size_t inject_gtid_set(const mysqlshdk::mysql::IInstance &server,
     event.info = row.get_string("Info");
 
     if (event.event_type == "Gtid") {
-      if (event.info.compare(0, prefix.size(), prefix) == 0) {
-        auto p = event.info.find('\'');
+      if (shcore::str_beginswith(event.info, "SET @@SESSION.GTID_NEXT=")) {
+        const auto p = event.info.find('\'');
         last_gtid = event.info.substr(p + 1, event.info.rfind('\'') - p - 1);
+      } else {
+        last_gtid.clear();
       }
     } else {
-      fn(last_gtid, event);
+      if (!fn(last_gtid, event)) {
+        break;
+      }
     }
   }
 }

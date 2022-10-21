@@ -28,6 +28,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -83,11 +84,10 @@ inline constexpr char k_keyword_chars[] =
  * @param s the string to be lexed. The first character must be a quote char.
  * @return offset after the end of the closing quote or npos on error
  */
-inline size_t span_quoted_string_dq(const std::string &s, size_t offset) {
+inline size_t span_quoted_string_dq(std::string_view s, size_t offset) {
   assert(!s.empty());
   assert(offset < s.length());
   assert(s[offset] == '"');
-  assert(s[s.size()] == '\0');
 
   // skip opening quote
   ++offset;
@@ -100,28 +100,28 @@ inline size_t span_quoted_string_dq(const std::string &s, size_t offset) {
                    [last_ch = static_cast<unsigned char>(s[offset])] > 0) {
       offset += internal::k_quoted_string_span_skips_dq[last_ch];
     }
-    // Now check why we exited the loop
-    if (last_ch == '\0' || offset >= s.length()) {
-      // there was a '\0', but the string is not over, continue spanning
-      if (offset < s.length()) {
-        ++offset;
-        continue;
-      }
-      // if this was indeed the terminator, it means we exited the loop
-      // without seeing a "
-      return std::string::npos;
+
+    if (offset >= s.length()) {
+      // we exited the loop without seeing a "
+      return std::string_view::npos;
     }
+
+    if (last_ch == '\0') {
+      // there was a '\0', but the string is not over, continue spanning
+      ++offset;
+      continue;
+    }
+
     // the only other possible way to exit the loop must be the end quote
     assert(last_ch == '"');
     return offset + 1;
   }
 }
 
-inline size_t span_quoted_string_sq(const std::string &s, size_t offset) {
+inline size_t span_quoted_string_sq(std::string_view s, size_t offset) {
   assert(!s.empty());
   assert(offset < s.length());
   assert(s[offset] == '\'');
-  assert(s[s.size()] == '\0');
 
   // skip opening quote
   ++offset;
@@ -134,38 +134,38 @@ inline size_t span_quoted_string_sq(const std::string &s, size_t offset) {
                    [last_ch = static_cast<unsigned char>(s[offset])] > 0) {
       offset += internal::k_quoted_string_span_skips_sq[last_ch];
     }
-    // Now check why we exited the loop
-    if (last_ch == '\0' || offset >= s.length()) {
-      // there was a '\0', but the string is not over, continue spanning
-      if (offset < s.length()) {
-        ++offset;
-        continue;
-      }
-      // if this was indeed the terminator, it means we exited the loop
-      // without seeing a '
-      return std::string::npos;
+
+    if (offset >= s.length()) {
+      // we exited the loop without seeing a '
+      return std::string_view::npos;
     }
+
+    if (last_ch == '\0') {
+      // there was a '\0', but the string is not over, continue spanning
+      ++offset;
+      continue;
+    }
+
     // the only other possible way to exit the loop must be the end quote
     assert(last_ch == '\'');
     return offset + 1;
   }
 }
 
-inline size_t span_quoted_sql_identifier_bt(const std::string &s,
-                                            size_t offset) {
+inline size_t span_quoted_sql_identifier_bt(std::string_view s, size_t offset) {
+  const auto length = s.length();
   assert(!s.empty());
-  assert(offset < s.length());
+  assert(offset < length);
   assert(s[offset] == '`');
-  assert(s[s.size()] == '\0');
 
   // unlike strings, identifiers don't allow escaping with the \ char
   size_t p = offset + 1;
   for (;;) {
     p = s.find('`', p);
-    if (p == std::string::npos) {
+    if (p == std::string_view::npos) {
       break;
     }
-    if (s[p + 1] == '`') {
+    if (p + 1 < length && s[p + 1] == '`') {
       p += 2;
     } else {
       ++p;
@@ -176,31 +176,31 @@ inline size_t span_quoted_sql_identifier_bt(const std::string &s,
 }
 
 // Span spaces. If offset is npos, return npos
-inline size_t span_spaces(const std::string &s, size_t offset) {
+inline size_t span_spaces(std::string_view s, size_t offset) {
   return s.find_first_not_of(" \t\r\n", offset);
 }
 
-inline size_t span_not_spaces(const std::string &s, size_t offset) {
+inline size_t span_not_spaces(std::string_view s, size_t offset) {
   size_t p = s.find_first_of(" \t\r\n", offset);
-  if (p == std::string::npos) return s.size();
+  if (p == std::string_view::npos) return s.size();
   return p;
 }
 
-inline size_t span_quoted_sql_identifier_dquote(const std::string &s,
+inline size_t span_quoted_sql_identifier_dquote(std::string_view s,
                                                 size_t offset) {
+  const auto length = s.length();
   assert(!s.empty());
-  assert(offset < s.length());
+  assert(offset < length);
   assert(s[offset] == '"');
-  assert(s[s.size()] == '\0');
 
   // unlike strings, identifiers don't allow escaping with the \ char
   size_t p = offset + 1;
   for (;;) {
     p = s.find('"', p);
-    if (p == std::string::npos) {
+    if (p == std::string_view::npos) {
       break;
     }
-    if (s[p + 1] == '"') {
+    if (p + 1 < length && s[p + 1] == '"') {
       p += 2;
     } else {
       ++p;
@@ -211,7 +211,7 @@ inline size_t span_quoted_sql_identifier_dquote(const std::string &s,
 }
 
 inline size_t span_keyword(
-    const std::string &s, size_t offset,
+    std::string_view s, size_t offset,
     const char keyword_chars[] = internal::k_keyword_chars) {
   assert(!s.empty());
   assert(offset < s.length());
@@ -221,7 +221,7 @@ inline size_t span_keyword(
 
     p = s.find_first_not_of(keyword_chars, offset + 1);
 
-    if (p == std::string::npos) p = s.length();
+    if (p == std::string_view::npos) p = s.length();
 
     return p;
   } else {
@@ -229,9 +229,9 @@ inline size_t span_keyword(
   }
 }
 
-inline size_t span_to_eol(const std::string &s, size_t offset) {
+inline size_t span_to_eol(std::string_view s, size_t offset) {
   offset = s.find('\n', offset);
-  if (offset == std::string::npos) return s.length();
+  if (offset == std::string_view::npos) return s.length();
   return offset + 1;
 }
 
@@ -240,17 +240,17 @@ inline size_t span_to_eol(const std::string &s, size_t offset) {
  * This does NOT handle MySQL optimizer hint comments or conditional
  * comments, so it should only be used to span non-SQL strings.
  */
-inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
+inline size_t span_cstyle_comment(std::string_view s, size_t offset) {
   assert(!s.empty());
   assert(offset < s.size());
   assert(s.size() - offset < 2 || (s[offset] == '/' && s[offset + 1] == '*'));
 
-  if (s.size() < 4) return std::string::npos;
+  if (s.size() < 4) return std::string_view::npos;
 
   offset += 2;
 
   size_t p = s.find("*/", offset);
-  if (p == std::string::npos) return std::string::npos;
+  if (p == std::string_view::npos) return std::string_view::npos;
   return p + 2;
 }
 
@@ -259,7 +259,7 @@ inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
  * This function handles special comments that start with a + (optimizer hints)
  * or ! (conditional statements).
  */
-size_t span_cstyle_sql_comment(const std::string &s, size_t offset);
+size_t span_cstyle_sql_comment(std::string_view s, size_t offset);
 
 /** Class enabling iteration over characters in SQL string skipping comments and
  * quoted strings.
@@ -269,15 +269,15 @@ size_t span_cstyle_sql_comment(const std::string &s, size_t offset);
  */
 class SQL_iterator {
  public:
-  typedef std::string::value_type value_type;
+  using size_type = std::string_view::size_type;
+  using value_type = std::string_view::value_type;
 
   /** Create SQL_string_iterator.
    *
    * @arg str string containing SQL query.
    * @arg offset offset in str, need to point to valid part of SQL.
    */
-  explicit SQL_iterator(const std::string &str,
-                        std::string::size_type offset = 0,
+  explicit SQL_iterator(std::string_view str, size_type offset = 0,
                         bool skip_quoted = true);
 
   SQL_iterator &operator++();
@@ -290,12 +290,12 @@ class SQL_iterator {
 
   void advance() { ++(*this); }
 
-  std::string::value_type get_char() const {
+  value_type get_char() const {
     assert(m_offset < m_s.length());
     return m_s[m_offset];
   }
 
-  std::string::value_type operator*() const { return get_char(); }
+  value_type operator*() const { return get_char(); }
 
   bool operator==(const SQL_iterator &a) const {
     return m_offset == a.m_offset && m_s == a.m_s;
@@ -305,18 +305,18 @@ class SQL_iterator {
 
   explicit operator bool() const { return valid(); }
 
-  std::string::size_type position() const { return m_offset; }
+  size_type position() const { return m_offset; }
 
-  void set_position(std::string::size_type position) { m_offset = position; }
+  void set_position(size_type position) { m_offset = position; }
 
   /** Is iterator pointing to valid character inside SQL string */
   bool valid() const { return m_offset < m_s.length(); }
 
-  std::string next_token();
+  std::string_view next_token();
 
-  std::pair<std::string, size_t> next_token_and_offset();
+  std::pair<std::string_view, size_t> next_token_and_offset();
 
-  std::string next_sql_function();
+  std::string_view next_sql_function();
 
   bool inside_hint() const { return m_comment_hint; }
 
@@ -328,8 +328,8 @@ class SQL_iterator {
   }
 
  private:
-  const std::string &m_s;
-  std::string::size_type m_offset;
+  std::string_view m_s;
+  size_type m_offset;
   bool m_skip_quoted;
   bool m_comment_hint = false;
 };

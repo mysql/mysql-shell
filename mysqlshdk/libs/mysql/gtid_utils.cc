@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,10 @@ std::string to_string(const Gtid_range &range) {
   else
     return std::get<0>(range) + ":" + std::to_string(std::get<1>(range)) + "-" +
            std::to_string(std::get<2>(range));
+}
+
+uint64_t count(const Gtid_range &range) {
+  return std::get<2>(range) - std::get<1>(range) + 1;
 }
 
 Gtid_set &Gtid_set::normalize(const mysqlshdk::mysql::IInstance &server) {
@@ -95,7 +99,7 @@ Gtid_set Gtid_set::get_gtids_from(const std::string &uuid) const {
 
   if (!uuid.empty()) {
     enumerate_ranges(
-        [&matches, uuid](const mysqlshdk::mysql::Gtid_range &range) {
+        [&matches, &uuid](const mysqlshdk::mysql::Gtid_range &range) {
           if (std::get<0>(range) == uuid) {
             matches.add(range);
           }
@@ -117,13 +121,13 @@ uint64_t Gtid_set::count() const {
 
   uint64_t count = 0;
   enumerate_ranges([&count](const Gtid_range &range) {
-    count += std::get<2>(range) - std::get<1>(range) + 1;
+    count += mysqlshdk::mysql::count(range);
   });
   return count;
 }
 
 void Gtid_set::enumerate(const std::function<void(const Gtid &)> &fn) const {
-  enumerate_ranges([fn](const Gtid_range &range) {
+  enumerate_ranges([&fn](const Gtid_range &range) {
     std::string prefix = std::get<0>(range) + ":";
     for (auto i = std::get<1>(range); i <= std::get<2>(range); ++i)
       fn(prefix + std::to_string(i));
@@ -137,16 +141,15 @@ void Gtid_set::enumerate_ranges(
 
   shcore::str_itersplit(
       m_gtid_set,
-      [fn](const std::string &s) {
-        size_t p = s.find(':');
-        size_t offs = (s.front() == '\n') ? 1 : 0;
-        // strip \n from previous range as in range,\nrange
-        std::string prefix = s.substr(offs, p - offs);
+      [&fn](const std::string &s) {
+        if (const auto p = s.find(':'); p != std::string::npos) {
+          const auto offs = (s.front() == '\n') ? 1 : 0;
+          // strip \n from previous range as in range,\nrange
+          const auto prefix = s.substr(offs, p - offs);
 
-        if (p != std::string::npos) {
           shcore::str_itersplit(
               s.substr(p + 1),
-              [fn, prefix](const std::string &ss) {
+              [&fn, &prefix](const std::string &ss) {
                 uint64_t begin, end;
                 switch (sscanf(&ss[0], "%" PRIu64 "-%" PRIu64, &begin, &end)) {
                   case 2:
