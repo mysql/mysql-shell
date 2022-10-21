@@ -452,6 +452,10 @@ Value::Value(const char *s, size_t n, bool binary) {
   }
 }
 
+Value::Value(std::string_view s, bool binary) : type(binary ? Binary : String) {
+  value.s = new std::string(s);
+}
+
 Value::Value(std::wstring_view s)
     : Value(shcore::wide_to_utf8(s.data(), s.length())) {}
 

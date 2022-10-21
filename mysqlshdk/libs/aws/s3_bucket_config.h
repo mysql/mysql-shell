@@ -30,6 +30,9 @@
 
 #include "mysqlshdk/libs/storage/backend/object_storage_config.h"
 
+#include "mysqlshdk/libs/aws/aws_config_file.h"
+#include "mysqlshdk/libs/aws/aws_credentials.h"
+#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 
 namespace mysqlshdk {
@@ -67,26 +70,58 @@ class S3_bucket_config
 
   const std::string &hash() const override;
 
- private:
-  friend class Aws_signer;
+  const std::string &host() const { return m_host; }
 
+  const std::string &profile() const { return m_config_profile; }
+
+  const std::string &credentials_file() const { return m_credentials_file; }
+
+  const std::string &config_file() const { return m_config_file; }
+
+  const std::string &region() const { return m_region; }
+
+  Aws_credentials_provider *credentials_provider() const {
+    return m_credentials_provider.get();
+  }
+
+ private:
   std::string describe_self() const override;
 
-  void load_profile(const std::string &path, bool is_config_file);
+  void load_profile(std::optional<Aws_config_file::Profile> *target);
 
   void validate_profile() const;
 
   void use_path_style_access();
 
+  void setup_profile_name();
+
+  void setup_credentials_file();
+
+  void setup_config_file();
+
+  void setup_config_file(std::string *target);
+
+  void setup_region_name();
+
+  void setup_endpoint_uri();
+
+  void setup_credentials_provider();
+
   std::string m_label = "AWS-S3-OS";
-  std::string m_host;
-  std::string m_endpoint;
-  bool m_path_style_access = false;
+
+  bool m_explicit_profile = false;
   std::string m_credentials_file;
-  std::optional<std::string> m_access_key_id;
-  std::optional<std::string> m_secret_access_key;
-  std::optional<std::string> m_session_token;
   std::string m_region;
+  std::string m_endpoint;
+
+  std::string m_host;
+  bool m_path_style_access = false;
+
+  std::optional<Aws_config_file::Profile> m_profile_from_credentials_file;
+  std::optional<Aws_config_file::Profile> m_profile_from_config_file;
+
+  std::unique_ptr<Aws_credentials_provider> m_credentials_provider;
+
   mutable std::string m_hash;
 };
 

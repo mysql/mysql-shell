@@ -1000,6 +1000,15 @@ EXPECT_FAIL("ValueError", "Argument #2: The option 's3Profile' cannot be used wh
 #@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string dumps to a local directory
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "s3BucketName": "", "s3Profile": "", "showProgress": False })
 
+#@<> s3Region - string option
+TEST_STRING_OPTION("s3Region")
+
+#@<> s3Region cannot be used without s3BucketName
+EXPECT_FAIL("ValueError", "Argument #2: The option 's3Region' cannot be used when the value of 's3BucketName' option is not set", test_output_relative, { "s3Region": "region" })
+
+#@<> s3BucketName and s3Region both set to an empty string dumps to a local directory
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "s3BucketName": "", "s3Region": "", "showProgress": False })
+
 #@<> s3EndpointOverride - string option
 TEST_STRING_OPTION("s3EndpointOverride")
 
@@ -2143,40 +2152,51 @@ session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ /*!80000 , BACKUP_ADM
 
 tested_schema = "test_schema"
 tested_table = "test_table"
-tables_to_create = 100
 reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
-session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-
-for i in range(tables_to_create):
-    session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
 
 # constantly create tables
-create_tables = f"""v = {tables_to_create}
+def constantly_create_tables():
+    tables_to_create = 500
+    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+    for i in range(tables_to_create):
+        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
+    create_tables = f"""v = {tables_to_create}
 while True:
     session.run_sql("CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
     v = v + 1
 session.close()
 """
+    # run a process which constantly creates tables
+    pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
+    # wait a bit for process to start
+    time.sleep(1)
+    return pid
 
-# run a process which constantly creates tables
-pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
-# wait a bit for process to start
-time.sleep(3)
 # connect
 shell.connect(test_user_uri(__mysql_sandbox_port1))
 
-# test
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "consistent": True, "showProgress": False }, expect_dir_created = True)
+#@<> BUG#33697289 create a process which will add tables in the background
+pid = constantly_create_tables()
+
+#@<> BUG#33697289 test - backup lock is not available
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False, "threads": 1 }, expect_dir_created = True)
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: Backup lock is not {0} and DDL changes were not blocked. The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
 EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Error while writing .+ of `.+`\.`.+`: Consistency check has failed"))
 
+#@<> BUG#33697289 terminate the process immediately
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#33697289 create a process which will add tables in the background (2) {not __dbug_off}
+pid = constantly_create_tables()
+
 #@<> BUG#33697289 fail if gtid is disabled and DDL changes {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
 
-EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "consistent": True, "showProgress": False }, expect_dir_created = True)
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False, "threads": 1 }, expect_dir_created = True)
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: Backup lock is not {0} and DDL changes were not blocked. The binlog position has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
@@ -2185,10 +2205,10 @@ EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Error while writing .+
 
 testutil.dbug_set("")
 
-#@<> BUG#33697289 terminate the process immediately, it will not stop on its own
+#@<> BUG#33697289 terminate the process immediately, it will not stop on its own {not __dbug_off}
 testutil.wait_mysqlsh_async(pid, 0)
 
-# without the process, the dump should succeed
+#@<> BUG#33697289 without the process, the dump should succeed
 WIPE_STDOUT()
 shutil.rmtree(test_output_absolute, True)
 EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False }), "Dump should not throw")
@@ -2200,7 +2220,7 @@ EXPECT_STDOUT_CONTAINS("NOTE: Backup lock was not acquired, but DDL is consisten
 #@<> BUG#33697289 fail if binlog and gtid are disabled {not __dbug_off}
 testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
 
-EXPECT_FAIL("Error: Shell Error (52002)", "While 'Initializing': Unable to lock tables: Consistency check has failed.", test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52002)", "While 'Initializing': Unable to lock tables: Consistency check has failed.", test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS(f"""
 ERROR: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK.

@@ -535,11 +535,11 @@ REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AWS_COMMON_OPTIONS, R"*(
 @li <b>s3BucketName</b>: string (default: not set) - Name of the AWS S3 bucket
 to use. The bucket must already exist.
 @li <b>s3CredentialsFile</b>: string (default: not set) - Use the specified AWS
-<b>credentials</b> file instead of the one at the default location.
+<b>credentials</b> file.
 @li <b>s3ConfigFile</b>: string (default: not set) - Use the specified AWS
-<b>config</b> file instead of the one at the default location.
-@li <b>s3Profile</b>: string (default: not set) - Use the specified AWS profile
-instead of the <b>default</b> one.
+<b>config</b> file.
+@li <b>s3Profile</b>: string (default: not set) - Use the specified AWS profile.
+@li <b>s3Region</b>: string (default: not set) - Use the specified AWS region.
 @li <b>s3EndpointOverride</b>: string (default: not set) - Use the specified AWS
 S3 API endpoint instead of the default one.)*");
 
@@ -549,32 +549,71 @@ AWS S3 bucket. Connection is established using default local AWS configuration
 paths and profiles, unless overridden. The directory structure is simulated
 within the object name.
 
-The <b>s3CredentialsFile</b>, <b>s3ConfigFile</b>, <b>s3Profile</b> and
-<b>s3EndpointOverride</b> options cannot be used if the <b>s3BucketName</b>
-option is not set or set to an empty string.
+The <b>s3CredentialsFile</b>, <b>s3ConfigFile</b>, <b>s3Profile</b>,
+<b>s3Region</b> and <b>s3EndpointOverride</b> options cannot be used if the
+<b>s3BucketName</b> option is not set or set to an empty string.
 
 <b>Handling of the AWS settings</b>
 
--# The following settings are read from the <b>config</b> file for the
-specified profile:
+The AWS options are evaluated in the order of precedence, the first available
+value is used.
+
+-# Name of the AWS profile:
+@li the <b>s3Profile</b> option
+@li the <b>AWS_PROFILE</b> environment variable
+@li the <b>AWS_DEFAULT_PROFILE</b> environment variable
+@li the default value of <b>default</b>
+-# Location of the <b>credentials</b> file:
+@li the <b>s3CredentialsFile</b> option
+@li the <b>AWS_SHARED_CREDENTIALS_FILE</b> environment variable
+@li the default value of <b>~/.aws/credentials</b>
+-# Location of the <b>config</b> file:
+@li the <b>s3ConfigFile</b> option
+@li the <b>AWS_CONFIG_FILE</b> environment variable
+@li the default value of <b>~/.aws/config</b>
+-# Name of the AWS region:
+@li the <b>s3Region</b> option
+@li the <b>AWS_REGION</b> environment variable
+@li the <b>AWS_DEFAULT_REGION</b> environment variable
+@li the <b>region</b> setting from the <b>config</b> file for the specified profile
+@li the default value of <b>us-east-1</b>
+-# URI of AWS S3 API endpoint
+@li the <b>s3EndpointOverride</b> option
+@li the default value of <b>%https://@<s3BucketName@>.s3.@<region@>.amazonaws.com</b>
+
+.
+The AWS credentials are fetched from the following providers, in the order of
+precedence:
+
+-# Environment variables:
+@li <b>AWS_ACCESS_KEY_ID</b>
+@li <b>AWS_SECRET_ACCESS_KEY</b>
+@li <b>AWS_SESSION_TOKEN</b>
+-# Settings from the <b>credentials</b> file for the specified profile:
 @li <b>aws_access_key_id</b>
 @li <b>aws_secret_access_key</b>
 @li <b>aws_session_token</b>
-@li <b>region</b>
--# The following settings are read from the <b>credentials</b> file for the
-specified profile:
+-# Settings from the <b>config</b> file for the specified profile:
 @li <b>aws_access_key_id</b>
 @li <b>aws_secret_access_key</b>
 @li <b>aws_session_token</b>
--# If there are credentials in both <b>credentials</b> and <b>config</b> files
-for the specified profile, the keys in the <b>credentials</b> file take
-precedence.
--# If either <b>aws_access_key_id</b> or <b>aws_secret_access_key</b> is
-missing, an exception is thrown.
--# If <b>aws_session_token</b> is missing, or is empty, it is not used to
-authenticate the user.
--# If <b>region</b> is missing, or is empty, a default value of <b>us-east-1</b>
-is used instead.)*");
+
+.
+The items specified above correspond to the following credentials:
+@li the AWS access key
+@li the secret key associated with the AWS access key
+@li the AWS session token for the temporary security credentials
+
+The following credential handling rules apply:
+@li If the <b>s3Profile</b> option is set to a non-empty string, the environment
+variables are not used as a potential credential provider.
+@li If either an access key or a secret key is available in a potential
+credential provider, it is selected as the credential provider.
+@li If either the access key or the secret key is missing in the selected
+credential provider, an exception is thrown.
+@li If the session token is missing in the selected credential provider, or if
+it is set to an empty string, it is not used to authenticate the user.
+)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS, R"*(
 <b>Dumping to a Bucket in the AWS S3 Object Storage</b>

@@ -43,6 +43,7 @@ const shcore::Option_pack_def<S3_bucket_options> &S3_bucket_options::options() {
                     &S3_bucket_options::m_credentials_file)
           .optional(config_file_option(), &S3_bucket_options::m_config_file)
           .optional(profile_option(), &S3_bucket_options::m_config_profile)
+          .optional(region_option(), &S3_bucket_options::m_region)
           .optional(endpoint_override_option(),
                     &S3_bucket_options::m_endpoint_override)
           .on_done(&S3_bucket_options::on_unpacked_options);
@@ -86,7 +87,7 @@ S3_bucket_options::create_config() const {
 
 std::vector<const char *> S3_bucket_options::get_secondary_options() const {
   return {config_file_option(), profile_option(), credentials_file_option(),
-          endpoint_override_option()};
+          region_option(), endpoint_override_option()};
 }
 
 bool S3_bucket_options::has_value(const char *option) const {
@@ -98,6 +99,8 @@ bool S3_bucket_options::has_value(const char *option) const {
     return !m_config_profile.empty();
   } else if (shcore::str_caseeq(option, credentials_file_option())) {
     return !m_credentials_file.empty();
+  } else if (shcore::str_caseeq(option, region_option())) {
+    return !m_region.empty();
   } else if (shcore::str_caseeq(option, endpoint_override_option())) {
     return !m_endpoint_override.empty();
   }

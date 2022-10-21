@@ -59,6 +59,8 @@ class Oci_signer : public rest::Signer {
 
   bool refresh_auth_data() override { return false; }
 
+  bool auth_data_expired(time_t) const override { return false; }
+
  protected:
   void set_auth_key_id(const std::string &auth_key_id) {
     m_auth_key_id = auth_key_id;

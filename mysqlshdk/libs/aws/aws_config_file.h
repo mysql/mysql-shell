@@ -55,6 +55,18 @@ class Aws_config_file final {
 
   ~Aws_config_file() = default;
 
+  static constexpr const char *access_key_id() noexcept {
+    return "aws_access_key_id";
+  }
+
+  static constexpr const char *secret_access_key() noexcept {
+    return "aws_secret_access_key";
+  }
+
+  static constexpr const char *session_token() noexcept {
+    return "aws_session_token";
+  }
+
   /**
    * Loads the configuration from the file.
    *
