@@ -228,6 +228,20 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
   }
 }
 
+size_t iterate_users(const IInstance &instance, const std::string &user_filter,
+                     const std::function<bool(std::string, std::string)> &cb) {
+  auto res = instance.queryf(
+      "SELECT user, host FROM mysql.user WHERE (user LIKE ?)", user_filter);
+
+  size_t num_users{0};
+  while (const auto row = res->fetch_one()) {
+    num_users++;
+    if (!cb(row->get_string(0), row->get_string(1))) break;
+  }
+
+  return num_users;
+}
+
 Privilege_list get_global_grants(const IInstance &instance,
                                  const std::string &user,
                                  const std::string &host) {

@@ -137,10 +137,6 @@ CHECK_RECOVERY_USER(session3);
 //@<> Check users on adopt
 session1.runSql("drop schema mysql_innodb_cluster_metadata");
 
-session1.runSql("drop user mysql_innodb_cluster_r3294023486@'%'");
-session1.runSql("drop user mysql_innodb_cluster_r3294023487@'%'");
-session1.runSql("drop user mysql_innodb_cluster_r3294023488@'%'");
-
 session1.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
 session2.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
 session3.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
@@ -151,6 +147,9 @@ c.status();
 // check root user didn't get dropped
 EXPECT_EQ("%,localhost", session1.runSql("select group_concat(host) from mysql.user where user='root' order by host").fetchOne()[0]);
 
+session1.runSql("drop user mysql_innodb_cluster_r3294023486@'%'");
+session1.runSql("drop user mysql_innodb_cluster_r3294023487@'%'");
+session1.runSql("drop user mysql_innodb_cluster_r3294023488@'%'");
 CHECK_REPL_USERS(session1, [1111, 2222, 3333], "%");
 
 //@<> Check replicationAllowedHost

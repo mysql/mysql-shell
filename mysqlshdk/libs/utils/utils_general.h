@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_UTILS_GENERAL_H_
 #define MYSQLSHDK_LIBS_UTILS_UTILS_GENERAL_H_
 
+#include <charconv>
 #include <functional>
 #include <set>
 #include <sstream>
@@ -309,47 +310,124 @@ std::string SHCORE_PUBLIC last_error_to_string(DWORD code);
 #endif  // _WIN32
 
 template <class T>
-T lexical_cast(const T &data) {
-  return data;
+auto lexical_cast(T &&data) noexcept {
+  return std::forward<T>(data);
 }
 
-template <class T, class S>
-typename std::enable_if<std::is_same<T, std::string>::value, T>::type
-lexical_cast(const S &data) {
-  std::stringstream ss;
-  if (std::is_same<S, bool>::value) ss << std::boolalpha;
-  ss << data;
-  return ss.str();
-}
+template <class T>
+auto lexical_cast(std::string_view str) {
+  // this version converts from string to something else
 
-template <class T, class S>
-typename std::enable_if<!std::is_same<T, std::string>::value, T>::type
-lexical_cast(const S &data) {
-  std::stringstream ss;
-  ss << data;
-  if (std::is_unsigned<T>::value && ss.peek() == '-')
-    throw std::invalid_argument("Unable to perform conversion.");
-  T t;
-  ss >> t;
-  if (ss.fail()) {
-    if (std::is_same<T, bool>::value) {
-      const auto &str = ss.str();
-      if (shcore::str_caseeq(str, "true"))
-        return true;
-      else if (shcore::str_caseeq(str, "false"))
-        return false;
-    }
-    throw std::invalid_argument("Unable to perform conversion.");
-  } else if (!ss.eof()) {
-    throw std::invalid_argument("Conversion did not consume whole input.");
+  // same behavior as boost: doesn't make sense so convert back to these types
+  static_assert(!std::is_same_v<std::remove_cv_t<T>, char *> &&
+                    !std::is_same_v<std::remove_cv_t<T>, char> &&
+                    !std::is_same_v<std::remove_cv_t<T>, std::string_view>,
+                "Invalid type to convert to.");
+
+  if constexpr (std::is_same_v<T, std::string>) {
+    // simple copies are allowed
+    return T{str};
+
+  } else if constexpr (std::is_same<T, bool>::value) {
+    // conversion to bool
+    if (shcore::str_caseeq(str, "true")) return true;
+    if (shcore::str_caseeq(str, "false")) return false;
+
+    std::stringstream ss;
+    ss << str;
+    if (std::is_unsigned<T>::value && ss.peek() == '-')
+      throw std::invalid_argument("Unable to perform conversion.");
+    T t;
+    ss >> t;
+    if (ss.fail()) throw std::invalid_argument("Unable to perform conversion.");
+    if (!ss.eof())
+      throw std::invalid_argument("Conversion did not consume whole input.");
+
+    return t;
+
+  } else if constexpr (std::is_integral_v<T>) {
+    // some compilers don't have FP implementations of std::from_chars (GCC and
+    // Clang) so it can only be used with integrals
+    T value;
+    auto [ptr, ec] =
+        std::from_chars(str.data(), str.data() + str.size(), value);
+
+    if (ec != std::errc())
+      throw std::invalid_argument("Unable to perform conversion.");
+    if (ptr != (str.data() + str.size()))
+      throw std::invalid_argument("Conversion did not consume whole input.");
+    return value;
+
+  } else {
+    // all other cases
+    std::stringstream ss;
+    ss << str;
+    if (std::is_unsigned<T>::value && ss.peek() == '-')
+      throw std::invalid_argument("Unable to perform conversion.");
+    T t;
+    ss >> t;
+    if (ss.fail()) throw std::invalid_argument("Unable to perform conversion.");
+    if (!ss.eof())
+      throw std::invalid_argument("Conversion did not consume whole input.");
+
+    return t;
   }
-  return t;
 }
 
 template <class T, class S>
-T lexical_cast(const S &data, T default_value) noexcept {
+auto lexical_cast(S &&data) {
+  // lexical_cast doesn't allow to convert to "char*" or std::string_view
+  static_assert(!std::is_same_v<T, char *> &&
+                !std::is_same_v<T, const char *> &&
+                !std::is_same_v<T, std::string_view>);
+
+  // lexical_cast should be to / from strings, so at least T or S must be one
+  static_assert(std::is_same_v<std::decay_t<S>, char *> ||
+                std::is_same_v<std::decay_t<S>, const char *> ||
+                std::is_same_v<std::decay_t<S>, std::string> ||
+                std::is_same_v<T, std::string>);
+  /*
+   - if T and S are the same, forward S
+   - if S is a string, use the specialization for strings (above this one)
+   - if T is a string, convert it here
+   - every other combination is "translated" through a std::stringstream
+  */
+  if constexpr (std::is_same_v<std::decay_t<S>, T>) {
+    // if T and S match, just return the parameter
+    return std::forward<T>(data);
+  } else if constexpr (std::is_same_v<std::decay_t<S>, char *> ||
+                       std::is_same_v<std::decay_t<S>, const char *> ||
+                       std::is_same_v<std::decay_t<S>, std::string>) {
+    // if S is char* or std::string (const or non-const) then use
+    // std::string_view version
+    return lexical_cast<T>(std::string_view{data});
+
+  } else {
+    // convert from S (which is not char*, std::string or std::string_view) to
+    // std::string
+    if constexpr (std::is_same_v<std::decay_t<S>, bool>) {
+      return std::string{data ? "true" : "false"};
+
+    } else if constexpr (std::is_integral_v<std::decay_t<S>>) {
+      std::array<char, 64> str;
+
+      auto [ptr, ec] = std::to_chars(str.data(), str.data() + str.size(), data);
+      if (ec == std::errc()) return std::string{str.data(), ptr};
+
+      throw std::invalid_argument("Unable to perform conversion.");
+
+    } else {
+      std::stringstream ss;
+      ss << data;
+      return ss.str();
+    }
+  }
+}
+
+template <class T, class S>
+auto lexical_cast(S &&data, T default_value) noexcept {
   try {
-    return lexical_cast<T>(data);
+    return lexical_cast<T>(std::forward<S>(data));
   } catch (...) {
   }
   return default_value;

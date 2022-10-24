@@ -57,6 +57,13 @@ function validate_instance_status(status, instance, expected) {
         } else if (expected == "MISSING" ) {
             EXPECT_EQ(instance_status["status"], "(MISSING)");
             EXPECT_FALSE("instanceErrors" in instance_status);
+        } else if ((expected == "RECOVERY_UNUSED") || (expected == "RECOVERY_UNUSED_SINGLE")) {
+            EXPECT_EQ(instance_status["status"], "ONLINE");
+            EXPECT_TRUE("instanceErrors" in instance_status);
+            if (expected == "RECOVERY_UNUSED")
+                EXPECT_CONTAINS("WARNING: Detected unused recovery accounts: ", instance_status["instanceErrors"][0]);
+            else
+                EXPECT_CONTAINS("WARNING: Detected an unused recovery account: ", instance_status["instanceErrors"][0]);
         }
     }
 }
@@ -102,6 +109,30 @@ function reboot_with_view_change_uuid_default(cluster) {
     }
 
     cluster = dba.rebootClusterFromCompleteOutage(cluster_name);
+}
+
+function check_status_instance_error_msg(status, instance_port, msg) {
+
+    inst = status["defaultReplicaSet"]["topology"][`${hostname}:${instance_port}`];
+    if (!inst.hasOwnProperty('instanceErrors'))
+        return false;
+
+    inst_errors = inst["instanceErrors"];
+    for (let i = 0; i < inst_errors.length; i++) {
+
+        error_msg = inst_errors[i];
+        if (error_msg === msg)
+            return true;
+    }
+
+    return false;
+}
+
+function test_with_dtrap(dtrap, func) {
+    testutil.dbugSet(dtrap);
+    func();
+    testutil.dbugSet("");
+    func();
 }
 
 //@ Initialize.
@@ -231,8 +262,7 @@ cluster.rescan({addInstances: ["localhost:3301", "localhost:3300"], removeInstan
 //@<> Remove instance on port 2 and 3 from MD but keep it in the group.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [hostname+":"+__mysql_sandbox_port2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [hostname+":"+__mysql_sandbox_port3]);
-
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
@@ -250,7 +280,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
 
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
@@ -267,7 +297,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
 
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
@@ -281,7 +311,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 
 //@<> WL10644 - TSF2_4: Remove instances on port 2 from MD.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SINGLE"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
@@ -296,7 +326,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 //@<> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SINGLE"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port2, "UNMANAGED"]]);
 
@@ -749,6 +779,89 @@ EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication
 EXPECT_OUTPUT_NOT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 
+//@<> Bug #33235502 Check for incorrect recovery accounts and fix them
+shell.options["useWizards"] = false;
+
+cluster.dissolve({force:true});
+
+var cluster = dba.createCluster("c");
+
+if (testutil.versionCheck(__version, ">=", "8.0.11")) {
+
+    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone", waitRecovery:0});
+    testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+    status = cluster.status();
+    EXPECT_TRUE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Incorrect recovery account (mysql_innodb_cluster_${instance2_id}) being used. Use Cluster.rescan() to repair.`));
+
+    WIPE_STDOUT();
+    cluster.rescan();
+    EXPECT_OUTPUT_CONTAINS(`Fixing incorrect recovery account 'mysql_innodb_cluster_${instance2_id}' in instance '${hostname}:${__mysql_sandbox_port1}'`)
+
+    status = cluster.status();
+    EXPECT_FALSE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Incorrect recovery account (mysql_innodb_cluster_${instance2_id}) being used. Use Cluster.rescan() to repair.`));
+}
+
+//@<> Bug #33235502 Check for multiple unused recovery accounts and fix them
+
+if (testutil.versionCheck(__version, "<", "8.0.11")) {
+    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental", waitRecovery:0});
+    testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+}
+
+// delete the instance using the recovery account to create the cenario where the account isn't being used
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [`${hostname}:${__mysql_sandbox_port2}`]);
+
+status = cluster.status();
+EXPECT_TRUE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Detected an unused recovery account: mysql_innodb_cluster_${instance2_id}. Use Cluster.rescan() to clean up.`));
+
+EXPECT_NO_THROWS(function () { cluster.rescan() });
+EXPECT_OUTPUT_CONTAINS(`Dropping unused recovery account: 'mysql_innodb_cluster_${instance2_id}'@'%'`);
+
+status = cluster.status();
+EXPECT_FALSE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Detected an unused recovery account: mysql_innodb_cluster_${instance2_id}. Use Cluster.rescan() to clean up.`));
+
+EXPECT_NO_THROWS(function () { cluster.rescan({addInstances: "auto"}) });
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' was successfully added to the cluster metadata.`);
+
+//@<> Bug #33235502 Check if recreated recovery account has the correct host
+
+var row = session.runSql("SELECT cluster_id, attributes->>'$.recoveryAccountUser' FROM mysql_innodb_cluster_metadata.instances WHERE (instance_name = ?)", [`${hostname}:${__mysql_sandbox_port2}`]).fetchOne();
+var cluster_id = row[0];
+var recover_user = row[1];
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_set(COALESCE(attributes, '{}'), \"$.recoveryAccountUser\", ?) WHERE (instance_name = ?)", [recover_user + "00", `${hostname}:${__mysql_sandbox_port2}`]);
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = json_set(COALESCE(attributes, '{}'), \"$.opt_replicationAllowedHost\", ?) WHERE (cluster_id = ?)", ["fake_host", cluster_id]);
+
+cluster.rescan();
+
+host = session.runSql("SELECT attributes->>'$.recoveryAccountHost' FROM mysql_innodb_cluster_metadata.instances WHERE (instance_name = ?)", [`${hostname}:${__mysql_sandbox_port2}`]).fetchOne()[0];
+EXPECT_EQ(host, "fake_host");
+
+//@<> Bug #33235502 Check if status uses the correct server_id value
+
+session2 = mysql.getSession(__sandbox_uri2);
+var server_id2 = session2.runSql("SELECT @@server_id").fetchOne()[0];
+session2.close();
+
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_remove(attributes, '$.server_id') WHERE (instance_name = ?)", [`${hostname}:${__mysql_sandbox_port2}`]);
+
+test_with_dtrap("+d,assume_no_server_id_in_metadata", function () {
+    status = cluster.status();
+    EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+    EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+    EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][0], "NOTE: instance server_id is not registered in the metadata. Use cluster.rescan() to update the metadata.");
+});
+
+EXPECT_NO_THROWS(function () { cluster.rescan() });
+
+test_with_dtrap("+d,assume_no_server_id_in_metadata", function () {
+    status = cluster.status();
+    EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+    EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+    EXPECT_EQ(session.runSql("SELECT attributes->>'$.server_id' FROM mysql_innodb_cluster_metadata.instances WHERE (instance_name = ?)", [`${hostname}:${__mysql_sandbox_port2}`]).fetchOne()[0], String(server_id2));
+});
+
+cluster.disconnect();
 
 //@<> check metadata repair when report_host is changed  {VER(>=8.0.27)}
 shell.connect(__sandbox_uri1);
@@ -846,7 +959,6 @@ if (__version_num >= 80027) {
 }
 
 //@ Finalize.
-cluster.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

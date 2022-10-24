@@ -571,8 +571,19 @@ TEST(utils_general, get_long_version) {
 }
 
 TEST(utils_general, lexical_cast) {
+  // from string
+
+  EXPECT_EQ("foo", lexical_cast<std::string>("foo"));
+
   EXPECT_EQ(12345, lexical_cast<int>("12345"));
+  EXPECT_EQ(-12345, lexical_cast<int>("-12345"));
   EXPECT_EQ(12345, lexical_cast<unsigned>("12345"));
+  EXPECT_EQ(-122.0f, lexical_cast<float>("-122"));
+  EXPECT_EQ(-123.0, lexical_cast<double>("-123"));
+  EXPECT_EQ(123.123f, lexical_cast<float>("123.123"));
+  EXPECT_EQ(123.123, lexical_cast<double>("123.123"));
+  EXPECT_EQ(0.0123f, lexical_cast<float>("123e-4"));
+  EXPECT_EQ(0.0123, lexical_cast<double>("123e-4"));
   EXPECT_TRUE(lexical_cast<bool>("true"));
   EXPECT_TRUE(lexical_cast<bool>("TRUE"));
   EXPECT_TRUE(lexical_cast<bool>("True"));
@@ -582,20 +593,25 @@ TEST(utils_general, lexical_cast) {
   EXPECT_FALSE(lexical_cast<bool>("FALSE"));
   EXPECT_FALSE(lexical_cast<bool>("False"));
   EXPECT_FALSE(lexical_cast<bool>("false"));
-  EXPECT_FALSE(lexical_cast<bool>(0));
-  EXPECT_EQ(123.123, lexical_cast<double>("123.123"));
-  EXPECT_EQ(std::string("12345"), lexical_cast<std::string>(12345));
-  EXPECT_EQ(std::string("-12345"), lexical_cast<std::string>(-12345));
 
-  EXPECT_THROW(lexical_cast<bool>(12345), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<double>("12345f"), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<unsigned>("-12345"), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<int>("foo"), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<int>("12345  "), std::invalid_argument);
+
   EXPECT_THROW(lexical_cast<bool>("tru"), std::invalid_argument);
   EXPECT_THROW(lexical_cast<bool>("TRU"), std::invalid_argument);
   EXPECT_THROW(lexical_cast<bool>("falze"), std::invalid_argument);
   EXPECT_THROW(lexical_cast<bool>("FALS"), std::invalid_argument);
-  EXPECT_THROW(lexical_cast<int>(123.45), std::invalid_argument);
-  EXPECT_THROW(lexical_cast<double>("12345f"), std::invalid_argument);
-  EXPECT_THROW(lexical_cast<unsigned>("-12345"), std::invalid_argument);
-  EXPECT_THROW(lexical_cast<unsigned>(-12345), std::invalid_argument);
+
+  // to string
+
+  EXPECT_EQ("12345", lexical_cast<std::string>(12345));
+  EXPECT_EQ("-12345", lexical_cast<std::string>(-12345));
+  EXPECT_EQ("123.45", lexical_cast<std::string>(123.45f));
+  EXPECT_EQ("-12.345", lexical_cast<std::string>(-12.345));
+  EXPECT_EQ("true", lexical_cast<std::string>(true));
+  EXPECT_EQ("false", lexical_cast<std::string>(false));
 }
 
 TEST(utils_general, environment_variables) {

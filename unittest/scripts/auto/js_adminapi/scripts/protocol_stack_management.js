@@ -314,13 +314,32 @@ EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint2); });
 
 check_gr_settings(cluster, [__endpoint1, __endpoint2], "MYSQL");
 
+//@<> Cluster.rescan() must ensure the right recovery accounts are used in the cluster when clone recovery is used with waitRecovery:0 and comm protocol is MySQL {VER(>=8.0.27)}
+cluster.dissolve();
+
+shell.connect(__sandbox_uri1);
+
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("test", {gtidSetIsComplete: true, communicationStack: "xcom"}) });
+
+EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone", waitRecovery: 0}) });
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+EXPECT_NO_THROWS(function() {cluster.rescan(); });
+
+testutil.restartSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 //@<> A failure in addInstance() while using MYSQL comm stack must not leave inconsistencies related to the recovery accounts and/or metadata {VER(>=8.0.27) && !__dbug_off}
+shutdown_cluster(cluster);
+EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("test", {switchCommunicationStack: "MYSQL"}) });
+
 testutil.dbugSet("+d,fail_add_instance_mysql_stack");
 
 EXPECT_THROWS_TYPE(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone"}) }, "debug", "LogicError");
 
 var status = cluster.status();
-EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_CONTAINS("WARNING: Detected an unused recovery account: ", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0]);
 EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
 
 testutil.dbugSet("");

@@ -23,11 +23,13 @@ ${*}
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+${*}
                 "memberRole": "PRIMARY",
                 "mode": "R/W",
 ${*}
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+${*}
                 "memberRole": "SECONDARY",
                 "mode": "R/O",
 ${*}

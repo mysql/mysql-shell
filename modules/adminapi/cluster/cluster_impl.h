@@ -29,6 +29,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -296,6 +297,34 @@ class Cluster_impl final : public Base_cluster_impl,
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
   /**
+   * Get mismatched recovery accounts.
+   *
+   * This function returns instances for which the recovery account name doesn't
+   * match with its server id.
+   *
+   * @return a list of {server_id, user} pairs, for each mismatch account
+   * found.
+   */
+  std::unordered_map<uint32_t, std::string> get_mismatched_recovery_accounts()
+      const;
+
+  /**
+   * Get unused recovery accounts / users.
+   *
+   * This function returns recovery accounts that exist but aren't being used
+   * in either instances of a given cluster. The list excludes mismatch
+   * accounts.
+   *
+   * @param mismatched_recovery_accounts the list of mismatched account (@see
+   * get_mismatched_recovery_accounts)
+   *
+   * @return the list of unused recovery accounts: pairs of {users/hosts}
+   */
+  std::vector<std::tuple<std::string, std::string>>
+  get_unused_recovery_accounts(const std::unordered_map<uint32_t, std::string>
+                                   &mismatched_recovery_accounts) const;
+
+  /**
    * Get a session to a given instance of the cluster.
    *
    * This function verifies if it is possible to connect to the given instance,
@@ -503,7 +532,7 @@ class Cluster_impl final : public Base_cluster_impl,
   bool is_cluster_set_remove_pending() const { return m_cs_md_remove_pending; }
 
   std::shared_ptr<Cluster_set_impl> get_cluster_set_object(
-      bool print_warnings = false);
+      bool print_warnings = false) const;
 
   /**
    * Reset the password for the Cluster's replication account in use for the
@@ -529,6 +558,7 @@ class Cluster_impl final : public Base_cluster_impl,
   void init();
 
  private:
+  std::string get_replication_user_host() const;
   void verify_topology_type_change() const;
 
   std::weak_ptr<Cluster_set_impl> m_cluster_set;

@@ -168,11 +168,9 @@ class Cluster_join {
    * Change the recovery user credentials of all Cluster members
    *
    * @param repl_account The authentication options of the recovery account
-   * @param repl_account_host The hostname of the recovery account
    */
   void change_recovery_credentials_all_members(
-      const mysqlshdk::mysql::Auth_options &repl_account,
-      const std::string &repl_account_host) const;
+      const mysqlshdk::mysql::Auth_options &repl_account) const;
 
   /**
    * Recreate the recovery account for each Cluster member

@@ -278,14 +278,14 @@ std::string get_topology_mode_query(
 }
 
 // Constants with the names used to lock instances.
-static constexpr char k_lock[] = "AdminAPI_lock";
-static constexpr char k_lock_name_metadata[] = "AdminAPI_metadata";
+constexpr char k_lock[] = "AdminAPI_lock";
+constexpr char k_lock_name_metadata[] = "AdminAPI_metadata";
 
 // Timeout for the Metadata lock (60 sec).
 constexpr const int k_lock_timeout = 60;
 
 // Version where JSON_merge was deprecated
-static const mysqlshdk::utils::Version k_json_merge_deprecated_version =
+const mysqlshdk::utils::Version k_json_merge_deprecated_version =
     mysqlshdk::utils::Version(5, 7, 22);
 
 }  // namespace
@@ -1229,6 +1229,54 @@ int MetadataStorage::count_recovery_account_uses(
   }
 
   return 0;
+}
+
+std::vector<std::string> MetadataStorage::get_recovery_account_users() {
+  auto result = execute_sql(
+      "SELECT attributes->>'$.recoveryAccountUser' FROM "
+      "mysql_innodb_cluster_metadata.instances");
+
+  std::vector<std::string> users;
+  while (auto row = result->fetch_one())
+    if (!row->is_null(0)) users.push_back(row->get_string(0));
+
+  return users;
+}
+
+std::string MetadataStorage::get_recovery_account_user(
+    const Cluster_id &cluster_id, const std::string &address) {
+  auto query =
+      "SELECT attributes->>'$.recoveryAccountUser' FROM "
+      "mysql_innodb_cluster_metadata.instances "
+      "WHERE (cluster_id = ?) AND (address = ?)"_sql
+      << cluster_id << address;
+
+  auto result = execute_sql(query);
+  auto row = result->fetch_one();
+  if (!row || row->is_null(0)) return {};
+
+  return row->get_string(0);
+}
+
+size_t MetadataStorage::iterate_recovery_account_mismatch(
+    const std::function<bool(uint32_t, std::string)> &cb) {
+  auto query =
+      "SELECT CAST(attributes->>'$.server_id' AS UNSIGNED), "
+      "attributes->>'$.recoveryAccountUser' FROM "
+      "mysql_innodb_cluster_metadata.instances WHERE "
+      "(COALESCE(CAST(attributes->>'$.server_id' AS UNSIGNED), 0) > 0) AND "
+      "(attributes->>'$.recoveryAccountUser' <> "
+      "CONCAT(\"mysql_innodb_cluster_\", attributes->>'$.server_id'))"_sql;
+
+  auto result = execute_sql(query);
+
+  size_t num_accounts{0};
+  while (const auto row = result->fetch_one()) {
+    num_accounts++;
+    if (!cb(static_cast<uint32_t>(row->get_int(0)), row->get_string(1))) break;
+  }
+
+  return num_accounts;
 }
 
 void MetadataStorage::remove_instance(const std::string &instance_address) {

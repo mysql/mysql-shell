@@ -574,7 +574,7 @@ EXPECT_OUTPUT_CONTAINS("Updating instance metadata..");
 status = cluster.status();
 EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"]["zzLabel"]);
 
-//@<> Check that cluster.status() timeout is < 10s
+//@<> Check that cluster.status() timeout is < 11s
 // Bug #30884174   CLUSTER.STATUS() HANGS FOR TOO LONG WHEN CONNECTION/READ TIMEOUTS HAPPEN
 
 // force timeout by making cluster.status() try to connect to the GR port
@@ -586,8 +586,8 @@ cluster.status();
 
 var end = new Date();
 
-// time elapsed should be around 5000ms, but we give an extra 1s margin
-EXPECT_GT(6000, end-start);
+// time elapsed should be around 10000ms, but we give an extra 1s margin
+EXPECT_GT(11000, end-start);
 
 //@<> Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

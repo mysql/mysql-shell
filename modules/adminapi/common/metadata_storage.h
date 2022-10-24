@@ -43,10 +43,10 @@
 namespace mysqlsh {
 namespace dba {
 
-constexpr const char *kNotifyClusterSetPrimaryChanged =
+inline constexpr const char *kNotifyClusterSetPrimaryChanged =
     "CLUSTER_SET_PRIMARY_CHANGED";
 
-constexpr const char *kNotifyDataClusterSetId = "CLUSTER_SET_ID";
+inline constexpr const char *kNotifyDataClusterSetId = "CLUSTER_SET_ID";
 
 struct Instance_metadata {
   Cluster_id cluster_id;
@@ -143,7 +143,7 @@ inline uint32_t cluster_set_view_id_generation(uint64_t id) {
 #endif
 class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
  protected:
-  MetadataStorage() {}
+  MetadataStorage() = default;
 
  public:
   MetadataStorage(MetadataStorage &&other) = delete;
@@ -336,6 +336,14 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   int count_recovery_account_uses(const std::string &recovery_account_user,
                                   bool clusterset_account = false) const;
+
+  std::vector<std::string> get_recovery_account_users();
+
+  std::string get_recovery_account_user(const Cluster_id &cluster_id,
+                                        const std::string &address);
+
+  size_t iterate_recovery_account_mismatch(
+      const std::function<bool(uint32_t, std::string)> &cb);
 
   virtual bool is_instance_on_cluster(const Cluster_id &cluster_id,
                                       const std::string &address);
