@@ -774,15 +774,17 @@ EXPECT_FALSE(has_file_with_basename(test_output_absolute, encode_table_basename(
 
 #@<> WL13804: WL13807-FR4.12.3 - If the `chunking` option is not given, a default value of `true` must be used instead.
 # WL13804-TSFR_11_2_27
+WIPE_SHELL_LOG()
 EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "showProgress": False })
 
 # WL13804: WL13807-FR4.12.1 - If the `chunking` option is set to `true` and the index column cannot be selected automatically as described in FR3.1, the data must to written to a single dump file. A warning should be displayed to the user.
 # WL13804: WL13807-FR3.1 - For each table dumped, its index column (name of the column used to order the data and perform the chunking) must be selected automatically as the first column used in the primary key, or if there is no primary key, as the first column used in the first unique index. If the table to be dumped does not contain a primary key and does not contain an unique index, the index column will not be defined.
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
+# BUG#34195250 - if index column cannot be selected, table is dumped to multiple files by a single thread
+EXPECT_SHELL_LOG_CONTAINS(f"Could not select columns to be used as an index for table `{test_schema}`.`{test_table_non_unique}`. Data will be dumped to multiple files by a single thread.")
+EXPECT_SHELL_LOG_CONTAINS(f"Could not select columns to be used as an index for table `{test_schema}`.`{test_table_no_index}`. Data will be dumped to multiple files by a single thread.")
 
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zst")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zst")))
+EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + "@"))
+EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + "@"))
 
 # WL13804: WL13807-FR4.12.2 - If the `chunking` option is set to `true` and the index column can be selected automatically as described in FR3.1, the data must to written to multiple dump files. The data is partitioned into chunks using values from the index column.
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@"))
@@ -2229,9 +2231,11 @@ session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql("CREATE TABLE !.! (id INT);", [ tested_schema, tested_table ])
 session.run_sql("INSERT INTO !.! VALUES (1), (2), (3);", [ tested_schema, tested_table ])
 
+WIPE_SHELL_LOG()
 EXPECT_SUCCESS(tested_schema, [tested_table], test_output_absolute, { "chunking": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(tested_schema, tested_table))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(tested_schema, tested_table) + ".tsv.zst")))
+# BUG#34195250 - if index column cannot be selected, table is dumped to multiple files by a single thread
+EXPECT_SHELL_LOG_CONTAINS(f"Could not select columns to be used as an index for table `{tested_schema}`.`{tested_table}`. Data will be dumped to multiple files by a single thread.")
+EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(tested_schema, tested_table) + "@"))
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlsh {
@@ -41,10 +42,7 @@ enum class Escape_type { NONE, FULL, BASE64 };
 
 class Dump_write_result final {
  public:
-  Dump_write_result() : Dump_write_result("unknown", "unknown") {}
-
-  Dump_write_result(const std::string &schema, const std::string &table)
-      : m_schema(schema), m_table(table) {}
+  Dump_write_result() = default;
 
   Dump_write_result(const Dump_write_result &) = default;
   Dump_write_result(Dump_write_result &&) = default;
@@ -56,31 +54,31 @@ class Dump_write_result final {
 
   Dump_write_result &operator+=(const Dump_write_result &rhs);
 
-  void reset() noexcept { m_data_bytes = m_bytes_written = 0; }
+  void reset() noexcept { m_data_bytes = m_bytes_written = m_rows_written = 0; }
 
-  const std::string &schema() const noexcept { return m_schema; }
-
-  const std::string &table() const noexcept { return m_table; }
+  void write_data(uint64_t bytes) noexcept { m_data_bytes += bytes; }
 
   uint64_t data_bytes() const noexcept { return m_data_bytes; }
 
+  void write_bytes(uint64_t bytes) noexcept { m_bytes_written += bytes; }
+
   uint64_t bytes_written() const noexcept { return m_bytes_written; }
 
- private:
-  friend class Dump_writer;
+  void write_row() noexcept { ++m_rows_written; }
 
-  std::string m_schema;
-  std::string m_table;
+  uint64_t rows_written() const noexcept { return m_rows_written; }
+
+ private:
   uint64_t m_data_bytes = 0;
   uint64_t m_bytes_written = 0;
+  uint64_t m_rows_written = 0;
 };
 
 class Dump_writer {
  public:
   enum class Encoding_type { NONE, BASE64, HEX };
 
-  Dump_writer() = delete;
-  explicit Dump_writer(std::unique_ptr<mysqlshdk::storage::IFile> out);
+  Dump_writer();
 
   Dump_writer(const Dump_writer &) = delete;
   Dump_writer(Dump_writer &&) = default;
@@ -90,9 +88,13 @@ class Dump_writer {
 
   virtual ~Dump_writer();
 
+  void set_output_file(mysqlshdk::storage::IFile *output);
+
+  void set_index_file(std::unique_ptr<mysqlshdk::storage::IFile> index);
+
   void open();
 
-  mysqlshdk::storage::IFile *output() const { return m_output.get(); }
+  void close();
 
   Dump_write_result write_preamble(
       const std::vector<mysqlshdk::db::Column> &metadata,
@@ -170,13 +172,21 @@ class Dump_writer {
 
   virtual void store_postamble() = 0;
 
-  Dump_write_result write_buffer(const char *context) const;
+  Dump_write_result write_buffer(const char *context, bool row = false) const;
 
-  std::unique_ptr<mysqlshdk::storage::IFile> m_output;
+  void write_index();
+
+  mysqlshdk::storage::IFile *m_output;
+
+  std::unique_ptr<mysqlshdk::storage::IFile> m_index;
 
   std::unique_ptr<Buffer> m_buffer;
 
-  bool m_compressed = false;
+  mysqlshdk::storage::Compressed_file *m_compressed = nullptr;
+
+  uint64_t m_bytes_written = 0;
+
+  uint64_t m_bytes_written_per_idx = 0;
 };
 
 }  // namespace dump

@@ -519,7 +519,7 @@ bool Dump_reader::next_table_chunk(
     *out_chunk_size = info->size();
     *out_options = (*iter)->owner->options;
 
-    (*iter)->chunks_consumed++;
+    (*iter)->consume_chunk();
     if (!(*iter)->has_data_available()) m_tables_with_data.erase(iter);
 
     return true;

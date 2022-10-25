@@ -198,7 +198,7 @@ class Dump_reader {
 
   void validate_options();
 
-  size_t tables_with_data() const { return m_tables_to_load; }
+  size_t tables_with_data() const { return m_tables_and_partitions_to_load; }
 
   enum class Status {
     INVALID,  // No dump or not enough data to start loading yet
@@ -292,6 +292,17 @@ class Dump_reader {
     size_t chunks_consumed = 0;
     // number of chunks which were loaded
     size_t chunks_loaded = 0;
+
+    void consume_chunk() {
+      ++chunks_consumed;
+
+      // skip zero-sized chunks
+      while (has_data_available() &&
+             0 == available_chunks[chunks_consumed]->size()) {
+        ++chunks_consumed;
+        ++chunks_loaded;
+      }
+    }
 
     bool has_data_available() const {
       return chunks_consumed < available_chunks.size() &&

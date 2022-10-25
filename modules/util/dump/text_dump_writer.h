@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,9 +36,8 @@ namespace dump {
 
 class Text_dump_writer : public Dump_writer {
  public:
-  Text_dump_writer() = delete;
-  Text_dump_writer(std::unique_ptr<mysqlshdk::storage::IFile> out,
-                   const import_table::Dialect &dialect);
+  Text_dump_writer() = default;
+  explicit Text_dump_writer(const import_table::Dialect &dialect);
 
   Text_dump_writer(const Text_dump_writer &) = delete;
   Text_dump_writer(Text_dump_writer &&) = default;

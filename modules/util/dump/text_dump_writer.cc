@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,10 +33,8 @@ static constexpr const char *k_hex_types_alphabet = "0123456789abcdefABCDEF";
 static constexpr const char *k_base64_types_alphabet =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=";
 
-Text_dump_writer::Text_dump_writer(
-    std::unique_ptr<mysqlshdk::storage::IFile> out,
-    const import_table::Dialect &dialect)
-    : Dump_writer(std::move(out)), m_dialect(dialect), m_escaped_characters() {
+Text_dump_writer::Text_dump_writer(const import_table::Dialect &dialect)
+    : m_dialect(dialect), m_escaped_characters() {
   if (m_dialect.lines_terminated_by.empty()) {
     m_line_terminator = m_dialect.fields_terminated_by;
   } else {
