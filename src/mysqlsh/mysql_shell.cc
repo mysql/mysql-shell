@@ -54,6 +54,7 @@
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/shexcept.h"
@@ -1508,19 +1509,31 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
   if (_shell->get_dev_session() && _shell->get_dev_session()->is_open()) {
     std::string real_param;
 
+    auto ansi_mode_enabled =
+        _shell->get_dev_session()->get_core_session()->ansi_quotes_enabled();
+
     // If quoted, takes as param what's inside of the quotes
-    auto start = args[0].find_first_of("\"'`");
+    auto supported_id_quotes = std::string("`");
+    if (ansi_mode_enabled) supported_id_quotes += "\"";
+
+    auto start = args[0].find_first_of(supported_id_quotes);
     if (start != std::string::npos) {
-      std::string quote = args[0].substr(start, 1);
+      char quote = args[0].at(start);
+      auto end = std::string::npos;
+      if (quote == '`') {
+        end = mysqlshdk::utils::span_quoted_sql_identifier_bt(args[0], start);
 
-      if (args[0].size() >= start) {
-        auto end = args[0].find(quote, start + 1);
+      } else if (quote == '"' && ansi_mode_enabled) {
+        end =
+            mysqlshdk::utils::span_quoted_sql_identifier_dquote(args[0], start);
+      }
 
-        if (end != std::string::npos)
-          real_param = args[0].substr(start + 1, end - start - 1);
-        else
-          error = "Mistmatched quote on command parameter: " +
-                  args[0].substr(start) + "\n";
+      if (end != std::string::npos) {
+        real_param = args[0].substr(start, end - start);
+        real_param = shcore::unquote_identifier(real_param, ansi_mode_enabled);
+      } else {
+        error = "Mistmatched quote for use command, parameter: " +
+                args[0].substr(start) + "\n";
       }
     } else if (args.size() == 2) {
       real_param = args[1];
