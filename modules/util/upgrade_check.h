@@ -28,6 +28,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -69,7 +70,7 @@ struct Upgrade_check_options {
       mysqlshdk::utils::Version(MYSH_VERSION);
   std::string config_path;
   std::string output_format;
-  mysqlshdk::utils::nullable<std::string> password;
+  std::optional<std::string> password;
 
  private:
   void set_target_version(const std::string &value);

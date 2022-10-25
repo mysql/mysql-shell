@@ -233,8 +233,8 @@ std::optional<Response_error> Response::get_error() const {
 }
 
 void Response::throw_if_error() const {
-  if (const auto error = get_error()) {
-    throw error.value();
+  if (const auto error = get_error(); error.has_value()) {
+    throw *error;
   }
 }
 

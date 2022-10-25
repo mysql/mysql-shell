@@ -152,7 +152,7 @@ void Import_table_option_pack::set_filenames(
   if (!is_multifile()) {
     // If loading single file, chunk size defaults to 50M if not specified by
     // the user.
-    if (m_bytes_per_chunk.is_null()) {
+    if (!m_bytes_per_chunk.has_value()) {
       m_bytes_per_chunk =
           mysqlshdk::utils::expand_to_bytes(k_default_chunk_size);
     }
@@ -268,7 +268,7 @@ void Import_table_options::validate() {
   }
 
   if (is_multifile()) {
-    if (!m_bytes_per_chunk.is_null()) {
+    if (m_bytes_per_chunk.has_value()) {
       throw std::runtime_error(
           "The 'bytesPerChunk' option cannot be used when loading from "
           "multiple files.");
@@ -369,7 +369,13 @@ Connection_options Import_table_options::connection_options() const {
 }
 
 uint64_t Import_table_option_pack::bytes_per_chunk() const {
-  return *m_bytes_per_chunk;
+  if (m_bytes_per_chunk.has_value()) {
+    return *m_bytes_per_chunk;
+  } else {
+    // at this point m_bytes_per_chunk should have a value
+    assert(false);
+    return mysqlshdk::utils::expand_to_bytes(k_default_chunk_size);
+  }
 }
 
 void Import_table_option_pack::set_bytes_per_chunk(const std::string &value) {

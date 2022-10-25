@@ -42,7 +42,7 @@
 namespace mysqlsh {
 
 void Prepare_json_import::set_defaults() {
-  if (m_collection.is_null() && m_table.is_null()) {
+  if (!m_collection.has_value() && !m_table.has_value()) {
     if (m_put_to_collection) {
       this->guess_collection();
     } else {
@@ -52,15 +52,15 @@ void Prepare_json_import::set_defaults() {
 }
 
 void Prepare_json_import::validate() {
-  if (m_schema.is_null()) {
+  if (!m_schema.has_value()) {
     throw std::invalid_argument("Target schema must be set.");
   }
 
-  if (m_collection.is_null() && m_table.is_null()) {
+  if (!m_collection.has_value() && !m_table.has_value()) {
     throw std::invalid_argument("Target collection or table must be set.");
   }
 
-  if (!m_collection.is_null() && !m_table.is_null()) {
+  if (m_collection.has_value() && m_table.has_value()) {
     throw std::invalid_argument(
         "Conflicting targets: collection and table cannot be used together.");
   }
@@ -88,29 +88,26 @@ void Prepare_json_import::validate() {
   }
 }
 
-Prepare_json_import::nullable<std::string>
-Prepare_json_import::target_name_from_path() {
+std::optional<std::string> Prepare_json_import::target_name_from_path() {
   if (m_source == Source::FILE) {
-    auto name = std::get<0>(
+    return std::get<0>(
         shcore::path::split_extension(shcore::path::basename(m_source.path)));
-    return nullable<std::string>{name};
   }
-  return nullable<std::string>{nullptr};
+
+  return {};
 }
 
 void Prepare_json_import::guess_collection() {
-  if (m_collection.is_null()) {
-    auto name = target_name_from_path();
-    if (!name.is_null()) {
+  if (!m_collection.has_value()) {
+    if (const auto name = target_name_from_path(); name.has_value()) {
       this->collection(*name);
     }
   }
 }
 
 void Prepare_json_import::guess_table() {
-  if (m_table.is_null()) {
-    auto name = target_name_from_path();
-    if (!name.is_null()) {
+  if (!m_table.has_value()) {
+    if (const auto name = target_name_from_path(); name.has_value()) {
       this->table(*name);
     }
   }
@@ -118,7 +115,7 @@ void Prepare_json_import::guess_table() {
 
 bool Prepare_json_import::create_default_collection(
     const std::string &name) const {
-  if (m_schema.is_null()) {
+  if (!m_schema.has_value()) {
     throw std::invalid_argument("Target schema must be set.");
   }
 
@@ -135,7 +132,7 @@ bool Prepare_json_import::create_default_collection(
 
 bool Prepare_json_import::create_default_table(
     const std::string &name, const std::string &column_name) const {
-  if (m_schema.is_null()) {
+  if (!m_schema.has_value()) {
     throw std::invalid_argument("Target schema must be set.");
   }
 
@@ -159,7 +156,7 @@ Json_importer Prepare_json_import::build() {
   if (m_source == Source::FILE) {
     importer.set_path(m_source.path);
   } else if (m_source == Source::STDIN) {
-    importer.set_path("");
+    importer.set_path({});
   }
   if (m_put_to_collection) {
     this->create_default_collection(*m_collection);

@@ -515,6 +515,14 @@ bool Dump_reader::next_table_chunk(
     }
 
     const auto &info = (*iter)->available_chunks[*out_chunk_index];
+
+    if (!info.has_value()) {
+      throw std::logic_error(
+          "Trying to use chunk " + std::to_string(*out_chunk_index) + " of " +
+          schema_table_object_key(*out_schema, *out_table, *out_partition) +
+          " which is not yet available");
+    }
+
     *out_file = m_dir->file(info->name());
     *out_chunk_size = info->size();
     *out_options = (*iter)->owner->options;
@@ -956,7 +964,7 @@ void Dump_reader::Table_data_info::rescan_data(const Files &files,
         // If we have found the last chunk, then the last element in the array
         // will already be set. If we didn't find the last chunk, then the last
         // element in the array is going to be a regular chunk.
-        if (!available_chunks[i]) {
+        if (!available_chunks[i].has_value()) {
           try_to_add_chunk(i, false);
         }
       }
@@ -1418,9 +1426,9 @@ bool Dump_reader::include_trigger(std::string_view schema,
 }
 
 std::string_view Dump_reader::override_schema(std::string_view s) const {
-  if (!m_schema_override) return s;
+  if (!m_schema_override.has_value()) return s;
 
-  const auto &value = m_schema_override.value();
+  const auto &value = *m_schema_override;
   return value.first == s ? value.second : s;
 }
 

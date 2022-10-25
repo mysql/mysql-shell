@@ -99,7 +99,7 @@ rest::Signed_request S3_bucket::list_objects_request(
     const std::string &prefix, size_t limit, bool recursive,
     const Object_details::Fields_mask &, const std::string &start_from) {
   // ListObjectsV2
-  Query query = {{"list-type", "2"}};
+  rest::Query query = {{"list-type", "2"}};
 
   if (!prefix.empty()) {
     query.emplace("prefix", encode_query(prefix));
@@ -219,7 +219,7 @@ void S3_bucket::execute_rename_object(Signed_rest_service *,
 
 rest::Signed_request S3_bucket::list_multipart_uploads_request(size_t limit) {
   // ListMultipartUploads
-  Query query = {{"uploads", {}}};
+  rest::Query query = {{"uploads", {}}};
 
   if (limit) {
     query.emplace("max-uploads", std::to_string(limit));
@@ -269,7 +269,7 @@ std::vector<Multipart_object> S3_bucket::parse_list_multipart_uploads(
 rest::Signed_request S3_bucket::list_multipart_uploaded_parts_request(
     const Multipart_object &object, size_t limit) {
   // ListParts
-  Query query = {{"uploadId", object.upload_id}};
+  rest::Query query = {{"uploadId", object.upload_id}};
 
   if (limit) {
     query.emplace("max-parts", std::to_string(limit));
@@ -327,7 +327,7 @@ rest::Signed_request S3_bucket::create_multipart_upload_request(
   // CreateMultipartUpload
   // no body
   *request_body = "";
-  Query query = {{"uploads", {}}};
+  rest::Query query = {{"uploads", {}}};
   return create_object_request(object_name, query);
 }
 
@@ -352,8 +352,8 @@ std::string S3_bucket::parse_create_multipart_upload(
 rest::Signed_request S3_bucket::upload_part_request(
     const Multipart_object &object, size_t part_num, size_t /*size*/) {
   // UploadPart
-  Query query = {{"partNumber", std::to_string(part_num)},
-                 {"uploadId", object.upload_id}};
+  rest::Query query = {{"partNumber", std::to_string(part_num)},
+                       {"uploadId", object.upload_id}};
   return create_object_request(object.name, query);
 }
 
@@ -362,7 +362,7 @@ rest::Signed_request S3_bucket::commit_multipart_upload_request(
     const std::vector<Multipart_object_part> &parts,
     std::string *request_body) {
   // CompleteMultipartUpload
-  Query query = {{"uploadId", object.upload_id}};
+  rest::Query query = {{"uploadId", object.upload_id}};
 
   // create the request, using compact mode to save some bytes
   tinyxml2::XMLPrinter printer;
@@ -395,7 +395,7 @@ rest::Signed_request S3_bucket::commit_multipart_upload_request(
 rest::Signed_request S3_bucket::abort_multipart_upload_request(
     const Multipart_object &object) {
   // AbortMultipartUpload
-  Query query = {{"uploadId", object.upload_id}};
+  rest::Query query = {{"uploadId", object.upload_id}};
   return create_object_request(object.name, query);
 }
 
@@ -465,7 +465,7 @@ void S3_bucket::copy_object_multipart(const std::string &src_name,
   Headers headers = {{"x-amz-copy-source", copy_source_header(src_name)}};
   auto &range = headers["x-amz-copy-source-range"];
 
-  Query query = {{"uploadId", upload.upload_id}};
+  rest::Query query = {{"uploadId", upload.upload_id}};
   auto &part_number = query["partNumber"];
 
   while (start < total_size) {
@@ -517,7 +517,7 @@ void S3_bucket::delete_objects(const std::vector<std::string> &list) {
 }
 
 rest::Signed_request S3_bucket::create_bucket_request(
-    const Query &query) const {
+    const rest::Query &query) const {
   return Signed_request(add_query_parameters(m_bucket_path, query));
 }
 
@@ -527,12 +527,12 @@ rest::Signed_request S3_bucket::create_object_request(
 }
 
 rest::Signed_request S3_bucket::create_object_request(
-    const std::string &name, const Query &query) const {
+    const std::string &name, const rest::Query &query) const {
   return Signed_request(add_query_parameters(object_path(name), query));
 }
 
 std::string S3_bucket::add_query_parameters(const std::string &path,
-                                            const Query &query) const {
+                                            const rest::Query &query) const {
   std::string p = path;
 
   if (!query.empty()) {
@@ -543,7 +543,7 @@ std::string S3_bucket::add_query_parameters(const std::string &path,
       p += param.first;
 
       p += '=';
-      p += param.second.value_or("");
+      p += param.second.value_or(std::string{});
 
       p += '&';
     }
@@ -575,7 +575,7 @@ void S3_bucket::delete_objects(
   // DeleteObjects
   Headers headers;
   auto &md5 = headers["Content-MD5"];
-  Query query = {{"delete", {}}};
+  rest::Query query = {{"delete", {}}};
 
   for (std::size_t i = 0; i < size; i += max_items) {
     tinyxml2::XMLPrinter printer;

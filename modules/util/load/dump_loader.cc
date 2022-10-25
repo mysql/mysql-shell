@@ -711,7 +711,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
     // bytesPerChunk value will get sub-chunked, chunks that are smaller or just
     // a little bigger will be loaded whole. If they still don't fit, the user
     // should dump with a smaller bytesPerChunk value.
-    const auto &max_bytes_per_transaction =
+    const auto max_bytes_per_transaction =
         loader->m_options.max_bytes_per_transaction();
 
     import_table::Transaction_options options;
@@ -719,13 +719,13 @@ void Dump_loader::Worker::Load_chunk_task::load(
     // if the maxBytesPerTransaction is not given, it defaults to bytesPerChunk
     // value used during the dump
     options.max_trx_size =
-        max_bytes_per_transaction.get_safe(loader->m_dump->bytes_per_chunk());
+        max_bytes_per_transaction.value_or(loader->m_dump->bytes_per_chunk());
 
     uint64_t max_chunk_size = options.max_trx_size;
 
     // if maxBytesPerTransaction is not given, only files bigger than
     // k_chunk_size_overshoot_tolerance * bytesPerChunk are affected
-    if (!max_bytes_per_transaction) {
+    if (!max_bytes_per_transaction.has_value()) {
       max_chunk_size *= k_chunk_size_overshoot_tolerance;
     }
 
@@ -2354,7 +2354,7 @@ void Dump_loader::setup_progress_file(bool *out_is_resuming) {
 
   m_load_log = std::make_unique<Load_progress_log>();
 
-  if (m_options.progress_file().is_null() ||
+  if (!m_options.progress_file().has_value() ||
       !m_options.progress_file()->empty()) {
     auto progress_file = m_dump->create_progress_file_handle();
     const auto path = progress_file->full_path().masked();

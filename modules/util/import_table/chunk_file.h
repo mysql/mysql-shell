@@ -28,6 +28,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -247,8 +248,8 @@ class File_handler final {
 struct File_import_info {
   std::string file_path;
   mysqlshdk::storage::IFile *file_handler = nullptr;
-  mysqlshdk::utils::nullable<size_t> file_size;
-  mysqlshdk::utils::nullable<size_t> content_size;
+  std::optional<size_t> file_size;
+  std::optional<size_t> content_size;
   bool range_read = false;
   std::pair<size_t, size_t> range{0, 0};
   bool is_guard = true;

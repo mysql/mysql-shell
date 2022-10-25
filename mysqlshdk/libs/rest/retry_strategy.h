@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,12 +26,12 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "mysqlshdk/libs/rest/response.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace rest {
@@ -82,9 +82,9 @@ class Retry_strategy {
     m_retry_on_server_errors = value;
   }
 
-  bool should_retry(const mysqlshdk::utils::nullable<Response::Status_code>
-                        &response_status_code = {},
-                    const std::string &error_msg = {});
+  bool should_retry(
+      std::optional<Response::Status_code> response_status_code = {},
+      const std::string &error_msg = {});
 
   void wait_for_retry();
 
@@ -94,8 +94,7 @@ class Retry_strategy {
   std::chrono::seconds get_ellapsed_time() const { return m_ellapsed_time; }
   std::chrono::seconds get_next_sleep_time() const { return m_next_sleep_time; }
   std::chrono::seconds get_max_ellapsed_time() const {
-    return m_max_ellapsed_time.is_null() ? std::chrono::seconds(0)
-                                         : *m_max_ellapsed_time;
+    return m_max_ellapsed_time.value_or(std::chrono::seconds{0});
   }
 
  protected:
@@ -104,12 +103,11 @@ class Retry_strategy {
 
  private:
   virtual std::chrono::seconds next_sleep_time(
-      const mysqlshdk::utils::nullable<Response::Status_code>
-          &response_status_code = {});
+      std::optional<Response::Status_code> response_status_code = {});
 
   // Retry criteria members
-  mysqlshdk::utils::nullable<uint32_t> m_max_attempts;
-  mysqlshdk::utils::nullable<std::chrono::seconds> m_max_ellapsed_time;
+  std::optional<uint32_t> m_max_attempts;
+  std::optional<std::chrono::seconds> m_max_ellapsed_time;
   std::unordered_map<Response::Status_code, std::unordered_set<std::string>>
       m_retriable_status;
   bool m_retry_on_server_errors = false;
@@ -154,8 +152,7 @@ class Exponential_backoff_retry : public Retry_strategy {
   std::chrono::seconds get_wait_time_with_full_jitter() const;
 
   std::chrono::seconds next_sleep_time(
-      const mysqlshdk::utils::nullable<Response::Status_code>
-          &response_status_code = {}) override;
+      std::optional<Response::Status_code> response_status_code = {}) override;
 };
 
 std::unique_ptr<Retry_strategy> default_retry_strategy();

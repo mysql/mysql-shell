@@ -47,7 +47,8 @@ bool Aws_credentials_provider::initialize() {
                              "'");
   }
 
-  if (credentials.access_key_id && credentials.secret_access_key) {
+  if (credentials.access_key_id.has_value() &&
+      credentials.secret_access_key.has_value()) {
     m_credentials = std::make_shared<Aws_credentials>(
         *credentials.access_key_id, *credentials.secret_access_key,
         credentials.session_token.value_or(std::string{}),

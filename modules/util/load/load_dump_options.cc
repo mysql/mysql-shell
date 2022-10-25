@@ -315,7 +315,7 @@ void Load_dump_options::set_max_bytes_per_transaction(
 
   m_max_bytes_per_transaction = mysqlshdk::utils::expand_to_bytes(value);
 
-  if (m_max_bytes_per_transaction &&
+  if (m_max_bytes_per_transaction.has_value() &&
       *m_max_bytes_per_transaction < k_minimum_max_bytes_per_transaction) {
     throw std::invalid_argument(
         "The value of 'maxBytesPerTransaction' option must be greater than or "
@@ -449,7 +449,7 @@ void Load_dump_options::validate() {
     if (config && config->valid()) {
       if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type() ||
           mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
-        if (m_progress_file.is_null()) {
+        if (!m_progress_file.has_value()) {
           throw shcore::Exception::argument_error(
               "When using a PAR to load a dump, the progressFile option must "
               "be defined");
@@ -477,7 +477,7 @@ void Load_dump_options::validate() {
     }
   }
 
-  if (m_progress_file.is_null()) {
+  if (!m_progress_file.has_value()) {
     m_default_progress_file = "load-progress." + m_server_uuid + ".json";
   }
 }
@@ -606,7 +606,7 @@ Load_dump_options::create_dump_handle() const {
 
 std::unique_ptr<mysqlshdk::storage::IFile>
 Load_dump_options::create_progress_file_handle() const {
-  if (m_progress_file.get_safe().empty())
+  if (m_progress_file.value_or(std::string{}).empty())
     return create_dump_handle()->file(m_default_progress_file);
   else
     return mysqlshdk::storage::make_file(*m_progress_file,

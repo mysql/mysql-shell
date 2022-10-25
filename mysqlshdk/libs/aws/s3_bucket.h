@@ -73,8 +73,6 @@ class S3_bucket : public storage::backend::object_storage::Container {
   void delete_objects(const std::vector<std::string> &list);
 
  private:
-  using Query = std::map<std::string, std::optional<std::string>>;
-
   rest::Signed_request list_objects_request(
       const std::string &prefix, size_t limit, bool recursive,
       const Object_details::Fields_mask &fields,
@@ -129,16 +127,17 @@ class S3_bucket : public storage::backend::object_storage::Container {
   rest::Signed_request abort_multipart_upload_request(
       const Multipart_object &object) override;
 
-  rest::Signed_request create_bucket_request(const Query &query = {}) const;
+  rest::Signed_request create_bucket_request(
+      const rest::Query &query = {}) const;
 
   rest::Signed_request create_object_request(const std::string &name,
                                              rest::Headers headers = {}) const;
 
   rest::Signed_request create_object_request(const std::string &name,
-                                             const Query &query) const;
+                                             const rest::Query &query) const;
 
   std::string add_query_parameters(const std::string &path,
-                                   const Query &query) const;
+                                   const rest::Query &query) const;
 
   std::string object_path(const std::string &name) const;
 

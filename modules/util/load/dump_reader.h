@@ -306,14 +306,14 @@ class Dump_reader {
 
     bool has_data_available() const {
       return chunks_consumed < available_chunks.size() &&
-             available_chunks[chunks_consumed];
+             available_chunks[chunks_consumed].has_value();
     }
 
     size_t bytes_available() const {
       size_t total = 0;
 
       for (size_t i = chunks_consumed, s = available_chunks.size();
-           i < s && available_chunks[i]; ++i) {
+           i < s && available_chunks[i].has_value(); ++i) {
         total += available_chunks[i]->size();
       }
       return total;

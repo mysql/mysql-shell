@@ -1859,7 +1859,7 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
   dumper->opt_drop_trigger = true;
   dumper->opt_reexecutable = true;
   dumper->opt_tz_utc = m_options.use_timezone_utc();
-  dumper->opt_mysqlaas = static_cast<bool>(m_options.mds_compatibility());
+  dumper->opt_mysqlaas = m_options.mds_compatibility().has_value();
   dumper->opt_character_set_results = m_options.character_set();
   dumper->opt_column_statistics = false;
 
@@ -2408,7 +2408,7 @@ void Dumper::create_schema_tasks() {
 }
 
 void Dumper::validate_mds() const {
-  if (!m_options.mds_compatibility() ||
+  if (!m_options.mds_compatibility().has_value() ||
       (!m_options.dump_ddl() && !dump_users())) {
     return;
   }
@@ -2718,7 +2718,7 @@ void Dumper::dump_users_ddl() const {
 
 void Dumper::write_ddl(const Memory_dumper &in_memory,
                        const std::string &file) const {
-  if (!m_options.mds_compatibility()) {
+  if (!m_options.mds_compatibility().has_value()) {
     // if MDS is on, changes done by compatibility options were printed earlier
     if (show_issues(in_memory.issues()) >= Issue_status::ERROR) {
       THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
@@ -3129,9 +3129,8 @@ void Dumper::write_dump_started_metadata() const {
                 is_gtid_executed_inconsistent(), a);
   doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
 
-  if (m_options.mds_compatibility()) {
-    bool compat = static_cast<bool>(m_options.mds_compatibility());
-    doc.AddMember(StringRef("mdsCompatibility"), compat, a);
+  if (m_options.mds_compatibility().has_value()) {
+    doc.AddMember(StringRef("mdsCompatibility"), true, a);
   }
 
   {
@@ -4007,7 +4006,7 @@ void Dumper::fetch_server_information() {
 }
 
 bool Dumper::check_for_upgrade_errors() const {
-  if (!m_options.mds_compatibility()) {
+  if (!m_options.mds_compatibility().has_value()) {
     return false;
   }
 

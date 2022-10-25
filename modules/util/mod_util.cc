@@ -154,7 +154,7 @@ void Util::check_for_server_upgrade(
     const shcore::Option_pack_ref<Upgrade_check_options> &options) {
   auto connection = connection_options;
   if (connection.has_data()) {
-    if (!options->password.is_null()) {
+    if (options->password.has_value()) {
       if (connection.has_password()) connection.clear_password();
       connection.set_password(*options->password);
     }

@@ -149,7 +149,7 @@ void Import_table::build_queue() {
         task.file_handler = fh.release();
         task.range_read = false;
         task.is_guard = false;
-        m_total_bytes += task.file_size.get_safe();
+        m_total_bytes += task.file_size.value_or(0);
         m_range_queue.push(std::move(task));
       }
     } else {
@@ -168,7 +168,7 @@ void Import_table::build_queue() {
       task.range_read = false;
       task.is_guard = false;
 
-      m_total_bytes += task.file_size.get_safe();
+      m_total_bytes += task.file_size.value_or(0);
       m_range_queue.push(std::move(task));
     }
   }

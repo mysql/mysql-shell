@@ -25,10 +25,10 @@
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_MEMORY_FILE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/storage/ifile.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -79,7 +79,7 @@ class Memory_file : public IFile {
  private:
   std::string m_content;
   off64_t m_offset = 0;
-  mysqlshdk::utils::nullable<Mode> m_open_mode{nullptr};
+  std::optional<Mode> m_open_mode;
 };
 }  // namespace backend
 }  // namespace storage

@@ -120,8 +120,8 @@ std::string get_uri_path(const Masked_string &uri) {
 
 void throw_if_error(const rest::String_response &response,
                     const Masked_string &uri) {
-  if (const auto error = response.get_error()) {
-    throw rest::to_exception(error.value(),
+  if (const auto error = response.get_error(); error.has_value()) {
+    throw rest::to_exception(*error,
                              "Could not access '" + uri.masked() + "': ");
   }
 }
@@ -190,7 +190,7 @@ std::string Http_object::filename() const {
 bool Http_object::exists() const {
   bool result = true;
 
-  if (const auto error = fetch_file_size()) {
+  if (const auto error = fetch_file_size(); error.has_value()) {
     if (rest::Response::Status_code::NOT_FOUND == error->code()) {
       result = false;
     } else {
@@ -206,6 +206,8 @@ std::unique_ptr<IDirectory> Http_object::parent() const {
 }
 
 void Http_object::close() {
+  assert(is_open());
+
   if (Mode::WRITE == *m_open_mode) {
     auto request = Http_request(m_path, m_use_retry,
                                 {{"content-type", "application/octet-stream"}});
@@ -307,8 +309,8 @@ void Http_object::remove() {
 void Http_object::throw_if_error(
     const std::optional<rest::Response_error> &error,
     const std::string &context) const {
-  if (error) {
-    throw rest::to_exception(error.value(),
+  if (error.has_value()) {
+    throw rest::to_exception(*error,
                              context + " '" + full_path().masked() + "': ");
   }
 }
@@ -319,7 +321,7 @@ std::optional<rest::Response_error> Http_object::fetch_file_size() const {
     auto response = get_rest_service(m_base)->head(&request);
     auto error = response.get_error();
 
-    if (error) {
+    if (error.has_value()) {
       return error;
     } else {
       m_file_size = response.content_length();
