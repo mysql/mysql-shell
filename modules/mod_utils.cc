@@ -508,7 +508,8 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
           auto session = create_session(copy);
 
           if (prompted_for_password &&
-              !mysqlsh::current_shell_options()->get().passwords_from_stdin) {
+              (!mysqlsh::current_shell_options()->get().passwords_from_stdin ||
+               mysqlsh::current_shell_options()->get().gui_mode)) {
             // save password using the same connection options as the ones used
             // to fetch the password from the secret storage
             shcore::Credential_manager::get().save_password(copy);
