@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,8 +36,6 @@ namespace mysqlsh {
 class Json_shell : public Command_line_shell {
  public:
   explicit Json_shell(std::shared_ptr<Shell_options> options);
-  Json_shell(std::shared_ptr<Shell_options> cmdline_options,
-             std::unique_ptr<shcore::Interpreter_delegate> delegate);
 
   ~Json_shell() override = default;
 

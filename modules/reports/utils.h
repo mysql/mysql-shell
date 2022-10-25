@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,6 +72,15 @@ std::string vertical_formatter(const shcore::Array_t &report);
  * @returns formatted report
  */
 std::string table_formatter(const shcore::Array_t &report);
+
+/**
+ * Creates a report in a way that it is rendered in a GUI table at the GUI
+ *
+ * @param report - report data
+ *
+ * @returns formatted report
+ */
+std::string gui_table_formatter(const shcore::Array_t &report);
 
 /**
  * Creates a brief text report. Each line will contain a single data row with

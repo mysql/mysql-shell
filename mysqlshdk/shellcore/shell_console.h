@@ -79,6 +79,8 @@ class Shell_console : public IConsole {
   explicit Shell_console(shcore::Interpreter_delegate *deleg);
   ~Shell_console() override;
 
+  virtual bool use_json() const;
+
   /**
    * Sends the provided text to the indicated stream.
    *
@@ -320,6 +322,19 @@ class Shell_console : public IConsole {
   std::list<shcore::Interpreter_print_handler *> m_print_handlers;
   bool m_use_colors = false;
   bool m_hook_registered = false;
+};
+
+/**
+ * @brief Custom console for GUI integration
+ * NOTE: For now it just reuses the current Shell_console, in the future the
+ * output format will change based on GUI needs.
+ */
+class Gui_shell_console : public Shell_console {
+ public:
+  explicit Gui_shell_console(shcore::Interpreter_delegate *deleg);
+  ~Gui_shell_console() override = default;
+
+  bool use_json() const override { return true; }
 };
 
 }  // namespace mysqlsh

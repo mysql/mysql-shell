@@ -182,6 +182,9 @@ class Shell_options final : public shcore::Options {
     // --binary-limit
     size_t binary_limit = 0;
 
+    // Indicates the Shell trunning for the GUI
+    bool gui_mode = false;
+
     // TODO(anyone): Expose the option
     enum class Progress_reporting {
       DISABLED,
@@ -254,6 +257,7 @@ class Shell_options final : public shcore::Options {
   }
 
   void set_binary_limit(size_t value) { storage.binary_limit = value; }
+  void set_gui_mode(bool value) { storage.gui_mode = value; }
 
   void set_oci_config_file(const std::string &path) {
     storage.oci_config_file = path;

@@ -381,11 +381,16 @@ std::string list_formatter(const shcore::Array_t &a,
     }
   }
 
-  const auto output = is_vertical ? reports::vertical_formatter(a)
-                                  : reports::table_formatter(a);
+  bool is_gui_mode = mysqlsh::current_shell_options()->get().gui_mode;
+  const auto output = is_vertical
+                          ? reports::vertical_formatter(a)
+                          : (is_gui_mode ? reports::gui_table_formatter(a)
+                                         : reports::table_formatter(a));
 
   // output is empty if report returned just names of columns
-  return output.empty() ? "Report returned no data." : output;
+  return (!is_gui_mode && (output.empty() || output == "\n"))
+             ? "Report returned no data."
+             : output;
 }
 
 std::string report_formatter(const shcore::Array_t &a,

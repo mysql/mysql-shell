@@ -96,9 +96,6 @@ std::string json_obj(const char *key, const shcore::Value &info) {
   return dumper.str() + "\n";
 }
 
-inline bool use_json() {
-  return mysqlsh::current_shell_options()->get().wrap_json != "off";
-}
 }  // namespace
 
 #ifdef _WIN32
@@ -248,6 +245,10 @@ Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
 }
 
 Shell_console::~Shell_console() { detach_log_hook(); }
+
+bool Shell_console::use_json() const {
+  return mysqlsh::current_shell_options()->get().wrap_json != "off";
+}
 
 void Shell_console::dump_json(const char *tag, const std::string &s) const {
   delegate_print(json_obj(tag, s).c_str());
@@ -667,5 +668,8 @@ void Shell_console::detach_log_hook() {
     m_hook_registered = false;
   }
 }
+
+Gui_shell_console::Gui_shell_console(shcore::Interpreter_delegate *deleg)
+    : Shell_console(deleg) {}
 
 }  // namespace mysqlsh

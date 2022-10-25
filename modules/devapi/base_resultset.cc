@@ -75,8 +75,6 @@ void ShellBaseResult::dump() {
   if (result == nullptr) return;
   result->buffer();
 
-  Resultset_dumper dumper(result);
-
   bool is_result = class_name() == "Result";
   bool is_doc_result = class_name() == "DocResult";
   bool is_row_result = class_name() == "RowResult";
@@ -85,7 +83,7 @@ void ShellBaseResult::dump() {
   std::string item_label =
       is_doc_result ? "document" : is_result ? "item" : "row";
 
-  dumper.dump(item_label, is_query, is_doc_result);
+  mysqlsh::dump_result(result, item_label, is_query, is_doc_result);
 
   result->rewind();
 }

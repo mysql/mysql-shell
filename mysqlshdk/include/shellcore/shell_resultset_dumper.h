@@ -29,6 +29,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include "mysqlshdk/libs/db/result.h"
@@ -88,6 +89,16 @@ class Resultset_printer {
    * @param s - text to output
    */
   virtual void raw_print(const std::string &s) = 0;
+
+  /**
+   * Resets the printer
+   */
+  virtual void reset() {}
+
+  /**
+   * Returns the data on the printer
+   */
+  virtual std::string data() const { return ""; }
 };
 
 #define RESULTSET_DUMPER_FORMATS \
@@ -116,8 +127,12 @@ class Resultset_dumper_base {
   size_t dump_table();
   size_t dump_vertical();
   size_t dump_documents(bool is_doc_result);
-  size_t dump_json(const std::string &item_label, bool is_doc_result);
+  virtual bool show_column_type_info() const { return m_show_column_type_info; }
+  std::string format_json(const std::string &item_label, bool is_doc_result,
+                          bool pretty, int *count);
+  virtual size_t dump_json(const std::string &item_label, bool is_doc_result);
   void dump_warnings();
+  std::string format_json_metadata(bool pretty);
   void dump_metadata();
 
   size_t format_vertical(bool has_header, bool align_right,
@@ -157,6 +172,25 @@ class Resultset_dumper : public Resultset_dumper_base {
 };
 
 /**
+ * Dumps the provided result as needed by the GUI to render a proper GUI table
+ *
+ * NOTE: Eventually, this class will overwrite the following functions to met
+ * the GUI requirements for result handling:
+ * - dump()
+ * - dump_metadata()
+ * - dump_json()
+ **/
+class Gui_resultset_dumper : public Resultset_dumper {
+ public:
+  Gui_resultset_dumper(mysqlshdk::db::IResult *target,
+                       const std::string &format = "");
+
+ protected:
+  size_t dump_json(const std::string &item_label, bool is_doc_result) override;
+  bool show_column_type_info() const override;
+};
+
+/**
  * Dumps the provided result to a string, output format is selected by the user
  * of this class by calling one of the appropriate methods.
  */
@@ -171,9 +205,31 @@ class Resultset_writer : public Resultset_dumper_base {
 
   std::string write_status();
 
- private:
+  std::string writer_gui();
+
+ protected:
+  Resultset_writer(mysqlshdk::db::IResult *target,
+                   std::unique_ptr<Resultset_printer> printer,
+                   const std::string &wrap_json,
+                   const std::string &result_format,
+                   bool show_column_type_info = false);
+
   std::string write(const std::function<void()> &dump);
 };
+
+class Gui_resultset_writer : public Resultset_writer {
+ public:
+  explicit Gui_resultset_writer(mysqlshdk::db::IResult *target);
+};
+
+size_t dump_result(mysqlshdk::db::IResult *target,
+                   const std::string &item_label, bool is_query = false,
+                   bool is_doc_resule = false,
+                   const std::optional<std::string> &wrap_json = {},
+                   const std::optional<std::string> &opt_format = {},
+                   const std::optional<bool> &show_warnings = {},
+                   const std::optional<bool> &show_stats = {},
+                   const std::optional<bool> &show_column_type_info = {});
 
 }  // namespace mysqlsh
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_RESULTSET_DUMPER_H_

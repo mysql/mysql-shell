@@ -490,7 +490,9 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
     : mysqlsh::Base_shell(cmdline_options),
       m_console_handler{
-          std::make_shared<mysqlsh::Shell_console>(custom_delegate)} {
+          cmdline_options->get().gui_mode
+              ? std::make_shared<mysqlsh::Gui_shell_console>(custom_delegate)
+              : std::make_shared<mysqlsh::Shell_console>(custom_delegate)} {
   DEBUG_OBJ_ALLOC(Mysql_shell);
 
   // Registers the interactive objects if required
@@ -1820,10 +1822,7 @@ void Mysql_shell::process_sql_result(
       mysqlsh::current_shell_options()->set_result_format(old_format);
     });
 
-    Resultset_dumper dumper(
-        result.get(),
-        mysqlsh::current_shell_options()->get().show_column_type_info);
-    dumper.dump("row", false, false);
+    mysqlsh::dump_result(result.get(), "row");
 
     auto cresult = dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get());
     if (cresult && options().interactive) {

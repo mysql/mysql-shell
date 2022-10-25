@@ -765,6 +765,7 @@ int main(int argc, char **argv) {
       // 257 bytes, eventually this should be determined by a shell command ilne
       // argument, i.e. --binary-limit
       shell_options.get()->set_binary_limit(256);
+      shell_options.get()->set_gui_mode(true);
       shell.reset(new mysqlsh::Json_shell(shell_options), finalize_shell);
     } else {
       shell.reset(new mysqlsh::Command_line_shell(shell_options),

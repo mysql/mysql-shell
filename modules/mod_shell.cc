@@ -2167,9 +2167,9 @@ int Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
   if (!format.empty() && !Resultset_dumper_base::is_valid_format(format))
     throw std::invalid_argument("Invalid format " + format);
 
-  Resultset_dumper dumper(resultset->get_result(), "off",
-                          format.empty() ? "table" : format, false, false);
-  return dumper.dump("row", false, false);
+  return mysqlsh::dump_result(resultset->get_result(), "row", false, false,
+                              "off", format.empty() ? "table" : format, false,
+                              false);
 }
 
 REGISTER_HELP_FUNCTION(autoCompleteSql, shell);
