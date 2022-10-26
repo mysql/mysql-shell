@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/libs/db/mysqlx/expr_parser.h"
 #include "mysqlshdk/libs/utils/array_result.h"
@@ -40,9 +41,16 @@ using Resultset_writer_member = std::string (Resultset_writer::*)();
 std::string resultset_formatter(const shcore::Array_t &report,
                                 Resultset_writer_member member) {
   shcore::Array_as_result result{report};
-  Resultset_writer writer{&result};
 
-  return (writer.*member)();
+  if (mysqlsh::current_shell_options()->get().gui_mode) {
+    Gui_resultset_writer writer{&result};
+
+    return (writer.*member)();
+  } else {
+    Resultset_writer writer{&result};
+
+    return (writer.*member)();
+  }
 }
 
 void merge_json_object(const shcore::Array_t &headers,
@@ -89,6 +97,10 @@ std::string vertical_formatter(const shcore::Array_t &report) {
 
 std::string table_formatter(const shcore::Array_t &report) {
   return resultset_formatter(report, &Resultset_writer::write_table);
+}
+
+std::string gui_table_formatter(const shcore::Array_t &report) {
+  return resultset_formatter(report, &Gui_resultset_writer::writer_gui);
 }
 
 std::string brief_formatter(const shcore::Array_t &report) {

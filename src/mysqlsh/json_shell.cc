@@ -32,13 +32,7 @@
 
 namespace mysqlsh {
 Json_shell::Json_shell(std::shared_ptr<Shell_options> options)
-    : Command_line_shell(options) {
-  options->set_json_output();
-}
-
-Json_shell::Json_shell(std::shared_ptr<Shell_options> cmdline_options,
-                       std::unique_ptr<shcore::Interpreter_delegate> delegate)
-    : Command_line_shell(cmdline_options, std::move(delegate)) {}
+    : Command_line_shell(options) {}
 
 void Json_shell::process_line(const std::string &line) {
   rapidjson::Document doc;

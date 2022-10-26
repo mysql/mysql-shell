@@ -36,7 +36,9 @@ static bool print_capture(void *cdata, const char *text) {
 }
 
 TEST(Json_shell, invalid_input) {
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
+  mysqlsh::Json_shell shell(options);
 
   std::string capture;
   shcore::Interpreter_print_handler handler{&capture, print_capture,
@@ -115,7 +117,9 @@ TEST(Json_shell, invalid_input) {
 }
 
 TEST(Json_shell, valid_commands) {
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
+  mysqlsh::Json_shell shell(options);
 
   std::string capture;
   shcore::Interpreter_print_handler handler{&capture, print_capture,
@@ -147,7 +151,9 @@ TEST(Json_shell, valid_commands) {
 }
 
 TEST(Json_shell, incomplete_javascript) {
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
+  mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\js\"}"});
 
   std::string capture;
@@ -195,7 +201,9 @@ TEST(Json_shell, incomplete_javascript) {
 }
 
 TEST(Json_shell, incomplete_python) {
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
+  mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\py\"}"});
 
   std::string capture;
@@ -245,7 +253,9 @@ TEST(Json_shell, incomplete_sql) {
     coptions.set_password("");
   coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
 
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
+  mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\sql\"}"});
   shell.process_line({"{\"execute\":\"\\\\c " +
                       coptions.as_uri(mysqlshdk::db::uri::formats::full()) +
@@ -291,6 +301,7 @@ where user = 'weirdo)*",
 
 TEST(Json_shell, js_completed_without_new_line) {
   auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
   options->set_interactive(true);
   mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\js\"}"});
@@ -323,6 +334,7 @@ TEST(Json_shell, js_completed_without_new_line) {
 
 TEST(Json_shell, py_completed_without_new_line) {
   auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
   options->set_interactive(true);
   mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\py\"}"});
@@ -361,7 +373,9 @@ TEST(Json_shell, sql_completed_without_delimiter) {
     coptions.set_password("");
   coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
 
-  mysqlsh::Json_shell shell(std::make_shared<Shell_options>());
+  auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
+  mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\sql\"}"});
   shell.process_line({"{\"execute\":\"\\\\c " +
                       coptions.as_uri(mysqlshdk::db::uri::formats::full()) +
@@ -386,6 +400,7 @@ TEST(Json_shell, sql_completed_without_delimiter) {
 
 TEST(Json_shell, multiline_handling) {
   auto options = std::make_shared<Shell_options>();
+  options->set_gui_mode(true);
   options->set_interactive(true);
   mysqlsh::Json_shell shell(options);
   shell.process_line({"{\"execute\":\"\\\\py\"}"});
