@@ -394,10 +394,6 @@ class Dumper {
   uint64_t m_total_objects = 0;
 
   // progress information
-  mutable Progress_thread m_progress_thread;
-  mutable Progress_thread::Stage *m_current_stage = nullptr;
-  Progress_thread::Stage *m_data_dump_stage = nullptr;
-
   std::atomic<uint64_t> m_data_bytes;
   std::atomic<uint64_t> m_bytes_written;
   std::atomic<uint64_t> m_rows_written;
@@ -432,6 +428,13 @@ class Dumper {
   std::unique_ptr<Synchronize_workers> m_worker_synchronization;
   std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
   volatile bool m_worker_interrupt = false;
+
+  // progress thread needs to be placed after any of the fields it uses, in
+  // order to ensure that it is destroyed (and stopped) before any of those
+  // fields
+  mutable Progress_thread m_progress_thread;
+  mutable Progress_thread::Stage *m_current_stage = nullptr;
+  Progress_thread::Stage *m_data_dump_stage = nullptr;
 };
 
 }  // namespace dump

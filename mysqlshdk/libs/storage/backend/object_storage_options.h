@@ -65,9 +65,11 @@ class Object_storage_options {
     }
   }
 
- protected:
   virtual const char *get_main_option() const = 0;
 
+  virtual std::vector<const char *> get_secondary_options() const = 0;
+
+ protected:
   virtual void on_unpacked_options() const {
     if (!has_value(get_main_option())) {
       for (const auto &option : get_secondary_options()) {
@@ -91,7 +93,6 @@ class Object_storage_options {
 
   virtual std::shared_ptr<Config> create_config() const = 0;
 
-  virtual std::vector<const char *> get_secondary_options() const = 0;
   virtual bool has_value(const char *option) const = 0;
 };
 

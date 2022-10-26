@@ -1056,13 +1056,13 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
       m_num_threads_loading(0),
       m_num_threads_recreating_indexes(0),
       m_character_set(options.character_set()),
-      m_progress_thread("Load dump", options.show_progress()),
       m_num_rows_loaded(0),
       m_num_bytes_loaded(0),
       m_num_raw_bytes_loaded(0),
       m_num_chunks_loaded(0),
       m_num_warnings(0),
-      m_num_errors(0) {
+      m_num_errors(0),
+      m_progress_thread("Load dump", options.show_progress()) {
   if (m_options.ignore_version()) {
     m_default_sql_transforms.add_strip_removed_sql_modes();
   }

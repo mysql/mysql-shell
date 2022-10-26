@@ -1,21 +1,35 @@
 
 
 
-function md5_table(session, schema, table) {
-    cols=session.runSql("desc `"+schema+"`.`"+table+"`").fetchAll();
-    columns="";
-    has_pri=false;
-    for(c in cols) {
-        if(cols[c][3]=="PRI")
-            has_pri=true;
-        columns+=", convert("+cols[c][0]+" using binary)";
+function md5_table(session, schema, table, where = "", partitions = []) {
+    const columns = [];
+    const has_pri = 0 != session.runSql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetchOne()[0];
+    for (const c of session.runSql("desc !.!", [schema, table]).fetchAll()) {
+        columns.push(c[0]);
     }
-    query="SELECT min(least(length(@crc := sha1(concat(@crc, sha1(concat_ws('#'"+columns+"))))),"+
-        "@cnt := @cnt + 1)) as discard from `"+schema+"`.`"+table+"`";
-    if(has_pri) query+=" use index(PRIMARY)";
-    session.runSql(query);
-    row=session.runSql("select @crc, @cnt").fetchOne();
-
+    var query = `SELECT @crc := sha1(concat(@crc, sha1(concat_ws('#', ${columns.map((c) => 'convert(! using binary)').join(', ')})))),@cnt := @cnt + 1 as discard from !.!`;
+    const params = [];
+    params.push(...columns);
+    params.push(schema, table);
+    if (partitions.length) {
+        query += ` PARTITION (${partitions.map((p) => '!').join(', ')})`;
+        params.push(...partitions);
+    }
+    if (has_pri) {
+        query += " use index(PRIMARY)";
+    }
+    if (where) {
+        query += " WHERE ";
+        query += where;
+    }
+    if (!has_pri) {
+        query += ` ORDER BY ${columns.map((c) => '!').join(', ')}`;
+        params.push(...columns);
+    }
+    session.runSql("SET @crc = ''");
+    session.runSql("SET @cnt = 0");
+    session.runSql(query, params);
+    const row = session.runSql("select @crc, @cnt").fetchOne();
     return {"sha1": row[0], "count": row[1]};
 }
 
@@ -232,4 +246,15 @@ function wipe_instance(session) {
     session.runSql("RESET MASTER");
     session.runSql("RESET SLAVE ALL");
     session.runSql("set foreign_key_checks=1");
+}
+
+function quote_identifier(schema, object = undefined) {
+    function quote(identifier) {
+        return "`" + identifier.replaceAll('`', '``') + "`";
+    }
+    var ret = quote(schema);
+    if (object !== undefined) {
+        ret += "." + quote(object);
+    }
+    return ret;
 }

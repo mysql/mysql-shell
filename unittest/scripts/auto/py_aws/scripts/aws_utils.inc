@@ -41,6 +41,7 @@ def setup_tests(load_tests = False):
     setup_session(__sandbox_uri1)
     session.run_sql("CREATE SCHEMA `world`")
     testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "world.sql"), "world")
+    globals()["dump_session"] = mysql.get_session(__sandbox_uri1)
     for schema, in session.run_sql("SHOW SCHEMAS").fetch_all():
         if schema in ("mysql", "sys", "performance_schema", "information_schema"):
             continue
@@ -48,6 +49,7 @@ def setup_tests(load_tests = False):
             session.run_sql("ANALYZE TABLE !.!", [ schema, table ])
     if load_tests:
         testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"local_infile": 1})
+        globals()["load_session"] = mysql.get_session(__sandbox_uri2)
 
 def setup_session(u):
     shell.connect(u)

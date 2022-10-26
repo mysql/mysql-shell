@@ -43,9 +43,9 @@ namespace mysqlsh {
 namespace import_table {
 
 Import_table::Import_table(const Import_table_options &options)
-    : m_progress_thread("Import table", options.show_progress()),
-      m_opt(options),
-      m_interrupt(nullptr) {
+    : m_opt(options),
+      m_interrupt(nullptr),
+      m_progress_thread("Import table", options.show_progress()) {
   m_thread_exception.resize(options.threads_size(), nullptr);
   m_total_bytes = m_opt.file_size();
 }

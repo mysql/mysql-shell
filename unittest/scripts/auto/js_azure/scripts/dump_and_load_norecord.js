@@ -1,4 +1,7 @@
 //@{__azure_configured}
+
+//@<> INCLUDE dump_utils.inc
+
 //@<> Setup
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 shell.connect(__sandbox_uri1);
@@ -43,6 +46,38 @@ testutil.callMysqlsh([__sandbox_uri1 + "/xtest", "--", "util", "import-table", "
 res = session.runSql("show tables like 't_tinyint'").fetchOne();
 EXPECT_EQ('t_tinyint', res[0]);
 
+//@<> BUG#34657730 - util.exportTable() should output remote options needed to import this dump
+// setup
+tested_schema = "tested_schema";
+tested_table = "tested_table";
+dump_dir = "bug_34657730";
+
+session.runSql("DROP SCHEMA IF EXISTS !;", [ tested_schema ]);
+session.runSql("CREATE SCHEMA !;", [ tested_schema ]);
+session.runSql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, something BINARY)", [ tested_schema, tested_table ]);
+session.runSql("INSERT INTO !.! (id) VALUES (302)", [ tested_schema, tested_table ]);
+session.runSql("INSERT INTO !.! (something) VALUES (char(0))", [ tested_schema, tested_table ]);
+
+expected_md5 = md5_table(session, tested_schema, tested_table);
+
+// prepare the dump
+WIPE_OUTPUT();
+util.exportTable(quote_identifier(tested_schema, tested_table), dump_dir, { "azureContainerName": __container_name });
+
+// capture the import command
+full_stdout_output = testutil.fetchCapturedStdout(false);
+index_of_util = full_stdout_output.indexOf("util.");
+EXPECT_NE(-1, index_of_util);
+util_import_table_code = full_stdout_output.substring(index_of_util);
+
+//@<> BUG#34657730 - test
+session.runSql("TRUNCATE TABLE !.!", [ tested_schema, tested_table ]);
+
+EXPECT_NO_THROWS(() => eval(util_import_table_code), "importing data");
+EXPECT_EQ(expected_md5, md5_table(session, tested_schema, tested_table));
+
+//@<> BUG#34657730 - cleanup
+session.runSql("DROP SCHEMA IF EXISTS !;", [ tested_schema ]);
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
-

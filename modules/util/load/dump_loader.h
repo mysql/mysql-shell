@@ -559,11 +559,6 @@ class Dump_loader {
   bool m_init_done = false;
   bool m_workers_killed = false;
 
-  dump::Progress_thread m_progress_thread;
-  dump::Progress_thread::Stage *m_load_data_stage = nullptr;
-  dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
-  dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
-
   // tables and partitions loaded
   std::unordered_set<std::string> m_unique_tables_loaded;
   size_t m_total_tables_with_data = 0;
@@ -588,6 +583,14 @@ class Dump_loader {
 
   std::unordered_map<std::string, bool> m_schema_ddl_ready;
   std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;
+
+  // progress thread needs to be placed after any of the fields it uses, in
+  // order to ensure that it is destroyed (and stopped) before any of those
+  // fields
+  dump::Progress_thread m_progress_thread;
+  dump::Progress_thread::Stage *m_load_data_stage = nullptr;
+  dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
+  dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
 };
 
 }  // namespace mysqlsh
