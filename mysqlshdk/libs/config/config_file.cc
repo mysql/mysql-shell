@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,46 +32,138 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace config {
-Config_file::Config_file(Case group_case, Escape escape)
-    : m_group_case(group_case),
-      m_escape_characters(escape),
-      m_configmap(m_group_case == Case::SENSITIVE ? Config_file::comp
-                                                  : Config_file::icomp) {}
 
-bool Config_file::comp(const std::string &lhs, const std::string &rhs) {
-  return lhs.compare(rhs) < 0;
-}
+namespace {
 
-bool Config_file::icomp(const std::string &lhs, const std::string &rhs) {
-  return shcore::str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
-}
+using StringCompareFunc = bool (*)(const std::string &, const std::string &);
 
-Config_file::Option_key Config_file::convert_option_to_key(
-    const std::string &option) const {
-  Option_key opt_key;
-  opt_key.original_option = option;
-  opt_key.key = option;
-
-  // Dash (-) and underscore (_) may be used interchangeably
-  std::replace(opt_key.key.begin(), opt_key.key.end(), '-', '_');
-
-  // Ignore loose_ prefix
-  if (shcore::str_ibeginswith(opt_key.key, "loose_")) {
-    opt_key.key = opt_key.key.substr(6);
-  } else if (shcore::str_ibeginswith(opt_key.key, "group_replication_")) {
-    // if it doesn't start with loose_ and is a group_replication option,
-    // prepend the original_option (the one written to the file) with loose_.
-    opt_key.original_option = "loose_" + opt_key.original_option;
+/**
+ * Auxiliary method to parse a group line.
+ * Note: This function assumes the input string is trimmed.
+ *
+ * @param line string with the group line to parse.
+ * @param line_number integer with the number of the line being parsed.
+ * @param cnf_path string with the path of the option file being parsed.
+ * @return a string with the group name (if successfully parsed).
+ *
+ * @throw std::runtime_error if the group line cannot be parsed (invalid
+ *        group line).
+ */
+std::string parse_group_line(const std::string &line, unsigned int line_number,
+                             const std::string &cnf_path) {
+  if (line[0] != '[') {
+    // could not find open bracket
+    throw std::runtime_error("Invalid group, not starting with '[' at line " +
+                             std::to_string(line_number) + " of file '" +
+                             cnf_path + "': " + line + ".");
   }
-  return opt_key;
+
+  auto pos = line.find(']');
+  if (pos == std::string::npos) {
+    // Malformed group if it does not end with ']'
+    throw std::runtime_error("Invalid group, not ending with ']', at line " +
+                             std::to_string(line_number) + " of file '" +
+                             cnf_path + "': " + line + ".");
+  }
+
+  // found a closing bracket, make sure that the next character is a
+  // comment otherwise throw error
+  std::string group = line.substr(1, pos - 1);
+  std::string section_rest = shcore::str_strip(line.substr(pos + 1));
+  if (!section_rest.empty() && section_rest[0] != '#') {
+    throw std::runtime_error("Invalid group at line " +
+                             std::to_string(line_number) + " of file '" +
+                             cnf_path + "': " + line + ".");
+  }
+
+  // everything ok
+  return group;
 }
 
-void Config_file::get_include_files(const std::string &cnf_path,
-                                    std::set<std::string> *out_files,
-                                    unsigned int recursive_depth) const {
+/**
+ * Auxiliary function parse the path from the !include and !includedir
+ * directives.
+ * @param line String with the line with the !include(dir) directive
+ * @param base_path base path used to calculate an absolute path if the
+ *        !include(dir) directive has a relative path
+ * @return string with the absolute path of the !include(dir) directive
+ * @throws runtime_error if neither directive is found on line.
+ */
+std::string parse_include_path(const std::string &line,
+                               const std::string &base_path = "") {
+  if (shcore::str_beginswith(line, "!include ")) {
+    // Match !include + space to ensure there are non blank chars after.
+    std::string include_file_path = shcore::str_strip(line.substr(9));
+
+    // Get absolute path for included file
+    std::string base_dir = shcore::path::dirname(base_path);
+    return shcore::get_absolute_path(include_file_path, base_dir);
+  }
+
+  if (shcore::str_beginswith(line, "!includedir ")) {
+    std::string include_dir_path = shcore::str_strip(line.substr(12));
+
+    // Get absolute path for included dir
+    std::string base_dir = shcore::path::dirname(base_path);
+    return shcore::get_absolute_path(include_dir_path, base_dir);
+  }
+
+  throw std::runtime_error(
+      "No !include or !includedir directive found on line: '" + line + "'.");
+}
+
+/**
+ * Auxiliary method that returns a vector with all the configuration files
+ * found inside a given directory.
+ * @param dir_path path of the directory to search for config files
+ * @return a vector with all the config files found.
+ */
+std::vector<std::string> get_config_files_in_dir(const std::string &dir_path) {
+  // Get list of files to be included.
+  std::vector<std::string> files_to_include;
+  for (const std::string &filename : shcore::listdir(dir_path)) {
+    size_t last_dot = filename.find_last_of('.');
+    // check if file has an extension after the .
+    if (last_dot == std::string::npos || (last_dot + 2 > filename.size()))
+      continue;
+
+    std::string extension = filename.substr(last_dot + 1);
+    // On Windows included files can have the '.cnf' or '.ini'
+    // extension, otherwise only '.cnf'.
+#ifdef WIN32
+    bool is_option_file = (extension == "cnf" || extension == "ini");
+#else
+    bool is_option_file = (extension == "cnf");
+#endif
+    if (is_option_file) {
+      files_to_include.push_back(shcore::path::join_path(dir_path, filename));
+    }
+  }
+  return files_to_include;
+}
+
+/**
+ * Auxiliary function to get the list of other included files to read.
+ *
+ * Other options files can be included using the !include and !includedir.
+ * This function retrieves the valid list of those files.
+ *
+ * NOTE: This function is recursive.
+ *
+ * @param cnf_path string with the path to the MySQL option file to search of
+ *        other included option files using the !include and !includedir
+ *        directives.
+ * @param out_files resulting set with the path (string) of all the other
+ *        included option files.
+ * @param recursive_depth recursive call depth.
+ */
+void get_include_files(const std::string &cnf_path,
+                       std::set<std::string> *out_files,
+                       unsigned int recursive_depth) {
   // 10 is the max recursion supported on the server when parsing option files
   if (recursive_depth >= 10) {
     log_warning(
@@ -100,72 +192,63 @@ void Config_file::get_include_files(const std::string &cnf_path,
     // Skip empty line (only with whitespaces)
     if (trimmed_line.empty()) continue;
 
-    // Handle line with directives.
-    if (trimmed_line[0] == '!') {
-      if (shcore::str_beginswith(trimmed_line, "!include ")) {
-        std::string include_file_path =
-            parse_include_path(trimmed_line, cnf_path);
+    // skip line without directives.
+    if (trimmed_line[0] != '!') continue;
 
-        // Recursively process the included file if not already included.
+    if (shcore::str_beginswith(trimmed_line, "!include ")) {
+      std::string include_file_path =
+          parse_include_path(trimmed_line, cnf_path);
+
+      // Recursively process the included file if not already included.
+      if (out_files->find(include_file_path) == out_files->end()) {
+        get_include_files(include_file_path, out_files, recursive_depth + 1);
+      }
+    } else if (shcore::str_beginswith(trimmed_line, "!includedir ")) {
+      std::string include_dir_path = parse_include_path(trimmed_line, cnf_path);
+
+      std::vector<std::string> files_to_include =
+          get_config_files_in_dir(include_dir_path);
+
+      // Recursively process valid files in directory if not already
+      // included.
+      for (const std::string &include_file_path : files_to_include) {
         if (out_files->find(include_file_path) == out_files->end()) {
           get_include_files(include_file_path, out_files, recursive_depth + 1);
         }
-      } else if (shcore::str_beginswith(trimmed_line, "!includedir ")) {
-        std::string include_dir_path =
-            parse_include_path(trimmed_line, cnf_path);
-
-        std::vector<std::string> files_to_include =
-            get_config_files_in_dir(include_dir_path);
-
-        // Recursively process valid files in directory if not already
-        // included.
-        for (const std::string &include_file_path : files_to_include) {
-          if (out_files->find(include_file_path) == out_files->end()) {
-            get_include_files(include_file_path, out_files,
-                              recursive_depth + 1);
-          }
-        }
-      } else {
-        throw std::runtime_error("Invalid directive at line " +
-                                 std::to_string(linenum) + " of file '" +
-                                 cnf_path + "': " + line + ".");
       }
+    } else {
+      throw std::runtime_error("Invalid directive at line " +
+                               std::to_string(linenum) + " of file '" +
+                               cnf_path + "': " + line + ".");
     }
   }
 }
 
-std::string Config_file::parse_group_line(const std::string &line,
-                                          unsigned int line_number,
-                                          const std::string &cnf_path) const {
-  std::string res;
-  if (line[0] == '[') {
-    auto pos = line.find(']');
-    if (pos == std::string::npos) {
-      // Malformed group if it does not end with ']'
-      throw std::runtime_error("Invalid group, not ending with ']', at line " +
-                               std::to_string(line_number) + " of file '" +
-                               cnf_path + "': " + line + ".");
-    } else {
-      // found a closing bracket, make sure that the next character is a
-      // comment otherwise throw error
-      std::string group = line.substr(1, pos - 1);
-      std::string section_rest = shcore::str_strip(line.substr(pos + 1));
-      if (!section_rest.empty() && section_rest[0] != '#') {
-        throw std::runtime_error("Invalid group at line " +
-                                 std::to_string(line_number) + " of file '" +
-                                 cnf_path + "': " + line + ".");
-      } else {
-        // everything ok
-        res = group;
-      }
-    }
-  } else {
-    // could not find open bracket
-    throw std::runtime_error("Invalid group, not starting with '[' at line " +
-                             std::to_string(line_number) + " of file '" +
-                             cnf_path + "': " + line + ".");
+}  // namespace
+
+Config_file::Config_file(Case group_case, Escape escape)
+    : m_group_case(group_case),
+      m_escape_characters(escape),
+      m_configmap(shcore::Case_comparator(m_group_case == Case::SENSITIVE)) {}
+
+Config_file::Option_key Config_file::convert_option_to_key(
+    const std::string &option) const {
+  Option_key opt_key;
+  opt_key.original_option = option;
+  opt_key.key = option;
+
+  // Dash (-) and underscore (_) may be used interchangeably
+  std::replace(opt_key.key.begin(), opt_key.key.end(), '-', '_');
+
+  // Ignore loose_ prefix
+  if (shcore::str_ibeginswith(opt_key.key, "loose_")) {
+    opt_key.key = opt_key.key.substr(6);
+  } else if (shcore::str_ibeginswith(opt_key.key, "group_replication_")) {
+    // if it doesn't start with loose_ and is a group_replication option,
+    // prepend the original_option (the one written to the file) with loose_.
+    opt_key.original_option = "loose_" + opt_key.original_option;
   }
-  return res;
+  return opt_key;
 }
 
 std::string Config_file::parse_escape_sequence_from_file(
@@ -175,6 +258,8 @@ std::string Config_file::parse_escape_sequence_from_file(
   }
 
   std::string result;
+  result.reserve(input.size());
+
   char escape = '\0';
   for (char c : input) {
     if (escape == '\\') {
@@ -212,6 +297,8 @@ std::string Config_file::parse_escape_sequence_to_file(const std::string &input,
   }
 
   std::string result;
+  result.reserve(input.size());
+
   for (char c : input) {
     if (c == quote) {
       result.push_back('\\');
@@ -235,108 +322,111 @@ std::string Config_file::parse_escape_sequence_to_file(const std::string &input,
 
 std::string Config_file::convert_value_for_file(
     const std::string &value) const {
-  if (value.find_first_of("# '\"") != std::string::npos) {
-    if (value.find('\'') == std::string::npos) {
-      return "'" + parse_escape_sequence_to_file(value) + "'";
-    } else {
-      return "\"" + parse_escape_sequence_to_file(value, '"') + "\"";
-    }
-  } else {
+  if (value.find_first_of("# '\"") == std::string::npos)
     return parse_escape_sequence_to_file(value);
-  }
+
+  if (value.find('\'') == std::string::npos)
+    return "'" + parse_escape_sequence_to_file(value) + "'";
+
+  return "\"" + parse_escape_sequence_to_file(value, '"') + "\"";
 }
 
-std::tuple<std::string, utils::nullable<std::string>, std::string>
-Config_file::parse_option_line(const std::string &line,
-                               unsigned int line_number,
-                               const std::string &cnf_path) const {
-  std::string value, option, after_value;
-
+Config_file::Parse_result Config_file::parse_option_line(
+    const std::string &line, unsigned int line_number,
+    const std::string &cnf_path) const {
   std::string::size_type pos_equal = line.find('=');
-  if (pos_equal != std::string::npos) {
-    // Equal sign found
-    option = shcore::str_strip(line.substr(0, pos_equal));
-
-    std::string raw_value = shcore::str_strip(line.substr(pos_equal + 1));
-    if (!raw_value.empty()) {
-      char quote = '\0';
-      // Check if value is enclosed with single or double quotes
-      if (raw_value[0] == '\'' || raw_value[0] == '"') quote = raw_value[0];
-      if (quote) {
-        // Value starts with a quote char, check if has valid closing quote
-        std::pair<std::string::size_type, std::string::size_type> quote_pos =
-            shcore::get_quote_span(quote, raw_value);
-        if (quote_pos.second == std::string::npos) {
-          // Error if there is no matching closing quote
-          throw std::runtime_error(
-              "Invalid option, missing closing quote for option value at "
-              "line " +
-              std::to_string(line_number) + " of file '" + cnf_path +
-              "': " + line + ".");
-        } else {
-          // Value enclosed with quotes
-          // Value can only be followed by a comment, otherwise issue error
-          std::string value_rest =
-              shcore::str_strip(raw_value.substr(quote_pos.second + 1));
-          // NOTE: Only # is used for comments in the middle of lines
-          if (!value_rest.empty() && value_rest[0] != '#') {
-            throw std::runtime_error(
-                "Invalid option, only comments (started with #) are allowed "
-                "after a quoted value at line " +
-                std::to_string(line_number) + " of file '" + cnf_path +
-                "': " + line + ".");
-          } else {
-            // Valid quoted value found (no invalid characters after value)
-            value = raw_value.substr(quote_pos.first + 1,
-                                     quote_pos.second - quote_pos.first - 1);
-            // Keep any text after the value (e.g., inline comment)
-            if (raw_value.size() > quote_pos.second + 1) {
-              after_value = raw_value.substr(quote_pos.second + 1);
-            }
-            return std::make_tuple(
-                option, parse_escape_sequence_from_file(value, quote),
-                after_value);
-          }
-        }
-      } else {
-        // No quotes found, value is whatever is found until the comment
-        // character # or end of line.
-        std::string::size_type comment_pos = raw_value.find('#');
-        value = shcore::str_strip(raw_value.substr(0, comment_pos));
-
-        if (comment_pos != std::string::npos &&
-            raw_value.size() >= comment_pos + 1) {
-          after_value = " " + raw_value.substr(comment_pos);
-        }
-
-        return std::make_tuple(
-            option, parse_escape_sequence_from_file(value, '\0'), after_value);
-      }
-    } else {
-      // No value after '=' sign
-      // NOTE: return empty string for the value which is different from NULL
-      return std::make_tuple(option, utils::nullable<std::string>(""),
-                             after_value);
-    }
-  } else {
+  if (pos_equal == std::string::npos) {
     // No equal sign found, meaning no value (null)
     // Name is whatever is found until the comment character # or end of line
     // NOTE: Only # is used for comments in the middle of lines
     std::string::size_type comment_pos = line.find('#');
-    option = shcore::str_strip(line.substr(0, comment_pos));
+    auto option = shcore::str_strip(line.substr(0, comment_pos));
 
+    std::string after_value;
     if (comment_pos != std::string::npos && line.size() >= comment_pos + 1) {
       after_value = " " + line.substr(comment_pos);
     }
 
     // NOTE: return NULL for the value which is different from empty string
-    return std::make_tuple(option, utils::nullable<std::string>(), after_value);
+    return Parse_result{std::move(option), std::nullopt,
+                        std::move(after_value)};
+  }
+
+  // Equal sign found
+  auto option = shcore::str_strip(line.substr(0, pos_equal));
+
+  std::string raw_value = shcore::str_strip(line.substr(pos_equal + 1));
+  if (raw_value.empty()) {
+    // No value after '=' sign
+    // NOTE: return empty string for the value which is different from NULL
+    return Parse_result{std::move(option), std::string{}, std::string{}};
+  }
+
+  char quote = '\0';
+  // Check if value is enclosed with single or double quotes
+  if (raw_value[0] == '\'' || raw_value[0] == '"') quote = raw_value[0];
+
+  if (quote) {
+    // Value starts with a quote char, check if has valid closing quote
+    std::pair<std::string::size_type, std::string::size_type> quote_pos =
+        shcore::get_quote_span(quote, raw_value);
+    if (quote_pos.second == std::string::npos) {
+      // Error if there is no matching closing quote
+      throw std::runtime_error(
+          "Invalid option, missing closing quote for option value at line " +
+          std::to_string(line_number) + " of file '" + cnf_path + "': " + line +
+          ".");
+    }
+
+    // Value enclosed with quotes
+    // Value can only be followed by a comment, otherwise issue error
+    std::string value_rest =
+        shcore::str_strip(raw_value.substr(quote_pos.second + 1));
+    // NOTE: Only # is used for comments in the middle of lines
+    if (!value_rest.empty() && value_rest[0] != '#') {
+      throw std::runtime_error(
+          "Invalid option, only comments (started with #) are allowed after a "
+          "quoted value at line " +
+          std::to_string(line_number) + " of file '" + cnf_path + "': " + line +
+          ".");
+    }
+
+    // Valid quoted value found (no invalid characters after value)
+    auto value = raw_value.substr(quote_pos.first + 1,
+                                  quote_pos.second - quote_pos.first - 1);
+
+    // Keep any text after the value (e.g., inline comment)
+    std::string after_value;
+    if (raw_value.size() > quote_pos.second + 1) {
+      after_value = raw_value.substr(quote_pos.second + 1);
+    }
+
+    return Parse_result{std::move(option),
+                        parse_escape_sequence_from_file(value, quote),
+                        std::move(after_value)};
+
+  } else {
+    // No quotes found, value is whatever is found until the comment
+    // character # or end of line.
+    std::string::size_type comment_pos = raw_value.find('#');
+    auto value = shcore::str_strip(raw_value.substr(0, comment_pos));
+
+    std::string after_value;
+    if (comment_pos != std::string::npos &&
+        raw_value.size() >= comment_pos + 1) {
+      after_value = " " + raw_value.substr(comment_pos);
+    }
+
+    return Parse_result{std::move(option),
+                        parse_escape_sequence_from_file(value, '\0'),
+                        std::move(after_value)};
   }
 }
 
 void Config_file::read(const std::string &cnf_path,
                        const std::string &group_prefix) {
-  container configmap(m_group_case == Case::SENSITIVE ? comp : icomp);
+  container configmap(shcore::Case_comparator(m_group_case == Case::SENSITIVE));
+
   read_recursive_aux(cnf_path, 0, &configmap, group_prefix);
   // if no exception happened during the read of the files, then replace the
   // current configuration map with the new one.
@@ -416,7 +506,7 @@ void Config_file::write(const std::string &cnf_path) const {
               (track_cfg_to_add.find(in_group) != track_cfg_to_add.end())) {
             if (!track_cfg_to_add.at(in_group).empty()) {
               for (const auto &opt_pair : track_cfg_to_add.at(in_group)) {
-                if (opt_pair.second.is_null()) {
+                if (!opt_pair.second) {
                   tmp_file << opt_pair.first.original_option.c_str()
                            << std::endl;
                 } else {
@@ -443,8 +533,7 @@ void Config_file::write(const std::string &cnf_path) const {
           }
         } else {
           // Parse option line
-          std::tuple<std::string, utils::nullable<std::string>, std::string>
-              opt_tuple = parse_option_line(trimmed_line, linenum, file_path);
+          auto parse_res = parse_option_line(trimmed_line, linenum, file_path);
 
           if (in_group.empty())
             throw std::runtime_error("Group missing before option at line " +
@@ -454,7 +543,7 @@ void Config_file::write(const std::string &cnf_path) const {
           // Delete option (not write it), if group is marked to be deleted.
           if (delete_group) continue;
 
-          Option_key opt_key = convert_option_to_key(std::get<0>(opt_tuple));
+          Option_key opt_key = convert_option_to_key(parse_res.name);
           if (m_configmap.at(in_group).find(opt_key) ==
               m_configmap.at(in_group).end()) {
             // Delete option (not write it), if it does not exist in the
@@ -462,10 +551,10 @@ void Config_file::write(const std::string &cnf_path) const {
             continue;
           } else {
             // Check if the option value needs to be updated.
-            utils::nullable<std::string> value =
+            std::optional<std::string> value =
                 m_configmap.at(in_group).at(opt_key);
 
-            if (value == std::get<1>(opt_tuple)) {
+            if (value == parse_res.value) {
               // Value is the same, keep the line in the file unchanged.
               tmp_file << line << std::endl;
             } else {
@@ -474,13 +563,13 @@ void Config_file::write(const std::string &cnf_path) const {
               std::string option = it->first.original_option;
 
               // Update value keeping inline comments.
-              if (value.is_null()) {
-                tmp_file << option.c_str() << std::get<2>(opt_tuple)
+              if (!value) {
+                tmp_file << option.c_str() << parse_res.remaining_text
                          << std::endl;
               } else {
                 tmp_file << option.c_str() << " = "
                          << convert_value_for_file(*value).c_str()
-                         << std::get<2>(opt_tuple) << std::endl;
+                         << parse_res.remaining_text << std::endl;
               }
             }
 
@@ -501,7 +590,7 @@ void Config_file::write(const std::string &cnf_path) const {
           (track_cfg_to_add.find(in_group) != track_cfg_to_add.end())) {
         if (!track_cfg_to_add.at(in_group).empty()) {
           for (auto opt_pair : track_cfg_to_add.at(in_group)) {
-            if (opt_pair.second.is_null()) {
+            if (!opt_pair.second) {
               tmp_file << opt_pair.first.original_option.c_str() << std::endl;
             } else {
               tmp_file << opt_pair.first.original_option.c_str() << " = "
@@ -528,7 +617,7 @@ void Config_file::write(const std::string &cnf_path) const {
       for (const auto &grp_pair : track_cfg_to_add) {
         tmp_file << "[" << grp_pair.first.c_str() << "]" << std::endl;
         for (auto opt_pair : grp_pair.second) {
-          if (opt_pair.second.is_null()) {
+          if (!opt_pair.second) {
             tmp_file << opt_pair.first.original_option.c_str() << std::endl;
           } else {
             tmp_file << opt_pair.first.original_option.c_str() << " = "
@@ -562,9 +651,12 @@ void Config_file::write(const std::string &cnf_path) const {
 
 std::vector<std::string> Config_file::groups() const {
   std::vector<std::string> res;
+  res.reserve(m_configmap.size());
+
   for (const auto &element : m_configmap) {
     res.push_back(element.first);
   }
+
   return res;
 }
 
@@ -584,67 +676,60 @@ bool Config_file::remove_group(const std::string &group) {
   if (has_group(group)) {
     m_configmap.erase(group);
     return true;
-  } else {
-    return false;
   }
+
+  return false;
 }
 
 std::vector<std::string> Config_file::options(const std::string &group) const {
-  if (!has_group(group)) {
+  if (!has_group(group))
     throw std::out_of_range("Group '" + group + "' does not exist.");
-  } else {
-    std::vector<std::string> res;
-    for (auto const &element : m_configmap.at(group)) {
-      res.push_back(element.first.original_option);
-    }
-    return res;
+
+  std::vector<std::string> res;
+  for (auto const &element : m_configmap.at(group)) {
+    res.push_back(element.first.original_option);
   }
+  return res;
 }
 
 bool Config_file::has_option(const std::string &group,
                              const std::string &option) const {
-  if (has_group(group)) {
-    Option_key opt_key = convert_option_to_key(option);
-    return m_configmap.at(group).find(opt_key) != m_configmap.at(group).end();
-  } else {
-    return false;
-  }
+  if (!has_group(group)) return false;
+
+  Option_key opt_key = convert_option_to_key(option);
+  return m_configmap.at(group).find(opt_key) != m_configmap.at(group).end();
 }
 
-utils::nullable<std::string> Config_file::get(const std::string &group,
-                                              const std::string &option) const {
+std::optional<std::string> Config_file::get(const std::string &group,
+                                            const std::string &option) const {
   if (has_option(group, option)) {
     Option_key opt_key = convert_option_to_key(option);
     return m_configmap.at(group).at(opt_key);
-  } else {
-    throw std::out_of_range("Option '" + option +
-                            "' does not exist in group '" + group + "'.");
   }
+
+  throw std::out_of_range("Option '" + option + "' does not exist in group '" +
+                          group + "'.");
 }
 
 void Config_file::set(const std::string &group, const std::string &option,
-                      const utils::nullable<std::string> &value) {
-  if (has_group(group)) {
-    Option_key opt_key = convert_option_to_key(option);
-    m_configmap[group][opt_key] = value;
-  } else {
+                      const std::optional<std::string> &value) {
+  if (!has_group(group))
     throw std::out_of_range("Group '" + group + "' does not exist.");
-  }
+
+  Option_key opt_key = convert_option_to_key(option);
+  m_configmap[group][opt_key] = value;
 }
 
 bool Config_file::remove_option(const std::string &group,
                                 const std::string &option) {
-  if (has_group(group)) {
-    if (has_option(group, option)) {
-      Option_key opt_key = convert_option_to_key(option);
-      m_configmap[group].erase(opt_key);
-      return true;
-    } else {
-      return false;
-    }
-  } else {
+  if (!has_group(group))
     throw std::out_of_range("Group '" + group + "' does not exist.");
-  }
+
+  if (!has_option(group, option)) return false;
+
+  Option_key opt_key = convert_option_to_key(option);
+  m_configmap[group].erase(opt_key);
+  return true;
 }
 
 void Config_file::clear() { m_configmap.clear(); }
@@ -736,8 +821,7 @@ void Config_file::read_recursive_aux(const std::string &cnf_path,
     } else {
       // Not a group, handle as an option, try to parse it and save it
       // std::string name, value;
-      std::tuple<std::string, utils::nullable<std::string>, std::string> res =
-          parse_option_line(trimmed_line, linenum, cnf_path);
+      auto res = parse_option_line(trimmed_line, linenum, cnf_path);
 
       if (in_group.empty())
         throw std::runtime_error("Group missing before option at line " +
@@ -748,61 +832,12 @@ void Config_file::read_recursive_aux(const std::string &cnf_path,
           (m_group_case == Case::INSENSITIVE
                ? shcore::str_ibeginswith(in_group, group_prefix)
                : shcore::str_beginswith(in_group, group_prefix))) {
-        auto key = convert_option_to_key(std::get<0>(res));
-        (*out_map)[in_group][key] = std::get<1>(res);
+        auto key = convert_option_to_key(res.name);
+        (*out_map)[in_group][key] = res.value;
       }
     }
   }
   input_file.close();
-}
-
-std::vector<std::string> Config_file::get_config_files_in_dir(
-    const std::string &dir_path) const {
-  // Get list of files to be included.
-  std::vector<std::string> files_to_include;
-  for (const std::string &filename : shcore::listdir(dir_path)) {
-    size_t last_dot = filename.find_last_of('.');
-    // check if file has an extension after the .
-    if (last_dot != std::string::npos && last_dot + 2 <= filename.size()) {
-      std::string extension = filename.substr(last_dot + 1);
-      // On Windows included files can have the '.cnf' or '.ini'
-      // extension, otherwise only '.cnf'.
-#ifdef WIN32
-      bool is_option_file = (extension == "cnf" || extension == "ini");
-#else
-      bool is_option_file = (extension == "cnf");
-#endif
-      if (is_option_file) {
-        files_to_include.push_back(shcore::path::join_path(dir_path, filename));
-      }
-    }
-  }
-  return files_to_include;
-}
-
-std::string Config_file::parse_include_path(
-    const std::string &line, const std::string &base_path) const {
-  std::string res;
-  if (shcore::str_beginswith(line, "!include ")) {
-    // Match !include + space to ensure there are non blank chars after.
-    std::string include_file_path = shcore::str_strip(line.substr(9));
-
-    // Get absolute path for included file
-    std::string base_dir = shcore::path::dirname(base_path);
-    res = shcore::get_absolute_path(include_file_path, base_dir);
-  } else if (shcore::str_beginswith(line, "!includedir ")) {
-    std::string include_dir_path = shcore::str_strip(line.substr(12));
-
-    // Get absolute path for included dir
-    std::string base_dir = shcore::path::dirname(base_path);
-    res = shcore::get_absolute_path(include_dir_path, base_dir);
-  } else {
-    throw std::runtime_error(
-        "No !include or !includedir directive found on "
-        "line: '" +
-        line + "'.");
-  }
-  return res;
 }
 
 std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os) {

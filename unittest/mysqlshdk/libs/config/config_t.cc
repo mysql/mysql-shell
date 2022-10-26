@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,11 +166,11 @@ TEST_F(Config_test, config_interface) {
   EXPECT_TRUE(res);
 
   // Test getting a bool value (default: false).
-  nullable<bool> bool_val = cfg.get_bool("sql_warnings");
+  std::optional<bool> bool_val = cfg.get_bool("sql_warnings");
   EXPECT_FALSE(*bool_val);
 
   // Test setting a bool value.
-  cfg.set("sql_warnings", nullable<bool>(true));
+  cfg.set("sql_warnings", std::optional<bool>(true));
   bool_val = cfg.get_bool("sql_warnings");
   EXPECT_TRUE(*bool_val);
 
@@ -185,13 +185,13 @@ TEST_F(Config_test, config_interface) {
   EXPECT_THROW(cfg_handler_tmp.get_bool("sql_warnings"), std::out_of_range);
 
   // Test getting an int value (use current value as default).
-  nullable<int64_t> wait_timeout =
+  std::optional<int64_t> wait_timeout =
       instance.get_sysvar_int("wait_timeout", Var_qualifier::GLOBAL);
-  nullable<int64_t> int_val = cfg.get_int("wait_timeout");
+  std::optional<int64_t> int_val = cfg.get_int("wait_timeout");
   EXPECT_EQ(*wait_timeout, *int_val);
 
   // Test setting a int value.
-  cfg.set("wait_timeout", nullable<int64_t>(30000));
+  cfg.set("wait_timeout", std::optional<int64_t>(30000));
   int_val = cfg.get_int("wait_timeout");
   EXPECT_EQ(30000, *int_val);
 
@@ -204,11 +204,11 @@ TEST_F(Config_test, config_interface) {
   EXPECT_THROW(cfg_handler_tmp.get_int("wait_timeout"), std::out_of_range);
 
   // Test getting a string value (default: en_US).
-  nullable<std::string> string_val = cfg.get_string("lc_messages");
+  std::optional<std::string> string_val = cfg.get_string("lc_messages");
   EXPECT_STREQ("en_US", (*string_val).c_str());
 
   // Test setting a string value.
-  cfg.set("lc_messages", nullable<std::string>("pt_PT"));
+  cfg.set("lc_messages", std::optional<std::string>("pt_PT"));
   string_val = cfg.get_string("lc_messages");
   EXPECT_STREQ("pt_PT", (*string_val).c_str());
 
@@ -240,8 +240,10 @@ TEST_F(Config_test, config_interface) {
   EXPECT_STREQ("pt_PT", (*string_val).c_str());
 
   // Restore previous setting individually at each handler.
-  cfg.set_for_handler("sql_warnings", nullable<bool>(false), "server_global");
-  cfg.set_for_handler("sql_warnings", nullable<bool>(false), "config_file");
+  cfg.set_for_handler("sql_warnings", std::optional<bool>(false),
+                      "server_global");
+  cfg.set_for_handler("sql_warnings", std::optional<bool>(false),
+                      "config_file");
   bool_val = cfg.get_bool("sql_warnings", "server_global");
   EXPECT_FALSE(*bool_val);
   bool_val = cfg.get_bool("sql_warnings", "config_file");
@@ -249,13 +251,13 @@ TEST_F(Config_test, config_interface) {
   cfg.set_for_handler("wait_timeout", wait_timeout, "server_global");
   cfg.set_for_handler("wait_timeout", wait_timeout, "config_file");
   int_val = cfg.get_int("wait_timeout", "server_global");
-  EXPECT_FALSE(int_val.is_null());
+  EXPECT_FALSE(!int_val.has_value());
   EXPECT_EQ(*wait_timeout, *int_val);
   int_val = cfg.get_int("wait_timeout", "config_file");
   EXPECT_EQ(*wait_timeout, *int_val);
-  cfg.set_for_handler("lc_messages", nullable<std::string>("en_US"),
+  cfg.set_for_handler("lc_messages", std::optional<std::string>("en_US"),
                       "server_global");
-  cfg.set_for_handler("lc_messages", nullable<std::string>("en_US"),
+  cfg.set_for_handler("lc_messages", std::optional<std::string>("en_US"),
                       "config_file");
   string_val = cfg.get_string("lc_messages", "server_global");
   EXPECT_STREQ("en_US", (*string_val).c_str());
@@ -268,7 +270,7 @@ TEST_F(Config_test, config_interface) {
   bool_val = instance.get_sysvar_bool("sql_warnings", Var_qualifier::GLOBAL);
   EXPECT_FALSE(*bool_val);
   bool_val = cfg_handler_tmp.get_bool("sql_warnings");
-  EXPECT_FALSE(bool_val.is_null());
+  EXPECT_FALSE(!bool_val.has_value());
   EXPECT_FALSE(*bool_val);
 
   int_val = instance.get_sysvar_int("wait_timeout", Var_qualifier::GLOBAL);

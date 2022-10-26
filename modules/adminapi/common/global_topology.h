@@ -27,14 +27,15 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
+
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/health_enums.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -74,26 +75,25 @@ class Instance final {
 
  public:
   // queried static info
-  mysqlshdk::utils::nullable<uint32_t> server_id;
+  std::optional<uint32_t> server_id;
 
   // state info
   int connect_errno = 0;
   std::string connect_error;
 
-  mysqlshdk::null_bool gr_auto_rejoining;
-  mysqlshdk::utils::nullable<mysqlshdk::gr::Member_state> state;
-  mysqlshdk::null_bool in_majority;
-  mysqlshdk::null_bool group_primary;
+  std::optional<bool> gr_auto_rejoining;
+  std::optional<mysqlshdk::gr::Member_state> state;
+  std::optional<bool> in_majority;
+  std::optional<bool> group_primary;
 
-  mysqlshdk::null_bool super_read_only;
-  mysqlshdk::null_bool read_only;
-  mysqlshdk::null_bool offline_mode;
+  std::optional<bool> super_read_only;
+  std::optional<bool> read_only;
+  std::optional<bool> offline_mode;
   mysqlshdk::utils::Version version;
 
-  mysqlshdk::null_string executed_gtid_set;
+  std::optional<std::string> executed_gtid_set;
 
-  std::map<std::string, mysqlshdk::utils::nullable<std::string>>
-      parallel_appliers;
+  std::map<std::string, std::optional<std::string>> parallel_appliers;
 
   std::unique_ptr<Channel> master_channel;
 
@@ -104,14 +104,14 @@ class Instance final {
   Instance_status status() const;
 
   bool is_fenced() const {
-    return read_only.get_safe() || super_read_only.get_safe() ||
-           offline_mode.get_safe();
+    return read_only.value_or(false) || super_read_only.value_or(false) ||
+           offline_mode.value_or(false);
   }
 
  private:
   friend class Server;
 
-  Instance() {}
+  Instance() = default;
   Instance(Node *node, const Instance_metadata &info);
 };
 
@@ -136,8 +136,7 @@ class Node {
   bool primary_master = false;
   const Node *master_node_ptr = nullptr;
 
-  //
-  mysqlshdk::utils::nullable<size_t> errant_transaction_count;
+  std::optional<size_t> errant_transaction_count;
   std::string errant_transactions;
 
  public:

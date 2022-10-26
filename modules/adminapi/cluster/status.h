@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_STATUS_H_
 #define MODULES_ADMINAPI_CLUSTER_STATUS_H_
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -49,9 +50,7 @@ struct Instance_metadata_info {
 
 class Status : public Command_interface {
  public:
-  Status(const Cluster_impl &cluster,
-         const mysqlshdk::utils::nullable<uint64_t> &extended);
-
+  Status(const Cluster_impl &cluster, std::optional<uint64_t> extended);
   ~Status() override;
 
   /**
@@ -91,7 +90,7 @@ class Status : public Command_interface {
 
  private:
   const Cluster_impl &m_cluster;
-  mysqlshdk::utils::nullable<uint64_t> m_extended;
+  std::optional<uint64_t> m_extended;
 
   shcore::Value get_default_replicaset_status();
 
@@ -149,8 +148,8 @@ class Status : public Command_interface {
 
   void feed_member_info(shcore::Dictionary_t dict,
                         const mysqlshdk::gr::Member &member,
-                        const mysqlshdk::utils::nullable<bool> &offline_mode,
-                        const mysqlshdk::utils::nullable<bool> &super_read_only,
+                        std::optional<bool> offline_mode,
+                        std::optional<bool> super_read_only,
                         const std::vector<std::string> &fence_sysvars,
                         mysqlshdk::gr::Member_state self_state,
                         bool is_auto_rejoin_running);

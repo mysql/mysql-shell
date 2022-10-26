@@ -28,6 +28,7 @@
 #include <locale>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -41,7 +42,6 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/enumset.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
 
@@ -414,9 +414,8 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type);
 
-mysqlshdk::utils::nullable<Cluster_ssl_mode> resolve_ssl_mode(
-    const mysqlshdk::mysql::IInstance &instance,
-    const Cluster_ssl_mode &ssl_mode, bool *have_ssl);
+Cluster_ssl_mode resolve_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                                  Cluster_ssl_mode ssl_mode, bool *have_ssl);
 
 void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                                const mysqlshdk::mysql::IInstance &pinstance,
@@ -536,8 +535,8 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  * if it is already being used.
  */
 std::string resolve_gr_local_address(
-    const mysqlshdk::null_string &local_address,
-    const mysqlshdk::null_string &communication_stack,
+    const std::optional<std::string> &local_address,
+    const std::optional<std::string> &communication_stack,
     const std::string &report_host, int port, bool check_if_busy,
     bool quiet = false);
 

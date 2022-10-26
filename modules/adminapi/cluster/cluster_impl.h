@@ -473,8 +473,8 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void query_group_wide_option_values(
       mysqlshdk::mysql::IInstance *target_instance,
-      mysqlshdk::utils::nullable<std::string> *out_gr_consistency,
-      mysqlshdk::utils::nullable<int64_t> *out_gr_member_expel_timeout) const;
+      std::optional<std::string> *out_gr_consistency,
+      std::optional<int64_t> *out_gr_member_expel_timeout) const;
 
   /**
    * Update the cluster members according to the removed instance.

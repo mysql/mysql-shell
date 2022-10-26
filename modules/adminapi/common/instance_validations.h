@@ -50,7 +50,7 @@ void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
 std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
     mysqlshdk::config::Config *const config, Cluster_type cluster_type,
-    const mysqlshdk::utils::nullable<bool> &can_persist, bool *restart_needed,
+    std::optional<bool> can_persist, bool *restart_needed,
     bool *mycnf_change_needed, bool *sysvar_change_needed,
     shcore::Value *ret_val = nullptr);
 

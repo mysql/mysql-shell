@@ -56,7 +56,7 @@ Check_instance::Check_instance(
       m_silent(silent),
       m_skip_check_tables_pk{skip_check_tables_pk} {}
 
-Check_instance::~Check_instance() {}
+Check_instance::~Check_instance() = default;
 
 void Check_instance::check_instance_address() {
   // Sanity check for the instance address
@@ -87,24 +87,23 @@ bool Check_instance::check_schema_compatibility() {
 }
 
 void Check_instance::check_clone_plugin_status() {
-  if (m_target_instance->get_version() >=
-      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
-    auto console = mysqlsh::current_console();
+  if (m_target_instance->get_version() <
+      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
+    return;
 
-    log_debug("Checking if instance '%s' has the clone plugin installed",
-              m_target_instance->descr().c_str());
+  log_debug("Checking if instance '%s' has the clone plugin installed",
+            m_target_instance->descr().c_str());
 
-    mysqlshdk::utils::nullable<std::string> plugin_state =
-        m_target_instance->get_plugin_status(
-            mysqlshdk::mysql::k_mysql_clone_plugin_name);
+  std::optional<std::string> plugin_state =
+      m_target_instance->get_plugin_status(
+          mysqlshdk::mysql::k_mysql_clone_plugin_name);
 
-    // Check if the plugin_state is "DISABLED"
-    if (!plugin_state.is_null() && (*plugin_state).compare("DISABLED") == 0) {
-      console->print_warning(
-          "The instance '" + m_target_instance->descr() +
-          "' has the Clone plugin disabled. For optimal InnoDB cluster usage, "
-          "consider enabling it.");
-    }
+  // Check if the plugin_state is "DISABLED"
+  if (plugin_state.has_value() && (plugin_state == "DISABLED")) {
+    mysqlsh::current_console()->print_warning(
+        "The instance '" + m_target_instance->descr() +
+        "' has the Clone plugin disabled. For optimal InnoDB cluster usage, "
+        "consider enabling it.");
   }
 }
 

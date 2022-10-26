@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_SET_OPTION_H_
 #define MODULES_ADMINAPI_CLUSTER_SET_OPTION_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -75,7 +76,7 @@ class Set_option : public Command_interface {
    *
    * NOTE: Not currently used.
    */
-  void rollback() override;
+  void rollback() override {}
 
   /**
    * Finalize the command execution.
@@ -86,9 +87,9 @@ class Set_option : public Command_interface {
   Cluster_impl *m_cluster = nullptr;
   // Configuration object (to read and set instance configurations).
   std::string m_option;
-  mysqlshdk::utils::nullable<std::string> m_value_str;
-  mysqlshdk::utils::nullable<int64_t> m_value_int;
-  mysqlshdk::utils::nullable<bool> m_value_bool;
+  std::optional<std::string> m_value_str;
+  std::optional<int64_t> m_value_int;
+  std::optional<bool> m_value_bool;
   std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_cluster_instances;
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;

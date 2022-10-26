@@ -26,6 +26,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -100,7 +101,7 @@ class Configure_instance : public Command_interface {
   bool m_create_cluster_admin = true;
   bool m_install_lock_service_udfs = false;
 
-  mysqlshdk::utils::nullable<bool> m_can_set_persist;
+  std::optional<bool> m_can_set_persist;
   bool m_can_restart = false;
 
   bool m_needs_configuration_update = false;  //< config changes is general

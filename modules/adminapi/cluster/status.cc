@@ -107,8 +107,7 @@ inline bool set_ts(shcore::Dictionary_t dict, const std::string &prop,
 
 }  // namespace
 
-Status::Status(const Cluster_impl &cluster,
-               const mysqlshdk::utils::nullable<uint64_t> &extended)
+Status::Status(const Cluster_impl &cluster, std::optional<uint64_t> extended)
     : m_cluster(cluster), m_extended(extended) {}
 
 Status::~Status() = default;
@@ -669,15 +668,16 @@ void Status::feed_metadata_info(shcore::Dictionary_t dict,
   (*dict)["role"] = shcore::Value("HA");
 }
 
-void Status::feed_member_info(
-    shcore::Dictionary_t dict, const mysqlshdk::gr::Member &member,
-    const mysqlshdk::utils::nullable<bool> &offline_mode,
-    const mysqlshdk::utils::nullable<bool> &super_read_only,
-    const std::vector<std::string> &fence_sysvars,
-    mysqlshdk::gr::Member_state self_state, bool is_auto_rejoin_running) {
+void Status::feed_member_info(shcore::Dictionary_t dict,
+                              const mysqlshdk::gr::Member &member,
+                              std::optional<bool> offline_mode,
+                              std::optional<bool> super_read_only,
+                              const std::vector<std::string> &fence_sysvars,
+                              mysqlshdk::gr::Member_state self_state,
+                              bool is_auto_rejoin_running) {
   (*dict)["readReplicas"] = shcore::Value(shcore::make_dict());
 
-  if (!m_extended.is_null() && *m_extended >= 1) {
+  if (m_extended.value_or(0) >= 1) {
     // Set fenceSysVars array.
     shcore::Array_t fence_array = shcore::make_array();
     for (const auto &sysvar : fence_sysvars) {
@@ -692,8 +692,7 @@ void Status::feed_member_info(
   // memberRole instance Role as reported by GR (Primary/Secondary)
   (*dict)["memberRole"] = shcore::Value(mysqlshdk::gr::to_string(member.role));
 
-  if ((!m_extended.is_null() && *m_extended >= 1) ||
-      member.state != self_state) {
+  if ((m_extended.value_or(0) >= 1) || member.state != self_state) {
     // memberState is from the point of view of the member itself
     (*dict)["memberState"] =
         shcore::Value(mysqlshdk::gr::to_string(self_state));
@@ -703,7 +702,7 @@ void Status::feed_member_info(
   (*dict)["status"] = shcore::Value(mysqlshdk::gr::to_string(member.state));
 
   // Set the instance mode (read-only or read-write).
-  if (offline_mode.is_null() || super_read_only.is_null()) {
+  if (!offline_mode.has_value() || !super_read_only.has_value()) {
     // offline_mode or super_read_only is null if it could not be obtained from
     // the instance.
     (*dict)["mode"] = shcore::Value("n/a");
@@ -861,7 +860,7 @@ void check_parallel_appliers(
       parallel_applier_options.get_required_values(instance_version);
 
   for (const auto &setting : required_values) {
-    std::string current_value = current_values[std::get<0>(setting)].get_safe();
+    auto current_value = current_values[std::get<0>(setting)].value_or("");
 
     if (!current_value.empty() && current_value != std::get<1>(setting)) {
       issues->push_back(shcore::Value(
@@ -941,7 +940,7 @@ void check_transaction_size_limit(shcore::Array_t issues, Instance *instance,
   // Check if the instance's value for group_replication_transaction_size_limit
   // matches the Cluster's one
   int64_t instance_transaction_size_limit =
-      instance->get_sysvar_int(kGrTransactionSizeLimit).get_safe();
+      instance->get_sysvar_int(kGrTransactionSizeLimit).value_or(0);
 
   if (cluster_transaction_size_limit != -1 &&
       instance_transaction_size_limit != cluster_transaction_size_limit) {
@@ -957,8 +956,8 @@ shcore::Array_t instance_diagnostics(
     const Instance_metadata_info &instance_md,
     const mysqlshdk::mysql::Replication_channel &recovery_channel,
     const mysqlshdk::mysql::Replication_channel &applier_channel,
-    const mysqlshdk::utils::nullable<bool> &super_read_only,
-    const mysqlshdk::gr::Member &minfo, mysqlshdk::gr::Member_state self_state,
+    std::optional<bool> super_read_only, const mysqlshdk::gr::Member &minfo,
+    mysqlshdk::gr::Member_state self_state,
     const Parallel_applier_options &parallel_applier_options,
     int64_t cluster_transaction_size_limit) {
   shcore::Array_t issues = shcore::make_array();
@@ -978,14 +977,14 @@ shcore::Array_t instance_diagnostics(
       !(minfo.role == mysqlshdk::gr::Member_role::PRIMARY &&
         cluster->is_primary_cluster()) &&
       self_state != mysqlshdk::gr::Member_state::RECOVERING &&
-      !super_read_only.is_null() && !*super_read_only) {
+      super_read_only.has_value() && !*super_read_only) {
     issues->push_back(shcore::Value(
         "WARNING: Instance is NOT the global PRIMARY but super_read_only "
         "option is OFF. Errant transactions and inconsistencies may be "
         "accidentally introduced."));
   } else if (minfo.role == mysqlshdk::gr::Member_role::SECONDARY &&
              self_state != mysqlshdk::gr::Member_state::RECOVERING &&
-             !super_read_only.is_null() && !*super_read_only) {
+             super_read_only.has_value() && !*super_read_only) {
     issues->push_back(
         shcore::Value("WARNING: Instance is NOT a PRIMARY but super_read_only "
                       "option is OFF."));
@@ -1325,8 +1324,8 @@ shcore::Dictionary_t Status::get_topology(
 
     auto &instance = m_member_sessions[inst.md.endpoint];
 
-    mysqlshdk::utils::nullable<bool> super_read_only;
-    mysqlshdk::utils::nullable<bool> offline_mode;
+    std::optional<bool> super_read_only;
+    std::optional<bool> offline_mode;
     std::vector<std::string> fence_sysvars;
     bool auto_rejoin = false;
 
@@ -1352,13 +1351,13 @@ shcore::Dictionary_t Status::get_topology(
 
       minfo.version = instance->get_version().get_base();
 
-      if (!m_extended.is_null()) {
+      if (m_extended.has_value()) {
         if (*m_extended >= 1) {
           fence_sysvars = instance->get_fence_sysvars();
 
           auto workers = parallel_applier_options.replica_parallel_workers;
 
-          if (parallel_applier_options.replica_parallel_workers.get_safe() >
+          if (parallel_applier_options.replica_parallel_workers.value_or(0) >
               0) {
             (*member)["applierWorkerThreads"] = shcore::Value(*workers);
           }
@@ -1450,7 +1449,7 @@ shcore::Dictionary_t Status::get_topology(
           super_read_only, minfo, self_state, parallel_applier_options,
           *m_cluster_transaction_size_limit);
 
-      if (offline_mode.get_safe(false))
+      if (offline_mode.value_or(false))
         issues->push_back(
             shcore::Value("WARNING: Instance has offline_mode enabled."));
 
@@ -1489,7 +1488,7 @@ shcore::Dictionary_t Status::get_topology(
       }
     }
 
-    if ((!m_extended.is_null() && *m_extended >= 2) &&
+    if ((m_extended.value_or(0) >= 2) &&
         member_stats.find(inst.md.uuid) != member_stats.end()) {
       shcore::Dictionary_t mdict = member;
 
@@ -1548,15 +1547,14 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  if ((!m_extended.is_null() && *m_extended >= 1)) {
+  if (m_extended.value_or(0) >= 1) {
     (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
 
     if (group_instance &&
         group_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 26)) {
-      (*ret)["groupViewChangeUuid"] = shcore::Value(
-          group_instance
-              ->get_sysvar_string("group_replication_view_change_uuid")
-              .get_safe());
+      (*ret)["groupViewChangeUuid"] =
+          shcore::Value(group_instance->get_sysvar_string(
+              "group_replication_view_change_uuid", ""));
     }
 
     (*ret)["GRProtocolVersion"] =
@@ -1578,13 +1576,9 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  auto ssl_mode =
-      group_instance
-          ? group_instance
-                ->get_sysvar_string("group_replication_ssl_mode",
-                                    mysqlshdk::mysql::Var_qualifier::GLOBAL)
-                .get_safe()
-          : "";
+  auto ssl_mode = group_instance ? group_instance->get_sysvar_string(
+                                       "group_replication_ssl_mode", "")
+                                 : "";
   if (!ssl_mode.empty()) {
     (*ret)["ssl"] = shcore::Value(ssl_mode);
   }
@@ -1601,7 +1595,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     tmp = check_group_status(*group_instance, member_info, has_quorum);
     (*ret)["statusText"] = shcore::Value(tmp->get_string("statusText"));
     (*ret)["status"] = shcore::Value(tmp->get_string("status"));
-    if (!m_extended.is_null() && *m_extended >= 1)
+    if (m_extended.value_or(0) >= 1)
       (*ret)["groupViewId"] = shcore::Value(view_id);
 
     std::shared_ptr<Instance> primary_instance;
@@ -1649,7 +1643,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
       m_cluster_transaction_size_limit =
           m_cluster.get_cluster_server()
               ->get_sysvar_int(kGrTransactionSizeLimit)
-              .get_safe();
+              .value_or(0);
     }
 
     if (!is_replica_cluster) {
@@ -1800,7 +1794,7 @@ shcore::Value Status::execute() {
 
   if (m_cluster.get_cluster_server()) {
     // Gets the metadata version
-    if (!m_extended.is_null() && *m_extended >= 1) {
+    if (m_extended.value_or(0) >= 1) {
       auto version = mysqlsh::dba::metadata::installed_version(
           m_cluster.get_cluster_server());
       (*dict)["metadataVersion"] = shcore::Value(version.get_base());

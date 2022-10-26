@@ -186,7 +186,7 @@ void async_update_replica_credentials(
   if (!dry_run) {
     change_replication_credentials(
         *target, rpl_options.repl_credentials->user,
-        rpl_options.repl_credentials->password.get_safe(), channel_name);
+        rpl_options.repl_credentials->password.value_or(""), channel_name);
   }
 
   if (channel_stopped == Stop_channel_result::STOPPED)

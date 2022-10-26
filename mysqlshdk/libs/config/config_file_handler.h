@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file.h"
 
@@ -50,9 +51,8 @@ class Config_file_handler : public IConfig_handler {
    * changes will be saved by the apply method. This path can be the same
    * as the input_config_path.
    */
-  Config_file_handler(const std::string &server_uuid,
-                      const std::string &input_config_path,
-                      const std::string &output_cnf_path);
+  Config_file_handler(std::string server_uuid, std::string input_config_path,
+                      std::string output_cnf_path);
 
   /**
    * Constructor
@@ -65,8 +65,7 @@ class Config_file_handler : public IConfig_handler {
    * @param output_cnf_path option path to the option file where any
    * changes will be saved by the apply method.
    */
-  Config_file_handler(const std::string &server_uuid,
-                      const std::string &output_cnf_path);
+  Config_file_handler(std::string server_uuid, std::string output_cnf_path);
 
   /**
    * Get the boolean value for the specified option in the mysqld group.
@@ -76,7 +75,7 @@ class Config_file_handler : public IConfig_handler {
    * @throw std::out_of_range if the specified option does not exist in the
    * option file in the mysqld group.
    */
-  utils::nullable<bool> get_bool(const std::string &name) const override;
+  std::optional<bool> get_bool(const std::string &name) const override;
   /**
    * Get the string value for the specified option in the mysqld group.
    *
@@ -85,8 +84,7 @@ class Config_file_handler : public IConfig_handler {
    * @throw std::out_of_range if the specified option does not exist in the
    * option file in the mysqld group.
    */
-  utils::nullable<std::string> get_string(
-      const std::string &name) const override;
+  std::optional<std::string> get_string(const std::string &name) const override;
   /**
    * Get the integer value for the specified option in the mysqld group.
    *
@@ -95,7 +93,7 @@ class Config_file_handler : public IConfig_handler {
    * @throw std::out_of_range if the specified option does not exist in the
    * option file in the mysqld group.
    */
-  utils::nullable<int64_t> get_int(const std::string &name) const override;
+  std::optional<int64_t> get_int(const std::string &name) const override;
 
   /**
    * Set the specified option with the specified value in the mysqld group.
@@ -105,7 +103,7 @@ class Config_file_handler : public IConfig_handler {
    * @param context string with the configuration context to include in error
    *                messages if defined.
    */
-  void set(const std::string &name, const utils::nullable<bool> &value,
+  void set(const std::string &name, std::optional<bool> value,
            const std::string &context = "") override;
 
   /**
@@ -116,7 +114,7 @@ class Config_file_handler : public IConfig_handler {
    * @param context string with the configuration context to include in error
    *                messages if defined.
    */
-  void set(const std::string &name, const utils::nullable<int64_t> &value,
+  void set(const std::string &name, std::optional<int64_t> value,
            const std::string &context = "") override;
 
   /**
@@ -127,7 +125,7 @@ class Config_file_handler : public IConfig_handler {
    * @param context string with the configuration context to include in error
    *                messages if defined.
    */
-  void set(const std::string &name, const utils::nullable<std::string> &value,
+  void set(const std::string &name, const std::optional<std::string> &value,
            const std::string &context = "") override;
   /**
    * Effectively apply all the configuration file changes.
@@ -167,7 +165,7 @@ class Config_file_handler : public IConfig_handler {
    * @param name string with the name of the configuration to set.
    * @return nullable boolean with the value for the specified option.
    */
-  void set_now(const std::string &name, const utils::nullable<bool> &value);
+  void set_now(const std::string &name, std::optional<bool> value);
 
   /**
    * Set the specified option with the specified value immediately on the
@@ -176,7 +174,7 @@ class Config_file_handler : public IConfig_handler {
    * @param name string with the name of the configuration to set.
    * @return nullable integer with the value for the specified option.
    */
-  void set_now(const std::string &name, const utils::nullable<int64_t> &value);
+  void set_now(const std::string &name, std::optional<int64_t> value);
 
   /**
    * Set the specified option with the specified value immediately on the
@@ -186,10 +184,10 @@ class Config_file_handler : public IConfig_handler {
    * @return nullable string with the value for the specified option.
    */
   void set_now(const std::string &name,
-               const utils::nullable<std::string> &value);
+               const std::optional<std::string> &value);
 
   // setter for the m_output_cnf_path
-  void set_output_config_path(const std::string &m_output_config_path);
+  void set_output_config_path(std::string output_config_path);
 
  private:
   std::string m_input_config_path;

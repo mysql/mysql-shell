@@ -103,8 +103,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
     auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("REQUIRED", to_string(resolved_member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -120,8 +119,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
     auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("REQUIRED", to_string(resolved_member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -137,8 +135,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
     auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("VERIFY_CA", to_string(resolved_member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -154,8 +151,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
     auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("VERIFY_IDENTITY",
                  to_string(resolved_member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
@@ -174,8 +170,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
     auto resolved_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("REQUIRED", to_string(resolved_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -266,8 +261,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
     auto resolved_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("DISABLED", to_string(resolved_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -282,8 +276,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::DISABLED;
     auto resolved_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr)
-            .get_safe();
+        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
     EXPECT_STREQ("DISABLED", to_string(resolved_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -391,9 +384,9 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // executed or not, we simply emplace the test in a try..catch block ensuring
   // the exception caught when running in 5.7 is about ssl_ca being read-only.
   try {
-    auto current_ssl_ca = instance->get_sysvar_string("ssl_ca").get_safe();
+    auto current_ssl_ca = instance->get_sysvar_string("ssl_ca").value_or("");
     auto current_ssl_capath =
-        instance->get_sysvar_string("ssl_capath").get_safe();
+        instance->get_sysvar_string("ssl_capath").value_or("");
 
     instance->set_sysvar_default("ssl_ca");
     instance->set_sysvar_default("ssl_capath");
@@ -1430,11 +1423,10 @@ TEST(mod_dba_common, validate_consistency_supported) {
   Version version(8, 0, 14);
   int canonical_port = 3306;
 
-  auto empty_fail_cons = mysqlshdk::utils::nullable<std::string>("  ");
-  auto null_fail_cons = mysqlshdk::utils::nullable<std::string>();
-  auto valid_fail_cons = mysqlshdk::utils::nullable<std::string>("1");
+  std::optional<std::string> empty_fail_cons{"  "};
+  std::optional<std::string> valid_fail_cons{"1"};
 
-  options.consistency = null_fail_cons;
+  options.consistency = std::nullopt;
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
   options.check_option_values(version, canonical_port);
@@ -1492,13 +1484,12 @@ TEST(mod_dba_common, validate_expel_timeout_supported) {
   Version version(8, 0, 13);
   int canonical_port = 3306;
 
-  auto null_timeout = mysqlshdk::utils::nullable<int64_t>();
-  auto valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3600);
-  auto maybe_valid_timeout = mysqlshdk::utils::nullable<std::int64_t>(3601);
+  std::optional<std::int64_t> valid_timeout{3600};
+  std::optional<std::int64_t> maybe_valid_timeout{3601};
 
   // if a null value was provided, it is as if the option was not provided,
   // so no error should be thrown
-  options.expel_timeout = null_timeout;
+  options.expel_timeout = std::nullopt;
   options.check_option_values(version, canonical_port);
 
   // if a value non in the allowed range value was provided, an error should be
@@ -1742,16 +1733,16 @@ TEST(mod_dba_common, is_valid_identifier) {
 }
 
 TEST_F(Dba_common_test, resolve_gr_local_address) {
-  mysqlshdk::utils::nullable<std::string> local_address;
+  std::optional<std::string> local_address;
   std::string raw_report_host = "127.0.0.1";
-  mysqlshdk::utils::nullable<std::string> communication_stack;
+  std::optional<std::string> communication_stack;
   int port;
 
   // Tests for empty localAddress
 
   // Valid port, local_address null
   {
-    local_address = mysqlshdk::utils::nullable<std::string>();
+    local_address = std::nullopt;
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
         local_address, communication_stack, raw_report_host, port, true));
@@ -1767,7 +1758,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
   // Invalid port, local_address null
   {
-    local_address.reset();
+    local_address = std::nullopt;
     port = 13040;
 
     EXPECT_THROW_LIKE(

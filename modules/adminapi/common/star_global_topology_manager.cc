@@ -296,7 +296,7 @@ void Star_global_topology_manager::validate_adopt_cluster(
       }
 
       // gtid check
-      if (server->errant_transaction_count.is_null()) {
+      if (!server->errant_transaction_count.has_value()) {
         console->print_error(server->label +
                              " could not be checked for errant transactions.");
         throw shcore::Exception(

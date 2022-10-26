@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -97,7 +97,7 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
 
 void Clone_options::check_option_values(
     const mysqlshdk::utils::Version &version, const Cluster_impl *cluster) {
-  if (!disable_clone.is_null()) {
+  if (disable_clone.has_value()) {
     // Validate if the disableClone option is supported on the target
     validate_clone_supported(version, kDisableClone, target);
   } else if (recovery_method == Member_recovery_method::CLONE) {

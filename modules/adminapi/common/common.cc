@@ -94,45 +94,32 @@ void validate_gr_session(
 }  // namespace
 
 std::string to_string(Cluster_ssl_mode ssl_mode) {
-  std::string ret_val;
-
   switch (ssl_mode) {
     case Cluster_ssl_mode::AUTO:
-      ret_val = kClusterSSLModeAuto;
-      break;
+      return kClusterSSLModeAuto;
     case Cluster_ssl_mode::DISABLED:
-      ret_val = kClusterSSLModeDisabled;
-      break;
+      return kClusterSSLModeDisabled;
     case Cluster_ssl_mode::REQUIRED:
-      ret_val = kClusterSSLModeRequired;
-      break;
+      return kClusterSSLModeRequired;
     case Cluster_ssl_mode::VERIFY_CA:
-      ret_val = kClusterSSLModeVerifyCA;
-      break;
+      return kClusterSSLModeVerifyCA;
     case Cluster_ssl_mode::VERIFY_IDENTITY:
-      ret_val = kClusterSSLModeVerifyIdentity;
-      break;
+      return kClusterSSLModeVerifyIdentity;
     case Cluster_ssl_mode::NONE:
-      ret_val = "NONE";
-      break;
+      return "NONE";
   }
-  return ret_val;
+  return {};
 }
 
 Cluster_ssl_mode to_cluster_ssl_mode(const std::string &mode) {
-  if (shcore::str_caseeq("AUTO", mode)) {
-    return Cluster_ssl_mode::AUTO;
-  } else if (shcore::str_caseeq("DISABLED", mode)) {
-    return Cluster_ssl_mode::DISABLED;
-  } else if (shcore::str_caseeq("REQUIRED", mode)) {
-    return Cluster_ssl_mode::REQUIRED;
-  } else if (shcore::str_caseeq("VERIFY_CA", mode)) {
-    return Cluster_ssl_mode::VERIFY_CA;
-  } else if (shcore::str_caseeq("VERIFY_IDENTITY", mode)) {
+  if (shcore::str_caseeq("AUTO", mode)) return Cluster_ssl_mode::AUTO;
+  if (shcore::str_caseeq("DISABLED", mode)) return Cluster_ssl_mode::DISABLED;
+  if (shcore::str_caseeq("REQUIRED", mode)) return Cluster_ssl_mode::REQUIRED;
+  if (shcore::str_caseeq("VERIFY_CA", mode)) return Cluster_ssl_mode::VERIFY_CA;
+  if (shcore::str_caseeq("VERIFY_IDENTITY", mode))
     return Cluster_ssl_mode::VERIFY_IDENTITY;
-  } else {
-    throw std::runtime_error("Unsupported Cluster SSL-mode: " + mode);
-  }
+
+  throw std::runtime_error("Unsupported Cluster SSL-mode: " + mode);
 }
 
 std::string get_mysqlprovision_error_string(
@@ -273,37 +260,32 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
  *   - If SSL mode is not supported and member_ssl_mode is REQUIRED, VERIFY_CA
  *     or VERIFY_IDENTITY
  */
-mysqlshdk::utils::nullable<Cluster_ssl_mode> resolve_ssl_mode(
-    const mysqlshdk::mysql::IInstance &instance,
-    const Cluster_ssl_mode &ssl_mode, bool *have_ssl) {
-  mysqlshdk::utils::nullable<Cluster_ssl_mode> resolved_ssl_mode;
-  std::string have_ssl_str = *instance.get_sysvar_string("have_ssl");
+Cluster_ssl_mode resolve_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                                  Cluster_ssl_mode ssl_mode, bool *have_ssl) {
+  auto have_ssl_str = *instance.get_sysvar_string("have_ssl");
 
   // The instance supports SSL
   if (shcore::str_caseeq(have_ssl_str, "YES")) {
     if (have_ssl) *have_ssl = true;
 
+    // sslMode when set to AUTO and SSL is supported, then REQUIRED is used
     if (ssl_mode == Cluster_ssl_mode::AUTO ||
-        ssl_mode == Cluster_ssl_mode::NONE) {
-      // sslMode when set to AUTO and SSL is supported, then REQUIRED is
-      // used
-      resolved_ssl_mode = Cluster_ssl_mode::REQUIRED;
-    } else {
-      resolved_ssl_mode = ssl_mode;
-    }
-  } else {  // The instance does not support SSL
-    if (have_ssl) *have_ssl = false;
-    // sslMode is either not defined, DISABLED or AUTO
-    if (ssl_mode != Cluster_ssl_mode::REQUIRED &&
-        ssl_mode != Cluster_ssl_mode::VERIFY_CA &&
-        ssl_mode != Cluster_ssl_mode::VERIFY_IDENTITY) {
-      resolved_ssl_mode = Cluster_ssl_mode::DISABLED;
-    } else {
-      resolved_ssl_mode = ssl_mode;
-    }
+        ssl_mode == Cluster_ssl_mode::NONE)
+      return Cluster_ssl_mode::REQUIRED;
+
+    return ssl_mode;
   }
 
-  return resolved_ssl_mode;
+  // The instance does not support SSL
+  if (have_ssl) *have_ssl = false;
+
+  // sslMode is either not defined, DISABLED or AUTO
+  if (ssl_mode != Cluster_ssl_mode::REQUIRED &&
+      ssl_mode != Cluster_ssl_mode::VERIFY_CA &&
+      ssl_mode != Cluster_ssl_mode::VERIFY_IDENTITY)
+    return Cluster_ssl_mode::DISABLED;
+
+  return ssl_mode;
 }
 
 /**
@@ -338,7 +320,7 @@ void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
 
   // Get how memberSslMode was configured on the cluster
   Cluster_ssl_mode gr_ssl_mode = to_cluster_ssl_mode(
-      pinstance.get_sysvar_string("group_replication_ssl_mode").get_safe());
+      pinstance.get_sysvar_string("group_replication_ssl_mode").value_or(""));
 
   // The cluster REQUIRES SSL
   if (gr_ssl_mode == Cluster_ssl_mode::REQUIRED ||
@@ -395,9 +377,7 @@ void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
 
     // If the instance session requires SSL connections, then it can's
     // Join a cluster with SSL disabled
-    bool secure_transport_required =
-        *instance.get_sysvar_bool("require_secure_transport");
-    if (secure_transport_required) {
+    if (instance.get_sysvar_bool("require_secure_transport", false)) {
       throw shcore::Exception::runtime_error(
           "The instance '" + instance.descr() +
           "' is configured to require a secure transport but the cluster has "
@@ -739,7 +719,7 @@ bool validate_cluster_group_name(const mysqlshdk::mysql::IInstance &instance,
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                               mysqlshdk::null_bool clear_read_only,
                               bool interactive) {
-  if (auto super_read_only = *instance.get_sysvar_bool("super_read_only");
+  if (auto super_read_only = instance.get_sysvar_bool("super_read_only", false);
       !super_read_only)
     return false;
 
@@ -1048,64 +1028,56 @@ int prompt_menu(const std::vector<std::string> &options, int defopt) {
  */
 bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                             bool throw_on_error) {
+  // Get the status of super_read_only in order to verify if we need to
+  // prompt the user to disable it
+  if (auto super_read_only = instance.get_sysvar_bool("super_read_only", false);
+      !super_read_only) {
+    return true;
+  }
+
   auto options_session = instance.get_connection_options();
   auto active_session_address =
       options_session.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
-  // Get the status of super_read_only in order to verify if we need to
-  // prompt the user to disable it
-  mysqlshdk::null_bool super_read_only =
-      instance.get_sysvar_bool("super_read_only");
+  auto console = mysqlsh::current_console();
+  console->print_para(
+      "The MySQL instance at '" + active_session_address +
+      "' currently has the super_read_only system variable set to "
+      "protect it from inadvertent updates from applications.\n"
+      "You must first unset it to be able to perform any changes "
+      "to this instance.\n"
+      "For more information see: https://dev.mysql.com/doc/refman/"
+      "en/server-system-variables.html#sysvar_super_read_only.");
 
-  // If super_read_only is not null and enabled
-  if (*super_read_only) {
-    auto console = mysqlsh::current_console();
-    console->print_para(
-        "The MySQL instance at '" + active_session_address +
-        "' currently has the super_read_only system variable set to "
-        "protect it from inadvertent updates from applications.\n"
-        "You must first unset it to be able to perform any changes "
-        "to this instance.\n"
-        "For more information see: https://dev.mysql.com/doc/refman/"
-        "en/server-system-variables.html#sysvar_super_read_only.");
+  // Get the list of open session to the instance
+  std::vector<std::pair<std::string, int>> open_sessions;
+  open_sessions = mysqlsh::dba::get_open_sessions(instance);
 
-    // Get the list of open session to the instance
-    std::vector<std::pair<std::string, int>> open_sessions;
-    open_sessions = mysqlsh::dba::get_open_sessions(instance);
+  if (!open_sessions.empty()) {
+    console->print_note("There are open sessions to '" +
+                        active_session_address + "'.");
+    console->print_info(
+        "You may want to kill these sessions to prevent them from "
+        "performing unexpected updates: \n");
 
-    if (!open_sessions.empty()) {
-      console->print_note("There are open sessions to '" +
-                          active_session_address + "'.");
-      console->print_info(
-          "You may want to kill these sessions to prevent them from "
-          "performing unexpected updates: \n");
-
-      for (auto &value : open_sessions) {
-        std::string account = value.first;
-        int num_open_sessions = value.second;
-
-        console->print_info("" + std::to_string(num_open_sessions) +
-                            " open session(s) of "
-                            "'" +
-                            account + "'. \n");
-      }
-    }
-
-    if (console->confirm("Do you want to disable super_read_only and continue?",
-                         Prompt_answer::NO) == Prompt_answer::NO) {
-      console->print_info();
-
-      if (throw_on_error)
-        throw shcore::cancelled("Cancelled");
-      else
-        console->print_info("Cancelled");
-
-      return false;
-    } else {
-      return true;
+    for (const auto &[account, num_open_sessions] : open_sessions) {
+      console->print_info(shcore::str_format("%d open session(s) of '%s'. \n",
+                                             num_open_sessions,
+                                             account.c_str()));
     }
   }
-  return true;
+
+  if (console->confirm("Do you want to disable super_read_only and continue?",
+                       Prompt_answer::NO) != Prompt_answer::NO) {
+    return true;
+  }
+
+  console->print_info();
+
+  if (throw_on_error) throw shcore::cancelled("Cancelled");
+  console->print_info("Cancelled");
+
+  return false;
 }
 
 /*
@@ -1345,19 +1317,19 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
   auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
   // Get the capabilities to use set persist by the server.
-  mysqlshdk::null_bool can_set_persist = instance->is_set_persist_supported();
+  std::optional<bool> can_set_persist = instance->is_set_persist_supported();
 
   // Add server configuration handler depending on SET PERSIST support.
   cfg->add_handler(
       srv_cfg_handler_name,
       std::unique_ptr<mysqlshdk::config::IConfig_handler>(
           std::make_unique<mysqlshdk::config::Config_server_handler>(
-              instance, (!can_set_persist.is_null() && *can_set_persist)
+              instance, can_set_persist.value_or(false)
                             ? mysqlshdk::mysql::Var_qualifier::PERSIST
                             : mysqlshdk::mysql::Var_qualifier::GLOBAL)));
 
   if (!silent) {
-    if (can_set_persist.is_null()) {
+    if (!can_set_persist.has_value()) {
       auto console = mysqlsh::current_console();
 
       std::string warn_msg =
@@ -1418,13 +1390,13 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 }
 
 std::string resolve_gr_local_address(
-    const mysqlshdk::null_string &local_address,
-    const mysqlshdk::null_string &communication_stack,
+    const std::optional<std::string> &local_address,
+    const std::optional<std::string> &communication_stack,
     const std::string &raw_report_host, int port, bool check_if_busy,
     bool quiet) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
   bool generated = false;
-  bool comm_stack_mysql = shcore::str_caseeq(communication_stack.get_safe(),
+  bool comm_stack_mysql = shcore::str_caseeq(communication_stack.value_or(""),
                                              kCommunicationStackMySQL);
 
   // if report host is an IPv6 address, surround it with []
@@ -1439,7 +1411,7 @@ std::string resolve_gr_local_address(
   std::string local_host;
   int local_port;
 
-  if (local_address.is_null() || local_address->empty()) {
+  if (!local_address.has_value() || local_address->empty()) {
     // If communicationStack is set to 'mysql' local_address must default to the
     // network address on which MySQL is listening to: report_host:port
     if (comm_stack_mysql) {

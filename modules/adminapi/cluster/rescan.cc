@@ -661,10 +661,8 @@ void Rescan::ensure_view_change_uuid_set() {
   // support it
   if (m_cluster->get_lowest_instance_version() >= k_min_cs_version) {
     // Check if group_replication_view_change_uuid is already set on the cluster
-    view_change_uuid =
-        cluster_instance
-            ->get_sysvar_string("group_replication_view_change_uuid")
-            .get_safe();
+    view_change_uuid = cluster_instance->get_sysvar_string(
+        "group_replication_view_change_uuid", "");
 
     // If not set (AUTOMATIC), generate a new value and set it on all members
     if (view_change_uuid == "AUTOMATIC") {
@@ -672,7 +670,7 @@ void Rescan::ensure_view_change_uuid_set() {
       std::string view_change_uuid_persisted =
           cluster_instance
               ->get_persisted_value("group_replication_view_change_uuid")
-              .get_safe();
+              .value_or("");
 
       if (!view_change_uuid_persisted.empty() &&
           view_change_uuid_persisted != view_change_uuid) {
@@ -721,10 +719,8 @@ void Rescan::ensure_view_change_uuid_set_stored_metadata(
     if (view_change_uuid.empty()) {
       m_cluster->get_metadata_storage()->update_cluster_attribute(
           m_cluster->get_id(), "group_replication_view_change_uuid",
-          shcore::Value(
-              m_cluster->get_cluster_server()
-                  ->get_sysvar_string("group_replication_view_change_uuid")
-                  .get_safe()));
+          shcore::Value(m_cluster->get_cluster_server()->get_sysvar_string(
+              "group_replication_view_change_uuid", "")));
     } else {
       m_cluster->get_metadata_storage()->update_cluster_attribute(
           m_cluster->get_id(), "group_replication_view_change_uuid",
@@ -749,7 +745,7 @@ void Rescan::ensure_transaction_size_limit_stored_metadata() {
         m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
         shcore::Value(m_cluster->get_cluster_server()
                           ->get_sysvar_int(kGrTransactionSizeLimit)
-                          .get_safe()));
+                          .value_or(0)));
   }
 }
 
@@ -777,7 +773,7 @@ void Rescan::ensure_transaction_size_limit_consistency() {
             info.second.state != mysqlshdk::gr::Member_state::UNREACHABLE) {
           // Get the instance's value for transaction_size_limit
           int64_t instance_transaction_size_limit =
-              instance->get_sysvar_int(kGrTransactionSizeLimit).get_safe();
+              instance->get_sysvar_int(kGrTransactionSizeLimit).value_or(0);
 
           if (instance_transaction_size_limit !=
               cluster_transaction_size_limit) {
@@ -799,8 +795,7 @@ void Rescan::ensure_transaction_size_limit_consistency() {
                 instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
             cfg->set(kGrTransactionSizeLimit,
-                     mysqlshdk::utils::nullable<int64_t>(
-                         cluster_transaction_size_limit));
+                     std::optional<int64_t>(cluster_transaction_size_limit));
 
             cfg->apply();
           }
@@ -938,10 +933,8 @@ shcore::Value Rescan::execute() {
   // Check if group_replication_view_change_uuid is set on the Cluster and all
   // of its members when running MySQL >= 8.0.27
   if (m_is_view_change_uuid_supported) {
-    std::string view_change_uuid =
-        m_cluster->get_primary_master()
-            ->get_sysvar_string("group_replication_view_change_uuid")
-            .get_safe();
+    auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
+        "group_replication_view_change_uuid", "");
 
     if (view_change_uuid == "AUTOMATIC") {
       if (m_options.update_view_change_uuid.is_null()) {

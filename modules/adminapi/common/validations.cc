@@ -214,26 +214,22 @@ bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
 
 void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
                              const Cluster_ssl_mode &ssl_mode) {
-  auto console = mysqlsh::current_console();
+  if (ssl_mode != Cluster_ssl_mode::VERIFY_CA &&
+      ssl_mode != Cluster_ssl_mode::VERIFY_IDENTITY)
+    return;
 
-  if (ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
-      ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
-    // Get the values of ssl_ca and ss_capath
-    std::string ssl_ca = instance.get_sysvar_string("ssl_ca").get_safe("");
-    std::string ssl_capath =
-        instance.get_sysvar_string("ssl_capath").get_safe("");
+  // Get the values of ssl_ca and ss_capath
+  auto ssl_ca = instance.get_sysvar_string("ssl_ca").value_or("");
+  auto ssl_capath = instance.get_sysvar_string("ssl_capath").value_or("");
 
-    // If both unset, error-out
-    if (ssl_ca.empty() && ssl_capath.empty()) {
-      console->print_error(
-          "CA certificates options not set. ssl_ca or ssl_capath are "
-          "required, to supply a CA certificate that matches the one used by "
-          "the server.");
-      throw std::runtime_error(
-          "memberSslMode '" + to_string(ssl_mode) +
-          "' requires Certificate Authority (CA) certificates "
-          "to be supplied.");
-    }
+  // If both unset, error-out
+  if (ssl_ca.empty() && ssl_capath.empty()) {
+    mysqlsh::current_console()->print_error(
+        "CA certificates options not set. ssl_ca or ssl_capath are required, "
+        "to supply a CA certificate that matches the one used by the server.");
+    throw std::runtime_error(
+        "memberSslMode '" + to_string(ssl_mode) +
+        "' requires Certificate Authority (CA) certificates to be supplied.");
   }
 }
 

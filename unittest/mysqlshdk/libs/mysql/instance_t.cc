@@ -79,10 +79,9 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"character_set_server", "latin1"}}}});
-  mysqlshdk::utils::nullable<std::string> char_set_server =
-      instance.get_sysvar_string("character_set_server",
-                                 mysqlshdk::mysql::Var_qualifier::SESSION);
-  EXPECT_FALSE(char_set_server.is_null());
+  std::optional<std::string> char_set_server = instance.get_sysvar_string(
+      "character_set_server", mysqlshdk::mysql::Var_qualifier::SESSION);
+  EXPECT_FALSE(!char_set_server);
   EXPECT_STREQ("latin1", (*char_set_server).c_str());
 
   // Get string system variable with GLOBAL scope.
@@ -97,7 +96,7 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
                      {{"character_set_server", "latin1"}}}});
   char_set_server = instance.get_sysvar_string(
       "character_set_server", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  EXPECT_FALSE(char_set_server.is_null());
+  EXPECT_FALSE(!char_set_server.has_value());
   EXPECT_STREQ("latin1", (*char_set_server).c_str());
 
   EXPECT_CALL(session, do_close());
@@ -125,11 +124,11 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
       }});
 
   mysqlshdk::mysql::Instance instance(_session);
-  mysqlshdk::utils::nullable<std::string> server_uuid =
+  std::optional<std::string> server_uuid =
       instance.get_sysvar_string("unexisting_variable");
 
   // The value was not modified
-  EXPECT_TRUE(server_uuid.is_null());
+  EXPECT_TRUE(!server_uuid.has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -153,10 +152,9 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_warnings", "OFF"}}}});
-  mysqlshdk::utils::nullable<bool> sql_warnings =
-      instance.get_sysvar_bool("sql_warnings");
+  std::optional<bool> sql_warnings = instance.get_sysvar_bool("sql_warnings");
   // The value was not modified
-  EXPECT_FALSE(sql_warnings.is_null());
+  EXPECT_FALSE(!sql_warnings.has_value());
   EXPECT_FALSE(*sql_warnings);
 
   // Get boolean system variable with SESSION scope.
@@ -170,7 +168,7 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
                      {{"sql_warnings", "OFF"}}}});
   sql_warnings = instance.get_sysvar_bool(
       "sql_warnings", mysqlshdk::mysql::Var_qualifier::SESSION);
-  EXPECT_FALSE(sql_warnings.is_null());
+  EXPECT_FALSE(!sql_warnings.has_value());
   EXPECT_FALSE(*sql_warnings);
 
   // Get boolean system variable with GLOBAL scope.
@@ -184,7 +182,7 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
                      {{"sql_warnings", "OFF"}}}});
   sql_warnings = instance.get_sysvar_bool(
       "sql_warnings", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  EXPECT_FALSE(sql_warnings.is_null());
+  EXPECT_FALSE(!sql_warnings.has_value());
   EXPECT_FALSE(*sql_warnings);
 
   EXPECT_CALL(session, do_close());
@@ -212,11 +210,11 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
       }});
 
   mysqlshdk::mysql::Instance instance(_session);
-  mysqlshdk::utils::nullable<bool> sql_warnings =
+  std::optional<bool> sql_warnings =
       instance.get_sysvar_bool("unexisting_variable");
 
   // The value was not modified
-  EXPECT_TRUE(sql_warnings.is_null());
+  EXPECT_TRUE(!sql_warnings.has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -266,10 +264,9 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"server_id", "0"}}}});
-  mysqlshdk::utils::nullable<int64_t> server_id =
-      instance.get_sysvar_int("server_id");
+  std::optional<int64_t> server_id = instance.get_sysvar_int("server_id");
   // The value was not modified
-  EXPECT_FALSE(server_id.is_null());
+  EXPECT_FALSE(!server_id.has_value());
   EXPECT_EQ(0, *server_id);
 
   // Get integer system variable with SESSION scope.
@@ -282,9 +279,9 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"wait_timeout", "28800"}}}});
-  mysqlshdk::utils::nullable<int64_t> wait_timeout = instance.get_sysvar_int(
+  std::optional<int64_t> wait_timeout = instance.get_sysvar_int(
       "wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
-  EXPECT_FALSE(wait_timeout.is_null());
+  EXPECT_FALSE(!wait_timeout.has_value());
   EXPECT_EQ(28800, *wait_timeout);
 
   // Get integer system variable with GLOBAL scope.
@@ -299,7 +296,7 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
                      {{"wait_timeout", "28800"}}}});
   wait_timeout = instance.get_sysvar_int(
       "wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  EXPECT_FALSE(wait_timeout.is_null());
+  EXPECT_FALSE(!wait_timeout.has_value());
   EXPECT_EQ(28800, *wait_timeout);
 
   EXPECT_CALL(session, do_close());
@@ -327,11 +324,11 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
       }});
 
   mysqlshdk::mysql::Instance instance(_session);
-  mysqlshdk::utils::nullable<int64_t> server_id =
+  std::optional<int64_t> server_id =
       instance.get_sysvar_int("unexisting_variable");
 
   // The value was not modified
-  EXPECT_TRUE(server_id.is_null());
+  EXPECT_TRUE(!server_id.has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -419,7 +416,7 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lc_messages", "fr_FR"}}}});
-  mysqlshdk::utils::nullable<std::string> new_value =
+  std::optional<std::string> new_value =
       instance.get_sysvar_string("lc_messages");
   EXPECT_STREQ("fr_FR", (*new_value).c_str());
   session.expect_query("SET GLOBAL `lc_messages` = 'pt_PT'").then({""});
@@ -463,7 +460,7 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"lock_wait_timeout", "86400"}}}});
-  mysqlshdk::utils::nullable<int64_t> new_i_value =
+  std::optional<int64_t> new_i_value =
       instance.get_sysvar_int("lock_wait_timeout");
   EXPECT_EQ(86400, *new_i_value);
   session.expect_query("SET GLOBAL `lock_wait_timeout` = 172800").then({""});
@@ -509,8 +506,7 @@ TEST_F(Instance_test, set_sysvar) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"sql_log_off", "ON"}}}});
-  mysqlshdk::utils::nullable<bool> new_b_value =
-      instance.get_sysvar_bool("sql_log_off");
+  std::optional<bool> new_b_value = instance.get_sysvar_bool("sql_log_off");
   EXPECT_TRUE(*new_b_value);
   session.expect_query("SET GLOBAL `sql_log_off` = 'ON'").then({""});
   instance.set_sysvar("sql_log_off", true,
@@ -735,9 +731,8 @@ TEST_F(Instance_test, set_sysvar_default) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"max_user_connections", "0"}}}});
-  mysqlshdk::utils::nullable<std::string> new_value =
-      instance.get_sysvar_string("max_user_connections",
-                                 mysqlshdk::mysql::Var_qualifier::SESSION);
+  std::optional<std::string> new_value = instance.get_sysvar_string(
+      "max_user_connections", mysqlshdk::mysql::Var_qualifier::SESSION);
   EXPECT_STREQ("0", (*new_value).c_str());
 
   // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
@@ -845,9 +840,9 @@ TEST_F(Instance_test, get_system_variables) {
 
   EXPECT_EQ(3, variables.size());
 
-  EXPECT_FALSE(variables["server_id"].is_null());
-  EXPECT_FALSE(variables["server_uuid"].is_null());
-  EXPECT_TRUE(variables["unexisting_variable"].is_null());
+  EXPECT_FALSE(!variables["server_id"].has_value());
+  EXPECT_FALSE(!variables["server_uuid"].has_value());
+  EXPECT_TRUE(!variables["unexisting_variable"].has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -938,10 +933,10 @@ TEST_F(Instance_test, get_plugin_status) {
           "SELECT plugin_status FROM information_schema.plugins "
           "WHERE plugin_name = 'validate_password'")
       .then_return({{"", {"plugin_status"}, {Type::String}, {{"ACTIVE"}}}});
-  mysqlshdk::utils::nullable<std::string> res =
+  std::optional<std::string> res =
       instance.get_plugin_status("validate_password");
-  ASSERT_FALSE(res.is_null());
-  EXPECT_STREQ("ACTIVE", (*res).c_str());
+  ASSERT_FALSE(!res.has_value());
+  EXPECT_STREQ("ACTIVE", res->c_str());
 
   // Test plugin DISABLED
   session
@@ -950,8 +945,8 @@ TEST_F(Instance_test, get_plugin_status) {
           "WHERE plugin_name = 'validate_password'")
       .then_return({{"", {"plugin_status"}, {Type::String}, {{"DISABLED"}}}});
   res = instance.get_plugin_status("validate_password");
-  ASSERT_FALSE(res.is_null());
-  EXPECT_STREQ("DISABLED", (*res).c_str());
+  ASSERT_FALSE(!res.has_value());
+  EXPECT_STREQ("DISABLED", res->c_str());
 
   // Test plugin not available
   session
@@ -960,7 +955,7 @@ TEST_F(Instance_test, get_plugin_status) {
           "WHERE plugin_name = 'validate_password'")
       .then_return({{"", {"plugin_status"}, {Type::String}, {}}});
   res = instance.get_plugin_status("validate_password");
-  ASSERT_TRUE(res.is_null());
+  ASSERT_TRUE(!res.has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -1188,7 +1183,7 @@ TEST_F(Instance_test, get_system_variables_like) {
                      {Type::String, Type::String},
                      {{"error_count", "0"}, {"max_error_count", "64"}}}});
 
-  std::map<std::string, mysqlshdk::utils::nullable<std::string>> res =
+  std::map<std::string, std::optional<std::string>> res =
       instance.get_system_variables_like("%error_count%");
 
   // Verify result.
@@ -1282,8 +1277,8 @@ TEST_F(Instance_test, is_set_persist_supported) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"persisted_globals_load", "OFF"}}}});
-  mysqlshdk::utils::nullable<bool> res = instance.is_set_persist_supported();
-  EXPECT_FALSE(res.is_null());
+  std::optional<bool> res = instance.is_set_persist_supported();
+  EXPECT_FALSE(!res.has_value());
   EXPECT_FALSE(*res);
 
   // Set persisted_globals_load is ON.
@@ -1297,7 +1292,7 @@ TEST_F(Instance_test, is_set_persist_supported) {
                      {Type::String, Type::String},
                      {{"persisted_globals_load", "ON"}}}});
   res = instance.is_set_persist_supported();
-  EXPECT_FALSE(res.is_null());
+  EXPECT_FALSE(!res.has_value());
   EXPECT_TRUE(*res);
 
   mysqlshdk::mysql::Instance instance_57(_session);
@@ -1308,7 +1303,7 @@ TEST_F(Instance_test, is_set_persist_supported) {
 
   // Set is not supported.
   res = instance_57.is_set_persist_supported();
-  EXPECT_TRUE(res.is_null());
+  EXPECT_TRUE(!res.has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -1331,9 +1326,8 @@ TEST_F(Instance_test, get_persisted_value) {
       .then_return({{
           "", {"variable_value"}, {Type::String}, {}  // No records
       }});
-  mysqlshdk::utils::nullable<std::string> res =
-      instance.get_persisted_value("gtid_mode");
-  EXPECT_TRUE(res.is_null());
+  std::optional<std::string> res = instance.get_persisted_value("gtid_mode");
+  EXPECT_TRUE(!res.has_value());
 
   // Persisted value successfully returned.
   session
@@ -1342,8 +1336,8 @@ TEST_F(Instance_test, get_persisted_value) {
           "WHERE variable_name = 'gtid_mode'")
       .then_return({{"", {"variable_value"}, {Type::String}, {{"ON"}}}});
   res = instance.get_persisted_value("gtid_mode");
-  EXPECT_FALSE(res.is_null());
-  EXPECT_STREQ("ON", (*res).c_str());
+  EXPECT_FALSE(!res.has_value());
+  EXPECT_STREQ("ON", res->c_str());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));

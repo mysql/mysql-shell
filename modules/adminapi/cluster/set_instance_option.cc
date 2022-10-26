@@ -91,13 +91,11 @@ void Set_instance_option::ensure_option_valid() {
    */
   if (m_option == "label") {
     // The value must be a string
-    if (!m_value_int.is_null()) {
+    if (m_value_int.has_value())
       throw shcore::Exception::type_error(
-          "Invalid value for 'label': Argument #3 is expected to be a "
-          "string.");
-    } else {
-      mysqlsh::dba::validate_label(*m_value_str);
-    }
+          "Invalid value for 'label': Argument #3 is expected to be a string.");
+
+    mysqlsh::dba::validate_label(*m_value_str);
 
     // Check if there's already an instance with the label we want to set
     if (!m_cluster.get_metadata_storage()->is_instance_label_unique(
@@ -112,11 +110,10 @@ void Set_instance_option::ensure_option_valid() {
                                               "' not supported.");
     }
 
-    if (m_option == kIpAllowlist) {
-      if (m_value_str.is_null())
-        throw shcore::Exception::argument_error(
-            "Invalid value for 'ipAllowlist': Argument #3 is expected "
-            "to be a string.");
+    if (m_option == kIpAllowlist && !m_value_str.has_value()) {
+      throw shcore::Exception::argument_error(
+          "Invalid value for 'ipAllowlist': Argument #3 is expected "
+          "to be a string.");
     }
   }
 }
@@ -211,15 +208,15 @@ void Set_instance_option::prepare() {
   m_cfg = mysqlsh::dba::create_server_config(m_target_instance.get(),
                                              m_target_instance_address);
 
-  if (m_option == kAutoRejoinTries && !m_value_int.is_null() &&
-      *m_value_int != 0) {
-    auto console = mysqlsh::current_console();
-    std::string warn_msg =
-        "The member will only proceed according to its exitStateAction if "
-        "auto-rejoin fails (i.e. all retry attempts are exhausted).";
-    console->print_warning(warn_msg);
-    console->print_info();
-  }
+  if (m_option != kAutoRejoinTries || !m_value_int.has_value() ||
+      (*m_value_int == 0))
+    return;
+
+  auto console = mysqlsh::current_console();
+  console->print_warning(
+      "The member will only proceed according to its exitStateAction if "
+      "auto-rejoin fails (i.e. all retry attempts are exhausted).");
+  console->print_info();
 }
 
 shcore::Value Set_instance_option::execute() {
@@ -232,7 +229,7 @@ shcore::Value Set_instance_option::execute() {
 
   console->print_info(
       "Setting the value of '" + m_option + "' to '" +
-      (m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str) +
+      (!m_value_str.has_value() ? std::to_string(*m_value_int) : *m_value_str) +
       "' in the instance: '" + m_target_instance_address + "' ...");
   console->print_info();
 
@@ -244,7 +241,7 @@ shcore::Value Set_instance_option::execute() {
     std::string option_gr_variable =
         k_instance_supported_options.at(m_option).option_variable;
 
-    if (!m_value_str.is_null()) {
+    if (m_value_str.has_value()) {
       m_cfg->set(option_gr_variable, m_value_str);
     } else {
       m_cfg->set(option_gr_variable, m_value_int);
@@ -253,17 +250,15 @@ shcore::Value Set_instance_option::execute() {
     m_cfg->apply();
   }
 
-  console->print_info(
-      "Successfully set the value of '" + m_option + "' to '" +
-      ((m_value_str.is_null() ? std::to_string(*m_value_int) : *m_value_str)) +
-      "' in the cluster member: '" + m_target_instance_address + "'.");
+  console->print_info("Successfully set the value of '" + m_option + "' to '" +
+                      ((!m_value_str.has_value()
+                            ? shcore::lexical_cast<std::string>(*m_value_int)
+                            : *m_value_str)) +
+                      "' in the cluster member: '" + m_target_instance_address +
+                      "'.");
 
   return shcore::Value();
 }
-
-void Set_instance_option::rollback() {}
-
-void Set_instance_option::finish() {}
 
 }  // namespace cluster
 }  // namespace dba

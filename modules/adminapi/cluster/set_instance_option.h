@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_SET_INSTANCE_OPTION_H_
 #define MODULES_ADMINAPI_CLUSTER_SET_INSTANCE_OPTION_H_
 
+#include <optional>
 #include <string>
 
 #include "adminapi/cluster/cluster_impl.h"
@@ -76,12 +77,12 @@ class Set_instance_option : public Command_interface {
    *
    * NOTE: Not currently used.
    */
-  void rollback() override;
+  void rollback() override {}
 
   /**
    * Finalize the command execution.
    */
-  void finish() override;
+  void finish() override {}
 
  private:
   const Cluster_impl &m_cluster;
@@ -91,9 +92,9 @@ class Set_instance_option : public Command_interface {
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
-  const std::string &m_option;
-  mysqlshdk::utils::nullable<std::string> m_value_str;
-  mysqlshdk::utils::nullable<int64_t> m_value_int;
+  std::string m_option;
+  std::optional<std::string> m_value_str;
+  std::optional<int64_t> m_value_int;
 
   void ensure_option_valid();
   void ensure_instance_belong_to_cluster();

@@ -407,7 +407,7 @@ void Load_dump_options::set_session(
       // MYSQLSH_ALLOW_ALWAYS_GIPK environment variable
       if (!sql_generate_invisible_primary_key() ||
           getenv("MYSQLSH_ALLOW_ALWAYS_GIPK")) {
-        m_sql_generate_invisible_primary_key.reset();
+        m_sql_generate_invisible_primary_key = std::nullopt;
       }
     }
   }

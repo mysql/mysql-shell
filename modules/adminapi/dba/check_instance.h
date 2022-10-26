@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_DBA_CHECK_INSTANCE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "modules/adminapi/common/instance_pool.h"
@@ -68,7 +69,7 @@ class Check_instance : public Command_interface {
   std::string m_mycnf_path;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   bool m_is_valid = false;
-  mysqlshdk::utils::nullable<bool> m_can_set_persist;
+  std::optional<bool> m_can_set_persist;
   shcore::Value m_ret_val;
 
   const bool m_silent;

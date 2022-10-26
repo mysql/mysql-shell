@@ -159,31 +159,25 @@ Instance::Instance(Node *node, const Instance_metadata &info) {
 
 Instance_status Instance::status() const {
   if (dynamic_cast<const Server *>(node_ptr)) {
-    if (connect_errno)
-      return Instance_status::UNREACHABLE;
-    else
-      return Instance_status::OK;
-  } else {
-    if (!node_ptr) {
-      return Instance_status::INVALID;
-    } else if (in_majority.is_null()) {
-      if (connect_errno)
-        return Instance_status::UNREACHABLE;
-      else
-        return Instance_status::MISSING;
-    } else {
-      if (*in_majority) {
-        if (*state == mysqlshdk::gr::Member_state::RECOVERING) {
-          return Instance_status::RECOVERING;
-        } else {
-          assert(*state == mysqlshdk::gr::Member_state::ONLINE);
-          return Instance_status::OK;
-        }
-      } else {
-        return Instance_status::OUT_OF_QUORUM;
-      }
-    }
+    if (connect_errno) return Instance_status::UNREACHABLE;
+    return Instance_status::OK;
   }
+
+  if (!node_ptr) return Instance_status::INVALID;
+
+  if (!in_majority.has_value())
+    return connect_errno ? Instance_status::UNREACHABLE
+                         : Instance_status::MISSING;
+
+  if (*in_majority) {
+    if (*state == mysqlshdk::gr::Member_state::RECOVERING)
+      return Instance_status::RECOVERING;
+
+    assert(*state == mysqlshdk::gr::Member_state::ONLINE);
+    return Instance_status::OK;
+  }
+
+  return Instance_status::OUT_OF_QUORUM;
 }
 
 // -----------------------------------------------------------------------------
@@ -211,70 +205,60 @@ Server::Server(const Cluster_metadata &cluster,
 }
 
 Node_status Server::status() const {
-  if (invalidated) {
-    return Node_status::INVALIDATED;
-  } else {
-    const Instance &server = m_members.front();
-    switch (server.status()) {
-      case Instance_status::OK:
-        if (!master_instance_uuid.empty()) {
-          // SECONDARY checks
-          if (!server.master_channel || !master_node_ptr) {
-            return Node_status::ERROR;
-          }
-          // check that the actual source is the expected source
-          if (server.master_channel->info.source_uuid !=
-              master_node_ptr->get_primary_member()->uuid) {
-            log_warning(
-                "Instance %s is expected to have source %s (%s), but is %s:%i "
-                "(%s)",
-                label.c_str(), master_node_ptr->label.c_str(),
-                master_node_ptr->get_primary_member()->uuid.c_str(),
-                server.master_channel->info.host.c_str(),
-                server.master_channel->info.port,
-                server.master_channel->info.source_uuid.c_str());
-            return Node_status::ERROR;
-          }
+  if (invalidated) return Node_status::INVALIDATED;
 
-          if (server.master_channel->info.status() ==
-                  mysqlshdk::mysql::Replication_channel::OFF ||
-              server.master_channel->info.status() ==
-                  mysqlshdk::mysql::Replication_channel::APPLIER_OFF ||
-              server.master_channel->info.status() ==
-                  mysqlshdk::mysql::Replication_channel::RECEIVER_OFF)
-            return Node_status::OFFLINE;
-          else if (server.master_channel->info.status() !=
-                       mysqlshdk::mysql::Replication_channel::CONNECTING &&
-                   server.master_channel->info.status() !=
-                       mysqlshdk::mysql::Replication_channel::ON)
-            return Node_status::ERROR;
+  const Instance &server = m_members.front();
 
-          // check for GTID set inconsistencies
-          if (errant_transaction_count.get_safe() > 0) {
-            return Node_status::INCONSISTENT;
-          }
+  if (server.status() != Instance_status::OK) return Node_status::UNREACHABLE;
 
-          if (!server.is_fenced()) return Node_status::ERROR;
-        } else {
-          // PRIMARY checks
-          if (server.is_fenced()) return Node_status::ERROR;
+  if (!master_instance_uuid.empty()) {
+    // SECONDARY checks
+    if (!server.master_channel || !master_node_ptr) return Node_status::ERROR;
 
-          if (server.master_channel) return Node_status::ERROR;
-        }
-
-        return Node_status::ONLINE;
-
-      default:
-        return Node_status::UNREACHABLE;
+    // check that the actual source is the expected source
+    if (server.master_channel->info.source_uuid !=
+        master_node_ptr->get_primary_member()->uuid) {
+      log_warning(
+          "Instance %s is expected to have source %s (%s), but is %s:%i (%s)",
+          label.c_str(), master_node_ptr->label.c_str(),
+          master_node_ptr->get_primary_member()->uuid.c_str(),
+          server.master_channel->info.host.c_str(),
+          server.master_channel->info.port,
+          server.master_channel->info.source_uuid.c_str());
+      return Node_status::ERROR;
     }
+
+    if (server.master_channel->info.status() ==
+            mysqlshdk::mysql::Replication_channel::OFF ||
+        server.master_channel->info.status() ==
+            mysqlshdk::mysql::Replication_channel::APPLIER_OFF ||
+        server.master_channel->info.status() ==
+            mysqlshdk::mysql::Replication_channel::RECEIVER_OFF)
+      return Node_status::OFFLINE;
+
+    if (server.master_channel->info.status() !=
+            mysqlshdk::mysql::Replication_channel::CONNECTING &&
+        server.master_channel->info.status() !=
+            mysqlshdk::mysql::Replication_channel::ON)
+      return Node_status::ERROR;
+
+    // check for GTID set inconsistencies
+    if (errant_transaction_count.value_or(0) > 0)
+      return Node_status::INCONSISTENT;
+
+    if (!server.is_fenced()) return Node_status::ERROR;
+  } else {
+    // PRIMARY checks
+    if (server.is_fenced()) return Node_status::ERROR;
+
+    if (server.master_channel) return Node_status::ERROR;
   }
+
+  return Node_status::ONLINE;
 }
 
 Node_role Server::role() const {
-  if (primary_master)
-    return Node_role::PRIMARY;
-  else
-    return Node_role::SECONDARY;
+  return primary_master ? Node_role::PRIMARY : Node_role::SECONDARY;
 }
 
 void Server::scan(const mysqlshdk::mysql::IInstance *conn,
@@ -443,8 +427,8 @@ void Global_topology::check_gtid_consistency(bool use_configured_primary) {
     if (!use_configured_primary) master_node = node->master_node_ptr;
 
     if (master_node && master_node != node) {
-      if (!master_node->get_primary_member()->executed_gtid_set.is_null() &&
-          !node->get_primary_member()->executed_gtid_set.is_null()) {
+      if (master_node->get_primary_member()->executed_gtid_set.has_value() &&
+          node->get_primary_member()->executed_gtid_set.has_value()) {
         try {
           Scoped_instance master(ipool->connect_unchecked_endpoint(
               master_node->get_primary_member()->endpoint));

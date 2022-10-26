@@ -462,7 +462,7 @@ bool Configure_instance::check_configuration_updates(
     //       the value is correct in the given option file or SET PERSIST is
     //       supported.
     return !(*restart && !*config_file_change && !*dynamic_sysvar_change &&
-             (m_can_set_persist.is_null() || !*m_can_set_persist));
+             (!m_can_set_persist.has_value() || !m_can_set_persist.value()));
   } else {
     console->print_info();
     console->print_info(
@@ -475,10 +475,9 @@ bool Configure_instance::check_configuration_updates(
 }
 
 void Configure_instance::ensure_instance_address_usable() {
-  auto console = mysqlsh::current_console();
-
   // Sanity check for the instance address
   if (is_sandbox(*m_target_instance, nullptr)) {
+    auto console = mysqlsh::current_console();
     console->print_note("Instance detected as a sandbox.");
     console->print_info(
         "Please note that sandbox instances are only suitable for deploying "
@@ -493,7 +492,7 @@ void Configure_instance::ensure_configuration_change_possible(
   // persisted_globals_load. If its value is set to 'OFF' and the instance
   // is remote, issue an error
   // This should only be checked if we actually need to change configs
-  if (!m_can_set_persist.is_null() && !*m_can_set_persist) {
+  if (m_can_set_persist.has_value() && !m_can_set_persist.value()) {
     auto console = mysqlsh::current_console();
     console->print_note("persisted_globals_load option is OFF");
     console->print_info(
@@ -506,9 +505,9 @@ void Configure_instance::ensure_configuration_change_possible(
   // can only be done in the my.cnf (e.g. log_bin) or we can't use SET PERSIST
   // then ensure that we can update my.cnf
   // NOTE: if mycnfPath was used in the cmd call, we also use it
-  if (needs_mycnf_change ||
-      (m_can_set_persist.is_null() || !*m_can_set_persist) ||
-      !m_options.mycnf_path.empty() || !m_options.output_mycnf_path.empty()) {
+  if (needs_mycnf_change || !m_can_set_persist.has_value() ||
+      !m_can_set_persist.value() || !m_options.mycnf_path.empty() ||
+      !m_options.output_mycnf_path.empty()) {
     // (FR3/FR4) If the instance has a version < 8.0.11 the configuration file
     // path is mandatory in case the instance is local. If the instance is
     // remote issue an error
@@ -577,13 +576,14 @@ void Configure_instance::validate_applier_worker_threads() {
   auto target_instance_version = m_target_instance->get_version();
   Parallel_applier_options parallel_applier_options(*m_target_instance);
 
-  if (!m_options.replica_parallel_workers.is_null()) {
+  if (m_options.replica_parallel_workers.has_value()) {
     // Validate if the target instance supports applierWorkerThreads
 
     validate_applier_worker_threads_option(target_instance_version);
 
+    assert(parallel_applier_options.replica_parallel_workers.has_value());
     if (*parallel_applier_options.replica_parallel_workers !=
-        m_options.replica_parallel_workers.get_safe()) {
+        *m_options.replica_parallel_workers) {
       m_set_applier_worker_threads = true;
     }
   } else {

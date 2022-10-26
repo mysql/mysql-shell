@@ -35,7 +35,6 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -86,19 +85,17 @@ class Group_replication_test : public tests::Shell_base_test {
 };
 
 TEST_F(Group_replication_test, plugin_installation) {
-  using mysqlshdk::utils::nullable;
-
   // Check if GR plugin is installed and uninstall it.
-  nullable<std::string> init_plugin_state =
+  std::optional<std::string> init_plugin_state =
       m_instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
-  if (!init_plugin_state.is_null()) {
+  if (init_plugin_state.has_value()) {
     // Test uninstall the plugin when available.
     bool res =
         mysqlshdk::gr::uninstall_group_replication_plugin(*m_instance, nullptr);
     EXPECT_TRUE(res);
-    nullable<std::string> plugin_state =
+    std::optional<std::string> plugin_state =
         m_instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
-    ASSERT_TRUE(plugin_state.is_null());
+    ASSERT_TRUE(!plugin_state.has_value());
     // Test trying to uninstall the plugin when not available.
     res =
         mysqlshdk::gr::uninstall_group_replication_plugin(*m_instance, nullptr);
@@ -106,8 +103,7 @@ TEST_F(Group_replication_test, plugin_installation) {
   }
 
   // Test installing the plugin (when not installed).
-  if (!init_plugin_state.is_null() &&
-      (*init_plugin_state).compare("DISABLED") == 0) {
+  if (init_plugin_state.has_value() && (init_plugin_state == "DISABLED")) {
     // An exception is expected if the plugin was disabled.
     EXPECT_THROW(
         mysqlshdk::gr::install_group_replication_plugin(*m_instance, nullptr),
@@ -117,18 +113,18 @@ TEST_F(Group_replication_test, plugin_installation) {
     // - server_id != 0
     // - master_info_repository=TABLE
     // - relay_log_info_repository=TABLE
-    nullable<int64_t> server_id = m_instance->get_sysvar_int("server_id");
+    std::optional<int64_t> server_id = m_instance->get_sysvar_int("server_id");
     if (*server_id == 0) {
       SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
     }
-    nullable<std::string> master_info_repository =
+    std::optional<std::string> master_info_repository =
         m_instance->get_sysvar_string("master_info_repository");
     if ((*master_info_repository).compare("TABLE") != 0) {
       SKIP_TEST(
           "Test server does not meet GR requirements: master_info_repository "
           "must be 'TABLE'.");
     }
-    nullable<std::string> relay_log_info_repository =
+    std::optional<std::string> relay_log_info_repository =
         m_instance->get_sysvar_string("relay_log_info_repository");
     if ((*relay_log_info_repository).compare("TABLE") != 0) {
       SKIP_TEST(
@@ -142,7 +138,7 @@ TEST_F(Group_replication_test, plugin_installation) {
         mysqlshdk::gr::install_group_replication_plugin(*m_instance, nullptr);
     ASSERT_TRUE(res)
         << "GR plugin was not installed (expected not to be available).";
-    nullable<std::string> plugin_state =
+    std::optional<std::string> plugin_state =
         m_instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
     EXPECT_STREQ("ACTIVE", (*plugin_state).c_str());
 
@@ -156,14 +152,14 @@ TEST_F(Group_replication_test, plugin_installation) {
   }
 
   // Restore initial state (uninstall plugin if needed).
-  if (init_plugin_state.is_null()) {
+  if (!init_plugin_state.has_value()) {
     // Test uninstall the plugin when available.
     bool res =
         mysqlshdk::gr::uninstall_group_replication_plugin(*m_instance, nullptr);
     EXPECT_TRUE(res);
-    nullable<std::string> plugin_state =
+    std::optional<std::string> plugin_state =
         m_instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
-    ASSERT_TRUE(plugin_state.is_null());
+    ASSERT_TRUE(!plugin_state.has_value());
 
     // Test trying to uninstall the plugin when not available.
     res =
@@ -190,7 +186,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_FALSE(res.has_grant_option());
 
   // Create a recovery user with a random password.
-  auto password = mysqlshdk::null_string();
+  std::optional<std::string> password;
   auto creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
                                                    {"%"}, password);
   // Check replication user (now it exist and it has no missing privileges).
@@ -203,12 +199,11 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_EQ(creds.user, "test_gr_user");
   // it is expected a random password is generated when using an empty password
   // as parameter.
-  EXPECT_EQ(true, password.is_null());
-  EXPECT_EQ(false, creds.password.is_null());
-  EXPECT_NE(static_cast<bool>(creds.password), static_cast<bool>(password));
+  EXPECT_EQ(false, password.has_value());
+  EXPECT_EQ(true, creds.password.has_value());
 
   // Drop user and recreate it with a given password
-  password = mysqlshdk::null_string("password");
+  password = "password";
   creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
                                               {"%"}, password);
   // Check replication user (now it exist and it has no missing privileges).
@@ -235,44 +230,43 @@ TEST_F(Group_replication_test, start_stop_gr) {
 
   using mysqlshdk::gr::Member_state;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::nullable;
 
   // Check if used server meets the requirements.
-  nullable<int64_t> server_id = m_instance->get_sysvar_int("server_id");
+  std::optional<int64_t> server_id = m_instance->get_sysvar_int("server_id");
   if (*server_id == 0) {
     SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
   }
-  nullable<bool> log_bin = m_instance->get_sysvar_bool("log_bin");
-  if (*log_bin != true) {
+  bool log_bin = m_instance->get_sysvar_bool("log_bin", false);
+  if (!log_bin) {
     SKIP_TEST("Test server does not meet GR requirements: log_bin must be ON.");
   }
-  nullable<bool> gtid_mode = m_instance->get_sysvar_bool("gtid_mode");
-  if (*gtid_mode != true) {
+  bool gtid_mode = m_instance->get_sysvar_bool("gtid_mode", false);
+  if (!gtid_mode) {
     SKIP_TEST(
         "Test server does not meet GR requirements: gtid_mode must be ON.");
   }
-  nullable<bool> enforce_gtid_consistency =
-      m_instance->get_sysvar_bool("enforce_gtid_consistency");
-  if (*enforce_gtid_consistency != true) {
+  bool enforce_gtid_consistency =
+      m_instance->get_sysvar_bool("enforce_gtid_consistency", false);
+  if (!enforce_gtid_consistency) {
     SKIP_TEST(
         "Test server does not meet GR requirements: enforce_gtid_consistency "
         "must be ON.");
   }
-  nullable<std::string> master_info_repository =
+  std::optional<std::string> master_info_repository =
       m_instance->get_sysvar_string("master_info_repository");
   if ((*master_info_repository).compare("TABLE") != 0) {
     SKIP_TEST(
         "Test server does not meet GR requirements: master_info_repository "
         "must be 'TABLE'.");
   }
-  nullable<std::string> relay_log_info_repository =
+  std::optional<std::string> relay_log_info_repository =
       m_instance->get_sysvar_string("relay_log_info_repository");
   if ((*relay_log_info_repository).compare("TABLE") != 0) {
     SKIP_TEST(
         "Test server does not meet GR requirements: relay_log_info_repository "
         "must be 'TABLE'.");
   }
-  nullable<std::string> binlog_checksum =
+  std::optional<std::string> binlog_checksum =
       m_instance->get_sysvar_string("binlog_checksum");
   if ((*binlog_checksum).compare("NONE") != 0 &&
       m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 21)) {
@@ -280,14 +274,14 @@ TEST_F(Group_replication_test, start_stop_gr) {
         "Test server does not meet GR requirements: binlog_checksum must be "
         "'NONE'.");
   }
-  nullable<bool> log_slave_updates =
-      m_instance->get_sysvar_bool("log_slave_updates");
-  if (*log_slave_updates != true) {
+  bool log_slave_updates =
+      m_instance->get_sysvar_bool("log_slave_updates", false);
+  if (!log_slave_updates) {
     SKIP_TEST(
         "Test server does not meet GR requirements: log_slave_updates must "
         "be ON.");
   }
-  nullable<std::string> binlog_format =
+  std::optional<std::string> binlog_format =
       m_instance->get_sysvar_string("binlog_format");
   if ((*binlog_format).compare("ROW") != 0) {
     SKIP_TEST(
@@ -300,16 +294,16 @@ TEST_F(Group_replication_test, start_stop_gr) {
   EXPECT_EQ(state_res, Member_state::MISSING);
 
   // Install GR plugin if needed.
-  nullable<std::string> init_plugin_state =
+  std::optional<std::string> init_plugin_state =
       m_instance->get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
-  if (init_plugin_state.is_null()) {
+  if (!init_plugin_state.has_value()) {
     mysqlshdk::gr::install_group_replication_plugin(*m_instance, nullptr);
   }
 
   // Get initial value of GR variables (to restore at the end).
-  nullable<std::string> gr_group_name =
+  std::optional<std::string> gr_group_name =
       m_instance->get_sysvar_string("group_replication_group_name");
-  nullable<std::string> gr_local_address =
+  std::optional<std::string> gr_local_address =
       m_instance->get_sysvar_string("group_replication_local_address");
 
   // Set GR variable to start GR.
@@ -324,9 +318,8 @@ TEST_F(Group_replication_test, start_stop_gr) {
   mysqlshdk::gr::start_group_replication(*m_instance, true);
 
   // SUPER READ ONLY must be OFF (verify wait for it to be disable).
-  nullable<bool> read_only =
-      m_instance->get_sysvar_bool("super_read_only", Var_qualifier::GLOBAL);
-  EXPECT_FALSE(*read_only);
+  bool read_only = m_instance->get_sysvar_bool("super_read_only", false);
+  EXPECT_FALSE(read_only);
 
   // Test: member is part of GR group, state must be RECOVERING or ONLINE.
   state_res = mysqlshdk::gr::get_member_state(*m_instance);
@@ -372,7 +365,7 @@ TEST_F(Group_replication_test, start_stop_gr) {
                            Var_qualifier::GLOBAL);
   m_instance->set_sysvar("group_replication_local_address", *gr_local_address,
                          Var_qualifier::GLOBAL);
-  if (init_plugin_state.is_null()) {
+  if (!init_plugin_state.has_value()) {
     mysqlshdk::gr::uninstall_group_replication_plugin(*m_instance, nullptr);
   }
 }
@@ -460,7 +453,7 @@ TEST_F(Group_replication_test, is_running_gr_auto_rejoin) {
 }
 
 TEST_F(Group_replication_test, get_all_configurations) {
-  std::map<std::string, mysqlshdk::null_string> res =
+  std::map<std::string, std::optional<std::string>> res =
       mysqlshdk::gr::get_all_configurations(*m_instance);
 
   // NOTE: Only auto_increment variables are returned if GR is not configured.
@@ -469,9 +462,9 @@ TEST_F(Group_replication_test, get_all_configurations) {
   //       group_replication_consistency variable added for 8.0.14 servers).
   std::vector<std::string> vars;
   std::vector<std::string> values;
-  for (const auto &element : res) {
-    vars.push_back(element.first);
-    values.push_back(*element.second);
+  for (const auto &[name, val] : res) {
+    vars.push_back(name);
+    values.push_back(*val);
   }
   EXPECT_THAT(vars, Contains("auto_increment_increment"));
   EXPECT_THAT(vars, Contains("auto_increment_offset"));
@@ -482,7 +475,6 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::nullable;
 
   mysqlshdk::mysql::Mock_instance inst;
 
@@ -490,9 +482,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
 
   // Test everything assuming 5.7, with binlog default OFF and no SET PERSIST
   EXPECT_CALL(inst, get_sysvar_bool("log_bin", Var_qualifier::GLOBAL))
-      .WillRepeatedly(Return(nullable<bool>(false)));
+      .WillRepeatedly(Return(std::optional<bool>(false)));
   EXPECT_CALL(inst, get_sysvar_string("log_bin", Var_qualifier::GLOBAL))
-      .WillRepeatedly(Return(nullable<std::string>("OFF")));
+      .WillRepeatedly(Return(std::optional<std::string>("OFF")));
   EXPECT_CALL(inst, get_version())
       .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 24)));
 
@@ -542,9 +534,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
   EXPECT_EQ(res.at(0).restart, true);
 
   // Set incompatible values on file, issues found.
-  cfg.set_for_handler("skip_log_bin", nullable<std::string>(),
+  cfg.set_for_handler("skip_log_bin", std::optional<std::string>(),
                       mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("disable_log_bin", nullable<std::string>(),
+  cfg.set_for_handler("disable_log_bin", std::optional<std::string>(),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
@@ -580,7 +572,6 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::nullable;
 
   mysqlshdk::mysql::Mock_instance inst;
 
@@ -589,9 +580,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
   // With 8.0, "log_bin" is read-only and cannot be persisted. The only way to
   // disable it is with skip_log_bin or disable_log_bin
   EXPECT_CALL(inst, get_sysvar_bool("log_bin", Var_qualifier::GLOBAL))
-      .WillRepeatedly(Return(nullable<bool>(false)));
+      .WillRepeatedly(Return(std::optional<bool>(false)));
   EXPECT_CALL(inst, get_sysvar_string("log_bin", Var_qualifier::GLOBAL))
-      .WillRepeatedly(Return(nullable<std::string>("OFF")));
+      .WillRepeatedly(Return(std::optional<std::string>("OFF")));
   EXPECT_CALL(inst, get_version())
       .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 3)));
 
@@ -638,9 +629,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
   EXPECT_EQ(res.at(0).restart, true);
 
   // Set incompatible values on file, issues found.
-  cfg.set_for_handler("skip_log_bin", nullable<std::string>(),
+  cfg.set_for_handler("skip_log_bin", std::optional<std::string>(),
                       mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("disable_log_bin", nullable<std::string>(),
+  cfg.set_for_handler("disable_log_bin", std::optional<std::string>(),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
@@ -669,9 +660,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::nullable;
-  nullable<bool> log_bin = m_instance->get_sysvar_bool("log_bin");
-  if (!*log_bin) {
+
+  bool log_bin = m_instance->get_sysvar_bool("log_bin", false);
+  if (!log_bin) {
     SKIP_TEST(
         "Test server does not meet GR requirements: binary_log is disabled and "
         "should be enabled.")
@@ -714,9 +705,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
   }
 
   // Set incompatible values on file, issues found.
-  cfg.set_for_handler("skip_log_bin", nullable<std::string>(),
+  cfg.set_for_handler("skip_log_bin", std::optional<std::string>(),
                       mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("disable_log_bin", nullable<std::string>(),
+  cfg.set_for_handler("disable_log_bin", std::optional<std::string>(),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
@@ -766,14 +757,14 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_enabled) {
   file_cfg_handler->remove("skip_log_bin");
   file_cfg_handler->remove("disable_log_bin");
   if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
-    file_cfg_handler->set("log_bin", nullable<std::string>());
+    file_cfg_handler->set("log_bin", std::optional<std::string>());
   }
   cfg.apply();
   res.clear();
   mysqlshdk::mysql::check_log_bin_compatibility(*m_instance, cfg, &res);
   EXPECT_EQ(0, res.size());
 
-  cfg.set_for_handler("log_bin", nullable<std::string>("Some text"),
+  cfg.set_for_handler("log_bin", std::optional<std::string>("Some text"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
   res.clear();
@@ -789,11 +780,10 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::nullable;
   using mysqlshdk::utils::Version;
 
   // Get current server_id variable value to restore at the end.
-  nullable<int64_t> cur_server_id =
+  std::optional<int64_t> cur_server_id =
       m_instance->get_sysvar_int("server_id", Var_qualifier::GLOBAL);
 
   // Create config object (only with a server handler).
@@ -869,7 +859,7 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
   EXPECT_EQ(res.at(0).restart, false);
 
   // Fixing the value on the config will clear all warnings.
-  cfg.set_for_handler("server_id", nullable<std::string>("1"),
+  cfg.set_for_handler("server_id", std::optional<std::string>("1"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
   res.clear();
@@ -888,7 +878,6 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
-  using mysqlshdk::utils::nullable;
   using mysqlshdk::utils::Version;
 
   std::string instance_port =
@@ -899,15 +888,15 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   // the instance that is provided and we don't want to restart it.
 
   // Get the values of the dynamic variables.
-  nullable<std::string> cur_binlog_format =
+  std::optional<std::string> cur_binlog_format =
       m_instance->get_sysvar_string("binlog_format", Var_qualifier::GLOBAL);
-  nullable<std::string> cur_binlog_checksum =
+  std::optional<std::string> cur_binlog_checksum =
       m_instance->get_sysvar_string("binlog_checksum", Var_qualifier::GLOBAL);
   // now get the value of one of the other variables
   // Note, picked this one because this is the first returned variable on the
   // vector of invalid configs after the two dynamic variables, so if both
   // have correct values, this will be the invalid config at index 0.
-  nullable<std::string> cur_log_slave_updates =
+  std::optional<std::string> cur_log_slave_updates =
       m_instance->get_sysvar_string("log_slave_updates", Var_qualifier::GLOBAL);
   bool log_slave_updates_correct =
       (*cur_log_slave_updates == "1") || (*cur_log_slave_updates == "ON");
@@ -1176,85 +1165,89 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   EXPECT_EQ(res.at(i).restart, false);
 
   // Fixing all the config file incorrect values on both config objects
-  cfg_file_only.set_for_handler("binlog_format", nullable<std::string>("ROW"),
+  cfg_file_only.set_for_handler("binlog_format",
+                                std::optional<std::string>("ROW"),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
   if (!binlog_checksum_allowed) {
     cfg_file_only.set_for_handler("binlog_checksum",
-                                  nullable<std::string>("NONE"),
+                                  std::optional<std::string>("NONE"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
   }
   if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
     cfg_file_only.set_for_handler("log_slave_updates",
-                                  nullable<std::string>("ON"),
+                                  std::optional<std::string>("ON"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
   }
   cfg_file_only.set_for_handler("enforce_gtid_consistency",
-                                nullable<std::string>("ON"),
+                                std::optional<std::string>("ON"),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set_for_handler("gtid_mode", nullable<std::string>("ON"),
+  cfg_file_only.set_for_handler("gtid_mode", std::optional<std::string>("ON"),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
   if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
     cfg_file_only.set_for_handler("master_info_repository",
-                                  nullable<std::string>("TABLE"),
+                                  std::optional<std::string>("TABLE"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
     cfg_file_only.set_for_handler("relay_log_info_repository",
-                                  nullable<std::string>("TABLE"),
+                                  std::optional<std::string>("TABLE"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
   }
   cfg_file_only.set_for_handler(
       "transaction_write_set_extraction",
-      nullable<std::string>("MURMUR32"),  // different but valid
+      std::optional<std::string>("MURMUR32"),  // different but valid
       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg_file_only.set_for_handler("report_port",
-                                nullable<std::string>(instance_port),
+                                std::optional<std::string>(instance_port),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
 
   if (parallel_appliers_required) {
     cfg_file_only.set_for_handler("binlog_transaction_dependency_tracking",
-                                  nullable<std::string>("WRITESET"),
+                                  std::optional<std::string>("WRITESET"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
 
     cfg_file_only.set_for_handler(
         mysqlshdk::mysql::get_replication_option_keyword(
             m_instance->get_version(), "slave_parallel_type"),
-        nullable<std::string>("LOGICAL_CLOCK"),
+        std::optional<std::string>("LOGICAL_CLOCK"),
         mysqlshdk::config::k_dft_cfg_file_handler);
 
     cfg_file_only.set_for_handler(
         mysqlshdk::mysql::get_replication_option_keyword(
             m_instance->get_version(), "slave_preserve_commit_order"),
-        nullable<std::string>("ON"), mysqlshdk::config::k_dft_cfg_file_handler);
+        std::optional<std::string>("ON"),
+        mysqlshdk::config::k_dft_cfg_file_handler);
   }
 
   cfg_file_only.apply();
 
-  cfg.set_for_handler("binlog_format", nullable<std::string>("ROW"),
+  cfg.set_for_handler("binlog_format", std::optional<std::string>("ROW"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   if (!binlog_checksum_allowed) {
-    cfg.set_for_handler("binlog_checksum", nullable<std::string>("NONE"),
+    cfg.set_for_handler("binlog_checksum", std::optional<std::string>("NONE"),
                         mysqlshdk::config::k_dft_cfg_file_handler);
   }
   if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
-    cfg.set_for_handler("log_slave_updates", nullable<std::string>("ON"),
+    cfg.set_for_handler("log_slave_updates", std::optional<std::string>("ON"),
                         mysqlshdk::config::k_dft_cfg_file_handler);
   }
-  cfg.set_for_handler("enforce_gtid_consistency", nullable<std::string>("ON"),
+  cfg.set_for_handler("enforce_gtid_consistency",
+                      std::optional<std::string>("ON"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("gtid_mode", nullable<std::string>("ON"),
+  cfg.set_for_handler("gtid_mode", std::optional<std::string>("ON"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
 
   if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
     cfg.set_for_handler("master_info_repository",
-                        nullable<std::string>("TABLE"),
+                        std::optional<std::string>("TABLE"),
                         mysqlshdk::config::k_dft_cfg_file_handler);
     cfg.set_for_handler("relay_log_info_repository",
-                        nullable<std::string>("TABLE"),
+                        std::optional<std::string>("TABLE"),
                         mysqlshdk::config::k_dft_cfg_file_handler);
   }
-  cfg.set_for_handler("transaction_write_set_extraction",
-                      nullable<std::string>("MURMUR32"),  // different but valid
-                      mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("report_port", nullable<std::string>(instance_port),
+  cfg.set_for_handler(
+      "transaction_write_set_extraction",
+      std::optional<std::string>("MURMUR32"),  // different but valid
+      mysqlshdk::config::k_dft_cfg_file_handler);
+  cfg.set_for_handler("report_port", std::optional<std::string>(instance_port),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.apply();
 
@@ -1676,10 +1669,9 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
 
 TEST_F(Group_replication_test, check_instance_check_installed_schema_version) {
   using mysqlshdk::db::Type;
-  using mysqlshdk::utils::nullable;
   using mysqlshdk::utils::Version;
 
-  auto test = [](const nullable<bool> &gr_allow_lower_version_join,
+  auto test = [](const std::optional<bool> &gr_allow_lower_version_join,
                  const Version &instance_version,
                  const Version &lowest_cluster_version, bool is_compatible) {
     std::string compatible = (is_compatible) ? "COMPATIBLE" : "NOT COMPATIBLE";
@@ -1687,7 +1679,7 @@ TEST_F(Group_replication_test, check_instance_check_installed_schema_version) {
     std::string str_gr_allow_lower_version_join;
     std::vector<std::vector<std::string>> rows_gr_allow_lower_version_join;
 
-    if (gr_allow_lower_version_join.is_null()) {
+    if (!gr_allow_lower_version_join.has_value()) {
       str_gr_allow_lower_version_join = "NULL";
       rows_gr_allow_lower_version_join = {};
     } else {
@@ -1721,7 +1713,7 @@ TEST_F(Group_replication_test, check_instance_check_installed_schema_version) {
                        {Type::String, Type::String},
                        rows_gr_allow_lower_version_join}});
 
-    if (gr_allow_lower_version_join.is_null() ||
+    if (!gr_allow_lower_version_join.has_value() ||
         !*gr_allow_lower_version_join) {
       EXPECT_CALL(*mock_session, get_server_version())
           .WillOnce(Return(instance_version));
@@ -1757,59 +1749,58 @@ TEST_F(Group_replication_test, check_instance_check_installed_schema_version) {
 
   // Test: group_replication_allow_local_lower_version_join = ON
   // - Version compatible, independently of the cluster lowest version.
-  test(nullable<bool>(true), Version(8, 0, 1), Version(8, 0, 20), true);
-  test(nullable<bool>(true), Version(5, 7, 0), Version(5, 7, 50), true);
-  test(nullable<bool>(true), Version(8, 0, 21), Version(8, 0, 20), true);
-  test(nullable<bool>(true), Version(5, 7, 51), Version(5, 7, 50), true);
+  test(std::optional<bool>(true), Version(8, 0, 1), Version(8, 0, 20), true);
+  test(std::optional<bool>(true), Version(5, 7, 0), Version(5, 7, 50), true);
+  test(std::optional<bool>(true), Version(8, 0, 21), Version(8, 0, 20), true);
+  test(std::optional<bool>(true), Version(5, 7, 51), Version(5, 7, 50), true);
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version <= 8.0.16
   // Version compatible, if MAJOR(version) >= MAJOR(lowest_cluster_version)
-  test(nullable<bool>(false), Version(8, 0, 16), Version(8, 0, 16), true);
-  test(nullable<bool>(false), Version(8, 0, 15), Version(8, 0, 16), true);
+  test(std::optional<bool>(false), Version(8, 0, 16), Version(8, 0, 16), true);
+  test(std::optional<bool>(false), Version(8, 0, 15), Version(8, 0, 16), true);
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version <= 8.0.16
   // Version incompatible, if MAJOR(version) < MAJOR(lowest_cluster_version)
-  test(nullable<bool>(false), Version(5, 7, 26), Version(8, 0, 16), false);
+  test(std::optional<bool>(false), Version(5, 7, 26), Version(8, 0, 16), false);
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version > 8.0.16
   // Version compatible, if version >= lowest_cluster_version
-  test(nullable<bool>(false), Version(8, 0, 17), Version(8, 0, 17), true);
-  test(nullable<bool>(false), Version(8, 0, 18), Version(8, 0, 17), true);
+  test(std::optional<bool>(false), Version(8, 0, 17), Version(8, 0, 17), true);
+  test(std::optional<bool>(false), Version(8, 0, 18), Version(8, 0, 17), true);
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version > 8.0.16
   // Version incompatible, if version < lowest_cluster_version
-  test(nullable<bool>(false), Version(8, 0, 17), Version(8, 0, 18), false);
+  test(std::optional<bool>(false), Version(8, 0, 17), Version(8, 0, 18), false);
 
   // Test: group_replication_allow_local_lower_version_join is not defined
   //       instance_version <= 8.0.16
   // Version compatible, if MAJOR(version) >= MAJOR(lowest_cluster_version)
-  test(nullable<bool>(), Version(8, 0, 16), Version(8, 0, 16), true);
-  test(nullable<bool>(), Version(8, 0, 15), Version(8, 0, 16), true);
+  test(std::optional<bool>(), Version(8, 0, 16), Version(8, 0, 16), true);
+  test(std::optional<bool>(), Version(8, 0, 15), Version(8, 0, 16), true);
 
   // Test: group_replication_allow_local_lower_version_join is not defined
   //       instance_version <= 8.0.16
   // Version incompatible, if MAJOR(version) < MAJOR(lowest_cluster_version)
-  test(nullable<bool>(), Version(5, 7, 26), Version(8, 0, 16), false);
+  test(std::optional<bool>(), Version(5, 7, 26), Version(8, 0, 16), false);
 
   // Test: group_replication_allow_local_lower_version_join is not defined
   //       instance_version > 8.0.16
   // Version compatible, if version >= lowest_cluster_version
-  test(nullable<bool>(), Version(8, 0, 17), Version(8, 0, 17), true);
-  test(nullable<bool>(), Version(8, 0, 18), Version(8, 0, 17), true);
+  test(std::optional<bool>(), Version(8, 0, 17), Version(8, 0, 17), true);
+  test(std::optional<bool>(), Version(8, 0, 18), Version(8, 0, 17), true);
 
   // Test: group_replication_allow_local_lower_version_join is not defined.
   //       instance_version > 8.0.16
   // Version incompatible, if version < lowest_cluster_version
-  test(nullable<bool>(), Version(8, 0, 17), Version(8, 0, 18), false);
+  test(std::optional<bool>(), Version(8, 0, 17), Version(8, 0, 18), false);
 }
 
 TEST_F(Group_replication_test, is_instance_only_read_compatible) {
   using mysqlshdk::db::Type;
-  using mysqlshdk::utils::nullable;
   using mysqlshdk::utils::Version;
 
   auto test = [](const Version &instance_version,
@@ -1891,7 +1882,6 @@ TEST_F(Group_replication_test, is_instance_only_read_compatible) {
 
 TEST_F(Group_replication_test, is_address_supported_by_gr) {
   using mysqlshdk::db::Type;
-  using mysqlshdk::utils::nullable;
   using mysqlshdk::utils::Version;
 
   auto test = [](const std::string &address, const Version &instance_version,

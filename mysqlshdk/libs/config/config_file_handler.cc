@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,131 +30,124 @@
 namespace mysqlshdk {
 namespace config {
 
-Config_file_handler::Config_file_handler(const std::string &server_uuid,
-                                         const std::string &input_config_path,
-                                         const std::string &output_cnf_path)
-    : m_input_config_path(input_config_path),
-      m_output_config_path(output_cnf_path),
-      m_server_uuid(server_uuid) {
+namespace {
+bool config_var_to_bool(const std::string &name, std::string_view str_value) {
+  if (shcore::str_caseeq(str_value, "YES") ||
+      shcore::str_caseeq(str_value, "TRUE") ||
+      shcore::str_caseeq(str_value, "1") || shcore::str_caseeq(str_value, "ON"))
+    return true;
+  if (shcore::str_caseeq(str_value, "NO") ||
+      shcore::str_caseeq(str_value, "FALSE") ||
+      shcore::str_caseeq(str_value, "0") ||
+      shcore::str_caseeq(str_value, "OFF"))
+    return false;
+
+  throw std::runtime_error("The value of option '" + name +
+                           "' cannot be converted to a boolean.");
+}
+}  // namespace
+
+Config_file_handler::Config_file_handler(std::string server_uuid,
+                                         std::string input_config_path,
+                                         std::string output_cnf_path)
+    : m_input_config_path(std::move(input_config_path)),
+      m_output_config_path(std::move(output_cnf_path)),
+      m_server_uuid(std::move(server_uuid)) {
   // read the config file
   m_config_file.read(m_input_config_path);
 }
 
-Config_file_handler::Config_file_handler(const std::string &server_uuid,
-                                         const std::string &output_cnf_path)
-    : m_output_config_path(output_cnf_path), m_server_uuid(server_uuid) {}
+Config_file_handler::Config_file_handler(std::string server_uuid,
+                                         std::string output_cnf_path)
+    : m_output_config_path(std::move(output_cnf_path)),
+      m_server_uuid(std::move(server_uuid)) {}
 
-namespace {
-bool config_var_to_bool(const std::string &name, const std::string &str_value) {
-  const char *value = str_value.c_str();
-  bool ret_val;
-  if (shcore::str_caseeq(value, "YES") || shcore::str_caseeq(value, "TRUE") ||
-      shcore::str_caseeq(value, "1") || shcore::str_caseeq(value, "ON"))
-    ret_val = true;
-  else if (shcore::str_caseeq(value, "NO") ||
-           shcore::str_caseeq(value, "FALSE") ||
-           shcore::str_caseeq(value, "0") || shcore::str_caseeq(value, "OFF"))
-    ret_val = false;
-  else
-    throw std::runtime_error("The value of option '" + name +
-                             "' cannot be converted to a boolean.");
-  return ret_val;
-}
-}  // namespace
-
-utils::nullable<bool> Config_file_handler::get_bool(
+std::optional<bool> Config_file_handler::get_bool(
     const std::string &name) const {
-  utils::nullable<bool> ret_val;
   auto config_value = m_config_file.get(m_group, name);
-  if (!config_value.is_null()) {
-    ret_val = config_var_to_bool(name, *config_value);
-  }
-  return ret_val;
+  if (!config_value) return {};
+  return config_var_to_bool(name, *config_value);
 }
 
-utils::nullable<std::string> Config_file_handler::get_string(
+std::optional<std::string> Config_file_handler::get_string(
     const std::string &name) const {
   return m_config_file.get(m_group, name);
 }
 
-utils::nullable<int64_t> Config_file_handler::get_int(
+std::optional<int64_t> Config_file_handler::get_int(
     const std::string &name) const {
   auto config_value = m_config_file.get(m_group, name);
-  if (!config_value.is_null()) {
-    try {
-      return utils::nullable<int64_t>(
-          shcore::lexical_cast<int64_t>(*config_value));
-    } catch (const std::invalid_argument &) {  // conversion failed.
-      throw std::runtime_error("The value '" + *config_value +
-                               "' for option '" + name +
-                               "' cannot be converted to an integer.");
-    }
-  } else {
-    return utils::nullable<int64_t>();
+  if (!config_value) return {};
+
+  try {
+    return shcore::lexical_cast<int64_t>(*config_value);
+  } catch (const std::invalid_argument &) {  // conversion failed.
+    throw std::runtime_error("The value '" + *config_value + "' for option '" +
+                             name + "' cannot be converted to an integer.");
   }
 }
 
 void Config_file_handler::set(const std::string &name,
-                              const utils::nullable<bool> &value,
+                              std::optional<bool> value,
                               const std::string &context) {
-  utils::nullable<std::string> value_to_set;
-  if (!value.is_null()) {
-    *value ? value_to_set = "ON" : value_to_set = "OFF";
-  }
+  std::optional<std::string> value_to_set;
+  if (value.has_value()) value_to_set = *value ? "ON" : "OFF";
+
   // create mysqld section if it doesn't exist
   if (!m_config_file.has_group(m_group)) m_config_file.add_group(m_group);
   try {
     m_config_file.set(m_group, name, value_to_set);
   } catch (const std::exception &err) {
-    if (!context.empty()) {
-      std::string str_value =
-          (value.is_null()) ? "NULL" : (*value) ? "true" : "false";
-      throw std::runtime_error("Unable to set value " + str_value + " for '" +
-                               context + "': " + err.what());
-    } else {
-      throw;
-    }
+    if (context.empty()) throw;
+
+    std::string str_value =
+        !value.has_value() ? "NULL" : (*value ? "true" : "false");
+
+    throw std::runtime_error(
+        shcore::str_format("Unable to set value %s for '%s': %s",
+                           str_value.c_str(), context.c_str(), err.what()));
   }
 }
 
 void Config_file_handler::set(const std::string &name,
-                              const utils::nullable<int64_t> &value,
+                              std::optional<int64_t> value,
                               const std::string &context) {
-  utils::nullable<std::string> value_to_set;
-  if (!value.is_null()) {
-    value_to_set = std::to_string(*value);
-  }
+  std::optional<std::string> value_to_set;
+  if (value.has_value())
+    value_to_set = shcore::lexical_cast<std::string>(*value);
+
   // create mysqld section if it doesn't exist
   if (!m_config_file.has_group(m_group)) m_config_file.add_group(m_group);
   try {
     m_config_file.set(m_group, name, value_to_set);
   } catch (const std::exception &err) {
-    if (!context.empty()) {
-      std::string str_value =
-          (value.is_null()) ? "NULL" : std::to_string(*value);
-      throw std::runtime_error("Unable to set value " + str_value + " for '" +
-                               context + "': " + err.what());
-    } else {
-      throw;
-    }
+    if (context.empty()) throw;
+
+    std::string str_value =
+        !value.has_value() ? "NULL" : shcore::lexical_cast<std::string>(*value);
+
+    throw std::runtime_error(
+        shcore::str_format("Unable to set value %s for '%s': %s",
+                           str_value.c_str(), context.c_str(), err.what()));
   }
 }
 
 void Config_file_handler::set(const std::string &name,
-                              const utils::nullable<std::string> &value,
+                              const std::optional<std::string> &value,
                               const std::string &context) {
   // create mysqld section if it doesn't exist
   if (!m_config_file.has_group(m_group)) m_config_file.add_group(m_group);
   try {
     m_config_file.set(m_group, name, value);
   } catch (const std::exception &err) {
-    if (!context.empty()) {
-      std::string str_value = (value.is_null()) ? "NULL" : "'" + *value + "'";
-      throw std::runtime_error("Unable to set value " + str_value + " for '" +
-                               context + "': " + err.what());
-    } else {
-      throw;
-    }
+    if (context.empty()) throw;
+
+    std::string str_value =
+        !value ? "NULL" : shcore::str_format("'%s'", value->c_str());
+
+    throw std::runtime_error(
+        shcore::str_format("Unable to set value %s for '%s': %s",
+                           str_value.c_str(), context.c_str(), err.what()));
   }
 }
 
@@ -168,7 +161,7 @@ bool Config_file_handler::remove(const std::string &name) {
 }
 
 void Config_file_handler::set_now(const std::string &name,
-                                  const utils::nullable<bool> &value) {
+                                  std::optional<bool> value) {
   // Read existing configuration on the option file.
   Config_file config_file;
   if (!m_input_config_path.empty()) {
@@ -186,10 +179,9 @@ void Config_file_handler::set_now(const std::string &name,
   }
 
   // Set the specified option.
-  utils::nullable<std::string> value_to_set;
-  if (!value.is_null()) {
-    *value ? value_to_set = "ON" : value_to_set = "OFF";
-  }
+  std::optional<std::string> value_to_set;
+  if (value) value_to_set = *value ? "ON" : "OFF";
+
   config_file.set(m_group, name, value_to_set);
 
   // Apply changes to the output option file.
@@ -197,7 +189,7 @@ void Config_file_handler::set_now(const std::string &name,
 }
 
 void Config_file_handler::set_now(const std::string &name,
-                                  const utils::nullable<int64_t> &value) {
+                                  std::optional<int64_t> value) {
   // Read existing configuration on the option file.
   Config_file config_file;
   if (!m_input_config_path.empty()) {
@@ -215,10 +207,9 @@ void Config_file_handler::set_now(const std::string &name,
   }
 
   // Set the specified option.
-  utils::nullable<std::string> value_to_set;
-  if (!value.is_null()) {
-    value_to_set = std::to_string(*value);
-  }
+  std::optional<std::string> value_to_set;
+  if (value) value_to_set = shcore::lexical_cast<std::string>(*value);
+
   config_file.set(m_group, name, value_to_set);
 
   // Apply changes to the output option file.
@@ -226,7 +217,7 @@ void Config_file_handler::set_now(const std::string &name,
 }
 
 void Config_file_handler::set_now(const std::string &name,
-                                  const utils::nullable<std::string> &value) {
+                                  const std::optional<std::string> &value) {
   // Read existing configuration on the option file.
   Config_file config_file;
   if (!m_input_config_path.empty()) {
@@ -251,8 +242,8 @@ void Config_file_handler::set_now(const std::string &name,
 }
 
 void Config_file_handler::set_output_config_path(
-    const std::string &output_config_path) {
-  m_output_config_path = output_config_path;
+    std::string output_config_path) {
+  m_output_config_path = std::move(output_config_path);
 }
 
 }  // namespace config

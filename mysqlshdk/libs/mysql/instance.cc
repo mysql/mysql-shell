@@ -22,8 +22,11 @@
  */
 
 #include <mysqld_error.h>
+
 #include <algorithm>
+#include <array>
 #include <map>
+#include <string_view>
 #include <utility>
 
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -38,17 +41,23 @@
 namespace mysqlshdk {
 namespace mysql {
 
+namespace {
+// Define the fence sysvar list.
+constexpr std::array<std::string_view, 3> k_fence_sysvars = {
+    "read_only", "super_read_only", "offline_mode"};
+}  // namespace
+
 void Auth_options::get(const mysqlshdk::db::Connection_options &copts) {
   user = copts.get_user();
   password = copts.has_password()
-                 ? mysqlshdk::utils::nullable<std::string>{copts.get_password()}
-                 : mysqlshdk::utils::nullable<std::string>{nullptr};
+                 ? std::optional<std::string>{copts.get_password()}
+                 : std::nullopt;
   ssl_options = copts.get_ssl_options();
 }
 
 void Auth_options::set(mysqlshdk::db::Connection_options *copts) const {
   copts->set_user(user);
-  if (password.is_null())
+  if (!password.has_value())
     copts->clear_password();
   else
     copts->set_password(*password);
@@ -119,15 +128,14 @@ const std::string &Instance::get_uuid() const {
 }
 
 uint32_t Instance::get_id() const {
-  if (m_id.is_null()) {
-    m_id = queryf_one_int(0, 0, "SELECT @@server_id");
-  }
+  if (!m_id.has_value()) m_id = queryf_one_int(0, 0, "SELECT @@server_id");
   return *m_id;
 }
 
 const std::string &Instance::get_group_name() const {
   if (m_group_name.empty()) {
-    m_group_name = get_sysvar_string("group_replication_group_name").get_safe();
+    m_group_name =
+        get_sysvar_string("group_replication_group_name").value_or("");
   }
   return m_group_name;
 }
@@ -136,7 +144,7 @@ const std::string &Instance::get_version_compile_os() const {
   if (m_version_compile_os.empty()) {
     m_version_compile_os =
         get_sysvar_string("version_compile_os", Var_qualifier::GLOBAL)
-            .get_safe();
+            .value_or("");
   }
   return m_version_compile_os;
 }
@@ -145,7 +153,7 @@ const std::string &Instance::get_version_compile_machine() const {
   if (m_version_compile_machine.empty()) {
     m_version_compile_machine =
         get_sysvar_string("version_compile_machine", Var_qualifier::GLOBAL)
-            .get_safe();
+            .value_or("");
   }
   return m_version_compile_machine;
 }
@@ -167,45 +175,37 @@ bool sysvar_to_bool(const std::string &name, const std::string &str_value) {
 }
 }  // namespace
 
-utils::nullable<bool> Instance::get_sysvar_bool(
-    const std::string &name, const Var_qualifier scope) const {
-  utils::nullable<bool> ret_val;
+std::optional<bool> Instance::get_sysvar_bool(const std::string &name,
+                                              const Var_qualifier scope) const {
+  auto variables = get_system_variables({name}, scope);
+  if (variables[name]) return sysvar_to_bool(name, *variables[name]);
 
-  std::map<std::string, utils::nullable<std::string>> variables =
-      get_system_variables({name}, scope);
-
-  if (variables[name]) {
-    ret_val = sysvar_to_bool(name, *variables[name]);
-  }
-
-  return ret_val;
+  return {};
 }
 
-utils::nullable<std::string> Instance::get_sysvar_string(
+std::optional<std::string> Instance::get_sysvar_string(
     const std::string &name, const Var_qualifier scope) const {
   return get_system_variables({name}, scope)[name];
 }
 
-utils::nullable<int64_t> Instance::get_sysvar_int(
+std::optional<int64_t> Instance::get_sysvar_int(
     const std::string &name, const Var_qualifier scope) const {
-  utils::nullable<int64_t> ret_val;
-
   auto variables = get_system_variables({name}, scope);
-
   if (variables[name]) {
-    std::string value = *variables[name];
+    const auto &value = *variables[name];
 
     if (!value.empty()) {
       try {
-        int64_t int_val = shcore::lexical_cast<int64_t>(value);
-        ret_val = int_val;
+        return shcore::lexical_cast<int64_t>(value);
+
       } catch (const std::invalid_argument &) {
         throw std::runtime_error("The variable " + name +
                                  " is not an integer.");
       }
     }
   }
-  return ret_val;
+
+  return {};
 }
 
 /**
@@ -315,10 +315,10 @@ void Instance::set_sysvar(const std::string &name, const bool value,
   query(set_stmt);
 }
 
-std::map<std::string, utils::nullable<std::string>>
+std::map<std::string, std::optional<std::string>>
 Instance::get_system_variables(const std::vector<std::string> &names,
                                const Var_qualifier scope) const {
-  std::map<std::string, utils::nullable<std::string>> ret_val;
+  std::map<std::string, std::optional<std::string>> ret_val;
 
   std::shared_ptr<db::IResult> result;
   if (!names.empty()) {
@@ -332,11 +332,11 @@ Instance::get_system_variables(const std::vector<std::string> &names,
           "Invalid variable scope to get variables value, "
           "only GLOBAL and SESSION is supported.");
 
-    ret_val[names[0]] = utils::nullable<std::string>();
+    ret_val[names[0]] = std::nullopt;
 
     for (size_t index = 1; index < names.size(); index++) {
       query_format.append(", ?");
-      ret_val[names[index]] = utils::nullable<std::string>();
+      ret_val[names[index]] = std::nullopt;
     }
 
     query_format.append(")");
@@ -364,7 +364,7 @@ Instance::get_system_variables(const std::vector<std::string> &names,
   auto row = result->fetch_one();
   while (row) {
     if (row->is_null(1))
-      ret_val[row->get_string(0)] = nullptr;
+      ret_val[row->get_string(0)] = std::nullopt;
     else
       ret_val[row->get_string(0)] = row->get_string(1);
     row = result->fetch_one();
@@ -373,10 +373,10 @@ Instance::get_system_variables(const std::vector<std::string> &names,
   return ret_val;
 }
 
-std::map<std::string, utils::nullable<std::string>>
+std::map<std::string, std::optional<std::string>>
 Instance::get_system_variables_like(const std::string &pattern,
                                     const Var_qualifier scope) const {
-  std::map<std::string, utils::nullable<std::string>> ret_val;
+  std::map<std::string, std::optional<std::string>> ret_val;
 
   std::string query_format;
   if (scope == Var_qualifier::GLOBAL)
@@ -414,9 +414,7 @@ Instance::get_system_variables_like(const std::string &pattern,
  */
 
 bool Instance::is_performance_schema_enabled() const {
-  utils::nullable<bool> perf_schema_on =
-      get_sysvar_bool("performance_schema", Var_qualifier::GLOBAL);
-  return (!perf_schema_on.is_null() && *perf_schema_on);
+  return get_sysvar_bool("performance_schema", false);
 }
 
 /**
@@ -461,24 +459,22 @@ bool Instance::has_variable_compiled_value(const std::string &name) const {
  * @return nullable string with the state of the plugin if available ("ACTIVE"
  *         or "DISABLED") or NULL if the plugin is not available (installed).
  */
-utils::nullable<std::string> Instance::get_plugin_status(
+std::optional<std::string> Instance::get_plugin_status(
     const std::string &plugin_name) const {
   // Find the state information for the specified plugin.
-  std::string plugin_state_stmt_fmt =
-      "SELECT plugin_status "
-      "FROM information_schema.plugins "
-      "WHERE plugin_name = ?";
-  shcore::sqlstring plugin_state_stmt =
-      shcore::sqlstring(plugin_state_stmt_fmt.c_str(), 0);
+  auto plugin_state_stmt =
+      "SELECT plugin_status FROM information_schema.plugins "
+      "WHERE plugin_name = ?"_sql;
+
   plugin_state_stmt << plugin_name;
   plugin_state_stmt.done();
+
   auto resultset = query(plugin_state_stmt);
   auto row = resultset->fetch_one();
-  if (row)
-    return utils::nullable<std::string>(row->get_string(0));
-  else
-    // No state information found, return NULL.
-    return utils::nullable<std::string>();
+  if (row) return row->get_string(0);
+
+  // No state information found, return NULL.
+  return std::nullopt;
 }
 
 std::string Instance::get_plugin_library_extension() const {
@@ -737,22 +733,16 @@ void Instance::set_user_password(const std::string &username,
            hostname, password);
 }
 
-utils::nullable<bool> Instance::is_set_persist_supported() const {
+std::optional<bool> Instance::is_set_persist_supported() const {
   // Check if the instance version is >= 8.0.11 to support the SET PERSIST.
-  if (get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
-    // Check the value of persisted_globals_load
-    mysqlshdk::utils::nullable<bool> persist_global =
-        get_sysvar_bool("persisted_globals_load", Var_qualifier::GLOBAL);
-    return utils::nullable<bool>(*persist_global);
-  } else {
-    return utils::nullable<bool>();
-  }
+  if (get_version() < mysqlshdk::utils::Version(8, 0, 11)) return {};
+
+  // Check the value of persisted_globals_load
+  return get_sysvar_bool("persisted_globals_load", Var_qualifier::GLOBAL);
 }
 
-utils::nullable<std::string> Instance::get_persisted_value(
+std::optional<std::string> Instance::get_persisted_value(
     const std::string &variable_name) const {
-  utils::nullable<std::string> res;
-
   auto result = queryf(
       "SELECT variable_value "
       "FROM performance_schema.persisted_variables "
@@ -760,11 +750,9 @@ utils::nullable<std::string> Instance::get_persisted_value(
       variable_name);
 
   auto row = result->fetch_one();
-  if (row) {
-    res = row->get_string(0);
-  }
+  if (row) return row->get_string(0);
 
-  return res;
+  return {};
 }
 
 std::vector<std::string> Instance::get_fence_sysvars() const {
@@ -774,7 +762,7 @@ std::vector<std::string> Instance::get_fence_sysvars() const {
   std::string str_query = "SELECT";
   for (auto it = k_fence_sysvars.cbegin(); it != k_fence_sysvars.cend(); ++it) {
     if (it != k_fence_sysvars.cbegin()) str_query.append(",");
-    str_query.append(" @@" + *it);
+    str_query.append(" @@").append(*it);
   }
 
   // Execute the query and add all the enabled sysvars to the result list.
@@ -783,7 +771,7 @@ std::vector<std::string> Instance::get_fence_sysvars() const {
   if (row) {
     for (size_t i = 0; i < k_fence_sysvars.size(); ++i) {
       if (row->get_int(i) != 0) {
-        result.push_back(k_fence_sysvars.at(i));
+        result.push_back(std::string{k_fence_sysvars.at(i)});
       }
     }
     return result;

@@ -387,15 +387,15 @@ void reboot_seed(
     gr_options.communication_stack = *(options->switch_communication_stack);
 
   // Set localAddress if option used
-  if (!options->gr_options.local_address.is_null()) {
-    gr_options.local_address = options->gr_options.local_address.get_safe();
+  if (options->gr_options.local_address.has_value()) {
+    gr_options.local_address = *options->gr_options.local_address;
   } else {
     // Ensure it'll be auto resolved later
-    gr_options.local_address = nullptr;
+    gr_options.local_address = std::nullopt;
   }
 
   // Set the ipAllowlist if option used
-  if (!options->gr_options.ip_allowlist.is_null()) {
+  if (options->gr_options.ip_allowlist.has_value()) {
     gr_options.ip_allowlist = options->gr_options.ip_allowlist;
   }
 
@@ -485,7 +485,7 @@ void rejoin_instances(
     }
 
     // re-enable SRO if needed
-    if (!instance->get_sysvar_bool("super_read_only").get_safe()) {
+    if (!instance->get_sysvar_bool("super_read_only", false)) {
       log_info("Enabling super_read_only on instance '%s'...",
                instance->descr().c_str());
       instance->set_sysvar("super_read_only", true);
@@ -649,7 +649,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
       comm_stack =
           target_instance
               ->get_persisted_value("group_replication_communication_stack")
-              .get_safe();
+              .value_or("");
     }
 
     // Validate the options:
@@ -819,7 +819,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         "Cannot switch the communication stack in an invalidated Cluster "
         "because its instances won't be removed or rejoined.");
 
-  if (!options->gr_options.local_address.is_null()) {
+  if (options->gr_options.local_address.has_value()) {
     console->print_warning(
         "The value used for 'localAddress' only applies to the current "
         "session instance (seed). If the values generated automatically for "

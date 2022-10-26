@@ -528,7 +528,7 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
     // if start_on_boot is disabled, start GR by hand
     if (is_group_member &&
         !new_instance->get_sysvar_bool("group_replication_start_on_boot")
-             .get_safe()) {
+             .value_or(false)) {
       new_instance->execute("START GROUP_REPLICATION");
     }
   }

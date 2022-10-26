@@ -144,7 +144,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
  *                local_address, group_seeds, ip_whitelist, member_weight,
  *                expel_timeout, exit_state_action, and failover_consistency)
  *                when defined.
- * @param multi_primary nullable boolean indicating the GR topology mode that
+ * @param multi_primary optional boolean indicating the GR topology mode that
  *                      will be set. Multi-primary mode if true and
  *                      single-primary mode if false, otherwise not set.
  * @param config Config object for the target instance to start the cluster.
@@ -185,7 +185,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
 void join_cluster(const mysqlshdk::mysql::IInstance &instance,
                   const mysqlshdk::mysql::IInstance &peer_instance,
                   const Group_replication_options &gr_opts,
-                  const mysqlshdk::utils::nullable<uint64_t> &cluster_size,
+                  std::optional<uint64_t> cluster_size,
                   mysqlshdk::config::Config *config);
 
 }  // namespace dba

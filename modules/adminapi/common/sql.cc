@@ -283,7 +283,7 @@ Instance_metadata query_instance_info(
   try {
     local_gr_address =
         instance.get_sysvar_string("group_replication_local_address")
-            .get_safe("");
+            .value_or("");
 
     if (validate_gr_endpoint && local_gr_address.empty())
       throw shcore::Exception::error_with_code(

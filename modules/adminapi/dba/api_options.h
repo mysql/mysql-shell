@@ -80,7 +80,7 @@ struct Configure_instance_options : public Password_interactive_options {
   std::string cluster_admin;
   mysqlshdk::null_string cluster_admin_password;
   mysqlshdk::null_bool restart;
-  mysqlshdk::utils::nullable<int64_t> replica_parallel_workers;
+  std::optional<int64_t> replica_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;
   mysqlshdk::null_bool clear_read_only;

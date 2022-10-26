@@ -421,13 +421,9 @@ Member_recovery_method validate_instance_recovery(
     bool interactive, bool clone_disabled) {
   auto console = mysqlsh::current_console();
 
-  Member_recovery_method recovery_method = Member_recovery_method::INCREMENTAL;
-
   bool recovery_possible;
   bool recovery_safe;
   bool gtid_set_diverged;
-
-  bool clone_supported = mysqlshdk::mysql::is_clone_available(*target_instance);
 
   check_gtid_consistency_and_recoverability(
       cluster_type, donor_instance, target_instance, check_recoverable,
@@ -441,9 +437,10 @@ Member_recovery_method validate_instance_recovery(
         "Clone based recovery selected through the recoveryMethod option");
     console->print_info();
 
-    recovery_method = Member_recovery_method::CLONE;
+    return Member_recovery_method::CLONE;
+  }
 
-  } else if (opt_recovery_method == Member_recovery_method::INCREMENTAL) {
+  if (opt_recovery_method == Member_recovery_method::INCREMENTAL) {
     validate_incremental_recovery(op_action, recovery_possible, recovery_safe);
 
     console->print_info(
@@ -451,113 +448,115 @@ Member_recovery_method validate_instance_recovery(
         "recoveryMethod option");
     console->print_info();
 
-    recovery_method = Member_recovery_method::INCREMENTAL;
-  } else {
-    // When recovery is safe we do not need to prompt. If possible,
-    // incremental recovery should be used, otherwise clone. BUG#30884590:
-    // ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR
-    // CLONE
-    if (recovery_safe) {
-      if (recovery_possible) {
-        mysqlshdk::utils::nullable<int64_t> current_threshold;
+    return Member_recovery_method::INCREMENTAL;
+  }
 
-        // Even though we detected that incremental distributed recovery is
-        // safely usable, it might not be used if
-        // group_replication_clone_threshold was set to 1 - in InnoDB
-        // cluster only
-        if (cluster_type == Cluster_type::GROUP_REPLICATION) {
-          current_threshold = target_instance->get_sysvar_int(
-              "group_replication_clone_threshold");
-        }
+  Member_recovery_method recovery_method = Member_recovery_method::INCREMENTAL;
 
-        if ((cluster_type == Cluster_type::GROUP_REPLICATION) &&
-            (!current_threshold.is_null() && *current_threshold != LLONG_MAX)) {
-          console->print_note(
-              "Incremental state recovery was determined to be "
-              "safely usable, however, group_replication_clone_threshold has "
-              "been set to " +
-              std::to_string(*current_threshold) +
-              ", which may cause Group Replication to use clone based "
-              "recovery.");
-        } else {
-          console->print_info(
-              "Incremental state recovery was selected because it seems to be "
-              "safely usable.");
-          console->print_info();
-          recovery_method = Member_recovery_method::INCREMENTAL;
-        }
+  bool clone_supported = mysqlshdk::mysql::is_clone_available(*target_instance);
+
+  // When recovery is safe we do not need to prompt. If possible,
+  // incremental recovery should be used, otherwise clone. BUG#30884590:
+  // ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR
+  // CLONE
+  if (recovery_safe) {
+    if (recovery_possible) {
+      std::optional<int64_t> current_threshold;
+
+      // Even though we detected that incremental distributed recovery is
+      // safely usable, it might not be used if
+      // group_replication_clone_threshold was set to 1 - in InnoDB
+      // cluster only
+      if (cluster_type == Cluster_type::GROUP_REPLICATION) {
+        current_threshold = target_instance->get_sysvar_int(
+            "group_replication_clone_threshold");
+      }
+
+      if ((cluster_type == Cluster_type::GROUP_REPLICATION) &&
+          (current_threshold.has_value() && *current_threshold != LLONG_MAX)) {
+        console->print_note(
+            "Incremental state recovery was determined to be safely usable, "
+            "however, group_replication_clone_threshold has been set to " +
+            std::to_string(*current_threshold) +
+            ", which may cause Group Replication to use clone based recovery.");
       } else {
-        if (!clone_disabled && clone_supported) {
-          console->print_info(
-              "Clone based recovery was selected because it seems to be safely "
-              "usable.");
-          console->print_info();
-          recovery_method = Member_recovery_method::CLONE;
-        }
+        console->print_info(
+            "Incremental state recovery was selected because it seems to be "
+            "safely usable.");
+        console->print_info();
+        recovery_method = Member_recovery_method::INCREMENTAL;
       }
     } else {
-      Prompt_type prompt = validate_auto_recovery(
-          cluster_type, op_action, recovery_possible, recovery_safe,
-          clone_supported, gtid_set_diverged, interactive, clone_disabled);
-
-      console->print_info();
-
-      switch (prompt) {
-        case Clone_incremental_abort:
-          switch (console->confirm("Please select a recovery method",
-                                   mysqlsh::Prompt_answer::YES, "&Clone",
-                                   "&Incremental recovery", "&Abort")) {
-            case mysqlsh::Prompt_answer::YES:
-              recovery_method = Member_recovery_method::CLONE;
-              break;
-            case mysqlsh::Prompt_answer::NO:
-              recovery_method = Member_recovery_method::INCREMENTAL;
-              break;
-            case mysqlsh::Prompt_answer::ALT:
-            case mysqlsh::Prompt_answer::NONE:
-              throw shcore::cancelled("Cancelled");
-          }
-          break;
-
-        case Clone_abort:
-          switch (console->confirm("Please select a recovery method",
-                                   mysqlsh::Prompt_answer::YES, "&Clone",
-                                   "&Abort")) {
-            case mysqlsh::Prompt_answer::YES:
-              recovery_method = Member_recovery_method::CLONE;
-              break;
-            default:
-              throw shcore::cancelled("Cancelled");
-          }
-          break;
-
-        case Abort_clone:
-          switch (console->confirm("Please select a recovery method",
-                                   mysqlsh::Prompt_answer::NO, "&Clone",
-                                   "&Abort")) {
-            case mysqlsh::Prompt_answer::YES:
-              recovery_method = Member_recovery_method::CLONE;
-              break;
-            default:
-              throw shcore::cancelled("Cancelled");
-          }
-          break;
-
-        case Incremental_abort:
-          switch (console->confirm("Please select a recovery method",
-                                   mysqlsh::Prompt_answer::YES,
-                                   "&Incremental recovery", "&Abort")) {
-            case mysqlsh::Prompt_answer::YES:
-              recovery_method = Member_recovery_method::INCREMENTAL;
-              break;
-            default:
-              throw shcore::cancelled("Cancelled");
-          }
-          break;
-
-        case None:
-          break;
+      if (!clone_disabled && clone_supported) {
+        console->print_info(
+            "Clone based recovery was selected because it seems to be safely "
+            "usable.");
+        console->print_info();
+        recovery_method = Member_recovery_method::CLONE;
       }
+    }
+  } else {
+    Prompt_type prompt = validate_auto_recovery(
+        cluster_type, op_action, recovery_possible, recovery_safe,
+        clone_supported, gtid_set_diverged, interactive, clone_disabled);
+
+    console->print_info();
+
+    switch (prompt) {
+      case Clone_incremental_abort:
+        switch (console->confirm("Please select a recovery method",
+                                 mysqlsh::Prompt_answer::YES, "&Clone",
+                                 "&Incremental recovery", "&Abort")) {
+          case mysqlsh::Prompt_answer::YES:
+            recovery_method = Member_recovery_method::CLONE;
+            break;
+          case mysqlsh::Prompt_answer::NO:
+            recovery_method = Member_recovery_method::INCREMENTAL;
+            break;
+          case mysqlsh::Prompt_answer::ALT:
+          case mysqlsh::Prompt_answer::NONE:
+            throw shcore::cancelled("Cancelled");
+        }
+        break;
+
+      case Clone_abort:
+        switch (console->confirm("Please select a recovery method",
+                                 mysqlsh::Prompt_answer::YES, "&Clone",
+                                 "&Abort")) {
+          case mysqlsh::Prompt_answer::YES:
+            recovery_method = Member_recovery_method::CLONE;
+            break;
+          default:
+            throw shcore::cancelled("Cancelled");
+        }
+        break;
+
+      case Abort_clone:
+        switch (console->confirm("Please select a recovery method",
+                                 mysqlsh::Prompt_answer::NO, "&Clone",
+                                 "&Abort")) {
+          case mysqlsh::Prompt_answer::YES:
+            recovery_method = Member_recovery_method::CLONE;
+            break;
+          default:
+            throw shcore::cancelled("Cancelled");
+        }
+        break;
+
+      case Incremental_abort:
+        switch (console->confirm("Please select a recovery method",
+                                 mysqlsh::Prompt_answer::YES,
+                                 "&Incremental recovery", "&Abort")) {
+          case mysqlsh::Prompt_answer::YES:
+            recovery_method = Member_recovery_method::INCREMENTAL;
+            break;
+          default:
+            throw shcore::cancelled("Cancelled");
+        }
+        break;
+
+      case None:
+        break;
     }
   }
 
@@ -569,9 +568,9 @@ std::string get_only_view_change_gtids(
     const mysqlshdk::mysql::IInstance &replica, const std::string &gtids) {
   using mysqlshdk::mysql::Gtid_set;
   auto s_vc =
-      source.get_sysvar_string("group_replication_view_change_uuid").get_safe();
-  auto r_vc = replica.get_sysvar_string("group_replication_view_change_uuid")
-                  .get_safe();
+      source.get_sysvar_string("group_replication_view_change_uuid", "");
+  auto r_vc =
+      replica.get_sysvar_string("group_replication_view_change_uuid", "");
 
   auto orig_gtids = Gtid_set::from_string(gtids);
   orig_gtids.normalize(source);
@@ -588,9 +587,9 @@ mysqlshdk::mysql::Replica_gtid_state check_replica_group_gtid_state(
     std::string *out_errant_gtids) {
   using mysqlshdk::mysql::Gtid_set;
   auto s_vc =
-      source.get_sysvar_string("group_replication_view_change_uuid").get_safe();
-  auto r_vc = replica.get_sysvar_string("group_replication_view_change_uuid")
-                  .get_safe();
+      source.get_sysvar_string("group_replication_view_change_uuid", "");
+  auto r_vc =
+      replica.get_sysvar_string("group_replication_view_change_uuid", "");
 
   auto filter_vcle = [&replica](Gtid_set gtid,
                                 const std::string &view_change_uuid) {

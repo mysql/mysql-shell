@@ -559,7 +559,7 @@ void Replica_set_impl::validate_add_instance(
     for (const auto &node : topology_mgr->topology()->nodes()) {
       for (const auto &m : node->members()) {
         // uniqueness of uuid is checked in validate_not_managed()
-        if (m.server_id.get_safe() == server_id) {
+        if (m.server_id.value_or(0) == server_id) {
           throw shcore::Exception("server_id in " + target->descr() +
                                       " is expected to be unique, but " +
                                       m.label + " already uses the same value",
@@ -2173,7 +2173,7 @@ void Replica_set_impl::handle_clone(
 
   // Pick a valid donor
   std::string donor;
-  if (!clone_options.clone_donor.is_null()) {
+  if (clone_options.clone_donor.has_value()) {
     ensure_compatible_donor(*clone_options.clone_donor, recipient.get());
     donor = *clone_options.clone_donor;
   } else {
@@ -2209,7 +2209,7 @@ void Replica_set_impl::handle_clone(
 
   // Check if super_read_only is enabled. If so it must be disabled to create
   // the account
-  if (recipient->get_sysvar_bool("super_read_only").get_safe()) {
+  if (recipient->get_sysvar_bool("super_read_only", false)) {
     recipient->set_sysvar("super_read_only", false);
   }
 
@@ -2843,15 +2843,12 @@ shcore::Dictionary_t Replica_set_impl::get_topology_options() {
 
     if (instance->connect_error.empty()) {
       // Get the parallel-appliers options
-      for (const auto &variable : instance->parallel_appliers) {
+      for (const auto &[name, value] : instance->parallel_appliers) {
         shcore::Dictionary_t option = shcore::make_dict();
-        (*option)["variable"] = shcore::Value(variable.first);
+        (*option)["variable"] = shcore::Value(name);
         // Check if the option exists in the target server
-        if (!variable.second.is_null()) {
-          (*option)["value"] = shcore::Value(*variable.second);
-        } else {
-          (*option)["value"] = shcore::Value::Null();
-        }
+        (*option)["value"] =
+            value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
         array->push_back(shcore::Value(option));
       }
 
