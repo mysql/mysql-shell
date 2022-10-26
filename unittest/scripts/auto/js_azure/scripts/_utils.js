@@ -33,6 +33,21 @@ function getDumpAndLoadFunctionCallbacks(options, envvars){
     };
 }
 
+exports.dropSakilaSchema = false;
+
+exports.setupFailureTests = function () {
+    const s = shell.openSession(__mysqluripwd);
+
+    if (!s.runSql('SHOW SCHEMAS LIKE "sakila"').fetchOne()) {
+        testutil.importData(__mysqluripwd, os.path.join(__data_path, "sql", "sakila-schema.sql"));
+        testutil.importData(__mysqluripwd, os.path.join(__data_path, "sql", "sakila-data.sql"), "sakila");
+        exports.dropSakilaSchema = true;
+    }
+
+    s.runSql("SET @@GLOBAL.local_infile = ON;");
+    s.close();
+}
+
 exports.testFailure = function (options, envvars, error, custom_errors={}){
     let functions = getDumpAndLoadFunctionCallbacks(options, envvars);
     for(index in functions){
@@ -47,3 +62,13 @@ exports.testFailure = function (options, envvars, error, custom_errors={}){
     }
 }
 
+exports.cleanupFailureTests = function () {
+    const s = shell.openSession(__mysqluripwd);
+
+    if (exports.dropSakilaSchema) {
+        s.runSql("DROP SCHEMA IF EXISTS sakila;");
+    }
+
+    s.runSql("SET @@GLOBAL.local_infile = OFF;");
+    s.close();
+}

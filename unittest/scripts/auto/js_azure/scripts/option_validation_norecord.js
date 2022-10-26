@@ -2,6 +2,7 @@
 shell.connect(__mysqluripwd + "/mysql");
 
 var utils = require("_utils")
+utils.setupFailureTests();
 
 //@<> TS_R2_1 - Conflicting options with OCI
 utils.testFailure(["--azureContainerName=something", "--osBucketName=something"], [], "The option 'azureContainerName' cannot be used when the value of 'osBucketName' option is set.");
@@ -59,18 +60,9 @@ utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure
     "loadDump": "Failed opening object 'sample/@.json' in READ mode: Failed to get summary for object 'sample/@.json': Not Found (404)"
 });
 
-let error = "Could not resolve host: jd.blob.core.windows.net";
-let customErrors = {}
-if (__azure_emulator) {
-    error = "Invalid storage account.";
-    customErrors = {
-        "importTable": "Failed to get summary for object 'path': Bad Request (400)",
-        "loadDump": "Failed to get summary for object 'sample/@.json': Bad Request (400)"
-    }
-}
-
 //@<> TS_R6_1-Invalid Username
-utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config", "--azureStorageAccount=jd"], ['AZURE_STORAGE_CONNECTION_STRING='], error, customErrors);
+utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config", "--azureStorageAccount=jd"], ['AZURE_STORAGE_CONNECTION_STRING='], "The specified Azure Storage Account name is invalid, expected 3 to 24 characters: jd");
+utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config", "--azureStorageAccount=jd-jd"], ['AZURE_STORAGE_CONNECTION_STRING='], "The specified Azure Storage Account name is invalid, expected numbers and lowercase characters: jd-jd");
 
 //@<> TS_R6_1-Empty Username
 utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config", "--azureStorageAccount", ""], ['AZURE_STORAGE_CONNECTION_STRING='], "The specified container does not exist.",{
@@ -80,7 +72,8 @@ utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure
 
 
 //@<> TS_R7_1-Invalid Username
-utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config"], ['AZURE_STORAGE_CONNECTION_STRING=', 'AZURE_STORAGE_ACCOUNT=jd'], error, customErrors);
+utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config"], ['AZURE_STORAGE_CONNECTION_STRING=', 'AZURE_STORAGE_ACCOUNT=jd'], "The specified Azure Storage Account name is invalid, expected 3 to 24 characters: jd");
+utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config"], ['AZURE_STORAGE_CONNECTION_STRING=', 'AZURE_STORAGE_ACCOUNT=jd-jd'], "The specified Azure Storage Account name is invalid, expected numbers and lowercase characters: jd-jd");
 
 //@<> TS_R7_1-Empty Username
 utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure_config/.azure/config"], ['AZURE_STORAGE_CONNECTION_STRING=', 'AZURE_STORAGE_ACCOUNT='], "The specified container does not exist.",{
@@ -88,6 +81,6 @@ utils.testFailure(["--azureContainerName=something", "--azureConfigFile", "azure
     "loadDump": "Failed opening object 'sample/@.json' in READ mode: Failed to get summary for object 'sample/@.json': Not Found (404)"
 });
 
-
+//@<> cleanup
+utils.cleanupFailureTests();
 testutil.rmdir("azure_config", true);
-

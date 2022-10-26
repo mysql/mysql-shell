@@ -522,7 +522,7 @@ If a SAS Token is defined, it will be used for the authorization (ignoring any d
 
 The default Azure Blob Endpoint to be used in the operations is defined by:
 
-https://@<account@>.blob.core.windows.net
+%https://@<account@>.blob.core.windows.net
 
 Unless a different EndPoint is defined in the connection string.)*");
 
@@ -623,7 +623,7 @@ ${TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS})*");
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_URL_DETAIL, R"*(
 @li <b>/path/to/file</b> - Path to a locally or remotely (e.g. in OCI Object
 Storage) accessible file or directory
-@li <b>file:///path/to/file</b> - Path to a locally accessible file or directory
+@li <b>%file:///path/to/file</b> - Path to a locally accessible file or directory
 @li <b>http[s]://host.domain[:port]/path/to/file</b> - Location of a remote file
 accessible through HTTP(s) (<<<importTable>>>() only)
 
@@ -665,8 +665,8 @@ All selected files must be chunks of the same target table.
 @param options Optional dictionary with import options
 
 The scheme part of a filename contains infomation about the transport backend.
-Supported transport backends are: file://, http://, https://.
-If the scheme part of a filename is omitted, then file:// transport backend
+Supported transport backends are: %file://, %http://, %https://.
+If the scheme part of a filename is omitted, then %file:// transport backend
 will be chosen.
 
 Supported filename formats:
