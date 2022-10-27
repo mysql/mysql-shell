@@ -718,7 +718,7 @@ shcore::Value::Map_type_ref Session::get_status() {
     result = execute_sql(
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
-        "concat(@@version, \" \", @@version_comment) as version, "
+        "concat(@@version, ' ', @@version_comment) as version, "
         "@@mysqlx_socket, @@mysqlx_port, @@datadir, @@character_set_results "
         "limit 1");
     row = result->fetch_one();

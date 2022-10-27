@@ -469,7 +469,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
     result = _session->query(
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
-        "concat(@@version, \" \", @@version_comment) as version, "
+        "concat(@@version, ' ', @@version_comment) as version, "
         "@@socket, @@port, @@datadir, @@character_set_results "
         "limit 1");
 

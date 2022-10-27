@@ -1882,6 +1882,64 @@ TEST_F(Interactive_shell_test, status_classic) {
   EXPECT_NE(std::string::npos, line.find("sec"));
 }
 
+TEST_F(Interactive_shell_test, status_ansi_quotes) {
+  execute("\\connect " + _uri);
+  wipe_all();
+
+  execute("\\sql");
+  MY_EXPECT_STDOUT_CONTAINS("Switching to SQL mode... Commands end with ;");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("set SESSION SQL_MODE=\"\";");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("MySQL Shell version");
+  MY_EXPECT_STDOUT_CONTAINS("Connection Id:");
+  MY_EXPECT_STDOUT_CONTAINS("TCP port:");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("set SESSION SQL_MODE=\"ANSI_QUOTES\";");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("MySQL Shell version");
+  MY_EXPECT_STDOUT_CONTAINS("Connection Id:");
+  MY_EXPECT_STDOUT_CONTAINS("TCP port:");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\connect " + _mysql_uri);
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("set SESSION SQL_MODE=\"\";");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("MySQL Shell version");
+  MY_EXPECT_STDOUT_CONTAINS("Connection Id:");
+  MY_EXPECT_STDOUT_CONTAINS("TCP port:");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("set SESSION SQL_MODE=\"ANSI_QUOTES\";");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  execute("\\status");
+  MY_EXPECT_STDOUT_CONTAINS("MySQL Shell version");
+  MY_EXPECT_STDOUT_CONTAINS("Connection Id:");
+  MY_EXPECT_STDOUT_CONTAINS("TCP port:");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+}
+
 TEST_F(Interactive_shell_test, reconnect_command) {
   execute("\\reconnect");
   MY_EXPECT_STDERR_CONTAINS("enable reconnection");
