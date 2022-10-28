@@ -41,7 +41,6 @@
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -119,7 +118,7 @@ class Load_dump_options {
   std::unique_ptr<mysqlshdk::storage::IFile> create_progress_file_handle()
       const;
 
-  const mysqlshdk::null_string &progress_file() const {
+  const std::optional<std::string> &progress_file() const {
     return m_progress_file;
   }
 
@@ -136,7 +135,7 @@ class Load_dump_options {
   uint64_t threads_count() const { return m_threads_count; }
 
   uint64_t background_threads_count(uint64_t def) const {
-    return m_background_threads_count.get_safe(def);
+    return m_background_threads_count.value_or(def);
   }
 
   uint64_t threads_per_add_index() const { return m_threads_per_add_index; }
@@ -195,7 +194,7 @@ class Load_dump_options {
   bool show_metadata() const { return m_show_metadata; }
 
   bool should_create_pks(bool default_value) const {
-    return m_create_invisible_pks.get_safe(default_value);
+    return m_create_invisible_pks.value_or(default_value);
   }
 
   bool auto_create_pks_supported() const {
@@ -204,8 +203,7 @@ class Load_dump_options {
 
   bool sql_generate_invisible_primary_key() const;
 
-  const mysqlshdk::utils::nullable<uint64_t> &max_bytes_per_transaction()
-      const {
+  std::optional<uint64_t> max_bytes_per_transaction() const {
     return m_max_bytes_per_transaction;
   }
 
@@ -246,7 +244,7 @@ class Load_dump_options {
 
   std::string m_url;
   uint64_t m_threads_count = 4;
-  mysqlshdk::utils::nullable<uint64_t> m_background_threads_count;
+  std::optional<uint64_t> m_background_threads_count;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
 
   mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
@@ -279,7 +277,7 @@ class Load_dump_options {
 
   uint64_t m_wait_dump_timeout_ms = 0;
   bool m_reset_progress = false;
-  mysqlshdk::null_string m_progress_file;
+  std::optional<std::string> m_progress_file;
   std::string m_default_progress_file;
   std::string m_character_set;
   bool m_load_data = true;
@@ -300,10 +298,10 @@ class Load_dump_options {
   mysqlshdk::utils::Version m_target_server_version;
   bool m_is_mds = false;
   bool m_show_metadata = false;
-  mysqlshdk::null_bool m_create_invisible_pks;
+  std::optional<bool> m_create_invisible_pks;
   std::optional<bool> m_sql_generate_invisible_primary_key;
 
-  mysqlshdk::utils::nullable<uint64_t> m_max_bytes_per_transaction;
+  std::optional<uint64_t> m_max_bytes_per_transaction;
 
   std::string m_server_uuid;
 

@@ -220,7 +220,7 @@ void Object::open(storage::Mode mode) {
   m_open_mode = mode;
 }
 
-bool Object::is_open() const { return !m_open_mode.is_null(); }
+bool Object::is_open() const { return m_open_mode.has_value(); }
 
 void Object::close() {
   if (m_writer) m_writer->close();

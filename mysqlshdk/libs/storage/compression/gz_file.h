@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,12 +29,12 @@
 #include <cassert>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -105,7 +105,7 @@ class Gz_file : public Compressed_file {
 
   z_stream m_stream;
   std::vector<uint8_t> m_source;
-  mysqlshdk::utils::nullable<Mode> m_open_mode{nullptr};
+  std::optional<Mode> m_open_mode;
 };
 
 Gz_file::Buf_view Gz_file::peek(const size_t length) {

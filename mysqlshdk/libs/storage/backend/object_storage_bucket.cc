@@ -173,12 +173,13 @@ size_t Container::get_object(const std::string &object_name,
   Headers headers;
   std::string range;
 
-  if (from_byte || to_byte) {
+  if (from_byte.has_value() || to_byte.has_value()) {
     validate_range(from_byte, to_byte);
 
     range = shcore::str_format(
-        "bytes=%s-%s", (!from_byte ? "" : std::to_string(*from_byte).c_str()),
-        (!to_byte ? "" : std::to_string(*to_byte).c_str()));
+        "bytes=%s-%s",
+        (from_byte.has_value() ? std::to_string(*from_byte).c_str() : ""),
+        (to_byte.has_value() ? std::to_string(*to_byte).c_str() : ""));
     headers["range"] = range;
   }
 

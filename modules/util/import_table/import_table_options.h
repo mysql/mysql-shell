@@ -32,8 +32,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
+
 #include "modules/util/import_table/dialect.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -147,7 +149,7 @@ class Import_table_option_pack {
   std::string m_partition;
   std::string m_character_set;
   int64_t m_threads_size = 8;
-  mysqlshdk::utils::nullable<uint64_t> m_bytes_per_chunk;
+  std::optional<uint64_t> m_bytes_per_chunk;
   size_t m_max_bytes_per_transaction = 0;
   shcore::Array_t m_columns;
   std::map<std::string, std::string> m_decode_columns;

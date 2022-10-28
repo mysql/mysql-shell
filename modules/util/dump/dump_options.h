@@ -26,6 +26,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -37,7 +38,6 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/config.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -94,8 +94,7 @@ class Dump_options {
 
   const std::string &character_set() const { return m_character_set; }
 
-  const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
-      &mds_compatibility() const {
+  const std::optional<mysqlshdk::utils::Version> &mds_compatibility() const {
     return m_mds;
   }
 
@@ -196,7 +195,7 @@ class Dump_options {
   }
 
   void set_mds_compatibility(
-      const mysqlshdk::utils::nullable<mysqlshdk::utils::Version> &mds) {
+      const std::optional<mysqlshdk::utils::Version> &mds) {
     m_mds = mds;
   }
 
@@ -414,7 +413,7 @@ class Dump_options {
   // a reference
 
   // currently used by dumpTables(), dumpSchemas() and dumpInstance()
-  mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
+  std::optional<mysqlshdk::utils::Version> m_mds;
   Compatibility_options m_compatibility_options;
 
   // currently used by dumpInstance()

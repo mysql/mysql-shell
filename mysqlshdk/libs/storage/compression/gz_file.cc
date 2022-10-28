@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -155,12 +155,14 @@ void Gz_file::open(Mode m) {
 }
 
 bool Gz_file::is_open() const {
-  return !m_open_mode.is_null() && file()->is_open();
+  return m_open_mode.has_value() && file()->is_open();
 }
 
 void Gz_file::close() { do_close(); }
 
 void Gz_file::do_close() {
+  assert(is_open());
+
   switch (*m_open_mode) {
     case Mode::READ: {
       auto result = inflateEnd(&m_stream);

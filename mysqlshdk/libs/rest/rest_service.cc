@@ -430,7 +430,7 @@ class Rest_service::Impl {
                      (m_base_url.real() + path).c_str());
 
     if (m_port.has_value()) {
-      curl_easy_setopt(m_handle.get(), CURLOPT_PORT, m_port.value());
+      curl_easy_setopt(m_handle.get(), CURLOPT_PORT, *m_port);
     }
   }
 
@@ -592,7 +592,7 @@ Response::Status_code Rest_service::execute(Request *request,
       }
 
       if (retry_strategy && retry_strategy->should_retry(
-                                code, error ? error.value().what() : "")) {
+                                code, error.has_value() ? error->what() : "")) {
         // A retriable error occurred
         retry(shcore::str_format("%d-%s", static_cast<int>(code),
                                  Response::status_code(code).c_str())

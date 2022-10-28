@@ -36,7 +36,6 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"

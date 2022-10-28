@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,11 +25,12 @@
 #define MODULES_UTIL_JSON_IMPORTER_H_
 
 #include <memory>
+#include <optional>
 #include <string>
+
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -41,9 +42,6 @@ namespace mysqlsh {
 class Json_importer;
 
 class Prepare_json_import {
-  template <class T>
-  using nullable = mysqlshdk::utils::nullable<T>;
-
  public:
   explicit Prepare_json_import(
       const std::shared_ptr<mysqlshdk::db::mysqlx::Session> &session)
@@ -98,13 +96,13 @@ class Prepare_json_import {
     return *this;
   }
 
-  std::string to_string() {
-    return std::string{
-        "Importing from " +
-        (m_source == Source::FILE ? std::string("file ") : std::string()) +
-        m_source.to_string() + " to " +
-        (m_put_to_collection ? "collection" : "table") + " `" + *m_schema +
-        "`.`" + (m_put_to_collection ? *m_collection : *m_table) + "`"};
+  std::string to_string() const {
+    static constexpr auto unknown = "<unknown>";
+    return std::string{"Importing from "} + m_source.to_string() + " to " +
+           (m_put_to_collection ? "collection" : "table") + " `" +
+           m_schema.value_or(unknown) + "`.`" +
+           (m_put_to_collection ? m_collection : m_table).value_or(unknown) +
+           "`";
   }
 
   Json_importer build();
@@ -139,7 +137,7 @@ class Prepare_json_import {
    */
   void validate();
 
-  nullable<std::string> target_name_from_path();
+  std::optional<std::string> target_name_from_path();
 
   /**
    * Extract name for collection from file name.
@@ -163,12 +161,12 @@ class Prepare_json_import {
 
     bool operator==(Source_tag other) { return tag == other; }
 
-    std::string to_string() {
+    std::string to_string() const {
       switch (tag) {
         case NONE:
           return "-none-";
         case FILE:
-          return "\"" + shcore::path::expand_user(path) + "\"";
+          return "file \"" + shcore::path::expand_user(path) + "\"";
         case STDIN:
           return "-stdin-";
       }
@@ -176,9 +174,9 @@ class Prepare_json_import {
     }
   } m_source;
 
-  nullable<std::string> m_schema{nullptr};
-  nullable<std::string> m_collection{nullptr};
-  nullable<std::string> m_table{nullptr};
+  std::optional<std::string> m_schema;
+  std::optional<std::string> m_collection;
+  std::optional<std::string> m_table;
   std::string m_column{"doc"};
   bool m_put_to_collection = true;
 };

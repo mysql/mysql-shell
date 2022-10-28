@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ void Memory_file::open(Mode m) {
   }
 }
 
-bool Memory_file::is_open() const { return !m_open_mode.is_null(); }
+bool Memory_file::is_open() const { return m_open_mode.has_value(); }
 
 int Memory_file::error() const { return 0; }
 

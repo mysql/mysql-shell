@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -281,12 +281,14 @@ void Zstd_file::open(Mode m) {
 }
 
 bool Zstd_file::is_open() const {
-  return !m_open_mode.is_null() && file()->is_open();
+  return m_open_mode.has_value() && file()->is_open();
 }
 
 void Zstd_file::close() { do_close(); }
 
 void Zstd_file::do_close() {
+  assert(is_open());
+
   switch (*m_open_mode) {
     case Mode::READ:
       if (m_dctx) ZSTD_freeDStream(m_dctx);

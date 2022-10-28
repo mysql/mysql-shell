@@ -57,7 +57,7 @@ const shcore::Option_pack_def<Dump_schemas_options>
 }
 
 void Dump_schemas_options::on_unpacked_options() {
-  if (mds_compatibility()) {
+  if (mds_compatibility().has_value()) {
     // if MDS compatibility option is set, mysql schema should not be dumped
     m_excluded_schemas.emplace("mysql");
   }

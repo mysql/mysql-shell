@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,12 +29,12 @@
 #include <cassert>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -119,7 +119,7 @@ class Zstd_file : public Compressed_file {
   int m_clevel = 1;
   std::vector<uint8_t> m_buffer;
   size_t m_decompress_read_size = 0;
-  mysqlshdk::utils::nullable<Mode> m_open_mode{nullptr};
+  std::optional<Mode> m_open_mode;
 };
 
 }  // namespace compression

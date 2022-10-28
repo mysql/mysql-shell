@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,7 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
 }
 
 void Retry_strategy::init() {
-  if (m_max_attempts.is_null() && m_max_ellapsed_time.is_null()) {
+  if (!m_max_attempts.has_value() && !m_max_ellapsed_time.has_value()) {
     throw std::logic_error(
         "A stop criteria must be defined to avoid infinite retries.");
   }
@@ -75,12 +75,11 @@ void Retry_strategy::init() {
 }
 
 bool Retry_strategy::should_retry(
-    const mysqlshdk::utils::nullable<Response::Status_code>
-        &response_status_code,
+    std::optional<Response::Status_code> response_status_code,
     const std::string &error_msg) {
   // If max attempts criteria is set, validates we are still on the allowed
   // number of attempts
-  if (!m_max_attempts.is_null() && m_retry_count >= *m_max_attempts) {
+  if (m_max_attempts.has_value() && m_retry_count >= *m_max_attempts) {
     return false;
   }
 
@@ -90,7 +89,7 @@ bool Retry_strategy::should_retry(
 
   // If max ellapsed time critera is set, validates the next call is still on
   // the expected time frame
-  if (!m_max_ellapsed_time.is_null()) {
+  if (m_max_ellapsed_time.has_value()) {
     m_ellapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now() - m_start_time);
 
@@ -99,7 +98,7 @@ bool Retry_strategy::should_retry(
       return false;
   }
 
-  if (!response_status_code.is_null()) {
+  if (response_status_code.has_value()) {
     // Retry on server errors if configured so
     if (m_retry_on_server_errors &&
         *response_status_code >= Response::Status_code::INTERNAL_SERVER_ERROR) {
@@ -131,8 +130,7 @@ bool Retry_strategy::should_retry(
 }
 
 std::chrono::seconds Retry_strategy::next_sleep_time(
-    const mysqlshdk::utils::nullable<Response::Status_code>
-        & /*response_status_code*/) {
+    std::optional<Response::Status_code> /* response_status_code */) {
   return m_base_sleep_time;
 }
 
@@ -142,10 +140,9 @@ void Retry_strategy::wait_for_retry() {
 }
 
 std::chrono::seconds Exponential_backoff_retry::next_sleep_time(
-    const mysqlshdk::utils::nullable<Response::Status_code>
-        &response_status_code) {
+    std::optional<Response::Status_code> response_status_code) {
   std::chrono::seconds ret_val;
-  if (!response_status_code.is_null() &&
+  if (response_status_code.has_value() &&
       Response::Status_code::TOO_MANY_REQUESTS == *response_status_code &&
       m_equal_jitter_for_throttling)
     ret_val = get_wait_time_with_equal_jitter();

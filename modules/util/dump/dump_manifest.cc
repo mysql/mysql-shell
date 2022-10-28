@@ -98,7 +98,6 @@ class Dump_manifest_object
   std::string object_name() const;
 
   std::shared_ptr<Manifest_writer> m_writer;
-  mysqlshdk::utils::nullable<size_t> m_size;
   std::unique_ptr<std::thread> m_par_thread;
   std::unique_ptr<mysqlshdk::oci::PAR> m_par;
   std::string m_par_thread_error;

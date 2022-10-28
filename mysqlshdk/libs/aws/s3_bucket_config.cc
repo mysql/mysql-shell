@@ -226,7 +226,7 @@ void S3_bucket_config::setup_region_name() {
     }
   }
 
-  if (m_profile_from_config_file) {
+  if (m_profile_from_config_file.has_value()) {
     const auto region = m_profile_from_config_file->settings.find("region");
 
     if (m_profile_from_config_file->settings.end() != region &&
@@ -276,13 +276,13 @@ void S3_bucket_config::setup_credentials_provider() {
     providers.emplace_back(std::make_unique<Env_credentials_provider>());
   }
 
-  if (m_profile_from_credentials_file) {
+  if (m_profile_from_credentials_file.has_value()) {
     providers.emplace_back(std::make_unique<Config_credentials_provider>(
         m_credentials_file, "credentials file",
         &*m_profile_from_credentials_file));
   }
 
-  if (m_profile_from_config_file) {
+  if (m_profile_from_config_file.has_value()) {
     providers.emplace_back(std::make_unique<Config_credentials_provider>(
         m_config_file, "config file", &*m_profile_from_config_file));
   }

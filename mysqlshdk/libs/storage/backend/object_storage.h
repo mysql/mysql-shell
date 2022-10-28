@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/storage/idirectory.h"
@@ -271,7 +272,7 @@ class Object : public mysqlshdk::storage::IFile {
   std::string m_name;
   std::string m_prefix;
   std::unique_ptr<Container> m_container;
-  mysqlshdk::utils::nullable<Mode> m_open_mode;
+  std::optional<Mode> m_open_mode;
   size_t m_max_part_size;
 
   /**

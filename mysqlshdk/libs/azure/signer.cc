@@ -188,7 +188,8 @@ std::string Signer::get_canonical_resource(
       canonical_query;
 
   for (const auto &item : request->query()) {
-    canonical_query[shcore::str_lower(item.first)] = item.second.value_or("");
+    canonical_query[shcore::str_lower(item.first)] =
+        item.second.value_or(std::string{});
   }
 
   // 6) URL-decode each query parameter name and value.

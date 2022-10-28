@@ -54,7 +54,7 @@ IDirectory::File_info::File_info(std::string name,
     : m_name(std::move(name)), m_get_size(std::move(get_size)) {}
 
 std::size_t IDirectory::File_info::size() const {
-  if (!m_size) {
+  if (!m_size.has_value()) {
     assert(m_get_size);
     const_cast<File_info *>(this)->set_size(m_get_size());
   }

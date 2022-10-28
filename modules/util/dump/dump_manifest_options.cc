@@ -55,7 +55,7 @@ const shcore::Option_pack_def<Dump_manifest_options>
 void Dump_manifest_options::on_unpacked_options() const {
   Oci_bucket_options::on_unpacked_options();
 
-  if (m_container_name.empty() && m_par_manifest) {
+  if (m_container_name.empty() && m_par_manifest.has_value()) {
     throw std::invalid_argument(shcore::str_format(
         s_option_error, par_manifest_option(), bucket_name_option()));
   }
