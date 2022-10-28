@@ -99,3 +99,25 @@ function(add_shell_executable)
   endif()
   endif()
 endfunction()
+
+function(write_rpath PATH_TO_BINARY DESTINATION_DIR USE_TARGET)
+  file(RELATIVE_PATH RELATIVE_PATH_TO_LIBDIR "${CONFIG_BINARY_DIR}/${DESTINATION_DIR}" "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}")
+
+  if(LINUX)
+    execute_patchelf(${USE_TARGET} --remove-rpath "${PATH_TO_BINARY}")
+    execute_patchelf(${USE_TARGET} --set-rpath "'$$ORIGIN/${RELATIVE_PATH_TO_LIBDIR}'" "${PATH_TO_BINARY}")
+  endif()
+endfunction()
+
+function(install_bundled_binary SOURCE_BINARY DESTINATION_DIR USE_TARGET)
+  INSTALL(PROGRAMS "${SOURCE_BINARY}" DESTINATION "${DESTINATION_DIR}" COMPONENT main)
+  # if we bundle OpenSSL, then we want the bundled binary to use it instead of the system one
+  if(BUNDLED_OPENSSL)
+    write_rpath("${SOURCE_BINARY}" "${DESTINATION_DIR}" ${USE_TARGET})
+  endif()
+  # copy the binary to the build directory
+  set(DESTINATION_BINARY_DIR "${CONFIG_BINARY_DIR}/${DESTINATION_DIR}")
+  add_custom_command(TARGET ${USE_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${DESTINATION_BINARY_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SOURCE_BINARY}" "${DESTINATION_BINARY_DIR}")
+endfunction()

@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -30,4 +30,4 @@ add_custom_command(OUTPUT upgrade_checker_msg
 
 add_custom_target(uc_res ALL DEPENDS upgrade_checker_msg)
 
-install(PROGRAMS ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/upgrade_checker.msg COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
+install(FILES ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/upgrade_checker.msg COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
