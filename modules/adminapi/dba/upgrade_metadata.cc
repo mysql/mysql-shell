@@ -102,8 +102,7 @@ void Upgrade_metadata::prepare() {
     case MDState::PATCH_HIGHER:
       throw std::runtime_error(
           "Installed metadata at '" + instance_data +
-          "' is newer than the version version supported by "
-          "this Shell (installed: " +
+          "' is newer than the version supported by this Shell (installed: " +
           installed.get_base() + ", shell: " + current.get_base() + ").");
 
       break;
