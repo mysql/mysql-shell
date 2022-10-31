@@ -168,6 +168,34 @@ void println(const std::string &s) { current_console()->println(s); }
 
 void print(const std::string &s) { current_console()->print(s); }
 
+std::optional<std::string> parse_param_for_use_cmd(const std::string &line) {
+  auto params_separators = std::string(" \t\n\r\v\f;");
+  auto start = line.find_first_of(params_separators);
+  if (start == std::string::npos) {
+    return {};
+  }
+  if (line[start] == '\n' || line[start] == ';') {
+    return {};
+  }
+
+  start = line.find_first_not_of(params_separators, start);
+  if (start == std::string::npos) {
+    return {};
+  }
+
+  auto end = line.find_first_of(params_separators, start);
+  if (end == std::string::npos) {
+    return line.substr(start);
+  }
+
+  if (line.find_first_not_of(params_separators, end) != std::string::npos) {
+    // found second parameter, this is an error
+    return {};
+  }
+
+  return line.substr(start, end - start);
+}
+
 }  // namespace
 
 class Shell_command_provider : public shcore::completer::Provider {
@@ -611,7 +639,9 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
                            std::bind(&Mysql_shell::cmd_nowarnings, this, _1),
                            true, global_command);
   SET_SHELL_COMMAND("\\status|\\s", "CMD_STATUS", Mysql_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u", "CMD_USE", Mysql_shell::cmd_use);
+  SET_CUSTOM_SHELL_COMMAND("\\use|\\u", "CMD_USE",
+                           std::bind(&Mysql_shell::cmd_use, this, _1), true,
+                           shcore::IShell_core::Mode_mask::all(), false);
   SET_SHELL_COMMAND("\\rehash", "CMD_REHASH", Mysql_shell::cmd_rehash);
   SET_SHELL_COMMAND("\\show", "CMD_SHOW", Mysql_shell::cmd_show);
   SET_SHELL_COMMAND("\\watch", "CMD_WATCH", Mysql_shell::cmd_watch);
@@ -1537,12 +1567,15 @@ bool Mysql_shell::cmd_use(const std::vector<std::string> &args) {
         error = "Mistmatched quote for use command, parameter: " +
                 args[0].substr(start) + "\n";
       }
-    } else if (args.size() == 2) {
-      real_param = args[1];
     } else {
-      error =
-          "Incorrect number of arguments for use command, usage:\n"
-          "\\use <schema_name>\n";
+      auto result = parse_param_for_use_cmd(args[0]);
+      if (result.has_value()) {
+        real_param = *result;
+      } else {
+        error =
+            "Incorrect number of arguments for use command, usage:\n"
+            "\\use <schema_name>\n";
+      }
     }
     if (error.empty()) {
       try {
