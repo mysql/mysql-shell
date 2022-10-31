@@ -1,6 +1,3 @@
-// Assumptions: ensure_schema_does_not_exist is available
-// Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -80,7 +77,7 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 //@ Cluster: addInstance with interaction, error
 add_instance_options['port'] = __mysql_sandbox_port1;
 add_instance_options['user'] = 'root';
-Cluster.addInstance(add_instance_options, add_instance_extra_opts);
+Cluster.addInstance(add_instance_options);
 
 //@<OUT> Cluster: addInstance with interaction, ok
 Cluster.addInstance(__sandbox_uri2);
@@ -102,6 +99,9 @@ EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 
 
 //@ Cluster: removeInstance errors
+testutil.expectPrompt("*", "no");
+testutil.expectPrompt("*", "yes");
+
 Cluster.removeInstance();
 Cluster.removeInstance(1,2,3);
 Cluster.removeInstance(1);

@@ -94,6 +94,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   Cluster_impl(const std::string &cluster_name, const std::string &group_name,
                const std::shared_ptr<Instance> &group_server,
+               const std::shared_ptr<Instance> &primary_master,
                const std::shared_ptr<MetadataStorage> &metadata_storage,
                mysqlshdk::gr::Topology_mode topology_type);
   virtual ~Cluster_impl();

@@ -459,37 +459,28 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster_object(
 
   auto ipool = current_ipool();
   try {
+    std::shared_ptr<Instance> group_server;
+    Cluster_availability availability = Cluster_availability::ONLINE;
+
     if (allow_unavailable) {
-      Cluster_availability availability;
-
-      auto group_server = ipool->try_connect_cluster_primary_with_fallback(
+      group_server = ipool->try_connect_cluster_primary_with_fallback(
           cluster_md.cluster.cluster_id, &availability);
-
-      if (group_server) {
-        group_server->steal();
-
-        if (cluster_md.primary_cluster && !cluster_md.invalidated) {
-          md = std::make_shared<MetadataStorage>(group_server);
-        }
-      }
-
-      return std::make_shared<Cluster_impl>(shared_from_this(),
-                                            cluster_md.cluster, group_server,
-                                            md, availability);
     } else {
-      auto group_server =
+      group_server =
           ipool->connect_group_primary(cluster_md.cluster.group_name);
-
+    }
+    if (group_server) {
       group_server->steal();
 
       if (cluster_md.primary_cluster && !cluster_md.invalidated) {
-        md = std::make_shared<MetadataStorage>(group_server);
-      }
+        auto md_server =
+            Instance::connect(group_server->get_connection_options());
 
-      return std::make_shared<Cluster_impl>(shared_from_this(),
-                                            cluster_md.cluster, group_server,
-                                            md, Cluster_availability::ONLINE);
+        md = std::make_shared<MetadataStorage>(md_server);
+      }
     }
+    return std::make_shared<Cluster_impl>(
+        shared_from_this(), cluster_md.cluster, group_server, md, availability);
   } catch (const shcore::Exception &e) {
     if (allow_unavailable) {
       current_console()->print_warning(

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -537,6 +537,8 @@ std::string Shell_test_env::query_replace_hook(const std::string &sql) {
   // match the one recorded.
   if (shcore::str_beginswith(sql, "SET PERSIST_ONLY `server_id` = ")) {
     return "SET PERSIST_ONLY `server_id` = /*(*/" + sql.substr(31) + "/*)*/";
+  } else if (shcore::str_beginswith(sql, "/*NOTRACE")) {
+    return "";
   } else {
     return sql;
   }

@@ -140,6 +140,7 @@ Cluster_impl::Cluster_impl(
 Cluster_impl::Cluster_impl(
     const std::string &cluster_name, const std::string &group_name,
     const std::shared_ptr<Instance> &group_server,
+    const std::shared_ptr<Instance> &primary_master,
     const std::shared_ptr<MetadataStorage> &metadata_storage,
     mysqlshdk::gr::Topology_mode topology_type)
     : Base_cluster_impl(cluster_name, group_server, metadata_storage),
@@ -147,7 +148,7 @@ Cluster_impl::Cluster_impl(
       m_topology_type(topology_type) {
   // cluster is being created
 
-  m_primary_master = group_server;
+  m_primary_master = primary_master;
 
   assert(topology_type == mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY ||
          topology_type == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
@@ -2435,15 +2436,14 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
         target->get_server_id(), mysqlshdk::gr::k_group_recovery_user_prefix);
   }
 
+  std::shared_ptr<mysqlshdk::mysql::IInstance> primary_master;
+  if (!only_on_target) {
+    primary_master = get_primary_master();
+    primary = primary_master.get();
+  }
+
   log_info("Creating recovery account '%s'@'%s' for instance '%s'",
            creds.user.c_str(), host.c_str(), target->descr().c_str());
-
-  // When in a clusterset, this needs to happen at the global primary,
-  // but during replica creation, acquiring the global primary from cluster
-  // is tricky, so take a shortcut for now...
-  if (!only_on_target) {
-    primary = get_metadata_storage()->get_md_server().get();
-  }
 
   // Get all hosts for the recovery account:
   //
@@ -2810,7 +2810,6 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     mysqlshdk::mysql::Lock_mode /*mode*/,
     const std::string & /*skip_lock_uuid*/) {
   auto console = current_console();
-
   if (!m_cluster_server) {
     return nullptr;
   }
@@ -2884,6 +2883,8 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
   // Check if the Cluster belongs to a ClusterSet
   if (is_cluster_set_member()) {
+    invalidate_cluster_set_metadata_cache();
+
     auto cs = get_cluster_set_object(true);
 
     if (auto cs_primary_master = cs->get_primary_master()) {
@@ -2903,7 +2904,7 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
         m_primary_master = Instance::connect(copts);
         m_metadata_storage =
-            std::make_shared<MetadataStorage>(m_primary_master);
+            std::make_shared<MetadataStorage>(Instance::connect(copts));
       }
 
       // if we think we're the primary cluster, try connecting to replica
@@ -2928,9 +2929,10 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     log_debug("Cluster does not belong to a ClusterSet");
   }
 
-  if (m_primary_master &&
-      m_metadata_storage->get_md_server() != m_primary_master) {
-    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
+  if (m_primary_master && m_metadata_storage->get_md_server()->get_uuid() !=
+                              m_primary_master->get_uuid()) {
+    m_metadata_storage = std::make_shared<MetadataStorage>(
+        Instance::connect(m_primary_master->get_connection_options()));
 
     if (is_cluster_set_member()) {
       // Update the Cluster's Cluster_set_member_metadata data according to the

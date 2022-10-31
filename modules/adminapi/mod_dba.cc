@@ -860,7 +860,8 @@ void Dba::connect_to_target_group(
   // necessary
   if (out_metadata &&
       (!out_metadata->get() || !out_metadata->get()->is_valid())) {
-    *out_metadata = std::make_shared<MetadataStorage>(target_member);
+    *out_metadata = std::make_shared<MetadataStorage>(
+        Instance::connect(target_member->get_connection_options()));
   }
 
   // Check if we need to reset the MetadataStorage to use the Primary member
@@ -869,7 +870,8 @@ void Dba::connect_to_target_group(
       target_member->get_connection_options().as_uri());
 
   if (connect_to_primary && !is_md_connected_to_primary) {
-    *out_metadata = std::make_shared<MetadataStorage>(target_member);
+    *out_metadata = std::make_shared<MetadataStorage>(
+        Instance::connect(target_member->get_connection_options()));
   }
 
   // Check if the target instance has MD schema
@@ -1012,7 +1014,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           "An open session is required to perform this operation.");
     }
 
-    metadata = std::make_shared<MetadataStorage>(target_member);
+    metadata = std::make_shared<MetadataStorage>(
+        Instance::connect(target_member->get_connection_options()));
 
     metadata_at_target = metadata;
 
@@ -1189,7 +1192,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
     auto ipool = current_ipool();
     group_server = ipool->connect_group_member(target_cm.group_name);
-    metadata = std::make_shared<MetadataStorage>(group_server);
+    metadata = std::make_shared<MetadataStorage>(
+        Instance::connect(group_server->get_connection_options()));
     group_server->steal();
   }
 
@@ -1910,7 +1914,8 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
   std::shared_ptr<MetadataStorage> metadata;
 
   if (target_server) {
-    metadata = std::make_shared<MetadataStorage>(target_server);
+    metadata = std::make_shared<MetadataStorage>(
+        Instance::connect(target_server->get_connection_options()));
   }
 
   check_function_preconditions("Dba.getClusterSet", metadata, target_server);
