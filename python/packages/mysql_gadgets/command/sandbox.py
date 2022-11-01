@@ -101,8 +101,7 @@ _ERROR_OVERRIDE_PORT = ("Overriding the port value is not supported. Please "
 _ERROR_CREATE_DIR = ("Unable to create {dir} directory '{dir_path}': "
                      "{error}")
 _ERROR_NOT_CREATED = ("Cannot start MySQL sandbox for the given port because "
-                      "it does not exist. Please use the '{0} {1}' command "
-                      "first to create it.".format(SANDBOX, SANDBOX_CREATE))
+                      "it does not exist.")
 _ERROR_VERSION_NOT_SUPPORTED = ("Provided mysqld executable '{0}' has a non "
                                 "supported version: '{1}'. MySQL version must "
                                 "be >= '{2}' and < '{3}'.")

@@ -343,7 +343,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
               // pack together the rest of the buffer removing the command
               memmove(p, p + skip, (m_end - p) - skip);
               m_shrinked_bytes += skip;
-              if (eol == m_end) eol -= skip;
+              eol -= skip;
               m_end -= skip;
             }
             break;

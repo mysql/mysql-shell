@@ -1254,6 +1254,10 @@ select 1;)*"));
             split_batch("select 1\\W\\w\\g"));
 }
 
+TEST_P(Statement_splitter, bugs) {
+  EXPECT_EQ(strv({"\\q", "\\;", "x\n\n\n"}), split_batch("x\n\\q\n\\;\n"));
+}
+
 TEST_P(Statement_splitter, delimiter) {
   delimiter = ";";
   EXPECT_THROW(split_batch("delimiter;\n"), std::runtime_error);
