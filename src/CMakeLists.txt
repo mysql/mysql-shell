@@ -314,6 +314,12 @@ IF(HAVE_PYTHON)
         COMPONENT main
       )
 
+      if(STRIP_LIBCRYPT_DEPS)
+        foreach(_PYTHON_LIB IN LISTS _PYTHON_SHARED_LIB)
+          execute_patchelf(mysqlsh --remove-needed libcrypt.so.1 "${_PYTHON_LIB}")
+        endforeach()
+      endif()
+
       ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy "${_PYTHON_SHARED_LIB}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
