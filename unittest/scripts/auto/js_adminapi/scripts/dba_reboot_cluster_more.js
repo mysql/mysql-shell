@@ -171,6 +171,23 @@ EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mys
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 
+//@<> BUG#34647972 make sure SRO isn't changed in multi-primary topology {VER(>=8.0.13)}
+
+EXPECT_NO_THROWS(function () { cluster.switchToMultiPrimaryMode(); });
+
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
+
+shell.connect(__sandbox_uri1);
+
+EXPECT_NO_THROWS(function () { cluster = dba.rebootClusterFromCompleteOutage(); });
+
+status = cluster.status();
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
+
+EXPECT_NO_THROWS(function () { cluster.switchToSinglePrimaryMode(); });
+
 //@<> FR1 if a member is in ERROR and the rest is OFFLINE or in ERROR, the command must succeed stopping GR where necessary
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);

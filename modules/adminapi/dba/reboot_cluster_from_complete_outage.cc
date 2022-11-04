@@ -416,7 +416,8 @@ void reboot_seed(
 void rejoin_instances(
     Cluster_impl *cluster_impl, const Instance &target_instance,
     const std::vector<std::shared_ptr<Instance>> &instances,
-    const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
+    const shcore::Option_pack_ref<Reboot_cluster_options> &options,
+    bool enable_sro) {
   const auto console = current_console();
 
   auto removed_from_set = cluster_impl->is_cluster_set_remove_pending();
@@ -485,7 +486,7 @@ void rejoin_instances(
     }
 
     // re-enable SRO if needed
-    if (!instance->get_sysvar_bool("super_read_only", false)) {
+    if (enable_sro && !instance->get_sysvar_bool("super_read_only", false)) {
       log_info("Enabling super_read_only on instance '%s'...",
                instance->descr().c_str());
       instance->set_sysvar("super_read_only", true);
@@ -705,6 +706,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   auto cluster_impl = cluster->impl();
   auto cs_info = retrieve_cs_info(cluster_impl.get());
+  bool cluster_is_multi_primary = (cluster_impl->get_cluster_topology_type() ==
+                                   mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
 
   if (!options->get_dry_run()) {
     console->print_info("Restoring the Cluster '" + cluster_impl->get_name() +
@@ -973,7 +976,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
       }
     }
 
-    rejoin_instances(cluster_impl.get(), *target_instance, instances, options);
+    rejoin_instances(cluster_impl.get(), *target_instance, instances, options,
+                     !cluster_is_multi_primary);
   }
 
   // if the cluster is part of a set
