@@ -31,5 +31,10 @@ EXPECT_TRUE(isinstance(row[2], str))
 EXPECT_EQ('2020-00-00 00:00:00', row[1])
 EXPECT_EQ('2020-00-00', row[2])
 
+#@<> Bug #34517691	Shell core dump in SQL splitter
+
+rc=testutil.call_mysqlsh([__sandbox_uri1, "--interactive=full", "--sql", "-e", "exit\n\\q\n\\;\n"])
+EXPECT_IN(rc, [0, 1]) # 139 if it crashes
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
