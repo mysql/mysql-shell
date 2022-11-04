@@ -51,7 +51,7 @@ namespace testing {
  * return specific results Keep in mind that the returned data must match the
  * return type of the function called
  *
- * Look at Mock_result to see how to to create a fake result to be returned.
+ * Look at Mock_result to see how to create a fake result to be returned.
  */
 class Mock_session_common {
  public:

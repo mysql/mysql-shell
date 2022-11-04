@@ -13,7 +13,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "NOTE: group_replication is stopped."|
 |    ],|
 |    "memberState": "OFFLINE",|
-|    "mode": "R/O",|
+|    "mode": "n/a",|
 |    "readReplicas": {},|
 |    "role": "HA",|
 |    "status": "(MISSING)"|
@@ -29,7 +29,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "ERROR: group_replication has stopped with an error."|
 |    ], |
 |    "memberState": "ERROR", |
-|    "mode": "R/O", |
+|    "mode": "n/a", |
 |    "readReplicas": {}, |
 |    "role": "HA", |
 |    "status": "(MISSING)"|
@@ -58,7 +58,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "ERROR: group_replication has stopped with an error."|
 |    ], |
 |    "memberState": "ERROR", |
-|    "mode": "R/O", |
+|    "mode": "n/a", |
 |    "readReplicas": {}, |
 |    "role": "HA", |
 |    "status": "(MISSING)"|
@@ -69,7 +69,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |},|
 |"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
 |    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
-|    "mode": "R/O", |
+|    "mode": "n/a", |
 |    "readReplicas": {}, |
 |    "recovery": {|
 |        "recoveryChannel": {|
@@ -99,7 +99,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |       "ERROR: group_replication has stopped with an error."|
 |    ],|
 |    "memberState": "ERROR", |
-|    "mode": "R/O", |
+|    "mode": "n/a", |
 |    "readReplicas": {}, |
 |    "role": "HA", |
 |    "status": "[[*]]", |
@@ -135,7 +135,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "WARNING: Instance is NOT a PRIMARY but super_read_only option is OFF."|
 |    ], |
 |    "memberState": "ONLINE", |
-|    "mode": "R/W", |
+|    "mode": "n/a", |
 |    "readReplicas": {}, |
 |    "role": "HA", |
 |    "status": "(MISSING)",|
@@ -185,7 +185,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "WARNING: server_uuid for instance has changed from its last known value. Use cluster.rescan() to update the metadata."|
 |    ], |
 |    "memberState": "OFFLINE",|
-|    "mode": "R/O", |
+|    "mode": "n/a", |
 |    "readReplicas": {}, |
 |    "role": "HA", |
 |    "status": "(MISSING)", |

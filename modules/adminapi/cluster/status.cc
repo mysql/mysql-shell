@@ -702,7 +702,8 @@ void Status::feed_member_info(shcore::Dictionary_t dict,
   (*dict)["status"] = shcore::Value(mysqlshdk::gr::to_string(member.state));
 
   // Set the instance mode (read-only or read-write).
-  if (!offline_mode.has_value() || !super_read_only.has_value()) {
+  if (!offline_mode.has_value() || !super_read_only.has_value() ||
+      member.state != mysqlshdk::gr::Member_state::ONLINE) {
     // offline_mode or super_read_only is null if it could not be obtained from
     // the instance.
     (*dict)["mode"] = shcore::Value("n/a");

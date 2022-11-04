@@ -145,7 +145,7 @@ DESCRIPTION
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
-        group replication.
+        group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
       - groupSeeds: string value with a comma-separated list of the Group
@@ -181,24 +181,6 @@ DESCRIPTION
         forward. If interaction is disabled, the operation will be canceled
         instead.
 
-      ATTENTION: The memberSslMode option will be removed in a future release.
-
-      The memberSslMode option supports the following values:
-
-      - REQUIRED: if used, SSL (encryption) will be enabled for the instance to
-        communicate with other members of the cluster
-      - VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
-        certificate against the configured Certificate Authority (CA)
-        certificates.
-      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the
-        server certificate matches the host to which the connection is
-        attempted.
-      - DISABLED: if used, SSL (encryption) will be disabled
-      - AUTO: if used, SSL (encryption) will be automatically enabled or
-        disabled based on the cluster configuration
-
-      If memberSslMode is not specified AUTO will be used by default.
-
       The waitRecovery option supports the following values:
 
       - 0: do not wait and let the recovery process to finish in the
@@ -230,6 +212,9 @@ DESCRIPTION
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      This option is only used and allowed when communicationStack is set to
+      XCOM.
 
       The localAddress and groupSeeds are advanced options and their usage is
       discouraged since incorrect values can lead to Group Replication errors.
@@ -279,6 +264,8 @@ DESCRIPTION
       quickly, setting this option prevents users from having to manually add
       the expelled node back to the group. The autoRejoinTries option accepts
       positive integer values and, since 8.0.21, defaults to 3.
+
+      ATTENTION: The memberSslMode option will be removed in a future release.
 
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
@@ -568,35 +555,20 @@ DESCRIPTION
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
-        group replication.
+        group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
 
-      ATTENTION: The memberSslMode option will be removed in a future release.
-
-      The memberSslMode option supports these values:
-
-      - REQUIRED: if used, SSL (encryption) will be enabled for the instance to
-        communicate with other members of the cluster
-      - VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
-        certificate against the configured Certificate Authority (CA)
-        certificates.
-      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the
-        server certificate matches the host to which the connection is
-        attempted.
-      - DISABLED: if used, SSL (encryption) will be disabled
-      - AUTO: if used, SSL (encryption) will be automatically enabled or
-        disabled based on the cluster configuration
-
-      If memberSslMode is not specified AUTO will be used by default.
-
       The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      This option is only used and allowed when communicationStack is set to
+      XCOM.
 
       The localAddress is an advanced option and its usage is discouraged since
       incorrect values can lead to Group Replication errors.
@@ -613,6 +585,8 @@ DESCRIPTION
       the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
       stack is 'XCOM'. In case the automatically determined  default port value
       is invalid (> 65535) then an error is thrown.
+
+      ATTENTION: The memberSslMode option will be removed in a future release.
 
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
@@ -692,7 +666,7 @@ DESCRIPTION
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
-        group replication.
+        group replication. Only valid if communicationStack=XCOM.
       - label a string identifier of the instance.
 
       The exitStateAction option supports the following values:
@@ -741,6 +715,9 @@ DESCRIPTION
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      This option is only used and allowed when communicationStack is set to
+      XCOM.
 
       Tags
 
@@ -797,7 +774,7 @@ DESCRIPTION
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
-        group replication.
+        group replication. Only valid if communicationStack=XCOM.
       - disableClone: boolean value used to disable the clone usage on the
         cluster.
       - replicationAllowedHost string value to use as the host name part of
@@ -863,7 +840,7 @@ DESCRIPTION
       variable 'group_replication_consistency' and configure the transaction
       consistency guarantee which a cluster provides.
 
-      When set to to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
+      When set to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
       happens in single-primary mode (default), new queries (read or write) to
       the newly elected primary that is applying backlog from the old primary,
       will be hold before execution until the backlog is applied. When set to
@@ -884,7 +861,7 @@ DESCRIPTION
       transaction completes, all following transactions read a database state
       that includes its changes, regardless of which member they are executed
       on. This mode shall only be used on a group that is used for
-      predominantly RO operations to  to ensure that subsequent reads fetch the
+      predominantly RO operations to ensure that subsequent reads fetch the
       latest data which includes the latest writes. The overhead of
       synchronization on every RO transaction is reduced since synchronization
       is used only on RW transactions.
@@ -929,11 +906,14 @@ DESCRIPTION
       accepts
 
       All members added or rejoined to the Cluster will use the same value.
-      
+
       The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      This option is only used and allowed when communicationStack is set to
+      XCOM.
 
       Tags
 

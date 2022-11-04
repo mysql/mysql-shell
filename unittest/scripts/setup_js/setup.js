@@ -1246,7 +1246,7 @@ function EXPECT_STDOUT_CONTAINS_MULTILINE_ONE_OF(t) {
     if (!ret.found) {
         var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
         if (typeof(t) === "string") {
-            context += text.str;
+            context += t;
         } else {
             for (i in t) {
                 context += t[i] + "\n";

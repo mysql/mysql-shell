@@ -432,7 +432,7 @@ DESCRIPTION
 
       During the switchover, the promoted instance will be synchronized with
       the old PRIMARY, ensuring that all transactions present in the PRIMARY
-      are applied before the topology change is commited. If that
+      are applied before the topology change is committed. If that
       synchronization step takes too long or is not possible in any of the
       SECONDARY instances, the switch will be aborted. These problematic
       SECONDARY instances must be either repaired or removed from the

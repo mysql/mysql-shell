@@ -90,7 +90,7 @@ OPTIONS
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
-            replication.
+            replication. Only valid if communicationStack=XCOM.
 
 --localAddress=<str>
             String value with the Group Replication local address to be used
@@ -243,7 +243,7 @@ OPTIONS
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
-            replication.
+            replication. Only valid if communicationStack=XCOM.
 
 --localAddress=<str>
             String value with the Group Replication local address to be used

@@ -263,22 +263,14 @@ clone from. IPv6 addresses are not supported for this option.
 @li manualStartOnBoot: boolean (default false). If false, Group Replication in
 cluster instances will automatically start and rejoin when MySQL starts,
 otherwise it must be started manually.
-@li memberSslMode: SSL mode used to configure the security state of the
-communication between the InnoDB Cluster members.
-@li ipAllowlist: The list of hosts allowed to connect to the instance for
-Group Replication.
+${CLUSTER_OPT_MEMBER_SSL_MODE}
+${CLUSTER_OPT_IP_ALLOWLIST}
 ${CLUSTER_OPT_LOCAL_ADDRESS}
-@li exitStateAction: string value indicating the Group Replication exit
-state action.
-@li memberWeight: integer value with a percentage weight for automatic
-primary election on failover.
-@li consistency: string value indicating the consistency guarantees
-that the cluster provides.
-@li expelTimeout: integer value to define the time period in seconds that
-Cluster members should wait for a non-responding member before evicting
-it from the Cluster.
-@li autoRejoinTries: integer value to define the number of times an
-instance will attempt to rejoin the Cluster after being expelled.
+${CLUSTER_OPT_EXIT_STATE_ACTION}
+${CLUSTER_OPT_MEMBER_WEIGHT}
+${CLUSTER_OPT_CONSISTENCY}
+${CLUSTER_OPT_EXPEL_TIMEOUT}
+${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 @li timeout: maximum number of seconds to wait for the instance to sync up
 with the PRIMARY Cluster. Default is 0 and it means no timeout.
 @li replicationAllowedHost: string value to use as the host name part of
@@ -319,19 +311,7 @@ member will be chosen as donor. If no SECONDARY members are available the
 PRIMARY will be selected. The option accepts values in the format: 'host:port'.
 IPv6 addresses are not supported.
 
-The memberSslMode option supports the following values:
-
-@li REQUIRED: if used, SSL (encryption) will be enabled for the instances to
-communicate with other members of the Cluster
-@li VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
-certificate against the configured Certificate Authority (CA) certificates.
-@li VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the server
-certificate matches the host to which the connection is attempted.
-@li DISABLED: if used, SSL (encryption) will be disabled
-@li AUTO: if used, SSL (encryption) will be enabled if supported by the
-instance, otherwise disabled
-
-If memberSslMode is not specified AUTO will be used by default.
+${CLUSTER_OPT_MEMBER_SSL_MODE_DETAIL}
 
 ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
@@ -587,7 +567,7 @@ PRIMARY.
 
 During the switchover, the promoted Cluster will be synchronized with
 the old PRIMARY, ensuring that all transactions present in the PRIMARY
-are applied before the topology change is commited. The current PRIMARY
+are applied before the topology change is committed. The current PRIMARY
 instance is also locked with 'FLUSH TABLES WITH READ LOCK' in order to prevent
 changes during the switch. If either of these operations take too long or fails,
 the switch will be aborted.

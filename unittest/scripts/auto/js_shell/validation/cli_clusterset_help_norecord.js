@@ -78,19 +78,19 @@ OPTIONS
             any other member using accounts with this hostname value.
 
 --memberSslMode=<str>
-            SSL mode used to configure the security state of the communication
-            between the InnoDB Cluster members.
+            SSL mode for communication channels opened by Group Replication
+            from one server to another.
 
 --ipAllowlist=<str>
-            The list of hosts allowed to connect to the instance for Group
-            Replication.
+            The list of hosts allowed to connect to the instance for group
+            replication. Only valid if communicationStack=XCOM.
 
 --localAddress=<str>
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
 
 --exitStateAction=<str>
-            String value indicating the Group Replication exit state action.
+            String value indicating the group replication exit state action.
 
 --memberWeight=<int>
             Integer value with a percentage weight for automatic primary
@@ -106,13 +106,13 @@ OPTIONS
             provides.
 
 --expelTimeout=<int>
-            Integer value to define the time period in seconds that Cluster
+            Integer value to define the time period in seconds that cluster
             members should wait for a non-responding member before evicting it
-            from the Cluster.
+            from the cluster.
 
 --autoRejoinTries=<int>
             Integer value to define the number of times an instance will
-            attempt to rejoin the Cluster after being expelled.
+            attempt to rejoin the cluster after being expelled.
 
 --communicationStack=<str>
             The Group Replication protocol stack to be used in the Cluster:

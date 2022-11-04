@@ -61,9 +61,7 @@
 NOTE: MySQL Error 1045 (28000): Access denied for user 'root'@'[[*]]' (using password: YES)
 NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.
 
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 

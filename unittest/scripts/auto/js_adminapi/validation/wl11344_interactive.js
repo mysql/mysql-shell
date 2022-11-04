@@ -918,9 +918,7 @@ group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.25)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -998,9 +996,7 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR5-Extra Check that warning is shown when removeInstance is called {VER(<8.0.12)}
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 

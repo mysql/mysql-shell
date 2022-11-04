@@ -409,11 +409,12 @@ DESCRIPTION
         Shell wizard mode.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
-      - memberSslMode: SSL mode used to configure the members of the cluster.
+      - memberSslMode: SSL mode for communication channels opened by Group
+        Replication from one server to another.
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
-        group replication.
+        group replication. Only valid if communicationStack=XCOM.
       - groupName: string value with the Group Replication group name UUID to
         be used instead of the automatically generated one.
       - localAddress: string value with the Group Replication local address to
@@ -493,14 +494,20 @@ DESCRIPTION
       Group Replication setup, enabling use of MySQL Router and the shell
       AdminAPI for managing it.
 
+      The memberSslMode option controls whether TLS is to be used for
+      connections opened by Group Replication from one server to another (both
+      recovery and group communication, in either communication stack). It also
+      controls what kind of verification the client end of connections perform
+      on the SSL certificate presented by the server end.
+
       The memberSslMode option supports the following values:
 
       - REQUIRED: if used, SSL (encryption) will be enabled for the instances
         to communicate with other members of the cluster
-      - VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
+      - VERIFY_CA: Like REQUIRED, but additionally verify the peer server TLS
         certificate against the configured Certificate Authority (CA)
         certificates.
-      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the
+      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the peer
         server certificate matches the host to which the connection is
         attempted.
       - DISABLED: if used, SSL (encryption) will be disabled
@@ -513,6 +520,9 @@ DESCRIPTION
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      This option is only used and allowed when communicationStack is set to
+      XCOM.
 
       The groupName and localAddress are advanced options and their usage is
       discouraged since incorrect values can lead to Group Replication errors.
@@ -585,7 +595,7 @@ DESCRIPTION
       variable 'group_replication_consistency' and configure the transaction
       consistency guarantee which a cluster provides.
 
-      When set to to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
+      When set to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
       happens in single-primary mode (default), new queries (read or write) to
       the newly elected primary that is applying backlog from the old primary,
       will be hold before execution until the backlog is applied. When set to
@@ -606,7 +616,7 @@ DESCRIPTION
       transaction completes, all following transactions read a database state
       that includes its changes, regardless of which member they are executed
       on. This mode shall only be used on a group that is used for
-      predominantly RO operations to  to ensure that subsequent reads fetch the
+      predominantly RO operations to ensure that subsequent reads fetch the
       latest data which includes the latest writes. The overhead of
       synchronization on every RO transaction is reduced since synchronization
       is used only on RW transactions.
@@ -681,6 +691,7 @@ DESCRIPTION
                  Please use the ipAllowlist option instead.
 
       ATTENTION: The groupSeeds option will be removed in a future release.
+
 
 #@<OUT> dba.create_replica_set
 NAME
