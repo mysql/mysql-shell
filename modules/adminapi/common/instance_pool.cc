@@ -43,8 +43,8 @@ namespace dba {
 
 namespace {
 // Constants with the names used to lock instances.
-static constexpr char k_lock[] = "AdminAPI_lock";
-static constexpr char k_lock_name_instance[] = "AdminAPI_instance";
+constexpr char k_lock[] = "AdminAPI_lock";
+constexpr char k_lock_name_instance[] = "AdminAPI_instance";
 
 int64_t default_adminapi_connect_timeout() {
   return mysqlsh::current_shell_options()->get().dba_connect_timeout * 1000;
@@ -117,6 +117,8 @@ void Instance::prepare_session() {
   set_sysvar("sql_mode", std::string(k_default_sql_mode),
              mysqlshdk::mysql::Var_qualifier::SESSION);
 
+  auto version = get_version();
+
   // Handle the consistency levels != "EVENTUAL" and
   // "BEFORE_ON_PRIMARY_FAILOVER" on the target instance session:
   //
@@ -131,10 +133,22 @@ void Instance::prepare_session() {
   // This handling must be done to all AdminAPI sessions to ensure that
   // concurrent command calls do not results in errors due to higher consistency
   // levels (BUG#30394258, BUG#30401048)
-  if (get_version() >= mysqlshdk::utils::Version("8.0.14")) {
+  if (version >= mysqlshdk::utils::Version("8.0.14")) {
     set_sysvar("group_replication_consistency", std::string("EVENTUAL"),
                mysqlshdk::mysql::Var_qualifier::SESSION);
   }
+
+  // There maybe cases where the default collation ("utf8mb4_0900_ai_ci") used
+  // in libmysqlclient 8.0, isn't negotiated between the server and the client
+  // (i.e.: the server was configured with skip-character-set-client-handshake
+  // options). This in turn would create problems like "Illegal mix of
+  // collations". To prevent this, we explicitly set the session collation.
+  if (version >= mysqlshdk::utils::Version(8, 0, 0))
+    set_sysvar("collation_connection", std::string("utf8mb4_0900_ai_ci"),
+               mysqlshdk::mysql::Var_qualifier::SESSION);
+  else
+    set_sysvar("collation_connection", std::string("utf8mb4_general_ci"),
+               mysqlshdk::mysql::Var_qualifier::SESSION);
 
   // Cache the hostname, port, and UUID to avoid errors accessing this data if
   // the instance fails during an operation.

@@ -398,7 +398,7 @@ Instance::get_system_variables_like(const std::string &pattern,
   auto row = result->fetch_one();
   while (row) {
     if (row->is_null(1))
-      ret_val[row->get_string(0)] = nullptr;
+      ret_val[row->get_string(0)] = std::nullopt;
     else
       ret_val[row->get_string(0)] = row->get_string(1);
     row = result->fetch_one();
