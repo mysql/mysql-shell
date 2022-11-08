@@ -1785,15 +1785,11 @@ Replica_set_impl::acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
       log_info("Connected to ReplicaSet PRIMARY instance '%s'",
                m_primary_master->descr().c_str());
     } catch (const shcore::Exception &e) {
-      auto console = current_console();
-      console->print_error(
-          "Unable to connect to the PRIMARY of the ReplicaSet " + get_name() +
-          ": " + e.format());
-
       if (e.code() == SHERR_DBA_ASYNC_MEMBER_INVALIDATED) {
-        console->print_error(get_name() +
-                             " was invalidated by a failover. Please "
-                             "repair it or remove it from the ReplicaSet.");
+        current_console()->print_error(
+            get_name() +
+            " was invalidated by a failover. Please "
+            "repair it or remove it from the ReplicaSet.");
       }
       throw shcore::Exception(e.what(), SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE);
     }
