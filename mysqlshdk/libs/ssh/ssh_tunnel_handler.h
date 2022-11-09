@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,7 +79,7 @@ class Ssh_tunnel_handler : public Ssh_thread {
   uint16_t m_local_port;
   int m_local_socket;
   std::map<int, std::unique_ptr<::ssh::Channel>> m_client_socket_list;
-  ssh_event m_event;
+  ssh_event m_event = nullptr;
 
  private:
   void handle_connection();
@@ -87,6 +87,8 @@ class Ssh_tunnel_handler : public Ssh_thread {
   void transfer_data_to_client(int sock, ::ssh::Channel *chan);
   std::unique_ptr<::ssh::Channel> open_tunnel();
   void prepare_tunnel(int client_socket);
+  void make_event();
+  void cleanup_event();
 
   std::recursive_mutex m_new_connection_mtx;
   std::queue<int> m_new_connection;
