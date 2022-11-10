@@ -114,8 +114,10 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 
 %if 0%{?bundled_python:1}
 %global _pythonlibs libpython.*
+# don't scan python scripts for shebang
+%global __requires_exclude_from ^%{_prefix}/lib/mysqlsh/lib/python.*\.py$
 %if 0%{?rhel} && 0%{?rhel} < 7
-%filter_from_requires /libpython/d
+%filter_from_requires /python/d
 %endif
 %else
 %global _pythonlibs %{nil}

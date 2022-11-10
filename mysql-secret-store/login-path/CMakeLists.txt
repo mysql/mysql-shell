@@ -46,10 +46,5 @@ add_helper_executable()
 
 # If defined, installs the mysql_config_editor binary into the shell bundle
 IF (BUNDLED_MYSQL_CONFIG_EDITOR)
-  INSTALL(PROGRAMS ${BUNDLED_MYSQL_CONFIG_EDITOR} DESTINATION "${INSTALL_LIBEXECDIR}" COMPONENT main)
-  # Copy the mysql_config_editor to the build dir
-  ADD_CUSTOM_COMMAND(TARGET mysql-secret-store-login-path POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_LIBEXECDIR}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${BUNDLED_MYSQL_CONFIG_EDITOR}"
-                "${CONFIG_BINARY_DIR}/${INSTALL_LIBEXECDIR}/mysql_config_editor")
+  install_bundled_binary("${BUNDLED_MYSQL_CONFIG_EDITOR}" "${INSTALL_LIBEXECDIR}" mysql-secret-store-login-path)
 ENDIF()

@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2022, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -211,7 +211,7 @@ MACRO(MYSQL_CHECK_CURL_DLLS)
         )
 
       MESSAGE(STATUS "INSTALL ${HAVE_CURL_DLL} to ${INSTALL_BINDIR}")
-      INSTALL(FILES "${HAVE_CURL_DLL}"
+      INSTALL(PROGRAMS "${HAVE_CURL_DLL}"
         DESTINATION "${INSTALL_BINDIR}" COMPONENT SharedLibraries)
 
       SET(ZLIB_DLL_REQUIRED 1)
@@ -236,7 +236,7 @@ MACRO(MYSQL_CHECK_CURL_DLLS)
 
       IF(ZLIB_DLL_REQUIRED AND HAVE_ZLIB_DLL)
         MESSAGE(STATUS "INSTALL ${HAVE_ZLIB_DLL} to ${INSTALL_BINDIR}")
-        INSTALL(FILES "${HAVE_ZLIB_DLL}"
+        INSTALL(PROGRAMS "${HAVE_ZLIB_DLL}"
           DESTINATION "${INSTALL_BINDIR}" COMPONENT SharedLibraries)
         GET_FILENAME_COMPONENT(ZLIB_DLL_NAME "${HAVE_ZLIB_DLL}" NAME)
         ADD_CUSTOM_TARGET(copy_zlib_dlls ALL
