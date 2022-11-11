@@ -166,6 +166,8 @@ class IInstance {
   virtual bool has_variable_compiled_value(const std::string &name) const = 0;
   virtual bool is_performance_schema_enabled() const = 0;
 
+  virtual bool is_ssl_enabled() const = 0;
+
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
 
@@ -320,6 +322,7 @@ class Instance : public IInstance {
 
   bool has_variable_compiled_value(const std::string &name) const override;
   bool is_performance_schema_enabled() const override;
+  bool is_ssl_enabled() const override;
 
   std::shared_ptr<db::ISession> get_session() const override {
     return _session;

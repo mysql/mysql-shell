@@ -159,23 +159,23 @@ DESCRIPTION
       - manualStartOnBoot: boolean (default false). If false, Group Replication
         in cluster instances will automatically start and rejoin when MySQL
         starts, otherwise it must be started manually.
-      - memberSslMode: SSL mode used to configure the security state of the
-        communication between the InnoDB Cluster members.
+      - memberSslMode: SSL mode for communication channels opened by Group
+        Replication from one server to another.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
-        Group Replication.
+        group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
-      - exitStateAction: string value indicating the Group Replication exit
+      - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
       - consistency: string value indicating the consistency guarantees that
         the cluster provides.
       - expelTimeout: integer value to define the time period in seconds that
-        Cluster members should wait for a non-responding member before evicting
-        it from the Cluster.
+        cluster members should wait for a non-responding member before evicting
+        it from the cluster.
       - autoRejoinTries: integer value to define the number of times an
-        instance will attempt to rejoin the Cluster after being expelled.
+        instance will attempt to rejoin the cluster after being expelled.
       - timeout: maximum number of seconds to wait for the instance to sync up
         with the PRIMARY Cluster. Default is 0 and it means no timeout.
       - replicationAllowedHost: string value to use as the host name part of
@@ -219,14 +219,20 @@ DESCRIPTION
       members are available the PRIMARY will be selected. The option accepts
       values in the format: 'host:port'. IPv6 addresses are not supported.
 
+      The memberSslMode option controls whether TLS is to be used for
+      connections opened by Group Replication from one server to another (both
+      recovery and group communication, in either communication stack). It also
+      controls what kind of verification the client end of connections perform
+      on the SSL certificate presented by the server end.
+
       The memberSslMode option supports the following values:
 
       - REQUIRED: if used, SSL (encryption) will be enabled for the instances
-        to communicate with other members of the Cluster
-      - VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
+        to communicate with other members of the cluster
+      - VERIFY_CA: Like REQUIRED, but additionally verify the peer server TLS
         certificate against the configured Certificate Authority (CA)
         certificates.
-      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the
+      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the peer
         server certificate matches the host to which the connection is
         attempted.
       - DISABLED: if used, SSL (encryption) will be disabled
@@ -239,6 +245,9 @@ DESCRIPTION
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
       private network to be automatically set for the allowlist.
+
+      This option is only used and allowed when communicationStack is set to
+      XCOM.
 
       The groupName and localAddress are advanced options and their usage is
       discouraged since incorrect values can lead to Group Replication errors.
@@ -307,7 +316,7 @@ DESCRIPTION
       variable 'group_replication_consistency' and configure the transaction
       consistency guarantee which a cluster provides.
 
-      When set to to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
+      When set to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
       happens in single-primary mode (default), new queries (read or write) to
       the newly elected primary that is applying backlog from the old primary,
       will be hold before execution until the backlog is applied. When set to
@@ -328,7 +337,7 @@ DESCRIPTION
       transaction completes, all following transactions read a database state
       that includes its changes, regardless of which member they are executed
       on. This mode shall only be used on a group that is used for
-      predominantly RO operations to  to ensure that subsequent reads fetch the
+      predominantly RO operations to ensure that subsequent reads fetch the
       latest data which includes the latest writes. The overhead of
       synchronization on every RO transaction is reduced since synchronization
       is used only on RW transactions.
@@ -458,7 +467,7 @@ DESCRIPTION
 
       During the switchover, the promoted Cluster will be synchronized with the
       old PRIMARY, ensuring that all transactions present in the PRIMARY are
-      applied before the topology change is commited. The current PRIMARY
+      applied before the topology change is committed. The current PRIMARY
       instance is also locked with 'FLUSH TABLES WITH READ LOCK' in order to
       prevent changes during the switch. If either of these operations take too
       long or fails, the switch will be aborted.

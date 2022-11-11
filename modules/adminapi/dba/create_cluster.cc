@@ -188,45 +188,8 @@ void Create_cluster::validate_create_cluster_options() {
  * instance).
  */
 void Create_cluster::resolve_ssl_mode() {
-  bool have_ssl;
-  bool require_secure_transport =
-      m_target_instance->get_sysvar_bool("require_secure_transport", false);
-
-  auto resolved_ssl_mode = mysqlsh::dba::resolve_ssl_mode(
-      *m_target_instance, m_options.gr_options.ssl_mode, &have_ssl);
-
-  if (have_ssl) {
-    // sslMode is DISABLED but instance requires SSL
-    if (m_options.gr_options.ssl_mode == Cluster_ssl_mode::DISABLED &&
-        require_secure_transport) {
-      throw shcore::Exception::argument_error(
-          "The instance '" + m_target_instance->descr() +
-          "' requires secure connections, to create the "
-          "cluster either turn off require_secure_transport or use the "
-          "memberSslMode option with 'REQUIRED', 'VERIFY_CA' or "
-          "'VERIFY_IDENTITY' value.");
-    }
-
-    // sslMode is VERIFY_CA or VERIFY_IDENTITY, verify the certificates
-    if (m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
-        m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
-      ensure_certificates_set(*m_target_instance,
-                              m_options.gr_options.ssl_mode);
-    }
-  } else {  // The instance does not support SSL
-    // sslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
-    if (m_options.gr_options.ssl_mode == Cluster_ssl_mode::REQUIRED ||
-        m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
-        m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
-      throw shcore::Exception::argument_error(
-          "The instance '" + m_target_instance->descr() +
-          "' does not have SSL enabled, to create the "
-          "cluster either use an instance with SSL enabled, remove the "
-          "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
-    }
-  }
-
-  m_options.gr_options.ssl_mode = resolved_ssl_mode;
+  resolve_ssl_mode_option("memberSslMode", "Cluster", *m_target_instance,
+                          &m_options.gr_options.ssl_mode);
 
   log_info("SSL mode used to configure the cluster: '%s'",
            to_string(m_options.gr_options.ssl_mode).c_str());

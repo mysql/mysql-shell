@@ -217,7 +217,7 @@
 |              Until_Condition: None|
 |               Until_Log_File: |
 |                Until_Log_Pos: 0|
-|           Master_SSL_Allowed: No|
+|           Master_SSL_Allowed: Yes|
 |           Master_SSL_CA_File: |
 |           Master_SSL_CA_Path: |
 |              Master_SSL_Cert: |

@@ -421,12 +421,19 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type);
 
-Cluster_ssl_mode resolve_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
-                                  Cluster_ssl_mode ssl_mode, bool *have_ssl);
+void resolve_ssl_mode_option(const std::string &option,
+                             const std::string &context,
+                             const mysqlshdk::mysql::IInstance &instance,
+                             Cluster_ssl_mode *ssl_mode);
 
-void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
-                               const mysqlshdk::mysql::IInstance &pinstance,
-                               Cluster_ssl_mode *member_ssl_mode);
+void resolve_instance_ssl_mode_option(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlshdk::mysql::IInstance &pinstance,
+    Cluster_ssl_mode *member_ssl_mode);
+
+void validate_instance_ssl_mode(Cluster_type type,
+                                const mysqlshdk::mysql::IInstance &instance,
+                                Cluster_ssl_mode ssl_mode);
 
 std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const mysqlshdk::mysql::IInstance &group_server,

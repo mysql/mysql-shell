@@ -115,15 +115,6 @@
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Instance check failed (MYSQLSH 51150)
 
-//@# unsupported option: SSL (should fail) {VER(<8.0.23)}
-||Replication option 'MASTER_SSL' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '1' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
-
-//@# unsupported option: SSL (should fail) {VER(>=8.0.23)}
-||Replication option 'SOURCE_SSL' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '1' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
-
-//@# unsupported option: SSL=0
-|ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
-
 //@# unsupported option: delay (should fail) {VER(<8.0.23)}
 ||Replication option 'MASTER_DELAY' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '5' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 

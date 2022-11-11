@@ -502,11 +502,7 @@ void Remove_instance::prepare() {
 shcore::Value Remove_instance::execute() {
   auto console = mysqlsh::current_console();
 
-  console->print_para(
-      "The instance will be removed from the InnoDB cluster. Depending on the "
-      "instance being the Seed or not, the Metadata session might become "
-      "invalid. If so, please start a new session to the Metadata Storage R/W "
-      "instance.");
+  console->print_para("The instance will be removed from the InnoDB Cluster.");
 
   // If this is a replica in a clusterset, ensure view change GTIDs are
   // replicated to the PRIMARY. This is so that view changes GTIDs left in the

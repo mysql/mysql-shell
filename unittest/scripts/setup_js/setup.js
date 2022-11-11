@@ -668,6 +668,17 @@ function json_find_key(json, key) {
   return undefined;
 }
 
+function EXPECT_REPLICAS_USE_SSL(session, num_replicas) {
+  var res = session.runSql("SELECT t.thread_id, t.processlist_id, s.variable_value FROM performance_schema.threads t JOIN performance_schema.status_by_thread s ON t.thread_id = s.thread_id WHERE t.processlist_command = 'Binlog Dump GTID' AND s.variable_name = 'Ssl_cipher'");
+  var count = 0;
+  for (row = res.fetchOne(); row; row = res.fetchOne()) {
+    print(row);
+    EXPECT_NE(null, row[2], "Replication thread " + row[1] + " not using Ssl");
+    count += 1;
+  }
+  EXPECT_EQ(num_replicas, count, "# of replicas");
+}
+
 function wait(timeout, wait_interval, condition) {
   if (__replaying) wait_interval = 0;
   waiting = 0;
@@ -1246,7 +1257,7 @@ function EXPECT_STDOUT_CONTAINS_MULTILINE_ONE_OF(t) {
     if (!ret.found) {
         var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
         if (typeof(t) === "string") {
-            context += text.str;
+            context += t;
         } else {
             for (i in t) {
                 context += t[i] + "\n";

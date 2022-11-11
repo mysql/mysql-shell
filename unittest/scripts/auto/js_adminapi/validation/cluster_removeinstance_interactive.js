@@ -104,9 +104,7 @@
 }
 
 //@<OUT> Removing instance
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -150,9 +148,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 ||
 
 //@<OUT> Removing instance (interactive: true)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -165,9 +161,7 @@ start a new session to the Metadata Storage R/W instance.
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> Removing instance (interactive: false)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to synchronize with the primary...
 
@@ -185,9 +179,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully removed fr
 ||
 
 //@<OUT> Removing instance (interactive: true, force: false)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -200,9 +192,7 @@ start a new session to the Metadata Storage R/W instance.
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> Removing instance (interactive: true, force: true)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to synchronize with the primary...
 
@@ -220,9 +210,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully removed fr
 ||
 
 //@<OUT> Removing instance (interactive: false, force: false)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -235,9 +223,7 @@ start a new session to the Metadata Storage R/W instance.
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> Removing instance (interactive: false, force: true)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to synchronize with the primary...
 
@@ -255,9 +241,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully removed fr
 ||
 
 //@<OUT> Removing instance (force: false)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -273,9 +257,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 false
 
 //@<OUT> Removing instance (force: true)
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to synchronize with the primary...
 
@@ -421,9 +403,7 @@ Cluster.removeInstance: [[*]] (MySQL Error 20[[*]])
 NOTE: MySQL Error 20[[*]]
 NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.
 
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
@@ -537,9 +517,7 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachabl
 To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
@@ -549,9 +527,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully remov
 NOTE: MySQL Error 20[[*]]
 NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.
 
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
@@ -579,9 +555,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully remov
 ||
 
 //@<OUT> Remove instance with replication error - error
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to synchronize with the primary...
 
@@ -603,9 +577,7 @@ Cluster.removeInstance: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found 
 
 //@<OUT> Remove instance with replication error (force: true) - success
 NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state ERROR
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 NOTE: The recovery user name for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Skipping its removal.
 NOTE: Transaction sync was skipped

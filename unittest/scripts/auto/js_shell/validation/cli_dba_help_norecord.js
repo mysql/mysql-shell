@@ -260,11 +260,12 @@ RETURNS
 
 OPTIONS
 --memberSslMode=<str>
-            SSL mode used to configure the members of the cluster.
+            SSL mode for communication channels opened by Group Replication
+            from one server to another.
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
-            replication.
+            replication. Only valid if communicationStack=XCOM.
 
 --localAddress=<str>
             String value with the Group Replication local address to be used

@@ -136,46 +136,10 @@ void Create_cluster_set::check_gr_configuration() {
 }
 
 void Create_cluster_set::resolve_ssl_mode() {
-  bool have_ssl;
-  bool require_secure_transport =
-      m_cluster->get_cluster_server()->get_sysvar_bool(
-          "require_secure_transport", false);
-
   // Resolve the Replication Channel SSL Mode
-  auto resolved_ssl_mode = mysqlsh::dba::resolve_ssl_mode(
-      *m_cluster->get_cluster_server(), m_options.ssl_mode, &have_ssl);
-
-  if (have_ssl) {
-    // sslMode is DISABLED but instance requires SSL
-    if (m_options.ssl_mode == Cluster_ssl_mode::DISABLED &&
-        require_secure_transport) {
-      throw shcore::Exception::argument_error(
-          "The instance '" + m_cluster->get_cluster_server()->descr() +
-          "' requires secure connections, either turn off "
-          "require_secure_transport or use the "
-          "clusterSetReplicationSslMode option with 'REQUIRED', 'VERIFY_CA' "
-          "or 'VERIFY_IDENTITY' value.");
-    }
-
-    // sslMode is VERIFY_CA or VERIFY_IDENTITY, verify the certificates
-    if (m_options.ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
-        m_options.ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
-      ensure_certificates_set(*m_cluster->get_cluster_server(),
-                              m_options.ssl_mode);
-    }
-  } else {
-    if (m_options.ssl_mode == Cluster_ssl_mode::REQUIRED ||
-        m_options.ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
-        m_options.ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
-      throw shcore::Exception::argument_error(
-          "The instance '" + m_cluster->get_cluster_server()->descr() +
-          "' does not have SSL enabled, either use an instance with SSL "
-          "enabled, remove the clusterSetReplicationSslMode option or use it "
-          "with any of 'AUTO' or 'DISABLED'.");
-    }
-  }
-
-  m_options.ssl_mode = resolved_ssl_mode;
+  mysqlsh::dba::resolve_ssl_mode_option(
+      "clusterSetReplicationSslMode", "Cluster",
+      *m_cluster->get_cluster_server(), &m_options.ssl_mode);
 
   log_info(
       "SSL mode used to configure the ClusterSet replication channels: '%s'",

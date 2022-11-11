@@ -79,9 +79,7 @@ Cluster.rescan: There is no quorum to perform the operation (MYSQLSH 51011)
 ||
 
 //@<OUT> BUG#25267603: remove the primary instance from the cluster.
-The instance will be removed from the InnoDB cluster. Depending on the instance
-being the Seed or not, the Metadata session might become invalid. If so, please
-start a new session to the Metadata Storage R/W instance.
+The instance will be removed from the InnoDB Cluster.
 
 * Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' to synchronize with the primary...
 

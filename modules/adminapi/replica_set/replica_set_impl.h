@@ -161,7 +161,7 @@ class Replica_set_impl : public Base_cluster_impl {
   void validate_add_instance(Global_topology_manager *topology,
                              mysqlshdk::mysql::IInstance *master,
                              Instance *target_instance,
-                             const Async_replication_options &ar_options,
+                             Async_replication_options *ar_options,
                              Clone_options *clone_options, bool interactive);
 
   void validate_rejoin_instance(Global_topology_manager *topology_mng,
@@ -237,6 +237,8 @@ class Replica_set_impl : public Base_cluster_impl {
   void check_preconditions_and_primary_availability(
       const std::string &function_name,
       bool throw_if_primary_unavailable = true);
+
+  void read_replication_options(Async_replication_options *ar_options);
 
   Global_topology_type m_topology_type;
 };

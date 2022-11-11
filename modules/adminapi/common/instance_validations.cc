@@ -575,7 +575,7 @@ void ensure_instance_not_belong_to_cluster(
         throw shcore::Exception::runtime_error(
             "The instance '" + instance->descr() +
             "' is currently attempting to rejoin the cluster. Use <cluster>."
-            "rejoinInstance() if you want to to override the auto-rejoin "
+            "rejoinInstance() if you want to override the auto-rejoin "
             "process.");
       } else {
         throw shcore::Exception::runtime_error(

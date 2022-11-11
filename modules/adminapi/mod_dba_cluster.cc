@@ -285,22 +285,6 @@ This is the default value. A prompt will be shown if not possible to safely
 determine a safe way forward. If interaction is disabled, the operation will be
 canceled instead.
 
-@attention The memberSslMode option will be removed in a future release.
-
-The memberSslMode option supports the following values:
-
-@li REQUIRED: if used, SSL (encryption) will be enabled for the instance to
-communicate with other members of the cluster
-@li VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
-certificate against the configured Certificate Authority (CA) certificates.
-@li VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the server
-certificate matches the host to which the connection is attempted.
-@li DISABLED: if used, SSL (encryption) will be disabled
-@li AUTO: if used, SSL (encryption) will be automatically enabled or disabled
-based on the cluster configuration
-
-If memberSslMode is not specified AUTO will be used by default.
-
 The waitRecovery option supports the following values:
 
 @li 0: do not wait and let the recovery process to finish in the background.
@@ -331,6 +315,8 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
+@attention The memberSslMode option will be removed in a future release.
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
@@ -417,28 +403,14 @@ ${CLUSTER_OPT_LOCAL_ADDRESS}
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
 
-@attention The memberSslMode option will be removed in a future release.
-
-The memberSslMode option supports these values:
-
-@li REQUIRED: if used, SSL (encryption) will be enabled for the instance to
-communicate with other members of the cluster
-@li VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
-certificate against the configured Certificate Authority (CA) certificates.
-@li VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the server
-certificate matches the host to which the connection is attempted.
-@li DISABLED: if used, SSL (encryption) will be disabled
-@li AUTO: if used, SSL (encryption) will be automatically enabled or disabled
-based on the cluster configuration
-
-If memberSslMode is not specified AUTO will be used by default.
-
 ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
 The localAddress is an advanced option and its usage is discouraged
 since incorrect values can lead to Group Replication errors.
 
 ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
+
+@attention The memberSslMode option will be removed in a future release.
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.

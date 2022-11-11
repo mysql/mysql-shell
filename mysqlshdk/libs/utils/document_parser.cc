@@ -622,7 +622,7 @@ void Json_document_parser::get_bson_data(const std::vector<Bson_token> &tokens,
       char *end = nullptr;
       (*number) = std::strtod(str_number.c_str(), &end);
 
-      // End will point to to the character after the last converted character
+      // End will point to the character after the last converted character
       // So it should be the end of the string to a complete conversion
       if (*end != '\0') throw_invalid_json(missing_data, context, offset);
     }

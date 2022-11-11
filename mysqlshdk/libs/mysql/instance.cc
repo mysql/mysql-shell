@@ -417,6 +417,27 @@ bool Instance::is_performance_schema_enabled() const {
   return get_sysvar_bool("performance_schema", false);
 }
 
+bool Instance::is_ssl_enabled() const {
+  bool have_ssl;
+  if (get_version() >= mysqlshdk::utils::Version(8, 0, 21)) {
+    try {
+      auto enabled =
+          query(
+              "SELECT value FROM performance_schema.tls_channel_status"
+              " WHERE channel='mysql_main' AND property = 'Enabled'")
+              ->fetch_one_or_throw()
+              ->get_string(0);
+      have_ssl = shcore::str_caseeq(enabled, "Yes");
+    } catch (const shcore::Error &e) {
+      if (e.code() != ER_TABLEACCESS_DENIED_ERROR) throw;
+      have_ssl = shcore::str_caseeq(get_sysvar_string("have_ssl", ""), "YES");
+    }
+  } else {
+    have_ssl = shcore::str_caseeq(get_sysvar_string("have_ssl", ""), "YES");
+  }
+  return have_ssl;
+}
+
 /**
  * Returns true if a given variable still has the default (compiled) value.
  * @param name string with the name of the variable to check

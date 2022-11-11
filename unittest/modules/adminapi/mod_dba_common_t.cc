@@ -102,9 +102,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   instance->set_sysvar("require_secure_transport", true, Var_qualifier::GLOBAL);
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("REQUIRED", to_string(resolved_member_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE(
@@ -118,9 +118,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "REQUIRED"   ON
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
-    auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("REQUIRED", to_string(resolved_member_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE(
@@ -134,9 +134,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "VERIFY_CA"   ON
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
-    auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("VERIFY_CA", to_string(resolved_member_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("VERIFY_CA", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE(
@@ -150,10 +150,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "VERIFY_IDENTITY"   ON
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
-    auto resolved_member_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("VERIFY_IDENTITY",
-                 to_string(resolved_member_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("VERIFY_IDENTITY", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE(
@@ -169,9 +168,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
                        Var_qualifier::GLOBAL);
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    auto resolved_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("REQUIRED", to_string(resolved_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE(
@@ -185,7 +184,8 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "REQUIRED"   OFF
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
-    mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
     EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -200,7 +200,8 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "VERIFY_CA"   OFF
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
-    mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
     EXPECT_STREQ("VERIFY_CA", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -215,7 +216,8 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "VERIFY_IDENTITY"   OFF
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
-    mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
     EXPECT_STREQ("VERIFY_IDENTITY", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -230,7 +232,8 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   // enabled     "DISABLED"    OFF
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::DISABLED;
-    mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
     EXPECT_STREQ("DISABLED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -260,9 +263,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   // disabled    "AUTO"
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    auto resolved_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("DISABLED", to_string(resolved_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("DISABLED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at resolve_cluster_ssl_mode_010");
@@ -275,9 +278,9 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
 
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::DISABLED;
-    auto resolved_ssl_mode =
-        mysqlsh::dba::resolve_ssl_mode(*instance, member_ssl_mode, nullptr);
-    EXPECT_STREQ("DISABLED", to_string(resolved_ssl_mode).c_str());
+    mysqlsh::dba::resolve_ssl_mode_option("memberSslMode", "", *instance,
+                                          &member_ssl_mode);
+    EXPECT_STREQ("DISABLED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at resolve_cluster_ssl_mode_009");
@@ -319,7 +322,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    AUTO          enabled
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -334,7 +338,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    REQUIRED      enabled
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -349,7 +354,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    VERIFY_CA      enabled
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("VERIFY_CA", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -364,7 +370,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    VERIFY_IDENTITY  enabled
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("VERIFY_IDENTITY", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -395,8 +402,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
     // VERIFY_CA is used as memberSslMode
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
     EXPECT_THROW_MSG(
-        mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                                &member_ssl_mode),
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                       &member_ssl_mode),
         std::runtime_error,
         "memberSslMode 'VERIFY_CA' requires Certificate Authority (CA) "
         "certificates to be supplied.");
@@ -410,8 +417,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
     // VERIFY_IDENTITY is used as memberSslMode
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
     EXPECT_THROW_MSG(
-        mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                                &member_ssl_mode),
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                       &member_ssl_mode),
         std::runtime_error,
         "memberSslMode 'VERIFY_IDENTITY' requires Certificate Authority (CA) "
         "certificates to be supplied.");
@@ -433,13 +440,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   //----------- -------------
   // REQUIRED    DISABLED
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::DISABLED;
-  EXPECT_THROW_MSG(mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                                           &member_ssl_mode),
+  EXPECT_THROW_MSG(mysqlsh::dba::resolve_instance_ssl_mode_option(
+                       *instance, *peer, &member_ssl_mode),
                    std::runtime_error,
-                   "The cluster has SSL (encryption) enabled. "
+                   "The cluster has TLS (encryption) enabled. "
                    "To add the instance '" +
                        instance->descr() +
-                       "' to the cluster either disable SSL on the cluster, "
+                       "' to the cluster either disable TLS on the cluster, "
                        "remove the memberSslMode option or use it with any of "
                        "'AUTO', 'REQUIRED', 'VERIFY_CA' or "
                        "'VERIFY_IDENTITY'.");
@@ -450,7 +457,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   try {
     peer->execute("SET GLOBAL group_replication_ssl_mode=VERIFY_CA");
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("VERIFY_CA", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -466,7 +474,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   try {
     peer->execute("SET GLOBAL group_replication_ssl_mode=VERIFY_IDENTITY");
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("VERIFY_IDENTITY", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -484,27 +493,27 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   //----------- ------------- ------------
   // REQUIRED    AUTO          disabled
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-  EXPECT_THROW_MSG(mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                                           &member_ssl_mode),
+  EXPECT_THROW_MSG(mysqlsh::dba::resolve_instance_ssl_mode_option(
+                       *instance, *peer, &member_ssl_mode),
                    std::runtime_error,
                    "Instance '" + instance->descr() +
-                       "' does not support SSL and cannot join a cluster with "
-                       "SSL (encryption) enabled. Enable SSL support on the "
+                       "' does not support TLS and cannot join a cluster with "
+                       "TLS (encryption) enabled. Enable TLS support on the "
                        "instance and try again, otherwise it can only be added "
-                       "to a cluster with SSL disabled.");
+                       "to a cluster with TLS disabled.");
 
   // Cluster SSL memberSslMode Instance SSL
   //----------- ------------- ------------
   // REQUIRED    REQUIRED      disabled
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                              &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                     &member_ssl_mode),
       std::runtime_error,
       "Instance '" + instance->descr() +
-          "' does not support SSL and cannot join a cluster with SSL "
-          "(encryption) enabled. Enable SSL support on the instance and try "
-          "again, otherwise it can only be added to a cluster with SSL "
+          "' does not support TLS and cannot join a cluster with TLS "
+          "(encryption) enabled. Enable TLS support on the instance and try "
+          "again, otherwise it can only be added to a cluster with TLS "
           "disabled.");
 
   // Cluster SSL memberSslMode Instance SSL
@@ -512,13 +521,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    VERIFY_CA      disabled
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                              &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                     &member_ssl_mode),
       std::runtime_error,
       "Instance '" + instance->descr() +
-          "' does not support SSL and cannot join a cluster with SSL "
-          "(encryption) enabled. Enable SSL support on the instance and try "
-          "again, otherwise it can only be added to a cluster with SSL "
+          "' does not support TLS and cannot join a cluster with TLS "
+          "(encryption) enabled. Enable TLS support on the instance and try "
+          "again, otherwise it can only be added to a cluster with TLS "
           "disabled.");
 
   // Cluster SSL memberSslMode    Instance SSL
@@ -526,13 +535,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // REQUIRED    VERIFY_IDENTITY   disabled
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                              &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                     &member_ssl_mode),
       std::runtime_error,
       "Instance '" + instance->descr() +
-          "' does not support SSL and cannot join a cluster with SSL "
-          "(encryption) enabled. Enable SSL support on the instance and try "
-          "again, otherwise it can only be added to a cluster with SSL "
+          "' does not support TLS and cannot join a cluster with TLS "
+          "(encryption) enabled. Enable TLS support on the instance and try "
+          "again, otherwise it can only be added to a cluster with TLS "
           "disabled.");
 
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
@@ -571,13 +580,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   // DISABLED    REQUIRED
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                              &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                     &member_ssl_mode),
       std::runtime_error,
-      "The cluster has SSL (encryption) disabled. "
+      "The cluster has TLS (encryption) disabled. "
       "To add the instance '" +
           instance->descr() +
-          "' to the cluster either enable SSL on the cluster, remove the "
+          "' to the cluster either enable TLS on the cluster, remove the "
           "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
 
   // Cluster SSL memberSslMode require_secure_transport
@@ -585,7 +594,8 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   // DISABLED    AUTO          OFF
   try {
     member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer, &member_ssl_mode);
+    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                   &member_ssl_mode);
     EXPECT_STREQ("DISABLED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -600,13 +610,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   // DISABLED    ""            ON
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                              &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                     &member_ssl_mode),
       std::runtime_error,
       "The instance '" + instance->descr() +
           "' is configured to require a secure transport but the cluster has "
-          "SSL disabled. To add the instance to the cluster, either turn OFF "
-          "the require_secure_transport option on the instance or enable SSL "
+          "TLS disabled. To add the instance to the cluster, either turn OFF "
+          "the require_secure_transport option on the instance or enable TLS "
           "on the cluster.");
 
   // Cluster SSL memberSslMode require_secure_transport
@@ -614,13 +624,13 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   // DISABLED    AUTO          ON
   member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode(*instance, *peer,
-                                              &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
+                                                     &member_ssl_mode),
       std::runtime_error,
       "The instance '" + instance->descr() +
           "' is configured to require a secure transport but the cluster has "
-          "SSL disabled. To add the instance to the cluster, either turn OFF "
-          "the require_secure_transport option on the instance or enable SSL "
+          "TLS disabled. To add the instance to the cluster, either turn OFF "
+          "the require_secure_transport option on the instance or enable TLS "
           "on the cluster.");
 
   disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
