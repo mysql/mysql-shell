@@ -900,7 +900,7 @@ int64_t generate_server_id() {
 }
 
 std::string get_replica_keyword(const mysqlshdk::utils::Version &version) {
-  if (version < mysqlshdk::utils::Version(8, 0, 22)) {
+  if (version < mysqlshdk::utils::Version(8, 0, 23)) {
     return "SLAVE";
   } else {
     return "REPLICA";

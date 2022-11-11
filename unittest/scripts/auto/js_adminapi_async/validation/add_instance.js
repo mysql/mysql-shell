@@ -143,7 +143,7 @@
 //@# instance belongs to a rs (should fail)
 ||<<<__endpoint_uri2>>> is already managed by a replicaset.
 
-//@# instance running unmanaged AR (should fail) {VER(<8.0.22)}
+//@# instance running unmanaged AR (should fail) {VER(<8.0.23)}
 |Unmanaged replication channels are not supported in a replicaset. If you'd like|
 |to manage an existing MySQL replication topology with the Shell, use the|
 |createReplicaSet() operation with the adoptFromAR option. If the addInstance()|
