@@ -168,10 +168,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -260,10 +260,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -352,10 +352,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -499,10 +499,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -591,10 +591,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -683,10 +683,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"

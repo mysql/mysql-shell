@@ -416,10 +416,10 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -688,10 +688,10 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
@@ -762,8 +762,8 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
 //@ canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
 |[::1]:<<<__mysql_sandbox_port1>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port1>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}|
 
-//If the target instance is >= 8.0.22, when ipWhitelist is used a deprecation warning must be printed
-//@ IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>=8.0.22)}
+//If the target instance is >= 8.0.23, when ipWhitelist is used a deprecation warning must be printed
+//@ IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>=8.0.23)}
 |WARNING: The ipWhitelist option is deprecated in favor of ipAllowlist. ipAllowlist will be set instead.|
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}

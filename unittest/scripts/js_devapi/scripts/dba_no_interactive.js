@@ -52,7 +52,7 @@ dba.createCluster('devCluster', {multiPrimary:true, multiMaster: false});
 dba.createCluster('devCluster', {ipWhitelist: " "});
 dba.createCluster('1invalidN4me');
 
-//@# Dba: createCluster ipWhitelist deprecation {VER(>=8.0.22)}
+//@# Dba: createCluster ipWhitelist deprecation {VER(>=8.0.23)}
 dba.createCluster('devCluster', {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
 
 //@ Dba: createCluster with ANSI_QUOTES success

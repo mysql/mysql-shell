@@ -292,7 +292,7 @@ var bug_30632029 = [
     "RESET SLAVE ALL FOR CHANNEL ''"
 ];
 
-//@<> BUG#30632029: add instance using clone and a secondary as donor {VER(>=8.0.22)}
+//@<> BUG#30632029: add instance using clone and a secondary as donor {VER(>=8.0.23)}
 var bug_30632029 = [
     // "STOP REPLICA FOR CHANNEL ''", (this is not executed if the channel doesn't exist)
     "RESET REPLICA ALL FOR CHANNEL ''"

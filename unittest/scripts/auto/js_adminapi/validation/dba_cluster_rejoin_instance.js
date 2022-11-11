@@ -13,7 +13,7 @@
 //@ Adding instance 3
 ||
 
-//@ ipWhitelist deprecation error {VER(>=8.0.22)}
+//@ ipWhitelist deprecation error {VER(>=8.0.23)}
 ||Cannot use the ipWhitelist and ipAllowlist options simultaneously. The ipWhitelist option is deprecated, please use the ipAllowlist option instead. (ArgumentError)
 
 //@<OUT> Rejoin instance 2

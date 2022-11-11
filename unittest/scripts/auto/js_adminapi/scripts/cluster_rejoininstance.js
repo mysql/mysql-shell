@@ -75,10 +75,10 @@ var ip_white_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
 
 c.rejoinInstance(__sandbox_uri2, {ipWhitelist: ip_white_list});
 
-//@<> Verify that ipWhitelist sets group_replication_ip_allowlist in 8.0.22 {VER(>=8.0.22)}
+//@<> Verify that ipWhitelist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> Verify that ipWhitelist sets group_replication_ip_whitelist in versions < 8.0.22 {VER(<8.0.22)}
+//@<> Verify that ipWhitelist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
 //@<> Simulate the instance dropping the GR group to rejoin it again
@@ -94,10 +94,10 @@ c.rejoinInstance(__sandbox_uri2, {ipAllowlist:ip_white_list});
 session.close();
 shell.connect(__sandbox_uri2);
 
-//@<> Verify the new option ipAllowlist sets group_replication_ip_allowlist in 8.0.22 {VER(>=8.0.22)}
+//@<> Verify the new option ipAllowlist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> Verify the new option ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.22 {VER(<8.0.22)}
+//@<> Verify the new option ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
 //@ Finalization
@@ -196,10 +196,10 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
 shell.connect(__sandbox_uri2);
 
-//@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.22)}
+//@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.23)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
-//@<> Confirm that ipWhitelist is set {VER(>= 8.0.22)}
+//@<> Confirm that ipWhitelist is set {VER(>= 8.0.23)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> localAddress supported on rejoinInstance WL#14765 {VER(>= 8.0.14)}

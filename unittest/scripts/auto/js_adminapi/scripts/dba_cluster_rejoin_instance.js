@@ -68,7 +68,7 @@ EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "(MISSING)
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
 
-//@ ipWhitelist deprecation error {VER(>=8.0.22)}
+//@ ipWhitelist deprecation error {VER(>=8.0.23)}
 cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
 
 //@<OUT> Rejoin instance 2

@@ -86,20 +86,20 @@
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
                     "variable": "group_replication_ip_whitelist"
@@ -183,20 +183,20 @@
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
                     "variable": "group_replication_ip_whitelist"
@@ -548,20 +548,20 @@
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
                     "variable": "group_replication_ip_whitelist"
@@ -645,20 +645,20 @@
                 },
                 {
                     "option": "ipAllowlist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": null,
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
                     "variable": "group_replication_ip_whitelist"
