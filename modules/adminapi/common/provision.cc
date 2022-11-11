@@ -166,7 +166,7 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
 
   // Set GR IP whitelist (if provided).
   if (gr_opts.ip_allowlist.has_value()) {
-    if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 22)) {
+    if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
       config->set("group_replication_ip_whitelist", gr_opts.ip_allowlist,
                   "ipWhitelist");
     } else {

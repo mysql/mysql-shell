@@ -153,8 +153,8 @@ Cluster.addInstance: Group Replication failed to start: [[*]]
 |[::1]:<<<__mysql_sandbox_port1>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port1>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}|
 |[::1]:<<<__mysql_sandbox_port2>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port2>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port2>>>"}|
 
-// If the target instance is >= 8.0.22, when ipWhitelist is used a deprecation warning must be printed
-//@ IPv6 addresses are supported on localAddress and ipWhitelist WL#12758 {VER(>=8.0.22)}
+// If the target instance is >= 8.0.23, when ipWhitelist is used a deprecation warning must be printed
+//@ IPv6 addresses are supported on localAddress and ipWhitelist WL#12758 {VER(>=8.0.23)}
 |WARNING: The ipWhitelist option is deprecated in favor of ipAllowlist. ipAllowlist will be set instead.|
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}

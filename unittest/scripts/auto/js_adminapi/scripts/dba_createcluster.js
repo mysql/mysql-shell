@@ -1004,11 +1004,11 @@ var ip_white_list = "::1, 127.0.0.1";
 var group_seeds = "[::1]:" + __mysql_sandbox_gr_port1; + ", [::1]:" + __mysql_sandbox_gr_port2;
 c = dba.createCluster("cluster", {ipWhitelist:ip_white_list, groupSeeds:group_seeds, localAddress:local_address, communicationStack: "xcom"});
 
-//@<> If the target instance is >= 8.0.22, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.22)}
+//@<> If the target instance is >= 8.0.23, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.23)}
 shell.connect(__sandbox_uri1);
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> If the target instance is >= 8.0.22, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.14) && VER(<8.0.22)}
+//@<> If the target instance is >= 8.0.23, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.14) && VER(<8.0.23)}
 shell.connect(__sandbox_uri1);
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
@@ -1018,9 +1018,7 @@ EXPECT_EQ(group_seeds, get_sysvar(session, "group_replication_group_seeds"));
 //@<> Dissolve the cluster {VER(>=8.0)}
 c.dissolve({force: true});
 
-//@<> Verify the new option ipAllowlist that deprecates ipWhitelist sets the allowlist {VER(>=8.0.22)}
-
-
+//@<> Verify the new option ipAllowlist that deprecates ipWhitelist sets the allowlist {VER(>=8.0.23)}
 if (__version_num < 80027) {
     c = dba.createCluster("cluster", {ipAllowlist: ip_white_list});
 } else {

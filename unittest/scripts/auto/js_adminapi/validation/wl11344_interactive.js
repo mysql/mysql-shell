@@ -33,10 +33,10 @@ group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = 
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = AUTOMATIC
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = AUTOMATIC
 ?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -114,10 +114,10 @@ one server failure.
 group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = 62d73bbd-b830-11e7-a7b7-34e6d72fbd80
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_1>>>
@@ -199,10 +199,10 @@ group_replication_enforce_update_everywhere_checks = ON
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = 
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = AUTOMATIC
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = AUTOMATIC
 ?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -416,10 +416,10 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_2>>>
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
@@ -441,10 +441,10 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_2>>>
@@ -494,10 +494,10 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
@@ -523,10 +523,10 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
-?{VER(>=8.0.22)}
+?{VER(>=8.0.23)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
-?{VER(<8.0.22)}
+?{VER(<8.0.23)}
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>

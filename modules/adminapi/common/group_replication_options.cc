@@ -458,7 +458,7 @@ void Group_replication_options::read_option_values(
   }
 
   if (!ip_allowlist.has_value() && !switching_comm_stack) {
-    if (version < mysqlshdk::utils::Version(8, 0, 22)) {
+    if (version < mysqlshdk::utils::Version(8, 0, 23)) {
       ip_allowlist =
           instance.get_sysvar_string("group_replication_ip_whitelist");
     } else {
