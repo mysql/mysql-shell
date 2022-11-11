@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,17 +50,6 @@ int on_socket_event(socket_t UNUSED(fd), int UNUSED(revents),
   return 0;
 }
 
-ssh_event make_event(ssh_session s) {
-  auto event = ssh_event_new();
-  ssh_event_add_session(event, s);
-  return event;
-}
-
-void cleanup_event(ssh_event e, ssh_session s) {
-  ssh_event_remove_session(e, s);
-  ssh_event_free(e);
-}
-
 void cleanup_socket(ssh_event e, int sock,
                     std::unique_ptr<::ssh::Channel> chan) {
   ssh_event_remove_fd(e, sock);
@@ -75,15 +64,28 @@ Ssh_tunnel_handler::Ssh_tunnel_handler(uint16_t local_port, int local_socket,
     : m_session(std::move(session)),
       m_local_port(local_port),
       m_local_socket(local_socket) {
-  m_event = make_event(m_session->get_csession());
+  make_event();
 }
 
 Ssh_tunnel_handler::~Ssh_tunnel_handler() {
   stop();
   if (m_session) {
-    cleanup_event(m_event, m_session->get_csession());
+    cleanup_event();
     m_session->disconnect();
     m_session.reset();
+  }
+}
+
+void Ssh_tunnel_handler::make_event() {
+  m_event = ssh_event_new();
+  ssh_event_add_session(m_event, m_session->get_csession());
+}
+
+void Ssh_tunnel_handler::cleanup_event() {
+  if (m_event) {
+    ssh_event_remove_session(m_event, m_session->get_csession());
+    ssh_event_free(m_event);
+    m_event = nullptr;
   }
 }
 
@@ -130,7 +132,7 @@ void Ssh_tunnel_handler::handle_connection() {
       }
       m_client_socket_list.clear();
 
-      cleanup_event(m_event, m_session->get_csession());
+      cleanup_event();
 
       if (!m_session->is_connected()) m_session->clean_connect();
       if (!m_session->is_connected()) {
@@ -138,7 +140,7 @@ void Ssh_tunnel_handler::handle_connection() {
         break;
       }
 
-      m_event = make_event(m_session->get_csession());
+      make_event();
       continue;
     }
 
