@@ -1803,20 +1803,21 @@ shcore::Array_t Testutils::read_general_log(
 
     {
       auto parts = shcore::str_split(line, "\t", 2);
-      if (parts.size() < 2) goto continued_line;
+      if (parts.size() < 3) goto continued_line;
 
       std::string timestamp = parts[0];
 
       auto pid_and_cmd = shcore::str_split(shcore::str_strip(parts[1]), " ", 1);
-
-      // pid
-      uint64_t pid = std::stoull(pid_and_cmd[0]);
+      if (pid_and_cmd.size() < 2) goto continued_line;
 
       // check if Query
       if (pid_and_cmd[1] != "Query") {
         // ignore anything not a query
         return nullptr;
       }
+
+      // pid
+      uint64_t pid = std::stoull(pid_and_cmd[0]);
 
       return shcore::make_dict("sql", shcore::Value(parts[2]), "timestamp",
                                shcore::Value(timestamp), "pid",
