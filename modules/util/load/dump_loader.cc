@@ -365,7 +365,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
         auto transforms = loader->m_default_sql_transforms;
 
         transforms.add_execute_conditionally(
-            [this, loader](std::string_view type, std::string_view name) {
+            [this, loader](std::string_view type, const std::string &name) {
               bool execute = true;
 
               if (shcore::str_caseeq(type, "EVENT")) {
@@ -1378,7 +1378,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
 
           transforms.add_execute_conditionally(
               [this, &schema, &table](std::string_view type,
-                                      std::string_view name) {
+                                      const std::string &name) {
                 if (!shcore::str_caseeq(type, "TRIGGER")) return true;
                 return m_dump->include_trigger(schema, table, name);
               });
@@ -2223,7 +2223,7 @@ void Dump_loader::check_existing_objects() {
   if (m_options.load_users()) {
     std::set<std::string> accounts;
     for (const auto &a : m_dump->accounts()) {
-      if (m_options.include_user(a))
+      if (m_options.filters().users().is_included(a))
         accounts.emplace(shcore::str_lower(
             shcore::str_format("'%s'@'%s'", a.user.c_str(), a.host.c_str())));
     }
@@ -3024,7 +3024,7 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
 }
 
 void Dump_loader::Sql_transform::add_execute_conditionally(
-    std::function<bool(std::string_view, std::string_view)> f) {
+    std::function<bool(std::string_view, const std::string &)> f) {
   add([f = std::move(f)](std::string_view sql, std::string *out_new_sql) {
     *out_new_sql = sql;
 
@@ -3371,21 +3371,25 @@ void Dump_loader::load_users() const {
     script = dump::Schema_dumper::preprocess_users_script(
         script,
         [this](const std::string &account) {
-          return m_options.include_user(shcore::split_account(account));
+          return m_options.filters().users().is_included(account);
         },
-        [this](const std::string &schema, const std::string &object,
-               dump::Schema_dumper::Object_type type) {
-          switch (type) {
-            case dump::Schema_dumper::Object_type::SCHEMA:
-              return m_dump->include_schema(schema);
+        [this](const compatibility::Privilege_level_info &priv) {
+          using Level = compatibility::Privilege_level_info::Level;
 
-            case dump::Schema_dumper::Object_type::TABLE:
-              return m_dump->include_table(schema, object);
+          switch (priv.level) {
+            case Level::GLOBAL:
+              return true;
 
-            case dump::Schema_dumper::Object_type::ROUTINE:
+            case Level::SCHEMA:
+              return m_dump->include_schema(priv.schema);
+
+            case Level::TABLE:
+              return m_dump->include_table(priv.schema, priv.object);
+
+            case Level::ROUTINE:
               // BUG#34764157 routine names are case insensitive, MySQL 5.7
               // has lower-case names of routines in grant statements
-              return m_dump->include_routine_ci(schema, object);
+              return m_dump->include_routine_ci(priv.schema, priv.object);
           }
 
           throw std::logic_error("Should not happen");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_DUMP_DUMP_UTILS_H_
-#define MODULES_UTIL_DUMP_DUMP_UTILS_H_
+#ifndef MODULES_UTIL_COMMON_DUMP_UTILS_H_
+#define MODULES_UTIL_COMMON_DUMP_UTILS_H_
 
 #include <string>
 #include <vector>
@@ -31,6 +31,7 @@
 
 namespace mysqlsh {
 namespace dump {
+namespace common {
 
 // Encodes/decodes filenames for schema/table dumps
 // All strings must be UTF-8
@@ -58,15 +59,12 @@ std::string get_table_data_filename(const std::string &basename,
                                     const std::string &ext, size_t index,
                                     bool last_chunk);
 
-/**
- * Writes errors to the console for each conflicting pair of values, returns
- * true if any errors were found.
- */
-bool error_on_user_filters_conflicts(
-    const std::vector<shcore::Account> &included,
-    const std::vector<shcore::Account> &excluded);
+void parse_schema_and_object(const std::string &str, const std::string &context,
+                             const std::string &object_type,
+                             std::string *out_schema, std::string *out_table);
 
+}  // namespace common
 }  // namespace dump
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_DUMP_DUMP_UTILS_H_
+#endif  // MODULES_UTIL_COMMON_DUMP_UTILS_H_

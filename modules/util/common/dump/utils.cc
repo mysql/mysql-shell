@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/dump/dump_utils.h"
+#include "modules/util/common/dump/utils.h"
 
 #include <string>
 #include <vector>
@@ -31,6 +31,7 @@
 
 namespace mysqlsh {
 namespace dump {
+namespace common {
 
 namespace {
 
@@ -125,45 +126,26 @@ std::string get_table_data_filename(const std::string &basename,
          std::to_string(index) + "." + ext;
 }
 
-bool error_on_user_filters_conflicts(
-    const std::vector<shcore::Account> &included_users,
-    const std::vector<shcore::Account> &excluded_users) {
-  const auto console = current_console();
-  bool conflict = false;
+void parse_schema_and_object(const std::string &str, const std::string &context,
+                             const std::string &object_type,
+                             std::string *out_schema, std::string *out_table) {
+  assert(out_schema && out_table);
 
-  for (const auto &included : included_users) {
-    for (const auto &excluded : excluded_users) {
-      if (included.user == excluded.user) {
-        if (included.host == excluded.host) {
-          conflict = true;
-          console->print_error(
-              "Both includeUsers and excludeUsers options contain a user " +
-              shcore::make_account(included) + ".");
-          // exact match, need to check the remaining excluded users only if the
-          // included host is not empty, as we may find the conflict handled
-          // below
-          if (included.host.empty()) {
-            break;
-          }
-        } else if (excluded.host.empty()) {
-          conflict = true;
-          console->print_error(
-              "The includeUsers option contains a user " +
-              shcore::make_account(included) +
-              " which is excluded by the value of the excludeUsers option: " +
-              shcore::make_account(excluded) + ".");
-          // fully specified included account has been excluded, but there can
-          // be another conflict, if this account is also explicitly excluded,
-          // check the remaining excluded users
-        }
-        // else, the included host is empty and excluded host is not, a valid
-        // scenario; or, the hosts are different -> no conflict
-      }
-    }
+  try {
+    shcore::split_schema_and_table(str, out_schema, out_table);
+  } catch (const std::runtime_error &e) {
+    throw std::invalid_argument("Failed to parse " + context + " '" + str +
+                                "': " + e.what());
   }
 
-  return conflict;
+  if (out_schema->empty()) {
+    throw std::invalid_argument(
+        "The " + context + " must be in the following form: schema." +
+        object_type + ", with optional backtick quotes, wrong value: '" + str +
+        "'.");
+  }
 }
 
+}  // namespace common
 }  // namespace dump
 }  // namespace mysqlsh

@@ -280,12 +280,10 @@ struct Instance_cache_builder::Query_helper {
 
 Instance_cache_builder::Instance_cache_builder(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const Filter &included_schemas, const Object_filters &included_tables,
-    const Filter &excluded_schemas, const Object_filters &excluded_tables,
-    Instance_cache &&cache)
-    : m_session(session), m_cache(std::move(cache)) {
-  set_schema_filter(included_schemas, excluded_schemas);
-  set_table_filter(included_tables, excluded_tables);
+    const common::Filtering_options &filters, Instance_cache &&cache)
+    : m_session(session), m_cache(std::move(cache)), m_filters(filters) {
+  set_schema_filter();
+  set_table_filter();
 
   for (const auto &schema : m_cache.schemas) {
     if (!schema.second.tables.empty()) {
@@ -311,19 +309,19 @@ Instance_cache_builder::Instance_cache_builder(
 }
 
 Instance_cache_builder &Instance_cache_builder::metadata(
-    const Subobject_filters &partitions) {
+    const Partition_filters &partitions) {
   fetch_metadata(partitions);
   return *this;
 }
 
-Instance_cache_builder &Instance_cache_builder::users(const Users &included,
-                                                      const Users &excluded) {
+Instance_cache_builder &Instance_cache_builder::users() {
   Profiler profiler{"fetching users"};
 
   Schema_dumper sd{m_session};
 
-  m_cache.users = sd.get_users(included, excluded);
-  m_cache.roles = sd.get_roles(included, excluded);
+  const auto &users = m_filters.users();
+  m_cache.users = sd.get_users(users);
+  m_cache.roles = sd.get_roles(users);
 
   m_cache.filtered.users = m_cache.users.size();
   m_cache.total.users = count("user_privileges", {}, "DISTINCT grantee");
@@ -331,8 +329,7 @@ Instance_cache_builder &Instance_cache_builder::users(const Users &included,
   return *this;
 }
 
-Instance_cache_builder &Instance_cache_builder::events(
-    const Object_filters &included, const Object_filters &excluded) {
+Instance_cache_builder &Instance_cache_builder::events() {
   Profiler profiler{"fetching events"};
 
   Iterate_schema info;
@@ -342,7 +339,8 @@ Instance_cache_builder &Instance_cache_builder::events(
   };
   info.table_name = "events";
   // event names are case insensitive
-  info.where = object_filter(info, included, excluded);
+  info.where = object_filter(info, m_filters.events().included(),
+                             m_filters.events().excluded());
 
   iterate_schemas(info,
                   [this](const std::string &, Instance_cache::Schema *schema,
@@ -358,8 +356,7 @@ Instance_cache_builder &Instance_cache_builder::events(
   return *this;
 }
 
-Instance_cache_builder &Instance_cache_builder::routines(
-    const Object_filters &included, const Object_filters &excluded) {
+Instance_cache_builder &Instance_cache_builder::routines() {
   Profiler profiler{"fetching routines"};
 
   Iterate_schema info;
@@ -370,7 +367,8 @@ Instance_cache_builder &Instance_cache_builder::routines(
   };
   info.table_name = "routines";
   // routine names are case insensitive
-  info.where = object_filter(info, included, excluded);
+  info.where = object_filter(info, m_filters.routines().included(),
+                             m_filters.routines().excluded());
 
   const std::string procedure = "PROCEDURE";
 
@@ -392,8 +390,7 @@ Instance_cache_builder &Instance_cache_builder::routines(
   return *this;
 }
 
-Instance_cache_builder &Instance_cache_builder::triggers(
-    const Subobject_filters &included, const Subobject_filters &excluded) {
+Instance_cache_builder &Instance_cache_builder::triggers() {
   Profiler profiler{"fetching triggers"};
 
   if (has_tables()) {
@@ -406,7 +403,8 @@ Instance_cache_builder &Instance_cache_builder::triggers(
     };
     info.table_name = "triggers";
     // trigger names are case sensitive
-    info.where = trigger_filter(info, included, excluded);
+    info.where = trigger_filter(info, m_filters.triggers().included(),
+                                m_filters.triggers().excluded());
 
     // schema -> table -> triggers
     std::unordered_map<
@@ -545,7 +543,7 @@ void Instance_cache_builder::filter_tables() {
 }
 
 void Instance_cache_builder::fetch_metadata(
-    const Subobject_filters &partitions) {
+    const Partition_filters &partitions) {
   Profiler profiler{"fetching metadata"};
 
   fetch_ndbinfo();
@@ -930,7 +928,7 @@ void Instance_cache_builder::fetch_table_histograms() {
 }
 
 void Instance_cache_builder::fetch_table_partitions(
-    const Subobject_filters &partitions) {
+    const Partition_filters &partitions) {
   Profiler profiler{"fetching table partitions"};
 
   if (!has_tables()) {
@@ -1136,9 +1134,11 @@ void Instance_cache_builder::iterate_views(
   iterate_tables_and_views(info, {}, callback);
 }
 
-void Instance_cache_builder::set_schema_filter(const Filter &included,
-                                               const Filter &excluded) {
+void Instance_cache_builder::set_schema_filter() {
   m_schema_filter = "";
+
+  const auto &included = m_filters.schemas().included();
+  const auto &excluded = m_filters.schemas().excluded();
 
   if (!included.empty()) {
     m_schema_filter +=
@@ -1155,9 +1155,11 @@ void Instance_cache_builder::set_schema_filter(const Filter &included,
   }
 }
 
-void Instance_cache_builder::set_table_filter(const Object_filters &included,
-                                              const Object_filters &excluded) {
+void Instance_cache_builder::set_table_filter() {
   m_table_filter = "";
+
+  const auto &included = m_filters.tables().included();
+  const auto &excluded = m_filters.tables().excluded();
 
   if (!included.empty()) {
     m_table_filter += "(" +
@@ -1241,8 +1243,8 @@ std::string Instance_cache_builder::object_filter(
 }
 
 std::string Instance_cache_builder::trigger_filter(
-    const Iterate_table &info, const Subobject_filters &included,
-    const Subobject_filters &excluded) const {
+    const Iterate_table &info, const Trigger_filters &included,
+    const Trigger_filters &excluded) const {
   const auto filter_triggers = [&info](const std::string &schema,
                                        const Object_filters &tables) {
     const auto &trigger_column = info.extra_columns[0];

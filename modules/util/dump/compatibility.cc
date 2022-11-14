@@ -1688,5 +1688,98 @@ std::string replace_quoted_strings(const std::string &statement,
   return rewritten;
 }
 
+bool parse_grant_statement(const std::string &statement,
+                           Privilege_level_info *info) {
+  assert(info);
+
+  mysqlshdk::utils::SQL_iterator it(statement, 0, false);
+  const auto type = it.next_token();
+  Privilege_level_info result;
+
+  if (shcore::str_caseeq(type, "GRANT")) {
+    result.grant = true;
+  } else if (shcore::str_caseeq(type, "REVOKE")) {
+    result.grant = false;
+  } else {
+    throw std::runtime_error("Expected GRANT or REVOKE statement");
+  }
+
+  bool object_is_routine = false;
+
+  {
+    bool all_privileges_done = false;
+    bool privilege_done = false;
+
+    do {
+      auto privilege = shcore::str_upper(it.next_token());
+
+      do {
+        auto token = it.next_token();
+
+        if (shcore::str_caseeq(token, result.grant ? "TO" : "FROM")) {
+          // this is GRANT role, we're not interested in these
+          return false;
+        }
+
+        if (shcore::str_caseeq(token, "(")) {
+          // column-level privilege, move past column_list
+          do {
+            token = it.next_token();
+          } while (!shcore::str_caseeq(token, ")"));
+
+          // read next token (either , or ON)
+          token = it.next_token();
+        }
+
+        privilege_done = shcore::str_caseeq(token, ",");
+        all_privileges_done = shcore::str_caseeq(token, "ON");
+
+        if (!privilege_done && !all_privileges_done) {
+          privilege += ' ';
+          privilege += shcore::str_upper(token);
+        } else {
+          if (privilege == "EXECUTE" || privilege == "ALTER ROUTINE") {
+            object_is_routine = true;
+          }
+
+          result.privileges.emplace(std::move(privilege));
+        }
+      } while (!privilege_done && !all_privileges_done);
+    } while (!all_privileges_done);
+  }
+
+  if (!it.valid() || result.privileges.count("PROXY")) {
+    return false;
+  }
+
+  auto priv_level = it.next_token();
+
+  if (shcore::str_caseeq(priv_level, "TABLE")) {
+    object_is_routine = false;
+    // priv_level follows
+    priv_level = it.next_token();
+  } else if (shcore::str_caseeq(priv_level, "FUNCTION", "PROCEDURE")) {
+    object_is_routine = true;
+    // priv_level follows
+    priv_level = it.next_token();
+  }
+
+  shcore::split_priv_level(std::string{priv_level}, &result.schema,
+                           &result.object);
+
+  if ("*" == result.schema) {
+    result.level = Privilege_level_info::Level::GLOBAL;
+  } else if ("*" == result.object) {
+    result.level = Privilege_level_info::Level::SCHEMA;
+  } else {
+    result.level = object_is_routine ? Privilege_level_info::Level::ROUTINE
+                                     : Privilege_level_info::Level::TABLE;
+  }
+
+  *info = std::move(result);
+
+  return true;
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

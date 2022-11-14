@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,11 +52,6 @@ class Dump_instance_options : public Dump_schemas_options {
   void on_unpacked_options();
 
   void validate_options() const override;
-
-  void set_string_list_option(const std::string &option,
-                              const std::unordered_set<std::string> &data);
-
-  void error_on_user_filters_conflicts();
 
   bool m_dump_users = true;
 };

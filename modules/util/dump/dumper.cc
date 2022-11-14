@@ -63,13 +63,13 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/mod_utils.h"
+#include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/decimal.h"
 #include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_errors.h"
 #include "modules/util/dump/dump_manifest.h"
-#include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
 #include "modules/util/upgrade_check.h"
@@ -632,7 +632,7 @@ class Dumper::Multi_file_writer_controller : public Dump_writer_controller {
 
  private:
   Dump_write_result initialize_controller(bool last_chunk) {
-    m_controller = m_create_controller(dump::get_table_data_filename(
+    m_controller = m_create_controller(common::get_table_data_filename(
         output_filename(), m_extension, m_index++, last_chunk));
     return update_stats(
         m_controller->start_writing(m_metadata, m_pre_encoded_columns));
@@ -1571,7 +1571,7 @@ class Dumper::Table_worker final {
     const auto dumper = m_dumper->schema_dumper(m_session);
 
     m_dumper->write_ddl(*m_dumper->dump_schema(dumper.get(), schema.name),
-                        get_schema_filename(schema.basename));
+                        common::get_schema_filename(schema.basename));
 
     ++m_dumper->m_ddl_written;
 
@@ -1587,13 +1587,13 @@ class Dumper::Table_worker final {
 
     m_dumper->write_ddl(
         *m_dumper->dump_table(dumper.get(), schema.name, table.name),
-        get_table_filename(table.basename));
+        common::get_table_filename(table.basename));
 
     if (m_dumper->m_options.dump_triggers() &&
         dumper->count_triggers_for_table(schema.name, table.name) > 0) {
       m_dumper->write_ddl(
           *m_dumper->dump_triggers(dumper.get(), schema.name, table.name),
-          dump::get_table_data_filename(table.basename, "triggers.sql"));
+          common::get_table_data_filename(table.basename, "triggers.sql"));
     }
 
     ++m_dumper->m_ddl_written;
@@ -1610,12 +1610,12 @@ class Dumper::Table_worker final {
     // DDL file with the temporary table
     m_dumper->write_ddl(
         *m_dumper->dump_temporary_view(dumper.get(), schema.name, view.name),
-        dump::get_table_data_filename(view.basename, "pre.sql"));
+        common::get_table_data_filename(view.basename, "pre.sql"));
 
     // DDL file with the view structure
     m_dumper->write_ddl(
         *m_dumper->dump_view(dumper.get(), schema.name, view.name),
-        get_table_filename(view.basename));
+        common::get_table_filename(view.basename));
 
     ++m_dumper->m_ddl_written;
 
@@ -2446,11 +2446,7 @@ void Dumper::lock_instance() {
 }
 
 void Dumper::initialize_instance_cache_minimal() {
-  m_cache = Instance_cache_builder(session(), m_options.included_schemas(),
-                                   m_options.included_tables(),
-                                   m_options.excluded_schemas(),
-                                   m_options.excluded_tables(), {})
-                .build();
+  m_cache = Instance_cache_builder(session(), m_options.filters(), {}).build();
 
   validate_schemas_list();
 }
@@ -2459,30 +2455,26 @@ void Dumper::initialize_instance_cache() {
   m_current_stage = m_progress_thread.start_stage("Gathering information");
   shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
 
-  auto builder = Instance_cache_builder(
-      session(), m_options.included_schemas(), m_options.included_tables(),
-      m_options.excluded_schemas(), m_options.excluded_tables(),
-      std::move(m_cache));
+  auto builder = Instance_cache_builder(session(), m_options.filters(),
+                                        std::move(m_cache));
 
   builder.metadata(m_options.included_partitions());
 
   if (dump_users()) {
-    builder.users(m_options.included_users(), m_options.excluded_users());
+    builder.users();
   }
 
   if (m_options.dump_ddl()) {
     if (m_options.dump_events()) {
-      builder.events(m_options.included_events(), m_options.excluded_events());
+      builder.events();
     }
 
     if (m_options.dump_routines()) {
-      builder.routines(m_options.included_routines(),
-                       m_options.excluded_routines());
+      builder.routines();
     }
 
     if (m_options.dump_triggers()) {
-      builder.triggers(m_options.included_triggers(),
-                       m_options.excluded_triggers());
+      builder.triggers();
     }
   }
 
@@ -2504,14 +2496,14 @@ void Dumper::create_schema_tasks() {
     Schema_info schema;
     schema.name = s.first;
     schema.quoted_name = shcore::quote_identifier(schema.name);
-    schema.basename = get_basename(encode_schema_basename(schema.name));
+    schema.basename = get_basename(common::encode_schema_basename(schema.name));
 
     for (const auto &t : s.second.tables) {
       Table_info table;
       table.name = t.first;
       table.quoted_name = quote(schema.name, table.name);
       table.basename =
-          get_basename(encode_table_basename(schema.name, table.name));
+          get_basename(common::encode_table_basename(schema.name, table.name));
       table.info = &t.second;
 
       for (const auto &p : t.second.partitions) {
@@ -2520,7 +2512,7 @@ void Dumper::create_schema_tasks() {
         Partition_info partition;
         partition.info = &p;
         partition.basename = get_basename(
-            encode_partition_basename(schema.name, table.name, p.name));
+            common::encode_partition_basename(schema.name, table.name, p.name));
 
         table.partitions.emplace_back(std::move(partition));
       }
@@ -2533,7 +2525,7 @@ void Dumper::create_schema_tasks() {
       view.name = v.first;
       view.quoted_name = quote(schema.name, view.name);
       view.basename =
-          get_basename(encode_table_basename(schema.name, view.name));
+          get_basename(common::encode_table_basename(schema.name, view.name));
       view.info = &v.second;
 
       schema.views.emplace_back(std::move(view));
@@ -2944,8 +2936,7 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_users(
     Schema_dumper *dumper) const {
   return dump_ddl(dumper, [this](Memory_dumper *m) {
     m->dump(&Schema_dumper::write_comment, std::string{}, std::string{});
-    m->dump(&Schema_dumper::dump_grants, m_options.included_users(),
-            m_options.excluded_users());
+    m->dump(&Schema_dumper::dump_grants, m_options.filters());
   });
 }
 
@@ -3267,8 +3258,7 @@ void Dumper::write_dump_started_metadata() const {
     // list of users
     Value users{Type::kArrayType};
 
-    for (const auto &user : dumper->get_users(m_options.included_users(),
-                                              m_options.excluded_users())) {
+    for (const auto &user : dumper->get_users(m_options.filters().users())) {
       users.PushBack({shcore::make_account(user).c_str(), a}, a);
     }
 
@@ -3486,7 +3476,8 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
   }
 
-  write_json(make_file(get_schema_filename(schema.basename, "json")), &doc);
+  write_json(make_file(common::get_schema_filename(schema.basename, "json")),
+             &doc);
 }
 
 void Dumper::write_table_metadata(
@@ -3631,7 +3622,7 @@ void Dumper::write_table_metadata(
     }
   }
 
-  write_json(make_file(dump::get_table_data_filename(table.basename, "json")),
+  write_json(make_file(common::get_table_data_filename(table.basename, "json")),
              &doc);
 }
 
@@ -3714,14 +3705,14 @@ void Dumper::kill_workers() {
 }
 
 std::string Dumper::get_table_data_filename(const std::string &basename) const {
-  return dump::get_table_data_filename(basename, m_table_data_extension);
+  return common::get_table_data_filename(basename, m_table_data_extension);
 }
 
 std::string Dumper::get_table_data_filename(const std::string &basename,
                                             const std::size_t idx,
                                             const bool last_chunk) const {
-  return dump::get_table_data_filename(basename, m_table_data_extension, idx,
-                                       last_chunk);
+  return common::get_table_data_filename(basename, m_table_data_extension, idx,
+                                         last_chunk);
 }
 
 void Dumper::initialize_progress() {

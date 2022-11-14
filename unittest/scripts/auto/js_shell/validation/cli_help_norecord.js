@@ -303,8 +303,8 @@ OPTIONS
             Apply MySQL Database Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
-            "strip_definers", "strip_restricted_grants", "strip_tablespaces".
-            Default: empty.
+            "strip_definers", "strip_invalid_grants",
+            "strip_restricted_grants", "strip_tablespaces". Default: empty.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
@@ -542,8 +542,8 @@ OPTIONS
             Apply MySQL Database Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
-            "strip_definers", "strip_restricted_grants", "strip_tablespaces".
-            Default: empty.
+            "strip_definers", "strip_invalid_grants",
+            "strip_restricted_grants", "strip_tablespaces". Default: empty.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
@@ -762,8 +762,8 @@ OPTIONS
             Apply MySQL Database Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
-            "strip_definers", "strip_restricted_grants", "strip_tablespaces".
-            Default: empty.
+            "strip_definers", "strip_invalid_grants",
+            "strip_restricted_grants", "strip_tablespaces". Default: empty.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
@@ -1255,19 +1255,37 @@ OPTIONS
             Stores load progress information in the given local file path.
             Default: load-progress.<server_uuid>.progress.
 
+--excludeEvents=<str list>
+            Skip loading specified events from the dump. Strings are in format
+            schema.event, quoted using backtick characters when required.
+            Default: not set.
+
 --includeEvents=<str list>
             Loads only the specified events from the dump. Strings are in
             format schema.event, quoted using backtick characters when
             required. By default, all events are included. Default: not set.
+
+--excludeRoutines=<str list>
+            Skip loading specified routines from the dump. Strings are in
+            format schema.routine, quoted using backtick characters when
+            required. Default: not set.
 
 --includeRoutines=<str list>
             Loads only the specified routines from the dump. Strings are in
             format schema.routine, quoted using backtick characters when
             required. By default, all routines are included. Default: not set.
 
+--excludeSchemas=<str list>
+            Skip loading specified schemas from the dump. Default: not set.
+
 --includeSchemas=<str list>
             Loads only the specified schemas from the dump. By default, all
             schemas are included. Default: not set.
+
+--excludeTables=<str list>
+            Skip loading specified tables from the dump. Strings are in format
+            schema.table, quoted using backtick characters when required.
+            Default: not set.
 
 --includeTables=<str list>
             Loads only the specified tables from the dump. Strings are in
@@ -1275,36 +1293,18 @@ OPTIONS
             required. By default, all tables from all schemas are included.
             Default: not set.
 
+--excludeTriggers=<str list>
+            Skip loading specified triggers from the dump. Strings are in
+            format schema.table (all triggers from the specified table) or
+            schema.table.trigger (the individual trigger), quoted using
+            backtick characters when required. Default: not set.
+
 --includeTriggers=<str list>
             Loads only the specified triggers from the dump. Strings are in
             format schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger), quoted using
             backtick characters when required. By default, all triggers are
             included. Default: not set.
-
---excludeEvents=<str list>
-            Skip loading specified events from the dump. Strings are in format
-            schema.event, quoted using backtick characters when required.
-            Default: not set.
-
---excludeRoutines=<str list>
-            Skip loading specified routines from the dump. Strings are in
-            format schema.routine, quoted using backtick characters when
-            required. Default: not set.
-
---excludeSchemas=<str list>
-            Skip loading specified schemas from the dump. Default: not set.
-
---excludeTables=<str list>
-            Skip loading specified tables from the dump. Strings are in format
-            schema.table, quoted using backtick characters when required.
-            Default: not set.
-
---excludeTriggers=<str list>
-            Skip loading specified triggers from the dump. Strings are in
-            format schema.table (all triggers from the specified table) or
-            schema.table.trigger (the individual trigger), quoted using
-            backtick characters when required. Default: not set.
 
 --characterSet=<str>
             Overrides the character set to be used for loading dump data. By

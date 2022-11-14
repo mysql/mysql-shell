@@ -92,10 +92,6 @@ class Ddl_dumper_options : public Dump_options {
   void set_ocimds(bool value);
   void set_compatibility_options(const std::vector<std::string> &options);
 
-  void set_exclude_triggers(const std::vector<std::string> &data);
-
-  void set_include_triggers(const std::vector<std::string> &data);
-
   Dump_manifest_options m_dump_manifest_options;
   // this should be in the Dump_options class, but storing it at the same level
   // as OCI options helps in handling both option groups at the same time

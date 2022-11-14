@@ -1132,8 +1132,8 @@ def entries(snapshot, keys = []):
     return sorted(list(entry.keys()))
 
 #@<> WL14244 - includeRoutines - invalid values
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeRoutines": [ "routine" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'routine'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeRoutines": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'schema.@'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeRoutines": [ "routine" ] }), "ValueError: Util.load_dump: Argument #2: The routine to be included must be in the following form: schema.routine, with optional backtick quotes, wrong value: 'routine'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeRoutines": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Failed to parse routine to be included 'schema.@': Invalid character in identifier")
 
 #@<> WL14244-TSFR_3_6
 snapshot = dump_and_load({})
@@ -1156,8 +1156,8 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "procedures"]))
 
 #@<> WL14244 - excludeRoutines - invalid values
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "routine" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'routine'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse routine filter 'schema.@'. The routine must be in the following form: schema.routine, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "routine" ] }), "ValueError: Util.load_dump: Argument #2: The routine to be excluded must be in the following form: schema.routine, with optional backtick quotes, wrong value: 'routine'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Failed to parse routine to be excluded 'schema.@': Invalid character in identifier")
 
 #@<> WL14244-TSFR_4_6
 snapshot = dump_and_load({})
@@ -1180,8 +1180,8 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
 EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
 
 #@<> WL14244 - includeEvents - invalid values
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "event" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'event'. The event must be in the following form: schema.event, with optional backtick quotes.")
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'schema.@'. The event must be in the following form: schema.event, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "event" ] }), "ValueError: Util.load_dump: Argument #2: The event to be included must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Failed to parse event to be included 'schema.@': Invalid character in identifier")
 
 #@<> WL14244-TSFR_5_6
 snapshot = dump_and_load({})
@@ -1198,8 +1198,8 @@ EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_1", "events"])
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "events"]))
 
 #@<> WL14244 - excludeEvents - invalid values
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeEvents": [ "event" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'event'. The event must be in the following form: schema.event, with optional backtick quotes.")
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeEvents": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse event filter 'schema.@'. The event must be in the following form: schema.event, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeEvents": [ "event" ] }), "ValueError: Util.load_dump: Argument #2: The event to be excluded must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeEvents": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Failed to parse event to be excluded 'schema.@': Invalid character in identifier")
 
 #@<> WL14244-TSFR_6_6
 snapshot = dump_and_load({})
@@ -1216,8 +1216,8 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "events"]))
 EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"]))
 
 #@<> WL14244 - includeTriggers - invalid values
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeTriggers": [ "trigger" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'trigger'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeTriggers": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'schema.@'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeTriggers": [ "trigger" ] }), "ValueError: Util.load_dump: Argument #2: The trigger to be included must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeTriggers": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Failed to parse trigger to be included 'schema.@': Invalid character in identifier")
 
 #@<> WL14244-TSFR_7_8
 snapshot = dump_and_load({})
@@ -1234,8 +1234,8 @@ EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_1", "tables"
 EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
 
 #@<> WL14244 - excludeTriggers - invalid values
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTriggers": [ "trigger" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'trigger'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTriggers": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Can't parse trigger filter 'schema.@'. The filter must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTriggers": [ "trigger" ] }), "ValueError: Util.load_dump: Argument #2: The trigger to be excluded must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTriggers": [ "schema.@" ] }), "ValueError: Util.load_dump: Argument #2: Failed to parse trigger to be excluded 'schema.@': Invalid character in identifier")
 
 #@<> WL14244-TSFR_8_8
 snapshot = dump_and_load({})
@@ -2500,6 +2500,52 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProg
 # verification
 compare_schema(session1, session2, tested_schema, check_rows=True)
 compare_user_grants(session1, session2, tested_user)
+
+#@<> BUG#34764157 - dumper should detect invalid grants - table/view
+# NOTE: it's not possible to test routine, as when routine is removed, grant is removed as well
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP VIEW !.!", [ tested_schema, tested_view ])
+invalid_grant = f"""GRANT SELECT ON `{tested_schema}`.`{tested_view}` TO {tested_user if __version_num < 80000 else tested_user.replace("'", "`")}"""
+
+# without MDS compatibility check
+WIPE_OUTPUT()
+wipe_dir(dump_dir)
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump contains an invalid grant statement. Use the 'strip_invalid_grants' compatibility option to fix this.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: User {tested_user} has grant statement on a non-existent table ({invalid_grant})")
+
+# with MDS compatibility check
+WIPE_OUTPUT()
+wipe_dir(dump_dir)
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_definers"], "ocimds": True, "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Compatibility issues were found")
+EXPECT_STDOUT_CONTAINS(strip_invalid_grants(tested_user, invalid_grant, "table").error())
+
+# succeeds with the compatibility option
+WIPE_OUTPUT()
+wipe_dir(dump_dir)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_invalid_grants"], "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+# succeeds with the compatibility option - ocimds
+WIPE_OUTPUT()
+wipe_dir(dump_dir)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_invalid_grants", "strip_definers"], "ocimds": True, "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+EXPECT_STDOUT_CONTAINS(strip_invalid_grants(tested_user, invalid_grant, "table").fixed())
+
+# test load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
+
+#@<> BUG#34764157 - dumper should detect invalid grants - view is missing but grant is valid
+shell.connect(__sandbox_uri1)
+session.run_sql(f"GRANT CREATE ON !.! TO {tested_user}", [tested_schema, tested_view])
+
+wipe_dir(dump_dir)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
 
 #@<> BUG#34764157 - cleanup
 shell.connect(__sandbox_uri1)

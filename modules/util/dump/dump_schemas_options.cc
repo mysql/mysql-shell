@@ -40,16 +40,14 @@ const shcore::Option_pack_def<Dump_schemas_options>
   static const auto opts =
       shcore::Option_pack_def<Dump_schemas_options>()
           .include<Ddl_dumper_options>()
-          .optional("excludeTables", &Dump_schemas_options::set_exclude_tables)
-          .optional("includeTables", &Dump_schemas_options::set_include_tables)
+          .include(&Dump_schemas_options::m_filtering_options,
+                   &common::Filtering_options::tables)
           .optional("events", &Dump_schemas_options::m_dump_events)
-          .optional("excludeEvents", &Dump_schemas_options::set_exclude_events)
-          .optional("includeEvents", &Dump_schemas_options::set_include_events)
+          .include(&Dump_schemas_options::m_filtering_options,
+                   &common::Filtering_options::events)
           .optional("routines", &Dump_schemas_options::m_dump_routines)
-          .optional("excludeRoutines",
-                    &Dump_schemas_options::set_exclude_routines)
-          .optional("includeRoutines",
-                    &Dump_schemas_options::set_include_routines)
+          .include(&Dump_schemas_options::m_filtering_options,
+                   &common::Filtering_options::routines)
           .on_done(&Dump_schemas_options::on_unpacked_options)
           .on_log(&Dump_schemas_options::on_log_options);
 
@@ -59,48 +57,18 @@ const shcore::Option_pack_def<Dump_schemas_options>
 void Dump_schemas_options::on_unpacked_options() {
   if (mds_compatibility().has_value()) {
     // if MDS compatibility option is set, mysql schema should not be dumped
-    m_excluded_schemas.emplace("mysql");
+    filters().schemas().exclude("mysql");
   }
 
-  error_on_table_filters_conflicts();
-  error_on_event_filters_conflicts();
-  error_on_routine_filters_conflicts();
+  m_filter_conflicts |= filters().tables().error_on_conflicts();
+  m_filter_conflicts |= filters().events().error_on_conflicts();
+  m_filter_conflicts |= filters().routines().error_on_conflicts();
 }
 
 void Dump_schemas_options::set_schemas(
     const std::vector<std::string> &schemas) {
   m_schemas = {schemas.begin(), schemas.end()};
-  m_included_schemas.insert(m_schemas.begin(), m_schemas.end());
-}
-
-void Dump_schemas_options::set_exclude_tables(
-    const std::vector<std::string> &data) {
-  add_object_filters(data, "table", "exclude", &m_excluded_tables);
-}
-
-void Dump_schemas_options::set_include_tables(
-    const std::vector<std::string> &data) {
-  add_object_filters(data, "table", "include", &m_included_tables);
-}
-
-void Dump_schemas_options::set_exclude_events(
-    const std::vector<std::string> &data) {
-  add_object_filters(data, "event", "exclude", &m_excluded_events);
-}
-
-void Dump_schemas_options::set_include_events(
-    const std::vector<std::string> &data) {
-  add_object_filters(data, "event", "include", &m_included_events);
-}
-
-void Dump_schemas_options::set_exclude_routines(
-    const std::vector<std::string> &data) {
-  add_object_filters(data, "routine", "exclude", &m_excluded_routines);
-}
-
-void Dump_schemas_options::set_include_routines(
-    const std::vector<std::string> &data) {
-  add_object_filters(data, "routine", "include", &m_included_routines);
+  filters().schemas().include(m_schemas);
 }
 
 void Dump_schemas_options::validate_options() const {

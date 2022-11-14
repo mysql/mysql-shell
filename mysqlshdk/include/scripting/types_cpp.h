@@ -617,6 +617,24 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   /**
+   * Allows aggregating a non primary option pack into this option pack.
+   *
+   * It is expected that the callback returns a class which is an option pack.
+   */
+  template <typename T, typename SC, typename V>
+  Option_pack_def<C> &include(V SC::*var, T &(V::*callback)()) {
+    add_options<T>();
+
+    m_unpack_callbacks.emplace_back(
+        [var, callback](const Option_pack_def<C> *,
+                        shcore::Option_unpacker *unpacker, C *instance) {
+          T::options().unpack(unpacker, &std::invoke(callback, instance->*var));
+        });
+
+    return *this;
+  }
+
+  /**
    * Allows aggregating an option pack defined into class T.
    *
    * The common use for this function is when T is the parent class of C.

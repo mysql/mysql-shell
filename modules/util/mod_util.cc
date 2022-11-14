@@ -1353,6 +1353,10 @@ you will need to manually modify the schema before loading it.
 
 Please refer to the MySQL manual for details about DEFINER and SQL SECURITY.
 
+<b>strip_invalid_grants</b> - Strips grant statements which would fail when
+users are loaded, i.e. grants referring to a specific routine which does not
+exist.
+
 <b>strip_restricted_grants</b> - Certain privileges are restricted in the MySQL
 Database Service. Attempting to create users granting these privileges would
 fail, so this option allows dumped GRANT statements to be stripped of these
@@ -1494,8 +1498,8 @@ MySQL Database Service (MDS)
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 Database Service compatibility modifications when writing dump files. Supported
 values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-"skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
-"strip_tablespaces".)*");
+"skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+"strip_restricted_grants", "strip_tablespaces".)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
 @li <b>excludeTables</b>: list of strings (default: empty) - List of tables or

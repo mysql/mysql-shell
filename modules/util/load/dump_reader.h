@@ -233,14 +233,15 @@ class Dump_reader {
 
   bool has_partitions() const { return m_dump_has_partitions; }
 
-  bool include_schema(std::string_view schema) const;
-  bool include_table(std::string_view schema, std::string_view table) const;
-  bool include_event(std::string_view schema, std::string_view event) const;
-  bool include_routine(std::string_view schema, std::string_view routine) const;
-  bool include_routine_ci(std::string_view schema,
-                          std::string_view routine) const;
-  bool include_trigger(std::string_view schema, std::string_view table,
-                       std::string_view trigger) const;
+  bool include_schema(const std::string &schema) const;
+  bool include_table(const std::string &schema, const std::string &table) const;
+  bool include_event(const std::string &schema, const std::string &event) const;
+  bool include_routine(const std::string &schema,
+                       const std::string &routine) const;
+  bool include_routine_ci(const std::string &schema,
+                          const std::string &routine) const;
+  bool include_trigger(const std::string &schema, const std::string &table,
+                       const std::string &trigger) const;
 
   void on_chunk_loaded(std::string_view schema, std::string_view table,
                        std::string_view partition);
@@ -486,7 +487,7 @@ class Dump_reader {
   };
 
  private:
-  std::string_view override_schema(std::string_view s) const;
+  const std::string &override_schema(const std::string &s) const;
 
   Table_info *find_table(std::string_view schema, std::string_view table,
                          std::string_view context);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MODULES_UTIL_DUMP_DUMP_TABLES_OPTIONS_H_
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "modules/util/dump/ddl_dumper_options.h"
@@ -64,7 +65,7 @@ class Dump_tables_options : public Ddl_dumper_options {
 
   std::string m_schema;
 
-  Instance_cache_builder::Filter m_tables;
+  std::unordered_set<std::string> m_tables;
 };
 
 }  // namespace dump

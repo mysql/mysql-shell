@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,6 @@
 
 #include <set>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -65,22 +64,10 @@ class Dump_schemas_options : public Ddl_dumper_options {
  private:
   void on_unpacked_options();
 
-  void set_exclude_tables(const std::vector<std::string> &data);
-
-  void set_include_tables(const std::vector<std::string> &data);
-
-  void set_exclude_events(const std::vector<std::string> &data);
-
-  void set_include_events(const std::vector<std::string> &data);
-
-  void set_exclude_routines(const std::vector<std::string> &data);
-
-  void set_include_routines(const std::vector<std::string> &data);
-
   bool m_dump_events = true;
   bool m_dump_routines = true;
 
-  Instance_cache_builder::Filter m_schemas;
+  std::unordered_set<std::string> m_schemas;
 };
 
 }  // namespace dump

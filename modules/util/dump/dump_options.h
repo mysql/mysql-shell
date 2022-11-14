@@ -41,6 +41,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/common/dump/filtering_options.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/instance_cache.h"
 #include "modules/util/import_table/dialect.h"
@@ -102,55 +103,12 @@ class Dump_options {
     return m_compatibility_options;
   }
 
-  const std::vector<shcore::Account> &excluded_users() const {
-    return m_excluded_users;
+  common::Filtering_options &filters() { return m_filtering_options; }
+  const common::Filtering_options &filters() const {
+    return m_filtering_options;
   }
 
-  const std::vector<shcore::Account> &included_users() const {
-    return m_included_users;
-  }
-
-  const Instance_cache_builder::Filter &included_schemas() const {
-    return m_included_schemas;
-  }
-
-  const Instance_cache_builder::Filter &excluded_schemas() const {
-    return m_excluded_schemas;
-  }
-
-  const Instance_cache_builder::Object_filters &included_tables() const {
-    return m_included_tables;
-  }
-
-  const Instance_cache_builder::Object_filters &excluded_tables() const {
-    return m_excluded_tables;
-  }
-
-  const Instance_cache_builder::Object_filters &included_events() const {
-    return m_included_events;
-  }
-
-  const Instance_cache_builder::Object_filters &excluded_events() const {
-    return m_excluded_events;
-  }
-
-  const Instance_cache_builder::Object_filters &included_routines() const {
-    return m_included_routines;
-  }
-
-  const Instance_cache_builder::Object_filters &excluded_routines() const {
-    return m_excluded_routines;
-  }
-
-  const Instance_cache_builder::Subobject_filters &included_triggers() const {
-    return m_included_triggers;
-  }
-
-  const Instance_cache_builder::Subobject_filters &excluded_triggers() const {
-    return m_excluded_triggers;
-  }
-
-  const Instance_cache_builder::Subobject_filters &included_partitions() const {
+  const Instance_cache_builder::Partition_filters &included_partitions() const {
     return m_partitions;
   }
 
@@ -216,85 +174,6 @@ class Dump_options {
   void set_partitions(const std::string &schema, const std::string &table,
                       const std::unordered_set<std::string> &partitions);
 
-  template <typename C>
-  void add_excluded_users(const C &excluded_users) {
-    try {
-      auto accounts = shcore::to_accounts(excluded_users);
-      std::move(accounts.begin(), accounts.end(),
-                std::back_inserter(m_excluded_users));
-    } catch (const std::runtime_error &e) {
-      throw std::invalid_argument(e.what());
-    }
-  }
-
-  template <typename C>
-  void set_included_users(const C &included_users) {
-    try {
-      m_included_users = shcore::to_accounts(included_users);
-    } catch (const std::runtime_error &e) {
-      throw std::invalid_argument(e.what());
-    }
-  }
-
-  template <typename C, typename M>
-  void add_object_filters(const C &data, const std::string &object_type,
-                          const std::string &action, M *map) {
-    std::string schema;
-    std::string object;
-
-    for (const auto &t : data) {
-      schema.clear();
-      object.clear();
-
-      parse_schema_and_object(t, object_type + " to be " + action + "d",
-                              object_type, &schema, &object);
-
-      (*map)[schema].emplace(std::move(object));
-    }
-  }
-
-  template <typename C>
-  void add_trigger_filters(const C &data, const std::string &action,
-                           Instance_cache_builder::Subobject_filters *target) {
-    std::string schema;
-    std::string table;
-    std::string object;
-
-    for (const auto &t : data) {
-      schema.clear();
-      table.clear();
-      object.clear();
-
-      try {
-        shcore::split_schema_table_and_object(t, &schema, &table, &object);
-      } catch (const std::runtime_error &e) {
-        throw std::invalid_argument("Failed to parse trigger to be " + action +
-                                    "d '" + t + "': " + e.what());
-      }
-
-      if (table.empty()) {
-        throw std::invalid_argument(
-            "The trigger to be " + action +
-            "d must be in the following form: schema.table or "
-            "schema.table.trigger, with optional backtick quotes, wrong value: "
-            "'" +
-            t + "'.");
-      }
-
-      if (schema.empty()) {
-        // we got schema.table, need to move names around
-        std::swap(schema, table);
-        std::swap(table, object);
-      }
-
-      // Object name can be empty, in this case all triggers in a table are
-      // included/excluded. We add it as is, so later we can detect cases like
-      // 'schema.table' and 'schema.table.trigger' given by the user at the same
-      // time.
-      (*target)[schema][table].emplace(std::move(object));
-    }
-  }
-
   bool exists(const std::string &schema) const;
 
   bool exists(const std::string &schema, const std::string &table) const;
@@ -306,20 +185,8 @@ class Dump_options {
       const std::string &schema,
       const std::unordered_set<std::string> &tables) const;
 
-  Instance_cache_builder::Filter m_included_schemas;
-  Instance_cache_builder::Filter m_excluded_schemas;
-
-  Instance_cache_builder::Object_filters m_included_tables;
-  Instance_cache_builder::Object_filters m_excluded_tables;
-
-  Instance_cache_builder::Object_filters m_included_events;
-  Instance_cache_builder::Object_filters m_excluded_events;
-
-  Instance_cache_builder::Object_filters m_included_routines;
-  Instance_cache_builder::Object_filters m_excluded_routines;
-
-  Instance_cache_builder::Subobject_filters m_included_triggers;
-  Instance_cache_builder::Subobject_filters m_excluded_triggers;
+  // currently used by dumpTables(), dumpSchemas() and dumpInstance()
+  common::Filtering_options m_filtering_options;
 
   mutable bool m_filter_conflicts = false;
 
@@ -334,16 +201,6 @@ class Dump_options {
 
   void on_log_options(const char *msg) const;
 
-  void error_on_schema_filters_conflicts() const;
-
-  void error_on_table_filters_conflicts() const;
-
-  void error_on_event_filters_conflicts() const;
-
-  void error_on_routine_filters_conflicts() const;
-
-  void error_on_trigger_filters_conflicts() const;
-
  private:
   void on_unpacked_options();
 
@@ -355,30 +212,6 @@ class Dump_options {
   std::set<std::string> find_missing_impl(
       const std::string &subquery,
       const std::unordered_set<std::string> &objects) const;
-
-  void error_on_object_filters_conflicts(
-      const Instance_cache_builder::Object_filters &included,
-      const Instance_cache_builder::Object_filters &excluded,
-      const std::string &object_label, const std::string &option_suffix) const;
-
-  void error_on_object_filters_conflicts(
-      const Instance_cache_builder::Filter &included,
-      const Instance_cache_builder::Filter &excluded,
-      const std::string &object_label, const std::string &option_suffix,
-      const std::string &schema_name) const;
-
-  template <typename C>
-  void error_on_schema_cross_filters_conflicts(
-      const C &included, const C &excluded, const std::string &object_label,
-      const std::string &option_suffix) const;
-
-  void error_on_table_cross_filters_conflicts() const;
-
-  static void parse_schema_and_object(const std::string &str,
-                                      const std::string &context,
-                                      const std::string &object_type,
-                                      std::string *out_schema,
-                                      std::string *out_table);
 
   void validate_partitions() const;
 
@@ -409,7 +242,7 @@ class Dump_options {
       m_where;
 
   // schema -> table -> partitions
-  Instance_cache_builder::Subobject_filters m_partitions;
+  Instance_cache_builder::Partition_filters m_partitions;
 
   // these options are unpacked elsewhere, but are here 'cause we're returning
   // a reference
@@ -417,10 +250,6 @@ class Dump_options {
   // currently used by dumpTables(), dumpSchemas() and dumpInstance()
   std::optional<mysqlshdk::utils::Version> m_mds;
   Compatibility_options m_compatibility_options;
-
-  // currently used by dumpInstance()
-  std::vector<shcore::Account> m_excluded_users;
-  std::vector<shcore::Account> m_included_users;
 };
 
 }  // namespace dump

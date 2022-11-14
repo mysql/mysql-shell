@@ -260,6 +260,11 @@ def strip_restricted_grants(user, privileges):
     fixed = f"User {user} had restricted privilege{plural} ({all_privileges}) removed"
     return Compatibility_issue(error, fixed)
 
+def strip_invalid_grants(user, grant, object_type):
+    error = f"User {user} has grant statement on a non-existent {object_type} ({grant}) (fix this with 'strip_invalid_grants' compatibility option)"
+    fixed = f"User {user} had grant statement on a non-existent {object_type} removed ({grant})"
+    return Compatibility_issue(error, fixed)
+
 def comment_data_index_directory(schema, table):
     error = ""
     fixed = f"Table `{schema}`.`{table}` had {{DATA|INDEX}} DIRECTORY table option commented out"

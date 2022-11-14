@@ -32,11 +32,13 @@
 #include <utility>
 #include <vector>
 
-#include "modules/util/dump/compatibility.h"
-#include "modules/util/dump/instance_cache.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+
+#include "modules/util/common/dump/filtering_options.h"
+#include "modules/util/dump/compatibility.h"
+#include "modules/util/dump/instance_cache.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -56,19 +58,14 @@ class Schema_dumper {
       USE_STRIP_DEFINERS,
       USE_STRIP_RESTRICTED_GRANTS,
       USE_STRIP_TABLESPACES,
-      USE_SKIP_INVALID_ACCOUNTS
+      USE_SKIP_INVALID_ACCOUNTS,
+      USE_STRIP_INVALID_GRANTS
     };
 
     Issue(const std::string &d, Status s) : description(d), status(s) {}
 
     std::string description;
     Status status;
-  };
-
-  enum class Object_type {
-    SCHEMA,
-    TABLE,
-    ROUTINE,
   };
 
   explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
@@ -78,8 +75,8 @@ class Schema_dumper {
   static std::string preprocess_users_script(
       const std::string &script,
       const std::function<bool(const std::string &)> &include_user_cb,
-      const std::function<bool(const std::string &, const std::string &,
-                               Object_type)> &include_object_cb = {},
+      const std::function<bool(const compatibility::Privilege_level_info &)>
+          &include_object_cb = {},
       const std::function<bool(const std::string &, const std::string &)>
           &strip_revoked_privilege_cb = {});
 
@@ -113,14 +110,11 @@ class Schema_dumper {
                                         const std::string &type);
 
   std::vector<Issue> dump_grants(IFile *file,
-                                 const std::vector<shcore::Account> &included,
-                                 const std::vector<shcore::Account> &excluded);
+                                 const common::Filtering_options &filters);
   std::vector<shcore::Account> get_users(
-      const std::vector<shcore::Account> &included,
-      const std::vector<shcore::Account> &excluded);
+      const common::Filtering_options::User_filters &filters);
   std::vector<shcore::Account> get_roles(
-      const std::vector<shcore::Account> &included,
-      const std::vector<shcore::Account> &excluded);
+      const common::Filtering_options::User_filters &filters);
 
   std::vector<Instance_cache::Histogram> get_histograms(
       const std::string &db_name, const std::string &table_name);
@@ -172,6 +166,7 @@ class Schema_dumper {
   bool opt_skip_invalid_accounts = false;
   bool opt_ignore_missing_pks = false;
   bool opt_create_invisible_pks = false;
+  bool opt_strip_invalid_grants = false;
   std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {
@@ -326,15 +321,17 @@ class Schema_dumper {
 
   std::vector<shcore::Account> fetch_users(
       const std::string &select, const std::string &where,
-      const std::vector<shcore::Account> &included,
-      const std::vector<shcore::Account> &excluded, bool log_error = true);
+      const common::Filtering_options::User_filters &filters,
+      bool log_error = true);
 
-  bool include_grant(const std::string &grant) const;
+  bool include_grant(
+      const std::string &grant, const common::Filtering_options &filters,
+      compatibility::Privilege_level_info *out_priv = nullptr) const;
 
   static bool include_grant(
       const std::string &grant,
-      const std::function<bool(const std::string &, const std::string &,
-                               Object_type)> &include_object);
+      const std::function<bool(const compatibility::Privilege_level_info &)>
+          &include_object);
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);

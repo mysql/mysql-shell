@@ -525,7 +525,7 @@ class Dump_loader {
      * Callback should return true if this statement should be executed.
      */
     void add_execute_conditionally(
-        std::function<bool(std::string_view, std::string_view)> f);
+        std::function<bool(std::string_view, const std::string &)> f);
 
     /**
      * Whenever a USE `schema` or CREATE DATABASE ... `schema` statement is

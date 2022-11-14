@@ -229,7 +229,7 @@ def TEST_LOAD(schema, table, where = "", partitions = [], recreate_schema = True
     # load data
     if recreate_schema:
         recreate_verification_schema()
-    EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False, "loadUsers": False, "includeTables" : [ quote_identifier(schema, table) ], "schema": verification_schema, "resetProgress": True }), "loading should not throw")
+    EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False, "loadUsers": False, "includeSchemas": [ schema ], "includeTables" : [ quote_identifier(schema, table) ], "schema": verification_schema, "resetProgress": True }), "loading should not throw")
     # compute CRC
     EXPECT_EQ(md5_table(session, schema, table, where, partitions), md5_table(session, verification_schema, table))
 

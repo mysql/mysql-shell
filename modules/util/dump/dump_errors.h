@@ -172,7 +172,12 @@
   "Dumping user accounts is currently not supported in MariaDB. Set the " \
   "'users' option to false to continue."
 
-#define SHERR_DUMP_LAST 52037
+#define SHERR_DUMP_INVALID_GRANT_STATEMENT 52038
+#define SHERR_DUMP_INVALID_GRANT_STATEMENT_MSG                                \
+  "Dump contains an invalid grant statement. Use the 'strip_invalid_grants' " \
+  "compatibility option to fix this."
+
+#define SHERR_DUMP_LAST 52038
 
 #define SHERR_DUMP_MAX 52999
 

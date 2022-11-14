@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-#include "modules/util/dump/dump_utils.h"
+#include "modules/util/common/dump/utils.h"
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -47,13 +47,10 @@ const char *k_excluded_schemas[] = {"information_schema", "mysql", "ndbinfo",
 
 Dump_instance_options::Dump_instance_options() {
   // some users are always excluded
-  std::vector<std::string> data{std::begin(k_excluded_users),
-                                std::end(k_excluded_users)};
-  add_excluded_users(data);
+  filters().users().exclude(k_excluded_users);
 
   // some schemas are always excluded
-  m_excluded_schemas.insert(std::begin(k_excluded_schemas),
-                            std::end(k_excluded_schemas));
+  filters().schemas().exclude(k_excluded_schemas);
 }
 
 const shcore::Option_pack_def<Dump_instance_options>
@@ -61,65 +58,41 @@ const shcore::Option_pack_def<Dump_instance_options>
   static const auto opts =
       shcore::Option_pack_def<Dump_instance_options>()
           .include<Dump_schemas_options>()
-          .optional("excludeSchemas",
-                    &Dump_instance_options::set_string_list_option)
-          .optional("includeSchemas",
-                    &Dump_instance_options::set_string_list_option)
+          .include(&Dump_instance_options::m_filtering_options,
+                   &common::Filtering_options::schemas)
           .optional("users", &Dump_instance_options::m_dump_users)
-          .optional("excludeUsers",
-                    &Dump_instance_options::set_string_list_option)
-          .optional("includeUsers",
-                    &Dump_instance_options::set_string_list_option)
+          .include(&Dump_instance_options::m_filtering_options,
+                   &common::Filtering_options::users)
           .on_done(&Dump_instance_options::on_unpacked_options)
           .on_log(&Dump_instance_options::on_log_options);
 
   return opts;
 }
 
-void Dump_instance_options::set_string_list_option(
-    const std::string &option, const std::unordered_set<std::string> &data) {
-  if (option == "excludeUsers") {
-    add_excluded_users(data);
-  } else if (option == "includeUsers") {
-    set_included_users(data);
-  } else if (option == "excludeSchemas") {
-    m_excluded_schemas.insert(data.begin(), data.end());
-  } else if (option == "includeSchemas") {
-    m_included_schemas.insert(data.begin(), data.end());
-  } else {
-    // This function should only be called with the options above.
-    assert(false);
-  }
-}
-
 void Dump_instance_options::on_unpacked_options() {
   if (!m_dump_users) {
-    if (excluded_users().size() > shcore::array_size(k_excluded_users)) {
+    if (filters().users().excluded().size() >
+        shcore::array_size(k_excluded_users)) {
       throw std::invalid_argument(
           "The 'excludeUsers' option cannot be used if the 'users' option is "
           "set to false.");
     }
 
-    if (!included_users().empty()) {
+    if (!filters().users().included().empty()) {
       throw std::invalid_argument(
           "The 'includeUsers' option cannot be used if the 'users' option is "
           "set to false.");
     }
   }
 
-  error_on_schema_filters_conflicts();
-  error_on_user_filters_conflicts();
+  m_filter_conflicts |= filters().schemas().error_on_conflicts();
+  m_filter_conflicts |= filters().users().error_on_conflicts();
 }
 
 void Dump_instance_options::validate_options() const {
   // call method up the chain, Dump_schemas_options has an empty list of schemas
   // and would throw
   Ddl_dumper_options::validate_options();
-}
-
-void Dump_instance_options::error_on_user_filters_conflicts() {
-  m_filter_conflicts |= ::mysqlsh::dump::error_on_user_filters_conflicts(
-      included_users(), excluded_users());
 }
 
 }  // namespace dump

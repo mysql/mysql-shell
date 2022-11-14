@@ -33,6 +33,8 @@ INCLUDE_DIRECTORIES(BEFORE
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
+      "util/common/dump/filtering_options.cc"
+      "util/common/dump/utils.cc"
       "util/dump/capability.cc"
       "util/dump/common_errors.cc"
       "util/dump/compatibility.cc"
@@ -49,7 +51,6 @@ file(GLOB api_module_SOURCES
       "util/dump/dump_options.cc"
       "util/dump/dump_schemas_options.cc"
       "util/dump/dump_tables_options.cc"
-      "util/dump/dump_utils.cc"
       "util/dump/dump_writer.cc"
       "util/dump/dumper.cc"
       "util/dump/export_table.cc"
