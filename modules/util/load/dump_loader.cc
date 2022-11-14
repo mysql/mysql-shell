@@ -1223,47 +1223,6 @@ void Dump_loader::on_dump_begin() {
 }
 
 void Dump_loader::on_dump_end() {
-  // Users have to be loaded last, because GRANTs on specific objects require
-  // the objects to exist
-  if (m_options.load_users()) {
-    std::string script = m_dump->users_script();
-
-    current_console()->print_status("Executing user accounts SQL...");
-
-    std::function<bool(const std::string &, const std::string &)>
-        strip_revoked_privilege;
-
-    if (m_options.is_mds()) {
-      strip_revoked_privilege = filter_user_script_for_mds();
-    }
-
-    script = dump::Schema_dumper::preprocess_users_script(
-        script,
-        [this](const std::string &account) {
-          return m_options.include_user(shcore::split_account(account));
-        },
-        [this](const std::string &schema, const std::string &object,
-               dump::Schema_dumper::Object_type type) {
-          switch (type) {
-            case dump::Schema_dumper::Object_type::SCHEMA:
-              return m_dump->include_schema(schema);
-
-            case dump::Schema_dumper::Object_type::TABLE:
-              return m_dump->include_table(schema, object);
-
-            case dump::Schema_dumper::Object_type::ROUTINE:
-              return m_dump->include_routine(schema, object);
-          }
-
-          throw std::logic_error("Should not happen");
-        },
-        strip_revoked_privilege);
-
-    if (!m_options.dry_run())
-      execute_script(m_session, script, "While executing user accounts SQL",
-                     m_default_sql_transforms);
-  }
-
   std::string post_script = m_dump->end_script();
 
   // Execute schema end scripts
@@ -2787,7 +2746,15 @@ void Dump_loader::execute_tasks() {
         // thousands of tables from remote storage can be slow)
         if (!m_worker_interrupt) execute_table_ddl_tasks();
 
-        // exec DDL for all views after all tables are created
+        // users have to be loaded after all objects and view placeholders are
+        // created, because GRANTs on specific objects require the objects to
+        // exist
+        // users have to be loaded before view placeholders are replaced with
+        // views, because creating a view which uses another view with the
+        // DEFINER clause requires that user to exist
+        if (!m_worker_interrupt) load_users();
+
+        // exec DDL for all views after all tables and users are created
         if (!m_worker_interrupt && m_options.load_ddl())
           execute_view_ddl_tasks();
       }
@@ -3340,6 +3307,47 @@ Dump_loader::Task_ptr Dump_loader::analyze_table(
 
   return std::make_unique<Worker::Analyze_table_task>(schema, table,
                                                       histograms);
+}
+
+void Dump_loader::load_users() const {
+  if (m_options.load_users()) {
+    std::string script = m_dump->users_script();
+
+    current_console()->print_status("Executing user accounts SQL...");
+
+    std::function<bool(const std::string &, const std::string &)>
+        strip_revoked_privilege;
+
+    if (m_options.is_mds()) {
+      strip_revoked_privilege = filter_user_script_for_mds();
+    }
+
+    script = dump::Schema_dumper::preprocess_users_script(
+        script,
+        [this](const std::string &account) {
+          return m_options.include_user(shcore::split_account(account));
+        },
+        [this](const std::string &schema, const std::string &object,
+               dump::Schema_dumper::Object_type type) {
+          switch (type) {
+            case dump::Schema_dumper::Object_type::SCHEMA:
+              return m_dump->include_schema(schema);
+
+            case dump::Schema_dumper::Object_type::TABLE:
+              return m_dump->include_table(schema, object);
+
+            case dump::Schema_dumper::Object_type::ROUTINE:
+              return m_dump->include_routine(schema, object);
+          }
+
+          throw std::logic_error("Should not happen");
+        },
+        strip_revoked_privilege);
+
+    if (!m_options.dry_run())
+      execute_script(m_session, script, "While executing user accounts SQL",
+                     m_default_sql_transforms);
+  }
 }
 
 }  // namespace mysqlsh

@@ -244,8 +244,6 @@ using FunctionEntry = std::pair<std::string, std::shared_ptr<Cpp_function>>;
 std::map<std::string, Cpp_function::Metadata> Cpp_object_bridge::mdtable;
 std::mutex Cpp_object_bridge::s_mtx;
 
-void Cpp_object_bridge::clear_metadata() { mdtable.clear(); }
-
 Cpp_function::Metadata &Cpp_object_bridge::get_metadata(
     const std::string &name) {
   return mdtable[name];

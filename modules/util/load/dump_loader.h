@@ -472,6 +472,8 @@ class Dump_loader {
       const std::string &schema, const std::string &table,
       const std::vector<Dump_reader::Histogram> &histograms) const;
 
+  void load_users() const;
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);

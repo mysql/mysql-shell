@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,8 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "unittest/test_utils.h"
 
@@ -204,9 +206,19 @@ class Test_object : public Cpp_object_bridge {
 };
 
 class Types_cpp : public ::testing::Test {
-  virtual void SetUp() {}
+  void TearDown() override {
+    auto it = Cpp_object_bridge::mdtable.begin();
+    const auto end = Cpp_object_bridge::mdtable.end();
+    const auto prefix = obj.class_name();
 
-  virtual void TearDown() { Cpp_object_bridge::clear_metadata(); }
+    while (it != end) {
+      if (shcore::str_beginswith(it->first, prefix)) {
+        it = Cpp_object_bridge::mdtable.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
 
  public:
   Test_object obj;

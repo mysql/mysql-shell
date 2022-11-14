@@ -1506,7 +1506,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   static std::mutex s_mtx;
   static std::map<std::string, Cpp_function::Metadata> mdtable;
-  static void clear_metadata();
   static Cpp_function::Metadata &get_metadata(const std::string &method);
   static void set_metadata(
       Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,

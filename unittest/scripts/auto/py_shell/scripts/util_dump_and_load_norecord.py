@@ -2412,6 +2412,41 @@ session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 shell.connect(__sandbox_uri2)
 session.run_sql("SET @@GLOBAL.autocommit = ?", [original_global_autocommit])
 
+#@<> BUG#34768224 - loading a view which uses another view with DEFINER set
+# constants
+dump_dir = os.path.join(outdir, "bug_34768224")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+tested_view = "tested_view"
+tested_user = "'user'@'localhost'"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql(f"DROP USER IF EXISTS {tested_user}")
+session.run_sql(f"CREATE USER {tested_user}")
+session.run_sql(f"GRANT ALL ON *.* TO {tested_user}")
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY, data INT)", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)", [ tested_schema, tested_table ])
+session.run_sql(f"CREATE DEFINER = {tested_user} VIEW !.! AS SELECT * FROM !.!", [ tested_schema, tested_view, tested_schema, tested_table ])
+session.run_sql(f"CREATE VIEW !.! AS SELECT * FROM !.!", [ tested_schema, tested_view + "_2", tested_schema, tested_view ])
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+# connect to the target instance, disable auto-commit and load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
+
+# verification
+compare_schema(session1, session2, tested_schema, check_rows=True)
+
+#@<> BUG#34768224 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql(f"DROP USER IF EXISTS {tested_user}")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
