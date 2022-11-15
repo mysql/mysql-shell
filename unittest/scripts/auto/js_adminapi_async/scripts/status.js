@@ -37,6 +37,31 @@ rs.status({extended:1});
 //@ Regular, extended:2
 rs.status({extended:2});
 
+//@<> BUG#34530914 make sure that the session collation is the intended ('utf8mb4_0900_ai_ci')
+
+testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.changeSandboxConf(__mysql_sandbox_port1, "character-set-server", "utf8mb4");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "collation-server", "utf8mb4_unicode_ci");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "character-set-client-handshake", "OFF");
+testutil.startSandbox(__mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri1);
+
+rs = dba.getReplicaSet();
+EXPECT_NO_THROWS(function() { rs.status({extended:2}); });
+EXPECT_SHELL_LOG_NOT_CONTAINS("Illegal mix of collations");
+
+testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "character-set-server");
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "collation-server");
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "character-set-client-handshake");
+testutil.startSandbox(__mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri1);
+session1 = mysql.getSession(__sandbox_uri1);
+
+rs = dba.getReplicaSet();
+
 // ==== Various Config Options
 
 //@<> Replication delay, extended:0
