@@ -1988,6 +1988,17 @@ TargetType::Type get_instance_type(
 
   try {
     auto channels = mysqlshdk::mysql::get_incoming_channels(target_instance);
+
+    // filter out GR channels, since they don't indicate AR is configured
+    channels.erase(
+        std::remove_if(
+            channels.begin(), channels.end(),
+            [](const mysqlshdk::mysql::Replication_channel &ch) {
+              return ch.channel_name == mysqlshdk::gr::k_gr_applier_channel ||
+                     ch.channel_name == mysqlshdk::gr::k_gr_recovery_channel;
+            }),
+        channels.end());
+
     if (!channels.empty()) return TargetType::AsyncReplication;
 
     auto slaves = mysqlshdk::mysql::get_slaves(target_instance);

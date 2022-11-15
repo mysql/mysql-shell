@@ -24,18 +24,15 @@ function stop_replica(session) {
 }
 
 function reset_instance(session) {
-    rows = session.runSql("SELECT managed_type, managed_name FROM performance_schema.replication_asynchronous_connection_failover_managed").fetchAll();
-    for (row of rows) {
-      try {
-        session.runSql("select asynchronous_connection_failover_delete_managed(?,?)", [row[0], row[1]]);
-      } catch (e) {}
-    }
     try {
       session.runSql("STOP group_replication");
     } catch (e) {}
     session.runSql("SET GLOBAL super_read_only=0");
     try {
       session.runSql("SELECT group_replication_reset_member_actions()");
+    } catch (e) {}
+    try {
+      session.runSql("SELECT asynchronous_connection_failover_reset()");
     } catch (e) {}
     session.runSql("STOP REPLICA");
     try {

@@ -157,19 +157,35 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
-    const std::string &channel_name, int timeout) const {
-  auto master = get_primary_master();
+    const std::string &channel_name, int timeout, bool only_received) const {
+  if (only_received) {
+    std::string gtid_set =
+        mysqlshdk::mysql::get_received_gtid_set(target_instance, channel_name);
 
-  std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
+    bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
+                                           channel_name, timeout, true);
 
-  bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
-                                         channel_name, timeout, true);
+    if (!sync_res) {
+      throw shcore::Exception(
+          "Timeout reached waiting for all received transactions "
+          " to be applied on instance '" +
+              target_instance.descr() + "'",
+          SHERR_DBA_GTID_SYNC_TIMEOUT);
+    }
+  } else {
+    auto master = get_primary_master();
 
-  if (!sync_res) {
-    throw shcore::Exception(
-        "Timeout reached waiting for transactions from " + master->descr() +
-            " to be applied on instance '" + target_instance.descr() + "'",
-        SHERR_DBA_GTID_SYNC_TIMEOUT);
+    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
+
+    bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
+                                           channel_name, timeout, true);
+
+    if (!sync_res) {
+      throw shcore::Exception(
+          "Timeout reached waiting for transactions from " + master->descr() +
+              " to be applied on instance '" + target_instance.descr() + "'",
+          SHERR_DBA_GTID_SYNC_TIMEOUT);
+    }
   }
 
   current_console()->print_info();

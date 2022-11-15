@@ -936,17 +936,23 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
 }
 
 #@<OUT> Dissolve cluster {VER(<8.0.11)}
-* Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
-WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
 * Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
 WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
+* Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to apply received transactions...
+
+
+* Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
+WARNING: On instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' configuration cannot be persisted since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.
 
 The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.
 
 #@<OUT> Dissolve cluster {VER(>=8.0.11)}
-* Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 * Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is attempting to leave the cluster...
+* Waiting for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to apply received transactions...
+
+
+* Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is attempting to leave the cluster...
 
 The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.

@@ -1477,6 +1477,26 @@ shcore::Value Dba::create_cluster(
   }
 }
 
+namespace {
+void ensure_not_in_cluster_set(const MetadataStorage &metadata,
+                               const Instance &instance) {
+  Cluster_metadata cluster_md;
+
+  if (metadata.get_cluster_for_server_uuid(instance.get_uuid(), &cluster_md) &&
+      !cluster_md.cluster_set_id.empty()) {
+    std::vector<Cluster_set_member_metadata> cs_members;
+
+    if (metadata.get_cluster_set(cluster_md.cluster_set_id, false, nullptr,
+                                 &cs_members) &&
+        cs_members.size() > 1) {
+      throw shcore::Exception::runtime_error(
+          "Cannot drop metadata for the Cluster because it is part of a "
+          "ClusterSet with other Clusters.");
+    }
+  }
+}
+}  // namespace
+
 REGISTER_HELP_FUNCTION(dropMetadataSchema, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_DROPMETADATASCHEMA, R"*(
 Drops the Metadata Schema.
@@ -1533,6 +1553,9 @@ void Dba::drop_metadata_schema(
   instance = metadata->get_md_server();
 
   auto console = current_console();
+
+  // Can't dissolve if in a cluster_set
+  ensure_not_in_cluster_set(*metadata, *instance);
 
   mysqlshdk::null_bool force = options->force;
 

@@ -24,8 +24,8 @@ EXPECT_THROWS(function(){ cluster.switchToSinglePrimaryMode(); }, "This function
 EXPECT_THROWS(function(){ rc.switchToSinglePrimaryMode(); }, "This function is not available through a session to an InnoDB Cluster that belongs to an InnoDB ClusterSet");
 EXPECT_THROWS(function(){ cluster.switchToMultiPrimaryMode(); }, "This function is not available through a session to an InnoDB Cluster that belongs to an InnoDB ClusterSet");
 EXPECT_THROWS(function(){ rc.switchToMultiPrimaryMode(); }, "This function is not available through a session to an InnoDB Cluster that belongs to an InnoDB ClusterSet");
-EXPECT_THROWS(function(){ cluster.dissolve(); }, "This function is not available through a session to an InnoDB Cluster that belongs to an InnoDB ClusterSet");
-EXPECT_THROWS(function(){ rc.dissolve(); }, "This function is not available through a session to an InnoDB Cluster that belongs to an InnoDB ClusterSet");
+EXPECT_THROWS(function(){ cluster.dissolve(); }, "Cluster 'cluster' cannot be dissolved because it is part of a ClusterSet with other Clusters.");
+EXPECT_THROWS(function(){ rc.dissolve(); }, "Cluster 'replica' cannot be dissolved because it is part of a ClusterSet with other Clusters.");
 
 // Cluster monitoring operations must be allowed at any ClusterSet member (cluster):
 //  - cluster.status()
