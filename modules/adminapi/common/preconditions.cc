@@ -740,6 +740,13 @@ std::string describe(State state) {
 }
 }  // namespace ManagedInstance
 
+const Function_availability &Precondition_checker::get_function_preconditions(
+    const std::string &function_name) {
+  assert(s_preconditions.find(function_name) != s_preconditions.end());
+
+  return s_preconditions.at(function_name);
+}
+
 Precondition_checker::Precondition_checker(
     const std::shared_ptr<MetadataStorage> &metadata,
     const std::shared_ptr<Instance> &group_server, bool primary_available)
@@ -755,8 +762,7 @@ Cluster_check_info Precondition_checker::check_preconditions(
   // function name
   if (!custom_func_avail) {
     // Retrieves the availability configuration for the given function
-    assert(s_preconditions.find(function_name) != s_preconditions.end());
-    availability = s_preconditions.at(function_name);
+    availability = get_function_preconditions(function_name);
   } else {
     // If a function availability is provided use it
     availability = *custom_func_avail;

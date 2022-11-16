@@ -126,6 +126,7 @@ class Replica_set_impl : public Base_cluster_impl {
       std::list<Instance_metadata> *out_unreachable);
 
   mysqlsh::dba::Instance *acquire_primary(
+      bool primary_required = true,
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
       const std::string &skip_lock_uuid = "") override;
 

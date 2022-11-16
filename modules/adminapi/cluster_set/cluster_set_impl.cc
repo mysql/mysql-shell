@@ -394,7 +394,7 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
  * Connect to PRIMARY of PRIMARY Cluster, throw exception if not possible
  */
 mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
-    mysqlshdk::mysql::Lock_mode /*mode*/,
+    bool primary_required, mysqlshdk::mysql::Lock_mode /*mode*/,
     const std::string & /*skip_lock_uuid*/) {
   connect_primary();
 
@@ -402,7 +402,7 @@ mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
   assert(primary_cluster);
 
   try {
-    m_primary_cluster->acquire_primary();
+    m_primary_cluster->acquire_primary(primary_required);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
       log_debug(

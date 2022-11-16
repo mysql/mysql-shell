@@ -107,6 +107,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   bool reconnect_target_if_invalidated(bool print_warnings = true);
 
   mysqlsh::dba::Instance *acquire_primary(
+      bool primary_required = true,
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
       const std::string &skip_lock_uuid = "") override;
 

@@ -1801,7 +1801,8 @@ std::vector<Instance_metadata> Replica_set_impl::get_instances_from_metadata()
  * is owned by the replicaset object.
  */
 mysqlsh::dba::Instance *Replica_set_impl::acquire_primary(
-    mysqlshdk::mysql::Lock_mode mode, const std::string &skip_lock_uuid) {
+    bool /* primary_required */, mysqlshdk::mysql::Lock_mode mode,
+    const std::string &skip_lock_uuid) {
   auto console = current_console();
 
   auto check_not_invalidated = [&](Instance *primary,

@@ -123,9 +123,20 @@ void Base_cluster_impl::check_preconditions(
   // Makes sure the primary master is reset before acquiring it on each API call
   m_primary_master.reset();
 
+  bool primary_required = false;
+  if (custom_func_avail) {
+    primary_required = custom_func_avail->primary_required;
+  } else {
+    const Function_availability &func_avail =
+        Precondition_checker::get_function_preconditions(api_class(get_type()) +
+                                                         "." + function_name);
+
+    primary_required = func_avail.primary_required;
+  }
+
   try {
     current_ipool()->set_metadata(get_metadata_storage());
-    acquire_primary();
+    acquire_primary(primary_required);
     primary_available = true;
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
@@ -137,6 +148,8 @@ void Base_cluster_impl::check_preconditions(
     } else if (shcore::str_beginswith(
                    e.what(), "Failed to execute query on Metadata server")) {
       log_debug("Unable to query Metadata schema: %s", e.what());
+    } else if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+      log_warning("Connection error acquiring primary: %s", e.format().c_str());
     } else {
       throw;
     }

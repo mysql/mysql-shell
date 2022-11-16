@@ -90,6 +90,9 @@ class Precondition_checker {
       const Function_availability *custom_func_avail = nullptr);
   virtual ~Precondition_checker() {}
 
+  static const Function_availability &get_function_preconditions(
+      const std::string &function_name);
+
   static const std::map<std::string, Function_availability> s_preconditions;
 
  private:
