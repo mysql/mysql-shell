@@ -34,7 +34,9 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
+
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -56,6 +58,8 @@ inline int adjust_timeout(int timeout, int poll_interval) {
 namespace dba {
 
 class Instance;
+
+struct Group_replication_options;
 
 struct NewInstanceInfo {
   std::string member_id;
@@ -670,6 +674,49 @@ TargetType::Type get_instance_type(
 Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
                                           Instance *group_server = nullptr,
                                           bool skip_version_check = true);
+
+namespace cluster_topology_executor_ops {
+/**
+ * Validate the options used in addInstance() and rejoinInstance()
+ *
+ * The function validates if the options used in
+ * addInstance()/rejoinInstance() are accepted according to the communication
+ * stack in use by the Cluster
+ */
+void validate_add_rejoin_options(Group_replication_options options,
+                                 const std::string &communication_stack);
+
+bool is_member_auto_rejoining(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance);
+
+void ensure_not_auto_rejoining(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance);
+
+/**
+ * Check if the target instance supported the communication protocol in used
+ * by the Cluster
+ */
+void check_comm_stack_support(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    Group_replication_options *gr_options,
+    const std::string &communication_stack);
+
+void ensure_instance_check_installed_schema_version(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    mysqlshdk::utils::Version lowest_cluster_version);
+
+void log_used_gr_options(const Group_replication_options &gr_options);
+
+/**
+ * Validate the use of IPv6 addresses on the localAddress of the
+ * target instance and check if the target instance supports usage of
+ * IPv6 on the localAddress values being used on the cluster instances.
+ */
+void validate_local_address_ip_compatibility(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    const std::string &local_address, const std::string &group_seeds,
+    mysqlshdk::utils::Version lowest_cluster_version);
+}  // namespace cluster_topology_executor_ops
 
 }  // namespace dba
 }  // namespace mysqlsh

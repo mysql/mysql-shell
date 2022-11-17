@@ -116,6 +116,8 @@ class Scoped_callback_list {
 
   void cancel() { cancelled = true; }
 
+  bool empty() const { return callbacks.empty(); }
+
   const std::exception_ptr &exception() const { return exception_ptr; }
 
   void check() {

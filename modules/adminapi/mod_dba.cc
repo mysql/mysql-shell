@@ -38,8 +38,8 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/cluster/cluster_join.h"
 #include "modules/adminapi/common/clone_options.h"
+#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
@@ -2769,6 +2769,91 @@ Cluster Dba::rebootClusterFromCompleteOutage(String clusterName,
 Cluster Dba::reboot_cluster_from_complete_outage(str clusterName,
                                                  dict options) {}
 #endif
+
+std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
+    const mysqlshdk::null_string &cluster_name,
+    const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
+  std::shared_ptr<MetadataStorage> metadata;
+  std::shared_ptr<Instance> target_instance;
+  // The cluster is completely dead, so we can't find the primary anyway...
+  // thus this instance will be used as the primary
+  connect_to_target_group({}, &metadata, &target_instance, false);
+
+  check_function_preconditions("Dba.rebootClusterFromCompleteOutage", metadata,
+                               target_instance);
+
+  // Validate and handle command options
+  {
+    // Get the communication in stack that was being used by the Cluster
+    auto target_instance_version = target_instance->get_version();
+    std::string comm_stack = kCommunicationStackXCom;
+
+    if (target_instance_version >=
+        k_mysql_communication_stack_initial_version) {
+      comm_stack =
+          target_instance
+              ->get_persisted_value("group_replication_communication_stack")
+              .value_or("");
+    }
+
+    // Validate the options:
+    //   - switchCommunicationStack
+    //   - localAddress
+    static_cast<Reboot_cluster_options>(*options).check_option_values(
+        target_instance_version, target_instance->get_canonical_port(),
+        comm_stack);
+  }
+
+  Scoped_instance_pool ipool(
+      metadata, false,
+      Instance_pool::Auth_options{target_instance->get_connection_options()});
+
+  const auto console = current_console();
+
+  if (options->get_dry_run()) {
+    console->print_note(
+        "dryRun option was specified. Validations will be executed, but no "
+        "changes will be applied.");
+  }
+
+  // Getting the cluster from the metadata already complies with:
+  //  - ensure that a Metadata Schema exists on the current session instance
+  //  - ensure that the provided cluster identifier exists on the Metadata
+  // Schema
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
+  try {
+    cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                          metadata, target_instance, true, true);
+  } catch (const shcore::Error &e) {
+    // If the GR plugin is not installed, we can get this error.
+    // In that case, we install the GR plugin and retry.
+    if (e.code() != ER_UNKNOWN_SYSTEM_VARIABLE) throw;
+
+    if (!options->get_dry_run()) {
+      log_info("%s: installing GR plugin (%s)",
+               target_instance->descr().c_str(), e.format().c_str());
+
+      mysqlshdk::gr::install_group_replication_plugin(*target_instance,
+                                                      nullptr);
+
+      cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                            metadata, target_instance, true, true);
+    }
+  }
+
+  if (!cluster) {
+    if (!cluster_name) {
+      throw shcore::Exception::logic_error("No default Cluster is configured.");
+    }
+    throw shcore::Exception::logic_error(shcore::str_format(
+        "The Cluster '%s' is not configured.", cluster_name->c_str()));
+  }
+
+  return Cluster_topology_executor<Reboot_cluster_from_complete_outage>{
+      this, cluster, target_instance,
+      static_cast<Reboot_cluster_options>(*options)}
+      .run();
+}
 
 REGISTER_HELP_FUNCTION(upgradeMetadata, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_UPGRADEMETADATA, R"*(

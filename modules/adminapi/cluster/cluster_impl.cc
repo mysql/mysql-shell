@@ -32,13 +32,10 @@
 #include <utility>
 #include <vector>
 
-#include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/cluster/check_instance_state.h"
-#include "modules/adminapi/cluster/cluster_join.h"
 #include "modules/adminapi/cluster/describe.h"
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/cluster/options.h"
-#include "modules/adminapi/cluster/remove_instance.h"
 #include "modules/adminapi/cluster/rescan.h"
 #include "modules/adminapi/cluster/reset_recovery_accounts_password.h"
 #include "modules/adminapi/cluster/set_instance_option.h"
@@ -49,10 +46,13 @@
 #include "modules/adminapi/cluster/switch_to_single_primary_mode.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/accounts.h"
+#include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
@@ -1098,60 +1098,30 @@ void Cluster_impl::update_group_members_for_removed_member(
 
 void Cluster_impl::add_instance(
     const mysqlshdk::db::Connection_options &instance_def,
-    const cluster::Add_instance_options &options,
-    Recovery_progress_style progress_style) {
+    const cluster::Add_instance_options &options) {
   check_preconditions("addInstance");
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
-  cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
-                               options.gr_options, options.clone_options,
-                               options.interactive());
 
-  // Add the Instance to the Cluster
-
-  // Prepare and validate
-  joiner.prepare_join(options.label);
-
-  std::string msg =
-      "A new instance will be added to the InnoDB cluster. Depending on the "
-      "amount of data on the cluster this might take from a few seconds to "
-      "several hours.";
-  std::string message =
-      mysqlshdk::textui::format_markup_text({msg}, 80, 0, false);
-  auto console = current_console();
-  console->print_info(message);
-  console->print_info();
-
-  joiner.join(progress_style);
+  Cluster_topology_executor<cluster::Add_instance>{this, target, options}.run();
 
   // Verification step to ensure the server_id is an attribute on all the
   // instances of the cluster
+  // TODO(miguel): there should be some tag in the metadata to know whether
+  // server_id is already stored or not, to avoid connecting to all members
+  // each time to do so. Also, this should probably be done at the beginning.
   ensure_metadata_has_server_id(target);
 }
 
-void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
-                                   const Group_replication_options &gr_options,
-                                   bool interactive,
-                                   bool skip_precondition_check,
-                                   std::optional<bool> switch_comm_stack) {
-  // rejoin the Instance to the Cluster
-  if (!skip_precondition_check) {
-    check_preconditions("rejoinInstance");
-  }
+void Cluster_impl::rejoin_instance(
+    const Connection_options &instance_def,
+    const cluster::Rejoin_instance_options &options) {
+  check_preconditions("rejoinInstance");
 
   Scoped_instance target(connect_target_instance(instance_def, true));
-  cluster::Cluster_join joiner(this, get_cluster_server().get(), target,
-                               gr_options, {}, interactive, switch_comm_stack);
 
-  // Rejoin the Instance to the Cluster
-  bool uuid_mistmatch = false;
-  if (joiner.prepare_rejoin(&uuid_mistmatch)) {
-    joiner.rejoin();
-  }
-
-  if (uuid_mistmatch) {
-    update_metadata_for_instance(target);
-  }
+  Cluster_topology_executor<cluster::Rejoin_instance>{this, target, options}
+      .run();
 
   // Verification step to ensure the server_id is an attribute on all the
   // instances of the cluster
@@ -1163,15 +1133,9 @@ void Cluster_impl::remove_instance(
     const cluster::Remove_instance_options &options) {
   check_preconditions("removeInstance");
 
-  // Create the remove_instance command and execute it.
-  cluster::Remove_instance op_remove_instance(instance_def, options, this);
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
-      [&op_remove_instance]() { op_remove_instance.finish(); });
-  // Prepare the remove_instance command execution (validations).
-  op_remove_instance.prepare();
-  // Execute remove_instance operations.
-  op_remove_instance.execute();
+  Cluster_topology_executor<cluster::Remove_instance>{this, instance_def,
+                                                      options}
+      .run();
 }
 
 std::shared_ptr<Instance> connect_to_instance_for_metadata(
@@ -1362,6 +1326,270 @@ retry:
       log_info("Skipping account recreation for %s: %s@%s == %s@%s",
                instance.endpoint.c_str(), account.first.c_str(),
                account.second.c_str(), account.first.c_str(), host.c_str());
+    }
+  }
+}
+
+void Cluster_impl::configure_cluster_set_member(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance) const {
+  try {
+    target_instance->set_sysvar("skip_replica_start", true,
+                                mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+  } catch (const mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
+                                                             e.sqlstate());
+  }
+
+  if (!is_primary_cluster()) {
+    auto console = mysqlsh::current_console();
+
+    console->print_info(
+        "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
+    sync_transactions(*get_cluster_server(), k_clusterset_async_channel_name,
+                      0);
+
+    auto cs = get_cluster_set_object();
+
+    auto ar_options = cs->get_clusterset_replication_options();
+
+    ar_options.repl_credentials = refresh_clusterset_replication_user();
+
+    // Update the credentials on all cluster members
+    execute_in_members({}, get_primary_master()->get_connection_options(), {},
+                       [&](const std::shared_ptr<Instance> &target,
+                           const mysqlshdk::gr::Member &) {
+                         async_update_replica_credentials(
+                             target.get(), k_clusterset_async_channel_name,
+                             ar_options, false);
+                         return true;
+                       });
+
+    // Setup the replication channel at the target instance but do not start
+    // it since that's handled by Group Replication
+    console->print_info(
+        "* Configuring ClusterSet managed replication channel...");
+
+    async_add_replica(get_primary_master().get(), target_instance.get(),
+                      k_clusterset_async_channel_name, ar_options, true, false,
+                      false);
+
+    console->print_info();
+  }
+}
+
+void Cluster_impl::restore_recovery_account_all_members() const {
+  execute_in_members(
+      [this](const std::shared_ptr<Instance> &instance,
+             const Instance_md_and_gr_member &info) {
+        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
+          try {
+            reset_recovery_password(instance);
+          } catch (const std::exception &e) {
+            // If we can't change the recovery account password for some
+            // reason, we must re-create it
+            log_info(
+                "Unable to reset the recovery password of instance '%s', "
+                "re-creating a new account: %s",
+                instance->descr().c_str(), e.what());
+
+            recreate_replication_user(instance);
+          }
+        }
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
+}
+
+void Cluster_impl::change_recovery_credentials_all_members(
+    const mysqlshdk::mysql::Auth_options &repl_account) const {
+  execute_in_members(
+      [&repl_account](const std::shared_ptr<Instance> &instance,
+                      const Instance_md_and_gr_member &info) {
+        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
+          try {
+            mysqlshdk::mysql::change_replication_credentials(
+                *instance, repl_account.user, *repl_account.password,
+                mysqlshdk::gr::k_gr_recovery_channel);
+          } catch (const std::exception &e) {
+            current_console()->print_warning(shcore::str_format(
+                "Error updating recovery credentials for %s: %s",
+                instance->descr().c_str(), e.what()));
+          }
+        }
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
+}
+
+void Cluster_impl::create_local_replication_user(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    const Group_replication_options &gr_options) {
+  // When using the 'MySQL' communication stack, the account must already
+  // exist in the joining member since authentication is based on MySQL
+  // credentials so the account must exist in both ends before GR
+  // starts. For those reasons, we must create the account with binlog
+  // disabled before starting GR, otherwise we'd create errant
+  // transaction
+  mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance.get());
+
+  if (target_instance->get_sysvar_bool("super_read_only", false)) {
+    target_instance->set_sysvar("super_read_only", false);
+  }
+
+  mysqlshdk::mysql::Auth_options repl_account;
+
+  std::tie(repl_account, std::ignore) =
+      create_replication_user(target_instance.get(), true,
+                              gr_options.recovery_credentials.value_or(
+                                  mysqlshdk::mysql::Auth_options{}),
+                              false);
+
+  // Change GR's recovery replication credentials in all possible
+  // donors so they are able to connect to the joining member. GR will pick a
+  // suitable donor (that we cannot determine) and it needs to be able to
+  // connect and authenticate to the joining member.
+  // NOTE: Instances in RECOVERING must be skipped since won't be used as donor
+  // and the change source command would fail anyway
+  change_recovery_credentials_all_members(repl_account);
+
+  DBUG_EXECUTE_IF("fail_recovery_mysql_stack", {
+    // Revoke the REPLICATION_SLAVE to make the distributed recovery fail
+    auto primary = get_primary_master();
+    primary->execute("REVOKE REPLICATION SLAVE on *.* from " +
+                     repl_account.user);
+    target_instance->execute("REVOKE REPLICATION SLAVE on *.* from " +
+                             repl_account.user);
+  });
+}
+
+void Cluster_impl::update_group_peers(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    const Group_replication_options &gr_options, int cluster_member_count,
+    const std::string &self_address, bool group_seeds_only) {
+  // Get the gr_address of the instance being added
+  std::string added_instance_gr_address = *gr_options.local_address;
+
+  // Create a configuration object for the cluster, ignoring the added
+  // instance, to update the remaining cluster members.
+  // NOTE: only members that already belonged to the cluster and are either
+  //       ONLINE or RECOVERING will be considered.
+  std::vector<std::string> ignore_instances_vec = {self_address};
+  std::unique_ptr<mysqlshdk::config::Config> cluster_cfg =
+      create_config_object(ignore_instances_vec, true);
+
+  // Update the group_replication_group_seeds of the cluster members
+  // by adding the gr_local_address of the instance that was just added.
+  log_debug("Updating Group Replication seeds on all active members...");
+  {
+    auto group_seeds = get_cluster_group_seeds();
+    assert(!added_instance_gr_address.empty());
+    group_seeds[target_instance->get_uuid()] = added_instance_gr_address;
+    mysqlshdk::gr::update_group_seeds(cluster_cfg.get(), group_seeds);
+  }
+
+  cluster_cfg->apply();
+
+  if (!group_seeds_only) {
+    // Increase the cluster_member_count counter
+    cluster_member_count++;
+
+    // Auto-increment values must be updated according to:
+    //
+    // Set auto-increment for single-primary topology:
+    // - auto_increment_increment = 1
+    // - auto_increment_offset = 2
+    //
+    // Set auto-increment for multi-primary topology:
+    // - auto_increment_increment = n;
+    // - auto_increment_offset = 1 + server_id % n;
+    // where n is the size of the GR group if > 7, otherwise n = 7.
+    //
+    // We must update the auto-increment values in Cluster_join for 2
+    // scenarios
+    //   - Multi-primary Cluster
+    //   - Cluster that has 7 or more members after the Cluster_join
+    //     operation
+    //
+    // NOTE: in the other scenarios, the Cluster_join operation is in
+    // charge of updating auto-increment accordingly
+
+    // Get the topology mode of the replicaSet
+    mysqlshdk::gr::Topology_mode topology_mode =
+        get_metadata_storage()->get_cluster_topology_mode(get_id());
+
+    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
+        cluster_member_count > 7) {
+      log_debug("Updating auto-increment settings on all active members...");
+      mysqlshdk::gr::update_auto_increment(
+          cluster_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+      cluster_cfg->apply();
+    }
+  }
+}
+
+void Cluster_impl::check_instance_configuration(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    bool using_clone_recovery, checks::Check_type checks_type,
+    bool already_member) const {
+  // Check instance version compatibility with cluster.
+  cluster_topology_executor_ops::ensure_instance_check_installed_schema_version(
+      target_instance, get_lowest_instance_version());
+
+  // Check instance configuration and state, like dba.checkInstance
+  // But don't do it if it was already done by the caller
+  ensure_gr_instance_configuration_valid(target_instance.get(), true,
+                                         using_clone_recovery);
+
+  // Validate the lower_case_table_names and default_table_encryption
+  // variables. Their values must be the same on the target instance as they
+  // are on the cluster.
+
+  // The lower_case_table_names can only be set the first time the server
+  // boots, as such there is no need to validate it other than the first time
+  // the instance is added to the cluster.
+  validate_variable_compatibility(*target_instance, "lower_case_table_names");
+
+  // The default_table_encryption is a dynamic variable, so we validate it on
+  // the Cluster_join and on the rejoin operation. The reboot operation does a
+  // rejoin in the background, so running the check on the rejoin will cover
+  // both operations.
+  if (get_lowest_instance_version() >= mysqlshdk::utils::Version(8, 0, 16) &&
+      target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 16)) {
+    validate_variable_compatibility(*target_instance,
+                                    "default_table_encryption");
+  }
+
+  // Verify if the instance is running asynchronous
+  // replication
+  // NOTE: Verify for all operations: addInstance(), rejoinInstance() and
+  // rebootClusterFromCompleteOutage()
+  checks::validate_async_channels(
+      *target_instance,
+      is_cluster_set_member()
+          ? std::unordered_set<std::string>{k_clusterset_async_channel_name}
+          : std::unordered_set<std::string>{},
+      checks_type);
+
+  if (!already_member) {
+    // Check instance server UUID (must be unique among the cluster members).
+    validate_server_uuid(*target_instance);
+
+    // Ensure instance server ID is unique among the cluster members.
+    try {
+      validate_server_id(*target_instance);
+    } catch (const std::runtime_error &err) {
+      auto console = mysqlsh::current_console();
+      console->print_error(
+          "Cannot join instance '" + target_instance->descr() +
+          "' to the cluster because it has the same server ID "
+          "of a member of the cluster. Please change the server "
+          "ID of the instance to add: all members must have a "
+          "unique server ID.");
+      throw;
     }
   }
 }
