@@ -3111,6 +3111,18 @@ EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verifica
 #@<> WL15311 - cleanup
 session.run_sql("DROP SCHEMA !;", [schema_name])
 
+#@<> BUG#34787778 - loading a table which has multiple fulltext indexes
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql(f"CREATE TABLE !.! (a TEXT, b TEXT, c GEOMETRY NOT NULL, d GEOMETRY NOT NULL, FULLTEXT (a), FULLTEXT (b), SPATIAL KEY (c), SPATIAL KEY (d))", [ tested_schema, tested_table ])
+
+TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
+
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

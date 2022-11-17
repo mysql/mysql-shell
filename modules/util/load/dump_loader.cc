@@ -909,7 +909,10 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
       };
       auto &first_batch = batches.emplace_back();
 
-      append(m_indexes->fulltext, &first_batch);
+      // BUG#34787778 - fulltext indexes need to be added one at a time
+      if (!m_indexes->fulltext.empty()) {
+        first_batch.emplace_back(m_indexes->fulltext.front());
+      }
 
       if (!m_indexes->spatial.empty()) {
         // we load all indexes at once if:
@@ -929,6 +932,15 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
       }
 
       append(m_indexes->regular, &first_batch);
+
+      // BUG#34787778 - fulltext indexes need to be added one at a time
+      if (!m_indexes->fulltext.empty()) {
+        for (auto it = std::next(m_indexes->fulltext.begin()),
+                  end = m_indexes->fulltext.end();
+             it != end; ++it) {
+          batches.emplace_back().emplace_back(*it);
+        }
+      }
     }
 
     try {
