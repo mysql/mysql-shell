@@ -23,19 +23,9 @@
 
 #include "mysqlshdk/libs/utils/utils_encoding.h"
 
-// #include <openssl/err.h>
 #include <openssl/evp.h>
-// #include <openssl/md5.h>
-// #include <openssl/pem.h>
-// #include <openssl/ssl.h>
-// #include <algorithm>
 #include <cassert>
-// #include <functional>
-// #include <limits>
 #include <memory>
-// #include <regex>
-// #include <utility>
-// #include <vector>
 
 namespace shcore {
 namespace {
