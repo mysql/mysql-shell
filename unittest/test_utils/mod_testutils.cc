@@ -63,6 +63,7 @@
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -231,6 +232,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "group_replication_recovery");
   expose("waitForRplApplierError", &Testutils::wait_for_rpl_applier_error,
          "port", "?channel", "");
+  expose("injectGtidSet", &Testutils::inject_gtid_set, "port", "gtidset");
 
   expose("stopGroup", &Testutils::stop_group, "ports");
 
@@ -2615,6 +2617,16 @@ bool Testutils::wait_member_transactions(int dest_port, int source_port) {
   // WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(), instead an error is generated.
   // 0 is returned for success and 1 for timeout.
   return row->get_int(0) == 0;
+}
+
+void Testutils::inject_gtid_set(int port, const std::string &gtid_set) {
+  auto session = connect_to_sandbox(port);
+  auto instance = mysqlshdk::mysql::Instance(session);
+
+  auto gtids = mysqlshdk::mysql::Gtid_set::from_string(gtid_set);
+  gtids.normalize(instance);
+
+  mysqlshdk::mysql::inject_gtid_set(instance, gtids);
 }
 
 //!<  @name Misc Utilities

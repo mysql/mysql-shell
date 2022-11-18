@@ -2105,8 +2105,9 @@ void Cluster_set_impl::set_primary_cluster(
 
   console->print_info();
 
-  ensure_transaction_set_consistent(promoted.get(), primary.get(),
-                                    options.dry_run);
+  ensure_transaction_set_consistent_and_recoverable(
+      promoted.get(), primary.get(), primary_cluster.get(), false,
+      options.dry_run, nullptr);
 
   // Get the current settings for the ClusterSet replication channel
   Async_replication_options ar_options = get_clusterset_replication_options();
@@ -2652,84 +2653,94 @@ void Cluster_set_impl::force_primary_cluster(
   }
 }
 
-void Cluster_set_impl::ensure_transaction_set_consistent(
+void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
     mysqlshdk::mysql::IInstance *replica, mysqlshdk::mysql::IInstance *primary,
-    bool dry_run) {
+    Cluster_impl *primary_cluster, bool allow_unrecoverable, bool dry_run,
+    bool *out_is_recoverable) {
   auto console = current_console();
 
-  std::string missing_view_gtids;
+  mysqlshdk::mysql::Gtid_set missing_view_gtids;
+  mysqlshdk::mysql::Gtid_set errant_gtids;
+  mysqlshdk::mysql::Gtid_set missing_gtids;
+  mysqlshdk::mysql::Gtid_set unrecoverable_gtids;
 
-  std::string errant_gtids;
-  std::string missing_gtids;
-  // Do not filter VCLEs since we need to assess whether the GTID-SETs are
-  // diverging or not and only then check whether the divergence is due to
-  // VCLEs
-  auto state = check_replica_gtid_state(*primary, *replica, &missing_gtids,
-                                        &errant_gtids);
+  std::vector<std::string> allowed_errant_uuids;
+  std::vector<Cluster_set_member_metadata> members;
 
-  // at this point, missing_gtids may contain both legitimate gtids and vcles
-  // VCLEs need to be reconciled, but legitimate GTIDs need to be ignored so
-  // they can be replicated normally
+  // purged GTIDs from all members of the primary
+  std::vector<mysqlshdk::mysql::Gtid_set> purged_gtids;
 
-  log_info("GTID check between %s and %s result=%s missing=%s errant=%s",
-           replica->descr().c_str(), primary->descr().c_str(),
-           mysqlshdk::mysql::to_string(state).c_str(), missing_gtids.c_str(),
-           errant_gtids.c_str());
+  primary_cluster->execute_in_members(
+      [&purged_gtids](const std::shared_ptr<Instance> &instance,
+                      const Instance_md_and_gr_member &) {
+        auto purged = mysqlshdk::mysql::Gtid_set::from_gtid_purged(*instance);
 
-  if (state == mysqlshdk::mysql::Replica_gtid_state::DIVERGED) {
-    // filter missing_gtids to leave only VCLEs that we'll need to reconcile
-    missing_view_gtids =
-        get_only_view_change_gtids(*primary, *replica, missing_gtids);
+        log_debug("gtid_purged@%s=%s", instance->descr().c_str(),
+                  purged.str().c_str());
+        purged_gtids.emplace_back(purged);
+        return true;
+      },
+      [](const shcore::Error &err, const Instance_md_and_gr_member &i) {
+        log_debug("could not connect to %s:%i to query gtid_purged: %s",
+                  i.second.host.c_str(), i.second.port, err.format().c_str());
+        return true;
+      });
 
-    if (!errant_gtids.empty()) {
-      // check if the errant transactions are from view changes belonging to
-      // other replica clusters, which could be introduced in case it's not
-      // replicating from the correct source (e.g. replication couldn't be
-      // updated during last primary cluster change)
-      std::vector<Cluster_set_member_metadata> members;
-      auto errants =
-          mysqlshdk::mysql::Gtid_set::from_normalized_string(errant_gtids);
+  get_metadata_storage()->get_cluster_set(get_id(), true, nullptr, &members);
+  for (const auto &m : members) {
+    allowed_errant_uuids.push_back(m.cluster.view_change_uuid);
+  }
 
-      get_metadata_storage()->get_cluster_set(get_id(), true, nullptr,
-                                              &members);
-      for (const auto &m : members) {
-        errants.subtract(errants.get_gtids_from(m.cluster.view_change_uuid),
-                         *primary);
-      }
+  mysqlshdk::mysql::compute_joining_replica_gtid_state(
+      *primary, mysqlshdk::mysql::Gtid_set::from_gtid_executed(*primary),
+      purged_gtids, mysqlshdk::mysql::Gtid_set::from_gtid_executed(*replica),
+      allowed_errant_uuids, &missing_gtids, &unrecoverable_gtids, &errant_gtids,
+      &missing_view_gtids);
 
-      if (!missing_view_gtids.empty()) missing_view_gtids += ",";
-      missing_view_gtids += errant_gtids;
+  log_info(
+      "GTID check between %s and %s (%s) missing=%s errant=%s unrecoverable=%s "
+      "vcle=%s\n",
+      replica->descr().c_str(), primary_cluster->get_name().c_str(),
+      primary->descr().c_str(), missing_gtids.str().c_str(),
+      errant_gtids.str().c_str(), unrecoverable_gtids.str().c_str(),
+      missing_view_gtids.str().c_str());
 
-      if (!errants.empty()) {
-        console->print_info(shcore::str_format(
-            "%s has the following errant transactions not present at %s: %s",
-            replica->descr().c_str(), primary->descr().c_str(),
-            errant_gtids.c_str()));
-        throw shcore::Exception(
-            "Errant transactions detected at " + replica->descr(),
-            SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
-      }
-    }
-  } else if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-    console->print_error(
-        shcore::str_format("The following transactions were purged from %s and "
-                           "not present at %s: %s",
-                           primary->descr().c_str(), replica->descr().c_str(),
-                           missing_gtids.c_str()));
+  if (out_is_recoverable) *out_is_recoverable = true;
 
+  if (!errant_gtids.empty()) {
+    console->print_info(shcore::str_format(
+        "%s has the following errant transactions not present at %s: %s",
+        replica->descr().c_str(), primary_cluster->get_name().c_str(),
+        errant_gtids.str().c_str()));
     throw shcore::Exception(
-        "Cluster is unable to recover one or more transactions that have been "
-        "purged from the PRIMARY cluster",
-        SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE);
+        "Errant transactions detected at " + replica->descr(),
+        SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+  }
+
+  if (!unrecoverable_gtids.empty()) {
+    auto msg = shcore::str_format(
+        "The following transactions were purged from %s and "
+        "not present at %s: %s",
+        primary_cluster->get_name().c_str(), replica->descr().c_str(),
+        unrecoverable_gtids.str().c_str());
+    if (allow_unrecoverable) {
+      console->print_warning(msg);
+      if (out_is_recoverable) *out_is_recoverable = false;
+    } else {
+      console->print_error(msg);
+
+      throw shcore::Exception(
+          "Cluster is unable to recover one or more transactions that have "
+          "been purged from the PRIMARY cluster",
+          SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE);
+    }
   }
 
   if (!missing_view_gtids.empty()) {
-    auto gtids =
-        mysqlshdk::mysql::Gtid_set::from_normalized_string(missing_view_gtids);
     console->print_info(
         shcore::str_format("* Reconciling %u internally generated GTIDs",
-                           static_cast<unsigned>(gtids.count())));
-    if (!dry_run) reconcile_view_change_gtids(replica, gtids);
+                           static_cast<unsigned>(missing_view_gtids.count())));
+    if (!dry_run) reconcile_view_change_gtids(replica, missing_view_gtids);
     console->print_info();
   }
 }
@@ -2760,8 +2771,6 @@ void Cluster_set_impl::rejoin_cluster(
 
   // check if the cluster is invalidated
   if (!rejoining_cluster->is_invalidated()) {
-    console->print_note("Cluster '" + rejoining_cluster->get_name() +
-                        "' is not invalidated");
     refresh_only = true;
   } else {
     console->print_note("Cluster '" + rejoining_cluster->get_name() +
@@ -2771,8 +2780,9 @@ void Cluster_set_impl::rejoin_cluster(
 
   // check gtid set
   try {
-    ensure_transaction_set_consistent(rejoining_primary.get(), primary.get(),
-                                      options.dry_run);
+    ensure_transaction_set_consistent_and_recoverable(
+        rejoining_primary.get(), primary.get(), primary_cluster.get(), false,
+        options.dry_run, nullptr);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE) {
       console->print_error(
