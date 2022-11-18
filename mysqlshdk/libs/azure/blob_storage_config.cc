@@ -278,6 +278,28 @@ void Blob_storage_config::validate_config() const {
                            Blob_storage_options::storage_account_option()));
   }
 
+  if (m_account_name.length() < 3 || m_account_name.length() > 24) {
+    throw std::invalid_argument(
+        "The specified Azure Storage Account name is invalid, expected 3 to 24 "
+        "characters: " +
+        m_account_name);
+  }
+
+  if (![this]() {
+        for (const auto c : m_account_name) {
+          if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z'))) {
+            return false;
+          }
+        }
+
+        return true;
+      }()) {
+    throw std::invalid_argument(
+        "The specified Azure Storage Account name is invalid, expected numbers "
+        "and lowercase characters: " +
+        m_account_name);
+  }
+
   log_info("Used Account: '%s'", m_account_name.c_str());
 
   if (m_sas_token_data.empty()) {

@@ -75,6 +75,8 @@ function test_configuration(options, env_vars) {
 testutil.mkdir("azure_fallback");
 config_file = "azure_fallback/config";
 
+utils.setupFailureTests();
+
 //@<> TS_R8_8, TS_R8_9 - azureStorageSasToken over env and config file {__azure_emulator==false} // The Azure Emulator does not support for SAS Tokens
 let env_vars = get_env_vars(FAKE_ACCOUNT, FAKE_KEY, FULL_CONN_STR, FAKE_ACCOUNT, FAKE_KEY, FAKE_SAS_TOKEN);
 update_config(config_file, FAKE_ACCOUNT, FAKE_KEY, FULL_CONN_STR, FAKE_ACCOUNT, FAKE_KEY, FAKE_SAS_TOKEN);
@@ -122,5 +124,6 @@ env_vars = get_env_vars(WITHOUT_ACCOUNT, WITHOUT_KEY, WITHOUT_CONN_STR);
 update_config(config_file, __azure_account, __azure_key, HALF_CONN_STR);
 test_configuration(["--azureContainerName=something", `--azureConfigFile=${config_file}`], env_vars);
 
+//@<> cleanup
+utils.cleanupFailureTests();
 testutil.rmdir("azure_fallback", true);
-
