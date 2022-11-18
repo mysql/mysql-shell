@@ -137,10 +137,10 @@ void Dissolve::ensure_transactions_sync() {
     try {
       auto console = mysqlsh::current_console();
       console->print_info("* Waiting for instance '" + instance->descr() +
-                          "' to synchronize with the primary...");
+                          "' to apply received transactions...");
       m_cluster->sync_transactions(
           *instance, mysqlshdk::gr::k_gr_applier_channel,
-          current_shell_options()->get().dba_gtid_wait_timeout);
+          current_shell_options()->get().dba_gtid_wait_timeout, true);
     } catch (const std::exception &err) {
       std::string instance_address =
           (*instance).get_connection_options().as_uri(
@@ -239,6 +239,21 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
 }
 
 void Dissolve::prepare() {
+  // Can't dissolve if in a clusterset
+  if (m_cluster->is_cluster_set_member() && !m_cluster->is_invalidated()) {
+    std::vector<Cluster_set_member_metadata> cs_members;
+
+    if (m_cluster->get_metadata_storage()->get_cluster_set(
+            m_cluster->get_clusterset_metadata().cluster_set_id, false, nullptr,
+            &cs_members) &&
+        cs_members.size() > 1) {
+      throw shcore::Exception::runtime_error(
+          "Cluster '" + m_cluster->get_name() +
+          "' cannot be dissolved because it is part of a ClusterSet with other "
+          "Clusters.");
+    }
+  }
+
   // Confirm execution of operation in interactive mode.
   if (m_interactive) {
     prompt_to_confirm_dissolve();
@@ -270,7 +285,6 @@ void Dissolve::prepare() {
 
   // Get all cluster instances, including state information.
   std::vector<Instance_metadata> instance_defs = m_cluster->get_instances();
-
   // Check if instances can be dissolved. More specifically, verify if their
   // state is valid, if they are reachable (i.e., able to connect to them).
   // Also determine if instance removal can be skipped, according to 'force'
@@ -288,11 +302,6 @@ void Dissolve::prepare() {
       // Handle not active instances, determining if they can be skipped.
       handle_unavailable_instances(instance_def.endpoint,
                                    mysqlshdk::gr::to_string(state));
-    }
-
-    // check if primary
-    if (single_primary && is_primary) {
-      m_primary_uuid = instance_def.uuid;
     }
   }
 
@@ -367,20 +376,11 @@ shcore::Value Dissolve::execute() {
   // Drop the metadata schema
   metadata::uninstall(m_cluster->get_cluster_server());
 
-  size_t primary_index = SIZE_MAX;
-
   // We must stop GR on the online instances only, otherwise we'll
   // get connection failures to the (MISSING) instances
   // BUG#26001653.
   for (std::size_t i = 0; i < m_available_instances.size(); i++) {
     auto &instance = *m_available_instances[i];
-
-    // Remove all instances except the primary.
-
-    if (instance.get_uuid() == m_primary_uuid) {
-      primary_index = i;
-      continue;
-    }
 
     std::string instance_address = instance.get_connection_options().as_uri(
         mysqlshdk::db::uri::formats::only_transport());
@@ -390,11 +390,13 @@ shcore::Value Dissolve::execute() {
       // Catch-up with all cluster transaction to ensure cluster metadata is
       // removed on the instance.
       console->print_info("* Waiting for instance '" + instance.descr() +
-                          "' to synchronize with the primary...");
+                          "' to apply received transactions...");
 
+      // We only need to apply received transactions, since any transactions
+      // certified by the group will have been received
       m_cluster->sync_transactions(
           instance, mysqlshdk::gr::k_gr_applier_channel,
-          current_shell_options()->get().dba_gtid_wait_timeout);
+          current_shell_options()->get().dba_gtid_wait_timeout, true);
 
       // Remove instance from list of instance with sync error in case it
       // was previously added during initial verification, since it
@@ -436,16 +438,6 @@ shcore::Value Dissolve::execute() {
 
     // JOB: Remove the instance from the cluster (Stop GR)
     remove_instance(instance_address, i);
-  }
-
-  // Remove primary instance at the end (if there is one).
-  if (primary_index != SIZE_MAX) {
-    // No need to catch with transactions, since it is the primary.
-    // JOB: Remove the instance from the cluster (Stop GR)
-    std::string instance_address =
-        m_available_instances[primary_index]->get_connection_options().as_uri(
-            mysqlshdk::db::uri::formats::only_transport());
-    remove_instance(instance_address, primary_index);
   }
 
   // Disconnect all internal sessions

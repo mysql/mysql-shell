@@ -243,7 +243,8 @@ class Cluster_impl final : public Base_cluster_impl,
 
   bool contains_instance_with_address(const std::string &host_port) const;
 
-  mysqlsh::dba::Instance *acquire_primary() override;
+  mysqlsh::dba::Instance *acquire_primary(
+      bool primary_required = true) override;
 
   Cluster_metadata get_metadata() const;
 

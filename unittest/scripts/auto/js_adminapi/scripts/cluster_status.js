@@ -10,6 +10,8 @@ if (testutil.versionCheck(__version, "<", "8.0.0")) {
   var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 }
 
+shell.options["dba.connectTimeout"]=1;
+
 shell.connect(__sandbox_uri1);
 
 var cluster;
@@ -27,6 +29,33 @@ testutil.callMysqlsh([__sandbox_uri1, "--log-level=debug", "--", "cluster", "sta
 EXPECT_SHELL_LOG_CONTAINS("Debug: Detected state of MD schema as OK");
 
 cluster.addInstance(__sandbox_uri2);
+
+//@<> status while primary is unreachable
+// Bug #34615265	cluster.status() fails if primary is unreachable
+
+// simulate unreachable primary by setting it's address in the MD to a bogus one
+orig_address = session.runSql("select address from mysql_innodb_cluster_metadata.instances where instance_id=1").fetchOne()[0];
+session.runSql("update mysql_innodb_cluster_metadata.instances set address='example.com:3306', addresses=json_set(addresses, '$.mysqlClassic', 'example.com:3306') where instance_id=1");
+
+shell.connect(__sandbox_uri2);
+c = dba.getCluster();
+s = c.status();
+
+EXPECT_STDOUT_NOT_CONTAINS("A connection to the PRIMARY instance at");
+
+EXPECT_EQ("ONLINE", s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port1]["status"]);
+EXPECT_EQ("ONLINE", s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["status"]);
+EXPECT_TRUE(s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port1]["shellConnectError"].startsWith("MySQL Error 2"));
+EXPECT_EQ(hostname+":"+__mysql_sandbox_port2, s["groupInformationSourceMember"]);
+
+shell.connect(__sandbox_uri1);
+session.runSql("update mysql_innodb_cluster_metadata.instances set address=?, addresses=json_set(addresses, '$.mysqlClassic', ?) where instance_id=1", [orig_address, orig_address]);
+
+s = c.status();
+EXPECT_EQ("ONLINE", s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port1]["status"]);
+EXPECT_EQ("ONLINE", s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["status"]);
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port1]["shellConnectError"]);
+EXPECT_EQ(hostname+":"+__mysql_sandbox_port1, s["groupInformationSourceMember"]);
 
 //@<> set recoveryAccount to empty user
 //BUG#32157182

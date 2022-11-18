@@ -195,8 +195,12 @@ const std::map<std::string, Function_availability>
          {k_min_adminapi_server_version,
           TargetType::StandaloneWithMetadata |
               TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::AsyncReplicaSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal)}},
+              TargetType::InnoDBClusterSet | TargetType::AsyncReplicaSet,
+          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
+          {},
+          k_primary_required,
+          kClusterGlobalStateAny,
+          true}},
         {"Dba.rebootClusterFromCompleteOutage",
          {k_min_gr_version,
           TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
@@ -344,9 +348,12 @@ const std::map<std::string, Function_availability>
           true}},
         {"Cluster.dissolve",
          {k_min_gr_version,
-          TargetType::InnoDBCluster,
+          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
+          k_primary_required,
+          kClusterGlobalStateAny,
+          true}},
         {"Cluster.checkInstanceState",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -747,6 +754,13 @@ std::string describe(State state) {
 }
 }  // namespace ManagedInstance
 
+const Function_availability &Precondition_checker::get_function_preconditions(
+    const std::string &function_name) {
+  assert(s_preconditions.find(function_name) != s_preconditions.end());
+
+  return s_preconditions.at(function_name);
+}
+
 Precondition_checker::Precondition_checker(
     const std::shared_ptr<MetadataStorage> &metadata,
     const std::shared_ptr<Instance> &group_server, bool primary_available)
@@ -762,8 +776,7 @@ Cluster_check_info Precondition_checker::check_preconditions(
   // function name
   if (!custom_func_avail) {
     // Retrieves the availability configuration for the given function
-    assert(s_preconditions.find(function_name) != s_preconditions.end());
-    availability = s_preconditions.at(function_name);
+    availability = get_function_preconditions(function_name);
   } else {
     // If a function availability is provided use it
     availability = *custom_func_avail;

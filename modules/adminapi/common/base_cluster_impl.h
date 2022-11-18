@@ -115,7 +115,8 @@ class Base_cluster_impl {
     throw std::logic_error("Method not implemented");
   }
 
-  virtual mysqlsh::dba::Instance *acquire_primary() = 0;
+  virtual mysqlsh::dba::Instance *acquire_primary(
+      bool primary_required = true) = 0;
 
   virtual void release_primary() = 0;
 
@@ -166,12 +167,15 @@ class Base_cluster_impl {
    * @param channel_name the name of the replication channel to monitor for I/O
    * and SQL errors
    * @param timeout number of seconds to wait
+   * @param only_received if true, only wait for already received transactions
+   * to be applied
    *
    * @throw RuntimeError if the timeout is reached when waiting for
    * transactions to be applied or replication errors are detected.
    */
   void sync_transactions(const mysqlshdk::mysql::IInstance &target_instance,
-                         const std::string &channel_name, int timeout) const;
+                         const std::string &channel_name, int timeout,
+                         bool only_received = false) const;
 
   /**
    * Connect to the given instance specification given, while validating its

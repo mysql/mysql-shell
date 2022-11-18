@@ -101,7 +101,6 @@ class Dissolve : public Command_interface {
   std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_available_instances;
   std::vector<std::string> m_skipped_instances;
   std::vector<std::string> m_sync_error_instances;
-  std::string m_primary_uuid;
   bool m_supports_member_actions = false;
 
   /**

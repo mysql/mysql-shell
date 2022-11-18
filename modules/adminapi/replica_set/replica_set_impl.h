@@ -129,7 +129,8 @@ class Replica_set_impl : public Base_cluster_impl {
   acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
                          std::string_view skip_lock_uuid = "") override;
 
-  mysqlsh::dba::Instance *acquire_primary() override;
+  mysqlsh::dba::Instance *acquire_primary(
+      bool primary_required = true) override;
 
   Cluster_metadata get_metadata() const;
 

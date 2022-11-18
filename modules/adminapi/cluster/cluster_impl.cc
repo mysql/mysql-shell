@@ -2866,7 +2866,7 @@ bool Cluster_impl::contains_instance_with_address(
  * An Instance object connected to the primary is returned. The session
  * is owned by the cluster object.
  */
-mysqlsh::dba::Instance *Cluster_impl::acquire_primary() {
+mysqlsh::dba::Instance *Cluster_impl::acquire_primary(bool primary_required) {
   if (!m_cluster_server) return nullptr;
 
   // clear cached clusterset related metadata
@@ -2896,8 +2896,9 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary() {
     if (primary_url.empty()) {
       // Might happen and it should be possible to check the Cluster's status in
       // such situation
-      current_console()->print_info("No PRIMARY member found for cluster '" +
-                                    get_name() + "'");
+      if (primary_required)
+        current_console()->print_info("No PRIMARY member found for cluster '" +
+                                      get_name() + "'");
     } else if (!mysqlshdk::utils::are_endpoints_equal(
                    primary_url,
                    m_cluster_server->get_connection_options().uri_endpoint())) {
@@ -2927,7 +2928,7 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary() {
       }
     }
   } catch (...) {
-    if (!primary_url.empty()) {
+    if (!primary_url.empty() && primary_required) {
       current_console()->print_error(
           "A connection to the PRIMARY instance at " + primary_url +
           " could not be established to perform this action.");

@@ -402,14 +402,15 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
 /**
  * Connect to PRIMARY of PRIMARY Cluster, throw exception if not possible
  */
-mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary() {
+mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
+    bool primary_required) {
   connect_primary();
 
   auto primary_cluster = get_primary_cluster();
   assert(primary_cluster);
 
   try {
-    m_primary_cluster->acquire_primary();
+    m_primary_cluster->acquire_primary(primary_required);
   } catch (const shcore::Exception &e) {
     if (e.code() != SHERR_DBA_GROUP_HAS_NO_QUORUM) throw;
 

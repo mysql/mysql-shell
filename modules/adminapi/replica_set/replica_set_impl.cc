@@ -1879,7 +1879,8 @@ Replica_set_impl::acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
   return {m_primary_master.get(), std::move(plock)};
 }
 
-mysqlsh::dba::Instance *Replica_set_impl::acquire_primary() {
+mysqlsh::dba::Instance *Replica_set_impl::acquire_primary(
+    bool /* primary_required */) {
   // since acquire_primary_locked() has a lock mode NONE, to avoid duplicating
   // code, we can simply call it with NONE
   auto [instance, lock] =

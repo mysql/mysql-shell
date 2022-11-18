@@ -434,9 +434,8 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Dba.getClusterSet",        "Dba.rebootClusterFromCompleteOutage"};
 
   std::set<std::string> standalone_cluster_exclusive_expected = {
-      "Cluster.createClusterSet", "Cluster.dissolve",
-      "Cluster.switchToMultiPrimaryMode", "Cluster.switchToSinglePrimaryMode",
-      "Dba.dropMetadataSchema"};
+      "Cluster.createClusterSet", "Cluster.switchToMultiPrimaryMode",
+      "Cluster.switchToSinglePrimaryMode"};
 
   std::set<std::string> cset_always_allowed_expected = {
       "Cluster.checkInstanceState",
@@ -446,8 +445,10 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.setPrimaryInstance",
       "Cluster.options",
       "Cluster.status",
+      "Cluster.dissolve",
       "Dba.getCluster",
       "Dba.upgradeMetadata",
+      "Dba.dropMetadataSchema",
       "Cluster.fenceAllTraffic"};
 
   std::set<std::string> cset_sometimes_allowed_expected = {

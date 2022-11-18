@@ -99,9 +99,20 @@ void Base_cluster_impl::check_preconditions(
   // Makes sure the primary master is reset before acquiring it on each API call
   m_primary_master.reset();
 
+  bool primary_required = false;
+  if (custom_func_avail) {
+    primary_required = custom_func_avail->primary_required;
+  } else {
+    const Function_availability &func_avail =
+        Precondition_checker::get_function_preconditions(api_class(get_type()) +
+                                                         "." + function_name);
+
+    primary_required = func_avail.primary_required;
+  }
+
   try {
     current_ipool()->set_metadata(get_metadata_storage());
-    acquire_primary();
+    acquire_primary(primary_required);
     primary_available = true;
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
@@ -113,6 +124,8 @@ void Base_cluster_impl::check_preconditions(
     } else if (shcore::str_beginswith(
                    e.what(), "Failed to execute query on Metadata server")) {
       log_debug("Unable to query Metadata schema: %s", e.what());
+    } else if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+      log_warning("Connection error acquiring primary: %s", e.format().c_str());
     } else {
       throw;
     }
@@ -133,19 +146,35 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
-    const std::string &channel_name, int timeout) const {
-  auto master = get_primary_master();
+    const std::string &channel_name, int timeout, bool only_received) const {
+  if (only_received) {
+    std::string gtid_set =
+        mysqlshdk::mysql::get_received_gtid_set(target_instance, channel_name);
 
-  std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
+    bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
+                                           channel_name, timeout, true);
 
-  bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
-                                         channel_name, timeout, true);
+    if (!sync_res) {
+      throw shcore::Exception(
+          "Timeout reached waiting for all received transactions "
+          " to be applied on instance '" +
+              target_instance.descr() + "'",
+          SHERR_DBA_GTID_SYNC_TIMEOUT);
+    }
+  } else {
+    auto master = get_primary_master();
 
-  if (!sync_res) {
-    throw shcore::Exception(
-        "Timeout reached waiting for transactions from " + master->descr() +
-            " to be applied on instance '" + target_instance.descr() + "'",
-        SHERR_DBA_GTID_SYNC_TIMEOUT);
+    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
+
+    bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
+                                           channel_name, timeout, true);
+
+    if (!sync_res) {
+      throw shcore::Exception(
+          "Timeout reached waiting for transactions from " + master->descr() +
+              " to be applied on instance '" + target_instance.descr() + "'",
+          SHERR_DBA_GTID_SYNC_TIMEOUT);
+    }
   }
 
   current_console()->print_info();
