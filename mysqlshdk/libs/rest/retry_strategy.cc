@@ -21,9 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <curl/curl.h>
 #include <stdlib.h>
+
 #include <chrono>
 #include <cmath>
+#include <string_view>
 #include <thread>
 
 #include "mysqlshdk/libs/rest/retry_strategy.h"
@@ -52,6 +55,10 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
       "The Authorization header has a date that is either too early or too "
       "late, check that your local clock is correct");
 
+  // retry in case of partial file error reported by CURL, can happen when
+  // due to a network error, when received data is shorter than the reported
+  retry_strategy->add_retriable_curl_error_code(CURLE_PARTIAL_FILE);
+
   // Throttling handling: equal jitter guarantees some wait time before next
   // attempt
   retry_strategy->set_equal_jitter_for_throttling(true);
@@ -75,8 +82,7 @@ void Retry_strategy::init() {
 }
 
 bool Retry_strategy::should_retry(
-    std::optional<Response::Status_code> response_status_code,
-    const std::string &error_msg) {
+    std::optional<Response::Status_code> response_status_code) {
   // If max attempts criteria is set, validates we are still on the allowed
   // number of attempts
   if (m_max_attempts.has_value() && m_retry_count >= *m_max_attempts) {
@@ -87,7 +93,7 @@ bool Retry_strategy::should_retry(
   // be calculated here
   m_next_sleep_time = next_sleep_time(response_status_code);
 
-  // If max ellapsed time critera is set, validates the next call is still on
+  // If max elapsed time criteria is set, validates the next call is still on
   // the expected time frame
   if (m_max_ellapsed_time.has_value()) {
     m_ellapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
@@ -98,35 +104,58 @@ bool Retry_strategy::should_retry(
       return false;
   }
 
-  if (response_status_code.has_value()) {
-    // Retry on server errors if configured so
-    if (m_retry_on_server_errors &&
-        *response_status_code >= Response::Status_code::INTERNAL_SERVER_ERROR) {
-      return true;
-    }
+  // Any other situation would cause a retry logic to continue
+  return true;
+}
 
-    const auto msgs = m_retriable_status.find(*response_status_code);
+bool Retry_strategy::should_retry() {
+  return should_retry(std::optional<Response::Status_code>{});
+}
 
-    if (m_retriable_status.end() != msgs) {
-      for (const auto &msg : msgs->second) {
-        // Retry on the configured response status (in such case error message
-        // is empty)
-        if (msg.empty()) {
-          return true;
-        }
-
-        // Retry on the configured response errors
-        if (!error_msg.empty() && std::string::npos != error_msg.find(msg)) {
-          return true;
-        }
-      }
-    }
-
+bool Retry_strategy::should_retry(Response::Status_code response_status_code,
+                                  const std::optional<Response_error> &error) {
+  if (!should_retry(std::optional{response_status_code})) {
     return false;
   }
 
-  // Any other situation would cause a retry logic to continue
-  return true;
+  // Retry on server errors if configured so
+  if (m_retry_on_server_errors &&
+      response_status_code >= Response::Status_code::INTERNAL_SERVER_ERROR) {
+    return true;
+  }
+
+  const auto msgs = m_retriable_status.find(response_status_code);
+
+  const std::string_view error_msg = error.has_value() ? error->what() : "";
+
+  if (m_retriable_status.end() != msgs) {
+    for (const auto &msg : msgs->second) {
+      // Retry on the configured response status (in such case error message
+      // is empty)
+      if (msg.empty()) {
+        return true;
+      }
+
+      // Retry on the configured response errors
+      if (!error_msg.empty() && std::string::npos != error_msg.find(msg)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool Retry_strategy::should_retry(const Connection_error &error) {
+  if (!should_retry(std::optional<Response::Status_code>{})) {
+    return false;
+  }
+
+  if (m_retriable_curl_error_codes.count(error.curl_code())) {
+    return true;
+  }
+
+  return false;
 }
 
 std::chrono::seconds Retry_strategy::next_sleep_time(
@@ -142,9 +171,10 @@ void Retry_strategy::wait_for_retry() {
 std::chrono::seconds Exponential_backoff_retry::next_sleep_time(
     std::optional<Response::Status_code> response_status_code) {
   std::chrono::seconds ret_val;
-  if (response_status_code.has_value() &&
-      Response::Status_code::TOO_MANY_REQUESTS == *response_status_code &&
-      m_equal_jitter_for_throttling)
+
+  if (m_equal_jitter_for_throttling &&
+      Response::Status_code::TOO_MANY_REQUESTS ==
+          response_status_code.value_or(Response::Status_code::OK))
     ret_val = get_wait_time_with_equal_jitter();
   else
     ret_val = get_wait_time_with_full_jitter();
@@ -166,7 +196,7 @@ void Exponential_backoff_retry::set_equal_jitter_for_throttling(bool value) {
  *
  * This would cause every next attempt to wait more and more.
  *
- * On a multithreaded senario, X threads would be waiting at retry number n and
+ * On a multithreaded scenario, X threads would be waiting at retry number n and
  * they all may do a retry at around the same time frame and only one of them
  * succeeding at each iteration.
  *
@@ -192,7 +222,7 @@ std::chrono::seconds Exponential_backoff_retry::get_wait_time_with_full_jitter()
 
 /**
  * Using full jitter does not guarantee any wait time between attempts as the
- * random selection of the next wait time could result in a los wait time, even
+ * random selection of the next wait time could result in a low wait time, even
  * 0.
  *
  * Equal jitter is abut making jitter be applied on a range equal to a

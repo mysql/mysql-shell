@@ -325,7 +325,7 @@ class Rest_service::Impl {
     if (ret_val != CURLE_OK) {
       log_error("%s-%d: %s (CURLcode = %i)", m_id.c_str(), m_request_sequence,
                 m_error_buffer, ret_val);
-      throw Connection_error{m_error_buffer};
+      throw Connection_error{m_error_buffer, ret_val};
     }
 
     const auto status = get_status_code();
@@ -591,8 +591,7 @@ Response::Status_code Rest_service::execute(Request *request,
         error = response->get_error();
       }
 
-      if (retry_strategy && retry_strategy->should_retry(
-                                code, error.has_value() ? error->what() : "")) {
+      if (retry_strategy && retry_strategy->should_retry(code, error)) {
         // A retriable error occurred
         retry(shcore::str_format("%d-%s", static_cast<int>(code),
                                  Response::status_code(code).c_str())
@@ -607,10 +606,16 @@ Response::Status_code Rest_service::execute(Request *request,
         return code;
       }
     } catch (const rest::Connection_error &error) {
-      // exception was thrown when connection was being established, there is
-      // no response; this is not a recoverable error, we do not retry here
-      log_failed_request(base_url, *request, format_exception(error));
-      throw;
+      // exception was thrown when connection was being established or while
+      // transfer was in progress, there is no response
+      if (retry_strategy && retry_strategy->should_retry(error)) {
+        // A unexpected error occurred but the retry strategy indicates we
+        // should retry
+        retry(error.what());
+      } else {
+        log_failed_request(base_url, *request, format_exception(error));
+        throw;
+      }
     } catch (const std::exception &error) {
       if (retry_strategy && retry_strategy->should_retry()) {
         // A unexpected error occurred but the retry strategy indicates we
