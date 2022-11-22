@@ -401,3 +401,13 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * mysqlOrphanedRoutinesCheck.docLink
 
+* mysqlDollarSignNameCheck.title
+# Check for deprecated usage of single dollar signs in object names
+
+* mysqlDollarSignNameCheck.description
+# Warning: The following objects have names with deprecated usage of dollar sign ($) at the
+# begining of the identifier. To correct this warning, ensure, that names starting with dollar
+# sign, also end with it, similary to quotes ($example$). 
+
+* mysqlDollarSignNameCheck.docLink
+
