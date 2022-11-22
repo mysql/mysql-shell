@@ -317,15 +317,12 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
     WIPE_STDOUT()
     shutil.rmtree(test_output_absolute, True)
     EXPECT_FALSE(os.path.isdir(test_output_absolute))
-    if schemas and not "excludeSchemas" in options:
-        excluded = all_schemas[:]
-        for s in schemas:
-            excluded.remove(s)
-        options["excludeSchemas"] = excluded
+    if schemas and not "includeSchemas" in options and not "excludeSchemas" in options:
+        options["includeSchemas"] = schemas
     util.dump_instance(outputUrl, options)
-    excluded = options["excludeSchemas"] if "excludeSchemas" in options else []
-    if not "dryRun" in options:
-        EXPECT_STDOUT_CONTAINS("Schemas dumped: {0}".format(len(set(all_schemas) - set(excluded))))
+    included = options.get("includeSchemas", [])
+    if not "dryRun" in options and len(included) > 0:
+        EXPECT_STDOUT_CONTAINS(f"Schemas dumped: {len(included)}")
 
 def EXPECT_FAIL(error, msg, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
@@ -1037,6 +1034,9 @@ TEST_BOOL_OPTION("consistent")
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "showProgress": False })
 
+#@<> BUG#34556560 - skipConsistencyChecks options
+TEST_BOOL_OPTION("skipConsistencyChecks")
+
 #@<> WL13807-FR4.3 - The `options` dictionary may contain a `events` key with a Boolean value, which specifies whether to include events in the DDL file of each schema.
 TEST_BOOL_OPTION("events")
 
@@ -1326,7 +1326,7 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeTables": [], "ddlO
 # WL13807-TSFR4_33
 # WL13807-TSFR4_35
 # WL13807-TSFR4_37
-EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeTables": [ "`{0}`.`{1}`".format(test_schema, test_table_non_unique), "`{0}`.`{1}`".format(world_x_schema, world_x_table) ], "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS(None, test_output_absolute, { "excludeTables": [ "`{0}`.`{1}`".format(test_schema, test_table_non_unique), "`{0}`.`{1}`".format(world_x_schema, world_x_table) ], "ddlOnly": True, "showProgress": False })
 # WL13807-TSFR10_3
 EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".sql")))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + ".sql")))
@@ -1346,7 +1346,7 @@ EXPECT_FAIL("ValueError", "Argument #2: Failed to parse table to be excluded '2.
 
 #@<> WL13807-FR4.11.2 - If the specified table does not exist in the schema, or the schema is not included in dump, the table name is discarded.
 # WL13807-TSFR4_34
-EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeTables": [ "`{0}`.`dummy`".format(test_schema), "`@`.dummy", "dummy.`@`", "`@`.`@`", "`1`.dummy", "dummy.`1`", "`2`.`1`" ], "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS(None, test_output_absolute, { "excludeTables": [ "`{0}`.`dummy`".format(test_schema), "`@`.dummy", "dummy.`@`", "`@`.`@`", "`1`.dummy", "dummy.`1`", "`2`.`1`" ], "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807-FR4.11.3 - If the `excludeTables` option is not given, a default value of an empty list must be used instead.
 # WL13807-TSFR4_32
@@ -2185,11 +2185,28 @@ pid = constantly_create_tables()
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False, "threads": 1 }, expect_dir_created = True)
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: Backup lock is not {0} and DDL changes were not blocked. The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Checking \d+ recent transactions for schema changes, use the 'skipConsistencyChecks' option to skip this check."))
+EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a lock.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Error while writing .+ of `.+`\.`.+`: Consistency check has failed"))
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Consistency check has failed"))
 
 #@<> BUG#33697289 terminate the process immediately
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#34556560 create a process which will add tables in the background - skipConsistencyChecks
+pid = constantly_create_tables()
+
+#@<> BUG#34556560 test - backup lock is not available - skipConsistencyChecks
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "skipConsistencyChecks": True, "showProgress": False, "threads": 1 })
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_CONTAINS("NOTE: The 'skipConsistencyChecks' option is set, assuming there were no DDL changes.")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
+
+#@<> BUG#34556560 terminate the process immediately - skipConsistencyChecks
 testutil.wait_mysqlsh_async(pid, 0)
 
 #@<> BUG#33697289 create a process which will add tables in the background (2) {not __dbug_off}
@@ -2201,23 +2218,41 @@ testutil.dbug_set("+d,dumper_gtid_disabled")
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False, "threads": 1 }, expect_dir_created = True)
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: Backup lock is not {0} and DDL changes were not blocked. The binlog position has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The binlog position has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_CONTAINS("NOTE: Checking recent transactions for schema changes, use the 'skipConsistencyChecks' option to skip this check.")
+EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a lock.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Error while writing .+ of `.+`\.`.+`: Consistency check has failed"))
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Consistency check has failed"))
 
 testutil.dbug_set("")
 
 #@<> BUG#33697289 terminate the process immediately, it will not stop on its own {not __dbug_off}
 testutil.wait_mysqlsh_async(pid, 0)
 
-#@<> BUG#33697289 without the process, the dump should succeed
-WIPE_STDOUT()
-shutil.rmtree(test_output_absolute, True)
-EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False }), "Dump should not throw")
+#@<> BUG#34556560 create a process which will add tables in the background (2) - skipConsistencyChecks {not __dbug_off}
+pid = constantly_create_tables()
 
+#@<> BUG#34556560 fail if gtid is disabled and DDL changes - skipConsistencyChecks {not __dbug_off}
+testutil.dbug_set("+d,dumper_gtid_disabled")
+
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "skipConsistencyChecks": True, "showProgress": False, "threads": 1 })
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
-EXPECT_STDOUT_CONTAINS("NOTE: Backup lock was not acquired, but DDL is consistent, the world may resume now.")
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The binlog position has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_CONTAINS("NOTE: The 'skipConsistencyChecks' option is set, assuming there were no DDL changes.")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
+
+testutil.dbug_set("")
+
+#@<> BUG#34556560 terminate the process immediately, it will not stop on its own - skipConsistencyChecks {not __dbug_off}
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#33697289 without the process, the dump should succeed
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
 
 #@<> BUG#33697289 fail if binlog and gtid are disabled {not __dbug_off}
 testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
@@ -2234,12 +2269,79 @@ The consistency of the dump cannot be guaranteed.
 
 testutil.dbug_set("")
 
-#@<> BUG#33697289 cleanup
-session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+#@<> BUG#34556560 GTID-based consistency check if too sensitive - setup
+def constantly_update_table():
+    tables_to_create = 500
+    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+    for i in range(tables_to_create):
+        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
+    update_table = f"""v = 0
+session.run_sql("DROP SCHEMA IF EXISTS {tested_schema}_2")
+session.run_sql("CREATE SCHEMA {tested_schema}_2")
+session.run_sql("CREATE TABLE {tested_schema}_2.{tested_table} (a int)")
+while True:
+    session.run_sql("INSERT INTO {tested_schema}_2.{tested_table} VALUES ({{0}})".format(v))
+    v = v + 1
+session.close()
+"""
+    # run a process which constantly updates a table
+    pid = testutil.call_mysqlsh_async(["--py", uri], update_table)
+    # wait a bit for process to start
+    time.sleep(1)
+    return pid
 
-#@<> reconnect to the user with full privilages, restore test user account
+#@<> BUG#34556560 create a process which will update a table in the background
+pid = constantly_update_table()
+
+#@<> BUG#34556560 - backup lock is not available
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False, "threads": 1 })
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Checking \d+ recent transactions for schema changes, use the 'skipConsistencyChecks' option to skip this check."))
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
+
+#@<> BUG#34556560 terminate the process immediately
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#34556560 create a process which will update a table in the background (2) {not __dbug_off}
+pid = constantly_update_table()
+
+#@<> BUG#34556560 - gtid is disabled {not __dbug_off}
+testutil.dbug_set("+d,dumper_gtid_disabled")
+
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False, "threads": 1 })
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.")
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The binlog position has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_CONTAINS("NOTE: Checking recent transactions for schema changes, use the 'skipConsistencyChecks' option to skip this check.")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
+
+testutil.dbug_set("")
+
+#@<> BUG#34556560 terminate the process immediately, it will not stop on its own {not __dbug_off}
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#34556560 reconnect to the user with full privilages, restore test user account
 setup_session()
 create_users()
+
+#@<> BUG#34556560 create a process which will add tables in the background - backup lock works {VER(>=8.0.0)}
+pid = constantly_create_tables()
+
+#@<> BUG#34556560 test - backup lock works {VER(>=8.0.0)}
+EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False, "threads": 1 })
+EXPECT_STDOUT_CONTAINS("Locking instance for backup")
+EXPECT_STDOUT_NOT_CONTAINS("Backup lock is not")
+EXPECT_STDOUT_NOT_CONTAINS("skipConsistencyChecks")
+
+#@<> BUG#34556560 terminate the process immediately - backup lock works {VER(>=8.0.0)}
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#33697289, BUG#34556560 cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema + "_2" ])
 
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')

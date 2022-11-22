@@ -670,8 +670,8 @@ bool iterate_sql_stream(
   std::string buffer;
 
   Sql_splitter splitter(
-      [callback, &stop, &buffer](std::string_view s, bool bol,
-                                 size_t lnum) -> std::pair<size_t, bool> {
+      [&callback, &stop, &buffer](std::string_view s, bool bol,
+                                  size_t lnum) -> std::pair<size_t, bool> {
         assert((s.data() >= buffer.data()) &&
                (s.data() < (buffer.data() + buffer.size())));
 

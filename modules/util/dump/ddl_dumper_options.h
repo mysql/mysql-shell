@@ -65,6 +65,10 @@ class Ddl_dumper_options : public Dump_options {
 
   bool consistent_dump() const override { return m_consistent_dump; }
 
+  bool skip_consistency_checks() const override {
+    return m_skip_consistency_checks;
+  }
+
   bool dump_triggers() const override { return m_dump_triggers; }
 
   bool use_timezone_utc() const override { return m_timezone_utc; }
@@ -108,6 +112,7 @@ class Ddl_dumper_options : public Dump_options {
   bool m_data_only = false;
   bool m_dry_run = false;
   bool m_consistent_dump = true;
+  bool m_skip_consistency_checks = false;
 };
 
 }  // namespace dump

@@ -2870,14 +2870,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
             problems.emplace_back(
                 "User " + user +
                     " had explicit grants on mysql schema object " +
-                    mysql_table_grant + " removed",
+                    std::string{mysql_table_grant} + " removed",
                 Issue::Status::FIXED);
             continue;
           } else {
             problems.emplace_back(
                 "User " + user +
                     " has explicit grants on mysql schema object: " +
-                    mysql_table_grant,
+                    std::string{mysql_table_grant},
                 Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
           }
         }
@@ -3332,7 +3332,7 @@ bool Schema_dumper::include_grant(
     std::string schema;
     std::string object;
 
-    shcore::split_priv_level(priv_level, &schema, &object);
+    shcore::split_priv_level(std::string{priv_level}, &schema, &object);
 
     // global privileges and privileges for system schemas are always included
     if ("*" != schema && !is_system_schema(schema)) {

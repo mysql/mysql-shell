@@ -44,6 +44,8 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/mysql/binlog_utils.h"
+#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/utils.h"
@@ -55,6 +57,8 @@
 #include "mysqlshdk/libs/utils/std.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -191,6 +195,134 @@ Row fetch_row(const mysqlshdk::db::IRow *row) {
 int64_t to_int64_t(const std::string &s) { return std::stoll(s); }
 
 uint64_t to_uint64_t(const std::string &s) { return std::stoull(s); }
+
+using mysqlshdk::mysql::Gtid;
+using mysqlshdk::mysql::Gtid_range;
+using mysqlshdk::mysql::Gtid_set;
+
+bool check_if_transactions_are_ddl_safe(
+    const mysqlshdk::mysql::IInstance &instance,
+    const Instance_cache::Binlog &from, const Instance_cache::Binlog &to,
+    const Gtid_set &gtid_set = {}) {
+  std::vector<Gtid_range> gtid_ranges;
+  uint64_t count = 0;
+
+  gtid_set.enumerate_ranges([&gtid_ranges, &count](const Gtid_range &range) {
+    gtid_ranges.emplace_back(range);
+    count += mysqlshdk::mysql::count(range);
+  });
+
+  const auto console = current_console();
+  console->print_note("Checking" + (count ? " " + std::to_string(count) : "") +
+                      " recent transactions for schema changes, use the "
+                      "'skipConsistencyChecks' option to skip this check.");
+
+  std::vector<std::string> binlogs;
+
+  if (from.file == to.file) {
+    binlogs.emplace_back(from.file);
+  } else {
+    auto all_binlogs = list_binlogs(instance);
+    const auto end =
+        std::find(all_binlogs.rbegin(), all_binlogs.rend(), to.file);
+    const auto begin = std::find(end, all_binlogs.rend(), from.file);
+    binlogs.insert(
+        binlogs.end(),
+        std::make_move_iterator(begin == all_binlogs.rend()
+                                    ? all_binlogs.begin()
+                                    : begin.base() - 1),
+        std::make_move_iterator(end == all_binlogs.rend() ? all_binlogs.begin()
+                                                          : end.base()));
+  }
+
+  const auto include_gtid = [&gtid_ranges](const Gtid &gtid) {
+    if (gtid_ranges.empty()) {
+      return true;
+    }
+
+    if (const auto pos = gtid.find(':'); std::string::npos != pos) {
+      std::string uuid = gtid.substr(0, pos);
+      uint64_t id = to_int64_t(gtid.substr(pos + 1));
+
+      for (const auto &range : gtid_ranges) {
+        if (std::get<0>(range) == uuid && std::get<1>(range) <= id &&
+            id <= std::get<2>(range)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const auto is_ddl_safe = [](const std::string &transaction) {
+    std::istringstream stream(transaction);
+    bool is_safe = true;
+
+    mysqlshdk::utils::iterate_sql_stream(
+        &stream, transaction.length(),
+        [&is_safe](std::string_view sql, std::string_view, size_t, size_t) {
+          mysqlshdk::utils::SQL_iterator it(sql);
+          const auto token = it.next_token();
+
+          if (shcore::str_caseeq(token, "ALTER", "CREATE", "DROP") ||
+              (shcore::str_caseeq(token, "RENAME", "TRUNCATE") &&
+               shcore::str_caseeq(it.next_token(), "TABLE"))) {
+            is_safe = false;
+            return false;
+          }
+
+          return true;
+        },
+        [](std::string_view err) {
+          throw std::runtime_error(
+              "Failed to check if transaction is DDL safe: " +
+              std::string{err});
+        });
+
+    return is_safe;
+  };
+
+  bool is_safe = true;
+
+  for (const auto &binlog : binlogs) {
+    std::optional<uint64_t> start_position;
+
+    if (binlog == from.file) {
+      start_position = from.position;
+    }
+
+    const auto last_file = binlog == to.file;
+
+    list_binlog_events(
+        instance, binlog,
+        [&include_gtid, &is_ddl_safe, &is_safe, last_file, end = to.position](
+            const Gtid &gtid, const mysqlshdk::mysql::Binlog_event &event) {
+          if (last_file && event.pos >= end) {
+            return false;
+          }
+
+          if (include_gtid(gtid) && !is_ddl_safe(event.info)) {
+            is_safe = false;
+            return false;
+          }
+
+          return true;
+        },
+        start_position);
+
+    if (last_file || !is_safe) {
+      break;
+    }
+  }
+
+  if (!is_safe) {
+    console->print_warning(
+        "DDL changes detected during DDL dump without a lock.");
+  }
+
+  return is_safe;
+}
 
 }  // namespace
 
@@ -596,6 +728,13 @@ class Dumper::Table_worker final {
       m_dumper->assert_transaction_is_open(m_session);
     } catch (const mysqlshdk::db::Error &e) {
       handle_exception(context, e.format().c_str());
+    } catch (const shcore::Error &e) {
+      // this is a global error and should not include a context
+      if (SHERR_DUMP_CONSISTENCY_CHECK_FAILED == e.code()) {
+        context.clear();
+      }
+
+      handle_exception(context, e.what());
     } catch (const std::exception &e) {
       handle_exception(context, e.what());
     } catch (...) {
@@ -3943,18 +4082,41 @@ void Dumper::validate_dump_consistency(
   }
 
   bool consistent = false;
-  std::string context;
-  auto dumper = schema_dumper(session);
+  const auto dumper = schema_dumper(session);
+  const auto instance = mysqlshdk::mysql::Instance(session);
+  const auto console = current_console();
+  const auto skip_check = [&console, &consistent]() {
+    console->print_note(
+        "The 'skipConsistencyChecks' option is set, assuming there were no DDL "
+        "changes.");
+    consistent = true;
+  };
 
   if (m_gtid_enabled) {
     const auto gtid_executed = dumper->gtid_executed(true);
     consistent = gtid_executed == m_cache.gtid_executed;
 
     if (!consistent) {
-      context =
-          "The value of the gtid_executed "
-          "system variable has changed during the dump, from: '" +
-          m_cache.gtid_executed + "' to: '" + gtid_executed + "'.";
+      console->print_note(
+          "The value of the gtid_executed system variable has changed during "
+          "the dump, from: '" +
+          m_cache.gtid_executed + "' to: '" + gtid_executed + "'.");
+
+      if (m_options.skip_consistency_checks()) {
+        skip_check();
+      } else {
+        // check if executed statements are safe
+        // get GTID sets which were executed since the dump has started
+
+        const auto set =
+            Gtid_set::from_normalized_string(gtid_executed)
+                .subtract(
+                    Gtid_set::from_normalized_string(m_cache.gtid_executed),
+                    instance);
+
+        consistent = check_if_transactions_are_ddl_safe(
+            instance, m_cache.binlog, dumper->binlog(true), set);
+      }
     }
   } else {
     // gtid_mode is not enabled, check binlog
@@ -3962,18 +4124,25 @@ void Dumper::validate_dump_consistency(
     consistent = m_cache.binlog == binlog;
 
     if (!consistent) {
-      context = "The binlog position has changed during the dump, from: '" +
-                m_cache.binlog.to_string() + "' to: '" + binlog.to_string() +
-                "'.";
+      console->print_note(
+          "The binlog position has changed during the dump, from: '" +
+          m_cache.binlog.to_string() + "' to: '" + binlog.to_string() + "'.");
+
+      if (m_options.skip_consistency_checks()) {
+        skip_check();
+      } else {
+        // check if executed statements are safe
+        consistent = check_if_transactions_are_ddl_safe(instance,
+                                                        m_cache.binlog, binlog);
+      }
     }
   }
 
-  const auto console = current_console();
+  auto msg = "Backup lock is not " + why_backup_lock_is_missing() +
+             " and DDL changes were not blocked.";
 
   if (!consistent) {
-    const auto msg = "Backup lock is not " + why_backup_lock_is_missing() +
-                     " and DDL changes were not blocked. " + context +
-                     " The consistency of the dump cannot be guaranteed.";
+    msg += " The consistency of the dump cannot be guaranteed.";
 
     if (shcore::str_caseeq(name(), "dumpInstance")) {
       console->print_error(msg);
@@ -3987,9 +4156,8 @@ void Dumper::validate_dump_consistency(
       console->print_warning(msg);
     }
   } else {
-    console->print_note(
-        "Backup lock was not acquired, but DDL is consistent, the world may "
-        "resume now.");
+    msg += " The DDL is consistent, the world may resume now.";
+    console->print_note(msg);
   }
 }
 

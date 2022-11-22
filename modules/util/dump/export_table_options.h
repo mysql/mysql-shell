@@ -75,6 +75,8 @@ class Export_table_options : public Dump_options {
 
   bool consistent_dump() const override { return false; }
 
+  bool skip_consistency_checks() const override { return true; }
+
   bool dump_events() const override { return false; }
 
   bool dump_routines() const override { return false; }

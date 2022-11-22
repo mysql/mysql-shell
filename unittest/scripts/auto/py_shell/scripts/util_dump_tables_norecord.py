@@ -670,6 +670,9 @@ TEST_BOOL_OPTION("consistent")
 # WL13804-TSFR_11_2_2
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "consistent": False, "showProgress": False })
 
+#@<> BUG#34556560 - skipConsistencyChecks options
+TEST_BOOL_OPTION("skipConsistencyChecks")
+
 #@<> WL13804: WL13807-FR4.5 - The `options` dictionary may contain a `triggers` key with a Boolean value, which specifies whether to include triggers in the DDL file of each table.
 # WL13804-TSFR_11_2_6
 TEST_BOOL_OPTION("triggers")
@@ -1813,7 +1816,7 @@ def constantly_create_tables():
         session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
     create_tables = f"""v = {tables_to_create}
 while True:
-    session.run_sql("CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
+    session.run_sql("/* ID: {{0}} */ CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
     v = v + 1
 session.close()
 """
@@ -1831,7 +1834,10 @@ pid = constantly_create_tables()
 
 #@<> BUG#33697289 test - backup lock is not available
 EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False, "threads": 1 }, check_number_of_tables = False)
-EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: Backup lock is not {0} and DDL changes were not blocked. The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The value of the gtid_executed system variable has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Checking \d+ recent transactions for schema changes, use the 'skipConsistencyChecks' option to skip this check."))
+EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a lock.")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 
 #@<> BUG#33697289 terminate the process immediately
 testutil.wait_mysqlsh_async(pid, 0)
@@ -1843,7 +1849,10 @@ pid = constantly_create_tables()
 testutil.dbug_set("+d,dumper_gtid_disabled")
 
 EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False, "threads": 1 }, check_number_of_tables = False)
-EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: Backup lock is not {0} and DDL changes were not blocked. The binlog position has changed during the dump, from: '.+' to: '.+'. The consistency of the dump cannot be guaranteed.".format(reason)))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: The binlog position has changed during the dump, from: '.+' to: '.+'."))
+EXPECT_STDOUT_CONTAINS("NOTE: Checking recent transactions for schema changes, use the 'skipConsistencyChecks' option to skip this check.")
+EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a lock.")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 
 testutil.dbug_set("")
 

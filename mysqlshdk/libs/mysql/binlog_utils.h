@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,7 @@
 #define MYSQLSHDK_LIBS_MYSQL_BINLOG_UTILS_H_
 
 #include <functional>
-#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -66,13 +66,9 @@ std::vector<std::string> list_binlogs(
  */
 void list_binlog_events(
     const mysqlshdk::mysql::IInstance &server, const std::string &log_name,
-    uint64_t start_position, uint64_t offset, uint64_t limit,
-    const std::function<bool(const Gtid &gtid, const Binlog_event &)> &fn);
-
-void list_binlog_transactions(
-    const mysqlshdk::mysql::IInstance &server, const std::string &log_name,
-    uint64_t start_position, uint64_t offset, uint64_t limit,
-    const std::function<bool(const Gtid &gtid, const Binlog_event &)> &fn);
+    const std::function<bool(const Gtid &gtid, const Binlog_event &)> &fn,
+    std::optional<uint64_t> start_position = {},
+    std::optional<uint64_t> limit = {}, std::optional<uint64_t> offset = {});
 
 }  // namespace mysql
 }  // namespace mysqlshdk

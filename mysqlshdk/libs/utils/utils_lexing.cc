@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,17 +27,18 @@
 namespace mysqlshdk {
 namespace utils {
 
-size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
+size_t span_cstyle_sql_comment(std::string_view s, size_t offset) {
+  const size_t size = s.size();
   assert(!s.empty());
-  assert(offset < s.size());
-  assert(s.size() - offset < 2 || (s[offset] == '/' && s[offset + 1] == '*'));
+  assert(offset < size);
+  assert(size - offset < 2 || (s[offset] == '/' && s[offset + 1] == '*'));
 
-  if (s.size() < 4) return std::string::npos;
+  if (size < 4) return std::string_view::npos;
 
   // In general, we try to follow the server's lexing behaviour and not the
   // classic client.
 
-  if (s[offset + 2] == '!') {
+  if (offset + 2 < size && s[offset + 2] == '!') {
     // Conditionals are parsed as follows:
     // - /*! ... */ and /*!9999 ... */ are OK
     // - Nested quoted strings are interpreted as such
@@ -48,7 +49,6 @@ size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
     // In these cases, we follow the server behaviour.
 
     offset += 3;  // skip /*!
-    size_t size = s.size();
 
     while (offset < size) {
       switch (s[offset]) {
@@ -64,7 +64,7 @@ size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
         case '*':
           // check for end of comment
           ++offset;
-          if (offset + 1 <= size && s[offset] == '/') {
+          if (offset < size && s[offset] == '/') {
             ++offset;
             return offset;
           }
@@ -72,7 +72,7 @@ size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
         case '\n':
           // check for nested line comments
           ++offset;
-          if (offset + 3 <= size && s[offset] == '-' && s[offset + 1] == '-' &&
+          if (offset + 2 < size && s[offset] == '-' && s[offset + 1] == '-' &&
               (s[offset + 2] == ' ' || s[offset + 2] == '\t')) {
             offset = span_to_eol(s, offset + 3);
           }
@@ -82,7 +82,7 @@ size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
           break;
       }
     }
-    return std::string::npos;
+    return std::string_view::npos;
   } else {
     // optimizer hints (/*+ ... */) are just like plain comments. The old mysql
     // cli used to understand single line -- comments inside hints, but that's
@@ -91,8 +91,7 @@ size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
   }
 }
 
-SQL_iterator::SQL_iterator(const std::string &str,
-                           std::string::size_type offset,
+SQL_iterator::SQL_iterator(std::string_view str, size_type offset,
                            bool skip_quoted_sql_ids)
     : m_s(str), m_offset(offset - 1), m_skip_quoted(skip_quoted_sql_ids) {
   assert(offset <= str.size());
@@ -101,11 +100,14 @@ SQL_iterator::SQL_iterator(const std::string &str,
 }
 
 SQL_iterator &SQL_iterator::operator++() {
-  if (++m_offset > m_s.length())
+  const auto length = m_s.length();
+
+  if (++m_offset > length)
     throw std::out_of_range("SQL_string_iterator offset out of range");
 
   bool incremented = false;
-  do {
+
+  while (!incremented && m_offset < length) {
     switch (m_s[m_offset]) {
       case '\'':
         if (m_skip_quoted)
@@ -126,8 +128,9 @@ SQL_iterator &SQL_iterator::operator++() {
           incremented = true;
         break;
       case '/':
-        if (m_s[m_offset + 1] == '*') {
-          if (m_s[m_offset + 2] == '!' || m_s[m_offset + 2] == '+') {
+        if (m_offset + 1 < length && m_s[m_offset + 1] == '*') {
+          if (m_offset + 2 < length &&
+              (m_s[m_offset + 2] == '!' || m_s[m_offset + 2] == '+')) {
             m_comment_hint = true;
             m_offset += 3;
             while (std::isdigit(m_s[m_offset])) ++m_offset;
@@ -139,7 +142,8 @@ SQL_iterator &SQL_iterator::operator++() {
         }
         break;
       case '*':
-        if (m_comment_hint && m_s[m_offset + 1] == '/') {
+        if (m_comment_hint && m_offset + 1 < length &&
+            m_s[m_offset + 1] == '/') {
           m_offset += 2;
           m_comment_hint = false;
         } else {
@@ -150,7 +154,7 @@ SQL_iterator &SQL_iterator::operator++() {
         m_offset = span_to_eol(m_s, m_offset + 1);
         break;
       case '-':
-        if (m_offset + 2 < m_s.length() && m_s[m_offset + 1] == '-' &&
+        if (m_offset + 2 < length && m_s[m_offset + 1] == '-' &&
             std::isspace(m_s[m_offset + 2]))
           m_offset = span_to_eol(m_s, m_offset + 2);
         else
@@ -159,17 +163,19 @@ SQL_iterator &SQL_iterator::operator++() {
       default:
         incremented = true;
     }
-    if (m_offset == std::string::npos) m_offset = m_s.length();
-  } while (!incremented && m_offset < m_s.length());
+    if (m_offset == std::string_view::npos) m_offset = length;
+  }
 
   return *this;
 }
 
-std::string SQL_iterator::next_token() { return next_token_and_offset().first; }
+std::string_view SQL_iterator::next_token() {
+  return next_token_and_offset().first;
+}
 
-std::pair<std::string, size_t> SQL_iterator::next_token_and_offset() {
+std::pair<std::string_view, size_t> SQL_iterator::next_token_and_offset() {
   while (valid() && std::isspace(get_char())) ++(*this);
-  if (!valid()) return {std::string(), m_offset};
+  if (!valid()) return {{}, m_offset};
 
   const auto start = m_offset;
   if (!m_skip_quoted) {
@@ -228,8 +234,8 @@ std::pair<std::string, size_t> SQL_iterator::next_token_and_offset() {
   return {m_s.substr(start, previous + 1 - start), start};
 }
 
-std::string SQL_iterator::next_sql_function() {
-  std::string token;
+std::string_view SQL_iterator::next_sql_function() {
+  std::string_view token;
   while (!(token = next_token()).empty()) {
     if (!std::isalpha(token.front())) continue;
     if (valid() && get_char() == '(') break;

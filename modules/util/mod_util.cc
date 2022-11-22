@@ -1446,6 +1446,9 @@ names used to limit the data export to just the specified partitions.
 
 @li <b>consistent</b>: bool (default: true) - Enable or disable consistent data
 dumps.
+@li <b>skipConsistencyChecks</b>: bool (default: false) - Skips additional
+consistency checks which are executed when running consistent dumps and i.e.
+backup lock cannot not be acquired.
 @li <b>ddlOnly</b>: bool (default: false) - Only dump Data Definition Language
 (DDL) from the database.
 @li <b>dataOnly</b>: bool (default: false) - Only dump data from the database.

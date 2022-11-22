@@ -147,17 +147,18 @@ void skip_columns_definition(SQL_iterator *it) {
 
 bool comment_out_option_with_string(
     const std::string &s, std::string *rewritten,
-    std::function<bool(std::string *token, SQL_iterator *it)> skip_condition) {
+    std::function<bool(std::string_view *token, SQL_iterator *it)>
+        skip_condition) {
   Coffsets offsets;
   SQL_iterator it(s, 12);
   std::size_t prev_pos = 0, end = 0;
-  std::string token = it.next_token();
+  auto token = it.next_token();
   bool prev_added = false;
   while (!token.empty()) {
     auto start = it.position() - token.size();
     bool hint = it.inside_hint();
     if (skip_condition(&token, &it) ||
-        (end = eat_string_val(s, it.position())) == std::string::npos) {
+        (end = eat_string_val(s, it.position())) == std::string_view::npos) {
       prev_pos = it.position() - token.size();
       prev_added = false;
       token = it.next_token();
@@ -209,12 +210,12 @@ std::string get_account(SQL_iterator *it) {
   // The host part can be omitted for the role name (defaults to '%')
   if (it->next_token() != "@") {
     it->set_position(pos);
-    return user;
+    return std::string{user};
   }
 
   const auto host = it->next_token();
   assert(!host.empty());
-  return user + "@" + host;
+  return std::string{user} + "@" + std::string{host};
 }
 
 /**
@@ -260,18 +261,23 @@ std::vector<std::string> check_privileges(
       after_pos = it.position();
       next = it.next_token();
     }
+
+    std::string privilege{token};
+
     while (!next.empty() && next != "," && next != "ON" && next != "TO") {
-      token += " " + next;
+      privilege += ' ';
+      privilege += next;
       after_pos = it.position();
       next = it.next_token();
     }
-    if (token != "@") {
-      auto pit = privileges.find(shcore::str_upper(token));
+
+    if (privilege != "@") {
+      auto pit = privileges.find(shcore::str_upper(privilege));
       if (pit != privileges.end()) {
         ++remaining_priv;
         last_removed = false;
       } else {
-        res.emplace_back(token);
+        res.emplace_back(privilege);
         if (out_rewritten_grant) {
           if (grant[prev_pos] == ',')
             offsets.emplace_back(prev_pos, after_pos);
@@ -311,7 +317,7 @@ std::string filter_grant_or_revoke(
                              const std::string &priv_level)> &filter) {
   std::string filtered_stmt;
   // tokenize the whole thing to simplify
-  std::vector<std::pair<std::string, size_t>> tokens;
+  std::vector<std::pair<std::string_view, size_t>> tokens;
   {
     SQL_iterator it(stmt, 0, false);
     while (it.valid()) {
@@ -337,7 +343,7 @@ std::string filter_grant_or_revoke(
     return false;
   };
 
-  const auto consume = [&t, t_end, stmt]() -> const std::string & {
+  const auto consume = [&t, t_end, stmt]() -> std::string_view {
     if (t != t_end) {
       auto &tmp = *t;
       ++t;
@@ -375,7 +381,7 @@ std::string filter_grant_or_revoke(
     }
 
     // priv_type
-    std::string priv = consume();
+    std::string priv{consume()};
 
     if (shcore::str_caseeq(priv, "PROXY")) {
       if (!advance_if("ON", &priv_list_end))
@@ -398,7 +404,8 @@ std::string filter_grant_or_revoke(
       for (;;) {
         // keep consuming until 'ON' ',' or '('
         while (!check_if("ON") && !check_if("(") && !check_if(",")) {
-          priv += " " + consume();
+          priv += ' ';
+          priv += consume();
         }
 
         std::string cols;
@@ -457,7 +464,8 @@ std::string filter_grant_or_revoke(
   return filtered_stmt;
 }
 
-std::string is_grant_on_object_from_mysql_schema(const std::string &grant) {
+std::string_view is_grant_on_object_from_mysql_schema(
+    const std::string &grant) {
   SQL_iterator it(grant, 0, false);
 
   if (shcore::str_caseeq(it.next_token(), "GRANT", "REVOKE")) {
@@ -498,7 +506,7 @@ bool check_create_table_for_data_index_dir_option(
   //  return res;
 
   return comment_out_option_with_string(
-      create_table, rewritten, [](std::string *token, SQL_iterator *it) {
+      create_table, rewritten, [](std::string_view *token, SQL_iterator *it) {
         if (!shcore::str_caseeq(*token, "DATA", "INDEX")) return true;
         *token = it->next_token();
         return !shcore::str_caseeq(*token, "DIRECTORY");
@@ -510,7 +518,7 @@ bool check_create_table_for_encryption_option(const std::string &create_table,
   // Comment out ENCRYPTION option.
 
   return comment_out_option_with_string(
-      create_table, rewritten, [](std::string *token, SQL_iterator *it) {
+      create_table, rewritten, [](std::string_view *token, SQL_iterator *it) {
         if (shcore::str_caseeq(*token, "DEFAULT")) *token = it->next_token();
         return !shcore::str_caseeq(*token, "ENCRYPTION");
       });
@@ -710,7 +718,7 @@ std::string check_statement_for_definer_clause(const std::string &statement,
                                                std::string *rewritten) {
   std::string user;
   SQL_iterator it(statement, 0, false);
-  std::string token = it.next_token();
+  auto token = it.next_token();
 
   if (!shcore::str_caseeq(token, "CREATE")) return user;
 
@@ -748,7 +756,7 @@ std::string check_statement_for_definer_clause(const std::string &statement,
 bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten) {
   SQL_iterator it(statement, 0, false);
-  std::string token = it.next_token();
+  auto token = it.next_token();
 
   if (!shcore::str_caseeq(token, "CREATE")) return false;
 
@@ -1076,8 +1084,10 @@ Deferred_statements check_create_table_for_indexes(
       // NULL disables the secondary engine
       if (!shcore::str_caseeq(secondary_engine, "NULL")) {
         offsets.emplace_back(start, it.position());
-        ret.secondary_engine = "ALTER TABLE " + table_name +
-                               " SECONDARY_ENGINE=" + secondary_engine + ";";
+        ret.secondary_engine =
+            "ALTER TABLE " + table_name + " SECONDARY_ENGINE=";
+        ret.secondary_engine += secondary_engine;
+        ret.secondary_engine += ';';
       }
 
       // no need to check the rest
@@ -1098,7 +1108,7 @@ std::string check_create_user_for_authentication_plugin(
 
   if (shcore::str_caseeq(it.next_token(), "IDENTIFIED") &&
       shcore::str_caseeq(it.next_token(), "WITH")) {
-    auto auth_plugin = it.next_token();
+    std::string auth_plugin{it.next_token()};
 
     unquote_string(&auth_plugin);
 
@@ -1537,7 +1547,8 @@ std::string convert_grant_to_create_user(
         shcore::str_caseeq(it.next_token(), "OPTION")) {
       grant += " WITH GRANT OPTION";
     } else {
-      create_user += " " + token;
+      create_user += ' ';
+      create_user += token;
 
       if (shcore::str_caseeq(token, "IDENTIFIED")) {
         const auto pos = it.position();
@@ -1560,7 +1571,8 @@ std::string convert_grant_to_create_user(
                 "supported");
           }
 
-          create_user += " " + token;
+          create_user += ' ';
+          create_user += token;
         } else {
           // it's a WITH token, statement has the auth_plugin information, step
           // back and handle it normally

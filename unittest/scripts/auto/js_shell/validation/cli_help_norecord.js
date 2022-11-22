@@ -290,6 +290,11 @@ OPTIONS
 --consistent=<bool>
             Enable or disable consistent data dumps. Default: true.
 
+--skipConsistencyChecks=<bool>
+            Skips additional consistency checks which are executed when running
+            consistent dumps and i.e. backup lock cannot not be acquired.
+            Default: false.
+
 --ocimds=<bool>
             Enable checks for compatibility with MySQL Database Service (MDS)
             Default: false.
@@ -524,6 +529,11 @@ OPTIONS
 --consistent=<bool>
             Enable or disable consistent data dumps. Default: true.
 
+--skipConsistencyChecks=<bool>
+            Skips additional consistency checks which are executed when running
+            consistent dumps and i.e. backup lock cannot not be acquired.
+            Default: false.
+
 --ocimds=<bool>
             Enable checks for compatibility with MySQL Database Service (MDS)
             Default: false.
@@ -738,6 +748,11 @@ OPTIONS
 
 --consistent=<bool>
             Enable or disable consistent data dumps. Default: true.
+
+--skipConsistencyChecks=<bool>
+            Skips additional consistency checks which are executed when running
+            consistent dumps and i.e. backup lock cannot not be acquired.
+            Default: false.
 
 --ocimds=<bool>
             Enable checks for compatibility with MySQL Database Service (MDS)
@@ -1424,4 +1439,3 @@ OPTIONS
             Azure Shared Access Signature (SAS) token, to be used for the
             authentication of the operation, instead of a key. Default: not
             set.
-
