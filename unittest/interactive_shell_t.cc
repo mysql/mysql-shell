@@ -936,6 +936,40 @@ TEST_F(Interactive_shell_test, shell_command_use) {
       "that corresponds to your MySQL server version for the right syntax to "
       "use near '\"double\"\"quote\"' at line 1");
   output_handler.wipe_all();
+
+  execute("SET SESSION SQL_MODE=\"ANSI_QUOTES\";");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("create schema \"double\"\"quote\";");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("SET SESSION SQL_MODE=\"\";");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("use \"double\"\"quote\";");
+  MY_EXPECT_STDERR_CONTAINS("Unknown database '\"double\"\"quote\"'");
+  EXPECT_FALSE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("SET SESSION SQL_MODE=\"ANSI_QUOTES\";");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("use \"double\"\"quote\";");
+  MY_EXPECT_STDOUT_CONTAINS("Default schema set to `double\"quote`.");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("drop schema \"double\"\"quote\";");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
+
+  execute("set SESSION SQL_MODE=@@GLOBAL.SQL_MODE;");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_sql_use) {
