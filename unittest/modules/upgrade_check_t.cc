@@ -1449,4 +1449,41 @@ TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
   EXPECT_EQ("j", issues[8].column);
 }
 
+TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
+  ASSERT_NO_THROW(session->execute("use mysql;"));
+
+  const auto check = Sql_upgrade_check::get_orphaned_routines_check();
+
+  EXPECT_NO_ISSUES(check.get());
+
+  ASSERT_NO_THROW(session->execute(
+      "INSERT INTO mysql.proc VALUES ("
+      "'no_ex_db',"
+      "'orphaned_procedure',"
+      "'PROCEDURE',"
+      "'orphaned_procedure',"
+      "'SQL','CONTAINS_SQL','NO','DEFINER','','',"
+      "_binary 'begin\n"
+      "select count(*) from somedb.sometable;"
+      "\nend',"
+      "'root@localhost','2022-11-23 11:46:34','2022-11-23 11:46:34',"
+      "'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
+      "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION',"
+      "'','utf8mb4','utf8mb4_general_ci','latin1_swedish_ci',"
+      "_binary 'begin\n"
+      "select count(*) from somedb.sometable;\n"
+      "end');"));
+
+  EXPECT_ISSUES(check.get(), 1);
+
+  EXPECT_EQ("no_ex_db", issues[0].schema);
+  EXPECT_EQ("orphaned_procedure", issues[0].table);
+
+  ASSERT_NO_THROW(
+      session->execute("DELETE FROM mysql.proc WHERE db='no_ex_db' AND "
+                       "name='orphaned_procedure';"));
+}
+
 }  // namespace mysqlsh

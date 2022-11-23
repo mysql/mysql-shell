@@ -210,6 +210,7 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check>
   get_columns_which_cannot_have_defaults_check();
   static std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check();
+  static std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
