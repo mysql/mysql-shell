@@ -667,7 +667,7 @@ void monitor_gr_recovery_status(
         // we'll try and call wait_server_startup (just once) and then retry
         // again
         std::shared_ptr<Instance> instance;
-        for (int numRetries = 1; numRetries >= 0; --numRetries) {
+        for (int num_retries = 1; num_retries >= 0; --num_retries) {
           try {
             instance = mysqlsh::dba::Instance::connect(instance_def);
             break;
@@ -675,7 +675,7 @@ void monitor_gr_recovery_status(
             log_error("Could not open connection to %s: %s",
                       instance_def.uri_endpoint().c_str(), exp_connect.what());
 
-            if ((numRetries > 0) &&
+            if ((num_retries > 0) &&
                 mysqlshdk::db::is_mysql_client_error(exp_connect.code())) {
               try {
                 wait_server_startup(instance_def, startup_timeout_sec,

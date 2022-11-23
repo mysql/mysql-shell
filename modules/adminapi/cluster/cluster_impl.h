@@ -515,6 +515,8 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   void enable_super_read_only_globally() const;
 
+  void refresh_connections();
+
  public:
   // clusterset related methods
   const Cluster_set_member_metadata &get_clusterset_metadata() const;
