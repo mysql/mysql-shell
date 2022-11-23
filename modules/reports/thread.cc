@@ -275,9 +275,10 @@ class Thread_report : public Native_report {
     // if 'general' was not set explicitly, turn it on implicitly if none of the
     // remaining sections was requested
     if (!o.general) {
-      o.general = !(o.brief | o.client | o.innodb | o.locks | o.prep_stmts |
-                    static_cast<bool>(o.status) | static_cast<bool>(o.vars) |
-                    static_cast<bool>(o.user_vars));
+      o.general =
+          !(o.brief || o.client || o.innodb || o.locks || o.prep_stmts ||
+            static_cast<bool>(o.status) || static_cast<bool>(o.vars) ||
+            static_cast<bool>(o.user_vars));
     }
 
     if (o.brief) {

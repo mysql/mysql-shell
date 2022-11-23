@@ -1649,6 +1649,7 @@ TEST_F(Schema_dumper_test, include_grant) {
   Instance_cache cache;
 
   cache.schemas["s"].tables["t"].comment = "";
+  cache.schemas["s"].views["v"].character_set_client = "";
   cache.schemas["s"].functions.emplace("f");
   cache.schemas["s"].procedures.emplace("p");
 
@@ -1717,6 +1718,11 @@ TEST_F(Schema_dumper_test, include_grant) {
   EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON s.f"));
   EXPECT_TRUE(sd.include_grant("REVOKE EXECUTE ON FUNCTION s.f"));
   EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.p"));
+  // BUG#34764157 - routine names are case insensitive, can appear in grant
+  // statements in all lower-case
+  EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.P"));
+  // BUG#34764157 - grants on included views should also be included
+  EXPECT_TRUE(sd.include_grant("GRANT SELECT ON s.v"));
 
   // statements on objects which are not in the cache are excluded
   EXPECT_FALSE(sd.include_grant("REVOKE SELECT ON s.f"));

@@ -2434,7 +2434,7 @@ session.run_sql(f"CREATE DEFINER = {tested_user} VIEW !.! AS SELECT * FROM !.!",
 session.run_sql(f"CREATE VIEW !.! AS SELECT * FROM !.!", [ tested_schema, tested_view + "_2", tested_schema, tested_view ])
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
 
-# connect to the target instance, disable auto-commit and load
+# connect to the target instance and load
 shell.connect(__sandbox_uri2)
 wipeout_server(session)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
@@ -2443,6 +2443,48 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProg
 compare_schema(session1, session2, tested_schema, check_rows=True)
 
 #@<> BUG#34768224 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql(f"DROP USER IF EXISTS {tested_user}")
+
+#@<> BUG#34764157 - setup
+# constants
+dump_dir = os.path.join(outdir, "bug_34764157")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+tested_view = "tested_view"
+# show grants in 5.7 is going to list this routine using all lower case
+tested_routine = "Tested_Routine"
+tested_user = "'user'@'localhost'"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY, data INT)", [ tested_schema, tested_table ])
+session.run_sql("CREATE VIEW !.! AS SELECT * FROM !.!", [ tested_schema, tested_view, tested_schema, tested_table ])
+session.run_sql("CREATE PROCEDURE !.!() BEGIN END", [ tested_schema, tested_routine ])
+
+session.run_sql(f"DROP USER IF EXISTS {tested_user}")
+session.run_sql(f"CREATE USER {tested_user} IDENTIFIED BY 'pwd'")
+session.run_sql(f"GRANT SELECT ON !.! TO {tested_user}", [tested_schema, tested_table])
+session.run_sql(f"GRANT SELECT ON !.! TO {tested_user}", [tested_schema, tested_view])
+session.run_sql(f"GRANT EXECUTE ON PROCEDURE !.! TO {tested_user}", [tested_schema, tested_routine])
+
+#@<> BUG#34764157 - dumper commented out grants for included, existing views and routines
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+# connect to the target instance and load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
+
+# verification
+compare_schema(session1, session2, tested_schema, check_rows=True)
+compare_user_grants(session1, session2, tested_user)
+
+#@<> BUG#34764157 - cleanup
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 session.run_sql(f"DROP USER IF EXISTS {tested_user}")

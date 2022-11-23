@@ -1419,6 +1419,11 @@ bool Dump_reader::include_routine(std::string_view schema,
   return m_options.include_routine(override_schema(schema), routine);
 }
 
+bool Dump_reader::include_routine_ci(std::string_view schema,
+                                     std::string_view routine) const {
+  return m_options.include_routine_ci(override_schema(schema), routine);
+}
+
 bool Dump_reader::include_trigger(std::string_view schema,
                                   std::string_view table,
                                   std::string_view trigger) const {

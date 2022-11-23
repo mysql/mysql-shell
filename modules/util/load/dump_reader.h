@@ -237,6 +237,8 @@ class Dump_reader {
   bool include_table(std::string_view schema, std::string_view table) const;
   bool include_event(std::string_view schema, std::string_view event) const;
   bool include_routine(std::string_view schema, std::string_view routine) const;
+  bool include_routine_ci(std::string_view schema,
+                          std::string_view routine) const;
   bool include_trigger(std::string_view schema, std::string_view table,
                        std::string_view trigger) const;
 
