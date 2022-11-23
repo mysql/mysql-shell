@@ -36,7 +36,10 @@ using mysqlshdk::azure::Blob_storage_config;
 using mysqlshdk::azure::Blob_storage_options;
 using mysqlshdk::azure::Storage_config_ptr;
 
-std::shared_ptr<Blob_storage_config> get_config(const std::string &container);
+std::shared_ptr<Blob_storage_config> get_config(
+    const std::string &container,
+    mysqlshdk::azure::Blob_storage_options::Operation operation =
+        mysqlshdk::azure::Blob_storage_options::Operation::WRITE);
 void create_container(const std::string &name);
 void clean_container(Blob_container &container);
 void delete_container(const std::string &name);

@@ -152,7 +152,10 @@ std::shared_ptr<mysqlshdk::oci::IPAR_config> par_config(
 }  // namespace
 
 Load_dump_options::Load_dump_options() : Load_dump_options("") {}
-Load_dump_options::Load_dump_options(const std::string &url) : m_url(url) {
+Load_dump_options::Load_dump_options(const std::string &url)
+    : m_url(url),
+      m_blob_storage_options{
+          mysqlshdk::azure::Blob_storage_options::Operation::READ} {
   // some users are always excluded
   add_excluded_users(shcore::to_accounts(k_excluded_users));
 }

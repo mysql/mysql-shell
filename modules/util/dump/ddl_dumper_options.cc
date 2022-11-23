@@ -52,6 +52,8 @@ constexpr auto k_default_chunk_size = "64M";
 
 Ddl_dumper_options::Ddl_dumper_options()
     : Dump_options(),
+      m_blob_storage_options{
+          mysqlshdk::azure::Blob_storage_options::Operation::WRITE},
       m_bytes_per_chunk(expand_to_bytes(k_default_chunk_size)) {}
 
 const shcore::Option_pack_def<Ddl_dumper_options>

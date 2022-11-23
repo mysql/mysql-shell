@@ -4,6 +4,74 @@ shell.connect(__mysqluripwd + "/mysql");
 var utils = require("_utils")
 utils.setupFailureTests();
 
+
+//@<> Account SAS Token Validation Tests
+account_sas_tests = [
+    // Missing SAS Required Tokens
+    ["ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "the following attributes are missing: Signed Version"],
+    ["sv=2021-06-08&ss=bfqt&srt=sco&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "the following attributes are missing: Signed Permissions"],
+    ["sv=2021-06-08&ss=bfqt&sp=rwdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "the following attributes are missing: Signed Resource Types"],
+    ["sv=2021-06-08&ss=bfqt&srt=sco&sp=rwdlacupiytfx&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "the following attributes are missing: Expiration Time"],
+    ["sv=2021-06-08&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https", "the following attributes are missing: Signature"],
+
+    // Missing Blob Service Access
+    ["sv=2021-06-08&ss=fqt&srt=sco&sp=rwdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "it is missing access to the Blob Storage Service"],
+
+    // Missing Container And Object Access
+    ["sv=2021-06-08&ss=bfqt&srt=so&sp=rwdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "does not give access to the container"],
+    ["sv=2021-06-08&ss=bfqt&srt=sc&sp=rwdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "does not give access to the container objects"],
+
+    // Missing Permissions (Read/List)
+    ["sv=2021-06-08&ss=bfqt&srt=sco&sp=wdlacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "it is missing the following permissions: Read"],
+    ["sv=2021-06-08&ss=bfqt&srt=sco&sp=rwdacupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "it is missing the following permissions: List"],
+]
+
+for (index in account_sas_tests) {
+    utils.testFailure(["--azureContainerName=something", "--azureStorageSasToken", `${account_sas_tests[index][0]}`], [], `The Shared Access Signature Token defined at the 'azureStorageSasToken' option is invalid, ${account_sas_tests[index][1]}`);
+}
+
+//@<> Account SAS Token Validation Tests - Dump Specific
+account_sas_tests = [
+    // Missing Permissions (Create/Write)
+    ["sv=2021-06-08&ss=bfqt&srt=sco&sp=rdlaupiytfx&se=2022-11-23T05:31:36Z&st=2022-11-22T21:31:36Z&spr=https&sig=0bEAWf%2FtR%2BHhHDkHdP5khrLh3YrcN0X%2BIvirOVgXqbA%3D", "it is missing the following permissions: Create or Write"],
+]
+
+for (index in account_sas_tests) {
+    utils.testDumpFailure(["--azureContainerName=something", "--azureStorageSasToken", `${account_sas_tests[index][0]}`], [], `The Shared Access Signature Token defined at the 'azureStorageSasToken' option is invalid, ${account_sas_tests[index][1]}`);
+}
+
+
+//@<> Container SAS Token Validation Tests
+container_sas_tests = [
+    // Missing SAS Required Tokens
+    ["sp=racwdli&st=2022-11-22T23:24:14Z&se=2022-11-23T07:24:14Z&spr=https&sr=c&sig=%2Bi5WV7%2FvWGdbpkt3xxYQnAmNNpGJpLN9T93YPWPuZFs%3D", "the following attributes are missing: Signed Version"],
+    ["st=2022-11-22T23:24:14Z&se=2022-11-23T07:24:14Z&spr=https&sv=2021-06-08&sr=c&sig=%2Bi5WV7%2FvWGdbpkt3xxYQnAmNNpGJpLN9T93YPWPuZFs%3D", "the following attributes are missing: Signed Permissions"],
+    ["sp=racwdli&st=2022-11-22T23:24:14Z&se=2022-11-23T07:24:14Z&spr=https&sv=2021-06-08&sig=%2Bi5WV7%2FvWGdbpkt3xxYQnAmNNpGJpLN9T93YPWPuZFs%3D", "the following attributes are missing: Signed Resource"],
+    ["sp=racwdli&st=2022-11-22T23:24:14Z&spr=https&sv=2021-06-08&sr=c&sig=%2Bi5WV7%2FvWGdbpkt3xxYQnAmNNpGJpLN9T93YPWPuZFs%3D", "the following attributes are missing: Expiration Time"],
+    ["sp=racwdli&st=2022-11-22T23:24:14Z&se=2022-11-23T07:24:14Z&spr=https&sv=2021-06-08&sr=c", "the following attributes are missing: Signature"],
+
+    // Missing Container Access
+    ["sp=racwdli&st=2022-11-22T23:10:19Z&se=2022-11-23T07:10:19Z&spr=https&sv=2021-06-08&sr=o&sig=WKEJhgxGftVFD2GChBEa1MVDN8AvK01%2B1vMdEKmaN0Y%3D", "does not give access to the container"],
+
+    // Missing Permissions (Read/List)
+    ["sp=acwdli&st=2022-11-22T23:10:19Z&se=2022-11-23T07:10:19Z&spr=https&sv=2021-06-08&sr=c&sig=WKEJhgxGftVFD2GChBEa1MVDN8AvK01%2B1vMdEKmaN0Y%3D", "it is missing the following permissions: Read"],
+    ["sp=racwdi&st=2022-11-22T23:10:19Z&se=2022-11-23T07:10:19Z&spr=https&sv=2021-06-08&sr=c&sig=WKEJhgxGftVFD2GChBEa1MVDN8AvK01%2B1vMdEKmaN0Y%3D", "it is missing the following permissions: List"],
+]
+
+for (index in container_sas_tests) {
+    utils.testFailure(["--azureContainerName=something", "--azureStorageSasToken", `${container_sas_tests[index][0]}`], [], `The Shared Access Signature Token defined at the 'azureStorageSasToken' option is invalid, ${container_sas_tests[index][1]}`);
+}
+
+//@<> Container SAS Token Validation Tests - Dump Specific
+container_sas_tests = [
+    // Missing Permissions (Create/Write)
+    ["sp=radli&st=2022-11-22T23:10:19Z&se=2022-11-23T07:10:19Z&spr=https&sv=2021-06-08&sr=c&sig=WKEJhgxGftVFD2GChBEa1MVDN8AvK01%2B1vMdEKmaN0Y%3D", "it is missing the following permissions: Create or Write"],
+]
+
+for (index in container_sas_tests) {
+    utils.testDumpFailure(["--azureContainerName=something", "--azureStorageSasToken", `${container_sas_tests[index][0]}`], [], `The Shared Access Signature Token defined at the 'azureStorageSasToken' option is invalid, ${container_sas_tests[index][1]}`);
+}
+
 //@<> TS_R2_1 - Conflicting options with OCI
 utils.testFailure(["--azureContainerName=something", "--osBucketName=something"], [], "The option 'azureContainerName' cannot be used when the value of 'osBucketName' option is set.");
 

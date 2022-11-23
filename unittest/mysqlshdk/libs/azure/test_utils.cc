@@ -27,11 +27,13 @@
 
 namespace testing {
 
-std::shared_ptr<Blob_storage_config> get_config(const std::string &container) {
+std::shared_ptr<Blob_storage_config> get_config(
+    const std::string &container,
+    mysqlshdk::azure::Blob_storage_options::Operation operation) {
   const auto options = shcore::make_dict(
       Blob_storage_options::container_name_option(), container);
 
-  Blob_storage_options parsed_options;
+  Blob_storage_options parsed_options(operation);
   Blob_storage_options::options().unpack(options, &parsed_options);
 
   try {

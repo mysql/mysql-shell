@@ -96,6 +96,7 @@ class Blob_storage_config : public Config {
   void load_config(const std::string &path);
   void validate_config() const;
   std::string get_default_config_path() const;
+  void throw_sas_token_error(const std::string &error) const;
 
   std::string m_label = "AZURE-BLOBS";
   std::string m_endpoint_protocol;
@@ -110,6 +111,7 @@ class Blob_storage_config : public Config {
   mutable std::string m_hash;
 
   std::string m_sas_token_source;
+  Blob_storage_options::Operation m_operation;
 };
 
 using Storage_config_ptr = std::shared_ptr<const Blob_storage_config>;

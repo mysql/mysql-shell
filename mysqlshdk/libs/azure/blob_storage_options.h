@@ -38,7 +38,9 @@ class Blob_storage_config;
 class Blob_storage_options
     : public storage::backend::object_storage::Object_storage_options {
  public:
-  Blob_storage_options() = default;
+  enum class Operation { READ, WRITE };
+  explicit Blob_storage_options(Operation operation)
+      : m_operation{operation} {};
 
   Blob_storage_options(const Blob_storage_options &) = default;
   Blob_storage_options(Blob_storage_options &&) = default;
@@ -80,6 +82,7 @@ class Blob_storage_options
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
       const override;
 
+  Operation m_operation;
   std::string m_storage_account;
   std::string m_storage_sas_token;
 };

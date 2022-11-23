@@ -67,7 +67,8 @@ Blob_storage_config::Blob_storage_config(const Blob_storage_options &options,
                                          bool enable_env_vars)
     : Config(options, DEFAULT_BLOB_BLOCK_SIZE),
       m_account_name(options.m_storage_account),
-      m_sas_token(options.m_storage_sas_token) {
+      m_sas_token(options.m_storage_sas_token),
+      m_operation(options.m_operation) {
   m_sas_token_source =
       shcore::str_format("the '%s' option", options.storage_sas_token_option());
 
@@ -271,6 +272,33 @@ std::string Blob_storage_config::describe_url(const std::string &url) const {
   return "prefix='" + url + "'";
 }
 
+namespace {
+const std::unordered_map<std::string, std::string> kSasAttributes = {
+    {"sv", "Signed Version"},
+    {"ss", "Signed Services"},
+    {"srt", "Signed Resource Types"},
+    {"sr", "Signed Resource"},
+    {"sp", "Signed Permissions"},
+    {"se", "Expiration Time"},
+    {"st", "Start Time"},
+    {"spr", "Signed Protocols"},
+    {"sig", "Signature"}};
+
+const std::unordered_map<char, std::string> kSasPermissions = {
+    {'r', "Read"}, {'l', "List"}, {'w', "Write"}, {'c', "Create"}};
+
+const std::vector<std::string> kAccountSpecificSasTokens = {"ss", "srt"};
+
+}  // namespace
+
+void Blob_storage_config::throw_sas_token_error(
+    const std::string &error) const {
+  throw std::invalid_argument(
+      shcore::str_format("The Shared Access Signature Token defined at %s is "
+                         "invalid, %s",
+                         m_sas_token_source.c_str(), error.c_str()));
+}
+
 void Blob_storage_config::validate_config() const {
   if (m_account_name.empty()) {
     throw std::runtime_error(
@@ -310,16 +338,80 @@ void Blob_storage_config::validate_config() const {
           Blob_storage_options::storage_sas_token_option()));
     }
   } else {
-    for (const auto &name : {"sv", "sp", "se", "st", "spr", "sig"}) {
+    // Determine if this is an account sas token
+    auto account_sas_token = std::find_first_of(
+        m_sas_token_data.begin(), m_sas_token_data.end(),
+        kAccountSpecificSasTokens.begin(), kAccountSpecificSasTokens.end(),
+        [](const std::pair<std::string, std::optional<std::string>> &member,
+           const std::string &token) { return member.first == token; });
+
+    std::vector<std::string> required = {"sv", "sp", "se", "sig"};
+
+    if (account_sas_token != m_sas_token_data.end()) {
+      required.push_back("srt");
+      required.push_back("ss");
+    } else {
+      required.push_back("sr");
+    }
+
+    std::vector<std::string> missing_attributes;
+
+    // Ensures the SAS token has the required elements
+    for (const auto &attribute : required) {
       const auto &item = std::find_if(
           m_sas_token_data.begin(), m_sas_token_data.end(),
-          [&name](const std::pair<std::string, std::optional<std::string>>
-                      &member) { return member.first == name; });
+          [&attribute](const std::pair<std::string, std::optional<std::string>>
+                           &member) { return member.first == attribute; });
 
       if (item == m_sas_token_data.end()) {
-        throw std::invalid_argument(shcore::str_format(
-            "The Shared Access Signature Token defined at %s is invalid.",
-            m_sas_token_source.c_str()));
+        missing_attributes.push_back(kSasAttributes.at(attribute));
+      } else {
+        if (item->first == "ss" &&
+            item->second.value_or("").find("b") == std::string::npos) {
+          throw_sas_token_error(
+              "it is missing access to the Blob Storage Service");
+        } else if (item->first == "sp") {
+          std::string actual_permissions = item->second.value_or("");
+          std::string required_permissions = "lr";
+          std::vector<std::string> missing_permissions;
+
+          for (const auto p : required_permissions) {
+            if (actual_permissions.find(p) == std::string::npos) {
+              missing_permissions.push_back(kSasPermissions.at(p));
+            }
+          }
+
+          if (m_operation == Blob_storage_options::Operation::WRITE &&
+              actual_permissions.find('c') == std::string::npos &&
+              actual_permissions.find('w') == std::string::npos) {
+            missing_permissions.push_back(
+                shcore::str_format("%s or %s", kSasPermissions.at('c').c_str(),
+                                   kSasPermissions.at('w').c_str()));
+          }
+
+          if (!missing_permissions.empty()) {
+            throw_sas_token_error(shcore::str_format(
+                "it is missing the following permissions: %s",
+                shcore::str_join(missing_permissions, ", ").c_str()));
+          }
+        } else if (item->first == "sr" && item->second.value_or("") != "c") {
+          throw_sas_token_error("does not give access to the container");
+        } else if (item->first == "srt") {
+          if (item->second.value_or("").find("c") == std::string::npos) {
+            throw_sas_token_error("does not give access to the container");
+          }
+
+          if (item->second.value_or("").find("o") == std::string::npos) {
+            throw_sas_token_error(
+                "does not give access to the container objects");
+          }
+        }
+      }
+
+      if (!missing_attributes.empty()) {
+        throw_sas_token_error(shcore::str_format(
+            "the following attributes are missing: %s",
+            shcore::str_join(missing_attributes, ", ").c_str()));
       }
     }
   }

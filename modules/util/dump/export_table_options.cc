@@ -31,7 +31,9 @@
 namespace mysqlsh {
 namespace dump {
 
-Export_table_options::Export_table_options() {
+Export_table_options::Export_table_options()
+    : m_blob_storage_options{
+          mysqlshdk::azure::Blob_storage_options::Operation::WRITE} {
   // calling this in the constructor sets the default value
   set_compression(mysqlshdk::storage::Compression::NONE);
 }

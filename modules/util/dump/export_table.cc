@@ -123,7 +123,8 @@ void Export_table::summary() const {
       remote_options.emplace_back(
           std::make_unique<mysqlshdk::aws::S3_bucket_options>());
       remote_options.emplace_back(
-          std::make_unique<mysqlshdk::azure::Blob_storage_options>());
+          std::make_unique<mysqlshdk::azure::Blob_storage_options>(
+              mysqlshdk::azure::Blob_storage_options::Operation::WRITE));
 
       for (const auto &remote : remote_options) {
         if (add_nonempty(remote->get_main_option())) {

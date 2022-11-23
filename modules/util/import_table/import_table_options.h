@@ -55,7 +55,9 @@ using Connection_options = mysqlshdk::db::Connection_options;
 
 class Import_table_option_pack {
  public:
-  Import_table_option_pack() = default;
+  Import_table_option_pack()
+      : m_blob_storage_options{
+            mysqlshdk::azure::Blob_storage_options::Operation::READ} {};
   Import_table_option_pack(const Import_table_option_pack &other) = default;
   Import_table_option_pack(Import_table_option_pack &&other) = default;
 
