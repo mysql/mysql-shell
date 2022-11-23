@@ -240,9 +240,10 @@ class Cluster_set_impl : public Base_cluster_impl,
   std::pair<std::string, std::string> get_cluster_repl_account(
       Cluster_impl *cluster) const;
 
-  void ensure_transaction_set_consistent(mysqlshdk::mysql::IInstance *replica,
-                                         mysqlshdk::mysql::IInstance *primary,
-                                         bool dry_run);
+  void ensure_transaction_set_consistent_and_recoverable(
+      mysqlshdk::mysql::IInstance *replica,
+      mysqlshdk::mysql::IInstance *primary, Cluster_impl *primary_cluster,
+      bool allow_unrecoverable, bool dry_run, bool *out_is_recoverable);
 
   void primary_instance_did_change(
       const std::shared_ptr<Instance> &new_primary);

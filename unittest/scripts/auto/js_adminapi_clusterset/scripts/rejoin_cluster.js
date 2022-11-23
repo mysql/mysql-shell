@@ -167,7 +167,7 @@ EXPECT_OUTPUT_CONTAINS("* Reconciling 1 internally generated GTIDs");
 session4.runSql("flush binary logs");
 session5.runSql("flush binary logs");
 session6.runSql("flush binary logs");
-os.sleep(1);
+os.sleep(0.3);
 session4.runSql("purge binary logs before now(6)");
 session5.runSql("purge binary logs before now(6)");
 session6.runSql("purge binary logs before now(6)");
@@ -274,7 +274,7 @@ CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], c1, c2);
 CHECK_CLUSTER_SET(session);
 
-//@<> rejoin with gtids that were purged from the primary (should fail)
+//@<> rejoin with gtids that were purged from the primary but not secondaries (should pass)
 invalidate_cluster(c2, c1);
 session4.runSql("stop replica for channel 'clusterset_replication'");
 
@@ -282,26 +282,22 @@ session1.runSql("set @gtid_before=@@gtid_executed");
 session1.runSql("create schema newschema2");
 gtid_newschema2 = session1.runSql("select gtid_subtract(@@gtid_executed, @gtid_before)").fetchOne()[0];
 
+session1.runSql("select @@gtid_executed");
 session1.runSql("flush binary logs");
 os.sleep(1);
 // this will also purge group change events
 session1.runSql("purge binary logs before now(6)");
 
-session1.runSql("select @@gtid_purged").fetchOne();
-session4.runSql("select @@gtid_executed").fetchOne();
+session1.runSql("select @@gtid_purged");
+session1.runSql("select @@gtid_executed");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Cluster is unable to recover one or more transactions that have been purged from the PRIMARY cluster");
+EXPECT_NO_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});});
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Cluster is unable to recover one or more transactions that have been purged from the PRIMARY cluster");
+EXPECT_NO_THROWS(function(){cs.rejoinCluster("cluster2");});
 
-EXPECT_OUTPUT_CONTAINS("ERROR: Cluster 'cluster2' cannot be rejoined because it's missing transactions that have been purged from the binary log of");
-
-// inject the purged binary log at the replica
-session4.runSql("set global super_read_only=0");
-inject_empty_trx(session4, gtid_newschema2);
-session4.runSql("set global super_read_only=1");
-
-//@<> rejoin with gtidset mismatch/reset (should fail)
+//@<> rejoin with gtidset mismatch/reset (should fail from errant trxs)
+// there will be both errant and unrecoverable trxs, but errant trxs has higher priority
+// unrecoverable trxs can be repaired by just cloning over the instance, but not errant trxs
 
 invalidate_cluster(c2, c1);
 
@@ -316,9 +312,48 @@ EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet
 
 EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
 
+// purge from all members
+session2.runSql("flush binary logs");
+session3.runSql("flush binary logs");
+os.sleep(1);
+session2.runSql("purge binary logs before now(6)");
+session3.runSql("purge binary logs before now(6)");
+session1.runSql("select @@gtid_purged");
+session2.runSql("select @@gtid_purged");
+session3.runSql("select @@gtid_purged");
+
+//@<> rejoin with purged trxs + errant trxs should fail from errant trxs
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+
+// fix errants
 inject_empty_trx(session1, gtid_diverge);
 
-//@<> check we can still rejoin
+//@<> rejoin with purged trxs from all members (should fail)
+// Bug#34692990	ClusterSet primary purged binlog, rebootClusterFromCompleteOutage() wait forever
+
+EXPECT_THROWS(function() { cs.rejoinCluster("cluster2"); }, "Cluster is unable to recover one or more transactions that have been purged from the PRIMARY cluster");
+
+EXPECT_OUTPUT_CONTAINS(`ERROR: The following transactions were purged from cluster1 and not present at ${hostname}:${__mysql_sandbox_port4}: `);
+
+EXPECT_OUTPUT_CONTAINS("ERROR: Cluster 'cluster2' cannot be rejoined because it's missing transactions that have been purged from the binary log of");
+
+// fix purged trxs
+executed = session4.runSql("select @@gtid_executed").fetchOne()[0];
+
+unrecoverable_trxs = session1.runSql("select gtid_subtract(@@gtid_purged, gtid_subtract(@@gtid_purged, gtid_subtract(@@gtid_executed, ?)))", [executed]).fetchOne()[0];
+
+session4.runSql("set global super_read_only=0");
+testutil.injectGtidSet(__mysql_sandbox_port4, unrecoverable_trxs);
+session4.runSql("set global super_read_only=1");
+
+//@<> check we can still rejoin after clearing unrecoverable
+
+// inject the purged binary log at the replica
+session4.runSql("set global super_read_only=0");
+inject_empty_trx(session4, gtid_newschema2);
+session4.runSql("set global super_read_only=1");
 
 c2.status();
 

@@ -49,6 +49,16 @@ Gtid_set &Gtid_set::normalize(const mysqlshdk::mysql::IInstance &server) {
   return *this;
 }
 
+Gtid_set &Gtid_set::intersect(const Gtid_set &other,
+                              const mysqlshdk::mysql::IInstance &server) {
+  // a /\ b = a - (a - b)
+  m_gtid_set = server.queryf_one_string(
+      0, "", "SELECT gtid_subtract(?, gtid_subtract(?, ?))", other.m_gtid_set,
+      other.m_gtid_set, m_gtid_set);
+
+  return *this;
+}
+
 Gtid_set &Gtid_set::subtract(const Gtid_set &other,
                              const mysqlshdk::mysql::IInstance &server) {
   m_normalized = true;

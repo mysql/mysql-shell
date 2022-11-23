@@ -85,6 +85,9 @@ class Gtid_set {
   Gtid_set &add(const Gtid_set &other);
   Gtid_set &add(const Gtid_range &gtids);
 
+  Gtid_set &intersect(const Gtid_set &other,
+                      const mysqlshdk::mysql::IInstance &server);
+
   Gtid_set get_gtids_from(const std::string &uuid) const;
 
   bool contains(const Gtid_set &other,

@@ -830,6 +830,55 @@ std::string to_string(Replica_gtid_state state) {
   throw std::logic_error("internal error");
 }
 
+void compute_joining_replica_gtid_state(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlshdk::mysql::Gtid_set &primary_gtids,
+    const std::vector<mysqlshdk::mysql::Gtid_set> &purged_gtids,
+    const mysqlshdk::mysql::Gtid_set &joiner_gtids,
+    const std::vector<std::string> &allowed_errant_uuids,
+    mysqlshdk::mysql::Gtid_set *out_missing_gtids,
+    mysqlshdk::mysql::Gtid_set *out_unrecoverable_gtids,
+    mysqlshdk::mysql::Gtid_set *out_errant_gtids,
+    mysqlshdk::mysql::Gtid_set *out_allowed_errant_gtids) {
+  assert(out_missing_gtids && out_unrecoverable_gtids && out_errant_gtids &&
+         out_allowed_errant_gtids);
+
+  using mysqlshdk::mysql::Gtid_set;
+
+  Gtid_set completely_purged_gtids;
+  // find out GTIDs purged from everywhere
+  if (!purged_gtids.empty()) {
+    auto gtids = purged_gtids.begin();
+    completely_purged_gtids = *gtids;
+    for (++gtids; gtids != purged_gtids.end(); ++gtids) {
+      completely_purged_gtids.intersect(*gtids, instance);
+    }
+  }
+
+  // compute missing and errant trxs
+  *out_missing_gtids = primary_gtids;
+  out_missing_gtids->subtract(joiner_gtids, instance);
+
+  *out_errant_gtids = joiner_gtids;
+  out_errant_gtids->subtract(primary_gtids, instance);
+
+  // from the missing trxs, check what's non-recoverable
+  *out_unrecoverable_gtids = *out_missing_gtids;
+  out_unrecoverable_gtids->intersect(completely_purged_gtids, instance);
+
+  // missing gtids that are recoverable
+  out_missing_gtids->subtract(*out_unrecoverable_gtids, instance);
+
+  // from the errant trxs, check what's allowed (e.g. VCLEs)
+  *out_allowed_errant_gtids = Gtid_set();
+  for (const auto &uuid : allowed_errant_uuids) {
+    out_allowed_errant_gtids->add(out_errant_gtids->get_gtids_from(uuid));
+  }
+  out_allowed_errant_gtids->normalize(instance);
+
+  out_errant_gtids->subtract(*out_allowed_errant_gtids, instance);
+}
+
 Replica_gtid_state check_replica_gtid_state(
     const mysqlshdk::mysql::IInstance &master,
     const mysqlshdk::mysql::IInstance &slave, std::string *out_missing_gtids,

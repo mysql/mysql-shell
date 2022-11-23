@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 
@@ -295,6 +296,17 @@ std::string get_total_gtid_set(
  * Note that this function will not detect duplicates in the set.
  */
 size_t estimate_gtid_set_size(const std::string &gtid_set);
+
+void compute_joining_replica_gtid_state(
+    const mysqlshdk::mysql::IInstance &instance,
+    const mysqlshdk::mysql::Gtid_set &primary_gtids,
+    const std::vector<mysqlshdk::mysql::Gtid_set> &purged_gtids,
+    const mysqlshdk::mysql::Gtid_set &joiner_gtids,
+    const std::vector<std::string> &allowed_errant_uuids,
+    mysqlshdk::mysql::Gtid_set *out_missing_gtids,
+    mysqlshdk::mysql::Gtid_set *out_unrecoverable_gtids,
+    mysqlshdk::mysql::Gtid_set *out_errant_gtids,
+    mysqlshdk::mysql::Gtid_set *out_allowed_errant_gtids);
 
 enum class Gtid_set_relation {
   EQUAL,       // a = b

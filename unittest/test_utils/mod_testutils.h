@@ -294,6 +294,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   bool wait_member_transactions(int dest_port, int source_port);
 
+  void inject_gtid_set(int dest_port, const std::string &gtid_set);
+
  public:
   // Misc utility stuff
   int make_file_readonly(const std::string &path);
