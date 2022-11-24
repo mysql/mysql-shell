@@ -131,6 +131,8 @@ class Scoped_callback_list {
     m_callbacks.clear();
   }
 
+  bool empty() const { return m_callbacks.empty(); }
+
  private:
   std::list<std::function<void()>> m_callbacks;
   bool m_cancelled = false;

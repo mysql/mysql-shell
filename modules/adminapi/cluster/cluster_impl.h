@@ -33,7 +33,7 @@
 #include <utility>
 #include <vector>
 
-#include "mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
@@ -45,6 +45,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/instance_validations.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -76,6 +77,10 @@ using Instance_md_and_gr_member =
 class Cluster_set_impl;
 class ClusterSet;
 
+namespace checks {
+enum class Check_type;
+}
+
 class Cluster_impl final : public Base_cluster_impl,
                            public shcore::NotificationObserver {
  public:
@@ -101,14 +106,9 @@ class Cluster_impl final : public Base_cluster_impl,
 
   // API functions
   void add_instance(const Connection_options &instance_def,
-                    const cluster::Add_instance_options &options,
-                    Recovery_progress_style progress_style);
-
+                    const cluster::Add_instance_options &options);
   void rejoin_instance(const Connection_options &instance_def,
-                       const Group_replication_options &gr_options,
-                       bool interactive, bool skip_precondition_check,
-                       std::optional<bool> switch_comm_stack = false);
-
+                       const cluster::Rejoin_instance_options &options);
   void remove_instance(const Connection_options &instance_def,
                        const cluster::Remove_instance_options &options);
   shcore::Value describe();
@@ -553,6 +553,53 @@ class Cluster_impl final : public Base_cluster_impl,
   mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user() const;
 
   void update_replication_allowed_host(const std::string &host);
+
+  /*
+   * Enable skip_slave_start and configures the managed replication channel if
+   * the target cluster is a replica.
+   */
+  void configure_cluster_set_member(
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance) const;
+
+  /**
+   * Recreate the recovery account for each Cluster member
+   *
+   * Required when using the 'MySQL' communication stack to ensure each active
+   * member of the Cluster will use its own recovery account instead of the one
+   * created whenever a new member joined since all possible seeds had to be
+   * updated to use that same account. This ensures distributed recovery is
+   * possible at any circumstance.
+   */
+  void restore_recovery_account_all_members() const;
+
+  /**
+   * Change the recovery user credentials of all Cluster members
+   *
+   * @param repl_account The authentication options of the recovery account
+   */
+  void change_recovery_credentials_all_members(
+      const mysqlshdk::mysql::Auth_options &repl_account) const;
+
+  /**
+   * Create a local recovery account for the target instance
+   *
+   * Required when using the 'MySQL' communication stack. The account is
+   * created locally only to the target instance and with binary logging
+   * disabled to not introduce errant transactions
+   */
+  void create_local_replication_user(
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+      const Group_replication_options &gr_options);
+
+  void update_group_peers(
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+      const Group_replication_options &gr_options, int cluster_member_count,
+      const std::string &self_address, bool group_seeds_only = false);
+
+  void check_instance_configuration(
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+      bool using_clone_recovery, checks::Check_type checks_type,
+      bool already_member) const;
 
  protected:
   void _set_option(const std::string &option,

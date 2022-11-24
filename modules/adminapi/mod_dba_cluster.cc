@@ -355,23 +355,10 @@ void Cluster::add_instance(
     }
   }
 
-  // Init progress_style
-  Recovery_progress_style progress_style;
-
-  if (options->wait_recovery == 0) {
-    progress_style = Recovery_progress_style::NOWAIT;
-  } else if (options->wait_recovery == 1) {
-    progress_style = Recovery_progress_style::NOINFO;
-  } else if (options->wait_recovery == 2) {
-    progress_style = Recovery_progress_style::TEXTUAL;
-  } else {
-    progress_style = Recovery_progress_style::PROGRESSBAR;
-  }
-
   return execute_with_pool(
       [&]() {
         // Add the Instance to the Cluster
-        impl()->add_instance(instance_def, *options, progress_style);
+        impl()->add_instance(instance_def, *options);
       },
       false);
 }
@@ -442,8 +429,7 @@ void Cluster::rejoin_instance(
   return execute_with_pool(
       [&]() {
         // Rejoin the Instance to the Cluster
-        impl()->rejoin_instance(instance_def, options->gr_options,
-                                options->interactive(), false, {});
+        impl()->rejoin_instance(instance_def, *options);
       },
       false);
 }

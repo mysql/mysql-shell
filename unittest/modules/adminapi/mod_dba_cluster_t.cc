@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "modules/adminapi/cluster/cluster_join.h"
+#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
@@ -149,7 +149,7 @@ TEST_F(Dba_cluster_test, bug28219398) {
           mysqlsh::dba::Instance_pool::Auth_options{
               md_session->get_connection_options()});
 
-      mysqlsh::dba::Group_replication_options gr_opts;
+      mysqlsh::dba::Join_group_replication_options gr_opts;
       gr_opts.recovery_credentials = mysqlshdk::mysql::Auth_options();
       gr_opts.recovery_credentials->user = replication_user;
       gr_opts.recovery_credentials->password = replication_pwd;
@@ -194,17 +194,18 @@ TEST_F(Dba_cluster_test, bug28219398) {
       }
 
       // Create the add_instance command and execute it.
-      mysqlsh::dba::cluster::Cluster_join joiner(
-          m_cluster->impl().get(), target.get(),
+      mysqlsh::dba::cluster::Add_instance_options options;
+      options.gr_options = gr_opts;
+      options.wait_recovery = 0;
+      options.label = "";
+
+      mysqlsh::dba::Cluster_topology_executor<
+          mysqlsh::dba::cluster::Add_instance>{
+          m_cluster->impl().get(),
           std::make_shared<mysqlsh::dba::Instance>(
               create_session(_mysql_sandbox_ports[2])),
-          gr_opts, {}, false);
-
-      // Prepare the add_instance command execution (validations).
-      joiner.prepare_join({""});
-
-      // Execute add_instance operations.
-      joiner.join(mysqlsh::dba::Recovery_progress_style::NOWAIT);
+          options}
+          .run();
     }
 
     // Set the Shell global session

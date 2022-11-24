@@ -2093,5 +2093,208 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
   return state;
 }
 
+namespace cluster_topology_executor_ops {
+void validate_add_rejoin_options(Group_replication_options options,
+                                 const std::string &communication_stack) {
+  // ipAllowList cannot be used by addInstance/rejoinInstance when the
+  // communication stack in use by the Cluster is 'MySQL'
+  if (communication_stack == kCommunicationStackMySQL &&
+      options.ip_allowlist.has_value()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use '%s' when the Cluster's communication stack is "
+        "'%s'",
+        options.ip_allowlist_option_name.c_str(), kCommunicationStackMySQL));
+  }
+}
+
+bool is_member_auto_rejoining(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance) {
+  // Check if instance was doing auto-rejoin and let the user know that the
+  // rejoin operation will override the auto-rejoin
+  if (mysqlshdk::gr::is_running_gr_auto_rejoin(*target_instance) ||
+      mysqlshdk::gr::is_group_replication_delayed_starting(*target_instance)) {
+    auto console = current_console();
+    console->print_note(
+        "The instance '" +
+        target_instance->get_connection_options().uri_endpoint() +
+        "' is running auto-rejoin process, which will be cancelled.");
+    console->print_info();
+
+    return true;
+  }
+
+  return false;
+}
+
+void ensure_not_auto_rejoining(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance) {
+  current_console()->print_note("Cancelling active GR auto-initialization at " +
+                                target_instance->descr());
+  mysqlshdk::gr::stop_group_replication(*target_instance);
+}
+
+void check_comm_stack_support(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    Group_replication_options *gr_options,
+    const std::string &communication_stack) {
+  if (communication_stack == kCommunicationStackMySQL &&
+      target_instance->get_version() <
+          k_mysql_communication_stack_initial_version) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot join instance '" + target_instance->descr() +
+                         "' to Cluster: The Group Replication protocol stack "
+                         "in used by the Cluster ('" +
+                         kCommunicationStackMySQL +
+                         "') is not supported in the instance");
+
+    throw shcore::Exception("Unsupported Group Replication protocol stack '" +
+                                std::string(kCommunicationStackMySQL) + "'",
+                            SHERR_DBA_UNSUPPORTED_COMMUNICATION_PROTOCOL);
+  }
+
+  // Set the communication stack protocol to be used only if the target
+  // instance supports it
+  if (target_instance->get_version() >=
+      k_mysql_communication_stack_initial_version) {
+    gr_options->communication_stack = communication_stack;
+  }
+}
+
+void ensure_instance_check_installed_schema_version(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    mysqlshdk::utils::Version lowest_cluster_version) {
+  try {
+    // Check instance version compatibility according to Group Replication.
+    mysqlshdk::gr::check_instance_check_installed_schema_version(
+        *target_instance, lowest_cluster_version);
+  } catch (const std::runtime_error &err) {
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Cannot join instance '" + target_instance->descr() +
+        "' to cluster: instance version is incompatible with the cluster.");
+    throw;
+  }
+
+  // Print a warning if the instance is only read compatible.
+  if (mysqlshdk::gr::is_instance_only_read_compatible(*target_instance,
+                                                      lowest_cluster_version)) {
+    auto console = mysqlsh::current_console();
+    console->print_warning("The instance '" + target_instance->descr() +
+                           "' is only read compatible with the cluster, thus "
+                           "it will join the cluster in R/O mode.");
+  }
+}
+
+void log_used_gr_options(const Group_replication_options &gr_options) {
+  if (gr_options.local_address.has_value() &&
+      !gr_options.local_address->empty()) {
+    log_info("Using Group Replication local address: %s",
+             gr_options.local_address->c_str());
+  }
+
+  if (gr_options.group_seeds.has_value() && !gr_options.group_seeds->empty()) {
+    log_info("Using Group Replication group seeds: %s",
+             gr_options.group_seeds->c_str());
+  }
+
+  if (gr_options.exit_state_action.has_value() &&
+      !gr_options.exit_state_action->empty()) {
+    log_info("Using Group Replication exit state action: %s",
+             gr_options.exit_state_action->c_str());
+  }
+
+  if (gr_options.member_weight.has_value()) {
+    log_info("Using Group Replication member weight: %s",
+             std::to_string(*gr_options.member_weight).c_str());
+  }
+
+  if (gr_options.consistency.has_value() && !gr_options.consistency->empty()) {
+    log_info("Using Group Replication failover consistency: %s",
+             gr_options.consistency->c_str());
+  }
+
+  if (gr_options.expel_timeout.has_value()) {
+    log_info("Using Group Replication expel timeout: %s",
+             std::to_string(*gr_options.expel_timeout).c_str());
+  }
+
+  if (gr_options.auto_rejoin_tries.has_value()) {
+    log_info("Using Group Replication auto-rejoin tries: %s",
+             std::to_string(*gr_options.auto_rejoin_tries).c_str());
+  }
+}
+
+void validate_local_address_ip_compatibility(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    const std::string &local_address, const std::string &group_seeds,
+    mysqlshdk::utils::Version lowest_cluster_version) {
+  // local_address must have some value
+  assert(!local_address.empty());
+
+  // Validate that the group_replication_local_address is valid for the version
+  // of the target instance.
+  if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
+          local_address, target_instance->get_version())) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot join instance '" + target_instance->descr() +
+                         "' to cluster: unsupported localAddress value.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use value '%s' for option localAddress because it has "
+        "an IPv6 address which is only supported by Group Replication "
+        "from MySQL version >= 8.0.14 and the target instance version is %s.",
+        local_address.c_str(),
+        target_instance->get_version().get_base().c_str()));
+  }
+
+  // Validate that the localAddress values of the cluster members are
+  // compatible with the target instance we are adding
+  auto local_address_list = shcore::str_split(group_seeds, ",");
+  std::vector<std::string> unsupported_addresses;
+  for (const auto &raw_local_addr : local_address_list) {
+    std::string local_addr = shcore::str_strip(raw_local_addr);
+    if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
+            local_addr, target_instance->get_version())) {
+      unsupported_addresses.push_back(local_addr);
+    }
+  }
+  if (!unsupported_addresses.empty()) {
+    std::string value_str =
+        (unsupported_addresses.size() == 1) ? "value" : "values";
+
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Cannot join instance '" + target_instance->descr() +
+        "' to cluster: unsupported localAddress value on the cluster.");
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Instance does not support the following localAddress %s of the "
+        "cluster: '%s'. IPv6 "
+        "addresses/hostnames are only supported by Group "
+        "Replication from MySQL version >= 8.0.14 and the target instance "
+        "version is %s.",
+        value_str.c_str(),
+        shcore::str_join(unsupported_addresses.cbegin(),
+                         unsupported_addresses.cend(), ", ")
+            .c_str(),
+        target_instance->get_version().get_base().c_str()));
+  }
+
+  // validate that the value of the localAddress is supported by all
+  // existing cluster members
+  if (!mysqlshdk::gr::is_endpoint_supported_by_gr(local_address,
+                                                  lowest_cluster_version)) {
+    auto console = mysqlsh::current_console();
+    console->print_error(
+        "Cannot join instance '" + target_instance->descr() +
+        "' to cluster: localAddress value not supported by the cluster.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Cannot use value '%s' for option localAddress because it has "
+        "an IPv6 address which is only supported by Group Replication "
+        "from MySQL version >= 8.0.14 but the cluster "
+        "contains at least one member with version %s.",
+        local_address.c_str(), lowest_cluster_version.get_base().c_str()));
+  }
+}
+}  // namespace cluster_topology_executor_ops
+
 }  // namespace dba
 }  // namespace mysqlsh
