@@ -207,6 +207,68 @@ EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", status["defaultReplicaSet"]["status"]);
 EXPECT_EQ("Cluster is NOT tolerant to any failures. 1 member is not active.", status["defaultReplicaSet"]["statusText"]);
 EXPECT_EQ(`${hostname}:${__mysql_sandbox_port1}`, status["defaultReplicaSet"]["primary"]);
 
+// reset the cluster
+cluster.removeInstance(__sandbox_uri3, {force: true});
+
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+
+shell.connect(__sandbox_uri1);
+cluster.addInstance(__sandbox_uri3);
+cluster.status();
+
+//@<> the GTID sets must be applied in all instances
+
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("FLUSH TABLES WITH READ LOCK"); //FTWRL allows transactions to be received but not applied
+
+shell.connect(__sandbox_uri1);
+session.runSql("CREATE SCHEMA test2");
+session.runSql("CREATE TABLE test2.data (a int primary key auto_increment, data longtext)");
+for (i = 0; i < 50; i++) {
+    session.runSql("INSERT INTO test2.data VALUES(default, repeat('x', 4*1024*1024))");
+}
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
+enable_auto_rejoin(__mysql_sandbox_port1);
+enable_auto_rejoin(__mysql_sandbox_port2);
+enable_auto_rejoin(__mysql_sandbox_port3);
+
+testutil.killSandbox(__mysql_sandbox_port1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.killSandbox(__mysql_sandbox_port3);
+
+testutil.startSandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+
+session3 = mysql.getSession(__sandbox_uri3);
+shell.connect(__sandbox_uri1);
+
+EXPECT_THROWS(function(){
+    dba.rebootClusterFromCompleteOutage("cluster", {timeout:1});
+}, `Timeout waiting for received transactions to be applied on instance '${hostname}:${__mysql_sandbox_port3}'`);
+EXPECT_OUTPUT_CONTAINS("Waiting for instances to apply pending received transactions...");
+
+session.runSql("SELECT @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+session3.runSql("SELECT gtid_subtract(received_transaction_set, @@global.gtid_executed) FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+
+do {
+    var diff = session3.runSql("SELECT gtid_subtract(received_transaction_set, @@global.gtid_executed) diff FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'").fetchOne()[0];
+    println(diff);
+    os.sleep(0.5);
+} while('' != diff)
+
+session3.runSql("SELECT gtid_subtract(received_transaction_set, @@global.gtid_executed) FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+
+EXPECT_EQ("", session3.runSql("SELECT gtid_subtract(received_transaction_set, @@global.gtid_executed) FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'").fetchOne()[0]);
+session3.close();
+
+EXPECT_NO_THROWS(function(){
+    dba.rebootClusterFromCompleteOutage("cluster", {timeout:2});
+});
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

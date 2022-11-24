@@ -329,6 +329,8 @@ const shcore::Option_pack_def<Reboot_cluster_options>
           .optional(kSwitchCommunicationStack,
                     &Reboot_cluster_options::set_switch_communication_stack, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE)
+          .optional(kTimeout, &Reboot_cluster_options::set_timeout, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE)
           .include(&Reboot_cluster_options::gr_options);
 
   return opts;
@@ -417,6 +419,15 @@ void Reboot_cluster_options::set_switch_communication_stack(
         "Invalid value for '%s', string value cannot be empty.",
         kSwitchCommunicationStack));
   }
+}
+
+void Reboot_cluster_options::set_timeout(uint32_t timeout_seconds) {
+  timeout = std::chrono::seconds{timeout_seconds};
+}
+
+std::chrono::seconds Reboot_cluster_options::get_timeout() const {
+  return timeout.value_or(std::chrono::seconds{
+      current_shell_options()->get().dba_gtid_wait_timeout});
 }
 
 const shcore::Option_pack_def<Upgrade_metadata_options>

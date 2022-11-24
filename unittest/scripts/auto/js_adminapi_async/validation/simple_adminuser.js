@@ -138,9 +138,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 ** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 ** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
-* Waiting for all received transactions to be applied
-** Waiting for received transactions to be applied at <<<hostname_ip>>>:[[*]]
-** Waiting for received transactions to be applied at <<<hostname_ip>>>:[[*]]
+* Waiting for all received transactions to be applied[[*]]
 <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> will be promoted to PRIMARY of the replicaset and the former PRIMARY will be invalidated.
 
 * Checking status of last known PRIMARY

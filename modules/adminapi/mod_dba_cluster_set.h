@@ -36,9 +36,6 @@
 
 namespace mysqlsh {
 namespace dba {
-class Dba;
-class MetadataStorage;
-class Global_topology_manager;
 
 /**
  * \ingroup AdminAPI

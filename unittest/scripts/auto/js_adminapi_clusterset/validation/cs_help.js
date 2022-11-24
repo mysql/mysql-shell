@@ -499,7 +499,10 @@ DESCRIPTION
         performed, but will not execute them. The operations that would be
         performed can be viewed by enabling verbose output in the shell.
       - timeout: integer value to set the maximum number of seconds to wait for
-        the synchronization of the Cluster.
+        the synchronization of the Cluster and also for the instance being
+        promoted to catch up with the current PRIMARY (in the case of the
+        latter, the default value is retrieved from the 'dba.gtidWaitTimeout'
+        shell option).
       - invalidateReplicaClusters: list of names of REPLICA Clusters that are
         unreachable or unavailable that are to be invalidated during the
         switchover.
@@ -586,6 +589,10 @@ DESCRIPTION
       - invalidateReplicaClusters: list of names of REPLICA Clusters that are
         unreachable or unavailable that are to be invalidated during the
         failover.
+      - timeout: integer value with the maximum number of seconds to wait for
+        pending transactions to be applied in each instance of the cluster
+        (default value is retrieved from the 'dba.gtidWaitTimeout' shell
+        option).
 
 //@<OUT> ClusterSet.rejoinCluster
 NAME

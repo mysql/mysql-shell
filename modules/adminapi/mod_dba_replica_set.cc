@@ -659,7 +659,8 @@ The following options may be given:
 performed, but will not execute them. The operations that would be performed
 can be viewed by enabling verbose output in the shell.
 @li timeout: integer value with the maximum number of seconds to wait until
-the instance being promoted catches up to the current PRIMARY.
+the instance being promoted catches up to the current PRIMARY (default
+value is retrieved from the 'dba.gtidWaitTimeout' shell option).
 )*");
 
 /**

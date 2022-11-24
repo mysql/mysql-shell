@@ -212,7 +212,10 @@ OPTIONS
 
 --timeout=<int>
             Integer value to set the maximum number of seconds to wait for the
-            synchronization of the Cluster.
+            synchronization of the Cluster and also for the instance being
+            promoted to catch up with the current PRIMARY (in the case of the
+            latter, the default value is retrieved from the
+            'dba.gtidWaitTimeout' shell option).
 
 --dryRun=<bool>
             If true, will perform checks and log operations that would be
@@ -242,6 +245,12 @@ OPTIONS
             If true, will perform checks and log operations that would be
             performed, but will not execute them. The operations that would be
             performed can be viewed by enabling verbose output in the shell.
+
+--timeout=<uint>
+            Integer value with the maximum number of seconds to wait for
+            pending transactions to be applied in each instance of the cluster
+            (default value is retrieved from the 'dba.gtidWaitTimeout' shell
+            option).
 
 //@<OUT> CLI clusterset status --help
 NAME

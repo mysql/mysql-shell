@@ -175,6 +175,17 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri6], c1, c2);
 CHECK_INVALIDATED_CLUSTER([], c1, c3);
 CHECK_CLUSTER_SET(session);
 
+//@<> the GTID sets must be applied in all instances {!__dbug_off}
+
+testutil.dbugSet("+d,dba_wait_for_apply_retrieved_trx_timeout");
+
+EXPECT_THROWS(function(){
+    cs.setPrimaryCluster("cluster2", {timeout:1});
+}, `Timeout waiting for received transactions to be applied on instance '${hostname}:${__mysql_sandbox_port4}'`);
+EXPECT_OUTPUT_CONTAINS("Waiting for the promoted cluster to apply pending received transactions...");
+
+testutil.dbugSet("");
+
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

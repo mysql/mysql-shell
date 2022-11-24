@@ -487,6 +487,26 @@ function get_gr_recovery_user_passwd(session) {
   return ret;
 }
 
+function enable_auto_rejoin(session, port) {
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    var port = session;
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+   testutil.changeSandboxConf(port, "group_replication_start_on_boot", "ON");
+
+  if (__version_num > 80011)
+    session.runSql("RESET PERSIST group_replication_start_on_boot");
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+}
+
 function disable_auto_rejoin(session, port) {
   var close_session = false;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_SET_API_OPTIONS_H_
 #define MODULES_ADMINAPI_CLUSTER_SET_API_OPTIONS_H_
 
+#include <chrono>
 #include <string>
 
 #include "modules/adminapi/common/api_options.h"
@@ -90,7 +91,12 @@ struct Force_primary_cluster_options
   static const shcore::Option_pack_def<Force_primary_cluster_options>
       &options();
 
+  void set_timeout(uint32_t timeout_seconds);
+
+  std::chrono::seconds get_timeout() const;
+
   bool dry_run = false;
+  std::optional<std::chrono::seconds> timeout;
 };
 
 struct Rejoin_cluster_options {

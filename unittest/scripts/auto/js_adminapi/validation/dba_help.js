@@ -1067,6 +1067,10 @@ DESCRIPTION
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one when using the
         'XCOM' protocol stack.
+      - timeout: integer value with the maximum number of seconds to wait for
+        pending transactions to be applied in each instance of the cluster
+        (default value is retrieved from the 'dba.gtidWaitTimeout' shell
+        option).
 
       The value for switchCommunicationStack is used to choose which Group
       Replication communication stack must be used in the Cluster after the

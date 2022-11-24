@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -147,11 +147,11 @@ void async_change_primary(
     shcore::Scoped_callback_list *undo_list, bool dry_run);
 
 void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
-                              int timeout_sec);
+                              std::chrono::seconds timeout);
 
 void wait_all_apply_retrieved_trx(
-    std::list<std::shared_ptr<Instance>> *out_instances, int timeout_sec,
-    bool invalidate_error_instances,
+    std::list<std::shared_ptr<Instance>> *out_instances,
+    std::chrono::seconds timeout, bool invalidate_error_instances,
     std::vector<Instance_metadata> *out_instances_md,
     std::list<Instance_id> *out_invalidate_ids);
 

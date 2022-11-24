@@ -2713,6 +2713,8 @@ executed, but no changes are actually made. An exception will be thrown when fin
 @li switchCommunicationStack: The Group Replication protocol stack to be used by the Cluster after the reboot.
 @li ipAllowList: The list of hosts allowed to connect to the instance for Group Replication traffic when using the 'XCOM' protocol stack.
 @li localAddress: string value with the Group Replication local address to be used instead of the automatically generated one when using the 'XCOM' protocol stack.
+@li timeout: integer value with the maximum number of seconds to wait for pending transactions to be applied in each instance of the cluster (default
+value is retrieved from the 'dba.gtidWaitTimeout' shell option).
 
 The value for switchCommunicationStack is used to choose which Group
 Replication communication stack must be used in the Cluster after the reboot is complete. It's used to set the value of the Group Replication system variable

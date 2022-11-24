@@ -28,7 +28,6 @@
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/global_topology_check.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"

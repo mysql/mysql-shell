@@ -176,7 +176,7 @@ session4.runSql("stop replica for channel 'clusterset_replication'");
 // stop applier in cluster2 to let the applier backlog grow
 session2.runSql("stop replica sql_thread for channel 'clusterset_replication'");
 session1.runSql("create table bla123.tbl (a int primary key)")
-for (i = 0; i < 10000; i++) {
+for (i = 0; i < 500; i++) {
     session1.runSql("insert into bla123.tbl values ("+i+")")
 }
 testutil.stopSandbox(__mysql_sandbox_port1);
@@ -187,6 +187,58 @@ shell.connect(__sandbox_uri2);
 cs = dba.getClusterSet();
 
 cs.forcePrimaryCluster("cluster2");
+
+session.close();
+session1.close();
+session2.close();
+session3.close();
+session4.close();
+session5.close();
+
+//@<> the GTID sets must be applied in all instances {!__dbug_off}
+
+shell.connect(__sandbox_uri4);
+session.runSql("stop replica for channel 'clusterset_replication'");
+session.runSql("change replication source to source_delay=0 for channel 'clusterset_replication'");
+session.runSql("set global slave_parallel_workers=4");
+session.runSql("start replica for channel 'clusterset_replication'");
+session.close();
+
+shell.connect(__sandbox_uri2);
+
+cs = dba.getClusterSet();
+
+cs.status({extended:1});
+cs.removeCluster("cluster1", {force:1});
+
+testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port2);
+
+cs.status({extended:1});
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri4);
+
+cs = dba.getClusterSet();
+
+EXPECT_THROWS(function (){ cs.forcePrimaryCluster("cluster3", {timeout:""}); }, "Option 'timeout' UInteger expected, but value is String");
+EXPECT_THROWS(function (){ cs.forcePrimaryCluster("cluster3", {timeout:-1}); }, "Option 'timeout' UInteger expected, but Integer value is out of range");
+
+testutil.dbugSet("+d,dba_wait_for_apply_retrieved_trx_timeout");
+
+EXPECT_THROWS(function(){
+    cs.forcePrimaryCluster("cluster3", {timeout:1});
+}, `Timeout waiting for received transactions to be applied on instance '${hostname}:${__mysql_sandbox_port4}'`);
+EXPECT_OUTPUT_CONTAINS("Waiting for instances to apply pending received transactions...");
+
+testutil.dbugSet("");
+
+EXPECT_NO_THROWS(function(){
+    cs.forcePrimaryCluster("cluster3", {timeout:2});
+});
+
+session.close();
 
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);

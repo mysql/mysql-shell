@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_DBA_API_OPTIONS_H_
 #define MODULES_ADMINAPI_DBA_API_OPTIONS_H_
 
+#include <chrono>
 #include <optional>
 #include <string>
 #include <vector>
@@ -166,6 +167,7 @@ struct Reboot_cluster_options {
   void set_clear_read_only(bool value);
   void set_primary(std::string value);
   void set_switch_communication_stack(const std::string &value);
+  void set_timeout(uint32_t timeout_seconds);
 
   bool get_force(bool default_value = false) const noexcept {
     return force.value_or(default_value);
@@ -176,11 +178,13 @@ struct Reboot_cluster_options {
   std::string get_primary(std::string default_value = {}) const noexcept {
     return primary.value_or(std::move(default_value));
   }
+  std::chrono::seconds get_timeout() const;
 
   std::optional<bool> force;
   std::optional<bool> dry_run;
   std::optional<std::string> primary;
   std::optional<std::string> switch_communication_stack;
+  std::optional<std::chrono::seconds> timeout;
   Reboot_group_replication_options gr_options;
 };
 

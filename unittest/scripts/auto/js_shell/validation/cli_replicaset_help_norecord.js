@@ -269,7 +269,8 @@ OPTIONS
 
 --timeout=<int>
             Integer value with the maximum number of seconds to wait until the
-            instance being promoted catches up to the current PRIMARY.
+            instance being promoted catches up to the current PRIMARY (default
+            value is retrieved from the 'dba.gtidWaitTimeout' shell option).
 
 //@<OUT> CLI replicaset setup-admin-account --help
 NAME

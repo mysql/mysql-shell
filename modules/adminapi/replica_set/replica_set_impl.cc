@@ -1026,8 +1026,7 @@ void Replica_set_impl::validate_remove_instance(
 }
 
 void Replica_set_impl::remove_instance(const std::string &instance_def_,
-                                       const mysqlshdk::null_bool &force,
-                                       int timeout) {
+                                       std::optional<bool> force, int timeout) {
   log_debug("Checking remove instance preconditions.");
 
   check_preconditions_and_primary_availability("removeInstance");
@@ -1069,7 +1068,7 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
       belong_to_md = false;
     }
 
-    if (force.is_null() || *force == false) {
+    if (!force.has_value() || !force.value()) {
       console->print_error(
           "Unable to connect to the target instance " + target_address +
           ". Please make sure the instance is available and try again. If the "
@@ -1125,7 +1124,7 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
       topology.get(), get_primary_master().get(),
       target_server.get() ? target_server->get_canonical_address()
                           : instance_def,
-      target_server.get(), force.get_safe(), &md, &repl_working);
+      target_server.get(), force.value_or(false), &md, &repl_working);
 
   if (md.invalidated) {
     console->print_note(md.label +
@@ -1140,7 +1139,7 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
                           "' to synchronize with the PRIMARY...");
       sync_transactions(*target_server, {k_replicaset_channel_name}, timeout);
     } catch (const shcore::Exception &e) {
-      if (force.get_safe()) {
+      if (force.value_or(false)) {
         console->print_warning(
             "Transaction sync failed but ignored because of 'force' option: " +
             e.format());
@@ -1171,7 +1170,7 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
             "' to synchronize the Metadata updates with the PRIMARY...");
         sync_transactions(*target_server, {k_replicaset_channel_name}, timeout);
       } catch (const shcore::Exception &e) {
-        if (force.get_safe()) {
+        if (force.value_or(false)) {
           console->print_warning(
               "Transaction sync failed but ignored because of 'force' "
               "option: " +
@@ -1533,8 +1532,9 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   // Wait for all instances to apply retrieved transactions (relay log) first.
   // NOTE: Otherwise GTID_EXECUTED set might be missing trx when checking most
   //       up-to-date instances.
-  wait_all_apply_retrieved_trx(&instances, timeout, invalidate_error_instances,
-                               &instances_md, &invalidate_ids);
+  wait_all_apply_retrieved_trx(&instances, std::chrono::seconds{timeout},
+                               invalidate_error_instances, &instances_md,
+                               &invalidate_ids);
 
   // Find a candidate to be promoted.
   // NOTE: Use updated (current) GTID_EXECUTED set from instance and not the
@@ -2514,7 +2514,6 @@ void Replica_set_impl::check_replication_applier_errors(
     std::vector<Instance_metadata> *out_instances_md,
     std::list<Instance_id> *out_invalidate_ids) const {
   auto console = current_console();
-  int error_count = 0;
 
   std::list<std::string> error_uuids;
 
@@ -2523,89 +2522,85 @@ void Replica_set_impl::check_replication_applier_errors(
     auto srv_info =
         srv_topology->get_server(instance->get_uuid())->get_primary_member();
 
-    if (srv_info->master_channel) {
-      // Get the applier status.
-      // NOTE: Ignore receiver status since it is expected to have errors
-      //       if the primary failed  and some expected receiver status
-      //       (e.g., CONNECTION_ERROR) have precedence over other applier
-      //       status (e.g., APPLIER_OFF).
-      mysqlshdk::mysql::Replication_channel channel =
-          srv_info->master_channel->info;
-      mysqlshdk::mysql::Replication_channel::Status applier_status =
-          channel.applier_status();
+    if (!srv_info->master_channel) continue;
 
-      // Issue error if the replication applier is stopped or has errors.
-      if (applier_status ==
-          mysqlshdk::mysql::Replication_channel::Status::APPLIER_OFF) {
-        std::string err_msg{"Replication applier is OFF at instance " +
-                            srv_info->label + "."};
+    // Get the applier status.
+    // NOTE: Ignore receiver status since it is expected to have errors
+    //       if the primary failed  and some expected receiver status
+    //       (e.g., CONNECTION_ERROR) have precedence over other applier
+    //       status (e.g., APPLIER_OFF).
+    mysqlshdk::mysql::Replication_channel channel =
+        srv_info->master_channel->info;
+    mysqlshdk::mysql::Replication_channel::Status applier_status =
+        channel.applier_status();
+
+    // Issue error if the replication applier is stopped or has errors.
+    if (applier_status ==
+        mysqlshdk::mysql::Replication_channel::Status::APPLIER_OFF) {
+      std::string err_msg{"Replication applier is OFF at instance " +
+                          srv_info->label + "."};
+      if (!invalidate_error_instances) {
+        console->print_error(err_msg);
+      } else {
+        log_warning("%s", err_msg.c_str());
+        console->print_note(
+            srv_info->label +
+            " will be invalidated (replication applier is OFF) and must be "
+            "fixed or removed from the replicaset.");
+      }
+      error_uuids.push_back(srv_info->uuid);
+    } else if (applier_status ==
+               mysqlshdk::mysql::Replication_channel::Status::APPLIER_ERROR) {
+      for (const auto &applier : channel.appliers) {
+        if (applier.last_error.code == 0) continue;
+
+        std::string err_msg{"Replication applier error at " + srv_info->label +
+                            ": " +
+                            mysqlshdk::mysql::to_string(applier.last_error)};
         if (!invalidate_error_instances) {
-          console->print_error(err_msg);
+          current_console()->print_error(err_msg);
         } else {
           log_warning("%s", err_msg.c_str());
           console->print_note(
               srv_info->label +
-              " will be invalidated (replication applier is OFF) and must be "
-              "fixed or removed from the replicaset.");
+              " will be invalidated (replication applier error) and must "
+              "be fixed or removed from the replicaset.");
         }
-        error_count++;
-        error_uuids.push_back(srv_info->uuid);
-      } else if (applier_status ==
-                 mysqlshdk::mysql::Replication_channel::Status::APPLIER_ERROR) {
-        for (const auto &applier : channel.appliers) {
-          if (applier.last_error.code != 0) {
-            std::string err_msg{
-                "Replication applier error at " + srv_info->label + ": " +
-                mysqlshdk::mysql::to_string(applier.last_error)};
-            if (!invalidate_error_instances) {
-              current_console()->print_error(err_msg);
-            } else {
-              log_warning("%s", err_msg.c_str());
-              console->print_note(
-                  srv_info->label +
-                  " will be invalidated (replication applier error) and must "
-                  "be fixed or removed from the replicaset.");
-            }
-          }
-        }
-        error_uuids.push_back(srv_info->uuid);
-        error_count++;
       }
+      error_uuids.push_back(srv_info->uuid);
     }
   }
 
-  if (error_count > 0) {
-    if (!invalidate_error_instances) {
-      console->print_error(
-          "Replication errors found for one or more SECONDARY instances. Use "
-          "the 'invalidateErrorInstances' option to perform the failover "
-          "anyway by skipping and invalidating instances with errors.");
-      throw shcore::Exception(
-          "One or more instances have replication applier errors.",
-          SHERR_DBA_REPLICATION_APPLIER_ERROR);
-    } else {
-      console->print_info();
+  if (error_uuids.empty()) return;
 
-      // Update instances lists according to invalidated instances.
-      for (const auto &uuid : error_uuids) {
-        // Add instance to invalidate to list.
-        auto it =
-            std::find_if(out_instances_md->begin(), out_instances_md->end(),
-                         [&uuid](const Instance_metadata &i_md) {
-                           return i_md.uuid == uuid;
-                         });
-        if (it != out_instances_md->end()) {
-          out_invalidate_ids->push_back(it->id);
-        }
+  if (!invalidate_error_instances) {
+    console->print_error(
+        "Replication errors found for one or more SECONDARY instances. Use "
+        "the 'invalidateErrorInstances' option to perform the failover "
+        "anyway by skipping and invalidating instances with errors.");
+    throw shcore::Exception(
+        "One or more instances have replication applier errors.",
+        SHERR_DBA_REPLICATION_APPLIER_ERROR);
+  }
 
-        // Remove instance to invalidate from lists.
-        out_online_instances->remove_if(
-            [&uuid](const std::shared_ptr<Instance> &i) {
-              return i->get_uuid() == uuid;
-            });
-        out_instances_md->erase(it);
-      }
+  console->print_info();
+
+  // Update instances lists according to invalidated instances.
+  for (const auto &uuid : error_uuids) {
+    // Add instance to invalidate to list.
+    auto it = std::find_if(
+        out_instances_md->begin(), out_instances_md->end(),
+        [&uuid](const Instance_metadata &i_md) { return i_md.uuid == uuid; });
+    if (it != out_instances_md->end()) {
+      out_invalidate_ids->push_back(it->id);
     }
+
+    // Remove instance to invalidate from lists.
+    out_online_instances->remove_if(
+        [&uuid](const std::shared_ptr<Instance> &i) {
+          return i->get_uuid() == uuid;
+        });
+    out_instances_md->erase(it);
   }
 }
 

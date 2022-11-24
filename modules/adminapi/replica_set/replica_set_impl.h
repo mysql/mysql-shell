@@ -90,7 +90,7 @@ class Replica_set_impl : public Base_cluster_impl {
                        bool interactive, bool dry_run);
 
   void remove_instance(const std::string &instance_def,
-                       const mysqlshdk::null_bool &force, int timeout);
+                       std::optional<bool> force, int timeout);
 
   void set_primary_instance(const std::string &instance_def, uint32_t timeout,
                             bool dry_run);

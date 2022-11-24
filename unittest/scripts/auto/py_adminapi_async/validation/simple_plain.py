@@ -310,9 +310,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 ** Connecting to 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Connecting to 127.0.0.1:<<<__mysql_sandbox_port2>>>
 
-* Waiting for all received transactions to be applied
-** Waiting for received transactions to be applied at 127.0.0.1:[[*]]
-** Waiting for received transactions to be applied at 127.0.0.1:[[*]]
+* Waiting for all received transactions to be applied[[*]]
 127.0.0.1:<<<__mysql_sandbox_port1>>> will be promoted to PRIMARY of the replicaset and the former PRIMARY will be invalidated.
 
 * Checking status of last known PRIMARY

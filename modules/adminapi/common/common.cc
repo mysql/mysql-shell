@@ -35,7 +35,6 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/common/star_global_topology_manager.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -54,6 +53,7 @@
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/textui/progress.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -1858,6 +1858,52 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
   if (stop) throw cancel_sync();
 
   return sync_res;
+}
+
+void wait_for_apply_retrieved_trx(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::string &channel_name, std::chrono::seconds timeout,
+    bool silent) {
+  log_info("Waiting %d seconds for received transactions to be applied at '%s'",
+           static_cast<int>(timeout.count()), target_instance.descr().c_str());
+
+  DBUG_EXECUTE_IF("dba_wait_for_apply_retrieved_trx_timeout", {
+    throw shcore::Exception(
+        shcore::str_format(
+            "Timeout waiting for received transactions to be applied on "
+            "instance '%s' (debug)",
+            target_instance.descr().c_str()),
+        SHERR_DBA_GTID_SYNC_TIMEOUT);
+  });
+
+  std::string gtid_set =
+      mysqlshdk::mysql::get_received_gtid_set(target_instance, channel_name);
+
+  // optimize (common?) case where the GTIDs have already been applied
+  if (mysqlshdk::mysql::test_for_gtid_set(
+          target_instance, mysqlshdk::mysql::Gtid_set::from_string(gtid_set)))
+    return;
+
+  if (!silent) {
+    auto console = mysqlsh::current_console();
+    console->print_info(shcore::str_format(
+        "** Waiting for received transactions to be applied at '%s'...",
+        target_instance.descr().c_str()));
+  }
+
+  try {
+    if (!mysqlshdk::mysql::wait_for_gtid_set(target_instance, gtid_set,
+                                             timeout.count())) {
+      throw shcore::Exception(
+          shcore::str_format(
+              "Timeout waiting for received transactions to be applied on "
+              "instance '%s'",
+              target_instance.descr().c_str()),
+          SHERR_DBA_GTID_SYNC_TIMEOUT);
+    }
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+  }
 }
 
 void execute_script(const std::shared_ptr<Instance> &group_server,

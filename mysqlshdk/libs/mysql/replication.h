@@ -349,6 +349,18 @@ Replica_gtid_state check_replica_gtid_state(
     std::string *out_errant_gtids = nullptr);
 
 /**
+ * Checks if the given GTID set is applied on the target instance.
+ *
+ * @param instance target instance to check for GTIDs to be applied.
+ * @param gtid_set string with the GTID set to check to be applied.
+ * @return Return true if the GTID set has been applied, false otherwise
+ * @throws an error if some issue occurred when checking for transactions to be
+ *         applied.
+ */
+bool test_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
+                       const Gtid_set &gtid_set);
+
+/**
  * Wait until the given GTID set is applied on the target instance.
  *
  * @param instance target instance to wait for GTIDs to be applied.

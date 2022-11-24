@@ -1072,6 +1072,36 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     console->print_info();
   }
 
+  // before picking the best seed instance, make sure that all pending
+  // transactions are applied
+  {
+    console->print_info(
+        "Waiting for instances to apply pending received transactions...");
+
+    if (!m_options.get_dry_run()) {
+      auto check_cb = [](const mysqlshdk::mysql::IInstance &instance,
+                         std::chrono::seconds timeout) {
+        mysqlshdk::mysql::Replication_channel channel;
+        if (!get_channel_status(instance, mysqlshdk::gr::k_gr_applier_channel,
+                                &channel))
+          return;
+
+        if (auto status = channel.status();
+            (status == mysqlshdk::mysql::Replication_channel::OFF) ||
+            (status == mysqlshdk::mysql::Replication_channel::APPLIER_OFF) ||
+            (status == mysqlshdk::mysql::Replication_channel::APPLIER_ERROR))
+          return;
+
+        wait_for_apply_retrieved_trx(
+            instance, mysqlshdk::gr::k_gr_applier_channel, timeout, false);
+      };
+
+      check_cb(*m_target_instance, m_options.get_timeout());
+
+      for (const auto &i : instances) check_cb(*i, m_options.get_timeout());
+    }
+  }
+
   // pick the seed instance
   std::shared_ptr<Instance> best_instance_gtid;
   {

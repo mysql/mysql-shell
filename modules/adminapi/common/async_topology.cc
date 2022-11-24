@@ -321,31 +321,14 @@ void async_change_primary(
 }
 
 void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
-                              int timeout_sec) {
-  std::string gtid_set = mysqlshdk::mysql::get_received_gtid_set(
-      *instance, k_replicaset_channel_name);
-
-  auto console = mysqlsh::current_console();
-  console->print_info("** Waiting for received transactions to be applied at " +
-                      instance->descr());
-
-  try {
-    if (!mysqlshdk::mysql::wait_for_gtid_set(*instance, gtid_set,
-                                             timeout_sec)) {
-      throw shcore::Exception(
-          "Timeout waiting for retrieved transactions to be applied on "
-          "instance " +
-              instance->descr(),
-          SHERR_DBA_GTID_SYNC_TIMEOUT);
-    }
-  } catch (const shcore::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-  }
+                              std::chrono::seconds timeout) {
+  wait_for_apply_retrieved_trx(*instance, k_replicaset_channel_name, timeout,
+                               false);
 }
 
 void wait_all_apply_retrieved_trx(
-    std::list<std::shared_ptr<Instance>> *instances, int timeout_sec,
-    bool invalidate_error_instances,
+    std::list<std::shared_ptr<Instance>> *instances,
+    std::chrono::seconds timeout, bool invalidate_error_instances,
     std::vector<Instance_metadata> *out_instances_md,
     std::list<Instance_id> *out_invalidate_ids) {
   auto console = current_console();
@@ -355,8 +338,8 @@ void wait_all_apply_retrieved_trx(
       execute_in_parallel(instances->begin(), instances->end(),
                           // Wait for retrieved GTIDs to be applied in parallel
                           // and return an error or null.
-                          [timeout_sec](const std::shared_ptr<Instance> &inst) {
-                            wait_apply_retrieved_trx(inst.get(), timeout_sec);
+                          [timeout](const std::shared_ptr<Instance> &inst) {
+                            wait_apply_retrieved_trx(inst.get(), timeout);
                           });
 
   if (!errors.empty()) {

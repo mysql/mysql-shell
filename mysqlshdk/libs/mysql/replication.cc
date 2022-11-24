@@ -688,6 +688,13 @@ Replication_channel wait_replication_done_connecting(
   } while (true);
 }
 
+bool test_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
+                       const Gtid_set &gtid_set) {
+  auto result = instance.queryf("SELECT GTID_SUBSET(?, @@GLOBAL.gtid_executed)",
+                                gtid_set.str());
+  return result->fetch_one()->get_int(0);
+}
+
 bool wait_for_gtid_set(const mysqlshdk::mysql::IInstance &instance,
                        const std::string &gtid_set, int timeout) {
   // NOTE: According to the GR team the max supported timeout value for
