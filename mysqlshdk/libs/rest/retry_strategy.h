@@ -31,6 +31,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "mysqlshdk/libs/rest/error.h"
 #include "mysqlshdk/libs/rest/response.h"
 
 namespace mysqlshdk {
@@ -50,10 +51,10 @@ namespace rest {
  * A successful request is the first stop criteria (unless configured to NOT be
  * that way).
  *
- * In addition the following stop criterias can be defined:
+ * In addition the following stop criteria can be defined:
  *
  * - Max number of retries.
- * - Max ellapsed time.
+ * - Max elapsed time.
  *
  * A base sleep time must be provided to wait between each retry.
  */
@@ -78,13 +79,20 @@ class Retry_strategy {
     m_retriable_status[code].emplace(msg);
   }
 
+  void add_retriable_curl_error_code(int code) {
+    m_retriable_curl_error_codes.emplace(code);
+  }
+
   void set_retry_on_server_errors(bool value) {
     m_retry_on_server_errors = value;
   }
 
-  bool should_retry(
-      std::optional<Response::Status_code> response_status_code = {},
-      const std::string &error_msg = {});
+  bool should_retry();
+
+  bool should_retry(Response::Status_code response_status_code,
+                    const std::optional<Response_error> &error = {});
+
+  bool should_retry(const Connection_error &error);
 
   void wait_for_retry();
 
@@ -105,11 +113,14 @@ class Retry_strategy {
   virtual std::chrono::seconds next_sleep_time(
       std::optional<Response::Status_code> response_status_code = {});
 
+  bool should_retry(std::optional<Response::Status_code> response_status_code);
+
   // Retry criteria members
   std::optional<uint32_t> m_max_attempts;
   std::optional<std::chrono::seconds> m_max_ellapsed_time;
   std::unordered_map<Response::Status_code, std::unordered_set<std::string>>
       m_retriable_status;
+  std::unordered_set<int> m_retriable_curl_error_codes;
   bool m_retry_on_server_errors = false;
 
   // Tracking members
@@ -122,7 +133,7 @@ class Retry_strategy {
  * Exponential back-off retry strategy: it varies the wait time between each
  * retry. The wait time is calculated with full jitter as:
  *
- * exponential_wait_time = base_wait_time * (exponent_grow_factor ^ attemp)
+ * exponential_wait_time = base_wait_time * (exponent_grow_factor ^ attempt)
  * exponential_wait_time = min(exponential_wait_time, max_time_between_retries)
  *
  * wait_time = random(0, exponential_wait_time)

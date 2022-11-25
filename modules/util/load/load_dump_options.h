@@ -160,6 +160,8 @@ class Load_dump_options {
   bool include_table(std::string_view schema, std::string_view table) const;
   bool include_event(std::string_view schema, std::string_view event) const;
   bool include_routine(std::string_view schema, std::string_view routine) const;
+  bool include_routine_ci(std::string_view schema,
+                          std::string_view routine) const;
   bool include_trigger(std::string_view schema, std::string_view table,
                        std::string_view trigger) const;
 
@@ -234,6 +236,10 @@ class Load_dump_options {
   bool include_object(std::string_view schema, std::string_view object,
                       const std::unordered_set<std::string> &included,
                       const std::unordered_set<std::string> &excluded) const;
+
+  bool include_object_ci(std::string_view schema, std::string_view object,
+                         const std::unordered_set<std::string> &included,
+                         const std::unordered_set<std::string> &excluded) const;
 
   bool error_on_object_filters_conflicts(
       const std::unordered_set<std::string> &included,

@@ -3245,9 +3245,11 @@ bool Schema_dumper::include_grant(const std::string &grant) const {
 
             case Object_type::TABLE: {
               const auto &tables = cached_schema->second.tables;
+              const auto &views = cached_schema->second.views;
 
-              // exclude the grant if table is not included
-              if (tables.end() == tables.find(object)) {
+              // exclude the grant if table or view is not included
+              if (tables.end() == tables.find(object) &&
+                  views.end() == views.find(object)) {
                 return false;
               }
             } break;
@@ -3256,9 +3258,20 @@ bool Schema_dumper::include_grant(const std::string &grant) const {
               const auto &functions = cached_schema->second.functions;
               const auto &procedures = cached_schema->second.procedures;
 
+              // BUG#34764157 routine names are case insensitive, MySQL 5.7 has
+              // lower-case names of routines in grant statements
+              const auto r = shcore::utf8_to_wide(object);
+              const auto contains_ci = [&r](const auto &c) {
+                for (const auto &e : c) {
+                  if (shcore::str_caseeq(r, shcore::utf8_to_wide(e))) {
+                    return true;
+                  }
+                }
+                return false;
+              };
+
               // exclude the grant if routine is not included
-              if (functions.end() == functions.find(object) &&
-                  procedures.end() == procedures.find(object)) {
+              if (!contains_ci(functions) && !contains_ci(procedures)) {
                 return false;
               }
             } break;

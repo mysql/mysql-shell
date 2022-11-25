@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,8 @@
 #define MYSQLSHDK_LIBS_REST_ERROR_H_
 
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
 namespace mysqlshdk {
 namespace rest {
@@ -33,8 +35,16 @@ namespace rest {
  * Detailed information on connection error.
  */
 class Connection_error : public std::runtime_error {
+ public:
+  Connection_error(std::string_view msg, int curl_code)
+      : std::runtime_error(std::string{msg} +
+                           " (CURLcode = " + std::to_string(curl_code) + ")"),
+        m_curl_code(curl_code) {}
+
+  int curl_code() const noexcept { return m_curl_code; }
+
  private:
-  using std::runtime_error::runtime_error;
+  int m_curl_code;
 };
 
 }  // namespace rest

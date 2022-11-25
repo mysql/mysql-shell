@@ -901,6 +901,25 @@ TEST_F(Rest_service_test, retry_strategy_throttling) {
   EXPECT_TRUE(retry_strategy.get_retry_count() <= 6);
 }
 
+TEST_F(Rest_service_test, bug34765385) {
+  // BUG#34765385: retry in case of CURL-related errors
+  FAIL_IF_NO_SERVER
+
+  // retry twice, waiting one second each time
+  Retry_strategy retry_strategy(1);
+  retry_strategy.set_max_attempts(2);
+  // CURLE_PARTIAL_FILE
+  retry_strategy.add_retriable_curl_error_code(18);
+
+  auto request = Request("/partial_file/1000");
+  request.type = Type::GET;
+  request.retry_strategy = &retry_strategy;
+
+  // this throws, but first retries two times
+  EXPECT_THROW(m_service.execute(&request), Connection_error);
+  EXPECT_EQ(2, retry_strategy.get_retry_count());
+}
+
 }  // namespace test
 }  // namespace rest
 }  // namespace mysqlshdk

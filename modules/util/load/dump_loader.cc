@@ -3350,7 +3350,9 @@ void Dump_loader::load_users() const {
               return m_dump->include_table(schema, object);
 
             case dump::Schema_dumper::Object_type::ROUTINE:
-              return m_dump->include_routine(schema, object);
+              // BUG#34764157 routine names are case insensitive, MySQL 5.7
+              // has lower-case names of routines in grant statements
+              return m_dump->include_routine_ci(schema, object);
           }
 
           throw std::logic_error("Should not happen");

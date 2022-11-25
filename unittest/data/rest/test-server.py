@@ -55,7 +55,8 @@ class TestRequestHandler(BaseHTTPRequestHandler):
             r'^/redirect/([1-9][0-9]*)$': self.handle_redirect,
             r'^/server_error/([1-9][0-9]*)/?(.*)$': self.handle_server_error,
             r'^/basic/([^/]+)/(.+)$': self.handle_basic,
-            r'^/headers?.+$': self.handle_headers
+            r'^/headers?.+$': self.handle_headers,
+            r'^/partial_file/([1-9][0-9]*)$': self.handle_partial_file
         }
 
         try:
@@ -116,6 +117,15 @@ class TestRequestHandler(BaseHTTPRequestHandler):
 
     def handle_headers(self, args):
         self.reply(extra_headers=parse_qsl(urlparse(self.path).query, keep_blank_values=True))
+        return True
+
+    def handle_partial_file(self, args):
+        # Content-Length does not match length of the response body
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', f'{args[0]}')
+        self.end_headers()
+        self.wfile.write('')
         return True
 
     def invoke_handler(self):

@@ -175,7 +175,7 @@ std::string_view SQL_iterator::next_token() {
 
 std::pair<std::string_view, size_t> SQL_iterator::next_token_and_offset() {
   while (valid() && std::isspace(get_char())) ++(*this);
-  if (!valid()) return {{}, m_offset};
+  if (!valid()) return {"", m_offset};
 
   const auto start = m_offset;
   if (!m_skip_quoted) {

@@ -647,6 +647,12 @@ bool Load_dump_options::include_routine(std::string_view schema,
                         m_exclude_routines);
 }
 
+bool Load_dump_options::include_routine_ci(std::string_view schema,
+                                           std::string_view routine) const {
+  return include_object_ci(schema, routine, m_include_routines,
+                           m_exclude_routines);
+}
+
 bool Load_dump_options::include_object(
     std::string_view schema, std::string_view object,
     const std::unordered_set<std::string> &included,
@@ -661,6 +667,32 @@ bool Load_dump_options::include_object(
   if (excluded.count(key) > 0) return false;
 
   return (included.empty() || included.count(key) > 0);
+}
+
+bool Load_dump_options::include_object_ci(
+    std::string_view schema, std::string_view object,
+    const std::unordered_set<std::string> &included,
+    const std::unordered_set<std::string> &excluded) const {
+  assert(!schema.empty());
+  assert(!object.empty());
+
+  if (!include_schema(schema)) return false;
+
+  const auto key = shcore::utf8_to_wide(schema_object_key(schema, object));
+  const auto contains_ci = [&key](const auto &c) {
+    for (const auto &e : c) {
+      if (shcore::str_caseeq(key, shcore::utf8_to_wide(e))) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if (contains_ci(excluded)) {
+    return false;
+  }
+
+  return (included.empty() || contains_ci(included));
 }
 
 bool Load_dump_options::include_trigger(std::string_view schema,
