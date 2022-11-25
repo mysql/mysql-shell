@@ -85,12 +85,21 @@ EXPECT_ARRAY_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(g
 EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["_hidden"] === false);
 EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["_disconnect_existing_sessions_when_hidden"] === true);
 
+// status() must not contain hiddenFromRouter when the tag is either not set
+// or set to false
+status = rs.status();
+EXPECT_FALSE("hiddenFromRouter" in status["replicaSet"]["topology"][__endpoint2]);
+
 // Values are converted and saved as the expected type
 rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", 1);
 rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", 0);
 
 EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["_hidden"] === true);
 EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["_disconnect_existing_sessions_when_hidden"] === false);
+
+// status() must contain hiddenFromRouter when the tag is set to true
+status = rs.status();
+EXPECT_TRUE(status["replicaSet"]["topology"][__endpoint2]["hiddenFromRouter"]);
 
 rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", "false");
 rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "true");
@@ -108,6 +117,11 @@ EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["_disconnect_existing_session
 EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_tags_for_instance(rs, __endpoint2)));
 rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", null);
 EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_tags_for_instance(rs, __endpoint2)));
+
+// status() must not contain hiddenFromRouter when the tag is either not set
+// or set to false
+status = rs.status();
+EXPECT_FALSE("hiddenFromRouter" in status["replicaSet"]["topology"][__endpoint2]);
 
 // Setting a non existing tag to null, throws no error
 EXPECT_NO_THROWS(function(){rs.setInstanceOption(__sandbox_uri1, "tag:non_existing", null)});

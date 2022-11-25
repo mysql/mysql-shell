@@ -151,7 +151,9 @@ constexpr const char *k_base_instance_query =
     " am.master_instance_id, am.master_member_id, am.member_role, am.view_id,"
     " i.label, i.mysql_server_uuid, i.address,"
     " i.endpoint, i.xendpoint, ii.addresses->>'$.grLocal' as grendpoint,"
-    " CAST(ii.attributes->'$.server_id' AS UNSIGNED) server_id"
+    " CAST(ii.attributes->'$.server_id' AS UNSIGNED) server_id,"
+    " IFNULL(CAST(ii.attributes->'$.tags._hidden' AS UNSIGNED), false)"
+    " hidden_from_router"
     " FROM mysql_innodb_cluster_metadata.v2_instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.instances ii"
     "   ON ii.instance_id = i.instance_id"
@@ -1479,6 +1481,10 @@ Instance_metadata MetadataStorage::unserialize_instance(
 
   instance.server_id = row.get_uint("server_id", 0);
 
+  if (row.has_field("hidden_from_router")) {
+    instance.hidden_from_router = row.get_uint("hidden_from_router", 0);
+  }
+
   return instance;
 }
 
@@ -1563,7 +1569,9 @@ constexpr const char *k_replica_set_instances_query =
     " am.master_instance_id, am.master_member_id,"
     " am.member_role, am.view_id, "
     " i.label, i.mysql_server_uuid, i.address, i.endpoint, i.xendpoint, "
-    " CAST(i.attributes->'$.server_id' AS UNSIGNED) server_id"
+    " CAST(i.attributes->'$.server_id' AS UNSIGNED) server_id,"
+    " IFNULL(CAST(i.attributes->'$.tags._hidden' AS UNSIGNED), false)"
+    " hidden_from_router"
     " FROM mysql_innodb_cluster_metadata.v2_instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.v2_ar_members am"
     "   ON am.instance_id = i.instance_id"
