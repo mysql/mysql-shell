@@ -668,7 +668,7 @@ void Status::feed_metadata_info(shcore::Dictionary_t dict,
   (*dict)["role"] = shcore::Value("HA");
 
   if (info.hidden_from_router) {
-    (*dict)["hiddenFromRouter"] = shcore::Value(true);
+    (*dict)["hiddenFromRouter"] = shcore::Value::True();
   }
 }
 

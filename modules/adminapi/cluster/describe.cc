@@ -48,7 +48,7 @@ void Describe::feed_metadata_info(shcore::Dictionary_t dict,
   (*dict)["label"] = shcore::Value(info.label);
 
   if (info.hidden_from_router) {
-    (*dict)["hiddenFromRouter"] = shcore::Value(true);
+    (*dict)["hiddenFromRouter"] = shcore::Value::True();
   }
 }
 
