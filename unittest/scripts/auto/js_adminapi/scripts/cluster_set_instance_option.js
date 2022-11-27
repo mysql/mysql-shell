@@ -260,6 +260,13 @@ EXPECT_ARRAY_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(g
 EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === false);
 EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === true);
 
+// status() and describe() must not contain hiddenFromRouter when the tag is
+// either not set or set to false
+status = cluster.status();
+describe = cluster.describe();
+EXPECT_FALSE("hiddenFromRouter" in status["defaultReplicaSet"]["topology"][__endpoint2]);
+EXPECT_FALSE("hiddenFromRouter" in describe["defaultReplicaSet"]["topology"]);
+
 // Values are converted and saved as the expected type
 cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", 1);
 cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", 0);
@@ -267,11 +274,33 @@ cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_whe
 EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === true);
 EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === false);
 
+// status() and describe() must contain hiddenFromRouter when the tag is
+// set to true
+status = cluster.status();
+describe = cluster.describe();
+
+// Get the dictionary of the target instance
+var describe_dict;
+for (var i = 0; i < describe.defaultReplicaSet.topology.length; ++i) {
+    if (describe.defaultReplicaSet.topology[i]["address"] == __endpoint3)
+        describe_dict = describe.defaultReplicaSet.topology[i];
+}
+
+EXPECT_TRUE(status["defaultReplicaSet"]["topology"][__endpoint3]["hiddenFromRouter"]);
+EXPECT_TRUE(describe_dict["hiddenFromRouter"]);
+
 cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", "false");
 cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", "true");
 
 EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === false);
 EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === true);
+
+// status() and describe() must not contain hiddenFromRouter when the tag is
+// either not set or set to false
+status = cluster.status();
+describe = cluster.describe();
+EXPECT_FALSE("hiddenFromRouter" in status["defaultReplicaSet"]["topology"][__endpoint3]);
+EXPECT_FALSE("hiddenFromRouter" in describe["defaultReplicaSet"]["topology"]);
 
 cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", -1);
 cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", 0.1);
@@ -283,6 +312,13 @@ EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_se
 EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
 cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", null);
 EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+
+// status() and describe() must not contain hiddenFromRouter when the tag is
+// either not set or set to false
+status = cluster.status();
+describe = cluster.describe();
+EXPECT_FALSE("hiddenFromRouter" in status["defaultReplicaSet"]["topology"][__endpoint3]);
+EXPECT_FALSE("hiddenFromRouter" in describe["defaultReplicaSet"]["topology"]);
 
 // Setting a non existing tag to null, throws no error
 EXPECT_NO_THROWS(function(){cluster.setInstanceOption(__sandbox_uri3, "tag:non_existing", null)});

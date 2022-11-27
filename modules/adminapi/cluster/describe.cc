@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,10 @@ void Describe::feed_metadata_info(shcore::Dictionary_t dict,
   (*dict)["address"] = shcore::Value(info.endpoint);
   (*dict)["role"] = shcore::Value("HA");
   (*dict)["label"] = shcore::Value(info.label);
+
+  if (info.hidden_from_router) {
+    (*dict)["hiddenFromRouter"] = shcore::Value::True();
+  }
 }
 
 shcore::Array_t Describe::get_topology() {

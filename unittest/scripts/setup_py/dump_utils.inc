@@ -88,7 +88,7 @@ def snapshot_functions(session, schema):
 def snapshot_events(session, schema):
     events = {}
     for row in session.run_sql("SHOW EVENTS IN !", [schema]).fetch_all():
-        name = row.name
+        name = row.Name
         events[name] = {}
         events[name]["ddl"] = session.run_sql("SHOW CREATE EVENT !.!", [schema, name]).fetch_one()[3]
     return events

@@ -1668,8 +1668,8 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_changed_functions_generated_columns_check(
     const Upgrade_info &info) {
-  if (info.target_version < Version(8, 0, 28) ||
-      info.server_version >= Version(8, 0, 28))
+  if (info.target_version && (info.target_version < Version(8, 0, 28) ||
+                              info.server_version >= Version(8, 0, 28)))
     throw Check_not_needed();
 
   return std::make_unique<Changed_functions_in_generated_columns_check>();
@@ -1741,6 +1741,28 @@ namespace {
 bool UNUSED_VARIABLE(register_get_invalid_57_names_check) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::get_invalid_57_names_check),
+        Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_orphaned_routines_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      "mysqlOrphanedRoutinesCheck", "Check for orphaned routines in 5.7",
+      std::vector<std::string>{
+          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'is orphaned' AS WARNING "
+          "FROM information_schema.routines WHERE NOT EXISTS "
+          "(SELECT SCHEMA_NAME FROM information_schema.schemata "
+          "WHERE ROUTINE_SCHEMA=SCHEMA_NAME);"},
+      Upgrade_issue::ERROR,
+      "The following routines have been orphaned. Schemas that they are "
+      "referencing no longer exists.\nThey have to be cleaned up or the "
+      "upgrade will fail.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_orphaned_routines_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_orphaned_routines_check),
         Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
 }
 

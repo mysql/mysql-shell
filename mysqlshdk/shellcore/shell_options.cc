@@ -345,11 +345,15 @@ Shell_options::Shell_options(
         })
     (cmdline("-P", "--port=<#>"),
         "Port number to use for connection.",
-        [this](const std::string&, const char* value) {
+        [this](const std::string& option, const char* value) {
           storage.connection_data.clear_socket();
           storage.connection_data.clear_pipe();
-          storage.connection_data.set_port(shcore::opts::convert<int>(
+          try {
+                storage.connection_data.set_port(shcore::opts::convert<int>(
             value, shcore::opts::Source::Command_line));
+          } catch (const std::invalid_argument& error) {
+            throw std::invalid_argument(shcore::str_format("Invalid value for %s: %s", option.c_str(), value));
+          }
         })
     (cmdline("--connect-timeout=<ms>"), "Connection timeout in milliseconds.",
         [this](const std::string&, const char* value) {
@@ -470,6 +474,8 @@ Shell_options::Shell_options(
           storage.default_cluster_set = true;
         })
     (cmdline("--replicaset"), "Ensure that the target server is part of an "
+
+
         "InnoDB ReplicaSet and if so, set the 'rs' global variable.",
         assign_value(&storage.default_replicaset_set, true))
     (cmdline("--sql"), "Start in SQL mode, auto-detecting the protocol to use "

@@ -155,6 +155,7 @@ Instance::Instance(Node *node, const Instance_metadata &info) {
   endpoint = info.endpoint;
   managed = true;
   node_ptr = node;
+  hidden_from_router = info.hidden_from_router;
 }
 
 Instance_status Instance::status() const {

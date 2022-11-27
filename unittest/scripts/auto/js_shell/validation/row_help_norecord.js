@@ -13,7 +13,7 @@ DESCRIPTION
       - Its name must be different from names of the members of this object.
 
       In the case a field does not met these conditions, it must be retrieved
-      through the this function.
+      through the Row.getField(<field_name>) function.
 
 PROPERTIES
       length

@@ -71,6 +71,7 @@ class Instance final {
   std::string uuid;
   std::string endpoint;
   bool managed = false;
+  bool hidden_from_router = false;
   Node *node_ptr = nullptr;
 
  public:

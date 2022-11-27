@@ -823,4 +823,15 @@ TEST_F(Command_line_connection_test, auth_method) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS(protocol_mismatch_error);
 }
 
+TEST_F(Command_line_connection_test, invalid_port) {
+  execute({_mysqlsh, _uri.c_str(), "--port=invalidPort1", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid value for --port: invalidPort1");
+
+  execute({_mysqlsh, _uri.c_str(), "--port", "invalidPort2", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid value for --port: invalidPort2");
+
+  execute({_mysqlsh, _uri.c_str(), "-PinvalidPort3", NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid value for -P: invalidPort3");
+}
+
 }  // namespace tests

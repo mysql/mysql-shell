@@ -666,6 +666,10 @@ void Status::feed_metadata_info(shcore::Dictionary_t dict,
                                 const Instance_metadata &info) {
   (*dict)["address"] = shcore::Value(info.endpoint);
   (*dict)["role"] = shcore::Value("HA");
+
+  if (info.hidden_from_router) {
+    (*dict)["hiddenFromRouter"] = shcore::Value::True();
+  }
 }
 
 void Status::feed_member_info(shcore::Dictionary_t dict,

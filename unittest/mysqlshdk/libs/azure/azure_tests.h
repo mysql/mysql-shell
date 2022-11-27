@@ -128,8 +128,11 @@ class Azure_tests : public Shell_core_test_wrapper {
   }
 
   std::shared_ptr<Blob_storage_config> get_config(
-      const std::string &name = "") {
-    return testing::get_config(name.empty() ? container_name() : name);
+      const std::string &name = "",
+      mysqlshdk::azure::Blob_storage_options::Operation operation =
+          mysqlshdk::azure::Blob_storage_options::Operation::WRITE) {
+    return testing::get_config(name.empty() ? container_name() : name,
+                               operation);
   }
 
   void skip(const std::string &reason) { m_skip_reasons.emplace_back(reason); }

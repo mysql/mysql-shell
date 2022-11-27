@@ -253,7 +253,7 @@ object if two conditions are met:
 
 
 In the case a field does not met these conditions, it must be retrieved through
-the this function.
+the Row.<<<getField>>>(@<field_name@>) function.
 )*");
 Row::Row() {
   add_property("length", "getLength");
@@ -276,7 +276,14 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
     // and not base members like length and getField
     // O on this case the values would be available as
     // row.property
-    if (shcore::is_valid_identifier(key) && !has_member(key)) add_property(key);
+    // Properties for Row Fields are exposed exactly as the field name in both
+    // JavaScript and Python, hence the property is registered as
+    // <jsname> | <pyname> to avoid the naming enforcement logic to mess with
+    // the property name.
+    // i.e. without this a property like NAME would be turned into n_a_m_e for
+    // Python
+    if (shcore::is_valid_identifier(key) && !has_member(key))
+      add_property(key + "|" + key);
   }
 
   value_array = get_row_values(row);

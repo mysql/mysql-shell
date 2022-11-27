@@ -58,14 +58,16 @@ class Azure_signer_test : public testing::Test {
         Blob_storage_options::storage_account_option(), "devstoreaccount1",
         Blob_storage_options::config_file_option(), k_config_file);
 
-    Blob_storage_options::options().unpack(options, &m_options);
-    m_config = std::make_shared<Blob_storage_config>(m_options, false);
+    m_options = std::make_shared<Blob_storage_options>(
+        mysqlshdk::azure::Blob_storage_options::Operation::WRITE);
+    Blob_storage_options::options().unpack(options, m_options.get());
+    m_config = std::make_shared<Blob_storage_config>(*m_options.get(), false);
     m_signer = m_config->signer();
     m_azure_signer = dynamic_cast<mysqlshdk::azure::Signer *>(m_signer.get());
   }
 
  protected:
-  Blob_storage_options m_options;
+  std::shared_ptr<Blob_storage_options> m_options;
   std::shared_ptr<Blob_storage_config> m_config;
   std::unique_ptr<rest::Signer> m_signer;
   mysqlshdk::azure::Signer *m_azure_signer;

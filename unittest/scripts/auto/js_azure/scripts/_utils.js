@@ -33,6 +33,15 @@ function getDumpAndLoadFunctionCallbacks(options, envvars){
     };
 }
 
+function getDumpFunctionCallbacks(options, envvars){
+    return {
+        dumpInstance:function(){mysqlsh([__mysqluripwd + "/mysql", "--", "util", "dump-instance", "folder"].concat(options), envvars)},
+        dumpSchemas:function(){mysqlsh([__mysqluripwd + "/mysql", "--", "util", "dump-schemas", "sakila", "--output-url=folder"].concat(options), envvars)},
+        dumpTables:function(){mysqlsh([__mysqluripwd + "/mysql", "--", "util", "dump-tables", "sakila", "actor", "--output-url=folder"].concat(options), envvars)},
+        exportTable:function(){mysqlsh([__mysqluripwd + "/mysql", "--", "util", "export-table", "sakila.actor", "folder"].concat(options), envvars)},
+    };
+}
+
 exports.dropSakilaSchema = false;
 
 exports.setupFailureTests = function () {
@@ -50,6 +59,20 @@ exports.setupFailureTests = function () {
 
 exports.testFailure = function (options, envvars, error, custom_errors={}){
     let functions = getDumpAndLoadFunctionCallbacks(options, envvars);
+    for(index in functions){
+        expected_error = error;
+        if (index in custom_errors) {
+            expected_error = custom_errors[index];
+        }
+
+        functions[index]();
+        EXPECT_OUTPUT_CONTAINS(expected_error);
+        WIPE_OUTPUT();
+    }
+}
+
+exports.testDumpFailure = function (options, envvars, error, custom_errors={}){
+    let functions = getDumpFunctionCallbacks(options, envvars);
     for(index in functions){
         expected_error = error;
         if (index in custom_errors) {

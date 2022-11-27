@@ -195,6 +195,11 @@ shcore::Dictionary_t server_status(const topology::Server &server,
   shcore::Dictionary_t status = shcore::make_dict();
 
   status->set("address", shcore::Value(instance->endpoint));
+
+  if (instance->hidden_from_router) {
+    status->set("hiddenFromRouter", shcore::Value(true));
+  }
+
   // mode vs groupRole:
   // groupRole is the GR role in the group
   // mode is the aggregation of:

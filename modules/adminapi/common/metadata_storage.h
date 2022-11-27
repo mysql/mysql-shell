@@ -59,6 +59,7 @@ struct Instance_metadata {
   std::string xendpoint;
   std::string grendpoint;
   uint32_t server_id = 0;
+  bool hidden_from_router = false;
 
   // GR clusters only
   std::string group_name;

@@ -44,6 +44,17 @@
 * oldTemporalCheck.docLink
 https://mysqlserverteam.com/mysql-8-0-removing-support-for-old-temporal-datatypes/
 
+* routinesSyntaxCheck.title
+# MySQL 8.0 syntax check for routine-like objects
+
+* routinesSyntaxCheck.description
+# The following objects did not pass a syntax check with the latest MySQL 8.0 grammar. A common
+# reason is that they reference names that conflict with new reserved keywords. You must update
+# these routine definitions and `quote` any such references before upgrading.
+
+* routinesSyntaxCheck.docLink
+https://dev.mysql.com/doc/refman/en/keywords.html
+
 * reservedKeywordsCheck.title
 # Usage of db objects with names conflicting with new reserved keywords
 
@@ -53,17 +64,6 @@ https://mysqlserverteam.com/mysql-8-0-removing-support-for-old-temporal-datatype
 # errors.
 
 * reservedKeywordsCheck.docLink
-https://dev.mysql.com/doc/refman/en/keywords.html
-
-* routinesSyntaxCheck.title
-# MySQL 8.0 syntax check for routine-like objects
-
-* routinesSyntaxCheck.description
-# Error: The following objects did not pass a syntax check with the latest MySQL 8.0 grammar.
-# A common reason is that they reference names that conflict with new reserved keywords. You
-# must update these routine definitions and `quote` any such references before upgrading.
-
-* routinesSyntaxCheck.docLink
 https://dev.mysql.com/doc/refman/en/keywords.html
 
 * utf8mb3Check.title
@@ -262,15 +262,16 @@ https://lefred.be/content/mysql-8-0-and-wrong-dates/
 # Tables recognized by InnoDB that belong to a different engine
 
 * engineMixupCheck.description
-Error: Following tables are recognized by InnoDB engine while the SQL layer believes they belong
-to a different engine. Such situation may happen when one removes InnoDB table files manually from
-the disk and creates e.g. a MyISAM table with the same name.\n
+# Error
+Error: Following tables are recognized by InnoDB engine while the SQL layer believes they belong to
+a different engine. Such situation may happen when one removes InnoDB table files manually from the
+disk and creates e.g. a MyISAM table with the same name.\n
 \n
 A possible way to solve this situation is to e.g. in case of MyISAM table:\n
 \n
 1. Rename the MyISAM table to a temporary name (RENAME TABLE).\n
-2. Create some dummy InnoDB table (its definition does not need to match), then copy (copy, not move)
-and rename the dummy .frm and .ibd files to the orphan name using OS file commands.\n
+2. Create some dummy InnoDB table (its definition does not need to match), then copy (copy, not
+move) and rename the dummy .frm and .ibd files to the orphan name using OS file commands.\n
 3. The orphan table can be then dropped (DROP TABLE), as well as the dummy table.\n
 4. Finally the MyISAM table can be renamed back to its original name.
 
@@ -281,10 +282,10 @@ and rename the dummy .frm and .ibd files to the orphan name using OS file comman
 
 * oldGeometryCheck.description
 # Error
-Error: The following columns are spatial data columns created in MySQL Server version 5.6.
-MySQL 8.0 servers before 8.0.24 do not support upgrading these tables and will reject them.
-In order for the upgrade to succeed we encourage you to upgrade directly to MySQL Server version
-8.0.24 or newer. Otherwise, you must rebuild these tables using ALTER TABLE FORCE before upgrading.
+Error: The following columns are spatial data columns created in MySQL Server version 5.6. MySQL
+8.0 servers before 8.0.24 do not support upgrading these tables and will reject them. In order for
+the upgrade to succeed we encourage you to upgrade directly to MySQL Server version 8.0.24 or
+newer. Otherwise, you must rebuild these tables using ALTER TABLE FORCE before upgrading.
 
 * oldGeometryCheck.docLink
 
@@ -330,8 +331,8 @@ Warning: The new default authentication plugin 'caching_sha2_password' offers mo
 hashing than previously used 'mysql_native_password' (and consequent improved client connection
 authentication). However, it also has compatibility implications that may affect existing MySQL
 installations.  If your MySQL installation must serve pre-8.0 clients, you may encounter
-compatibility issues after upgrading unless newly created accounts are created
-to use 'mysql_native_password'.
+compatibility issues after upgrading unless newly created accounts are created to use
+'mysql_native_password'.
 
 * defaultAuthenticationPluginMds.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
@@ -354,10 +355,10 @@ https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgr
 
 * columnsWhichCannotHaveDefaultsCheck.description
 # Error
-Error: The following columns are defined as either BLOB, TEXT, GEOMETRY or JSON and have a default value
-set. These data types cannot have default values in MySQL versions prior to 8.0.13, while starting with
-8.0.13, the default value must be specified as an expression. In order to fix this issue, please use the
-ALTER TABLE ... ALTER COLUMN ... DROP DEFAULT statement.
+Error: The following columns are defined as either BLOB, TEXT, GEOMETRY or JSON and have a default
+value set. These data types cannot have default values in MySQL versions prior to 8.0.13, while
+starting with 8.0.13, the default value must be specified as an expression. In order to fix this
+issue, please use the ALTER TABLE ... ALTER COLUMN ... DROP DEFAULT statement.
 
 * columnsWhichCannotHaveDefaultsCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html#data-type-defaults-explicit
@@ -366,9 +367,17 @@ https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html#data-type-defaul
 # Check for invalid table names and schema names used in 5.7
 
 * mysqlInvalid57NamesCheck.description
-# Error
-The following tables and/or schemas have invalid names. In order to fix
-them use the mysqlcheck utility as follows:\n
+# Error: The following tables and/or schemas have invalid names. In order to fix them use the
+# mysqlcheck utility as follows:\n
+# \n
+#   $ mysqlcheck --check-upgrade --all-databases\n
+#   $ mysqlcheck --fix-db-names --fix-table-names --all-databases\n
+# \n
+# OR via mysql client, for eg:\n
+# \n
+#   ALTER DATABASE `#mysql50#lost+found` UPGRADE DATA DIRECTORY NAME;
+The following tables and/or schemas have invalid names. In order to fix them use the mysqlcheck
+utility as follows:\n
 \n
   $ mysqlcheck --check-upgrade --all-databases\n
   $ mysqlcheck --fix-db-names --fix-table-names --all-databases\n
@@ -381,4 +390,14 @@ OR via mysql client, for eg:\n
 https://dev.mysql.com/doc/refman/5.7/en/identifier-mapping.html
 https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
+
+* mysqlOrphanedRoutinesCheck.title
+# Check for orphaned routines in 5.7
+
+* mysqlOrphanedRoutinesCheck.description
+# Error: The following routines have been orphaned. Schemas that they are referencing no longer
+# exists.\n
+# They have to be cleaned up or the upgrade will fail.
+
+* mysqlOrphanedRoutinesCheck.docLink
 
