@@ -294,7 +294,7 @@ void Add_instance::refresh_target_connections() const {
   } catch (const shcore::Error &err) {
     auto e = shcore::Exception::mysql_error_with_code(err.what(), err.code());
 
-    if (CR_SERVER_LOST == e.code()) {
+    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
       log_debug(
           "Connection to instance '%s' lost: %s. Re-establishing a "
           "connection.",
@@ -325,25 +325,7 @@ void Add_instance::refresh_target_connections() const {
     }
   }
 
-  try {
-    m_cluster_impl->get_metadata_storage()->get_md_server()->query("SELECT 1");
-  } catch (const shcore::Error &err) {
-    auto e = shcore::Exception::mysql_error_with_code(err.what(), err.code());
-
-    if (CR_SERVER_LOST == e.code()) {
-      log_debug(
-          "Metadata connection lost: %s. Re-establishing a "
-          "connection.",
-          e.format().c_str());
-
-      auto md_server = m_cluster_impl->get_metadata_storage()->get_md_server();
-
-      md_server->get_session()->connect(md_server->get_connection_options());
-      md_server->prepare_session();
-    } else {
-      throw;
-    }
-  }
+  m_cluster_impl->refresh_connections();
 }
 
 void Add_instance::store_local_replication_account() const {

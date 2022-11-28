@@ -1486,4 +1486,66 @@ TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
                        "name='orphaned_procedure';"));
 }
 
+TEST_F(MySQL_upgrade_check_test, dollar_sign_name_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 32));
+
+  ASSERT_NO_THROW(
+      session->execute("DROP SCHEMA IF EXISTS $wrong_schema_dollar_name;"));
+
+  PrepareTestDatabase("$dollar_sign_name_check$");
+
+  ASSERT_NO_THROW(
+      session->execute("CREATE TABLE $correct_table$ ($correct_column1$ INT, "
+                       "$correct_column2$ INT);"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE VIEW $correct_view$ AS SELECT $correct_column1$ "
+                       "FROM $correct_table$;"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE INDEX $correct_index$ ON $correct_table$($correct_column2$);"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE PROCEDURE $correct_procedure$()\nBEGIN\nSELECT "
+                       "$correct_column1$ FROM $correct_table$;\nEND;"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE $correct_procedure_second$()\nBEGIN\nSELECT "
+      "'Some name with dollars $0.00';\nEND;"));
+
+  const auto check = Sql_upgrade_check::get_dollar_sign_name_check();
+  EXPECT_NO_ISSUES(check.get());
+
+  ASSERT_NO_THROW(session->execute("CREATE SCHEMA $wrong_schema_dollar_name;"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE $wrong_table ($wrong_column1 INT, $wrong_column2 INT);"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE VIEW $wrong_view AS SELECT $wrong_column1 FROM $wrong_table;"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE INDEX $wrong_index ON $wrong_table($wrong_column2);"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE PROCEDURE $wrong_procedure()\nBEGIN SELECT "
+                       "$wrong_column1 FROM $wrong_table;\nEND;"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE $wrong_procedure_body$()\nBEGIN\nSELECT "
+      "$correct_column1$, $wrong_column1 FROM $correct_table$, "
+      "$wrong_table;\nEND;"));
+
+  EXPECT_ISSUES(check.get(), 10);
+
+  EXPECT_EQ("$wrong_schema_dollar_name", issues[0].schema);
+  EXPECT_EQ("$wrong_table", issues[1].table);
+  EXPECT_EQ("$wrong_view", issues[2].table);
+  EXPECT_EQ("$wrong_table", issues[3].table);
+  EXPECT_EQ("$wrong_column1", issues[3].column);
+  EXPECT_EQ("$wrong_table", issues[4].table);
+  EXPECT_EQ("$wrong_column2", issues[4].column);
+  EXPECT_EQ("$wrong_view", issues[5].table);
+  EXPECT_EQ("$wrong_column1", issues[5].column);
+  EXPECT_EQ("$wrong_table", issues[6].table);
+  EXPECT_EQ("$wrong_index", issues[6].column);
+  EXPECT_EQ("$wrong_procedure", issues[7].table);
+  EXPECT_EQ("$wrong_procedure", issues[8].table);
+  EXPECT_EQ("$wrong_procedure_body$", issues[9].table);
+
+  ASSERT_NO_THROW(
+      session->execute("DROP SCHEMA IF EXISTS $wrong_schema_dollar_name;"));
+}
+
 }  // namespace mysqlsh

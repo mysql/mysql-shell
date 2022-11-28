@@ -513,6 +513,8 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   void enable_super_read_only_globally() const;
 
+  void refresh_connections();
+
   // Lock methods
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(

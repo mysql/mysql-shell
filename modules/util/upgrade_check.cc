@@ -1766,6 +1766,54 @@ bool UNUSED_VARIABLE(register_get_orphaned_routines_check) =
         Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
 }
 
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_dollar_sign_name_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      "mysqlDollarSignNameCheck",
+      "Check for deprecated usage of single dollar signs in object names",
+      std::vector<std::string>{
+          "SELECT SCHEMA_NAME, 'name starts with a $ sign.' FROM "
+          "information_schema.schemata WHERE SCHEMA_NAME LIKE '$_%' AND "
+          "SCHEMA_NAME NOT LIKE '$_%$';",
+          "SELECT TABLE_SCHEMA, TABLE_NAME, ' name starts with $ sign.' FROM "
+          "information_schema.tables WHERE TABLE_SCHEMA NOT IN ('sys', "
+          "'performance_schema', 'mysql', 'information_schema') AND TABLE_NAME "
+          "LIKE '$_%' AND TABLE_NAME NOT LIKE '$_%$';",
+          "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, ' name starts with $ "
+          "sign.' FROM information_schema.columns WHERE TABLE_SCHEMA NOT IN "
+          "('sys', 'performance_schema', 'mysql', 'information_schema') AND "
+          "COLUMN_NAME LIKE ('$_%') AND COLUMN_NAME NOT LIKE ('$%_$') ORDER BY "
+          "TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME;",
+          "SELECT TABLE_SCHEMA, TABLE_NAME, INDEX_NAME, ' starts with $ sign.' "
+          "FROM information_schema.statistics WHERE TABLE_SCHEMA NOT IN "
+          "('sys', 'mysql', 'information_schema', 'performance_schema') AND "
+          "INDEX_NAME LIKE '$_%' AND INDEX_NAME NOT LIKE '$%_$' ORDER BY "
+          "TABLE_SCHEMA, TABLE_NAME, INDEX_NAME;",
+          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' name starts with $ sign.' "
+          "FROM information_schema.routines WHERE ROUTINE_SCHEMA NOT IN "
+          "('sys', 'performance_schema', 'mysql', 'information_schema') AND "
+          "ROUTINE_NAME LIKE '$_%' AND ROUTINE_NAME NOT LIKE '$%_$';",
+          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' body contains identifiers "
+          "that start with $ sign.' FROM information_schema.routines WHERE "
+          "ROUTINE_SCHEMA NOT IN ('sys', 'performance_schema', 'mysql', "
+          "'information_schema') AND ROUTINE_DEFINITION REGEXP "
+          "'[[:blank:],.;\\\\)\\\\(]\\\\$[A-Za-z0-9\\\\_\\\\$]*[A-Za-z0-9\\\\_]"
+          "([[:blank:],;\\\\)]|(\\\\.[^0-9]))';"},
+
+      Upgrade_issue::WARNING,
+      "The following objects have names with deprecated usage of dollar sign "
+      "($) at the begining of the identifier. To correct this warning, ensure, "
+      "that names starting with dollar sign, also end with it, similary "
+      "to quotes ($example$). ");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_dollar_sign_name_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_dollar_sign_name_check),
+        Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.31");
+}
+
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format) {
   m_upgrade_info.target_version = options.target_version;
