@@ -55,12 +55,7 @@ ENDIF()
 
 # A string(TIMESTAMP YEAR "%Y") would do but as using "date" above, use the same
 IF (NOT DEFINED DEB_COPYRIGHT_YEAR)
-  execute_process(
-    COMMAND date +%Y
-    OUTPUT_VARIABLE DEB_COPYRIGHT_YEAR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  SET (DEB_COPYRIGHT_YEAR ${DEB_COPYRIGHT_YEAR} CACHE STRING "")
+  SET (DEB_COPYRIGHT_YEAR "2023" CACHE STRING "")
 ENDIF()
 
 # We make sure it loads only the protobuf version
