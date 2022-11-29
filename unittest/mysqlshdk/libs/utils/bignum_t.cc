@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -364,7 +364,7 @@ TEST(Bignum_test, division_operators) {
   EXPECT_BIGNUM("1", a);
 
   Bignum b{"0"};
-  EXPECT_THROW_MSG_CONTAINS(a /= b, std::runtime_error, "div by zero");
+  EXPECT_THROW_MSG_CONTAINS(a /= b, std::runtime_error, "BN_div() failed");
 
   b = -1;
   a /= b;
@@ -434,7 +434,7 @@ TEST(Bignum_test, modulo_operators) {
 TEST(Bignum_test, left_shift_operators) {
   Bignum a{"2"};
 
-  EXPECT_THROW_MSG_CONTAINS(a <<= -1, std::runtime_error, "invalid shift");
+  EXPECT_THROW_MSG_CONTAINS(a <<= -1, std::runtime_error, "BN_lshift() failed");
 
   a <<= 0;
   EXPECT_BIGNUM("2", a);
@@ -452,7 +452,7 @@ TEST(Bignum_test, left_shift_operators) {
 TEST(Bignum_test, right_shift_operators) {
   Bignum a{"1298074214633706907132624082305024"};
 
-  EXPECT_THROW_MSG_CONTAINS(a >>= -1, std::runtime_error, "invalid shift");
+  EXPECT_THROW_MSG_CONTAINS(a >>= -1, std::runtime_error, "BN_rshift() failed");
 
   a >>= 0;
   EXPECT_BIGNUM("1298074214633706907132624082305024", a);
