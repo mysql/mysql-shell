@@ -431,16 +431,7 @@ set(CMAKE_MODULE_PATH
 
 ### Configuring package year
 IF(NOT PACKAGE_YEAR)
-  SET(PACKAGE_YEAR "2022")
-
-  string(TIMESTAMP month_year "%Y/%m" UTC)
-  # Changes done in december will probably be released
-  # in january of year+1, so abort until someone confirms
-  # the year (e.g. either by passing -DPACKAGE_YEAR or
-  # SET(PACKAGE_YEAR ...) outside this IF())
-  IF(month_year STREQUAL "${PACKAGE_YEAR}/12")
-    MESSAGE(FATAL_ERROR "Package year is ${PACKAGE_YEAR}, please confirm correct value")
-  ENDIF()
+  SET(PACKAGE_YEAR "2023")
 ENDIF()
 add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
 
