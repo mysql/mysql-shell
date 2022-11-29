@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -257,6 +257,17 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   for (auto entry : _globals) {
     if (entry.second.first.is_set(mode) &&
         entry.second.second.type == shcore::Object)
+      globals.push_back(entry.first);
+  }
+
+  return globals;
+}
+
+std::vector<std::string> Shell_core::get_all_globals() {
+  std::vector<std::string> globals;
+
+  for (auto entry : _globals) {
+    if (entry.second.second.type == shcore::Object)
       globals.push_back(entry.first);
   }
 

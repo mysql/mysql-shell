@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -178,6 +178,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   Value get_global(const std::string &name) override;
   bool is_global(const std::string &name) override;
   std::vector<std::string> get_global_objects(Mode mode) override;
+  std::vector<std::string> get_all_globals();
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(
       const std::shared_ptr<mysqlsh::ShellBaseSession> &session) override;

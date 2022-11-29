@@ -5,10 +5,10 @@ function callMysqlsh(command_line_args) {
 
 // WL14297-TSFR_9_1_1
 //@ CLI shell Global --help
-callMysqlsh(["--", "--help"])
+callMysqlsh(["--sql", "--", "--help"])
 
 //@ CLI shell Global -h [USE:CLI shell Global --help]
-callMysqlsh(["--", "-h"])
+callMysqlsh(["--sql", "--", "-h"])
 
 // WL14297-TSFR_1_1_1
 //@ CLI shell --help
@@ -24,10 +24,10 @@ callMysqlsh(["--", "shell", "options", "--help"])
 callMysqlsh(["--", "shell", "options", "--help"])
 
 //@ CLI util --help
-callMysqlsh(["--", "util", "--help"])
+callMysqlsh(["--sql", "--", "util", "--help"])
 
 //@ CLI util -h [USE:CLI util --help]
-callMysqlsh(["--", "util", "--help"])
+callMysqlsh(["--", "util", "-h"])
 
 // WL14297-TSFR_1_1_2
 //@ CLI --help Unexisting Objects
@@ -139,7 +139,7 @@ callMysqlsh(["--", "shell", "options", "unsetPersist", "-h"])
 
 
 //@ CLI util check-for-server-upgrade --help
-callMysqlsh(["--", "util", "check-for-server-upgrade", "--help"])
+callMysqlsh(["--sql", "--", "util", "check-for-server-upgrade", "--help"])
 
 //@ CLI util dump-instance --help
 callMysqlsh(["--", "util", "dump-instance", "--help"])

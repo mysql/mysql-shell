@@ -513,7 +513,9 @@ EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute
 shutil.rmtree(test_output_absolute_parent, True)
 os.mkdir(test_output_absolute_parent)
 EXPECT_FALSE(os.path.isfile(test_output_relative))
-rc = testutil.call_mysqlsh([uri, "--schema=" + types_schema , "--", "util", "export-table", types_schema_tables[0],  test_output_relative, '--show-progress'])
+
+# NOTE: The --sql argument in below's call is just to verify that the functions in the utils object are available even if the shell mode is SQL
+rc = testutil.call_mysqlsh([uri, "--schema=" + types_schema , "--sql", "--", "util", "export-table", types_schema_tables[0],  test_output_relative, '--show-progress'])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isfile(test_output_relative))
 EXPECT_STDOUT_MATCHES(re.compile(r'\d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))

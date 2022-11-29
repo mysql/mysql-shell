@@ -724,7 +724,7 @@ void Mysql_shell::finish_init() {
 
       // Iterates over the global extensible objects to register anything that
       // is CLI enabled as a provider
-      auto global_object_names = _shell->get_global_objects(interactive_mode());
+      auto global_object_names = _shell->get_all_globals();
       for (const auto &name : global_object_names) {
         auto extension_object =
             _shell->get_global(name).as_object<Extensible_object>();
