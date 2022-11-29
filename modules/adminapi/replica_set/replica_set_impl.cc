@@ -906,6 +906,9 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   // NOTE: Replication user needs to be refreshed in case we are rejoining the
   // old PRIMARY from the replicaset.
   Async_replication_options ar_options;
+
+  read_replication_options(&ar_options);
+
   std::string repl_account_host;
   std::tie(ar_options.repl_credentials, repl_account_host) =
       refresh_replication_user(target_instance.get(), dry_run);
@@ -1378,6 +1381,9 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   console->print_info("* Updating metadata");
   // Re-generate a new password for the master being demoted.
   Async_replication_options ar_options;
+
+  read_replication_options(&ar_options);
+
   std::string repl_account_host;
   std::tie(ar_options.repl_credentials, repl_account_host) =
       refresh_replication_user(master.get(), dry_run);
