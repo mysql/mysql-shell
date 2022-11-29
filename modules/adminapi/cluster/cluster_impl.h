@@ -226,9 +226,10 @@ class Cluster_impl final : public Base_cluster_impl,
   bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
                              const std::string &endpoint = "",
                              const std::string &server_uuid = "",
-                             const uint32_t server_id = 0);
+                             const uint32_t server_id = 0,
+                             mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
 
-  void drop_replication_users();
+  void drop_replication_users(mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
 
   /**
    * Wipes out all replication users created/managed by the AdminAPI

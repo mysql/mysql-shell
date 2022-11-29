@@ -462,7 +462,8 @@ std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
   try {
     ret_val = m_md_server->query(sql);
   } catch (const shcore::Error &err) {
-    log_warning("While querying metadata: %s", err.format().c_str());
+    log_warning("While querying metadata: %s\n\t%s", err.format().c_str(),
+                sql.c_str());
     if (CR_SERVER_GONE_ERROR == err.code()) {
       log_debug("The Metadata server is inaccessible");
       throw shcore::Exception::metadata_error("The Metadata is inaccessible");
@@ -1069,8 +1070,14 @@ std::string repl_account_host_key(Cluster_type type) {
 void MetadataStorage::update_instance_repl_account(
     const std::string &instance_uuid, Cluster_type type,
     const std::string &recovery_account_user,
-    const std::string &recovery_account_host) {
+    const std::string &recovery_account_host, Transaction_undo *undo) {
   shcore::sqlstring query;
+
+  if (undo)
+    undo->add_snapshot_for_update(
+        "mysql_innodb_cluster_metadata.instances", "attributes",
+        *get_md_server(),
+        shcore::sqlformat("mysql_server_uuid = ?", instance_uuid));
 
   if (!recovery_account_user.empty()) {
     query = shcore::sqlstring(
@@ -1126,8 +1133,13 @@ std::pair<std::string, std::string> MetadataStorage::get_instance_repl_account(
 
 void MetadataStorage::update_cluster_repl_account(
     const Cluster_id &cluster_id, const std::string &repl_account_user,
-    const std::string &repl_account_host) {
+    const std::string &repl_account_host, Transaction_undo *undo) {
   shcore::sqlstring query;
+
+  if (undo)
+    undo->add_snapshot_for_update(
+        "mysql_innodb_cluster_metadata.clusters", "attributes",
+        *get_md_server(), shcore::sqlformat("cluster_id = ?", cluster_id));
 
   if (!repl_account_user.empty()) {
     query = shcore::sqlstring(
@@ -1139,7 +1151,6 @@ void MetadataStorage::update_cluster_repl_account(
         0);
     query << repl_account_user;
     query << repl_account_host;
-
   } else {
     // if repl_account user is empty, clear existing recovery attributes
     // of the instance from the metadata.
@@ -1291,7 +1302,8 @@ void MetadataStorage::remove_instance(const std::string &instance_address) {
   execute_sql(query);
 }
 
-void MetadataStorage::drop_cluster(const std::string &cluster_name) {
+void MetadataStorage::drop_cluster(const std::string &cluster_name,
+                                   Transaction_undo *undo) {
   auto get_cluster_id = [this](const std::string &full_cluster_name) {
     Cluster_id cluster_id;
     shcore::sqlstring query;
@@ -1329,23 +1341,27 @@ void MetadataStorage::drop_cluster(const std::string &cluster_name) {
     return cluster_id;
   };
 
-  Transaction tx(shared_from_this());
-
   // It exists, so let's get the cluster_id and move on
   Cluster_id cluster_id = get_cluster_id(cluster_name);
 
+  if (undo)
+    undo->add_snapshot_for_delete(
+        "mysql_innodb_cluster_metadata.instances", *get_md_server(),
+        shcore::sqlformat("cluster_id = ?", cluster_id));
   execute_sqlf(
       "DELETE FROM mysql_innodb_cluster_metadata.instances "
       "WHERE cluster_id = ?",
       cluster_id);
 
   // Remove the cluster
+  if (undo)
+    undo->add_snapshot_for_delete(
+        "mysql_innodb_cluster_metadata.clusters", *get_md_server(),
+        shcore::sqlformat("cluster_id = ?", cluster_id));
   execute_sqlf(
       "DELETE from mysql_innodb_cluster_metadata.clusters "
       "WHERE cluster_id = ?",
       cluster_id);
-
-  tx.commit();
 }
 
 void MetadataStorage::update_cluster_name(const Cluster_id &cluster_id,
@@ -1753,8 +1769,6 @@ constexpr const char *k_async_view_change_reason_remove_instance =
 
 Cluster_id MetadataStorage::create_async_cluster_record(
     Replica_set_impl *cluster, bool adopted) {
-  Transaction tx(shared_from_this());
-
   Cluster_id cluster_id;
   try {
     auto result = execute_sqlf("SELECT uuid()");
@@ -1793,8 +1807,6 @@ Cluster_id MetadataStorage::create_async_cluster_record(
       k_async_view_change_reason_create);
 
   cluster->set_id(cluster_id);
-
-  tx.commit();
 
   return cluster_id;
 }
@@ -1887,8 +1899,6 @@ Instance_id MetadataStorage::record_async_member_added(
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
-  Transaction tx(shared_from_this());
-
   Instance_id member_id = insert_instance(member);
 
   uint32_t aclvid;
@@ -1925,8 +1935,6 @@ Instance_id MetadataStorage::record_async_member_added(
       member.cluster_id, aclvid, member_id, member.master_id, member.master_id,
       member.primary_master, member_id);
 
-  tx.commit();
-
   return member_id;
 }
 
@@ -1937,8 +1945,6 @@ void MetadataStorage::record_async_member_rejoined(
 
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
-  Transaction tx(shared_from_this());
 
   uint32_t aclvid;
   uint32_t last_aclvid;
@@ -1973,8 +1979,6 @@ void MetadataStorage::record_async_member_rejoined(
       " )",
       member.cluster_id, aclvid, member.id, member.master_id, member.master_id,
       member.primary_master, member.id);
-
-  tx.commit();
 }
 
 void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
@@ -1987,8 +1991,6 @@ void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
 
   uint32_t aclvid;
   uint32_t last_aclvid;
-
-  Transaction tx(shared_from_this());
 
   begin_acl_change_record(cluster_id,
                           k_async_view_change_reason_remove_instance, &aclvid,
@@ -2010,8 +2012,6 @@ void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
       "DELETE FROM mysql_innodb_cluster_metadata.instances "
       "WHERE instance_id = ?",
       instance_id);
-
-  tx.commit();
 }
 
 void MetadataStorage::record_async_primary_switch(Instance_id new_primary_id) {
@@ -2023,8 +2023,6 @@ void MetadataStorage::record_async_primary_switch(Instance_id new_primary_id) {
   // at once, at the beginning.
   uint32_t aclvid;
   uint32_t last_aclvid;
-
-  Transaction tx(shared_from_this());
 
   auto res = execute_sqlf(
       "SELECT c.cluster_id, c.async_topology_type"
@@ -2101,8 +2099,6 @@ void MetadataStorage::record_async_primary_switch(Instance_id new_primary_id) {
         assert(0);
         throw std::logic_error("Internal error");
     }
-
-    tx.commit();
   } else {
     log_error("Async cluster for instance %i has metadata errors",
               new_primary_id);
@@ -2119,8 +2115,6 @@ void MetadataStorage::record_async_primary_forced_switch(
 
   uint32_t aclvid;
   uint32_t last_aclvid;
-
-  Transaction tx(shared_from_this());
 
   auto res = execute_sqlf(
       "SELECT c.cluster_id, c.async_topology_type"
@@ -2193,8 +2187,6 @@ void MetadataStorage::record_async_primary_forced_switch(
         assert(0);
         throw std::logic_error("Internal error");
     }
-
-    tx.commit();
   } else {
     log_error("Async cluster for instance %i has metadata errors",
               new_primary_id);
@@ -2678,8 +2670,6 @@ Cluster_set_id MetadataStorage::create_cluster_set_record(
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
-  Transaction tx(shared_from_this());
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_created(?, ?, ?, @_cs_id)",
       clusterset->get_name(), seed_cluster_id,
@@ -2688,8 +2678,6 @@ Cluster_set_id MetadataStorage::create_cluster_set_record(
   Cluster_set_id cs_id =
       execute_sqlf("select @_cs_id")->fetch_one()->get_string(0, "");
   clusterset->set_id(cs_id);
-
-  tx.commit();
 
   return cs_id;
 }
@@ -2702,14 +2690,10 @@ void MetadataStorage::record_cluster_set_member_added(
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
-  Transaction tx(shared_from_this());
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_member_added(?, ?, ?, '{}')",
       cluster.cluster_set_id, cluster.cluster.cluster_id,
       cluster.master_cluster_id);
-
-  tx.commit();
 }
 
 void MetadataStorage::record_cluster_set_member_removed(
@@ -2733,20 +2717,14 @@ void MetadataStorage::record_cluster_set_member_rejoined(
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
-  Transaction tx(shared_from_this());
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_member_rejoined(?, ?, ?, '{}')",
       cs_id, cluster_id, master_cluster_id);
-
-  tx.commit();
 }
 
 void MetadataStorage::record_cluster_set_primary_switch(
     const Cluster_set_id &cs_id, const Cluster_id &new_primary_id,
     const std::list<Cluster_id> &invalidated) {
-  Transaction tx(shared_from_this());
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_primary_changed(?, ?, "
       "'{}')",
@@ -2757,15 +2735,11 @@ void MetadataStorage::record_cluster_set_primary_switch(
         "CALL mysql_innodb_cluster_metadata.v2_cs_add_invalidated_member(?, ?)",
         cs_id, c);
   }
-
-  tx.commit();
 }
 
 void MetadataStorage::record_cluster_set_primary_failover(
     const Cluster_set_id &cs_id, const Cluster_id &cluster_id,
     const std::list<Cluster_id> &invalidated) {
-  Transaction tx(shared_from_this());
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_primary_force_changed(?, ?, "
       "'{}')",
@@ -2776,8 +2750,6 @@ void MetadataStorage::record_cluster_set_primary_failover(
         "CALL mysql_innodb_cluster_metadata.v2_cs_add_invalidated_member(?, ?)",
         cs_id, c);
   }
-
-  tx.commit();
 }
 
 bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,

@@ -38,6 +38,7 @@
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/undo.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 
 namespace mysqlsh {
@@ -133,6 +134,8 @@ class Cluster_impl;
 class Cluster_set_impl;
 class Replica_set_impl;
 
+using mysqlshdk::mysql::Transaction_undo;
+
 inline uint32_t cluster_set_view_id_generation(uint64_t id) {
   return (id >> 32);
 }
@@ -142,7 +145,7 @@ inline uint32_t cluster_set_view_id_generation(uint64_t id) {
  * Represents a session to a Metadata Storage
  */
 #endif
-class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
+class MetadataStorage {
  protected:
   MetadataStorage() = default;
 
@@ -212,7 +215,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   Instance_id insert_instance(const Instance_metadata &instance);
   void update_instance(const Instance_metadata &instance);
   void remove_instance(const std::string &instance_address);
-  void drop_cluster(const std::string &cluster_name);
+  void drop_cluster(const std::string &cluster_name,
+                    Transaction_undo *undo = nullptr);
 
   void update_cluster_name(const Cluster_id &cluster_id,
                            const std::string &new_cluster_name);
@@ -306,7 +310,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void update_instance_repl_account(const std::string &instance_uuid,
                                     Cluster_type type,
                                     const std::string &recovery_account_user,
-                                    const std::string &recovery_account_host);
+                                    const std::string &recovery_account_host,
+                                    Transaction_undo *undo = nullptr);
   /**
    * Fetch from the metadata the recovery account being used by the instance
    * with the given uuid.
@@ -320,7 +325,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   void update_cluster_repl_account(const Cluster_id &cluster_id,
                                    const std::string &repl_account_user,
-                                   const std::string &repl_account_host);
+                                   const std::string &repl_account_host,
+                                   Transaction_undo *undo = nullptr);
 
   std::pair<std::string, std::string> get_cluster_repl_account(
       const Cluster_id &cluster_id) const;

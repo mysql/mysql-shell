@@ -21,11 +21,11 @@ function retry_with_success() {
 var scene = new ClusterScenario([__mysql_sandbox_port1]);
 var session = scene.session
 var cluster = scene.cluster
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-var session2 = mysql.getSession(__sandbox_uri2);
+testutil.deploySandbox(__mysql_sandbox_port2, "root", { report_host: hostname, server_id: 1234 });
 
 var clusterset = cluster.createClusterSet("myClusterSet");
 var replicacluster = clusterset.createReplicaCluster(__sandbox_uri2, "replicacluster", {recoveryMethod: "incremental"});
+
 CHECK_REPLICA_CLUSTER([__sandbox_uri2], cluster, replicacluster);
 
 //@<> removeCluster() - failure post disabling skip_replica_start
@@ -64,7 +64,6 @@ testutil.dbugSet("+d,dba_remove_cluster_fail_post_replication_user_removal");
 EXPECT_THROWS_TYPE(function(){ clusterset.removeCluster("replicacluster"); }, "debug", "LogicError");
 EXPECT_OUTPUT_CONTAINS("NOTE: Reverting changes...");
 EXPECT_OUTPUT_CONTAINS("Changes successfully reverted.");
-EXPECT_SHELL_LOG_CONTAINS(`Revert: Creating replication account at '${hostname}:${__mysql_sandbox_port1}'`);
 EXPECT_SHELL_LOG_CONTAINS("Revert: Recording back ClusterSet member removed");
 
 // Validate a replication account was added back
@@ -81,12 +80,16 @@ retry_with_success();
 //@<> removeCluster() - failure post removal of replica cluster configurations
 testutil.dbugSet("+d,dba_remove_cluster_fail_post_replica_removal");
 
+var before = snapshot_tables(session, ["mysql_innodb_cluster_metadata.clusters", "mysql_innodb_cluster_metadata.instances"]);
+
 EXPECT_THROWS_TYPE(function(){ clusterset.removeCluster("replicacluster"); }, "debug", "LogicError");
+
+CHECK_TABLE_SNAPSHOTS(session, before);
+
 EXPECT_OUTPUT_CONTAINS("NOTE: Reverting changes...");
 EXPECT_OUTPUT_CONTAINS("Changes successfully reverted.");
 EXPECT_SHELL_LOG_CONTAINS("Revert: Enabling skip_replica_start");
 EXPECT_SHELL_LOG_CONTAINS("Revert: Re-adding Cluster as Replica");
-EXPECT_SHELL_LOG_CONTAINS(`Revert: Creating replication account at '${hostname}:${__mysql_sandbox_port1}'`);
 EXPECT_SHELL_LOG_CONTAINS("Revert: Recording back ClusterSet member removed");
 EXPECT_SHELL_LOG_CONTAINS("Revert: Re-creating Cluster recovery accounts");
 EXPECT_SHELL_LOG_CONTAINS("Revert: Re-creating Cluster's metadata");
@@ -104,6 +107,36 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri2], cluster, replicacluster);
 testutil.dbugSet("");
 
 retry_with_success();
+
+//@<> removeCluster revert while cluster OFFLINE
+testutil.dbugSet("+d,dba_remove_cluster_fail_post_replica_removal");
+
+clusterset.status();
+
+var session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("stop group_replication");
+
+var before = snapshot_tables(session, ["mysql_innodb_cluster_metadata.clusters", "mysql_innodb_cluster_metadata.instances"]);
+
+EXPECT_THROWS_TYPE(function () { clusterset.removeCluster("replicacluster", { force: 1 }); }, "debug", "LogicError");
+
+CHECK_TABLE_SNAPSHOTS(session, before);
+
+testutil.dbugSet("");
+
+//@<> removeCluster while cluster OFFLINE
+clusterset.status();
+
+var session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("stop group_replication");
+
+var before = snapshot_tables(session, ["mysql_innodb_cluster_metadata.clusters", "mysql_innodb_cluster_metadata.instances"]);
+
+EXPECT_THROWS(function () { clusterset.removeCluster("replicacluster"); }, "PRIMARY instance of Cluster 'replicacluster' is unavailable:");
+
+CHECK_TABLE_SNAPSHOTS(session, before);
+
+EXPECT_NO_THROWS(function () { clusterset.removeCluster("replicacluster", { force: 1 }); });
 
 //@<> Cleanup
 scene.destroy();

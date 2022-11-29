@@ -362,6 +362,8 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
     // Update metadata
     log_info("Creating replicaset metadata...");
     if (!dry_run) {
+      MetadataStorage::Transaction trx(m_metadata_storage);
+
       auto id = m_metadata_storage->create_async_cluster_record(this, false);
 
       m_metadata_storage->update_cluster_attribute(
@@ -373,6 +375,8 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
       m_metadata_storage->update_cluster_attribute(
           id, k_replica_set_attribute_ssl_mode,
           shcore::Value(to_string(ssl_mode)));
+
+      trx.commit();
     }
 
     // create repl user to be used in the future
@@ -446,12 +450,14 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
     // Update metadata
     log_info("Creating replicaset metadata...");
     if (!dry_run) {
+      MetadataStorage::Transaction trx(m_metadata_storage);
       auto id = m_metadata_storage->create_async_cluster_record(this, true);
 
       if (!options.replication_allowed_host.empty())
         m_metadata_storage->update_cluster_attribute(
             id, k_cluster_attribute_replication_allowed_host,
             shcore::Value(options.replication_allowed_host));
+      trx.commit();
     }
 
     // Create rpl user to be used in the future (for primary).
@@ -971,13 +977,14 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
 
     // Set new instance information and store in MD.
     if (!dry_run) {
+      MetadataStorage::Transaction trx(m_metadata_storage);
       instance_md.master_id =
           static_cast<const topology::Server *>(
               topology_mng->topology()->get_primary_master_node())
               ->instance_id;
       instance_md.primary_master = false;
       m_metadata_storage->record_async_member_rejoined(instance_md);
-
+      trx.commit();
       ensure_metadata_has_server_uuid(*target_instance);
     }
   } catch (const cancel_sync &) {
@@ -1202,7 +1209,9 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
 
   // update metadata
   log_debug("Removing instance from the Metadata.");
+  MetadataStorage::Transaction trx(get_metadata_storage());
   m_metadata_storage->record_async_member_removed(md.cluster_id, md.id);
+  trx.commit();
 
   if (target_server.get()) {
     if (repl_working && timeout >= 0) {
@@ -1392,7 +1401,9 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   log_info("Updating metadata at %s",
            m_metadata_storage->get_md_server()->descr().c_str());
   if (!dry_run) {
+    MetadataStorage::Transaction trx(get_metadata_storage());
     m_metadata_storage->record_async_primary_switch(promoted->instance_id);
+    trx.commit();
   }
   console->print_info();
 
@@ -1410,7 +1421,9 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
     console->print_note("Reverting metadata changes");
     if (!dry_run) {
       try {
+        MetadataStorage::Transaction trx(get_metadata_storage());
         m_metadata_storage->record_async_primary_switch(demoted->instance_id);
+        trx.commit();
       } catch (const std::exception &err) {
         console->print_warning(shcore::str_format(
             "Failed to revert metadata changes on the PRIMARY: %s",
@@ -1428,7 +1441,9 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   } catch (...) {
     console->print_note("Reverting metadata changes");
     if (!dry_run) {
+      MetadataStorage::Transaction trx(get_metadata_storage());
       m_metadata_storage->record_async_primary_switch(demoted->instance_id);
+      trx.commit();
     }
     throw;
   }
@@ -1662,8 +1677,10 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
       primary_instance_did_change(new_master);
 
       try {
+        MetadataStorage::Transaction trx(get_metadata_storage());
         m_metadata_storage->record_async_primary_forced_switch(
             promoted->instance_id, invalidate_ids);
+        trx.commit();
       } catch (const shcore::Exception &e) {
         // CR_SERVER_LOST will happen if the connection timeouts while waiting
         // for the INSERT/UPDATE to execute, which could happen if there's
@@ -2453,6 +2470,7 @@ Member_recovery_method Replica_set_impl::validate_instance_recovery(
 Instance_id Replica_set_impl::manage_instance(
     Instance *instance, const std::pair<std::string, std::string> &repl_user,
     const std::string &instance_label, Instance_id master_id, bool is_primary) {
+  MetadataStorage::Transaction trx(get_metadata_storage());
   Instance_metadata inst = query_instance_info(*instance, false);
 
   if (!instance_label.empty()) inst.label = instance_label;
@@ -2469,6 +2487,8 @@ Instance_id Replica_set_impl::manage_instance(
     get_metadata_storage()->update_instance_repl_account(
         inst.uuid, Cluster_type::ASYNC_REPLICATION, repl_user.first,
         repl_user.second);
+
+  trx.commit();
 
   return instance_id;
 }

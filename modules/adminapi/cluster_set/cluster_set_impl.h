@@ -130,7 +130,8 @@ class Cluster_set_impl : public Base_cluster_impl,
       Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user,
       const std::string &repl_user_host);
 
-  void drop_cluster_replication_user(Cluster_impl *cluster);
+  void drop_cluster_replication_user(
+      Cluster_impl *cluster, mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
 
   mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
       Cluster_impl *cluster, bool dry_run);

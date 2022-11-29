@@ -767,7 +767,9 @@ shcore::Value Create_replica_cluster::execute() {
     undo_list.push_front([=]() {
       log_info("Revert: Dropping Cluster '%s' from Metadata",
                cluster->get_name().c_str());
+      MetadataStorage::Transaction trx(m_cluster_set->get_metadata_storage());
       m_cluster_set->get_metadata_storage()->drop_cluster(cluster->get_name());
+      trx.commit();
     });
 
     // NOTE: This should be the very last thing to be reverted to ensure changes
@@ -911,7 +913,9 @@ shcore::Value Create_replica_cluster::execute() {
       cluster_md.primary_cluster = false;
 
       log_info("Updating ClusterSet metadata");
+      MetadataStorage::Transaction trx(metadata);
       metadata->record_cluster_set_member_added(cluster_md);
+      trx.commit();
     }
 
     undo_list.cancel();

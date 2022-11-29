@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,31 +21,45 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_DB_UTILS_UTILS_H_
-#define MYSQLSHDK_LIBS_DB_UTILS_UTILS_H_
+#ifndef MODULES_ADMINAPI_COMMON_UNDO_H_
+#define MODULES_ADMINAPI_COMMON_UNDO_H_
 
-#include <ostream>
+#include <functional>
+#include <list>
+#include <memory>
 #include <string>
-#include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/db/row.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include <utility>
+#include "modules/adminapi/common/instance_pool.h"
+#include "mysqlshdk/libs/mysql/undo.h"
 
-namespace mysqlshdk {
-namespace db {
+namespace mysqlsh {
+namespace dba {
 
-std::string to_string(const IRow &row);
+using mysqlshdk::mysql::Sql_change;
+using mysqlshdk::mysql::Sql_undo_list;
+using mysqlshdk::mysql::Transaction_undo;
 
-void print(std::ostream &s, const IRow &row);
-void dump(std::ostream &s, IResult *result);
+class Undo_tracker {
+ public:
+  class Undo_entry {
+   public:
+    virtual ~Undo_entry() = default;
+    virtual bool call() = 0;
+    virtual void cancel() = 0;
+  };
 
-inline std::ostream &operator<<(std::ostream &s, const IRow &row) {
-  print(s, row);
-  return s;
-}
+  Undo_entry &add(
+      const std::string &note, mysqlshdk::mysql::Sql_undo_list sql_undo,
+      const std::function<std::shared_ptr<Instance>()> &get_instance);
+  Undo_entry &add(const std::string &note, const std::function<void()> &f);
 
-void feed_field(shcore::sqlstring *sql, const IRow &row, uint32_t field);
+  void execute();
 
-}  // namespace db
-}  // namespace mysqlshdk
+ private:
+  std::list<std::pair<std::string, std::unique_ptr<Undo_entry>>> m_entries;
+};
 
-#endif  // MYSQLSHDK_LIBS_DB_UTILS_UTILS_H_
+}  // namespace dba
+}  // namespace mysqlsh
+
+#endif  // MODULES_ADMINAPI_COMMON_UNDO_H_

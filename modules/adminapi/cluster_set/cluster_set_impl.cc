@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/undo.h"
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/replica_set/replica_set_status.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
@@ -150,7 +151,8 @@ void Cluster_set_impl::record_cluster_replication_user(
       cluster->get_id(), repl_user.user, repl_user_host.c_str());
 }
 
-void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
+void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster,
+                                                     Sql_undo_list *undo) {
   auto console = current_console();
 
   // auto primary = get_primary_master();
@@ -187,6 +189,9 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
              cluster->get_name().c_str());
 
     try {
+      if (undo)
+        undo->add_snapshot_for_drop_user(*primary, repl_user, repl_user_host);
+
       primary->drop_user(repl_user, repl_user_host.c_str(), true);
     } catch (const std::exception &e) {
       console->print_warning(shcore::str_format(
@@ -197,8 +202,15 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
 
     // Also update metadata
     try {
+      Transaction_undo *trx_undo = nullptr;
+      if (undo) {
+        auto u = Transaction_undo::create();
+        trx_undo = u.get();
+        undo->add(std::move(u));
+      }
+
       get_metadata_storage()->update_cluster_repl_account(cluster->get_id(), "",
-                                                          "");
+                                                          "", trx_undo);
     } catch (const std::exception &e) {
       log_warning("Could not update replication account metadata for '%s': %s",
                   cluster->get_name().c_str(), e.what());
@@ -937,8 +949,9 @@ void Cluster_set_impl::remove_cluster(
 
   // Execute the operation
   {
-    shcore::Scoped_callback_list undo_list;
-    bool skip_replication_user_undo_step = false;
+    Undo_tracker undo_tracker;
+    Undo_tracker::Undo_entry *drop_cluster_undo = nullptr;
+    Undo_tracker::Undo_entry *replication_user_undo = nullptr;
     std::vector<Scoped_instance> cluster_reachable_members;
     std::vector<std::pair<std::string, std::string>>
         cluster_unreachable_members;
@@ -1059,7 +1072,7 @@ void Cluster_set_impl::remove_cluster(
         config->set("skip_replica_start", std::optional<bool>(false));
         config->apply();
 
-        undo_list.push_front([=]() {
+        undo_tracker.add("", [=]() {
           log_info("Revert: Enabling skip_replica_start");
           auto config_undo =
               target_cluster->create_config_object({}, true, true, true);
@@ -1081,25 +1094,28 @@ void Cluster_set_impl::remove_cluster(
       auto metadata = get_metadata_storage();
 
       if (!options.dry_run) {
-        MetadataStorage::Transaction trx(metadata);
+        {
+          MetadataStorage::Transaction trx(metadata);
 
-        metadata->record_cluster_set_member_removed(get_id(),
-                                                    target_cluster->get_id());
+          metadata->record_cluster_set_member_removed(get_id(),
+                                                      target_cluster->get_id());
 
-        // Push the whole transaction and changes to the Undo list
-        undo_list.push_front([=]() {
-          log_info("Revert: Recording back ClusterSet member removed");
-          Cluster_set_member_metadata cluster_md;
-          cluster_md.cluster.cluster_id = target_cluster->get_id();
-          cluster_md.cluster_set_id = get_id();
-          cluster_md.master_cluster_id = get_primary_cluster()->get_id();
-          cluster_md.primary_cluster = false;
+          // Push the whole transaction and changes to the Undo list
+          undo_tracker.add("Recording back ClusterSet member removed", [=]() {
+            Cluster_set_member_metadata cluster_md;
+            cluster_md.cluster.cluster_id = target_cluster->get_id();
+            cluster_md.cluster_set_id = get_id();
+            cluster_md.master_cluster_id = get_primary_cluster()->get_id();
+            cluster_md.primary_cluster = false;
 
-          metadata->record_cluster_set_member_added(cluster_md);
-        });
+            MetadataStorage::Transaction trx2(metadata);
+            metadata->record_cluster_set_member_added(cluster_md);
+            trx2.commit();
+          });
 
-        // Only commit transactions once everything is done
-        trx.commit();
+          // Only commit transactions once everything is done
+          trx.commit();
+        }
 
         // Set debug trap to test reversion of Metadata topology updates to
         // remove the member
@@ -1107,47 +1123,13 @@ void Cluster_set_impl::remove_cluster(
                         { throw std::logic_error("debug"); });
 
         // Drop cluster replication user
-        drop_cluster_replication_user(target_cluster.get());
-
-        // Revert the replication account handling
-        undo_list.push_front([=, &skip_replication_user_undo_step]() {
-          auto primary = get_metadata_storage()->get_md_server();
-
-          // NOTE: skip if the primary cluster is offline or the flag to skip
-          // it is enabled
-          if (primary || !skip_replication_user_undo_step) {
-            log_info("Revert: Creating replication account at '%s'",
-                     primary->descr().c_str());
-            std::string repl_account_host;
-            mysqlshdk::mysql::Auth_options repl_credentials;
-
-            std::tie(repl_credentials, repl_account_host) =
-                create_cluster_replication_user(primary.get(), "",
-                                                options.dry_run);
-
-            // Update the credentials on the primary and restart the channel
-            // otherwise the channel will be broken
-            // NOTE: Only if the channel exists, otherwise skip it
-            if (target_cluster->get_cluster_server() &&
-                get_channel_status(*target_cluster->get_cluster_server(),
-                                   {k_clusterset_async_channel_name},
-                                   nullptr)) {
-              stop_channel(target_cluster->get_cluster_server().get(),
-                           k_clusterset_async_channel_name, false, false);
-
-              change_replication_credentials(
-                  *target_cluster->get_cluster_server(), repl_credentials.user,
-                  repl_credentials.password.value_or(""),
-                  k_clusterset_async_channel_name);
-
-              start_channel(target_cluster->get_cluster_server().get(),
-                            k_clusterset_async_channel_name, false);
-            }
-
-            record_cluster_replication_user(
-                target_cluster.get(), repl_credentials, repl_account_host);
-          }
-        });
+        {
+          Sql_undo_list sql_undo;
+          drop_cluster_replication_user(target_cluster.get(), &sql_undo);
+          replication_user_undo = &undo_tracker.add(
+              "Restore cluster replication account", std::move(sql_undo),
+              [this]() { return get_metadata_storage()->get_md_server(); });
+        }
 
         // Set debug trap to test reversion of replication user creation
         DBUG_EXECUTE_IF("dba_remove_cluster_fail_post_replication_user_removal",
@@ -1155,38 +1137,35 @@ void Cluster_set_impl::remove_cluster(
 
         // Remove Cluster's recovery accounts
         if (!options.dry_run && target_cluster->get_cluster_server()) {
+          Sql_undo_list undo_drop_users;
+
           // The accounts must be dropped from the ClusterSet
           // NOTE: If the replication channel is down and 'force' was used, the
           // accounts won't be dropped in the target cluster. This is expected,
           // otherwise, it wouldn't be possible to reboot the cluster from
           // complete outage later on
-          target_cluster->drop_replication_users();
+          target_cluster->drop_replication_users(&undo_drop_users);
 
-          undo_list.push_front([=]() {
-            log_info("Revert: Re-creating Cluster recovery accounts");
-
-            target_cluster->execute_in_members(
-                {mysqlshdk::gr::Member_state::ONLINE},
-                target_cluster->get_cluster_server()->get_connection_options(),
-                {},
-                [=](const std::shared_ptr<Instance> &instance,
-                    const mysqlshdk::gr::Member &) {
-                  target_cluster->create_replication_user(instance.get());
-                  return true;
-                });
-          });
+          undo_tracker.add("Re-creating Cluster recovery accounts",
+                           std::move(undo_drop_users),
+                           [this]() { return get_primary_master(); });
         }
 
         // Remove the Cluster's Metadata and Cluster members' info from the
         // Metadata and drop recovery accounts
-        metadata->drop_cluster(target_cluster->get_name());
-        log_debug("removeCluster() metadata updates done");
+        {
+          auto drop_cluster_trx_undo = Transaction_undo::create();
+          MetadataStorage::Transaction trx(metadata);
+          metadata->drop_cluster(target_cluster->get_name(),
+                                 drop_cluster_trx_undo.get());
+          trx.commit();
+          log_debug("removeCluster() metadata updates done");
 
-        undo_list.push_front([=]() {
-          log_info("Revert: Re-creating Cluster's metadata");
-          metadata->create_cluster_record(target_cluster.get(), false, true);
-          target_cluster->adopt_from_gr();
-        });
+          drop_cluster_undo = &undo_tracker.add(
+              "Re-creating Cluster's metadata",
+              Sql_undo_list(std::move(drop_cluster_trx_undo)),
+              [this]() { return get_metadata_storage()->get_md_server(); });
+        }
 
         // Sync again to catch-up the drop user and metadata update
         if (target_cluster->cluster_availability() ==
@@ -1238,23 +1217,13 @@ void Cluster_set_impl::remove_cluster(
         }
 
         // Revert in case of failure
-        // NOTE: Mark the user handling undo step to be skipped.
-        // This has to be done because that handling apart from
-        // creating a new user, it updates the channel to use that new user.
-        // That must be done otherwise the channel would get broken, however,
-        // we're updating the channel here too so to avoid repeating the whole
-        // logic and having to share resourced (user credentials) we simply
-        // remove that handling from the undo_list and do it in here
-        undo_list.push_front([=, &skip_replication_user_undo_step]() {
-          skip_replication_user_undo_step = true;
-          log_info("Revert: Re-adding Cluster as Replica");
+        undo_tracker.add("Re-adding Cluster as Replica", [=]() {
+          drop_cluster_undo->call();
+
+          replication_user_undo->call();
+
           auto repl_credentials = create_cluster_replication_user(
-              target_cluster->get_primary_master().get(), "", options.dry_run);
-
-          record_cluster_replication_user(target_cluster.get(),
-                                          repl_credentials.first,
-                                          repl_credentials.second);
-
+              target_cluster->get_cluster_server().get(), "", options.dry_run);
           auto ar_channel_options = ar_options;
 
           ar_channel_options.repl_credentials = repl_credentials.first;
@@ -1294,7 +1263,22 @@ void Cluster_set_impl::remove_cluster(
           }
 
           // Reset the ClusterSet settings and replication channel
-          remove_replica(reachable_member.get(), options.dry_run);
+          try {
+            if (cluster_topology_executor_ops::is_member_auto_rejoining(
+                    reachable_member))
+              cluster_topology_executor_ops::ensure_not_auto_rejoining(
+                  reachable_member);
+
+            remove_replica(reachable_member.get(), options.dry_run);
+          } catch (...) {
+            if (options.force) {
+              current_console()->print_warning(
+                  "Could not reset replication settings for " +
+                  reachable_member->descr() + ": " + format_active_exception());
+            } else {
+              throw;
+            }
+          }
 
           // Disable skip_replica_start
           reachable_member->set_sysvar(
@@ -1302,12 +1286,7 @@ void Cluster_set_impl::remove_cluster(
               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
 
           // Revert in case of failure
-          // NOTE: Mark the user handling undo step to be skipped. On this
-          // case the replication user wasn't dropped because the primary
-          // cluster is offline we can simply call update_replica without
-          // any credentials because it will keep them
-          undo_list.push_front([=, &skip_replication_user_undo_step]() {
-            skip_replication_user_undo_step = true;
+          undo_tracker.add("", [=]() {
             log_info("Revert: Re-adding Cluster as Replica");
             update_replica(reachable_member.get(), get_primary_master().get(),
                            ar_options, false, options.dry_run);
@@ -1364,7 +1343,7 @@ void Cluster_set_impl::remove_cluster(
                   mysqlsh::dba::leave_cluster(*member);
                 }
 
-                undo_list.push_front([=]() {
+                undo_tracker.add("", [=]() {
                   Group_replication_options gr_opts;
                   std::unique_ptr<mysqlshdk::config::Config> cfg =
                       create_server_config(
@@ -1418,8 +1397,6 @@ void Cluster_set_impl::remove_cluster(
         }
       }
 
-      undo_list.cancel();
-
       console->print_info();
       console->print_info("The Cluster '" + cluster_name +
                           "' was removed from the ClusterSet.");
@@ -1435,7 +1412,7 @@ void Cluster_set_impl::remove_cluster(
 
       console->print_note("Reverting changes...");
 
-      undo_list.call();
+      undo_tracker.execute();
 
       console->print_info();
       console->print_info("Changes successfully reverted.");
@@ -1551,8 +1528,9 @@ void Cluster_set_impl::remove_replica_settings(Instance *instance,
       log_info("Already enabled");
     }
   } catch (...) {
-    log_error("Error enabling automatic super_read_only management at %s: %s",
-              instance->descr().c_str(), format_active_exception().c_str());
+    current_console()->print_error(shcore::str_format(
+        "Error enabling automatic super_read_only management at %s: %s",
+        instance->descr().c_str(), format_active_exception().c_str()));
     throw;
   }
 
@@ -1565,8 +1543,9 @@ void Cluster_set_impl::remove_replica_settings(Instance *instance,
     delete_managed_connection_failover(
         *instance, k_clusterset_async_channel_name, dry_run);
   } catch (...) {
-    log_error("Error disabling automatic failover at %s: %s",
-              instance->descr().c_str(), format_active_exception().c_str());
+    current_console()->print_error(shcore::str_format(
+        "Error disabling automatic failover at %s: %s",
+        instance->descr().c_str(), format_active_exception().c_str()));
     throw;
   }
 }
@@ -1805,6 +1784,8 @@ void Cluster_set_impl::record_in_metadata(
     const clusterset::Create_cluster_set_options &m_options) {
   auto metadata = get_metadata_storage();
 
+  MetadataStorage::Transaction trx(metadata);
+
   // delete unrelated records if there are any
   metadata->cleanup_for_cluster(seed_cluster_id);
 
@@ -1828,14 +1809,15 @@ void Cluster_set_impl::record_in_metadata(
   log_info(
       "Migrating Metadata records of the Cluster Router instances to "
       "the ClusterSet");
-  get_metadata_storage()->migrate_routers_to_clusterset(seed_cluster_id,
-                                                        get_id());
+  metadata->migrate_routers_to_clusterset(seed_cluster_id, get_id());
 
   // Set and store the default Routing Options
   for (const auto &option : k_default_router_options.defined_options) {
-    get_metadata_storage()->set_clusterset_global_routing_option(
-        csid, option.first, option.second);
+    metadata->set_clusterset_global_routing_option(csid, option.first,
+                                                   option.second);
   }
+
+  trx.commit();
 }
 
 shcore::Value Cluster_set_impl::status(int extended) {
@@ -2152,7 +2134,7 @@ void Cluster_set_impl::set_primary_cluster(
   // Restore the transaction_size_limit value to the original one
   restore_transaction_size_limit(promoted_cluster.get(), options.dry_run);
 
-  shcore::Scoped_callback_list undo_list;
+  Undo_tracker undo_tracker;
 
   try {
     console->print_info("* Updating metadata");
@@ -2161,12 +2143,18 @@ void Cluster_set_impl::set_primary_cluster(
     log_info("Updating metadata at %s",
              m_metadata_storage->get_md_server()->descr().c_str());
     if (!options.dry_run) {
-      m_metadata_storage->record_cluster_set_primary_switch(
-          get_id(), promoted_cluster->get_id(), unreachable);
+      {
+        MetadataStorage::Transaction trx(m_metadata_storage);
+        m_metadata_storage->record_cluster_set_primary_switch(
+            get_id(), promoted_cluster->get_id(), unreachable);
+        trx.commit();
+      }
 
-      undo_list.push_front([=]() {
+      undo_tracker.add("", [=]() {
+        MetadataStorage::Transaction trx(m_metadata_storage);
         m_metadata_storage->record_cluster_set_primary_switch(
             get_id(), primary_cluster->get_id(), {});
+        trx.commit();
       });
 
       for (const auto &c : options.invalidate_replica_clusters) {
@@ -2185,7 +2173,7 @@ void Cluster_set_impl::set_primary_cluster(
     // - enable failover at primary of demoted
     // - start replica at demoted
 
-    undo_list.push_front([this, primary_cluster, options]() {
+    undo_tracker.add("", [this, primary_cluster, options]() {
       promote_to_primary(primary_cluster.get(), false, options.dry_run);
     });
     demote_from_primary(primary_cluster.get(), promoted.get(), ar_options,
@@ -2218,8 +2206,8 @@ void Cluster_set_impl::set_primary_cluster(
       console->print_info();
     }
 
-    undo_list.push_front(
-        [this, promoted_cluster, primary, ar_options, options]() {
+    undo_tracker.add(
+        "", [this, promoted_cluster, primary, ar_options, options]() {
           demote_from_primary(promoted_cluster.get(), primary.get(), ar_options,
                               options.dry_run);
         });
@@ -2230,15 +2218,14 @@ void Cluster_set_impl::set_primary_cluster(
     DBUG_EXECUTE_IF("set_primary_cluster_skip_update_replicas", {
       std::cerr << "Skipping replica update "
                    "(set_primary_cluster_skip_update_replicas)\n";
-      undo_list.cancel();
       return;
     });
 
     for (const auto &replica : clusters) {
       if (promoted_cluster->get_name() != replica->get_name() &&
           primary_cluster->get_name() != replica->get_name()) {
-        undo_list.push_front(
-            [this, &replica, primary, ar_options, options, console]() {
+        undo_tracker.add(
+            "", [this, &replica, primary, ar_options, options, console]() {
               try {
                 update_replica(replica.get(), primary.get(), ar_options,
                                options.dry_run);
@@ -2263,15 +2250,13 @@ void Cluster_set_impl::set_primary_cluster(
     current_console()->print_info(
         "* Could not complete operation, attempting to revert changes...");
     try {
-      undo_list.call();
+      undo_tracker.execute();
     } catch (...) {
       current_console()->print_error("Could not revert changes: " +
                                      format_active_exception());
     }
     throw;
   }
-
-  undo_list.cancel();
 
   console->print_info("Cluster '" + promoted_cluster->get_name() +
                       "' was promoted to PRIMARY of the clusterset. The "
@@ -2667,8 +2652,10 @@ void Cluster_set_impl::force_primary_cluster(
   log_info("Updating metadata at %s",
            m_metadata_storage->get_md_server()->descr().c_str());
   if (!options.dry_run) {
+    MetadataStorage::Transaction trx(m_metadata_storage);
     m_metadata_storage->record_cluster_set_primary_failover(
         get_id(), promoted_cluster->get_id(), unreachable);
+    trx.commit();
 
     for (const auto &c : options.invalidate_replica_clusters) {
       console->print_note(
@@ -2877,9 +2864,13 @@ void Cluster_set_impl::rejoin_cluster(
     }
   } else {
     console->print_info("* Updating metadata");
-    if (!options.dry_run)
-      get_metadata_storage()->record_cluster_set_member_rejoined(
+    if (!options.dry_run) {
+      auto metadata = get_metadata_storage();
+      MetadataStorage::Transaction trx(metadata);
+      metadata->record_cluster_set_member_rejoined(
           get_id(), rejoining_cluster->get_id(), primary_cluster->get_id());
+      trx.commit();
+    }
     console->print_info();
 
     console->print_info("* Rejoining cluster");
