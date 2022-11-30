@@ -1,7 +1,7 @@
 //@ {hasAuthEnvironment('OCI_AUTH')}
 
 //@<> BUG#34858763 - invalid value for the config file
-testutil.callMysqlsh(["--", "shell", "options", "set-persist", "oci.configFile", __test_data_path]);
+testutil.callMysqlsh(["--", "shell", "options", "set-persist", "oci.configFile", os.path.join(__test_data_path, "missing.config.file")]);
 
 testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--auth-method=authentication_oci_client",

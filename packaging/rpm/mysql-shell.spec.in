@@ -141,7 +141,16 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %global _antlrlibs %{nil}
 %endif
 
-%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs})$
+%if 0%{?with_mysql_source:1}
+%global _pluginlibs libfido2.*
+%if 0%{?rhel} && 0%{?rhel} < 7
+%filter_from_requires /libfido2/d
+%endif
+%else
+%global _pluginlibs %{nil}
+%endif
+
+%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs})$
 
 %if 0%{?rhel} && 0%{?rhel} < 7
 %filter_setup
@@ -258,6 +267,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %endif
 %if 0%{?with_mysql_source:1}
 %{_prefix}/lib/mysql/plugins/*
+%{_prefix}/lib/mysqlsh/libfido2.so*
 %endif
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/adminapi-metadata/*

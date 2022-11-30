@@ -1434,10 +1434,12 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
                                    const shcore::Dictionary_t &opts) {
   bool create_remote_root{true};
   std::string mysqld_path;
+  int timeout = -1;
 
   if (opts) {
     create_remote_root = opts->get_bool("createRemoteRoot", true);
     mysqld_path = opts->get_string("mysqldPath", "");
+    timeout = opts->get_int("timeout", timeout);
   }
 
   _passwords[port] = rootpass;
@@ -3509,7 +3511,7 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
 
 bool Testutils::deploy_sandbox_from_boilerplate(
     int port, const shcore::Dictionary_t &opts, bool raw,
-    const std::string &mysqld_path) {
+    const std::string &mysqld_path, int timeout) {
   if (g_test_trace_scripts) {
     if (raw)
       std::cerr << "Deploying raw sandbox " << port << " from boilerplate\n";
@@ -3644,7 +3646,13 @@ bool Testutils::deploy_sandbox_from_boilerplate(
     shcore::ch_mod(keyring_path, 0570);
   }
 
-  start_sandbox(port);
+  const auto start_options = shcore::make_dict();
+
+  if (timeout > 0) {
+    start_options->emplace("timeout", timeout);
+  }
+
+  start_sandbox(port, start_options);
 
   return true;
 }

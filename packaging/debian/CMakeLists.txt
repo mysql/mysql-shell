@@ -293,6 +293,7 @@ if (MYSQL_SOURCE_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For client authentication plugins
 usr/lib/mysql/plugins/authentication*client.so
+usr/lib/mysqlsh/libfido2.so*
 ")
 endif()
 

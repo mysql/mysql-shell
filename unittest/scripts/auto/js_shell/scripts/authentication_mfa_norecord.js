@@ -1,36 +1,24 @@
-//@ {hasAuthEnvironment('LDAP_SIMPLE')}
+//@ {hasAuthEnvironment('LDAP_SIMPLE') && isAuthMethodSupported('LDAP_SIMPLE') && __version_num >= 80027}
+
 //@<> Setup
-if (__os_type == 'windows') {
-  plugin = "authentication_ldap_simple.dll"
-} else {
-  plugin = "authentication_ldap_simple.so"
-}
-
-var server_conf = {
-  "plugin-load-add": plugin,
-  "authentication_ldap_simple_server_host": `${LDAP_SIMPLE_SERVER_HOST}`,
-  "authentication_ldap_simple_server_port": parseInt(`${LDAP_SIMPLE_SERVER_PORT}`),
-  "authentication_ldap_simple_bind_base_dn": `${LDAP_SIMPLE_BIND_BASE_DN}`
-}
-
-if (__os_type == 'windows') {
-  server_conf['named_pipe'] = 1
-  server_conf['socket'] = "MyNamedPipe"
-}
-
 var test_list = {
   "SELECT current_user()": "common@%",
   "SELECT user()": `${LDAP_SIMPLE_USER}@localhost`
 };
 
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', server_conf);
-
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', getAuthServerConfig('LDAP_SIMPLE'));
 shell.connect(__sandbox_uri1);
-session.runSql("CREATE DATABASE test_user_db");
-session.runSql(`CREATE USER '${LDAP_SIMPLE_USER}' IDENTIFIED BY 'abc'`);
-session.runSql("CREATE USER 'common'");
-session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'common'");
-session.runSql(`GRANT PROXY on 'common' TO '${LDAP_SIMPLE_USER}'`);
+
+try {
+  session.runSql("CREATE DATABASE test_user_db");
+  session.runSql(`CREATE USER '${LDAP_SIMPLE_USER}' IDENTIFIED BY 'abc'`);
+  session.runSql("CREATE USER 'common'");
+  session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'common'");
+  session.runSql(`GRANT PROXY on 'common' TO '${LDAP_SIMPLE_USER}'`);
+} catch (error) {
+  println(testutil.catFile(testutil.getSandboxLogPath(__mysql_sandbox_port1)));
+  throw error;
+}
 
 //@<> 1 factor authentication
 testutil.callMysqlsh([`-u${LDAP_SIMPLE_USER}`, "--password1=abc",
@@ -84,7 +72,7 @@ WIPE_OUTPUT();
 //@<> 3 factor authentication
 session.runSql(`ALTER USER '${LDAP_SIMPLE_USER}' ADD 3 FACTOR IDENTIFIED WITH authentication_ldap_simple BY '${LDAP_SIMPLE_AUTH_STRING}'`)
 for (query in test_list) {
-  testutil.callMysqlsh([`-u${LDAP_SIMPLE_USER}`, 
+  testutil.callMysqlsh([`-u${LDAP_SIMPLE_USER}`,
       "--password1=abc", `--password2=${LDAP_SIMPLE_PWD}`, `--password3=${LDAP_SIMPLE_PWD}`,
       "-hlocalhost", `--port=${__mysql_sandbox_port1}`,
       "--auth-method=mysql_clear_password",
@@ -114,7 +102,6 @@ testutil.callMysqlsh([`-u${LDAP_SIMPLE_USER}`, "--password=abc",
 EXPECT_OUTPUT_CONTAINS("Multi-factor authentication is only compatible with MySQL protocol");
 WIPE_OUTPUT();
 
-session.close();
-
 //@<> Cleanup
+session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

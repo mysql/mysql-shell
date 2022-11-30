@@ -222,9 +222,6 @@ function hasAwsEnvironment() {
 
 
 function hasAuthEnvironment(context) {
-  // temporarily disable all authentication tests with extra dependencies
-  return false;
-
   if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'OCI_AUTH'].indexOf(context) == -1) {
     return false
   }
@@ -244,8 +241,7 @@ function hasAuthEnvironment(context) {
                  'LDAP_SASL_BIND_BASE_DN',
                  'LDAP_SASL_USER',
                  'LDAP_SASL_PWD',
-                 'LDAP_SASL_GROUP_SEARCH_FILTER',
-                 'MYSQL_PLUGIN_DIR'];
+                 'LDAP_SASL_GROUP_SEARCH_FILTER'];
   } else if (context == 'LDAP_KERBEROS') {
     variables = ['LDAP_KERBEROS_SERVER_HOST',
                  'LDAP_KERBEROS_SERVER_PORT',
@@ -275,6 +271,133 @@ function hasAuthEnvironment(context) {
     return false;
   }
   return true;
+}
+
+
+function debugAuthPlugins() {
+  return os.getenv("MYSQLSH_DEBUG_AUTH_PLUGINS") || false;
+}
+
+
+function getAuthServerConfig(context) {
+  if (!isAuthMethodSupported(context)) {
+    return {};
+  }
+
+  const ext = __os_type == "windows" ? "dll" : "so";
+
+  if (context == 'LDAP_SIMPLE') {
+    var server_conf = {
+      "plugin-load-add": `authentication_ldap_simple.${ext}`,
+      "authentication_ldap_simple_server_host": `${LDAP_SIMPLE_SERVER_HOST}`,
+      "authentication_ldap_simple_server_port": parseInt(`${LDAP_SIMPLE_SERVER_PORT}`),
+      "authentication_ldap_simple_bind_base_dn": `${LDAP_SIMPLE_BIND_BASE_DN}`
+    };
+
+    if (__os_type == 'windows') {
+      server_conf['named_pipe'] = 1;
+      server_conf['socket'] = "MyNamedPipe";
+    }
+
+    return server_conf;
+  } else if (context == 'LDAP_SASL') {
+    return {
+      "plugin-load-add": `authentication_ldap_sasl.${ext}`,
+      "authentication_ldap_sasl_server_host": `${LDAP_SASL_SERVER_HOST}`,
+      "authentication_ldap_sasl_server_port": parseInt(`${LDAP_SASL_SERVER_PORT}`),
+      "authentication_ldap_sasl_group_search_filter": `${LDAP_SASL_GROUP_SEARCH_FILTER}`,
+      "authentication_ldap_sasl_bind_base_dn": `${LDAP_SASL_BIND_BASE_DN}`,
+      "authentication_ldap_sasl_log_status": 5,
+      "log_error_verbosity": 3
+    };
+  } else if (context == 'LDAP_KERBEROS') {
+    return {
+      "plugin-load-add": `authentication_ldap_sasl.${ext}`,
+      "authentication_ldap_sasl_server_host": `${LDAP_KERBEROS_SERVER_HOST}`,
+      "authentication_ldap_sasl_server_port": parseInt(`${LDAP_KERBEROS_SERVER_PORT}`),
+      "authentication_ldap_sasl_bind_base_dn": `${LDAP_KERBEROS_BIND_BASE_DN}`,
+      "authentication_ldap_sasl_user_search_attr": `${LDAP_KERBEROS_USER_SEARCH_ATTR}`,
+      "authentication_ldap_sasl_bind_root_dn": `${LDAP_KERBEROS_BIND_ROOT_DN}`,
+      "authentication_ldap_sasl_bind_root_pwd": `${LDAP_KERBEROS_BIND_ROOT_PWD}`,
+      "authentication_ldap_sasl_group_search_filter": `${LDAP_KERBEROS_GROUP_SEARCH_FILTER}`,
+      "authentication_ldap_sasl_auth_method_name": 'GSSAPI',
+      "authentication_ldap_sasl_log_status": 5,
+      "log_error_verbosity": 3,
+      "net_read_timeout": 360,
+      "connect_timeout": 360
+    };
+  } else if (context == 'KERBEROS') {
+    const keytab_file = os.path.join(__tmp_dir, "mysql2.keytab");
+    testutil.cpfile(os.path.join(__data_path, "keytab", "mysql.keytab"), keytab_file);
+
+    return {
+      "plugin-load-add": `authentication_kerberos.${ext}`,
+      "authentication_kerberos_service_principal": "mysql_service/kerberos_auth_host@MYSQL.LOCAL",
+      "authentication_kerberos_service_key_tab": keytab_file,
+      "net_read_timeout": 360,
+      "connect_timeout": 360,
+      "log_error_verbosity": 3
+    };
+  } else if (context == 'FIDO') {
+    return {
+      "plugin-load-add": `authentication_fido.${ext}`
+    };
+  }
+
+  return {};
+}
+
+
+function isAuthMethodSupported(context) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'OCI_AUTH'].indexOf(context) == -1) {
+    return false;
+  }
+
+  var plugin = '';
+
+  if (context == 'LDAP_SIMPLE') {
+    plugin = 'authentication_ldap_simple';
+  } else if (context == 'LDAP_SASL') {
+    plugin = 'authentication_ldap_sasl';
+  } else if (context == 'LDAP_KERBEROS') {
+    plugin = 'authentication_ldap_sasl';
+  } else if (context == 'KERBEROS') {
+    plugin = 'authentication_kerberos';
+  } else if (context == 'FIDO') {
+    plugin = 'authentication_fido';
+  } else if (context == 'OCI_AUTH') {
+    // we're using an external server, so this is always supported
+    return true;
+  }
+
+  var plugin_supported = true;
+  const s = shell.openSession(__mysqluripwd);
+
+  try {
+    ensure_plugin_enabled(plugin, s);
+  } catch (error) {
+    plugin_supported = false;
+  }
+
+  if (plugin_supported) {
+    if (context == 'LDAP_KERBEROS') {
+      try {
+        s.runSql("SET @@GLOBAL.authentication_ldap_sasl_auth_method_name = 'GSSAPI'");
+      } catch (error) {
+        plugin_supported = false;
+      }
+    }
+
+    try {
+      ensure_plugin_disabled(plugin, s);
+    } catch (error) {
+      // ignore any errors
+    }
+  }
+
+  s.close();
+
+  return plugin_supported;
 }
 
 

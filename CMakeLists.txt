@@ -576,12 +576,16 @@ IF(LINUX)
     ENDIF()
   ENDIF()
 
-  FUNCTION(execute_patchelf USE_TARGET)
+  FUNCTION(execute_patchelf)
     IF(NOT PATCHELF_EXECUTABLE)
       MESSAGE(FATAL_ERROR "Please install the patchelf(1) utility.")
     ENDIF()
-    ADD_CUSTOM_COMMAND(TARGET ${USE_TARGET} POST_BUILD
-      COMMAND ${PATCHELF_EXECUTABLE} ${PATCHELF_PAGE_SIZE_ARGS} ${ARGN})
+
+    EXECUTE_PROCESS(COMMAND ${PATCHELF_EXECUTABLE} ${PATCHELF_PAGE_SIZE_ARGS} ${ARGN} RESULT_VARIABLE COMMAND_RESULT)
+
+    IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
+      MESSAGE(FATAL_ERROR "Failed to execute: ${PATCHELF_EXECUTABLE} ${PATCHELF_PAGE_SIZE_ARGS} ${ARGN}")
+    ENDIF()
   ENDFUNCTION()
 ENDIF()
 
@@ -877,41 +881,66 @@ ADD_DEFINITIONS(-DLIBEXECDIR="libexec")
 SET(INSTALL_LIBEXECDIR "libexec/mysqlsh")
 ENDIF()
 SET(INSTALL_LIBDIR "lib/mysqlsh")
+
 IF(MYSQL_BUILD_DIR)
-  IF(WIN32)
-    SET(INSTALL_MYSQL_PLUGINS_DIR "lib\\\\mysql\\\\plugins")
-  ELSE()
-    SET(INSTALL_MYSQL_PLUGINS_DIR "lib/mysql/plugins")
-  ENDIF()
-
-  # Searches for the authentication client plugins on the server build path
-  SET(ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  SET(INSTALL_MYSQL_PLUGINS_DIR "lib/mysql/plugins")
+  SET(_plugin_subdirs "${MYSQL_BUILD_DIR}/plugin_output_directory")
+  SET(_plugin_ext "so")
 
   IF(WIN32)
-    SET(LIBRARY_SUFIX .dll)
-    set(_plugin_subdirs "plugin_output_directory/${CMAKE_BUILD_TYPE}")
-  ELSE()
-    SET(LIBRARY_SUFIX .so)
-    set(_plugin_subdirs "plugin_output_directory")
+    STRING(APPEND _plugin_subdirs "/${CMAKE_BUILD_TYPE}")
+    SET(_plugin_ext "dll")
   ENDIF()
 
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES ${LIBRARY_SUFIX})
+  FILE(GLOB AUTH_CLIENT_PLUGINS "${_plugin_subdirs}/authentication_*_client.${_plugin_ext}")
 
-  # Searches authentication_oci_client which is present in all platforms
-  FIND_LIBRARY(CLIENT_PLUGIN_LIB
-    NAME "authentication_oci_client${LIBRARY_SUFIX}"
-    PATHS "${MYSQL_BUILD_DIR}"
-    PATH_SUFFIXES ${_plugin_subdirs}
-    NO_DEFAULT_PATH)
+  IF(AUTH_CLIENT_PLUGINS)
+    SET(AUTH_CLIENT_PLUGINS_COPY ${AUTH_CLIENT_PLUGINS})
+    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_fido_client" "authentication_ldap_sasl_client" "authentication_oci_client")
 
-  IF (CLIENT_PLUGIN_LIB)
-    GET_FILENAME_COMPONENT(CLIENT_PLUGINS_PATH ${CLIENT_PLUGIN_LIB} DIRECTORY)
+    IF(NOT APPLE)
+      LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_kerberos_client")
+    ENDIF()
+
+    FOREACH(_plugin ${AUTH_CLIENT_PLUGINS})
+      FOREACH(_expected_plugin ${EXPECTED_AUTH_CLIENT_PLUGINS})
+        IF(_plugin MATCHES ".+${_expected_plugin}\..+")
+          LIST(REMOVE_ITEM EXPECTED_AUTH_CLIENT_PLUGINS "${_expected_plugin}")
+          LIST(REMOVE_ITEM AUTH_CLIENT_PLUGINS_COPY "${_plugin}")
+
+          IF(_expected_plugin STREQUAL "authentication_fido_client")
+            SET(_library_subdirs "${MYSQL_BUILD_DIR}/library_output_directory")
+
+            IF(WIN32)
+              STRING(APPEND _library_subdirs "/${CMAKE_BUILD_TYPE}")
+              FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/fido2.dll")
+            ELSEIF(APPLE)
+              FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/libfido2*.dylib")
+            ELSE()
+              FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/libfido2.so*")
+            ENDIF()
+
+            IF(NOT AUTH_CLIENT_PLUGINS_DEPS)
+              MESSAGE(FATAL_ERROR "Couldn't find libfido2, a dependency of authentication_fido_client")
+            ENDIF()
+          ENDIF()
+          BREAK()
+        ENDIF()
+      ENDFOREACH()
+    ENDFOREACH()
+
+    IF(AUTH_CLIENT_PLUGINS_COPY)
+      MESSAGE(FATAL_ERROR "Found unexpected client authentication plugins: ${AUTH_CLIENT_PLUGINS_COPY}")
+    ENDIF()
+
+    IF(EXPECTED_AUTH_CLIENT_PLUGINS)
+      MESSAGE(FATAL_ERROR "Didn't find expected client authentication plugins: ${EXPECTED_AUTH_CLIENT_PLUGINS}")
+    ENDIF()
+
+    ADD_DEFINITIONS(-DDEFAULT_MYSQL_PLUGIN_DIR="${INSTALL_MYSQL_PLUGINS_DIR}")
   ENDIF()
-
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
-
-  ADD_DEFINITIONS(-DDEFAULT_MYSQL_PLUGIN_DIR="${INSTALL_MYSQL_PLUGINS_DIR}")
 ENDIF()
+
 SET(INSTALL_INCLUDEDIR "include/mysqlsh")
 SET(INSTALL_SHAREDIR "share/mysqlsh")
 SET(INSTALL_DOCDIR "share/mysqlsh/Docs")
@@ -953,28 +982,44 @@ MACRO(MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
 ENDMACRO()
 
-MACRO(SET_BUNDLED_OPEN_SSL TARGET_FILES)
-    FOREACH(OPEN_SSL_LIB_DEPENDENT ${TARGET_FILES})
-      EXECUTE_PROCESS(COMMAND install_name_tool -change
-              "${CRYPTO_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-              ${OPEN_SSL_LIB_DEPENDENT} RESULT_VARIABLE COMMAND_RESULT)
+FUNCTION(SET_BUNDLED_OPEN_SSL)
+  set(options)
+  set(oneValueArgs)
+  set(multiValueArgs BINARIES)
+  cmake_parse_arguments(SET_BUNDLED_OPEN_SSL "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-      IF("${COMMAND_RESULT}" STREQUAL "1")
-        MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${CRYPTO_VERSION} to bundled one on ${OPEN_SSL_LIB_DEPENDENT}.")
+  FOREACH(OPEN_SSL_LIB_DEPENDENT ${SET_BUNDLED_OPEN_SSL_BINARIES})
+    EXECUTE_PROCESS(COMMAND otool -L ${OPEN_SSL_LIB_DEPENDENT} OUTPUT_VARIABLE COMMAND_OUTPUT)
+
+    STRING(REGEX MATCHALL "[^ \t]+[ \t]" TOKENS ${COMMAND_OUTPUT})
+
+    FOREACH(TOKEN ${TOKENS})
+      STRING(STRIP "${TOKEN}" TOKEN)
+
+      IF(TOKEN MATCHES "${CRYPTO_VERSION}|${OPENSSL_VERSION}|@executable_path|@loader_path")
+        SET(ENTRY "${TOKEN}")
+        STRING(FIND "${ENTRY}" "/" POS REVERSE)
+
+        IF(POS EQUAL -1)
+          SET(LIB "${ENTRY}")
+        ELSE()
+          MATH(EXPR POS "${POS} + 1")
+          STRING(SUBSTRING "${ENTRY}" ${POS} -1 LIB)
+        ENDIF()
+
+        EXECUTE_PROCESS(COMMAND install_name_tool -change
+            "${ENTRY}" "@executable_path/../${INSTALL_LIBDIR}/${LIB}"
+            ${OPEN_SSL_LIB_DEPENDENT} RESULT_VARIABLE COMMAND_RESULT)
+
+        IF("${COMMAND_RESULT}" STREQUAL "1")
+          MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${LIB} to bundled one on ${OPEN_SSL_LIB_DEPENDENT}.")
+        ENDIF()
       ENDIF()
-
-      EXECUTE_PROCESS(COMMAND install_name_tool -change
-              "${OPENSSL_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-              ${OPEN_SSL_LIB_DEPENDENT} RESULT_VARIABLE COMMAND_RESULT)
-
-      IF("${COMMAND_RESULT}" STREQUAL "1")
-        MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${OPENSSL_VERSION} to bundled one on ${OPEN_SSL_LIB_DEPENDENT}.")
-      ENDIF()
-
-      EXECUTE_PROCESS(COMMAND otool -L ${OPEN_SSL_LIB_DEPENDENT})
     ENDFOREACH()
-ENDMACRO()
 
+    EXECUTE_PROCESS(COMMAND otool -L ${OPEN_SSL_LIB_DEPENDENT})
+  ENDFOREACH()
+ENDFUNCTION()
 
 # By default the shell uses Multi-threaded Dynamic RunTime
 # Only sets Static if needed
@@ -1096,11 +1141,6 @@ IF(PYTHON_DEPS)
   ENDIF()
 
   ADD_DEFINITIONS(-DPYTHON_DEPS)
-
-  IF(BUNDLED_OPENSSL_DIR AND APPLE)
-    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
-    SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
-  ENDIF()
 ENDIF()
 
 IF(BUNDLED_MYSQL_CONFIG_EDITOR)

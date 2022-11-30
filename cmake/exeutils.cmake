@@ -88,7 +88,7 @@ function(add_shell_executable)
                 $<TARGET_FILE:${ARGV0}>)
     endif()
   elseif(NOT WIN32)
-  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR OR BUNDLED_ANTLR_DIR)
+  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR OR BUNDLED_ANTLR_DIR OR BUNDLED_SASL_DIR)
     # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH
     # entry instead of RPATH this results in loader loading system libraries (if they are available)
     # instead of bundled ones, this has special impact when bundled libraries are linked using a bundled
@@ -100,24 +100,55 @@ function(add_shell_executable)
   endif()
 endfunction()
 
-function(write_rpath PATH_TO_BINARY DESTINATION_DIR USE_TARGET)
-  file(RELATIVE_PATH RELATIVE_PATH_TO_LIBDIR "${CONFIG_BINARY_DIR}/${DESTINATION_DIR}" "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}")
+function(write_rpath)
+  set(options)
+  set(oneValueArgs BINARY DESTINATION)
+  set(multiValueArgs)
+  cmake_parse_arguments(WRITE_RPATH "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  if(LINUX)
-    execute_patchelf(${USE_TARGET} --remove-rpath "${PATH_TO_BINARY}")
-    execute_patchelf(${USE_TARGET} --set-rpath "'$$ORIGIN/${RELATIVE_PATH_TO_LIBDIR}'" "${PATH_TO_BINARY}")
+  file(RELATIVE_PATH RELATIVE_PATH_TO_LIBDIR "${CONFIG_BINARY_DIR}/${WRITE_RPATH_DESTINATION}" "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}")
+
+  # if RELATIVE_PATH_TO_LIBDIR is not set, then binaries are copied to the INSTALL_LIBDIR, in which case rpath should be $ORIGIN
+  # in all other cases we want to separate $ORIGIN with a slash
+  if(RELATIVE_PATH_TO_LIBDIR)
+    string(PREPEND RELATIVE_PATH_TO_LIBDIR "/")
   endif()
+
+  execute_patchelf(--remove-rpath "${WRITE_RPATH_BINARY}")
+  execute_patchelf(--set-rpath "\$ORIGIN${RELATIVE_PATH_TO_LIBDIR}" "${WRITE_RPATH_BINARY}")
 endfunction()
 
-function(install_bundled_binary SOURCE_BINARY DESTINATION_DIR USE_TARGET)
-  INSTALL(PROGRAMS "${SOURCE_BINARY}" DESTINATION "${DESTINATION_DIR}" COMPONENT main)
-  # if we bundle OpenSSL, then we want the bundled binary to use it instead of the system one
-  if(BUNDLED_OPENSSL)
-    write_rpath("${SOURCE_BINARY}" "${DESTINATION_DIR}" ${USE_TARGET})
+function(install_bundled_binaries)
+  set(options)
+  set(oneValueArgs DESTINATION TARGET)
+  set(multiValueArgs BINARIES)
+  cmake_parse_arguments(INSTALL_BUNDLED "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if(WIN32 AND (INSTALL_BUNDLED_DESTINATION STREQUAL INSTALL_LIBDIR OR INSTALL_BUNDLED_DESTINATION MATCHES "^${INSTALL_LIBDIR}/.*"))
+    # on Windows, if files should be installed in the 'lib' directory, we install them in the 'bin' directory instead
+    set(INSTALL_BUNDLED_DESTINATION "${INSTALL_BINDIR}")
   endif()
+
+  INSTALL(PROGRAMS ${INSTALL_BUNDLED_BINARIES} DESTINATION "${INSTALL_BUNDLED_DESTINATION}" COMPONENT main)
+
+  foreach(SOURCE_BINARY ${INSTALL_BUNDLED_BINARIES})
+    if(NOT IS_SYMLINK "${SOURCE_BINARY}")
+      message(STATUS "Bundling binary: ${SOURCE_BINARY}, installation directory: ${INSTALL_BUNDLED_DESTINATION}")
+      if(LINUX)
+        # we always add an RPATH, if we bundle a binary, then for sure it is going to use one of the other libraries
+        write_rpath(BINARY "${SOURCE_BINARY}" DESTINATION "${INSTALL_BUNDLED_DESTINATION}" TARGET ${INSTALL_BUNDLED_TARGET})
+      elseif(APPLE)
+        # if we bundle OpenSSL, then we want the bundled binary to use it instead of the system one
+        if(BUNDLED_OPENSSL)
+          SET_BUNDLED_OPEN_SSL(BINARIES "${SOURCE_BINARY}")
+        endif()
+      endif()
+    endif()
+  endforeach()
+
   # copy the binary to the build directory
-  set(DESTINATION_BINARY_DIR "${CONFIG_BINARY_DIR}/${DESTINATION_DIR}")
-  add_custom_command(TARGET ${USE_TARGET} POST_BUILD
+  set(DESTINATION_BINARY_DIR "${CONFIG_BINARY_DIR}/${INSTALL_BUNDLED_DESTINATION}")
+  add_custom_command(TARGET ${INSTALL_BUNDLED_TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DESTINATION_BINARY_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SOURCE_BINARY}" "${DESTINATION_BINARY_DIR}")
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${INSTALL_BUNDLED_BINARIES} "${DESTINATION_BINARY_DIR}")
 endfunction()
