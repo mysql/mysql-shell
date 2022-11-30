@@ -968,14 +968,14 @@ Create Table: CREATE TABLE `my_coll` (
 #@ Create an index with the name of an index that already exists. (WL10858-FR5_2)
 ||MySQL Error (1061): Duplicate key name 'myIndex'
 
-#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3) {sys.version_info[:2] < (3, 11)}
+#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3) {sys.version_info[:3] < (3, 10, 4)}
 ||coll.create_index('myIndex', {'fields': [{'field' = '$.myField', type = 'TEXT(10)'}]})
 ||                                                  ^
 ||SyntaxError: invalid syntax
 ||SyntaxError: closing parenthesis ']' does not match opening parenthesis '{'
 ||SyntaxError: closing parenthesis '}' does not match opening parenthesis '['
 
-#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3) {sys.version_info[:2] >= (3, 11)}
+#@ Create an index with a not valid JSON document definition. (WL10858-FR5_3) {sys.version_info[:3] >= (3, 10, 4)}
 ||SyntaxError: cannot assign to literal here. Maybe you meant '==' instead of '='?
 ||SyntaxError: closing parenthesis ']' does not match opening parenthesis '{'
 ||SyntaxError: closing parenthesis '}' does not match opening parenthesis '['

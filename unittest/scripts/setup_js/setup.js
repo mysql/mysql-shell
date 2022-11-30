@@ -693,7 +693,7 @@ function EXPECT_REPLICAS_USE_SSL(session, num_replicas) {
   var count = 0;
   for (row = res.fetchOne(); row; row = res.fetchOne()) {
     print(row);
-    EXPECT_NE(null, row[2], "Replication thread " + row[1] + " not using Ssl");
+    EXPECT_NE("", row[2] || "", "Replication thread " + row[1] + " not using Ssl");
     count += 1;
   }
   EXPECT_EQ(num_replicas, count, "# of replicas");
