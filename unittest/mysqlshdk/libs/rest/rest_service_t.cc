@@ -678,7 +678,8 @@ TEST_F(Rest_service_test, retry_strategy_generic_errors) {
 
   // With no retries a generic error would throw an exception
   EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
-                            "Connection refused|couldn't connect to host");
+                            "Connection refused|couldn't connect to host|"
+                            "Couldn't connect to server");
 
   // One second retry strategy
   Retry_strategy retry_strategy(1);

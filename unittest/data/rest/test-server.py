@@ -125,7 +125,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', f'{args[0]}')
         self.end_headers()
-        self.wfile.write('')
+        self.wfile.close()
         return True
 
     def invoke_handler(self):
