@@ -23,7 +23,7 @@
 # cmake -DWITH_ZLIB=bundled|system
 # bundled is the default
 
-SET(ZLIB_VERSION "1.2.12")
+SET(ZLIB_VERSION "1.2.13")
 
 macro (FIND_SYSTEM_ZLIB)
   find_path(PATH_TO_ZLIB NAMES zlib.h zconf.h)
