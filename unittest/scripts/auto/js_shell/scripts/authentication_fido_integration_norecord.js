@@ -1,5 +1,5 @@
-//@ {false && __version_num >= 80027}
-// ENABLE WHEN Fido authentication plugin is bundled in the shell
+//@ {hasAuthEnvironment('FIDO') && __version_num >= 80027}
+
 // This test is focused on testing ONLY the integration points of the MySQL Shell with the
 // FIDO Authentication, not the FIDO authentication itself.
 // There are 2 integration points:
