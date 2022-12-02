@@ -44,7 +44,9 @@ set(db_SOURCE
     mysql/result.cc
     mysql/row.cc
     mysql/auth_plugins/mysql_event_handler_plugin.cc
+    mysql/auth_plugins/common.cc
     mysql/auth_plugins/fido.cc
+    mysql/auth_plugins/oci.cc
     mysqlx/xsession.cc
     mysqlx/xresult.cc
     mysqlx/xrow.cc

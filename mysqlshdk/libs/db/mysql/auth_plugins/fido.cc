@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
@@ -43,12 +44,6 @@ using uchar = unsigned char; /* Short for unsigned char */
 namespace {
 
 constexpr int HOSTNAME_LENGTH = 255;
-
-void handle_mysql_error(MYSQL *conn) {
-  unsigned int code = mysql_errno(conn);
-
-  throw mysqlshdk::db::Error(mysql_error(conn), code, mysql_sqlstate(conn));
-}
 
 /**
  * Callback for print operations on the authentication_fido_client plugin
@@ -87,14 +82,7 @@ bool parse_register_factor(const char *what_factor,
 
 struct st_mysql_client_plugin *get_authentication_fido_client(MYSQL *conn) {
   /* load fido client authentication plugin if required */
-  auto plugin = mysql_client_find_plugin(conn, "authentication_fido_client",
-                                         MYSQL_CLIENT_AUTHENTICATION_PLUGIN);
-
-  if (!conn) {
-    handle_mysql_error(conn);
-  }
-
-  return plugin;
+  return auth::get_authentication_plugin(conn, "authentication_fido_client");
 }
 
 void set_print_callback(struct st_mysql_client_plugin *plugin) {
@@ -137,16 +125,16 @@ void register_device(MYSQL *conn, const char *factor) {
     init.done();
 
     if (mysql_real_query(conn, init.str().c_str(), init.size())) {
-      handle_mysql_error(conn);
+      auth::handle_mysql_error(conn);
     }
 
     MYSQL_RES *result;
     if (!(result = mysql_store_result(conn))) {
-      handle_mysql_error(conn);
+      auth::handle_mysql_error(conn);
     }
 
     if (mysql_num_rows(result) > 1) {
-      handle_mysql_error(conn);
+      auth::handle_mysql_error(conn);
     }
 
     MYSQL_ROW row = mysql_fetch_row(result);
@@ -199,7 +187,7 @@ void register_device(MYSQL *conn, const char *factor) {
     finish.done();
 
     if (mysql_real_query(conn, finish.str().c_str(), finish.size())) {
-      handle_mysql_error(conn);
+      auth::handle_mysql_error(conn);
     }
   }
 }

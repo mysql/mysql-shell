@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include <cstring>
 
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/oci.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlshdk {
@@ -120,6 +121,10 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
     if (0 == strcmp(args.plugin_name, "authentication_fido_client")) {
       // Instantiating the fido handler will set the print callback
       fido::register_print_callback(conn);
+    } else if (0 == strcmp(args.plugin_name, "authentication_oci_client")) {
+      // make sure that the configured OCI config file is used for
+      // authentication
+      oci::set_config_file(conn);
     }
   }
 
