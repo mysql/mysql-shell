@@ -357,9 +357,11 @@ void Create_replica_cluster::handle_clone(
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
       // target instance and MD are closed and re-open if necessary
-      refresh_target_connections(m_target_instance.get());
-      refresh_target_connections(
-          m_cluster_set->get_metadata_storage()->get_md_server().get());
+      m_target_instance->reconnect_if_needed("Target");
+
+      m_cluster_set->get_metadata_storage()
+          ->get_md_server()
+          ->reconnect_if_needed("Metadata");
 
       // Remove the BACKUP_ADMIN grant from the recovery account
       m_primary_instance->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
@@ -388,7 +390,7 @@ void Create_replica_cluster::handle_clone(
           mysqlshdk::mysql::k_server_recovery_restart_timeout,
           Recovery_progress_style::NOWAIT);
 
-      refresh_target_connections(m_target_instance.get());
+      m_target_instance->reconnect_if_needed("Target");
 
       // Remove the BACKUP_ADMIN grant from the recovery account
       m_primary_instance->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
@@ -745,7 +747,7 @@ shcore::Value Create_replica_cluster::execute() {
         // When clone is used, the target instance will restart and all
         // connections are closed so we need to test if the connection to the
         // target instance and MD are closed and re-open if necessary
-        refresh_target_connections(m_target_instance.get());
+        m_target_instance->reconnect_if_needed("Target");
       } catch (const cancel_sync &) {
         // Throw a real exception to be formatted in the outer catch.
         // cancel_sync is an empty std::exception

@@ -290,35 +290,18 @@ void Add_instance::wait_recovery(const std::string &join_begin_time,
 
 void Add_instance::refresh_target_connections() const {
   try {
-    m_target_instance->query("SELECT 1");
+    m_target_instance->reconnect_if_needed("Target");
   } catch (const shcore::Error &err) {
-    auto e = shcore::Exception::mysql_error_with_code(err.what(), err.code());
+    auto cluster_coptions =
+        m_cluster_impl->get_cluster_server()->get_connection_options();
 
-    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-      log_debug(
-          "Connection to instance '%s' lost: %s. Re-establishing a "
-          "connection.",
-          m_target_instance->get_canonical_address().c_str(),
-          e.format().c_str());
-
-      try {
-        m_target_instance->get_session()->connect(
-            m_target_instance->get_connection_options());
-      } catch (const shcore::Error &ie) {
-        auto cluster_coptions =
-            m_cluster_impl->get_cluster_server()->get_connection_options();
-
-        if (ie.code() == ER_ACCESS_DENIED_ERROR &&
-            m_target_instance->get_connection_options().get_user() !=
-                cluster_coptions.get_user()) {
-          // try again with cluster credentials
-          auto copy = m_target_instance->get_connection_options();
-          copy.set_login_options_from(cluster_coptions);
-          m_target_instance->get_session()->connect(copy);
-        } else {
-          throw;
-        }
-      }
+    if (err.code() == ER_ACCESS_DENIED_ERROR &&
+        m_target_instance->get_connection_options().get_user() !=
+            cluster_coptions.get_user()) {
+      // try again with cluster credentials
+      auto copy = m_target_instance->get_connection_options();
+      copy.set_login_options_from(cluster_coptions);
+      m_target_instance->get_session()->connect(copy);
       m_target_instance->prepare_session();
     } else {
       throw;

@@ -156,6 +156,24 @@ void Instance::prepare_session() {
   get_uuid();
 }
 
+void Instance::reconnect_if_needed(const char *what) {
+  try {
+    query("SELECT 1");
+  } catch (const shcore::Error &err) {
+    if (mysqlshdk::db::is_mysql_client_error(err.code())) {
+      log_info("%s connection to %s lost: %s. Reconnecting...", what,
+               descr().c_str(), err.format().c_str());
+
+      get_session()->connect(get_connection_options());
+      prepare_session();
+    } else {
+      log_info("%s connection to %s lost: %s", what, descr().c_str(),
+               err.format().c_str());
+      throw;
+    }
+  }
+}
+
 Instance::Instance(const std::shared_ptr<mysqlshdk::db::ISession> &session)
     : mysqlshdk::mysql::Instance(session), m_retain_count(-1) {}
 

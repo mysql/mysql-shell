@@ -613,25 +613,6 @@ void drop_clone_recovery_user_nobinlog(
   }
 }
 
-void refresh_target_connections(mysqlshdk::mysql::IInstance *target) {
-  Connection_options opts = target->get_connection_options();
-
-  try {
-    target->query("SELECT 1");
-  } catch (const shcore::Error &e) {
-    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-      log_debug(
-          "Connection to instance '%s' is lost: %s. Re-establishing a "
-          "connection.",
-          target->get_canonical_address().c_str(), e.format().c_str());
-
-      target->get_session()->connect(opts);
-    } else {
-      throw;
-    }
-  }
-}
-
 void cleanup_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
                             const mysqlshdk::mysql::Auth_options &clone_user,
                             const std::string &account_host) {

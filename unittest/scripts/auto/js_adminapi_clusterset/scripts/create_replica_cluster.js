@@ -6,8 +6,11 @@
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
 var session = scene.session
 var cluster = scene.cluster
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
+
+// deploy test sandboxes with sql_mode='NO_BACKSLASH_ESCAPES'
+// regression tests Bug#34837601	CREATE REPLICA CLUSTER() FAILURE WITH MALFORMED GTID SET
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
 var session3 = mysql.getSession(__sandbox_uri3);
 var session4 = mysql.getSession(__sandbox_uri4);
 

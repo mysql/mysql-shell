@@ -699,8 +699,8 @@ void Replica_set_impl::add_instance(
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
       // target instance and MD are closed and re-open if necessary
-      refresh_target_connections(target_instance.get());
-      refresh_target_connections(m_metadata_storage->get_md_server().get());
+      target_instance->reconnect_if_needed("Target");
+      m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");
 
       // Clone will copy all tables, including the replication settings stored
       // in mysql.slave_master_info. MySQL will start replication by default if
@@ -922,8 +922,8 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
       // target instance and MD are closed and re-open if necessary
-      refresh_target_connections(target_instance.get());
-      refresh_target_connections(m_metadata_storage->get_md_server().get());
+      target_instance->reconnect_if_needed("Target");
+      m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");
 
       // Clone will copy all tables, including the replication settings stored
       // in mysql.slave_master_info. MySQL will start replication by default if
@@ -2361,8 +2361,8 @@ void Replica_set_impl::handle_clone(
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
       // target instance and MD are closed and re-open if necessary
-      refresh_target_connections(recipient.get());
-      refresh_target_connections(m_metadata_storage->get_md_server().get());
+      recipient->reconnect_if_needed("Target");
+      m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");
 
       // Remove the BACKUP_ADMIN grant from the recovery account
       get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
@@ -2391,8 +2391,8 @@ void Replica_set_impl::handle_clone(
           mysqlshdk::mysql::k_server_recovery_restart_timeout,
           Recovery_progress_style::NOWAIT);
 
-      refresh_target_connections(recipient.get());
-      refresh_target_connections(m_metadata_storage->get_md_server().get());
+      recipient->reconnect_if_needed("Target");
+      m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");
 
       // Remove the BACKUP_ADMIN grant from the recovery account
       get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",

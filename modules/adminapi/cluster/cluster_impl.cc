@@ -2169,37 +2169,15 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
   return cs;
 }
 
-namespace {
-void reconnect_session_if_needed(mysqlsh::dba::Instance *instance,
-                                 const char *what) {
-  try {
-    instance->query("SELECT 1");
-  } catch (const shcore::Error &err) {
-    auto e = shcore::Exception::mysql_error_with_code(err.what(), err.code());
-
-    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-      log_debug("%s connection lost: %s. Reconnecting...", what,
-                e.format().c_str());
-
-      instance->get_session()->connect(instance->get_connection_options());
-      instance->prepare_session();
-    } else {
-      throw;
-    }
-  }
-}
-}  // namespace
-
 void Cluster_impl::refresh_connections() {
-  reconnect_session_if_needed(get_metadata_storage()->get_md_server().get(),
-                              "Metadata");
+  get_metadata_storage()->get_md_server()->reconnect_if_needed("Metadata");
 
   if (m_primary_master) {
-    reconnect_session_if_needed(m_primary_master.get(), "Primary");
+    m_primary_master->reconnect_if_needed("Primary");
   }
 
   if (m_cluster_server) {
-    reconnect_session_if_needed(m_cluster_server.get(), "Cluster");
+    m_cluster_server->reconnect_if_needed("Cluster");
   }
 }
 

@@ -8,15 +8,13 @@
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname,log_error_verbosity:3});
 
-testutil.deployRawSandbox(__mysql_sandbox_port4, 'root',
-    {
-        report_host: hostname,
-        "log-error-verbosity": "3"
-    });
+// override default sql_mode to test that we always override it
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, log_error_verbosity:3, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+
+testutil.deployRawSandbox(__mysql_sandbox_port4, 'root', {report_host: hostname, "log-error-verbosity": "3", sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
 
 shell.options.useWizards = false;
 

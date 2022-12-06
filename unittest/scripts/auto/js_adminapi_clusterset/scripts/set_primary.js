@@ -31,6 +31,9 @@ session3 = mysql.getSession(__sandbox_uri3);
 session4 = mysql.getSession(__sandbox_uri4);
 session5 = mysql.getSession(__sandbox_uri5);
 
+shell.options["connectTimeout"] = 1.0;
+shell.options["dba.connectTimeout"] = 1.0;
+
 // - switch to invalid cluster
 // - single member in {current, promoted} cluster {unreachable,offline}
 // - switch to cluster in state {online,no_quorum,offline}
