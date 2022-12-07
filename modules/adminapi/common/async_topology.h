@@ -195,8 +195,6 @@ void drop_clone_recovery_user_nobinlog(
     const mysqlshdk::mysql::Auth_options &account,
     const std::string &account_host);
 
-void refresh_target_connections(mysqlshdk::mysql::IInstance *recipient);
-
 void cleanup_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
                             const mysqlshdk::mysql::Auth_options &clone_user,
                             const std::string &account_host);

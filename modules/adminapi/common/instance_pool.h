@@ -97,6 +97,8 @@ class Instance final : public mysqlshdk::mysql::Instance {
 
   void prepare_session();
 
+  void reconnect_if_needed(const char *what);
+
  public:
   /**
    * Try to acquire a shared lock on the instance.

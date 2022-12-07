@@ -30,9 +30,10 @@ function check_open_sessions(session, ignore_pids) {
 }
 
 //@<> Setup
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root");
+// override default sql_mode to test that we always override it
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.options.useWizards = false;
 

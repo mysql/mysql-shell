@@ -93,7 +93,11 @@ function wipeout_cluster(psession, cluster_or_urls) {
 }
 
 function connect_cluster_primary(cluster) {
-  return mysql.getSession("root:root@"+cluster.status()["defaultReplicaSet"]["primary"]);
+  uri = "root:root@"+cluster.status()["defaultReplicaSet"]["primary"];
+  uri += "?connect-timeout=1"
+  s = mysql.getSession(uri);
+  s.runSql("SET SESSION sql_mode=''");
+  return s;
 }
 
 function inject_applier_error(master, slave) {
@@ -430,7 +434,7 @@ function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values) {
 
   for (var uri of uris) {
     try {
-      var session = mysql.getSession(uri);
+      var session = mysql.getSession(uri+"?connect-timeout=1");
     } catch (e) {
       println(uri, e);
       throw e;
