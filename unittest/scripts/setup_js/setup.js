@@ -225,7 +225,7 @@ function hasAuthEnvironment(context) {
   // temporarily disable all authentication tests with extra dependencies
   return false;
 
-  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO'].indexOf(context) == -1) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'OCI_AUTH'].indexOf(context) == -1) {
     return false
   }
 
@@ -257,6 +257,10 @@ function hasAuthEnvironment(context) {
   } else if (context == 'KERBEROS') {
     variables = ['KERBEROS_USER',
                  'KERBEROS_PWD'];
+  } else if (context == 'OCI_AUTH') {
+    variables = ['OCI_AUTH_URI',
+                 'OCI_AUTH_CONFIG_FILE',
+                 'OCI_AUTH_POSITIVE_TESTS'];
   }
 
   let missing=[];
