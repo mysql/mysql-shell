@@ -331,7 +331,7 @@ TEST_F(Python, map_to_py) {
   Input_state cont = Input_state::Ok;
 
   // test enumerator
-  ASSERT_EQ("[\"k1\", \"k2\", \"k3\"]",
+  ASSERT_EQ("Dict_keys(['k1', 'k2', 'k3'])",
             py->execute_interactive("mapval.keys()", cont).descr(false));
 
   // test setter

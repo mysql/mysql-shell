@@ -30,8 +30,6 @@ step_slices = [
 
 all_slices = slices + step_slices
 
-magic_state = 0x12345678
-
 debug = False
 
 ## helpers
@@ -170,7 +168,6 @@ list_members = [
     "__ge__",
     "__getattribute__",
     "__getitem__",
-    "__getstate__",
     "__gt__",
     "__hash__",
     "__iadd__",
@@ -191,7 +188,6 @@ list_members = [
     "__rmul__",
     "__setattr__",
     "__setitem__",
-    "__setstate__",
     "__sizeof__",
     "__str__",
     "__subclasshook__",
@@ -209,9 +205,9 @@ list_members = [
     "sort"
 ]
 
-if '__class_getitem__' in dir([]):
-    list_members.insert(2, '__class_getitem__')
-
+if sys.hexversion >= 0x03090000:
+    list_members.append("__class_getitem__")
+    list_members = sorted(list_members)
 
 EXPECT_EQ(list_members, dir(shlist()))
 
@@ -222,14 +218,16 @@ EXPECT_EQ(list(range(3)), shlist(range(3)))
 
 #@<> pickle
 SETUP("ignored")
-p = pickle.loads(pickle.dumps(actual))
-EXPECT_EQ(actual, p)
-EXPECT_EQ(actual.__class__, p.__class__)
+for proto in range(2, pickle.HIGHEST_PROTOCOL + 1):
+    p = pickle.loads(pickle.dumps(actual, protocol = proto))
+    EXPECT_EQ(actual, p)
+    EXPECT_EQ(actual.__class__, p.__class__)
 
 SETUP("ignored", range(11))
-p = pickle.loads(pickle.dumps(actual))
-EXPECT_EQ(actual, p)
-EXPECT_EQ(actual.__class__, p.__class__)
+for proto in range(2, pickle.HIGHEST_PROTOCOL + 1):
+    p = pickle.loads(pickle.dumps(actual, protocol = proto))
+    EXPECT_EQ(actual, p)
+    EXPECT_EQ(actual.__class__, p.__class__)
 
 #@<> __add__
 SETUP("__add__")
@@ -371,10 +369,6 @@ for i in range(11):
 ## slices
 for s in all_slices:
     TEST(s)
-
-#@<> __getstate__
-SETUP("__getstate__", range(11))
-EXPECT_EQ(magic_state, actual.__getstate__())
 
 #@<> __hash__
 SETUP("__hash__", range(11))
@@ -740,12 +734,6 @@ TEST(slice(1, 3), [0, 1, 2, 3])
 TEST(slice(1, 7, 2), [0, 1, 2])
 TEST(slice(1, 7, 2), "abc")
 
-#@<> __setstate__
-SETUP("__setstate__", range(11))
-EXPECT_THROWS(lambda: actual.__setstate__(None), "TypeError: an integer is required")
-EXPECT_THROWS(lambda: actual.__setstate__(magic_state - 1), "RuntimeError: Wrong magic number used")
-EXPECT_EQ(None, actual.__setstate__(magic_state))
-
 #@<> __sizeof__
 # our implementation always returns the same value
 EXPECT_EQ(shlist().__sizeof__(), shlist(range(11)).__sizeof__())
@@ -788,6 +776,11 @@ c = actual.copy()
 c[0] = "a"
 
 EXPECT_NE(actual[0], c[0])
+
+c = expected.copy()
+c[0] = "a"
+
+EXPECT_NE(expected[0], c[0])
 
 #@<> count
 SETUP("count")

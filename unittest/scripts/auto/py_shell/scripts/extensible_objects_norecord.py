@@ -392,4 +392,3 @@ shell.add_extension_object_member(testutil.sample_module_p_y, "function", f5,
 
 def f6(data):
   print("Some random data:", data)
-

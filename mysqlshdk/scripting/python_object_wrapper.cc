@@ -276,8 +276,9 @@ PyTypeObject PyShMethodObjectType = {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
     ,
-    0,  // tp_vectorcall
+    0  // tp_vectorcall
 #if PY_VERSION_HEX < 0x03090000
+    ,
     0  // tp_print
 #endif
 #endif
@@ -715,8 +716,9 @@ PyTypeObject PyShObjObjectType = {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
     ,
-    0,  // tp_vectorcall
+    0  // tp_vectorcall
 #if PY_VERSION_HEX < 0x03090000
+    ,
     0  // tp_print
 #endif
 #endif
@@ -809,8 +811,9 @@ PyTypeObject PyShObjIndexedObjectType = {
 #endif
 #if PY_VERSION_HEX >= 0x03080000
     ,
-    0,  // tp_vectorcall
+    0  // tp_vectorcall
 #if PY_VERSION_HEX < 0x03090000
+    ,
     0  // tp_print
 #endif
 #endif

@@ -1201,7 +1201,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   output_handler.wipe_all();
 
   execute("mysqlx");
-  MY_EXPECT_STDOUT_CONTAINS("<module>");
+  MY_EXPECT_STDOUT_CONTAINS("<module 'mysqlsh.mysqlx' (built-in)>");
   output_handler.wipe_all();
 
   execute("the_variable");

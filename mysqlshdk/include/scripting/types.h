@@ -137,6 +137,9 @@ struct SHCORE_PUBLIC Value {
     typedef std::map<std::string, Value> container_type;
     typedef container_type::const_iterator const_iterator;
     typedef container_type::iterator iterator;
+    using value_type = container_type::value_type;
+    using reverse_iterator = container_type::reverse_iterator;
+    using const_reverse_iterator = container_type::const_reverse_iterator;
 
     inline bool has_key(const std::string &k) const { return find(k) != end(); }
 
@@ -173,14 +176,26 @@ struct SHCORE_PUBLIC Value {
     const_iterator find(const std::string &k) const { return _map.find(k); }
     iterator find(const std::string &k) { return _map.find(k); }
 
-    void erase(const std::string &k) { _map.erase(k); }
+    size_t erase(const std::string &k) { return _map.erase(k); }
+    iterator erase(const_iterator it) { return _map.erase(it); }
+    iterator erase(iterator it) { return _map.erase(it); }
     void clear() { _map.clear(); }
 
     const_iterator begin() const { return _map.begin(); }
     iterator begin() { return _map.begin(); }
 
+    const_reverse_iterator rbegin() const { return _map.rbegin(); }
+    reverse_iterator rbegin() { return _map.rbegin(); }
+
     const_iterator end() const { return _map.end(); }
     iterator end() { return _map.end(); }
+
+    const_reverse_iterator rend() const { return _map.rend(); }
+    reverse_iterator rend() { return _map.rend(); }
+
+    void set(const std::string &k, shcore::Value &&v) {
+      _map[k] = std::move(v);
+    }
 
     void set(const std::string &k, const shcore::Value &v) { _map[k] = v; }
 
