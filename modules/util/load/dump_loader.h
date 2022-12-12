@@ -392,6 +392,12 @@ class Dump_loader {
                             const std::string &partition, ssize_t index,
                             uint64_t subchunk, uint64_t bytes);
 
+  void on_index_start(const std::string &schema, const std::string &table);
+  void on_index_end(const std::string &schema, const std::string &table);
+
+  void on_analyze_start(const std::string &schema, const std::string &table);
+  void on_analyze_end(const std::string &schema, const std::string &table);
+
   friend class Worker;
   friend class Worker::Load_chunk_task;
 

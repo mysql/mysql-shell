@@ -1665,21 +1665,27 @@ size_t Dump_loader::handle_worker_events(
         break;
       }
 
-      case Worker_event::INDEX_START:
-        break;
-
-      case Worker_event::INDEX_END: {
-        auto task = event.worker->current_task();
-        m_dump->on_index_end(task->schema(), task->table());
+      case Worker_event::INDEX_START: {
+        const auto task = event.worker->current_task();
+        on_index_start(task->schema(), task->table());
         break;
       }
 
-      case Worker_event::ANALYZE_START:
+      case Worker_event::INDEX_END: {
+        const auto task = event.worker->current_task();
+        on_index_end(task->schema(), task->table());
         break;
+      }
+
+      case Worker_event::ANALYZE_START: {
+        const auto task = event.worker->current_task();
+        on_analyze_start(task->schema(), task->table());
+        break;
+      }
 
       case Worker_event::ANALYZE_END: {
-        auto task = event.worker->current_task();
-        m_dump->on_analyze_end(task->schema(), task->table());
+        const auto task = event.worker->current_task();
+        on_analyze_end(task->schema(), task->table());
         break;
       }
 
@@ -2953,6 +2959,28 @@ void Dump_loader::on_subchunk_load_end(const std::string &schema,
                                        uint64_t bytes) {
   m_load_log->end_table_subchunk(schema, table, partition, index, subchunk,
                                  bytes);
+}
+
+void Dump_loader::on_index_start(const std::string &schema,
+                                 const std::string &table) {
+  m_load_log->start_table_indexes(schema, table);
+}
+
+void Dump_loader::on_index_end(const std::string &schema,
+                               const std::string &table) {
+  m_dump->on_index_end(schema, table);
+  m_load_log->end_table_indexes(schema, table);
+}
+
+void Dump_loader::on_analyze_start(const std::string &schema,
+                                   const std::string &table) {
+  m_load_log->start_analyze_table(schema, table);
+}
+
+void Dump_loader::on_analyze_end(const std::string &schema,
+                                 const std::string &table) {
+  m_dump->on_analyze_end(schema, table);
+  m_load_log->end_analyze_table(schema, table);
 }
 
 void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
