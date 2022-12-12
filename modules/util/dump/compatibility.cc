@@ -1037,6 +1037,18 @@ Deferred_statements check_create_table_for_indexes(
     // previous token had to be either ',' or ')'
     const auto end = it.position() - token.length();
 
+    const auto index_clause =
+        std::string_view{statement}.substr(start, end - start);
+
+    // do not remove indexes specified on AUTO_INCREMENT columns, as this will
+    // result in an invalid SQL:
+    //    there can be only one auto column and it must be defined as a key
+    // note: AUTO_INCREMENT columns cannot be foreign keys
+    if (!auto_increment_column.empty() && !constraint &&
+        index_clause.find(auto_increment_column) != std::string::npos) {
+      continue;
+    }
+
     if (statement[potential_comma] == ',') {
       if (!offsets.empty() && offsets.back().second == potential_comma)
         offsets.back().second = end;
@@ -1048,18 +1060,7 @@ Deferred_statements check_create_table_for_indexes(
       offsets.emplace_back(start, end);
     }
 
-    auto index_definition =
-        shcore::str_strip(statement.substr(start, end - start));
-
-    // do not remove indexes specified on AUTO_INCREMENT columns, as this will
-    // result in an invalid SQL:
-    //    there can be only one auto column and it must be defined as a key
-    // note: AUTO_INCREMENT columns cannot be foreign keys
-    if (!auto_increment_column.empty() && !constraint &&
-        index_definition.find(auto_increment_column) != std::string::npos) {
-      offsets.pop_back();
-      continue;
-    }
+    auto index_definition = shcore::str_strip(index_clause);
 
     if (storage == &ret.foreign_keys) {
       storage->emplace_back("ALTER TABLE " + table_name + " ADD " +
