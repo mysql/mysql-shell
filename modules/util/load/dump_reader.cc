@@ -833,6 +833,15 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     }
   }
 
+  options->set("showProgress",
+               shcore::Value(reader->m_options.show_progress()));
+
+  // Override characterSet if given in options
+  if (!reader->m_options.character_set().empty()) {
+    options->set("characterSet",
+                 shcore::Value(reader->m_options.character_set()));
+  }
+
   di.extension = md->get_string("extension", "tsv");
   di.chunked = md->get_bool("chunking", false);
 

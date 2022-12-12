@@ -1450,15 +1450,6 @@ bool Dump_loader::handle_table_data() {
     if (m_dump->next_table_chunk(tables_being_loaded, &schema, &table,
                                  &partition, &chunked, &index, &total,
                                  &data_file, &size, &options)) {
-      options->set("showProgress", m_options.show_progress()
-                                       ? shcore::Value::True()
-                                       : shcore::Value::False());
-
-      // Override characterSet if given in options
-      if (!m_options.character_set().empty()) {
-        options->set("characterSet", shcore::Value(m_options.character_set()));
-      }
-
       const auto chunk = chunked ? index : -1;
       auto status =
           m_load_log->table_chunk_status(schema, table, partition, chunk);
@@ -2384,14 +2375,14 @@ void Dump_loader::execute_threaded(const std::function<bool()> &schedule_next) {
 
 void Dump_loader::execute_table_ddl_tasks() {
   m_ddl_executed = 0;
-  uint64_t ddl_to_execute = 0;
-  bool all_tasks_scheduled = false;
+  std::atomic<uint64_t> ddl_to_execute = 0;
+  std::atomic<bool> all_tasks_scheduled = false;
 
   dump::Progress_thread::Progress_config config;
   config.current = [this]() -> uint64_t { return m_ddl_executed; };
-  config.total = [&ddl_to_execute]() { return ddl_to_execute; };
+  config.total = [&ddl_to_execute]() { return ddl_to_execute.load(); };
   config.is_total_known = [&all_tasks_scheduled]() {
-    return all_tasks_scheduled;
+    return all_tasks_scheduled.load();
   };
 
   const auto stage =
@@ -2503,7 +2494,7 @@ void Dump_loader::execute_table_ddl_tasks() {
   }
 
   all_tasks_scheduled = true;
-  auto pending_tasks = ddl_to_execute;
+  auto pending_tasks = ddl_to_execute.load();
   pool->tasks_done();
 
   {
@@ -2611,14 +2602,14 @@ void Dump_loader::execute_table_ddl_tasks() {
 
 void Dump_loader::execute_view_ddl_tasks() {
   m_ddl_executed = 0;
-  uint64_t ddl_to_execute = 0;
-  bool all_tasks_scheduled = false;
+  std::atomic<uint64_t> ddl_to_execute = 0;
+  std::atomic<bool> all_tasks_scheduled = false;
 
   dump::Progress_thread::Progress_config config;
   config.current = [this]() -> uint64_t { return m_ddl_executed; };
-  config.total = [&ddl_to_execute]() { return ddl_to_execute; };
+  config.total = [&ddl_to_execute]() { return ddl_to_execute.load(); };
   config.is_total_known = [&all_tasks_scheduled]() {
-    return all_tasks_scheduled;
+    return all_tasks_scheduled.load();
   };
 
   const auto stage =
