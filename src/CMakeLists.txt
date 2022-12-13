@@ -372,7 +372,7 @@ ENDIF()
 # krb5 is an indirect dependency for libssh, platforms that bundle libssh should may optionally
 # require a custom built version of the krb5 library to be also bundled in the shell packages
 # to prevent the shell from having different openssl dependencies (system one/bundled one)
-IF(BUNDLED_KRB5_DIR)
+IF(BUNDLED_KRB5_DIR AND NOT WIN32)
   FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/lib/*.so*")
   IF(NOT _KRB5_LIBRARIES)
     MESSAGE(FATAL_ERROR "Could not find the bundled krb5 libraries")
