@@ -64,11 +64,6 @@ shcore::Prompt_result prompt(void *user_data, const char *prompt,
                return shcore::Prompt_result::Ok;
              })
       .handle_prompt(prompt, options, ret);
-
-  // Implementation handles the default value
-  if (ret->empty() && options.default_value) {
-    *ret = options.default_value.as_string();
-  }
 }
 
 }  // namespace
