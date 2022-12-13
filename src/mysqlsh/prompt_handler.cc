@@ -251,6 +251,10 @@ shcore::Prompt_result Prompt_handler::handle_text_prompt(
 
   auto ret_val = m_do_prompt_cb(is_password, prompt_text.c_str(), response);
 
+  if (response->empty() && options.default_value) {
+    *response = options.default_value.as_string();
+  }
+
   return ret_val;
 }
 

@@ -222,11 +222,6 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
           std::bind(&Shell_test_output_handler::do_prompt, target, _1, _2, _3))
           .handle_prompt(prompt, options, ret);
 
-  // Implementation handles the default value
-  if (ret->empty() && options.default_value) {
-    *ret = options.default_value.as_string();
-  }
-
   return ret_val;
 }
 
