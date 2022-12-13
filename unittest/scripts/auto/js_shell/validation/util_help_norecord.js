@@ -620,7 +620,14 @@ DESCRIPTION
       - aws_secret_access_key
       - aws_session_token
 
-      3. Settings from the config file for the specified profile:
+      3. Process specified by the credential_process setting from the config
+         file for the specified profile:
+
+      - AccessKeyId
+      - SecretAccessKey
+      - SessionToken
+
+      4. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
@@ -631,6 +638,19 @@ DESCRIPTION
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      The process/command line specified by the credential_process setting must
+      write a JSON object to the standard output in the following form:
+      {
+        "Version": 1,
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "SessionToken": "temporary AWS session token, optional",
+        "Expiration": "RFC3339 timestamp, optional"
+      }
+
+      The Expiration key, if given, specifies when the credentials are going to
+      expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -1143,7 +1163,14 @@ DESCRIPTION
       - aws_secret_access_key
       - aws_session_token
 
-      3. Settings from the config file for the specified profile:
+      3. Process specified by the credential_process setting from the config
+         file for the specified profile:
+
+      - AccessKeyId
+      - SecretAccessKey
+      - SessionToken
+
+      4. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
@@ -1154,6 +1181,19 @@ DESCRIPTION
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      The process/command line specified by the credential_process setting must
+      write a JSON object to the standard output in the following form:
+      {
+        "Version": 1,
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "SessionToken": "temporary AWS session token, optional",
+        "Expiration": "RFC3339 timestamp, optional"
+      }
+
+      The Expiration key, if given, specifies when the credentials are going to
+      expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -1660,7 +1700,14 @@ DESCRIPTION
       - aws_secret_access_key
       - aws_session_token
 
-      3. Settings from the config file for the specified profile:
+      3. Process specified by the credential_process setting from the config
+         file for the specified profile:
+
+      - AccessKeyId
+      - SecretAccessKey
+      - SessionToken
+
+      4. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
@@ -1671,6 +1718,19 @@ DESCRIPTION
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      The process/command line specified by the credential_process setting must
+      write a JSON object to the standard output in the following form:
+      {
+        "Version": 1,
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "SessionToken": "temporary AWS session token, optional",
+        "Expiration": "RFC3339 timestamp, optional"
+      }
+
+      The Expiration key, if given, specifies when the credentials are going to
+      expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -1946,7 +2006,14 @@ DESCRIPTION
       - aws_secret_access_key
       - aws_session_token
 
-      3. Settings from the config file for the specified profile:
+      3. Process specified by the credential_process setting from the config
+         file for the specified profile:
+
+      - AccessKeyId
+      - SecretAccessKey
+      - SessionToken
+
+      4. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
@@ -1957,6 +2024,19 @@ DESCRIPTION
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      The process/command line specified by the credential_process setting must
+      write a JSON object to the standard output in the following form:
+      {
+        "Version": 1,
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "SessionToken": "temporary AWS session token, optional",
+        "Expiration": "RFC3339 timestamp, optional"
+      }
+
+      The Expiration key, if given, specifies when the credentials are going to
+      expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -2336,7 +2416,14 @@ DESCRIPTION
       - aws_secret_access_key
       - aws_session_token
 
-      3. Settings from the config file for the specified profile:
+      3. Process specified by the credential_process setting from the config
+         file for the specified profile:
+
+      - AccessKeyId
+      - SecretAccessKey
+      - SessionToken
+
+      4. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
@@ -2347,6 +2434,19 @@ DESCRIPTION
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      The process/command line specified by the credential_process setting must
+      write a JSON object to the standard output in the following form:
+      {
+        "Version": 1,
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "SessionToken": "temporary AWS session token, optional",
+        "Expiration": "RFC3339 timestamp, optional"
+      }
+
+      The Expiration key, if given, specifies when the credentials are going to
+      expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 

@@ -30,6 +30,7 @@ set(aws_SOURCES
   aws_signer.cc
   config_credentials_provider.cc
   env_credentials_provider.cc
+  process_credentials_provider.cc
   s3_bucket.cc
   s3_bucket_config.cc
   s3_bucket_options.cc

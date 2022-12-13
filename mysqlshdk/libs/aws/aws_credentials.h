@@ -61,6 +61,10 @@ class Aws_credentials final {
     return m_access_key_id.empty() && m_secret_access_key.empty();
   }
 
+  inline bool temporary() const noexcept {
+    return NO_EXPIRATION != m_expiration;
+  }
+
   inline bool expired() const noexcept { return expired(Clock::now()); }
 
   inline bool expired(Time_point now) const noexcept {
@@ -70,6 +74,8 @@ class Aws_credentials final {
   inline bool expired(std::time_t now) const noexcept {
     return expired(Clock::from_time_t(now));
   }
+
+  inline Time_point expiration() const noexcept { return m_expiration; }
 
   inline const std::string &access_key_id() const noexcept {
     return m_access_key_id;

@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/aws/aws_signer.h"
 #include "mysqlshdk/libs/aws/config_credentials_provider.h"
 #include "mysqlshdk/libs/aws/env_credentials_provider.h"
+#include "mysqlshdk/libs/aws/process_credentials_provider.h"
 #include "mysqlshdk/libs/aws/s3_bucket.h"
 
 namespace mysqlshdk {
@@ -136,7 +137,14 @@ const std::string &S3_bucket_config::hash() const {
     m_hash += '-';
     m_hash += m_credentials_file;
     m_hash += '-';
+    m_hash += m_credentials_provider->name();
+    m_hash += '-';
     m_hash += m_credentials_provider->credentials()->access_key_id();
+    m_hash += '-';
+    m_hash += std::to_string(m_credentials_provider->credentials()
+                                 ->expiration()
+                                 .time_since_epoch()
+                                 .count());
     m_hash += '-';
     m_hash += m_region;
   }
@@ -283,8 +291,15 @@ void S3_bucket_config::setup_credentials_provider() {
   }
 
   if (m_profile_from_config_file.has_value()) {
+    const auto &profile = *m_profile_from_config_file;
+
+    if (Process_credentials_provider::available(profile)) {
+      providers.emplace_back(std::make_unique<Process_credentials_provider>(
+          m_config_file, &profile));
+    }
+
     providers.emplace_back(std::make_unique<Config_credentials_provider>(
-        m_config_file, "config file", &*m_profile_from_config_file));
+        m_config_file, "config file", &profile));
   }
 
   if (providers.empty()) {

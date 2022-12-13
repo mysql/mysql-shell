@@ -23,18 +23,65 @@
 
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
 
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 
 namespace mysqlshdk {
 namespace aws {
 
+class Aws_credentials_provider::Updater final {
+ public:
+  explicit Updater(Aws_credentials_provider *provider) : m_provider(provider) {}
+
+  Updater(const Updater &) = delete;
+  Updater(Updater &&) = delete;
+
+  Updater &operator=(const Updater &) = delete;
+  Updater &operator=(Updater &&) = delete;
+
+  ~Updater() = default;
+
+  std::shared_ptr<Aws_credentials> credentials() {
+    std::lock_guard lock{m_mutex};
+
+    if (m_provider->m_credentials && m_provider->m_credentials->temporary() &&
+        m_provider->m_credentials->expired()) {
+      m_provider->m_credentials = m_provider->get_credentials();
+    }
+
+    return m_provider->m_credentials;
+  }
+
+ private:
+  std::mutex m_mutex;
+  Aws_credentials_provider *m_provider;
+};
+
 Aws_credentials_provider::Aws_credentials_provider(Context context)
     : m_context(std::move(context)) {}
 
-bool Aws_credentials_provider::initialize() {
-  m_credentials.reset();
+Aws_credentials_provider::~Aws_credentials_provider() = default;
 
+std::shared_ptr<Aws_credentials> Aws_credentials_provider::credentials() const {
+  return m_updater ? m_updater->credentials() : m_credentials;
+}
+
+bool Aws_credentials_provider::initialize() {
+  if (!m_initialized) {
+    m_credentials = get_credentials();
+
+    if (m_credentials && m_credentials->temporary()) {
+      m_updater = std::make_unique<Updater>(this);
+    }
+
+    m_initialized = true;
+  }
+
+  return !!credentials();
+}
+
+std::shared_ptr<Aws_credentials> Aws_credentials_provider::get_credentials() {
   const auto credentials = fetch_credentials();
 
   if (credentials.access_key_id.has_value() !=
@@ -49,16 +96,13 @@ bool Aws_credentials_provider::initialize() {
 
   if (credentials.access_key_id.has_value() &&
       credentials.secret_access_key.has_value()) {
-    m_credentials = std::make_shared<Aws_credentials>(
+    return std::make_shared<Aws_credentials>(
         *credentials.access_key_id, *credentials.secret_access_key,
         credentials.session_token.value_or(std::string{}),
         credentials.expiration);
-
-    // TODO(pawel): the credential refreshing logic should go here, thread
-    // should re-fetch the credentials when they expire
   }
 
-  return !!m_credentials;
+  return {};
 }
 
 }  // namespace aws

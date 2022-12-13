@@ -42,11 +42,9 @@ class Aws_credentials_provider {
       delete;
   Aws_credentials_provider &operator=(Aws_credentials_provider &&) = default;
 
-  virtual ~Aws_credentials_provider() = default;
+  virtual ~Aws_credentials_provider();
 
-  inline std::shared_ptr<Aws_credentials> credentials() const noexcept {
-    return m_credentials;
-  }
+  std::shared_ptr<Aws_credentials> credentials() const;
 
   inline const std::string &name() const noexcept { return m_context.name; }
 
@@ -77,10 +75,16 @@ class Aws_credentials_provider {
   explicit Aws_credentials_provider(Context context);
 
  private:
+  class Updater;
+
   virtual Credentials fetch_credentials() = 0;
+
+  std::shared_ptr<Aws_credentials> get_credentials();
 
   std::shared_ptr<Aws_credentials> m_credentials;
   Context m_context;
+  bool m_initialized = false;
+  std::unique_ptr<Updater> m_updater;
 };
 
 }  // namespace aws
