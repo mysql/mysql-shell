@@ -1450,15 +1450,6 @@ bool Dump_loader::handle_table_data() {
     if (m_dump->next_table_chunk(tables_being_loaded, &schema, &table,
                                  &partition, &chunked, &index, &total,
                                  &data_file, &size, &options)) {
-      options->set("showProgress", m_options.show_progress()
-                                       ? shcore::Value::True()
-                                       : shcore::Value::False());
-
-      // Override characterSet if given in options
-      if (!m_options.character_set().empty()) {
-        options->set("characterSet", shcore::Value(m_options.character_set()));
-      }
-
       const auto chunk = chunked ? index : -1;
       auto status =
           m_load_log->table_chunk_status(schema, table, partition, chunk);
@@ -1674,21 +1665,27 @@ size_t Dump_loader::handle_worker_events(
         break;
       }
 
-      case Worker_event::INDEX_START:
-        break;
-
-      case Worker_event::INDEX_END: {
-        auto task = event.worker->current_task();
-        m_dump->on_index_end(task->schema(), task->table());
+      case Worker_event::INDEX_START: {
+        const auto task = event.worker->current_task();
+        on_index_start(task->schema(), task->table());
         break;
       }
 
-      case Worker_event::ANALYZE_START:
+      case Worker_event::INDEX_END: {
+        const auto task = event.worker->current_task();
+        on_index_end(task->schema(), task->table());
         break;
+      }
+
+      case Worker_event::ANALYZE_START: {
+        const auto task = event.worker->current_task();
+        on_analyze_start(task->schema(), task->table());
+        break;
+      }
 
       case Worker_event::ANALYZE_END: {
-        auto task = event.worker->current_task();
-        m_dump->on_analyze_end(task->schema(), task->table());
+        const auto task = event.worker->current_task();
+        on_analyze_end(task->schema(), task->table());
         break;
       }
 
@@ -2384,14 +2381,14 @@ void Dump_loader::execute_threaded(const std::function<bool()> &schedule_next) {
 
 void Dump_loader::execute_table_ddl_tasks() {
   m_ddl_executed = 0;
-  uint64_t ddl_to_execute = 0;
-  bool all_tasks_scheduled = false;
+  std::atomic<uint64_t> ddl_to_execute = 0;
+  std::atomic<bool> all_tasks_scheduled = false;
 
   dump::Progress_thread::Progress_config config;
   config.current = [this]() -> uint64_t { return m_ddl_executed; };
-  config.total = [&ddl_to_execute]() { return ddl_to_execute; };
+  config.total = [&ddl_to_execute]() { return ddl_to_execute.load(); };
   config.is_total_known = [&all_tasks_scheduled]() {
-    return all_tasks_scheduled;
+    return all_tasks_scheduled.load();
   };
 
   const auto stage =
@@ -2503,7 +2500,7 @@ void Dump_loader::execute_table_ddl_tasks() {
   }
 
   all_tasks_scheduled = true;
-  auto pending_tasks = ddl_to_execute;
+  auto pending_tasks = ddl_to_execute.load();
   pool->tasks_done();
 
   {
@@ -2611,14 +2608,14 @@ void Dump_loader::execute_table_ddl_tasks() {
 
 void Dump_loader::execute_view_ddl_tasks() {
   m_ddl_executed = 0;
-  uint64_t ddl_to_execute = 0;
-  bool all_tasks_scheduled = false;
+  std::atomic<uint64_t> ddl_to_execute = 0;
+  std::atomic<bool> all_tasks_scheduled = false;
 
   dump::Progress_thread::Progress_config config;
   config.current = [this]() -> uint64_t { return m_ddl_executed; };
-  config.total = [&ddl_to_execute]() { return ddl_to_execute; };
+  config.total = [&ddl_to_execute]() { return ddl_to_execute.load(); };
   config.is_total_known = [&all_tasks_scheduled]() {
-    return all_tasks_scheduled;
+    return all_tasks_scheduled.load();
   };
 
   const auto stage =
@@ -2962,6 +2959,28 @@ void Dump_loader::on_subchunk_load_end(const std::string &schema,
                                        uint64_t bytes) {
   m_load_log->end_table_subchunk(schema, table, partition, index, subchunk,
                                  bytes);
+}
+
+void Dump_loader::on_index_start(const std::string &schema,
+                                 const std::string &table) {
+  m_load_log->start_table_indexes(schema, table);
+}
+
+void Dump_loader::on_index_end(const std::string &schema,
+                               const std::string &table) {
+  m_dump->on_index_end(schema, table);
+  m_load_log->end_table_indexes(schema, table);
+}
+
+void Dump_loader::on_analyze_start(const std::string &schema,
+                                   const std::string &table) {
+  m_load_log->start_analyze_table(schema, table);
+}
+
+void Dump_loader::on_analyze_end(const std::string &schema,
+                                 const std::string &table) {
+  m_dump->on_analyze_end(schema, table);
+  m_load_log->end_analyze_table(schema, table);
 }
 
 void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {

@@ -1395,6 +1395,25 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
        {{}, {}, {}, false},
        {},
        {}});
+
+  EXPECT_STMTS(
+      R"(CREATE TABLE `t1` (
+  `num` int unsigned NOT NULL AUTO_INCREMENT,
+  `val` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`num`),
+  KEY `val` (`val`),
+  KEY `val_2` (`val`,`num`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;)",
+      "`t1`", false,
+      {R"(CREATE TABLE `t1` (
+  `num` int unsigned NOT NULL AUTO_INCREMENT,
+  `val` varchar(32) DEFAULT NULL,
+  PRIMARY KEY (`num`),
+  KEY `val_2` (`val`,`num`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;)",
+       {{}, {}, {"KEY `val` (`val`)"}, false},
+       {},
+       {}});
 }
 
 TEST_F(Compatibility_test, indexes_recreation) {

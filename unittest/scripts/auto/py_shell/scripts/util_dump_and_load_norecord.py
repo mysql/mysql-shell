@@ -2489,6 +2489,37 @@ shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 session.run_sql(f"DROP USER IF EXISTS {tested_user}")
 
+#@<> BUG#34876423 - load failed if table contained multiple indexes and one of them was specified on an AUTO_INCREMENT column
+# constants
+dump_dir = os.path.join(outdir, "bug_34876423")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (num INT UNSIGNED PRIMARY KEY AUTO_INCREMENT, val varchar(32), KEY(val), KEY(val, num))", [ tested_schema, tested_table ])
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "showProgress": False }), "Dump should not fail")
+# `val` index is going to be deferred, drop it and readd it to make sure the same CREATE TABLE statement is returned by both source and destination instance
+session.run_sql("ALTER TABLE !.! DROP KEY `val`", [ tested_schema, tested_table ])
+session.run_sql("ALTER TABLE !.! ADD KEY (`val`)", [ tested_schema, tested_table ])
+
+# load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "showProgress": False }), "Load should not fail")
+
+# verification
+compare_schema(session1, session2, tested_schema, check_rows=True)
+
+#@<> BUG#34876423 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

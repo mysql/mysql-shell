@@ -71,23 +71,23 @@ void clear_buffer(std::string *buffer) {
   buffer->clear();
 }
 
-std::string str_strip(const std::string &s, const std::string &chars) {
+std::string str_strip(std::string_view s, std::string_view chars) {
   size_t begin = s.find_first_not_of(chars);
   size_t end = s.find_last_not_of(chars);
   if (begin == std::string::npos) return std::string();
-  return s.substr(begin, end - begin + 1);
+  return std::string{s.substr(begin, end - begin + 1)};
 }
 
-std::string str_lstrip(const std::string &s, const std::string &chars) {
+std::string str_lstrip(std::string_view s, std::string_view chars) {
   size_t begin = s.find_first_not_of(chars);
   if (begin == std::string::npos) return std::string();
-  return s.substr(begin);
+  return std::string{s.substr(begin)};
 }
 
-std::string str_rstrip(const std::string &s, const std::string &chars) {
+std::string str_rstrip(std::string_view s, std::string_view chars) {
   size_t end = s.find_last_not_of(chars);
   if (end == std::string::npos) return std::string();
-  return s.substr(0, end + 1);
+  return std::string{s.substr(0, end + 1)};
 }
 
 std::string str_format(const char *formats, ...) {

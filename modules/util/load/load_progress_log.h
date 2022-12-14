@@ -241,6 +241,21 @@ class Load_progress_log final {
     return it->second.details->get_string("uuid");
   }
 
+  Status table_index_status(const std::string &schema,
+                            const std::string &table) const {
+    auto it = m_last_state.find("TABLE-INDEX:`" + schema + "`:`" + table + "`");
+    if (it == m_last_state.end()) return Status::PENDING;
+    return it->second.status;
+  }
+
+  Status analyze_table_status(const std::string &schema,
+                              const std::string &table) const {
+    auto it =
+        m_last_state.find("TABLE-ANALYZE:`" + schema + "`:`" + table + "`");
+    if (it == m_last_state.end()) return Status::PENDING;
+    return it->second.status;
+  }
+
   void set_server_uuid(const std::string &uuid) {
     const auto saved_uuid = server_uuid();
 
@@ -323,6 +338,28 @@ class Load_progress_log final {
 
   void end_gtid_update() {
     if (gtid_update_status() != Status::DONE) log(true, "GTID-UPDATE");
+  }
+
+  void start_table_indexes(const std::string &schema,
+                           const std::string &table) {
+    if (table_index_status(schema, table) != Status::DONE)
+      log(false, "TABLE-INDEX", schema, table);
+  }
+
+  void end_table_indexes(const std::string &schema, const std::string &table) {
+    if (table_index_status(schema, table) != Status::DONE)
+      log(true, "TABLE-INDEX", schema, table);
+  }
+
+  void start_analyze_table(const std::string &schema,
+                           const std::string &table) {
+    if (analyze_table_status(schema, table) != Status::DONE)
+      log(false, "TABLE-ANALYZE", schema, table);
+  }
+
+  void end_analyze_table(const std::string &schema, const std::string &table) {
+    if (analyze_table_status(schema, table) != Status::DONE)
+      log(true, "TABLE-ANALYZE", schema, table);
   }
 
  private:
