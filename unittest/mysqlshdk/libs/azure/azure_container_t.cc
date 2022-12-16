@@ -171,7 +171,7 @@ TEST_F(Azure_container_tests, multipart_uploads) {
 
   // COMMIT MULTIPART UPLOAD
   const auto data = multipart_file_data();
-  const auto hash = shcore::ssl::md5(data.c_str(), data.size());
+  const auto hash = shcore::ssl::restricted::md5(data.c_str(), data.size());
 
   auto mp_object = container.create_multipart_upload("sakila.sql");
   std::size_t offset = 0;
@@ -195,7 +195,7 @@ TEST_F(Azure_container_tests, multipart_uploads) {
 
   rest::String_buffer buffer{k_multipart_file_size};
   container.get_object("sakila.sql", &buffer);
-  EXPECT_EQ(hash, shcore::ssl::md5(buffer.data(), buffer.size()));
+  EXPECT_EQ(hash, shcore::ssl::restricted::md5(buffer.data(), buffer.size()));
 }
 
 TEST_F(Azure_container_tests, container_object_operations) {

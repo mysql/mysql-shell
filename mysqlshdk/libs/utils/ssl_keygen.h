@@ -81,24 +81,45 @@ std::string create_key_pair(const std::string &path,
  * @param callback function pointer to gather the passphrase in case the key is
  * encrypted.
  * @param userdata data passed to the callback.
- * @returns the fingerprint for the key.
  */
-std::string load_private_key(const std::string &path,
-                             Password_callback callback = nullptr,
-                             void *user_data = nullptr);
+void load_private_key(const std::string &path,
+                      Password_callback callback = nullptr,
+                      void *user_data = nullptr);
+
+/**
+ * Provides MD5 fingerprint of a private key.
+ *
+ * @param path The path to the private key.
+ *
+ * @returns Fingerprint for the given private key.
+ *
+ * @throws std::runtime_error If key was not loaded.
+ */
+std::string private_key_fingerprint(const std::string &path);
 
 /**
  * Computes SHA256 hash of the given data.
  */
 std::vector<unsigned char> sha256(const char *data, size_t size);
 
+std::vector<unsigned char> hmac_sha256(const std::vector<unsigned char> &key,
+                                       const std::string &data);
+
+namespace restricted {
+
 /**
  * Computes MD5 hash of the given data.
+ *
+ * @param data The given data.
+ * @param size Size of the data.
+ *
+ * @returns MD5 hash
+ *
+ * NOTE: The MD5 hash cannot be used without an approval.
  */
 std::vector<unsigned char> md5(const char *data, size_t size);
 
-std::vector<unsigned char> hmac_sha256(const std::vector<unsigned char> &key,
-                                       const std::string &data);
+}  // namespace restricted
 
 }  // namespace ssl
 }  // namespace shcore

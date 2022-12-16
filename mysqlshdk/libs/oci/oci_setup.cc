@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -308,7 +308,8 @@ std::string Oci_setup::load_private_key(const std::string &path,
     std::string fingerprint;
     do {
       try {
-        fingerprint = shcore::ssl::load_private_key(path, pwd_cb, this);
+        shcore::ssl::load_private_key(path, pwd_cb, this);
+        fingerprint = shcore::ssl::private_key_fingerprint(path);
       } catch (const shcore::ssl::Decrypt_error &err) {
         // Ignore, user gave wrong password
       }

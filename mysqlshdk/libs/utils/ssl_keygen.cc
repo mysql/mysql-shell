@@ -67,6 +67,16 @@ using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 using EVP_PKEY_CTX_ptr =
     std::unique_ptr<EVP_PKEY_CTX, decltype(&::EVP_PKEY_CTX_free)>;
 
+// EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
+// and EVP_MD_CTX_free() in OpenSSL 1.1.
+#if OPENSSL_VERSION_NUMBER < 0x10100000L /* 1.1.x */
+#define EVP_MD_CTX_new EVP_MD_CTX_create
+#define EVP_MD_CTX_free EVP_MD_CTX_destroy
+#endif
+
+using EVP_MD_CTX_ptr =
+    std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_free)>;
+
 void throw_last_error(const std::string &context) {
   auto rc = ERR_get_error();
   auto reason = ERR_GET_REASON(rc);
@@ -116,7 +126,8 @@ std::string get_fingerprint(EVP_PKEY *key_ptr) {
 
   std::string decoded_key;
   if (decode_base64(public_key, &decoded_key)) {
-    const auto digest = md5(decoded_key.c_str(), decoded_key.size());
+    const auto digest =
+        restricted::md5(decoded_key.c_str(), decoded_key.size());
 
     std::vector<std::string> fp;
     for (size_t index = 0; index < 16; index++) {
@@ -137,9 +148,8 @@ std::string get_fingerprint(EVP_PKEY *key_ptr) {
 
 }  // namespace
 
-std::string load_private_key(const std::string &path, Password_callback pwd_cb,
-                             void *user_data) {
-  std::string fingerprint;
+void load_private_key(const std::string &path, Password_callback pwd_cb,
+                      void *user_data) {
   if (!shcore::path_exists(path)) {
     throw std::runtime_error("The indicated path does not exist.");
   } else if (!shcore::is_file(path)) {
@@ -150,14 +160,21 @@ std::string load_private_key(const std::string &path, Password_callback pwd_cb,
         PEM_read_bio_PrivateKey(bio_private.get(), nullptr, pwd_cb, user_data);
     if (key_ptr) {
       EVP_KEY_ptr pkey(key_ptr, ::EVP_PKEY_free);
-      fingerprint = get_fingerprint(pkey.get());
       Private_key_storage::get().put(path, std::move(pkey));
     } else {
       throw_last_error("loading private key");
     }
   }
+}
 
-  return fingerprint;
+std::string private_key_fingerprint(const std::string &path) {
+  const auto key = Private_key_storage::get().contains(path);
+
+  if (!key.second) {
+    throw std::runtime_error("Private key was not loaded: " + path);
+  }
+
+  return get_fingerprint(key.first->second.get());
 }
 
 std::string create_key_pair(const std::string &path,
@@ -271,15 +288,7 @@ std::string create_key_pair(const std::string &path,
 }
 
 std::vector<unsigned char> sha256(const char *data, size_t size) {
-// EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
-// and EVP_MD_CTX_free() in OpenSSL 1.1.
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L /* 1.1.x */
-  std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_free)> mctx(
-      EVP_MD_CTX_new(), ::EVP_MD_CTX_free);
-#else
-  std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_destroy)> mctx(
-      EVP_MD_CTX_create(), ::EVP_MD_CTX_destroy);
-#endif
+  EVP_MD_CTX_ptr mctx(EVP_MD_CTX_new(), ::EVP_MD_CTX_free);
   const EVP_MD *md = EVP_sha256();
   int r = EVP_DigestInit_ex(mctx.get(), md, nullptr);
   if (r != 1) {
@@ -305,29 +314,36 @@ std::vector<unsigned char> sha256(const char *data, size_t size) {
   return md_value;
 }
 
+namespace restricted {
+
 std::vector<unsigned char> md5(const char *data, size_t size) {
+  EVP_MD_CTX_ptr mdctx(EVP_MD_CTX_new(), ::EVP_MD_CTX_free);
+
+  // allow MD5 in FIPS mode
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L /* 3.0.x */
+  std::unique_ptr<EVP_MD, decltype(&::EVP_MD_free)> md_ptr(
+      EVP_MD_fetch(nullptr, "MD5", "fips=no"), ::EVP_MD_free);
+  const auto md = md_ptr.get();
+#else  // < 3.0.x
+  const auto md = EVP_md5();
+#ifdef EVP_MD_CTX_FLAG_NON_FIPS_ALLOW
+  EVP_MD_CTX_set_flags(mdctx.get(), EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+#endif  // EVP_MD_CTX_FLAG_NON_FIPS_ALLOW
+#endif  // < 3.0.x
+
+  EVP_DigestInit_ex(mdctx.get(), md, nullptr);
+  EVP_DigestUpdate(mdctx.get(), data, size);
+
+  unsigned int final_size;
   std::vector<unsigned char> md_value;
   md_value.resize(16);
 
-#if OPENSSL_VERSION_NUMBER > 0x30000000L /* 3.0.x */
-  unsigned int final_size;
-
-  const EVP_MD *md = EVP_md5();
-  EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-
-  EVP_DigestInit(mdctx, md);
-  EVP_DigestUpdate(mdctx, data, size);
-  EVP_DigestFinal_ex(mdctx, md_value.data(), &final_size);
-  EVP_MD_CTX_free(mdctx);
-#else
-  MD5_CTX ctx;
-  MD5_Init(&ctx);
-  MD5_Update(&ctx, data, size);
-  MD5_Final(md_value.data(), &ctx);
-#endif
+  EVP_DigestFinal_ex(mdctx.get(), md_value.data(), &final_size);
 
   return md_value;
 }
+
+}  // namespace restricted
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L /* 1.1.x */
 

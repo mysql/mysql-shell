@@ -185,7 +185,7 @@ TEST_P(Bucket_test, multipart_uploads) {
 
   // COMMIT MULTIPART UPLOAD
   const auto data = multipart_file_data();
-  const auto hash = shcore::ssl::md5(data.c_str(), data.size());
+  const auto hash = shcore::ssl::restricted::md5(data.c_str(), data.size());
 
   auto mp_object = bucket.create_multipart_upload("sakila.sql");
   std::vector<Multipart_object_part> parts;
@@ -210,7 +210,7 @@ TEST_P(Bucket_test, multipart_uploads) {
 
   rest::String_buffer buffer{k_multipart_file_size};
   bucket.get_object("sakila.sql", &buffer);
-  EXPECT_EQ(hash, shcore::ssl::md5(buffer.data(), buffer.size()));
+  EXPECT_EQ(hash, shcore::ssl::restricted::md5(buffer.data(), buffer.size()));
 
   // copy object multipart
   bucket.copy_object_multipart("sakila.sql", "zakila.sql",
@@ -226,7 +226,7 @@ TEST_P(Bucket_test, multipart_uploads) {
 
   buffer.clear();
   bucket.get_object("zakila.sql", &buffer);
-  EXPECT_EQ(hash, shcore::ssl::md5(buffer.data(), buffer.size()));
+  EXPECT_EQ(hash, shcore::ssl::restricted::md5(buffer.data(), buffer.size()));
 
   bucket.delete_object("sakila.sql");
   bucket.delete_object("zakila.sql");
