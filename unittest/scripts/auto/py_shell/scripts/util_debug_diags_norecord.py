@@ -396,10 +396,10 @@ options = {
 }
 def check(outpath):
     rows = session1.run_sql("select * from test.preamble").fetch_all()
-    EXPECT_EQ(3, len(rows))
+    EXPECT_BETWEEN(2, 4, len(rows))
     EXPECT_EQ("during", rows[0][0])
     EXPECT_EQ("during", rows[1][0])
-    EXPECT_EQ("after", rows[2][0])
+    EXPECT_EQ("after", rows[len(rows)-1][0])
     session1.run_sql("drop table test.preamble")
 
 CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
