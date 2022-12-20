@@ -2148,7 +2148,20 @@ void Dba::deploy_sandbox_instance(
     mysqlshdk::db::Connection_options instance_def(uri);
     instance_def.set_password(*password);
 
-    std::shared_ptr<Instance> instance = Instance::connect(instance_def);
+    std::shared_ptr<Instance> instance;
+
+    try {
+      instance = Instance::connect(instance_def);
+    } catch (const shcore::Error &e) {
+      if (e.code() != CR_SSL_CONNECTION_ERROR) throw;
+
+      // we can get SSL connect errors when connecting to older servers that
+      // don't support TLSv1.2
+      auto ssl_opts = instance_def.get_ssl_options();
+      ssl_opts.set_mode(mysqlshdk::db::Ssl_mode::Disabled);
+      instance_def.set_ssl_options(ssl_opts);
+      instance = Instance::connect(instance_def);
+    }
 
     log_info("Creating root@%s account for sandbox %i",
              opts.allow_root_from.c_str(), port);

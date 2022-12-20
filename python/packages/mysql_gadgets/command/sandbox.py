@@ -1234,9 +1234,19 @@ def stop_sandbox(**kwargs):
     try:
         s.connect()
     except exceptions.GadgetServerError as err:
-        raise exceptions.GadgetError(
-            "Unable to connect to MySQL sandbox {0} to send the "
-            "SHUTDOWN request: '{1}'".format(str(s), str(err)))
+        if err.errno == 2026: # SSL error
+            conn_dict["ssl"] = False
+            s = server.Server({"conn_info": conn_dict})
+            try:
+                s.connect()
+            except exceptions.GadgetServerError as err:
+                raise exceptions.GadgetError(
+                    "Unable to connect to MySQL sandbox {0} to send the "
+                    "SHUTDOWN request: '{1}'".format(str(s), str(err)))
+        else:
+            raise exceptions.GadgetError(
+                "Unable to connect to MySQL sandbox {0} to send the "
+                "SHUTDOWN request: '{1}'".format(str(s), str(err)))
     try:
         s.exec_query("SHUTDOWN")
     except exceptions.GadgetQueryError:
