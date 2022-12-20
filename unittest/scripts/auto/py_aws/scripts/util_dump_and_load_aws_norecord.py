@@ -4,6 +4,9 @@
 
 #@<> INCLUDE dump_utils.inc
 
+#@<> imports
+import os.path
+
 #@<> setup
 setup_tests(load_tests = True)
 
@@ -357,17 +360,17 @@ tested_schema = "test schema"
 tested_table = "fish & chips"
 bug_34599319_dump_dir = "shell test/dump & load"
 
-setup_session(__sandbox_uri1)
-session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
-session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
-session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
-session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+dump_session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+dump_session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+dump_session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
+dump_session.run_sql("INSERT INTO !.! (id) VALUES (1234);", [ tested_schema, tested_table ])
+dump_session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
 
 aws_options = get_options({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })
 
 # prepare the dump
 clean_bucket()
+setup_session(__sandbox_uri1)
 
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, aws_settings):
     util.dump_schemas([tested_schema], bug_34599319_dump_dir, aws_options)
@@ -382,12 +385,74 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, aws_se
 EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
 
 #@<> BUG#34599319 - cleanup
-session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+dump_session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> BUG#34604763 - new s3Region option
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": "invalid" }):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"], "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
         EXPECT_SUCCESS({ "s3Region": aws_settings.get("region", default_aws_region), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+
+#@<> BUG#34840953 - support for credential_process setting
+# setup
+creds_script = os.path.abspath("creds.py")
+creds_control = os.path.abspath("control")
+
+with open(creds_script, 'w', encoding="utf-8") as f:
+    f.write(f"""# returns hardcoded credentials with optional expiration time
+import datetime
+import json
+import sys
+
+creds = {{
+    'Version': 1,
+    'AccessKeyId': '{aws_settings["aws_access_key_id"]}',
+    'SecretAccessKey': '{aws_settings["aws_secret_access_key"]}'
+}}
+
+expiration = '<permanent>'
+
+if len(sys.argv) > 1:
+    expiration = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(milliseconds = int(sys.argv[1]))).isoformat()
+    creds['Expiration'] = expiration
+
+with open('{creds_control}', 'a', encoding="utf-8") as f:
+    f.write(expiration)
+    f.write('\\n')
+
+print(json.dumps(creds))
+""")
+
+def read_control_file():
+    with open(creds_control, 'r', encoding="utf-8") as f:
+        control = f.read()
+        f.close()
+        os.remove(creds_control)
+    return control
+
+#@<> BUG#34840953 - no expiration
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "credential_process": f"{__mysqlsh} --py --file {creds_script}" }):
+    EXPECT_SUCCESS({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })
+
+# we're dumping and loading 3 times, process should be executed 6 times total
+EXPECT_EQ(6, read_control_file().count('\n'))
+
+#@<> BUG#34840953 - very short expiration time
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "credential_process": f"{__mysqlsh} --py --file {creds_script} 100" }):
+    EXPECT_SUCCESS({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })
+
+# expiration time is 100ms, process should be executed multiple times
+EXPECT_LT(12, read_control_file().count('\n'))
+
+#@<> BUG#34840953 - very long expiration time
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "credential_process": f"{__mysqlsh} --py --file {creds_script} 600000" }):
+    EXPECT_SUCCESS({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })
+
+# credentials do not expire during the test, process should be executed six times
+EXPECT_EQ(6, read_control_file().count('\n'))
+
+#@<> BUG#34840953 - cleanup
+if os.path.exists(creds_script):
+    os.remove(creds_script)
 
 #@<> cleanup
 cleanup_tests(load_tests = True)

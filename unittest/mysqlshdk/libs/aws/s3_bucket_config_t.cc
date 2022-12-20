@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 
@@ -126,6 +127,7 @@ class Aws_s3_bucket_config_test : public testing::Test {
   void SetUp() override {
     Test::SetUp();
     m_cleanup += clear_aws_env_vars();
+    m_script_path = shcore::get_absolute_path(k_script_name);
   }
 
   static std::string default_config_file() {
@@ -138,16 +140,16 @@ class Aws_s3_bucket_config_test : public testing::Test {
 
   [[nodiscard]] static Cleanup write_default_config(
       const std::string &contents) {
-    return write_configuration(default_config_file(), contents);
+    return write_file(default_config_file(), contents);
   }
 
   [[nodiscard]] static Cleanup write_default_credentials(
       const std::string &contents) {
-    return write_configuration(default_credentials_file(), contents);
+    return write_file(default_credentials_file(), contents);
   }
 
-  [[nodiscard]] static Cleanup write_configuration(
-      const std::string &path, const std::string &contents) {
+  [[nodiscard]] static Cleanup write_file(const std::string &path,
+                                          const std::string &contents) {
     Cleanup c;
     const auto dir = shcore::path::dirname(path);
 
@@ -234,6 +236,10 @@ class Aws_s3_bucket_config_test : public testing::Test {
     return config;
   }
 
+  static std::string shell_executable() {
+    return shcore::path::join_path(shcore::get_binary_folder(), "mysqlsh");
+  }
+
   std::string invalid_config(bool with_session_token = false) const {
     std::string config;
 
@@ -264,6 +270,54 @@ class Aws_s3_bucket_config_test : public testing::Test {
     return config;
   }
 
+  shcore::Dictionary_t valid_process_creds(
+      bool with_session_token = false,
+      const std::string &expiration = {}) const {
+    auto creds = shcore::make_dict("Version", 1, "AccessKeyId", k_access_key,
+                                   "SecretAccessKey", k_secret_key);
+
+    if (with_session_token) {
+      creds->emplace("SessionToken", k_session_token);
+    }
+
+    if (!expiration.empty()) {
+      creds->emplace("Expiration", expiration);
+    }
+
+    return creds;
+  }
+
+  std::string invalid_process_config() const {
+    std::string config;
+
+    config += "[profile " + k_profile_name + "]\n";
+    config += "credential_process = ooops\n";
+
+    return config;
+  }
+
+  std::string valid_process_config() const {
+    std::string config;
+
+    config += "[profile " + k_profile_name + "]\n";
+    config += "credential_process = " + shell_executable() + " --py --file " +
+              m_script_path + "\n";
+
+    return config;
+  }
+
+  static std::string py_print_json(const shcore::Dictionary_t &json) {
+    return "print('''" + shcore::Value(json).json(true) + "''')\n";
+  }
+
+  [[nodiscard]] Cleanup write_process_script(const shcore::Dictionary_t &json) {
+    return write_process_script(py_print_json(json));
+  }
+
+  [[nodiscard]] Cleanup write_process_script(const std::string &contents) {
+    return write_file(m_script_path, contents);
+  }
+
   const std::string k_profile_name = "valid-profile";
   const std::string k_credentials_file = "valid-credentials-file";
   const std::string k_config_file = "valid-config-file";
@@ -272,6 +326,8 @@ class Aws_s3_bucket_config_test : public testing::Test {
   const std::string k_secret_key = "valid-secret-key";
   const std::string k_session_token = "valid-session-token";
   const std::string k_endpoint = "https://example.com";
+  const std::string k_script_name = "creds.py";
+  std::string m_script_path;
 
  private:
   static std::string default_config_path(const std::string &filename) {
@@ -357,7 +413,7 @@ TEST_F(Aws_s3_bucket_config_test, credentials_file) {
   Cleanup cleanup;
   cleanup += write_default_credentials(invalid_config());
   cleanup += write_default_config(invalid_config());
-  cleanup += write_configuration(k_credentials_file, default_config());
+  cleanup += write_file(k_credentials_file, default_config());
 
   {
     // option overrides AWS_SHARED_CREDENTIALS_FILE environment variable
@@ -398,7 +454,7 @@ TEST_F(Aws_s3_bucket_config_test, credentials_file) {
     Cleanup c;
     c += clear_aws_env_vars();
     c += write_default_credentials(default_config());
-    c += write_configuration(k_credentials_file, invalid_config());
+    c += write_file(k_credentials_file, invalid_config());
 
     const auto config = Config_builder{}.build();
 
@@ -410,7 +466,7 @@ TEST_F(Aws_s3_bucket_config_test, config_file) {
   Cleanup cleanup;
   cleanup += write_default_credentials(invalid_config());
   cleanup += write_default_config(invalid_config());
-  cleanup += write_configuration(k_config_file, default_config());
+  cleanup += write_file(k_config_file, default_config());
 
   {
     // option overrides AWS_CONFIG_FILE environment variable
@@ -449,7 +505,7 @@ TEST_F(Aws_s3_bucket_config_test, config_file) {
     Cleanup c;
     c += clear_aws_env_vars();
     c += write_default_config(default_config());
-    c += write_configuration(k_config_file, invalid_config());
+    c += write_file(k_config_file, invalid_config());
 
     const auto config = Config_builder{}.build();
 
@@ -675,6 +731,23 @@ TEST_F(Aws_s3_bucket_config_test, credentials_file_credentials) {
   }
 
   {
+    // credentials file has priority over credential_process setting in config
+    // file
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_credentials(valid_config());
+    c += write_default_config(invalid_process_config());
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ("", credentials->session_token());
+  }
+
+  {
     // credentials file has priority, session token set in the other file is not
     // used
     Cleanup c;
@@ -739,6 +812,346 @@ TEST_F(Aws_s3_bucket_config_test, credentials_file_credentials) {
     c += write_default_credentials("[default]\naws_access_key_id=key");
 
     EXPECT_THROW(Config_builder{}.build(), std::runtime_error);
+  }
+}
+
+TEST_F(Aws_s3_bucket_config_test, process_credentials) {
+  {
+    // process
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(valid_process_creds());
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ("", credentials->session_token());
+    EXPECT_FALSE(credentials->temporary());
+    EXPECT_FALSE(credentials->expired());
+  }
+
+  {
+    // process has priority over explicit credentials in config file
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config() + invalid_config());
+    c += write_process_script(valid_process_creds());
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ("", credentials->session_token());
+    EXPECT_FALSE(credentials->temporary());
+    EXPECT_FALSE(credentials->expired());
+  }
+
+  {
+    // session token set to an empty string
+    const auto creds = valid_process_creds(true);
+    creds->set("SessionToken", shcore::Value(""));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ("", credentials->session_token());
+    EXPECT_FALSE(credentials->temporary());
+    EXPECT_FALSE(credentials->expired());
+    EXPECT_EQ(Aws_credentials::NO_EXPIRATION, credentials->expiration());
+  }
+
+  const auto EXPECT_EXPIRATION = [](Aws_credentials::Time_point expected,
+                                    Aws_credentials::Time_point actual) {
+    // shcore::time_point_to_rfc3339() does not include information about
+    // fractions of seconds, these need to be converted to seconds before we can
+    // compare them
+    EXPECT_EQ(std::chrono::floor<std::chrono::seconds>(expected),
+              std::chrono::floor<std::chrono::seconds>(actual));
+  };
+
+  {
+    // session token set to an empty string + expiration
+    const auto expiration =
+        Aws_credentials::Clock::now() - std::chrono::seconds(1);
+    const auto creds =
+        valid_process_creds(true, shcore::time_point_to_rfc3339(expiration));
+    creds->set("SessionToken", shcore::Value(""));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ("", credentials->session_token());
+    EXPECT_TRUE(credentials->temporary());
+    EXPECT_TRUE(credentials->expired());
+    EXPECT_EXPIRATION(expiration, credentials->expiration());
+  }
+
+  {
+    // session token set to some value
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(valid_process_creds(true));
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ(k_session_token, credentials->session_token());
+    EXPECT_FALSE(credentials->temporary());
+    EXPECT_FALSE(credentials->expired());
+    EXPECT_EQ(Aws_credentials::NO_EXPIRATION, credentials->expiration());
+  }
+
+  {
+    // session token set to some value + expiration
+    const auto expiration =
+        Aws_credentials::Clock::now() + std::chrono::minutes(10);
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(
+        valid_process_creds(true, shcore::time_point_to_rfc3339(expiration)));
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ(k_session_token, credentials->session_token());
+    EXPECT_TRUE(credentials->temporary());
+    EXPECT_FALSE(credentials->expired());
+    EXPECT_EXPIRATION(expiration, credentials->expiration());
+  }
+
+  {
+    // expiration
+    const auto expiration =
+        Aws_credentials::Clock::now() + std::chrono::minutes(10);
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(
+        valid_process_creds(false, shcore::time_point_to_rfc3339(expiration)));
+
+    const auto config = Config_builder{}.profile(k_profile_name).build();
+    const auto credentials = config->credentials_provider()->credentials();
+
+    ASSERT_NE(nullptr, credentials);
+    EXPECT_EQ(k_access_key, credentials->access_key_id());
+    EXPECT_EQ(k_secret_key, credentials->secret_access_key());
+    EXPECT_EQ("", credentials->session_token());
+    EXPECT_TRUE(credentials->temporary());
+    EXPECT_FALSE(credentials->expired());
+    EXPECT_EXPIRATION(expiration, credentials->expiration());
+  }
+
+  {
+    // partial credentials, missing access key
+    const auto creds = valid_process_creds();
+    creds->erase("AccessKeyId");
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // partial credentials, missing secret key
+    const auto creds = valid_process_creds();
+    creds->erase("SecretAccessKey");
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // invalid process
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(invalid_process_config());
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // non-zero exit code
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(py_print_json(valid_process_creds()) +
+                              "import sys\n"
+                              "sys.exit(1)\n");
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // empty output
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script("");
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // JSON syntax error
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script("print('''{ 'SecretAccessKey' 1 }''')");
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // JSON is not an object
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script("print('''[ \"SecretAccessKey\", 'value' ]''')");
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // no Version
+    const auto creds = valid_process_creds();
+    creds->erase("Version");
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // Version is not an int
+    const auto creds = valid_process_creds();
+    creds->set("Version", shcore::Value("1"));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // unsupported Version
+    const auto creds = valid_process_creds();
+    creds->set("Version", shcore::Value(2));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // AccessKeyId is not a string
+    const auto creds = valid_process_creds();
+    creds->set("AccessKeyId", shcore::Value(1));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // SecretAccessKey is not a string
+    const auto creds = valid_process_creds();
+    creds->set("SecretAccessKey", shcore::Value(1));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // SessionToken is not a string
+    const auto creds = valid_process_creds();
+    creds->set("SessionToken", shcore::Value(1));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
+  }
+
+  {
+    // Expiration is not a string
+    const auto creds = valid_process_creds();
+    creds->set("Expiration", shcore::Value(1));
+
+    Cleanup c;
+    c += clear_aws_env_vars();
+    c += write_default_config(valid_process_config());
+    c += write_process_script(creds);
+
+    EXPECT_THROW(Config_builder{}.profile(k_profile_name).build(),
+                 std::runtime_error);
   }
 }
 

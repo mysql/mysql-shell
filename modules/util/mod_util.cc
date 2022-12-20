@@ -593,6 +593,11 @@ precedence:
 @li <b>aws_access_key_id</b>
 @li <b>aws_secret_access_key</b>
 @li <b>aws_session_token</b>
+-# Process specified by the <b>credential_process</b> setting from the
+<b>config</b> file for the specified profile:
+@li <b>AccessKeyId</b>
+@li <b>SecretAccessKey</b>
+@li <b>SessionToken</b>
 -# Settings from the <b>config</b> file for the specified profile:
 @li <b>aws_access_key_id</b>
 @li <b>aws_secret_access_key</b>
@@ -603,6 +608,22 @@ The items specified above correspond to the following credentials:
 @li the AWS access key
 @li the secret key associated with the AWS access key
 @li the AWS session token for the temporary security credentials
+
+The process/command line specified by the <b>credential_process</b> setting must
+write a JSON object to the standard output in the following form:
+
+@code
+{
+  "Version": 1,
+  "AccessKeyId": "AWS access key",
+  "SecretAccessKey": "secret key associated with the AWS access key",
+  "SessionToken": "temporary AWS session token, optional",
+  "Expiration": "RFC3339 timestamp, optional"
+}
+@endcode
+
+The <b>Expiration</b> key, if given, specifies when the credentials are going to
+expire, they will be automatically refreshed before this happens.
 
 The following credential handling rules apply:
 @li If the <b>s3Profile</b> option is set to a non-empty string, the environment
