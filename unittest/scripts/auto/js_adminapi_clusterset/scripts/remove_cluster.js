@@ -317,6 +317,24 @@ CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
 
 wipeout_cluster(session1, [__address4r]);
 
+//@<> Remove OFFLINE cluster with force while GR auto-start running
+// Bug #34693099	ClusterSet metadata is not rolled back when removeCluster() failed.
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
+replicacluster.addInstance(__sandbox_uri6);
+
+session6.runSql("stop group_replication");
+testutil.restartSandbox(__mysql_sandbox_port4);
+session4 = mysql.getSession(__sandbox_uri4);
+
+EXPECT_NO_THROWS(function(){clusterset.removeCluster("replicacluster", {force:1});});
+
+EXPECT_STDOUT_CONTAINS("NOTE: Cancelling active GR auto-initialization at ");
+
+CHECK_REMOVED_CLUSTER([__sandbox_uri4, __sandbox_uri6], cluster, "replicacluster");
+
+reset_instance(session4);
+reset_instance(session6);
+
 //@<> Remove unreachable cluster (should fail)
 replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
 

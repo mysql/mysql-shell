@@ -69,6 +69,7 @@
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/mysql/undo.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -2853,10 +2854,10 @@ std::pair<std::string, std::string> Cluster_impl::recreate_replication_user(
                                              repl_account_host);
 }
 
-bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
-                                         const std::string &endpoint,
-                                         const std::string &server_uuid,
-                                         const uint32_t server_id) {
+bool Cluster_impl::drop_replication_user(
+    mysqlshdk::mysql::IInstance *target, const std::string &endpoint,
+    const std::string &server_uuid, const uint32_t server_id,
+    mysqlshdk::mysql::Sql_undo_list *undo) {
   // Either target is a valid pointer or endpoint & server_uuid are set
   assert(target || (!endpoint.empty() && !server_uuid.empty()));
 
@@ -2918,11 +2919,13 @@ bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
                user.c_str(), host.c_str(), target_endpoint.c_str());
 
       try {
+        if (undo) {
+          undo->add_snapshot_for_drop_user(*get_primary_master(), user, host);
+        }
         get_primary_master()->drop_user(user, host, true);
       } catch (...) {
         mysqlsh::current_console()->print_warning(shcore::str_format(
-            "Error dropping recovery account '%s'@'%s' for instance '%s': "
-            "%s",
+            "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
             user.c_str(), host.c_str(), target_endpoint.c_str(),
             format_active_exception().c_str()));
       }
@@ -2968,7 +2971,15 @@ bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
   if (!from_metadata) {
     log_info("Removing replication user '%s'", recovery_user.c_str());
     try {
-      mysqlshdk::mysql::drop_all_accounts_for_user(*primary, recovery_user);
+      auto hosts =
+          mysqlshdk::mysql::get_all_hostnames_for_user(*primary, recovery_user);
+
+      for (const auto &host : hosts) {
+        if (undo) {
+          undo->add_snapshot_for_drop_user(*primary, recovery_user, host);
+        }
+        primary->drop_user(recovery_user, host, true);
+      }
     } catch (const std::exception &e) {
       console->print_warning("Error dropping recovery accounts for user " +
                              recovery_user + ": " + e.what());
@@ -3001,6 +3012,10 @@ bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
                target_endpoint.c_str());
 
       try {
+        if (undo) {
+          undo->add_snapshot_for_drop_user(*primary, recovery_user,
+                                           recovery_user_host);
+        }
         primary->drop_user(recovery_user, recovery_user_host, true);
       } catch (...) {
         console->print_warning(shcore::str_format(
@@ -3011,8 +3026,13 @@ bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
 
       // Also update metadata
       try {
+        std::unique_ptr<Transaction_undo> trx_undo = Transaction_undo::create();
+
         get_metadata_storage()->update_instance_repl_account(
-            target_server_uuid, Cluster_type::GROUP_REPLICATION, "", "");
+            target_server_uuid, Cluster_type::GROUP_REPLICATION, "", "",
+            trx_undo.get());
+
+        if (undo) undo->add(std::move(trx_undo));
       } catch (const std::exception &e) {
         log_warning("Could not update recovery account metadata for '%s': %s",
                     target_endpoint.c_str(), e.what());
@@ -3023,14 +3043,15 @@ bool Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target,
   return true;
 }
 
-void Cluster_impl::drop_replication_users() {
+void Cluster_impl::drop_replication_users(
+    mysqlshdk::mysql::Sql_undo_list *undo) {
   auto ipool = current_ipool();
 
   execute_in_members(
-      [this](const std::shared_ptr<Instance> &instance,
-             const Instance_md_and_gr_member &info) {
+      [this, undo](const std::shared_ptr<Instance> &instance,
+                   const Instance_md_and_gr_member &info) {
         try {
-          drop_replication_user(instance.get());
+          drop_replication_user(instance.get(), "", "", 0, undo);
         } catch (...) {
           current_console()->print_warning("Could not drop internal user for " +
                                            info.first.endpoint + ": " +
@@ -3038,12 +3059,13 @@ void Cluster_impl::drop_replication_users() {
         }
         return true;
       },
-      [this](const shcore::Error &connect_error,
-             const Instance_md_and_gr_member &info) {
+      [this, undo](const shcore::Error &connect_error,
+                   const Instance_md_and_gr_member &info) {
         // drop user based on MD lookup (will not work if the instance is still
         // using legacy account management)
         if (!drop_replication_user(nullptr, info.first.endpoint,
-                                   info.first.uuid, info.first.server_id)) {
+                                   info.first.uuid, info.first.server_id,
+                                   undo)) {
           current_console()->print_warning("Could not drop internal user for " +
                                            info.first.endpoint + ": " +
                                            connect_error.format());

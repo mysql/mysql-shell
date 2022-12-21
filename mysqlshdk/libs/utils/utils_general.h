@@ -27,6 +27,7 @@
 #include <charconv>
 #include <chrono>
 #include <functional>
+#include <list>
 #include <set>
 #include <sstream>
 #include <string>

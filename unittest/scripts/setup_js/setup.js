@@ -1726,3 +1726,27 @@ function clone_installed(session) {
         return row[0] == "ACTIVE";
     return false;
 }
+
+
+function snapshot_tables(session, tables) {
+  snapshot = {};
+  for (tbl of tables) {
+    res = session.runSql(`select * from ${tbl} use index (primary)`).fetchAll();
+    snapshot[tbl] = res;
+  }
+  return snapshot;
+}
+
+function CHECK_TABLE_SNAPSHOTS(session, snapshot) {
+  for (tbl in snapshot) {
+    before = snapshot[tbl];
+    after = session.runSql(`select * from ${tbl} use index (primary)`).fetchAll();
+    if (before.length == after.length) {
+      for (i in before) {
+        EXPECT_EQ(before[i], after[i], `${tbl}:${i}`)
+      }
+    } else {
+      EXPECT_EQ(before, after, tbl);
+    }
+  }
+}

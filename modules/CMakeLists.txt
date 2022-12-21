@@ -121,6 +121,7 @@ file(GLOB api_module_SOURCES
       "adminapi/common/router.cc"
       "adminapi/common/setup_account.cc"
       "adminapi/common/base_cluster_impl.cc"
+      "adminapi/common/undo.cc"
       "adminapi/dba/check_instance.cc"
       "adminapi/dba/configure_async_instance.cc"
       "adminapi/dba/configure_local_instance.cc"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,6 +65,45 @@ void dump(std::ostream &s, IResult *result) {
   while (const auto row = result->fetch_one()) {
     print(s, *row);
     s << "\n";
+  }
+}
+
+void feed_field(shcore::sqlstring *sql, const IRow &row, uint32_t field) {
+  if (row.is_null(field)) {
+    *sql << nullptr;
+  } else {
+    switch (row.get_type(field)) {
+      case Type::Null:
+        *sql << nullptr;
+        break;
+      case Type::Decimal:
+      case Type::Bytes:
+      case Type::Geometry:
+      case Type::Json:
+      case Type::Date:
+      case Type::Time:
+      case Type::DateTime:
+      case Type::Enum:
+      case Type::Set:
+      case Type::String:
+        *sql << row.get_string(field);
+        break;
+      case Type::Integer:
+        *sql << row.get_int(field);
+        break;
+      case Type::UInteger:
+        *sql << row.get_uint(field);
+        break;
+      case Type::Float:
+        *sql << row.get_float(field);
+        break;
+      case Type::Double:
+        *sql << row.get_double(field);
+        break;
+      case Type::Bit:
+        assert(0);
+        throw std::logic_error("not implemented");
+    }
   }
 }
 
