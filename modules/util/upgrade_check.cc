@@ -1814,6 +1814,36 @@ bool UNUSED_VARIABLE(register_get_dollar_sign_name_check) =
         Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.31");
 }
 
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_index_too_large_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      "mysqlIndexTooLargeCheck",
+      "Check for indexes that are too large to work on higher versions of "
+      "MySQL Server than 5.7",
+      std::vector<std::string>{
+          "select s.table_schema, s.table_name, s.index_name, 'index too "
+          "large.' as warning from information_schema.statistics s, "
+          "information_schema.columns c, information_schema.innodb_sys_tables "
+          "i where s.table_name=c.table_name and s.table_schema=c.table_schema "
+          "and c.column_name=s.column_name and concat(s.table_schema, '/', "
+          "s.table_name) = i.name and i.row_format in ('Redundant', 'Compact') "
+          "and (s.sub_part is null or s.sub_part > 255) and "
+          "c.character_octet_length > 767;"},
+      Upgrade_issue::ERROR,
+      "The following indexes ware made too large for their format in an older "
+      "version of MySQL (older than 5.7.34). Normally those indexes within "
+      "tables with compact or redundant row formats shouldn't be larger than "
+      "767 bytes. To fix this problem those indexes should be dropped before "
+      "upgrading or those tables will be inaccessible.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_index_too_large_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_index_too_large_check),
+        Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
+}
+
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format) {
   m_upgrade_info.target_version = options.target_version;
