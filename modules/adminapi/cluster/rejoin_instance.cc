@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -375,9 +375,17 @@ void Rejoin_instance::do_run() {
   }
 
   // Update group_seeds in other members
-  m_cluster_impl->update_group_peers(m_target_instance, m_options.gr_options, 0,
-                                     m_target_instance->get_canonical_address(),
-                                     true);
+  {
+    auto cluster_size =
+        m_cluster_impl->get_metadata_storage()->get_cluster_size(
+            m_cluster_impl->get_id()) -
+        1;  // expects the number of members in the cluster excluding the
+            // joining node
+
+    m_cluster_impl->update_group_peers(
+        *m_target_instance, m_options.gr_options, cluster_size,
+        m_target_instance->get_canonical_address(), true);
+  }
 
   if (m_uuid_mismatch) {
     m_cluster_impl->update_metadata_for_instance(*m_target_instance);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1084,10 +1084,11 @@ void Cluster_impl::update_group_members_for_removed_member(
     uint64_t cluster_member_count =
         get_metadata_storage()->get_cluster_size(get_id());
 
-    bool update_auto_inc = (cluster_member_count + 1) > 7 ? true : false;
-
-    if (topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY &&
-        update_auto_inc) {
+    // we really only need to update auto_increment if we were above 7
+    // (otherwise is always 7), but since the member was already removed, the
+    // condition must be >= 7 (to catch were be moved from 8 to 7)
+    if ((topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) &&
+        (cluster_member_count >= 7)) {
       // Call update_auto_increment to do the job in all instances
       mysqlshdk::gr::update_auto_increment(
           cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
@@ -1468,9 +1469,11 @@ void Cluster_impl::create_local_replication_user(
 }
 
 void Cluster_impl::update_group_peers(
-    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
+    const mysqlshdk::mysql::IInstance &target_instance,
     const Group_replication_options &gr_options, int cluster_member_count,
     const std::string &self_address, bool group_seeds_only) {
+  assert(cluster_member_count > 0);
+
   // Get the gr_address of the instance being added
   std::string added_instance_gr_address = *gr_options.local_address;
 
@@ -1488,7 +1491,7 @@ void Cluster_impl::update_group_peers(
   {
     auto group_seeds = get_cluster_group_seeds();
     assert(!added_instance_gr_address.empty());
-    group_seeds[target_instance->get_uuid()] = added_instance_gr_address;
+    group_seeds[target_instance.get_uuid()] = added_instance_gr_address;
     mysqlshdk::gr::update_group_seeds(cluster_cfg.get(), group_seeds);
   }
 
@@ -1526,7 +1529,8 @@ void Cluster_impl::update_group_peers(
         cluster_member_count > 7) {
       log_debug("Updating auto-increment settings on all active members...");
       mysqlshdk::gr::update_auto_increment(
-          cluster_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+          cluster_cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY,
+          cluster_member_count);
       cluster_cfg->apply();
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,8 +40,6 @@ Switch_to_multi_primary_mode::Switch_to_multi_primary_mode(
     Cluster_impl *cluster)
     : Topology_configuration_command(cluster) {}
 
-Switch_to_multi_primary_mode::~Switch_to_multi_primary_mode() {}
-
 void Switch_to_multi_primary_mode::prepare() {
   // Do the base class validations
   Topology_configuration_command::prepare();
@@ -57,8 +55,9 @@ shcore::Value Switch_to_multi_primary_mode::execute() {
   mysqlshdk::gr::switch_to_multi_primary_mode(*m_cluster_session_instance);
 
   // Update the auto-increment values in all cluster members:
-  //   - auto_increment_increment = 7
-  //   - auto_increment_offset = 1 + server_id % 7
+  //   - auto_increment_increment = n
+  //   - auto_increment_offset = 1 + server_id % n
+  // where n is the size of the GR group if > 7, otherwise n = 7.
   {
     log_debug("Updating auto_increment values of cluster members");
 
@@ -90,10 +89,6 @@ shcore::Value Switch_to_multi_primary_mode::execute() {
 
   return shcore::Value();
 }
-
-void Switch_to_multi_primary_mode::rollback() {}
-
-void Switch_to_multi_primary_mode::finish() {}
 
 }  // namespace cluster
 }  // namespace dba

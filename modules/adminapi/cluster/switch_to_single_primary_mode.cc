@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,8 +41,6 @@ Switch_to_single_primary_mode::Switch_to_single_primary_mode(
     Cluster_impl *cluster)
     : Topology_configuration_command(cluster),
       m_instance_cnx_opts(instance_cnx_opts) {}
-
-Switch_to_single_primary_mode::~Switch_to_single_primary_mode() {}
 
 void Switch_to_single_primary_mode::prepare() {
   // Do the base class validations
@@ -123,10 +121,6 @@ shcore::Value Switch_to_single_primary_mode::execute() {
 
   return shcore::Value();
 }
-
-void Switch_to_single_primary_mode::rollback() {}
-
-void Switch_to_single_primary_mode::finish() {}
 
 }  // namespace cluster
 }  // namespace dba
