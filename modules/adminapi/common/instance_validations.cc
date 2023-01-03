@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -315,6 +315,55 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
   }
 }
 
+void process_row_values(const mysqlshdk::mysql::Invalid_config &cfg,
+                        shcore::Value::Map_type_ref row) {
+  // adjust the displayed string for "log_bin"
+  if (cfg.var_name == "log_bin") {
+    if (cfg.current_val == mysqlshdk::mysql::k_value_not_set)
+      (*row)["current"] = shcore::Value("<not present>");
+    else
+      (*row)["current"] = shcore::Value(cfg.current_val);
+
+    if (cfg.required_val == mysqlshdk::mysql::k_value_not_set ||
+        cfg.required_val == mysqlshdk::mysql::k_no_value)
+      (*row)["required"] = shcore::Value("ON");
+    else
+      (*row)["required"] = shcore::Value(cfg.required_val);
+
+    return;
+  }
+
+  if (cfg.var_name == "skip_log_bin" || cfg.var_name == "disable_log_bin") {
+    if (cfg.current_val == mysqlshdk::mysql::k_value_not_set)
+      (*row)["current"] = shcore::Value("<present>");
+    else
+      (*row)["current"] = shcore::Value(cfg.current_val);
+
+    if (cfg.required_val == mysqlshdk::mysql::k_value_not_set)
+      (*row)["required"] = shcore::Value("<not present>");
+    else
+      (*row)["required"] = shcore::Value(cfg.required_val);
+
+    return;
+  }
+
+  // store as is
+  (*row)["current"] = shcore::Value(cfg.current_val);
+  (*row)["required"] = shcore::Value(cfg.required_val);
+}
+
+void process_row_action(const mysqlshdk::mysql::Invalid_config &cfg,
+                        shcore::Value::Map_type_ref row,
+                        std::string_view action) {
+  if (cfg.var_name == "skip_log_bin" || cfg.var_name == "disable_log_bin") {
+    (*row)["action"] = shcore::Value("remove_opt+restart");
+    return;
+  }
+
+  // store as is
+  (*row)["action"] = shcore::Value(action);
+}
+
 /**
  * Validate configuration of the target MySQL server instance.
  *
@@ -372,9 +421,9 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
     (*map_val)["status"] = shcore::Value("error");
     shcore::Value::Array_type_ref config_errors(
         new shcore::Value::Array_type());
-    for (mysqlshdk::mysql::Invalid_config &cfg : invalid_cfs_vec) {
+    for (const mysqlshdk::mysql::Invalid_config &cfg : invalid_cfs_vec) {
       shcore::Value::Map_type_ref error(new shcore::Value::Map_type());
-      std::string action;
+      std::string_view action;
       if (!log_bin_present &&
           (cfg.var_name == "log_bin" || cfg.var_name == "skip_log_bin" ||
            cfg.var_name == "disable_log_bin") &&
@@ -413,13 +462,12 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
       }
 
       (*error)["option"] = shcore::Value(cfg.var_name);
-      (*error)["current"] = shcore::Value(cfg.current_val);
-      (*error)["required"] = shcore::Value(cfg.required_val);
-      (*error)["action"] = shcore::Value(action);
+      process_row_values(cfg, error);
+      process_row_action(cfg, error, action);
       if (!cfg.persisted_val.is_null()) {
         (*error)["persisted"] = shcore::Value(*cfg.persisted_val);
       }
-      config_errors->push_back(shcore::Value(error));
+      config_errors->push_back(shcore::Value(std::move(error)));
     }
     (*map_val)["config_errors"] = shcore::Value(config_errors);
   }

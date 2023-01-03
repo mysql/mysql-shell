@@ -133,7 +133,7 @@ NOTE: Some configuration options need to be fixed:
 | binlog_format                    | <not set>     | ROW            | Update the config file                         |
 | enforce_gtid_consistency         | <not set>     | ON             | Update the config file                         |
 | gtid_mode                        | OFF           | ON             | Update the config file                         |
-| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |
+| log_bin                          | <not present> | ON             | Update the config file and restart the server  |
 | log_slave_updates                | <not set>     | ON             | Update the server variable and the config file |
 | master_info_repository           | <not set>     | TABLE          | Update the server variable and the config file |
 | relay_log_info_repository        | <not set>     | TABLE          | Update the server variable and the config file |
@@ -232,7 +232,7 @@ NOTE: Some configuration options need to be fixed:
 | binlog_format                    | <not set>     | ROW            | Update the config file                         |
 | enforce_gtid_consistency         | <not set>     | ON             | Update the config file                         |
 | gtid_mode                        | OFF           | ON             | Update the config file                         |
-| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |
+| log_bin                          | <not present> | ON             | Update the config file and restart the server  |
 | log_slave_updates                | <not set>     | ON             | Update the server variable and the config file |
 | master_info_repository           | <not set>     | TABLE          | Update the server variable and the config file |
 | relay_log_info_repository        | <not set>     | TABLE          | Update the server variable and the config file |

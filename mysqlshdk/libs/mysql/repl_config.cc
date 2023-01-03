@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -411,7 +411,7 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
                                  std::vector<Invalid_config> *out_invalid_vec) {
   log_debug("Checking if 'log_bin' is compatible.");
 
-  // If config object has has a config handler
+  // If config object has has a config file handler
   auto initial_invalid_configs = out_invalid_vec->size();
   if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
     // On MySQL 8.0.3 the binary log is enabled by default, so there is no need
@@ -489,7 +489,7 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
             "disable_log_bin", k_value_not_set, k_value_not_set,
             Config_types(Config_type::CONFIG), true, shcore::Value_type::Bool);
       } else if (out_invalid_vec->size() == initial_invalid_configs) {
-        // if we didn't change the config (already valid), them we need to
+        // if we didn't change the config (already valid), then we just need to
         // restart
         out_invalid_vec->push_back(change);
       }
