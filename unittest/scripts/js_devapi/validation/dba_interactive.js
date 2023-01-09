@@ -69,6 +69,9 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
+See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
+NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 

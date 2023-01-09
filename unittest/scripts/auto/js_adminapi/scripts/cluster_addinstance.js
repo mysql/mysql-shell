@@ -502,8 +502,16 @@ if (__version_num >= 80027) {
 var num_recovery_users = number_of_gr_recovery_accounts(session);
 print("Number of recovery user before addInstance(): " + num_recovery_users + "\n");
 
-//@ BUG#25503159: add instance fail (using an invalid localaddress).
-c.addInstance(__hostname_uri2, {localAddress: "invalid_host"});
+//@<> BUG#25503159: add instance fail (using an invalid localaddress).
+EXPECT_THROWS(function(){
+    c.addInstance(__hostname_uri2, {localAddress: "invalid_host"});
+}, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+
+EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "invalid_host" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+if (__os_type != 'windows') {
+    EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+}
+EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
 
 //@<> BUG#25503159: number of recovery users is the same.
 var num_recovery_users_after = number_of_gr_recovery_accounts(session);

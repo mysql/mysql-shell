@@ -14,8 +14,14 @@ cluster_admin_uri= "mysql://tst_admin:tst_pwd@" + __host + ":" + str(__mysql_san
 
 # Session to be used through all the AAPI calls
 shell.connect(cluster_admin_uri)
+
+os_version = session.run_sql('select @@version_compile_os').fetch_one()[0];
+
 if __version_num < 80027:
-    dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip})
+    if os_version == "Win32" or os_version == "Win64":
+        dba.create_cluster('sample', {'localAddress': '127.0.0.1', 'ipAllowlist': '127.0.0.1,' + hostname_ip})
+    else:
+        dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip})
 else:
     dba.create_cluster('sample')
 

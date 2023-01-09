@@ -1,10 +1,10 @@
 #@ {__os_type != "macos" and __machine_type != "aarch64"}
 
-# Test is disabled on aarch64, because timers behave wierd there.
+# Test is disabled on aarch64, because timers behave weird there.
 # It is hard to pinpoint why this happen, and it is also hard to create/find
 # server which will trigger connection timeout scenario.
 #
-# It's impossible to write this test deterministicly.
+# It's impossible to write this test deterministically.
 #
 # See notes below.
 #
@@ -102,10 +102,16 @@ EXPECT_EXECUTION_TIME(1, lambda: shell.connect(f"{mysqlx_uri}?connect-timeout=10
 testutil.deploy_sandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname})
 
 shell.connect(__sandbox_uri1)
+
+os_version = session.run_sql('select @@version_compile_os').fetch_one()[0];
+
 if __version_num < 80027:
-  cluster = dba.create_cluster("test", {"ipAllowlist": "127.0.0.1," + hostname_ip})
+    if os_version == "Win32" or os_version == "Win64":
+        cluster = dba.create_cluster("test", {'localAddress': '127.0.0.1', "ipAllowlist": "127.0.0.1," + hostname_ip})
+    else:
+        cluster = dba.create_cluster("test", {"ipAllowlist": "127.0.0.1," + hostname_ip})
 else:
-  cluster = dba.create_cluster("test")
+    cluster = dba.create_cluster("test")
 
 #@<> WL14698-ET_2 - classic protocol
 # default value of the "dba.connectTimeout" is 5 seconds, set "connectTimeout" to something else to make sure it's not used

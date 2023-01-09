@@ -140,7 +140,6 @@ shcore::Dictionary_t Status::check_group_status(
   int quorum_size = 0;
   // count inconsistencies in the group vs metadata
   int missing_from_group = 0;
-  int missing_from_md = 0;
 
   for (const auto &inst : m_instances) {
     if (std::find_if(members.begin(), members.end(),
@@ -152,13 +151,6 @@ shcore::Dictionary_t Status::check_group_status(
   }
 
   for (const auto &member : members) {
-    if (std::find_if(m_instances.begin(), m_instances.end(),
-                     [&member](const Instance_metadata &inst) {
-                       return member.uuid == inst.uuid;
-                     }) != m_instances.end()) {
-      missing_from_md++;
-    }
-
     total_in_group++;
     if (member.state == mysqlshdk::gr::Member_state::ONLINE ||
         member.state == mysqlshdk::gr::Member_state::RECOVERING)
