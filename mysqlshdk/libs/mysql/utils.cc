@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -788,7 +788,10 @@ void drop_indicator_tag(const mysql::IInstance &instance,
   try {
     instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?", name);
   } catch (const shcore::Error &e) {
-    if (e.code() != ER_SLAVE_CHANNEL_DOES_NOT_EXIST) throw;
+#ifndef ER_REPLICA_CHANNEL_DOES_NOT_EXIST
+#define ER_REPLICA_CHANNEL_DOES_NOT_EXIST ER_SLAVE_CHANNEL_DOES_NOT_EXIST
+#endif
+    if (e.code() != ER_REPLICA_CHANNEL_DOES_NOT_EXIST) throw;
   }
 }
 

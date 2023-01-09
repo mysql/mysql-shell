@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1639,7 +1639,10 @@ void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
           reset_channel(instance.get(), k_clusterset_async_channel_name, true,
                         dry_run);
         } catch (const shcore::Exception &e) {
-          if (e.code() != ER_SLAVE_CHANNEL_DOES_NOT_EXIST) {
+#ifndef ER_REPLICA_CHANNEL_DOES_NOT_EXIST
+#define ER_REPLICA_CHANNEL_DOES_NOT_EXIST ER_SLAVE_CHANNEL_DOES_NOT_EXIST
+#endif
+          if (e.code() != ER_REPLICA_CHANNEL_DOES_NOT_EXIST) {
             throw;
           }
         }

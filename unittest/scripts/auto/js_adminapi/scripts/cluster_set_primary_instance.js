@@ -156,7 +156,12 @@ do {
 EXPECT_THROWS(function() {
     cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port2);
 }, "Instance cannot be set as primary");
-EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. There is a slave channel running in the group's current primary member.");
+
+if (__version_num < 80032) {
+    EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. There is a slave channel running in the group's current primary member.");
+} else {
+    EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. There is a replica channel running in the group's current primary member.");
+}
 
 session.close();
 
