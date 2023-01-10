@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -537,7 +537,7 @@ std::string pctencode(const std::string &s) {
   for (unsigned char c : s) {
     unsigned int i = static_cast<unsigned int>(c);
     if (k_reserved_chars[i]) {
-      sprintf(&enc[offs], "%%%02X", i);
+      snprintf(&enc[offs], enc.size() - offs, "%%%02X", i);
       offs += 3;
     } else {
       enc[offs] = c;
