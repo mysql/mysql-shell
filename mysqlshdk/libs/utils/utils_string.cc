@@ -444,9 +444,9 @@ std::wstring truncate(const wchar_t *str, const size_t length,
 #endif
 }
 
-bool is_valid_utf8(const std::string &s) {
-  auto c = reinterpret_cast<const unsigned char *>(s.c_str());
-  const auto end = c + s.length();
+bool is_valid_utf8(std::string_view s) {
+  auto c = reinterpret_cast<const unsigned char *>(s.data());
+  const auto end = c + s.size();
   uint32_t cp = 0;
   size_t bytes = 0;
 
@@ -503,7 +503,7 @@ bool is_valid_utf8(const std::string &s) {
 namespace {
 
 // Byte-values that are reserved and must be hex-encoded [0..255]
-static const int k_reserved_chars[] = {
+const int k_reserved_chars[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
@@ -517,7 +517,7 @@ static const int k_reserved_chars[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 // Numeric values for hex-digits [0..127]
-static const int k_hex_values[] = {
+const int k_hex_values[] = {
     0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0,
     0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0,
     0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4, 5, 6, 7, 8,
@@ -528,31 +528,30 @@ static const int k_hex_values[] = {
 
 }  // namespace
 
-std::string pctencode(const std::string &s) {
+std::string pctencode(std::string_view s) {
+  constexpr std::array<char, 16> hexmap = {'0', '1', '2', '3', '4', '5',
+                                           '6', '7', '8', '9', 'A', 'B',
+                                           'C', 'D', 'E', 'F'};
+
   std::string enc;
-  size_t offs = 0;
+  enc.reserve(s.size() * 3);
 
-  enc.resize(s.size() * 3);
-
-  for (unsigned char c : s) {
-    unsigned int i = static_cast<unsigned int>(c);
-    if (k_reserved_chars[i]) {
-      snprintf(&enc[offs], enc.size() - offs, "%%%02X", i);
-      offs += 3;
+  for (const auto c : s) {
+    if (k_reserved_chars[static_cast<unsigned int>(c)]) {
+      enc.push_back('%');
+      enc.push_back(hexmap[(c & 0xF0) >> 4]);
+      enc.push_back(hexmap[c & 0x0F]);
     } else {
-      enc[offs] = c;
-      ++offs;
+      enc.push_back(c);
     }
   }
 
-  enc.resize(offs);
-
+  enc.shrink_to_fit();
   return enc;
 }
 
-std::string pctdecode(const std::string &s) {
+std::string pctdecode(std::string_view s) {
   std::string dec;
-
   dec.reserve(s.size());
 
   for (size_t i = 0, c = s.size(); i < c;) {
@@ -567,6 +566,7 @@ std::string pctdecode(const std::string &s) {
     }
   }
 
+  dec.shrink_to_fit();
   return dec;
 }
 

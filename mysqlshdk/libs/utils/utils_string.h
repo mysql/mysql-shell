@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -672,18 +672,18 @@ std::wstring truncate(const wchar_t *str, const size_t length,
  *
  * @returns true if the given string is a valid UTF-8 string
  */
-bool is_valid_utf8(const std::string &s);
+bool is_valid_utf8(std::string_view s);
 
 /**
  * Generates a percent encoded string based on RFC-3986, only unreserved
  * characters are not encoded.
  */
-std::string pctencode(const std::string &s);
+std::string pctencode(std::string_view s);
 
 /**
  * Decodes a string that is percent encoded based on RFC-3986.
  */
-std::string pctdecode(const std::string &s);
+std::string pctdecode(std::string_view s);
 
 /**
  * Returns a string of the given size created with random characters from the
