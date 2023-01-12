@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -891,15 +891,17 @@ TEST(utils_string, is_valid_utf8) {
   EXPECT_FALSE(is_valid_utf8(std::string("\x00\xFF", 2)));
 
   // invalid multi-byte sequences
-  EXPECT_FALSE(is_valid_utf8({0b11000000_c, 0b11000000_c}));
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000000_c, 0b11000000_c}));
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b11000000_c, 0b11000000_c}));
+  EXPECT_FALSE(is_valid_utf8(std::string{0b11000000_c, 0b11000000_c}));
   EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000000_c, 0b11000000_c}));
+      is_valid_utf8(std::string{0b11100000_c, 0b10000000_c, 0b11000000_c}));
   EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b11000000_c, 0b11000000_c}));
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b11000000_c, 0b11000000_c, 0b11000000_c}));
+      is_valid_utf8(std::string{0b11100000_c, 0b11000000_c, 0b11000000_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10000000_c, 0b11000000_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b11000000_c, 0b11000000_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b11000000_c, 0b11000000_c, 0b11000000_c}));
 
   // too short sequences
   // ¢ - missing one byte
@@ -917,56 +919,63 @@ TEST(utils_string, is_valid_utf8) {
 
   // overlong encoding
   // $ - 2 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11000000_c, 0b10100100_c}));
+  EXPECT_FALSE(is_valid_utf8(std::string{0b11000000_c, 0b10100100_c}));
   // $ - 3 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000000_c, 0b10100100_c}));
+  EXPECT_FALSE(
+      is_valid_utf8(std::string{0b11100000_c, 0b10000000_c, 0b10100100_c}));
   // $ - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000000_c, 0b10100100_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10000000_c, 0b10100100_c}));
   // ¢ - 3 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000010_c, 0b10100010_c}));
+  EXPECT_FALSE(
+      is_valid_utf8(std::string{0b11100000_c, 0b10000010_c, 0b10100010_c}));
   // ¢ - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000010_c, 0b10100010_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10000010_c, 0b10100010_c}));
   // € - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000010_c, 0b10000010_c, 0b10101100_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000010_c, 0b10000010_c, 0b10101100_c}));
   // U+7F
-  EXPECT_TRUE(is_valid_utf8({0b01111111_c}));
+  EXPECT_TRUE(is_valid_utf8(std::string{0b01111111_c}));
   // U+7F - 2 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11000001_c, 0b10111111_c}));
+  EXPECT_FALSE(is_valid_utf8(std::string{0b11000001_c, 0b10111111_c}));
   // U+7F - 3 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000001_c, 0b10111111_c}));
+  EXPECT_FALSE(
+      is_valid_utf8(std::string{0b11100000_c, 0b10000001_c, 0b10111111_c}));
   // U+7F - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000001_c, 0b10111111_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10000001_c, 0b10111111_c}));
   // U+80
-  EXPECT_TRUE(is_valid_utf8({0b11000010_c, 0b10000000_c}));
+  EXPECT_TRUE(is_valid_utf8(std::string{0b11000010_c, 0b10000000_c}));
   // U+80 - 3 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10000010_c, 0b10000000_c}));
+  EXPECT_FALSE(
+      is_valid_utf8(std::string{0b11100000_c, 0b10000010_c, 0b10000000_c}));
   // U+80 - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10000010_c, 0b10000000_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10000010_c, 0b10000000_c}));
   // U+07FF
-  EXPECT_TRUE(is_valid_utf8({0b11011111_c, 0b10111111_c}));
+  EXPECT_TRUE(is_valid_utf8(std::string{0b11011111_c, 0b10111111_c}));
   // U+07FF - 3 bytes
-  EXPECT_FALSE(is_valid_utf8({0b11100000_c, 0b10011111_c, 0b10111111_c}));
+  EXPECT_FALSE(
+      is_valid_utf8(std::string{0b11100000_c, 0b10011111_c, 0b10111111_c}));
   // U+07FF - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10011111_c, 0b10111111_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10011111_c, 0b10111111_c}));
   // U+0800
-  EXPECT_TRUE(is_valid_utf8({0b11100000_c, 0b10100000_c, 0b10000000_c}));
-  // U+0800 - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10000000_c, 0b10100000_c, 0b10000000_c}));
-  // U+FFFF
-  EXPECT_TRUE(is_valid_utf8({0b11101111_c, 0b10111111_c, 0b10111111_c}));
-  // U+FFFF - 4 bytes
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110000_c, 0b10001111_c, 0b10111111_c, 0b10111111_c}));
-  // U+10000
   EXPECT_TRUE(
-      is_valid_utf8({0b11110000_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
+      is_valid_utf8(std::string{0b11100000_c, 0b10100000_c, 0b10000000_c}));
+  // U+0800 - 4 bytes
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10000000_c, 0b10100000_c, 0b10000000_c}));
+  // U+FFFF
+  EXPECT_TRUE(
+      is_valid_utf8(std::string{0b11101111_c, 0b10111111_c, 0b10111111_c}));
+  // U+FFFF - 4 bytes
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10001111_c, 0b10111111_c, 0b10111111_c}));
+  // U+10000
+  EXPECT_TRUE(is_valid_utf8(
+      std::string{0b11110000_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
 
   // UTF-16 surrogate halves
   EXPECT_TRUE(is_valid_utf8("\xED\x9F\xBF"));   // U+D7FF
@@ -977,11 +986,11 @@ TEST(utils_string, is_valid_utf8) {
 
   // valid range
   // U+10FFFF
-  EXPECT_TRUE(
-      is_valid_utf8({0b11110100_c, 0b10001111_c, 0b10111111_c, 0b10111111_c}));
+  EXPECT_TRUE(is_valid_utf8(
+      std::string{0b11110100_c, 0b10001111_c, 0b10111111_c, 0b10111111_c}));
   // U+110000
-  EXPECT_FALSE(
-      is_valid_utf8({0b11110100_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
+  EXPECT_FALSE(is_valid_utf8(
+      std::string{0b11110100_c, 0b10010000_c, 0b10000000_c, 0b10000000_c}));
 }
 
 TEST(utils_string, truncate) {
@@ -997,6 +1006,30 @@ TEST(utils_string, truncate) {
   EXPECT_EQ("zß水𝄋zß", truncate("zß水𝄋zß水𝄋", 6));
   EXPECT_EQ("zß水𝄋zß水", truncate("zß水𝄋zß水𝄋", 7));
   EXPECT_EQ("zß水𝄋zß水𝄋", truncate("zß水𝄋zß水𝄋", 8));
+}
+
+TEST(utils_string, pctencode) {
+  EXPECT_EQ("", pctencode(""));
+  EXPECT_EQ("%20", pctencode(" "));
+  EXPECT_EQ("f", pctencode("f"));
+  EXPECT_EQ("%2F", pctencode("/"));
+  EXPECT_EQ("%2F%2F", pctencode("//"));
+  EXPECT_EQ("%2F%20%2F", pctencode("/ /"));
+  EXPECT_EQ("%2Fa%2F", pctencode("/a/"));
+  EXPECT_EQ("%2Ftmp%2Ftmp.hS8tDOeTG0%2F3316%2Fdata%2Fmysqld.sock",
+            pctencode("/tmp/tmp.hS8tDOeTG0/3316/data/mysqld.sock"));
+}
+
+TEST(utils_string, pctdecode) {
+  EXPECT_EQ("", pctdecode(""));
+  EXPECT_EQ(" ", pctdecode("%20"));
+  EXPECT_EQ("f", pctdecode("f"));
+  EXPECT_EQ("/", pctdecode("%2F"));
+  EXPECT_EQ("//", pctdecode("%2F%2F"));
+  EXPECT_EQ("/ /", pctdecode("%2F%20%2F"));
+  EXPECT_EQ("/a/", pctdecode("%2Fa%2F"));
+  EXPECT_EQ("/tmp/tmp.hS8tDOeTG0/3316/data/mysqld.sock",
+            pctdecode("%2Ftmp%2Ftmp.hS8tDOeTG0%2F3316%2Fdata%2Fmysqld.sock"));
 }
 
 }  // namespace shcore

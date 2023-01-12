@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -152,7 +152,8 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
   std::smatch results;
 
   if (std::regex_match(url, results, k_full_par_parser)) {
-    std::string object_name = shcore::pctdecode(results[par_tokens::BASENAME]);
+    std::string object_name =
+        shcore::pctdecode(results[par_tokens::BASENAME].str());
 
     if (object_name.empty()) {
       ret_val = PAR_type::PREFIX;
@@ -169,7 +170,8 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
       data->par_id = results[par_tokens::PARID];
       data->ns_name = results[par_tokens::NAMESPACE];
       data->bucket = results[par_tokens::BUCKET];
-      data->object_prefix = shcore::pctdecode(results[par_tokens::PREFIX]);
+      data->object_prefix =
+          shcore::pctdecode(results[par_tokens::PREFIX].str());
       data->object_name = std::move(object_name);
     }
   }
