@@ -491,9 +491,11 @@ testutil.changeSandboxConf(__mysql_sandbox_port2, "foo", "bar");
 shell.options["dba.restartWaitTimeout"] = 1;
 c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"clone"});
 shell.options["dba.restartWaitTimeout"] = 60;
+testutil.waitSandboxDead(__mysql_sandbox_port2);
 
 //@<> BUG#30281908: restart the instance manually {VER(>= 8.0.17)}
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "foo");
+testutil.killSandbox(__mysql_sandbox_port2); //the server could still be restarting
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 

@@ -197,8 +197,8 @@ void Rescan::prepare() {
   }
 
   // Check if group_replication_view_change_uuid is supported
-  m_is_view_change_uuid_supported =
-      m_cluster->get_lowest_instance_version() >= k_min_cs_version;
+  m_is_view_change_uuid_supported = m_cluster->get_lowest_instance_version() >=
+                                    Precondition_checker::k_min_cs_version;
 
   // Validate the usage of the option 'updateViewChangeUuid'
   if (m_options.update_view_change_uuid.get_safe() &&
@@ -648,10 +648,6 @@ void Rescan::upgrade_comm_protocol() {
 }
 
 void Rescan::ensure_view_change_uuid_set() {
-  auto console = mysqlsh::current_console();
-  std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
-  std::string view_change_uuid;
-
   // Only generate and set the value when all Cluster members are running a
   // version >= k_min_cs_version
   // NOTE: group_replication_view_change_uuid must be the same on all Cluster
@@ -659,51 +655,56 @@ void Rescan::ensure_view_change_uuid_set() {
   // know about the sysvar (<= 8.0.26) will be considered as having the sysvar
   // set to AUTOMATIC so we must ensure the sysvar is only set when all members
   // support it
-  if (m_cluster->get_lowest_instance_version() >= k_min_cs_version) {
-    // Check if group_replication_view_change_uuid is already set on the cluster
-    view_change_uuid = cluster_instance->get_sysvar_string(
-        "group_replication_view_change_uuid", "");
+  if (m_cluster->get_lowest_instance_version() <
+      Precondition_checker::k_min_cs_version)
+    return;
 
-    // If not set (AUTOMATIC), generate a new value and set it on all members
-    if (view_change_uuid == "AUTOMATIC") {
-      // Check if the variable was persisted so it needs a restart
-      std::string view_change_uuid_persisted =
-          cluster_instance
-              ->get_persisted_value("group_replication_view_change_uuid")
-              .value_or("");
+  auto console = mysqlsh::current_console();
 
-      if (!view_change_uuid_persisted.empty() &&
-          view_change_uuid_persisted != view_change_uuid) {
-        console->print_note(
-            "The Cluster's group_replication_view_change_uuid is set but not "
-            "yet effective");
-      } else {
-        console->print_note(
-            "The Cluster's group_replication_view_change_uuid is not set");
-        console->print_info(
-            "Generating and setting a value for "
-            "group_replication_view_change_uuid...");
+  // Check if group_replication_view_change_uuid is already set on the cluster
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
+  auto view_change_uuid = cluster_instance->get_sysvar_string(
+      "group_replication_view_change_uuid", "");
 
-        // Generate a value for group_replication_view_change_uuid
-        view_change_uuid = mysqlshdk::gr::generate_uuid(*cluster_instance);
+  // If not set (AUTOMATIC), generate a new value and set it on all members
+  if (view_change_uuid == "AUTOMATIC") {
+    // Check if the variable was persisted so it needs a restart
+    std::string view_change_uuid_persisted =
+        cluster_instance
+            ->get_persisted_value("group_replication_view_change_uuid")
+            .value_or("");
 
-        // Get the Cluster Config Object
-        // This ensures the config is set on ONLINE || RECOVERING members
-        auto cfg = m_cluster->create_config_object({}, false, true);
+    if (!view_change_uuid_persisted.empty() &&
+        view_change_uuid_persisted != view_change_uuid) {
+      console->print_note(
+          "The Cluster's group_replication_view_change_uuid is set but not "
+          "yet effective");
+    } else {
+      console->print_note(
+          "The Cluster's group_replication_view_change_uuid is not set");
+      console->print_info(
+          "Generating and setting a value for "
+          "group_replication_view_change_uuid...");
 
-        cfg->set("group_replication_view_change_uuid", view_change_uuid);
+      // Generate a value for group_replication_view_change_uuid
+      view_change_uuid = mysqlshdk::gr::generate_uuid(*cluster_instance);
 
-        cfg->apply();
-      }
+      // Get the Cluster Config Object
+      // This ensures the config is set on ONLINE || RECOVERING members
+      auto cfg = m_cluster->create_config_object({}, false, true);
 
-      console->print_warning(
-          "The Cluster must be completely taken OFFLINE and restarted "
-          "(<<<dba.rebootClusterFromCompleteOutage>>>()) for the settings to "
-          "be effective");
+      cfg->set("group_replication_view_change_uuid", view_change_uuid);
+
+      cfg->apply();
     }
 
-    ensure_view_change_uuid_set_stored_metadata(view_change_uuid);
+    console->print_warning(
+        "The Cluster must be completely taken OFFLINE and restarted "
+        "(<<<dba.rebootClusterFromCompleteOutage>>>()) for the settings to "
+        "be effective");
   }
+
+  ensure_view_change_uuid_set_stored_metadata(view_change_uuid);
 }
 
 void Rescan::ensure_view_change_uuid_set_stored_metadata(

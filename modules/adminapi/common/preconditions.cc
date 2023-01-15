@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/common/preconditions.h"
+
 #include <mysqld_error.h>
 #include <map>
 
@@ -38,6 +39,14 @@ namespace mysqlsh {
 namespace dba {
 
 namespace {
+// The AdminAPI maximum supported MySQL Server version
+const mysqlshdk::utils::Version k_max_adminapi_server_version =
+    mysqlshdk::utils::Version("8.1");
+
+// The AdminAPI minimum supported MySQL Server version
+const mysqlshdk::utils::Version k_min_adminapi_server_version =
+    mysqlshdk::utils::Version("5.7");
+
 // Holds a relation of messages for a given metadata state.
 using MDS = metadata::State;
 
@@ -160,12 +169,50 @@ std::string lookup_message(const std::string &function_name, MDS state) {
   return "";
 }
 
+void check_clusters_availability(Cluster_availability availability,
+                                 std::string &msg_out) {
+  switch (availability) {
+    case Cluster_availability::ONLINE:
+      break;
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+      msg_out += ": Could not connect to PRIMARY of Primary Cluster";
+      break;
+
+    case Cluster_availability::OFFLINE:
+      msg_out += ": All members of Primary Cluster are OFFLINE";
+      break;
+
+    case Cluster_availability::SOME_UNREACHABLE:
+      msg_out +=
+          ": All reachable members of Primary Cluster are OFFLINE, but "
+          "there are some unreachable members that could be ONLINE";
+      break;
+
+    case Cluster_availability::NO_QUORUM:
+      msg_out +=
+          ": Could not connect to an ONLINE member of Primary Cluster "
+          "within quorum";
+      break;
+
+    case Cluster_availability::UNREACHABLE:
+      msg_out += ": Could not connect to any ONLINE member of Primary Cluster";
+      break;
+  }
+}
+
 constexpr bool k_primary_not_required = false;
 constexpr bool k_primary_required = true;
 }  // namespace
 
 // The replicaset functions do not use quorum
 ReplicationQuorum::State na_quorum;
+
+const mysqlshdk::utils::Version Precondition_checker::k_min_gr_version =
+    mysqlshdk::utils::Version("5.7");
+const mysqlshdk::utils::Version Precondition_checker::k_min_ar_version =
+    mysqlshdk::utils::Version("8.0");
+const mysqlshdk::utils::Version Precondition_checker::k_min_cs_version =
+    mysqlshdk::utils::Version("8.0.27");
 
 const std::map<std::string, Function_availability>
     Precondition_checker::s_preconditions = {
@@ -392,7 +439,11 @@ const std::map<std::string, Function_availability>
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
+          k_primary_not_required,  // In case of a Cluster, because we have to
+                                   // have all members online, the primary is
+                                   // automaticly also available. But in case of
+                                   // a ClusterSet, this refers to the set's
+                                   // primary, which isn't required
           kClusterGlobalStateAny}},
         {"Cluster.setOption",
          {k_min_gr_version,
@@ -517,7 +568,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
+          k_primary_required,
           kClusterGlobalStateAnyOk}},
         {"ClusterSet.forcePrimaryCluster",
          {k_min_cs_version,
@@ -783,56 +834,54 @@ Cluster_check_info Precondition_checker::check_preconditions(
 
   check_session();
 
-  MDS mds = check_metadata_state_actions(function_name);
-  Cluster_check_info state;
-
   // bypass the checks if MD setup failed and it's allowed (we're recovering)
-  if (mds != MDS::FAILED_SETUP) {
-    state = get_cluster_check_info(*m_metadata, m_group_server.get(), false);
+  if (MDS mds = check_metadata_state_actions(function_name);
+      mds == MDS::FAILED_SETUP)
+    return get_cluster_check_info(*m_metadata, m_group_server.get(), true);
 
-    // Check minimum version for the specific function
-    if (availability.min_version > state.source_version) {
-      throw shcore::Exception::runtime_error(
-          "Unsupported server version: This AdminAPI operation requires MySQL "
-          "version " +
-          availability.min_version.get_full() + " or newer, but target is " +
-          state.source_version.get_full());
+  Cluster_check_info state =
+      get_cluster_check_info(*m_metadata, m_group_server.get(), false);
+
+  // Check minimum version for the specific function
+  if (availability.min_version > state.source_version) {
+    throw shcore::Exception::runtime_error(
+        "Unsupported server version: This AdminAPI operation requires MySQL "
+        "version " +
+        availability.min_version.get_full() + " or newer, but target is " +
+        state.source_version.get_full());
+  }
+
+  // Validates availability based on the configuration state
+  check_instance_configuration_preconditions(
+      state.source_type, availability.instance_config_state);
+
+  // If it is a GR instance, validates the instance state
+  if (state.source_type == TargetType::GroupReplication ||
+      state.source_type == TargetType::InnoDBCluster ||
+      state.source_type == TargetType::InnoDBClusterSet ||
+      state.source_type == TargetType::InnoDBClusterSetOffline ||
+      state.source_type == TargetType::AsyncReplicaSet) {
+    // Validates availability based on the the primary availability
+    check_managed_instance_status_preconditions(state.source_type, state.quorum,
+                                                availability.primary_required);
+
+    // Finally validates availability based on the Cluster quorum for IDC
+    // operations
+    if (state.source_type != TargetType::AsyncReplicaSet) {
+      check_quorum_state_preconditions(state.quorum,
+                                       availability.cluster_status);
     }
 
-    // Validates availability based on the configuration state
-    check_instance_configuration_preconditions(
-        state.source_type, availability.instance_config_state);
-
-    // If it is a GR instance, validates the instance state
-    if (state.source_type == TargetType::GroupReplication ||
-        state.source_type == TargetType::InnoDBCluster ||
-        state.source_type == TargetType::InnoDBClusterSet ||
-        state.source_type == TargetType::InnoDBClusterSetOffline ||
-        state.source_type == TargetType::AsyncReplicaSet) {
-      // Validates availability based on the the primary availability
-      check_managed_instance_status_preconditions(
-          state.quorum, availability.primary_required);
-
-      // Finally validates availability based on the Cluster quorum for IDC
-      // operations
-      if (state.source_type != TargetType::AsyncReplicaSet) {
-        check_quorum_state_preconditions(state.quorum,
-                                         availability.cluster_status);
-      }
-
-      // Validate other ClusterSet preconditions
-      if (state.source_type == TargetType::InnoDBClusterSet ||
-          state.source_type == TargetType::InnoDBClusterSetOffline) {
-        check_cluster_set_preconditions(availability.cluster_set_state);
-      }
-
-      // Validate command availability based on the Cluster status
-      if (state.source_type == TargetType::InnoDBClusterSet) {
-        check_cluster_fenced_preconditions(availability.allowed_on_fenced);
-      }
+    // Validate some ClusterSet preconditions
+    if (state.source_type == TargetType::InnoDBClusterSet ||
+        state.source_type == TargetType::InnoDBClusterSetOffline) {
+      check_cluster_set_preconditions(availability.cluster_set_state);
     }
-  } else {
-    state = get_cluster_check_info(*m_metadata, m_group_server.get(), true);
+
+    // Validate command availability based on the Cluster status
+    if (state.source_type == TargetType::InnoDBClusterSet) {
+      check_cluster_fenced_preconditions(availability.allowed_on_fenced);
+    }
   }
 
   return state;
@@ -937,19 +986,37 @@ void Precondition_checker::check_instance_configuration_preconditions(
 }
 
 void Precondition_checker::check_managed_instance_status_preconditions(
+    mysqlsh::dba::TargetType::Type instance_type,
     mysqlsh::dba::ReplicationQuorum::State instance_quorum_state,
     bool primary_req) const {
-  if (primary_req && !m_primary_available) {
-    // If there's no primary, check also the quorum state to determine if this
-    // is a quorum loss scenario
-    if (instance_quorum_state.is_set(ReplicationQuorum::States::Quorumless)) {
-      throw shcore::Exception("There is no quorum to perform the operation",
-                              SHERR_DBA_GROUP_HAS_NO_QUORUM);
-    }
+  if (!primary_req || m_primary_available) return;
 
-    throw shcore::Exception::runtime_error(
-        "This operation requires a PRIMARY instance available");
+  // If there's no primary, check also the quorum state to determine if this
+  // is a quorum loss scenario
+  if (instance_quorum_state.is_set(ReplicationQuorum::States::Quorumless)) {
+    throw shcore::Exception("There is no quorum to perform the operation",
+                            SHERR_DBA_GROUP_HAS_NO_QUORUM);
   }
+
+  std::string error;
+  switch (instance_type) {
+    case TargetType::InnoDBClusterSet:
+    case TargetType::InnoDBClusterSetOffline:
+      error =
+          "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY "
+          "instance isn't available. Operation is not possible when in that "
+          "state";
+      break;
+    default:
+      error = "This operation requires a PRIMARY instance available";
+      break;
+  }
+
+  auto global_state = get_cluster_global_state();
+  check_clusters_availability(global_state.second, error);
+  error.append(".");
+
+  throw shcore::Exception::runtime_error(error);
 }
 
 void Precondition_checker::check_quorum_state_preconditions(
@@ -984,7 +1051,7 @@ void Precondition_checker::check_quorum_state_preconditions(
 }
 
 std::pair<Cluster_global_status, Cluster_availability>
-Precondition_checker::get_cluster_global_state() {
+Precondition_checker::get_cluster_global_state() const {
   Cluster_metadata cluster_md;
   Cluster_set_metadata cset_md;
 
@@ -996,8 +1063,8 @@ Precondition_checker::get_cluster_global_state() {
     Cluster_impl cluster(cluster_md, m_group_server, m_metadata,
                          Cluster_availability::ONLINE);
 
-    auto finally_primary =
-        shcore::on_leave_scope([&cluster]() { cluster.release_primary(); });
+    shcore::on_leave_scope finally_primary(
+        [&cluster]() { cluster.release_primary(); });
 
     auto clusterset = cluster.get_cluster_set_object();
 
@@ -1042,59 +1109,29 @@ Cluster_status Precondition_checker::get_cluster_status() {
  */
 void Precondition_checker::check_cluster_set_preconditions(
     mysqlsh::dba::Cluster_global_status_mask allowed_states) {
-  std::string error;
+  if (allowed_states == mysqlsh::dba::Cluster_global_status_mask::any()) return;
 
-  if (allowed_states != mysqlsh::dba::Cluster_global_status_mask::any()) {
-    // Only queries the global state if not ALL the states are allowed
-    auto global_state = get_cluster_global_state();
+  // Only queries the global state if not ALL the states are allowed
+  auto global_state = get_cluster_global_state();
 
-    if (!allowed_states.is_set(global_state.first)) {
-      // ERROR: The function is available on instances in a ClusterSet
-      // with specific global state and the instance global state is
-      // different
-      error =
-          "The InnoDB Cluster is part of an InnoDB ClusterSet and has global "
-          "state of " +
-          to_string(global_state.first) +
-          " within the ClusterSet. Operation is not possible when in that "
-          "state";
+  if (allowed_states.is_set(global_state.first)) return;
 
-      // If the global_state is NOT_OK, check the primary cluster availability
-      // to provide a finer grain of detail in the error message
-      if (global_state.first == Cluster_global_status::NOT_OK) {
-        switch (global_state.second) {
-          case Cluster_availability::ONLINE:
-            break;
-          case Cluster_availability::ONLINE_NO_PRIMARY:
-            error += ": Could not connect to PRIMARY of Primary Cluster";
-            break;
+  // ERROR: The function is available on instances in a ClusterSet
+  // with specific global state and the instance global state is
+  // different
+  std::string error =
+      "The InnoDB Cluster is part of an InnoDB ClusterSet and has global "
+      "state of " +
+      to_string(global_state.first) +
+      " within the ClusterSet. Operation is not possible when in that "
+      "state";
 
-          case Cluster_availability::OFFLINE:
-            error += ": All members of Primary Cluster are OFFLINE";
-            break;
+  // If the global_state is NOT_OK, check the primary cluster availability
+  // to provide a finer grain of detail in the error message
+  if (global_state.first == Cluster_global_status::NOT_OK)
+    check_clusters_availability(global_state.second, error);
 
-          case Cluster_availability::SOME_UNREACHABLE:
-            error +=
-                ": All reachable members of Primary Cluster are OFFLINE, but "
-                "there are some unreachable members that could be ONLINE";
-            break;
-
-          case Cluster_availability::NO_QUORUM:
-            error +=
-                ": Could not connect to an ONLINE member of Primary Cluster "
-                "within quorum";
-            break;
-
-          case Cluster_availability::UNREACHABLE:
-            error +=
-                ": Could not connect to any ONLINE member of Primary Cluster";
-            break;
-        }
-      }
-
-      throw shcore::Exception::runtime_error(error);
-    }
-  }
+  throw shcore::Exception::runtime_error(error);
 }
 
 /**
@@ -1157,43 +1194,40 @@ MDS Precondition_checker::check_metadata_state_actions(
       Precondition_checker::s_preconditions.at(function_name);
 
   // Metadata validation is done only on the functions that require it
-  if (!availability.metadata_state_actions.empty()) {
-    MDS compatibility = m_metadata->state();
+  if (availability.metadata_state_actions.empty()) return MDS::EQUAL;
 
-    if (compatibility != MDS::EQUAL) {
-      for (const auto &item : availability.metadata_state_actions) {
-        if (item.state.is_set(compatibility)) {
-          // Gets the right message for the function on this state
-          std::string msg = lookup_message(function_name, compatibility);
+  MDS compatibility = m_metadata->state();
+  if (compatibility == MDS::EQUAL) return compatibility;
 
-          // If the message is empty then no action is required, falls back to
-          // existing precondition checks.
-          if (!msg.empty()) {
-            auto pre_formatted = shcore::str_format(
-                msg.c_str(), m_metadata->installed_version().get_base().c_str(),
-                mysqlsh::dba::metadata::current_version().get_base().c_str());
+  for (const auto &item : availability.metadata_state_actions) {
+    if (!item.state.is_set(compatibility)) continue;
 
-            auto console = mysqlsh::current_console();
-            if (item.action == MDS_actions::WARN) {
-              console->print_warning(pre_formatted);
-            } else if (item.action == MDS_actions::NOTE) {
-              console->print_note(pre_formatted);
-            } else if (item.action == MDS_actions::RAISE_ERROR) {
-              throw std::runtime_error(shcore::str_subvars(
-                  pre_formatted,
-                  [](std::string_view var) {
-                    return shcore::get_member_name(
-                        var, shcore::current_naming_style());
-                  },
-                  "<<<", ">>>"));
-            }
-          }
-        }
-      }
+    // Gets the right message for the function on this state
+    std::string msg = lookup_message(function_name, compatibility);
+
+    // If the message is empty then no action is required, falls back to
+    // existing precondition checks.
+    if (msg.empty()) continue;
+
+    auto pre_formatted = shcore::str_format(
+        msg.c_str(), m_metadata->installed_version().get_base().c_str(),
+        mysqlsh::dba::metadata::current_version().get_base().c_str());
+
+    if (item.action == MDS_actions::WARN) {
+      mysqlsh::current_console()->print_warning(pre_formatted);
+    } else if (item.action == MDS_actions::NOTE) {
+      mysqlsh::current_console()->print_note(pre_formatted);
+    } else if (item.action == MDS_actions::RAISE_ERROR) {
+      throw std::runtime_error(shcore::str_subvars(
+          pre_formatted,
+          [](std::string_view var) {
+            return shcore::get_member_name(var, shcore::current_naming_style());
+          },
+          "<<<", ">>>"));
     }
-    return compatibility;
   }
-  return MDS::EQUAL;
+
+  return compatibility;
 }
 
 Cluster_check_info check_function_preconditions(

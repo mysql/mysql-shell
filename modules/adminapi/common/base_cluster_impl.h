@@ -116,7 +116,7 @@ class Base_cluster_impl {
   }
 
   virtual mysqlsh::dba::Instance *acquire_primary(
-      bool primary_required = true) = 0;
+      bool primary_required = true, bool check_primary_status = false) = 0;
 
   virtual void release_primary() = 0;
 

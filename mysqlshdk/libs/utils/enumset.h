@@ -35,9 +35,14 @@ namespace utils {
 template <typename Enum, Enum last_value>
 class Enum_set {
  public:
-  constexpr Enum_set() : _value(0) {}
+  constexpr Enum_set() noexcept : _value(0) {}
 
-  constexpr explicit Enum_set(Enum value) : _value(ord(value)) {}
+  template <typename... T>
+  constexpr explicit Enum_set(Enum value, T &&... values) noexcept
+      : _value(ord(value)) {
+    if constexpr (sizeof...(values) > 0)
+      _value = ((_value | ord(values)) | ...);
+  }
 
   constexpr static Enum_set any() { return all(); }
 

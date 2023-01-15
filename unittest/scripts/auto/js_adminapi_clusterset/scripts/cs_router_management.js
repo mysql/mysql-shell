@@ -245,8 +245,12 @@ session.runSql("STOP group_replication");
 shell.connect(__sandbox_uri2);
 clusterset = dba.getClusterSet();
 
-EXPECT_THROWS(function(){ clusterset.setRoutingOption(cr_router, 'invalidated_cluster_policy', 'drop_all'); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_THROWS(function(){ clusterset.setRoutingOption('target_cluster', 'primary'); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
+EXPECT_THROWS(function(){
+    clusterset.setRoutingOption(cr_router, 'invalidated_cluster_policy', 'drop_all');
+}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All members of Primary Cluster are OFFLINE.");
+EXPECT_THROWS(function(){
+    clusterset.setRoutingOption('target_cluster', 'primary');
+}, "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY instance isn't available. Operation is not possible when in that state: All members of Primary Cluster are OFFLINE.");
 
 shell.connect(__sandbox_uri1);
 dba.rebootClusterFromCompleteOutage("cluster");

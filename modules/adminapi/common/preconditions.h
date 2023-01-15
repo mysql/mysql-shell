@@ -41,46 +41,34 @@ namespace dba {
 class Instance;
 class MetadataStorage;
 
-// The AdminAPI maximum supported MySQL Server version
-const mysqlshdk::utils::Version k_max_adminapi_server_version =
-    mysqlshdk::utils::Version("8.1");
-
-// The AdminAPI minimum supported MySQL Server version
-const mysqlshdk::utils::Version k_min_adminapi_server_version =
-    mysqlshdk::utils::Version("5.7");
-
 // Specific minimum versions for InnoDB Cluster, ReplicaSet and ClusterSet
-const mysqlshdk::utils::Version k_min_gr_version =
-    mysqlshdk::utils::Version("5.7");
-const mysqlshdk::utils::Version k_min_ar_version =
-    mysqlshdk::utils::Version("8.0");
-const mysqlshdk::utils::Version k_min_cs_version =
-    mysqlshdk::utils::Version("8.0.27");
-
-const Cluster_global_status_mask kClusterGlobalStateAnyOk =
-    Cluster_global_status_mask(Cluster_global_status::OK)
-        .set(Cluster_global_status::OK_NOT_REPLICATING)
-        .set(Cluster_global_status::OK_NOT_CONSISTENT)
-        .set(Cluster_global_status::OK_MISCONFIGURED);
-
-const Cluster_global_status_mask kClusterGlobalStateAnyOkorNotOk =
-    Cluster_global_status_mask(Cluster_global_status::OK)
-        .set(Cluster_global_status::OK_NOT_REPLICATING)
-        .set(Cluster_global_status::OK_NOT_CONSISTENT)
-        .set(Cluster_global_status::OK_MISCONFIGURED)
-        .set(Cluster_global_status::NOT_OK);
-
-const Cluster_global_status_mask kClusterGlobalStateAnyOkorInvalidated =
-    Cluster_global_status_mask(Cluster_global_status::OK)
-        .set(Cluster_global_status::OK_NOT_REPLICATING)
-        .set(Cluster_global_status::OK_NOT_CONSISTENT)
-        .set(Cluster_global_status::OK_MISCONFIGURED)
-        .set(Cluster_global_status::INVALIDATED);
-
-const Cluster_global_status_mask kClusterGlobalStateAny =
-    Cluster_global_status_mask::any();
 
 class Precondition_checker {
+ public:
+  static const mysqlshdk::utils::Version k_min_gr_version;
+  static const mysqlshdk::utils::Version k_min_ar_version;
+  static const mysqlshdk::utils::Version k_min_cs_version;
+
+  static constexpr Cluster_global_status_mask kClusterGlobalStateAnyOk{
+      Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
+      Cluster_global_status::OK_NOT_CONSISTENT,
+      Cluster_global_status::OK_MISCONFIGURED};
+
+  static constexpr Cluster_global_status_mask kClusterGlobalStateAnyOkorNotOk{
+      Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
+      Cluster_global_status::OK_NOT_CONSISTENT,
+      Cluster_global_status::OK_MISCONFIGURED, Cluster_global_status::NOT_OK};
+
+  static constexpr Cluster_global_status_mask
+      kClusterGlobalStateAnyOkorInvalidated{
+          Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
+          Cluster_global_status::OK_NOT_CONSISTENT,
+          Cluster_global_status::OK_MISCONFIGURED,
+          Cluster_global_status::INVALIDATED};
+
+  static constexpr Cluster_global_status_mask kClusterGlobalStateAny =
+      Cluster_global_status_mask::any();
+
  public:
   Precondition_checker(const std::shared_ptr<MetadataStorage> &metadata,
                        const std::shared_ptr<Instance> &group_server,
@@ -88,7 +76,7 @@ class Precondition_checker {
   Cluster_check_info check_preconditions(
       const std::string &function_name,
       const Function_availability *custom_func_avail = nullptr);
-  virtual ~Precondition_checker() {}
+  virtual ~Precondition_checker() = default;
 
   static const Function_availability &get_function_preconditions(
       const std::string &function_name);
@@ -116,6 +104,7 @@ class Precondition_checker {
   void check_instance_configuration_preconditions(
       mysqlsh::dba::TargetType::Type instance_type, int allowed_types) const;
   void check_managed_instance_status_preconditions(
+      mysqlsh::dba::TargetType::Type instance_type,
       mysqlsh::dba::ReplicationQuorum::State instance_quorum_state,
       bool primary_req) const;
   void check_quorum_state_preconditions(
@@ -127,7 +116,7 @@ class Precondition_checker {
 
  protected:
   virtual std::pair<Cluster_global_status, Cluster_availability>
-  get_cluster_global_state();
+  get_cluster_global_state() const;
   virtual Cluster_status get_cluster_status();
 
   std::shared_ptr<MetadataStorage> m_metadata;

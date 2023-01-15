@@ -415,14 +415,14 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
  * Connect to PRIMARY of PRIMARY Cluster, throw exception if not possible
  */
 mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
-    bool primary_required) {
+    bool primary_required, bool check_primary_status) {
   connect_primary();
 
   auto primary_cluster = get_primary_cluster();
   assert(primary_cluster);
 
   try {
-    m_primary_cluster->acquire_primary(primary_required);
+    m_primary_cluster->acquire_primary(primary_required, check_primary_status);
   } catch (const shcore::Exception &e) {
     if (e.code() != SHERR_DBA_GROUP_HAS_NO_QUORUM) throw;
 
@@ -569,10 +569,10 @@ Cluster_channel_status Cluster_set_impl::get_replication_channel_status(
 namespace {
 void handle_user_warnings(const Cluster_global_status &global_status,
                           const std::string &replica_cluster_name) {
-  auto console = mysqlsh::current_console();
-
   if (global_status == Cluster_global_status::OK_MISCONFIGURED ||
       global_status == Cluster_global_status::OK_NOT_REPLICATING) {
+    auto console = mysqlsh::current_console();
+
     console->print_warning(
         "The Cluster's Replication Channel is misconfigured or stopped, "
         "topology changes will not be allowed on the InnoDB Cluster "
@@ -609,98 +609,93 @@ void ensure_no_router_uses_cluster(const std::vector<Router_metadata> &routers,
 
 Cluster_global_status Cluster_set_impl::get_cluster_global_status(
     Cluster_impl *cluster) const {
-  Cluster_global_status ret = Cluster_global_status::UNKNOWN;
   assert(cluster->is_cluster_set_member());
 
-  if (cluster->is_invalidated()) {
-    ret = Cluster_global_status::INVALIDATED;
-  } else if (cluster->cluster_availability() ==
-                 Cluster_availability::UNREACHABLE ||
-             cluster->cluster_availability() ==
-                 Cluster_availability::SOME_UNREACHABLE) {
-    ret = Cluster_global_status::UNKNOWN;
-  } else if (cluster->cluster_availability() ==
-                 Cluster_availability::NO_QUORUM ||
-             cluster->cluster_availability() == Cluster_availability::OFFLINE) {
-    ret = Cluster_global_status::NOT_OK;
-  } else {
-    if (cluster->get_cluster_server()) {
-      Cluster_status cl_status = cluster->cluster_status();
+  if (cluster->is_invalidated()) return Cluster_global_status::INVALIDATED;
 
-      if (cluster->is_primary_cluster()) {
-        if (cl_status == Cluster_status::NO_QUORUM ||
-            cl_status == Cluster_status::OFFLINE ||
-            cl_status == Cluster_status::UNKNOWN) {
-          ret = Cluster_global_status::NOT_OK;
-        } else {
-          Cluster_channel_status ch_status =
-              get_replication_channel_status(*cluster);
-
-          switch (ch_status) {
-            case Cluster_channel_status::OK:
-            case Cluster_channel_status::MISCONFIGURED:
-            case Cluster_channel_status::ERROR:
-              // unexpected at primary cluster
-              ret = Cluster_global_status::OK_MISCONFIGURED;
-              break;
-
-            case Cluster_channel_status::UNKNOWN:
-            case Cluster_channel_status::STOPPED:
-            case Cluster_channel_status::MISSING:
-              if (cl_status == Cluster_status::FENCED_WRITES) {
-                ret = Cluster_global_status::OK_FENCED_WRITES;
-              } else {
-                ret = Cluster_global_status::OK;
-              }
-              break;
-          }
-        }
-      } else {  // it's a replica cluster
-        // check if the primary cluster is unavailable
-        auto primary_status =
-            get_cluster_global_status(get_primary_cluster().get());
-
-        if (primary_status == Cluster_global_status::NOT_OK ||
-            primary_status == Cluster_global_status::UNKNOWN ||
-            primary_status == Cluster_global_status::INVALIDATED)
-          return Cluster_global_status::NOT_OK;
-
-        if (cl_status == Cluster_status::NO_QUORUM ||
-            cl_status == Cluster_status::OFFLINE ||
-            cl_status == Cluster_status::UNKNOWN) {
-          ret = Cluster_global_status::NOT_OK;
-        } else {
-          Cluster_channel_status ch_status =
-              get_replication_channel_status(*cluster);
-
-          switch (ch_status) {
-            case Cluster_channel_status::OK:
-              ret = Cluster_global_status::OK;
-              break;
-            case Cluster_channel_status::STOPPED:
-            case Cluster_channel_status::ERROR:
-              ret = Cluster_global_status::OK_NOT_REPLICATING;
-              break;
-            case Cluster_channel_status::MISSING:
-            case Cluster_channel_status::MISCONFIGURED:
-              ret = Cluster_global_status::OK_MISCONFIGURED;
-              break;
-            case Cluster_channel_status::UNKNOWN:
-              ret = Cluster_global_status::NOT_OK;
-              break;
-          }
-        }
-
-        handle_user_warnings(ret, cluster->get_name());
-      }
-    }
+  switch (cluster->cluster_availability()) {
+    case Cluster_availability::UNREACHABLE:
+    case Cluster_availability::SOME_UNREACHABLE:
+      return Cluster_global_status::UNKNOWN;
+    case Cluster_availability::NO_QUORUM:
+    case Cluster_availability::OFFLINE:
+      return Cluster_global_status::NOT_OK;
+    default:
+      break;
   }
 
-  // if the cluster is OK, check consistency
-  if (ret == Cluster_global_status::OK && !cluster->is_primary_cluster()) {
-    if (!check_gtid_consistency(cluster)) {
-      ret = Cluster_global_status::OK_NOT_CONSISTENT;
+  if (!cluster->get_cluster_server()) return Cluster_global_status::UNKNOWN;
+
+  if (cluster->is_primary_cluster()) {
+    auto cl_status = cluster->cluster_status();
+
+    switch (cl_status) {
+      case Cluster_status::NO_QUORUM:
+      case Cluster_status::OFFLINE:
+      case Cluster_status::UNKNOWN:
+        return Cluster_global_status::NOT_OK;
+      default:
+        break;
     }
+
+    switch (get_replication_channel_status(*cluster)) {
+      case Cluster_channel_status::OK:
+      case Cluster_channel_status::MISCONFIGURED:
+      case Cluster_channel_status::ERROR:
+        // unexpected at primary cluster
+        return Cluster_global_status::OK_MISCONFIGURED;
+
+      case Cluster_channel_status::UNKNOWN:
+      case Cluster_channel_status::STOPPED:
+      case Cluster_channel_status::MISSING:
+        if (cl_status == Cluster_status::FENCED_WRITES)
+          return Cluster_global_status::OK_FENCED_WRITES;
+        return Cluster_global_status::OK;
+    }
+
+    return Cluster_global_status::UNKNOWN;
+  }
+
+  // it's a replica cluster
+
+  auto ret = Cluster_global_status::UNKNOWN;
+
+  switch (cluster->cluster_status()) {
+    case Cluster_status::NO_QUORUM:
+    case Cluster_status::OFFLINE:
+    case Cluster_status::UNKNOWN:
+      ret = Cluster_global_status::NOT_OK;
+      break;
+    default:
+      switch (get_replication_channel_status(*cluster)) {
+        case Cluster_channel_status::OK:
+          ret = Cluster_global_status::OK;
+          break;
+        case Cluster_channel_status::STOPPED:
+        case Cluster_channel_status::ERROR:
+          ret = Cluster_global_status::OK_NOT_REPLICATING;
+          break;
+        case Cluster_channel_status::MISSING:
+        case Cluster_channel_status::MISCONFIGURED:
+          ret = Cluster_global_status::OK_MISCONFIGURED;
+          break;
+        case Cluster_channel_status::UNKNOWN:
+          ret = Cluster_global_status::NOT_OK;
+          break;
+      }
+      break;
+  }
+
+  handle_user_warnings(ret, cluster->get_name());
+
+  // if the cluster is OK, check consistency
+  if (ret == Cluster_global_status::OK) {
+    auto primary_status =
+        get_cluster_global_status(get_primary_cluster().get());
+
+    if ((primary_status != Cluster_global_status::UNKNOWN) &&
+        !check_gtid_consistency(cluster))
+      ret = Cluster_global_status::OK_NOT_CONSISTENT;
   }
 
   return ret;

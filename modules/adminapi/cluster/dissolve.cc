@@ -317,9 +317,8 @@ void Dissolve::prepare() {
   }
 
   // Check if Cluster supports GR member actions to reset them if so
-  m_supports_member_actions =
-      m_cluster->get_lowest_instance_version() >= k_min_cs_version ? true
-                                                                   : false;
+  m_supports_member_actions = m_cluster->get_lowest_instance_version() >=
+                              Precondition_checker::k_min_cs_version;
 }
 
 void Dissolve::remove_instance(const std::string &instance_address,

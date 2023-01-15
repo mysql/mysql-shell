@@ -516,10 +516,10 @@ void Create_replica_cluster::prepare() {
   // Check if the instance is running MySQL >= 8.0.27
   auto instance_version = m_target_instance->get_version();
 
-  if (instance_version < k_min_cs_version) {
+  if (instance_version < Precondition_checker::k_min_cs_version) {
     console->print_info("The target instance is running MySQL version " +
                         instance_version.get_full() + ", but " +
-                        k_min_cs_version.get_full() +
+                        Precondition_checker::k_min_cs_version.get_full() +
                         " is the minimum required for InnoDB ClusterSet.");
     throw shcore::Exception("Unsupported MySQL version",
                             SHERR_DBA_BADARG_VERSION_NOT_SUPPORTED);

@@ -105,7 +105,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   bool reconnect_target_if_invalidated(bool print_warnings = true);
 
   mysqlsh::dba::Instance *acquire_primary(
-      bool primary_required = true) override;
+      bool primary_required = true, bool check_primary_status = false) override;
 
   void release_primary() override;
 

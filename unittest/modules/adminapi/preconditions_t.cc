@@ -230,43 +230,92 @@ TEST_F(Preconditions, check_instance_configuration_preconditions_errors) {
 
 TEST_F(Preconditions, check_managed_instance_status_preconditions) {
   struct Invalid_states {
+    mysqlsh::dba::TargetType::Type instance_type;
     mysqlsh::dba::ReplicationQuorum::State instance_quorum_state;
     bool primary_req;
-    std::string error;
+    std::string_view error;
   };
 
   // ERRORS
-  std::vector<Invalid_states> validations_errors = {
-      {mysqlsh::dba::ReplicationQuorum::State(
-           mysqlsh::dba::ReplicationQuorum::States::Normal),
-       true, "This operation requires a PRIMARY instance available"},
-      {mysqlsh::dba::ReplicationQuorum::State(
-           mysqlsh::dba::ReplicationQuorum::States::Quorumless),
-       true, "There is no quorum to perform the operation"}};
+  {
+    std::vector<Invalid_states> validations_errors = {
+        {mysqlsh::dba::TargetType::Type::Unknown,
+         mysqlsh::dba::ReplicationQuorum::State(
+             mysqlsh::dba::ReplicationQuorum::States::Normal),
+         true,
+         "This operation requires a PRIMARY instance available: All reachable "
+         "members of Primary Cluster are OFFLINE, but there are some "
+         "unreachable "
+         "members that could be ONLINE."},
 
-  Precondition_checker checker(m_mock_metadata, m_mock_instance, false);
-  for (const auto &validation : validations_errors) {
-    // Validates the errors
-    EXPECT_THROW_LIKE(
-        checker.check_managed_instance_status_preconditions(
-            validation.instance_quorum_state, validation.primary_req),
-        shcore::Exception, validation.error);
+        {mysqlsh::dba::TargetType::Type::InnoDBClusterSet,
+         mysqlsh::dba::ReplicationQuorum::State(
+             mysqlsh::dba::ReplicationQuorum::States::Normal),
+         true,
+         "The InnoDB Cluster is part of an InnoDB ClusterSet and its PRIMARY "
+         "instance isn't available. Operation is not possible when in that "
+         "state: All reachable members of Primary Cluster are OFFLINE, but "
+         "there "
+         "are some unreachable members that could be ONLINE."},
+    };
+
+    testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance,
+                                               false);
+
+    for (const auto &validation : validations_errors) {
+      EXPECT_CALL(checker, get_cluster_global_state())
+          .WillOnce(
+              Return(std::make_pair(Cluster_global_status::OK,
+                                    Cluster_availability::SOME_UNREACHABLE)));
+
+      // Validates the errors
+      EXPECT_THROW_LIKE(
+          checker.check_managed_instance_status_preconditions(
+              validation.instance_type, validation.instance_quorum_state,
+              validation.primary_req),
+          shcore::Exception, validation.error);
+    }
+  }
+
+  // ERRORS
+  {
+    std::vector<Invalid_states> validations_errors = {
+        {mysqlsh::dba::TargetType::Type::Unknown,
+         mysqlsh::dba::ReplicationQuorum::State(
+             mysqlsh::dba::ReplicationQuorum::States::Quorumless),
+         true, "There is no quorum to perform the operation"}};
+
+    Precondition_checker checker(m_mock_metadata, m_mock_instance, false);
+    for (const auto &validation : validations_errors) {
+      // Validates the errors
+      EXPECT_THROW_LIKE(
+          checker.check_managed_instance_status_preconditions(
+              validation.instance_type, validation.instance_quorum_state,
+              validation.primary_req),
+          shcore::Exception, validation.error);
+    }
   }
 
   // SUCESS
-  std::vector<Invalid_states> validations_success = {
-      {mysqlsh::dba::ReplicationQuorum::State(
-           mysqlsh::dba::ReplicationQuorum::States::Normal),
-       true, ""},
-      {mysqlsh::dba::ReplicationQuorum::State(
-           mysqlsh::dba::ReplicationQuorum::States::Quorumless),
-       true, ""}};
+  {
+    std::vector<Invalid_states> validations_success = {
+        {mysqlsh::dba::TargetType::Type::Unknown,
+         mysqlsh::dba::ReplicationQuorum::State(
+             mysqlsh::dba::ReplicationQuorum::States::Normal),
+         true, ""},
 
-  checker = Precondition_checker(m_mock_metadata, m_mock_instance, true);
-  for (const auto &validation : validations_success) {
-    // Validates the errors
-    EXPECT_NO_THROW(checker.check_managed_instance_status_preconditions(
-        validation.instance_quorum_state, validation.primary_req));
+        {mysqlsh::dba::TargetType::Type::Unknown,
+         mysqlsh::dba::ReplicationQuorum::State(
+             mysqlsh::dba::ReplicationQuorum::States::Quorumless),
+         true, ""}};
+
+    Precondition_checker checker(m_mock_metadata, m_mock_instance, true);
+    for (const auto &validation : validations_success) {
+      // Validates the errors
+      EXPECT_NO_THROW(checker.check_managed_instance_status_preconditions(
+          mysqlsh::dba::TargetType::Type::Unknown,
+          validation.instance_quorum_state, validation.primary_req));
+    }
   }
 }
 
@@ -378,7 +427,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
 
   validation = {
       mysqlsh::dba::Cluster_global_status_mask(
-          mysqlsh::dba::kClusterGlobalStateAnyOk),
+          mysqlsh::dba::Precondition_checker::kClusterGlobalStateAnyOk),
       "The InnoDB Cluster is part of an InnoDB ClusterSet and has global "
       "state of " +
           to_string(mysqlsh::dba::Cluster_global_status::NOT_OK) +
@@ -396,7 +445,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
       shcore::Exception, validation.error);
 
   EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
-      mysqlsh::dba::kClusterGlobalStateAny));
+      mysqlsh::dba::Precondition_checker::kClusterGlobalStateAny));
 }
 
 TEST_F(Preconditions, check_cluster_set_preconditions) {

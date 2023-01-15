@@ -112,22 +112,31 @@ void Base_cluster_impl::check_preconditions(
 
   try {
     current_ipool()->set_metadata(get_metadata_storage());
-    acquire_primary(primary_required);
-    primary_available = true;
+
+    primary_available = (acquire_primary(primary_required, true) != nullptr);
+    log_debug("Acquired primary: %d", primary_available);
+
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
-      log_debug(
-          "Cluster has no quorum and cannot process write transactions: %s",
-          e.what());
-    } else if (e.code() == SHERR_DBA_GROUP_MEMBER_NOT_ONLINE) {
-      log_debug("No PRIMARY member available: %s", e.what());
-    } else if (shcore::str_beginswith(
-                   e.what(), "Failed to execute query on Metadata server")) {
-      log_debug("Unable to query Metadata schema: %s", e.what());
-    } else if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-      log_warning("Connection error acquiring primary: %s", e.format().c_str());
-    } else {
-      throw;
+    switch (e.code()) {
+      case SHERR_DBA_GROUP_HAS_NO_QUORUM:
+        log_debug(
+            "Cluster has no quorum and cannot process write transactions: %s",
+            e.what());
+        break;
+      case SHERR_DBA_GROUP_MEMBER_NOT_ONLINE:
+      case SHERR_DBA_GROUP_UNREACHABLE:
+      case SHERR_DBA_GROUP_OFFLINE:
+        log_debug("No PRIMARY member available: %s", e.what());
+        break;
+      default:
+        if (shcore::str_beginswith(
+                e.what(), "Failed to execute query on Metadata server"))
+          log_debug("Unable to query Metadata schema: %s", e.what());
+        else if (mysqlshdk::db::is_mysql_client_error(e.code()))
+          log_warning("Connection error acquiring primary: %s",
+                      e.format().c_str());
+        else
+          throw;
     }
   }
 
@@ -210,13 +219,14 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   assert(m_cluster_server);
 
   // Once an instance is part of the cluster, it must accept the same
-  // credentials used in the cluster object. But while it's being added, it can
-  // either accept the cluster credentials or have its own, with the assumption
-  // that once it joins, the common credentials will get replicated to it and
-  // all future operations will start using that account.
-  // So, the following scenarios are possible:
+  // credentials used in the cluster object. But while it's being added, it
+  // can either accept the cluster credentials or have its own, with the
+  // assumption that once it joins, the common credentials will get replicated
+  // to it and all future operations will start using that account. So, the
+  // following scenarios are possible:
   // * host:port  user/pwd taken from cluster session and must exist at target
-  // * icuser@host:port  pwd taken from cluster session and must exist at target
+  // * icuser@host:port  pwd taken from cluster session and must exist at
+  // target
   // * icuser:pwd@host:port  pwd MUST match the session one
   // * user@host:port  pwd prompted, no extra checks
   // * user:pwd@host:port  no extra checks
@@ -239,8 +249,8 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   if (instance_def.has_socket())
     connect_opts.set_socket(instance_def.get_socket());
 
-  // is user has specified the connect-timeout connection option, use that value
-  // explicitly
+  // is user has specified the connect-timeout connection option, use that
+  // value explicitly
   if (instance_def.has_value(mysqlshdk::db::kConnectTimeout)) {
     if (connect_opts.has_value(mysqlshdk::db::kConnectTimeout)) {
       connect_opts.remove(mysqlshdk::db::kConnectTimeout);
@@ -475,12 +485,12 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
 void Base_cluster_impl::set_option(const std::string &option,
                                    const shcore::Value &value) {
   Function_availability custom_func_avail = {
-      k_min_gr_version,
+      Precondition_checker::k_min_gr_version,
       TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
       ReplicationQuorum::State(ReplicationQuorum::States::Normal),
       {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
       true,
-      kClusterGlobalStateAnyOk};
+      Precondition_checker::kClusterGlobalStateAnyOk};
 
   std::string opt_namespace, opt;
   shcore::Value val;

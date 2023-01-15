@@ -37,9 +37,9 @@ namespace mysql {
  * Supported lock modes: SHARED (read), EXCLUSIVE (write).
  */
 enum class Lock_mode {
+  NONE,
   SHARED,
   EXCLUSIVE,
-  NONE,
 };
 
 class Lock_scoped {

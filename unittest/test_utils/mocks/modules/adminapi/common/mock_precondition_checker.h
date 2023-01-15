@@ -42,9 +42,9 @@ class Mock_precondition_checker : public mysqlsh::dba::Precondition_checker {
       bool primary_available);
   virtual ~Mock_precondition_checker() {}
 
-  MOCK_METHOD0(get_cluster_global_state,
-               std::pair<mysqlsh::dba::Cluster_global_status,
-                         mysqlsh::dba::Cluster_availability>());
+  MOCK_CONST_METHOD0(get_cluster_global_state,
+                     std::pair<mysqlsh::dba::Cluster_global_status,
+                               mysqlsh::dba::Cluster_availability>());
   MOCK_METHOD0(get_cluster_status, mysqlsh::dba::Cluster_status());
 
  private:

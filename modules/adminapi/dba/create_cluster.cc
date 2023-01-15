@@ -362,7 +362,8 @@ void Create_cluster::prepare() {
       }
 
       // Generate the GR view-change UUID
-      if (m_target_instance->get_version() >= k_min_cs_version) {
+      if (m_target_instance->get_version() >=
+          Precondition_checker::k_min_cs_version) {
         m_options.gr_options.view_change_uuid =
             mysqlshdk::gr::generate_uuid(*m_target_instance);
       }
