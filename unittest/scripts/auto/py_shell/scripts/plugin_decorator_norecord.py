@@ -598,6 +598,69 @@ testutil.call_mysqlsh(["--py", "-f", "my-script.py"], "", shell_env)
 EXPECT_STDOUT_CONTAINS("EXECUTED SQL: SELECT * FROM SAKILA.ACTOR")
 
 
+#@<> Help on different plugins with different implementations for same object.function
+plugin_code = f'''
+from mysqlsh.plugin_manager import plugin, plugin_function
+
+
+@plugin
+class plugin1():
+    """Plugin to manage the MySQL REST Data Service (MRS)."""
+
+    class list():
+        """Used to list MRS objects."""
+
+
+@plugin
+class plugin2():
+    """Plugin to manage the MySQL Database Service on OCI."""
+
+    class list():
+        """Used to list OCI objects."""
+
+
+@plugin_function('plugin1.list.data', shell=True, cli=True, web=True)
+def listdata1(one, two, three):
+    """Get users configured within a service and/or auth_app
+
+    Args:
+        one (str): Use this service_id to search for all users within this service.
+        two (str): Use this auth_app_id to list all the users for this auth_app.
+        three (object): The database session to use.
+
+    Returns:
+        None
+    """
+    pass
+
+
+@plugin_function('plugin2.list.data')
+def listdata2(four, five, six):
+    """Lists users
+
+    Lists all users of a given compartment.
+
+    Args:
+        four (object): An OCI config object or None.
+        five (bool): If set to false exceptions are raised
+        six (bool): If set to true, a list object is returned.
+
+    Returns:
+        A list of users
+    """
+    pass
+'''
+
+
+testutil.rmfile(sample_path)
+testutil.create_file(sample_path, plugin_code)
+
+#@ plugin1.list.data
+rc = call_mysqlsh_py_e("\\? plugin1.list.data")
+
+#@ plugin2.list.data
+rc = call_mysqlsh_py_e("\\? plugin2.list.data")
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)
 testutil.rmfile("my-script.py")

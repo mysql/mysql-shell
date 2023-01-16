@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -834,8 +834,8 @@ void Extensible_object::register_property_help(
                        m_qualified_name, mask, help_context(), true);
 
   // Now registers the object brief, parameters and details
-  auto object = shcore::str_upper(m_name);
-  auto prefix = object + "_" + shcore::str_upper(def->name);
+  auto prefix =
+      shcore::str_upper(m_qualified_name) + "." + shcore::str_upper(def->name);
   if (!def->brief.empty()) {
     help->add_help(prefix, "BRIEF", def->brief, help_context());
   }
@@ -856,26 +856,39 @@ void Extensible_object::register_function_help(
   auto help = shcore::Help_registry::get();
 
   auto names = shcore::str_split(name, "|");
+  std::set<std::string> unique_names(names.begin(), names.end());
+  std::vector<shcore::IShell_core::Mode_mask> masks;
 
-  shcore::Help_topic *topic =
-      help->get_topic(m_qualified_name + "." + names[0], true);
-
-  if (!topic) {
-    // Defines the modes where the help will be available
-    auto mask = shcore::IShell_core::all_scripting_modes();
-
-    // Creates the help topic for the function
-    help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
-                         m_qualified_name, mask, help_context(), true);
-
-    // Now registers the function brief, parameters and details
-    auto prefix = shcore::str_upper(m_name + "_" + names[0]);
-    if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
-    help->add_help(prefix, "PARAM", params, help_context());
-    help->add_help(prefix, "DETAIL", details, help_context());
-    help->add_help(prefix, examples, help_context());
+  if (unique_names.size() == 1) {
+    masks.push_back(shcore::IShell_core::all_scripting_modes());
   } else {
-    topic->set_enabled(true);
+    masks.push_back(
+        shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::JavaScript));
+    masks.push_back(
+        shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::Python));
+  }
+
+  size_t mask_index = 0;
+  for (const auto &fname : unique_names) {
+    shcore::Help_topic *topic =
+        help->get_topic(m_qualified_name + "." + fname, true);
+
+    if (!topic) {
+      // Creates the help topic for the function
+      help->add_help_topic(fname, shcore::Topic_type::FUNCTION, fname,
+                           m_qualified_name, masks[mask_index], help_context(),
+                           true);
+
+      // Now registers the function brief, parameters and details
+      auto prefix = shcore::str_upper(m_qualified_name + "." + fname);
+      if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
+      help->add_help(prefix, "PARAM", params, help_context());
+      help->add_help(prefix, "DETAIL", details, help_context());
+      help->add_help(prefix, examples, help_context());
+    } else {
+      topic->set_enabled(true);
+    }
+    mask_index++;
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -601,7 +601,8 @@ class Help_manager {
    * This enables documentation inheritance.
    */
   std::vector<std::string> resolve_help_text(const Help_topic &object,
-                                             const std::string &suffix);
+                                             const std::string &suffix,
+                                             bool legacy = false);
   /**
    * Parses a parameter definition list and returns the corresponding
    * signature as well as a vector of parameters and descriptions.
@@ -624,7 +625,7 @@ class Help_manager {
                         bool insert_blank_lines = true);
 
   void add_member_section(const std::string &title, const std::string &tag,
-                          const Help_topic &parent,
+                          const Help_topic &member,
                           std::vector<std::string> *sections, size_t padding);
 
   void add_cli_options_section(
