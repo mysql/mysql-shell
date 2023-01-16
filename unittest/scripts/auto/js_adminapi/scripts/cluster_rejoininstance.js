@@ -1,3 +1,13 @@
+function check_auto_increment_multi_primary(session, base_value) {
+
+    EXPECT_EQ(base_value, get_sysvar(session, "auto_increment_increment"), "Incorrect auto_increment_increment value.");
+
+    var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
+    var expected_offset = 1 + (server_id % base_value)
+
+    EXPECT_EQ(expected_offset, get_sysvar(session, "auto_increment_offset"), "Incorrect auto_increment_offset value.");
+}
+
 //@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -343,4 +353,26 @@ cluster.rejoinInstance(__sandbox_uri2);
 //@<> Finalization (BUG#29953812)
 session.close();
 session2.close();
+scene.destroy();
+
+//@<> BUG#34711038: Verify the values of auto_increment_% multi-primary
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {multiPrimary: true, force: true} );
+var cluster = scene.cluster;
+
+var result = session.runSql(`SELECT cluster_id, address, instance_name, addresses, attributes, description FROM mysql_innodb_cluster_metadata.instances WHERE (address = '${hostname}:${__mysql_sandbox_port1}') ORDER BY instance_id`);
+var row = result.fetchOne();
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-aaaaaaaaaaaa", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-bbbbbbbbbbbb", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-cccccccccccc", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-dddddddddddd", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-ffffffffffff", row[2], row[3], row[4], row[5]]);
+
+shell.connect(__sandbox_uri2);
+session.runSql("STOP GROUP_REPLICATION");
+cluster.rejoinInstance(__sandbox_uri2);
+
+shell.connect(__sandbox_uri2);
+check_auto_increment_multi_primary(session, 8);
+
 scene.destroy();

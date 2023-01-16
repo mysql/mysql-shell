@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,7 @@ class Switch_to_multi_primary_mode : public Topology_configuration_command {
  public:
   explicit Switch_to_multi_primary_mode(Cluster_impl *cluster);
 
-  ~Switch_to_multi_primary_mode() override;
+  ~Switch_to_multi_primary_mode() override = default;
 
   /**
    * Prepare the Switch_to_multi_primary_mode command for execution.
@@ -65,15 +65,13 @@ class Switch_to_multi_primary_mode : public Topology_configuration_command {
 
   /**
    * Rollback the command.
-   *
-   * NOTE: Not currently used.
    */
-  void rollback() override;
+  void rollback() override {}
 
   /**
    * Finalize the command execution.
    */
-  void finish() override;
+  void finish() override {}
 };
 
 }  // namespace cluster

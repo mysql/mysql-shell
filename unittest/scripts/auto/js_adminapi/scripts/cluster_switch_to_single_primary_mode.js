@@ -4,6 +4,22 @@ function print_metadata_replicasets_topology_type(session) {
     print(row[0] + "\n");
 }
 
+function check_auto_increment_single_primary(session) {
+
+    EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"), "Incorrect auto_increment_increment value.");
+    EXPECT_EQ(2, get_sysvar(session, "auto_increment_offset"), "Incorrect auto_increment_offset value.");
+}
+
+function check_auto_increment_multi_primary(session, base_value) {
+
+    EXPECT_EQ(base_value, get_sysvar(session, "auto_increment_increment"), "Incorrect auto_increment_increment value.");
+
+    var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
+    var expected_offset = 1 + (server_id % base_value)
+
+    EXPECT_EQ(expected_offset, get_sysvar(session, "auto_increment_offset"), "Incorrect auto_increment_offset value.");
+}
+
 // WL#12052 AdminAPI: single/multi primary mode change and primary election
 //
 // In 8.0.13, Group Replication introduces a framework to do wide-group
@@ -126,8 +142,26 @@ var session = scene.session
 cluster.switchToSinglePrimaryMode(__sandbox_uri2);
 
 //@<OUT> WL#12052: Check cluster status after switching to single-primary and defining the primary {VER(>=8.0.13)}
-cluster.status()
+cluster.status();
+
+//@<> BUG#34711038: Verify the values of auto_increment_% when switching between single-multi {VER(>=8.0.13)}
+scene.destroy();
+
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {multiPrimary: true, force: true, gtidSetIsComplete: true});
+
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+
+check_auto_increment_multi_primary(session1, 7);
+check_auto_increment_multi_primary(session2, 7);
+
+scene.cluster.switchToSinglePrimaryMode();
+
+check_auto_increment_single_primary(session1);
+check_auto_increment_single_primary(session2);
+
+session1.close();
+session2.close();
 
 //@ WL#12052: Finalization
 scene.destroy();
-

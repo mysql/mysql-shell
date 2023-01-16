@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -594,10 +594,11 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       const Group_replication_options &gr_options);
 
-  void update_group_peers(
-      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const Group_replication_options &gr_options, int cluster_member_count,
-      const std::string &self_address, bool group_seeds_only = false);
+  void update_group_peers(const mysqlshdk::mysql::IInstance &target_instance,
+                          const Group_replication_options &gr_options,
+                          int cluster_member_count,
+                          const std::string &self_address,
+                          bool group_seeds_only = false);
 
   void check_instance_configuration(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,

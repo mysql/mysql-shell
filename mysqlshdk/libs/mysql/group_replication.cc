@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -879,10 +879,8 @@ void update_auto_increment(mysqlshdk::config::Config *config,
     // where n is the size of the GR group if > 7, otherwise n = 7.
     // NOTE: We are assuming that there is only one handler for each instance.
     std::vector<std::string> handler_names = config->list_handler_names();
-    int64_t size = group_size;
-    if (group_size == 0) {
-      size = handler_names.size();
-    }
+    int64_t size = static_cast<int64_t>((group_size == 0) ? handler_names.size()
+                                                          : group_size);
     int64_t n = (size > 7) ? size : 7;
     config->set("auto_increment_increment", std::optional<int64_t>{n});
 

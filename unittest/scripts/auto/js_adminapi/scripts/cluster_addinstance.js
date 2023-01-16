@@ -25,8 +25,15 @@ function number_of_non_expiring_pwd_accounts(session, user) {
     return row[0];
 }
 
+function check_auto_increment_multi_primary(session, base_value) {
 
+    EXPECT_EQ(base_value, get_sysvar(session, "auto_increment_increment"), "Incorrect auto_increment_increment value.");
 
+    var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
+    var expected_offset = 1 + (server_id % base_value)
+
+    EXPECT_EQ(expected_offset, get_sysvar(session, "auto_increment_offset"), "Incorrect auto_increment_offset value.");
+}
 
 // BUG#27084767: CREATECLUSTER()/ ADDINSTANCE() DOES NOT CORRECTLY SET AUTO_INCREMENT_OFFSET
 //
@@ -92,16 +99,8 @@ var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnl
 session.close();
 shell.connect(__sandbox_uri1);
 
-// Get the server_id to calculate the expected value of auto_increment_offset
-var result = session.runSql("SELECT @@server_id");
-var row = result.fetchOne();
-var server_id = row[0];
-
-var __expected_auto_inc_offset = 1 + server_id%7
-
 //@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance in multi-primary mode
-EXPECT_EQ(7, get_sysvar(session, "auto_increment_increment"));
-EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(session, "auto_increment_offset"));
+check_auto_increment_multi_primary(session, 7);
 
 //@ BUG#27084767: Add instance to cluster in multi-primary mode
 c.addInstance(__sandbox_uri2)
@@ -111,16 +110,30 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
 shell.connect(__sandbox_uri2);
 
-// Get the server_id to calculate the expected value of auto_increment_offset
-var result = session.runSql("SELECT @@server_id");
-var row = result.fetchOne();
-var server_id = row[0];
-
-var __expected_auto_inc_offset = 1 + server_id%7
-
 //@<> BUG#27084767: Verify the values of auto_increment_% multi-primary
-EXPECT_EQ(7, get_sysvar(session, "auto_increment_increment"));
-EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(session, "auto_increment_offset"));
+check_auto_increment_multi_primary(session, 7);
+
+//@<> BUG#34711038: Verify the values of auto_increment_% multi-primary
+shell.connect(__sandbox_uri1);
+
+c.removeInstance(__sandbox_uri2);
+
+var result = session.runSql(`SELECT cluster_id, address, instance_name, addresses, attributes, description FROM mysql_innodb_cluster_metadata.instances WHERE (address = '${hostname}:${__mysql_sandbox_port1}')`);
+var row = result.fetchOne();
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-aaaaaaaaaaaa", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-bbbbbbbbbbbb", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-cccccccccccc", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-dddddddddddd", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", row[2], row[3], row[4], row[5]]);
+session.runSql("INSERT INTO mysql_innodb_cluster_metadata.instances(cluster_id, address, mysql_server_uuid, instance_name, addresses, attributes, description) VALUES (?, ?, ?, ?, ?, ?, ?)", [row[0], row[1], "aaaaaaaa-bbbb-cccc-dddd-ffffffffffff", row[2], row[3], row[4], row[5]]);
+
+c.addInstance(__sandbox_uri2);
+
+shell.connect(__sandbox_uri2);
+check_auto_increment_multi_primary(session, 8);
+
+shell.connect(__sandbox_uri1);
+check_auto_increment_multi_primary(session, 8);
 
 //@ BUG#27084767: Finalization
 c.disconnect()
