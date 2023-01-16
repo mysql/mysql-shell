@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1126,15 +1126,16 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 void dump_table(const std::vector<std::string> &column_names,
                 const std::vector<std::string> &column_labels,
                 shcore::Value::Array_type_ref documents) {
-  std::vector<uint64_t> max_lengths;
-
   size_t field_count = column_names.size();
+
+  std::vector<size_t> max_lengths;
+  max_lengths.reserve(field_count);
 
   // Updates the max_length array with the maximum length between column name,
   // min column length and column max length
   for (size_t field_index = 0; field_index < field_count; field_index++) {
     max_lengths.push_back(0);
-    max_lengths[field_index] = std::max<uint64_t>(
+    max_lengths[field_index] = std::max<size_t>(
         max_lengths[field_index], column_labels[field_index].size());
   }
 
@@ -1143,7 +1144,7 @@ void dump_table(const std::vector<std::string> &column_names,
     for (auto map : *documents) {
       auto document = map.as_map();
       for (size_t field_index = 0; field_index < field_count; field_index++)
-        max_lengths[field_index] = std::max<uint64_t>(
+        max_lengths[field_index] = std::max<size_t>(
             max_lengths[field_index],
             document->get_string(column_names[field_index]).size());
     }
@@ -1151,12 +1152,11 @@ void dump_table(const std::vector<std::string> &column_names,
 
   //-----------
 
-  size_t index = 0;
   std::vector<std::string> formats(field_count, "%-");
 
   // Calculates the max column widths and constructs the separator line.
   std::string separator("+");
-  for (index = 0; index < field_count; index++) {
+  for (size_t index = 0; index < field_count; index++) {
     // Creates the format string to print each field
     formats[index].append(std::to_string(max_lengths[index]));
     if (index == field_count - 1)
@@ -1164,9 +1164,8 @@ void dump_table(const std::vector<std::string> &column_names,
     else
       formats[index].append("s | ");
 
-    std::string field_separator(max_lengths[index] + 2, '-');
-    field_separator.append("+");
-    separator.append(field_separator);
+    separator.append(max_lengths[index] + 2, '-');
+    separator.append(1, '+');
   }
   separator.append("\n");
 
@@ -1175,7 +1174,7 @@ void dump_table(const std::vector<std::string> &column_names,
   console->print(separator);
   console->print("| ");
 
-  for (index = 0; index < field_count; index++) {
+  for (size_t index = 0; index < field_count; index++) {
     std::string data = shcore::str_format(formats[index].c_str(),
                                           column_labels[index].c_str());
     console->print(data.c_str());
@@ -1232,6 +1231,8 @@ ConfigureInstanceAction get_configure_instance_action(
     ret_val = ConfigureInstanceAction::UPDATE_SERVER_DYNAMIC;
   else if (action == "server_update+restart")
     ret_val = ConfigureInstanceAction::UPDATE_SERVER_STATIC;
+  else if (action == "remove_opt+restart")
+    ret_val = ConfigureInstanceAction::REMOVE_OPTION_RESTART;
   else if (action == "restart")
     ret_val = ConfigureInstanceAction::RESTART;
   else
@@ -1250,65 +1251,66 @@ ConfigureInstanceAction get_configure_instance_action(
  */
 void print_validation_results(const shcore::Value::Map_type_ref &result,
                               bool print_note) {
+  if (!result->has_key("config_errors")) return;
+
   auto console = mysqlsh::current_console();
+  console->print_note("Some configuration options need to be fixed:");
 
-  if (result->has_key("config_errors")) {
-    console->print_note("Some configuration options need to be fixed:");
+  auto config_errors = result->get_array("config_errors");
 
-    auto config_errors = result->get_array("config_errors");
-
-    if (print_note) {
-      for (auto option : *config_errors) {
-        auto opt_map = option.as_map();
-        ConfigureInstanceAction action =
-            get_configure_instance_action(*opt_map);
-        std::string note;
-        switch (action) {
-          case ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_DYNAMIC: {
-            note = "Update the server variable and the config file";
-            break;
-          }
-          case ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_STATIC: {
-            note = "Update the config file and restart the server";
-            break;
-          }
-          case ConfigureInstanceAction::UPDATE_CONFIG: {
-            note = "Update the config file";
-            break;
-          }
-          case ConfigureInstanceAction::UPDATE_SERVER_DYNAMIC: {
-            note = "Update the server variable";
-            break;
-          }
-          case ConfigureInstanceAction::UPDATE_SERVER_STATIC: {
-            note = "Update read-only variable and restart the server";
-            break;
-          }
-          case ConfigureInstanceAction::RESTART: {
-            note = "Restart the server";
-            break;
-          }
-          default: {
-            note = "Undefined action";
-            break;
-          }
-        }
-        (*opt_map)["note"] = shcore::Value(note);
-      }
-
-      dump_table({"option", "current", "required", "note"},
-                 {"Variable", "Current Value", "Required Value", "Note"},
-                 config_errors);
-    } else {
-      dump_table({"option", "current", "required"},
-                 {"Variable", "Current Value", "Required Value"},
-                 config_errors);
-    }
-
+  if (print_note) {
     for (auto option : *config_errors) {
       auto opt_map = option.as_map();
-      opt_map->erase("note");
+      ConfigureInstanceAction action = get_configure_instance_action(*opt_map);
+      std::string note;
+      switch (action) {
+        case ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_DYNAMIC: {
+          note = "Update the server variable and the config file";
+          break;
+        }
+        case ConfigureInstanceAction::UPDATE_SERVER_AND_CONFIG_STATIC: {
+          note = "Update the config file and restart the server";
+          break;
+        }
+        case ConfigureInstanceAction::UPDATE_CONFIG: {
+          note = "Update the config file";
+          break;
+        }
+        case ConfigureInstanceAction::UPDATE_SERVER_DYNAMIC: {
+          note = "Update the server variable";
+          break;
+        }
+        case ConfigureInstanceAction::UPDATE_SERVER_STATIC: {
+          note = "Update read-only variable and restart the server";
+          break;
+        }
+        case ConfigureInstanceAction::REMOVE_OPTION_RESTART: {
+          note = "Remove the option and restart the server";
+          break;
+        }
+        case ConfigureInstanceAction::RESTART: {
+          note = "Restart the server";
+          break;
+        }
+        default: {
+          note = "Undefined action";
+          break;
+        }
+      }
+      (*opt_map)["note"] = shcore::Value(std::move(note));
     }
+
+    dump_table({"option", "current", "required", "note"},
+               {"Variable", "Current Value", "Required Value", "Note"},
+               config_errors);
+  } else {
+    dump_table({"option", "current", "required"},
+               {"Variable", "Current Value", "Required Value"}, config_errors);
+  }
+
+  for (auto option : *config_errors) {
+    auto opt_map = option.as_map();
+    opt_map->erase("note");
   }
 }
 

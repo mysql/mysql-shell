@@ -26,7 +26,7 @@ NOTE: Some configuration options need to be fixed:
 | binlog_format                    | <not set>     | ROW            | Update the config file                         |
 | enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
 | gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
-| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |
+| log_bin                          | <not present> | ON             | Update the config file and restart the server  |
 | log_slave_updates                | OFF           | ON             | Update the config file and restart the server  |
 | master_info_repository           | FILE          | TABLE          | Update the config file and restart the server  |
 | relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server  |

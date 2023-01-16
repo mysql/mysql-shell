@@ -17,7 +17,7 @@ NOTE: Some configuration options need to be fixed:
 | binlog_format                    | <not set>     | ROW            | Update the config file                         |
 | enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
 | gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
-| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |
+| log_bin                          | <not present> | ON             | Update the config file and restart the server  |
 | log_slave_updates                | OFF           | ON             | Update the config file and restart the server  |
 | master_info_repository           | FILE          | TABLE          | Update the config file and restart the server  |
 | relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server  |
@@ -493,15 +493,15 @@ NOTE: Some configuration options need to be fixed:
 | Variable                         | Current Value | Required Value | Note                                           |
 +----------------------------------+---------------+----------------+------------------------------------------------+
 | binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file |
-| disable_log_bin                  | <not set>     | <not set>      | Update the config file and restart the server  |
+| disable_log_bin                  | <present>     | <not present>  | Remove the option and restart the server       |
 | enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
 | gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
-| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |
+| log_bin                          | <not present> | ON             | Update the config file and restart the server  |
 | log_slave_updates                | OFF           | ON             | Update the config file and restart the server  |
 | master_info_repository           | FILE          | TABLE          | Update the config file and restart the server  |
 | relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server  |
 | server_id                        | 0             | <unique ID>    | Update the config file and restart the server  |
-| skip_log_bin                     | <not set>     | <not set>      | Update the config file and restart the server  |
+| skip_log_bin                     | <present>     | <not present>  | Remove the option and restart the server       |
 | transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server  |
 +----------------------------------+---------------+----------------+------------------------------------------------+
 

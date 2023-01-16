@@ -131,7 +131,7 @@ try {testutil.rmfile(mycnf_path_out);} catch (err) {}
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath:mycnf_path});
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
-EXPECT_STDOUT_CONTAINS("| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |");
+EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server  |");
 EXPECT_OUTPUT_NOT_CONTAINS("| disable_log_bin ");
 EXPECT_OUTPUT_NOT_CONTAINS("| skip_log_bin ");
 
@@ -139,7 +139,7 @@ testutil.wipeAllOutput();
 dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf_path, outputMycnfPath:mycnf_path_out});
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
-EXPECT_STDOUT_CONTAINS("| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |");
+EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server  |");
 EXPECT_OUTPUT_NOT_CONTAINS("| disable_log_bin ");
 EXPECT_OUTPUT_NOT_CONTAINS("| skip_log_bin ");
 
@@ -151,31 +151,31 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath:mycnf_path});
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
-EXPECT_STDOUT_CONTAINS("| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |");
-EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | ON            | <not set>      | Update the config file and restart the server  |");
+EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server  |");
+EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | ON            | <not present>  | Remove the option and restart the server       |");
 
 testutil.wipeAllOutput();
 dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf_path, outputMycnfPath:mycnf_path_out});
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
-EXPECT_STDOUT_CONTAINS("| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server  |");
-EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | ON            | <not set>      | Update the config file and restart the server  |");
+EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server  |");
+EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | ON            | <not present>  | Remove the option and restart the server       |");
 
 //@<> dba.configureInstance (and also dba.checkInstanceConfiguration) cannot print "log_bin" twice and must show "skip_log_bin" and "disable_log_bin" - no config BUG#31964706 {VER(< 8.0.3)}
 dba.checkInstanceConfiguration(__sandbox_uri1);
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
-EXPECT_STDOUT_CONTAINS("| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server |");
-EXPECT_STDOUT_CONTAINS("| disable_log_bin                  | <not set>     | <not set>      | Update the config file and restart the server |");
-EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server |");
+EXPECT_STDOUT_CONTAINS("| disable_log_bin                  | <present>     | <not present>  | Remove the option and restart the server      |");
+EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | <present>     | <not present>  | Remove the option and restart the server      |");
 
 testutil.wipeAllOutput();
 EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Dba.configureInstance: Unable to update configuration");
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
-EXPECT_STDOUT_CONTAINS("| log_bin                          | <not set>     | <no value>     | Update the config file and restart the server |");
-EXPECT_STDOUT_CONTAINS("| disable_log_bin                  | <not set>     | <not set>      | Update the config file and restart the server |");
-EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server |");
+EXPECT_STDOUT_CONTAINS("| disable_log_bin                  | <present>     | <not present>  | Remove the option and restart the server      |");
+EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | <present>     | <not present>  | Remove the option and restart the server      |");
 
 //@<> check if dba.configureInstance is successful BUG#31964706 {VER(< 8.0.3)}
 EXPECT_NO_THROWS(function () { dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf_path}) });
@@ -211,23 +211,23 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
 EXPECT_OUTPUT_NOT_CONTAINS("| disable_log_bin ");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not set>      | Update the config file and restart the server    |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not present>  | Remove the option and restart the server         |");
 
 dba.configureInstance(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
 EXPECT_OUTPUT_NOT_CONTAINS("| disable_log_bin ");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not set>      | Update the config file and restart the server    |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | ON            | <not present>  | Remove the option and restart the server         |");
 
 //@<> dba.configureInstance (and also dba.checkInstanceConfiguration) must output "skip_log_bin" and "disable_log_bin" - no config BUG#31964706 {VER(>= 8.0.3)}
 dba.checkInstanceConfiguration(__sandbox_uri1);
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
-EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <not set>     | <not set>      | Update the config file and restart the server |");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <present>     | <not present>  | Remove the option and restart the server      |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <present>     | <not present>  | Remove the option and restart the server      |");
 
 EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Dba.configureInstance: Unable to update configuration");
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
-EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <not set>     | <not set>      | Update the config file and restart the server |");
-EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <not set>     | <not set>      | Update the config file and restart the server |");
+EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <present>     | <not present>  | Remove the option and restart the server      |");
+EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <present>     | <not present>  | Remove the option and restart the server      |");
 
 //@<> dba.configureInstance must output "log_bin" for restart only {VER(>= 8.0.3)}
 EXPECT_NO_THROWS(function () { dba.configureInstance(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) });
