@@ -1,48 +1,33 @@
 //@ {hasAuthEnvironment('LDAP_KERBEROS') && __version_num >= 80020}
-//@<> Setup
-if (__os_type == 'windows') {
-    plugin = "authentication_ldap_sasl.dll"
-} else {
-    plugin = "authentication_ldap_sasl.so"
-}
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root',
-    {
-        "plugin-load-add": plugin,
-        "authentication_ldap_sasl_server_host": `${LDAP_KERBEROS_SERVER_HOST}`,
-        "authentication_ldap_sasl_server_port": parseInt(`${LDAP_KERBEROS_SERVER_PORT}`),
-        "authentication_ldap_sasl_bind_base_dn": `${LDAP_KERBEROS_BIND_BASE_DN}`,
-        "authentication_ldap_sasl_user_search_attr": `${LDAP_KERBEROS_USER_SEARCH_ATTR}`,
-        "authentication_ldap_sasl_bind_root_dn": `${LDAP_KERBEROS_BIND_ROOT_DN}`,
-        "authentication_ldap_sasl_bind_root_pwd": `${LDAP_KERBEROS_BIND_ROOT_PWD}`,
-        "authentication_ldap_sasl_group_search_filter": `${LDAP_KERBEROS_GROUP_SEARCH_FILTER}`,
-        "authentication_ldap_sasl_auth_method_name": 'GSSAPI',
-        "authentication_ldap_sasl_log_status": 5,
-        "log_error_verbosity": 3,
-        "net_read_timeout": 360,
-        "connect_timeout": 360
-    });
 
-var sasl_available = true;
-shell.connect(__sandbox_uri1);
+//@<> Setup
+if (debugAuthPlugins()) {
+  testutil.setenv("AUTHENTICATION_LDAP_CLIENT_LOG", "5");
+}
+
+var ldap_kerberos_available = isAuthMethodSupported('LDAP_KERBEROS');
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', getAuthServerConfig('LDAP_KERBEROS'));
 
 try {
-    session.runSql("CREATE DATABASE test_user_db");
-    session.runSql(`CREATE USER '${LDAP_KERBEROS_USER}@MYSQL.LOCAL' IDENTIFIED WITH authentication_ldap_sasl BY "${LDAP_KERBEROS_AUTH_STRING}"`);
-    session.runSql("CREATE USER 'invalid_user' IDENTIFIED WITH authentication_ldap_sasl");
-    session.runSql("CREATE USER 'mysql_engineering'");
-    session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'mysql_engineering'");
-    session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'invalid_user'");
-    session.runSql(`GRANT PROXY on 'mysql_engineering' TO '${LDAP_KERBEROS_USER}@MYSQL.LOCAL'`);
-} catch (error) {
-    // The SASL authentication may not be available on these platforms, if that's the case we skip the tests
-    if (['windows', "macos", "unknown"].includes(__os_type) && error.message.indexOf("Plugin 'authentication_ldap_sasl' is not loaded") != -1) {
-        sasl_available = false;
-    } else {
-        throw error;
-    }
-}
+    shell.connect(__sandbox_uri1);
 
-session.close();
+    if (ldap_kerberos_available) {
+        session.runSql("CREATE DATABASE test_user_db");
+        session.runSql(`CREATE USER '${LDAP_KERBEROS_USER}@MYSQL.LOCAL' IDENTIFIED WITH authentication_ldap_sasl BY "${LDAP_KERBEROS_AUTH_STRING}"`);
+        session.runSql("CREATE USER 'invalid_user' IDENTIFIED WITH authentication_ldap_sasl");
+        session.runSql("CREATE USER 'mysql_engineering'");
+        session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'mysql_engineering'");
+        session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'invalid_user'");
+        session.runSql(`GRANT PROXY on 'mysql_engineering' TO '${LDAP_KERBEROS_USER}@MYSQL.LOCAL'`);
+    } else {
+        session.runSql("create user ldap_kerberos_test identified by 'mypwd'");
+    }
+
+    session.close();
+} catch (error) {
+    println(testutil.catFile(testutil.getSandboxLogPath(__mysql_sandbox_port1)));
+    throw error;
+}
 
 var test_list = {
     "SELECT current_user()": "mysql_engineering@%",
@@ -52,9 +37,9 @@ var test_list = {
 };
 
 // Cleans the Kerberos cache
-testutil.callMysqlsh(["--py", "-i", "-e", "import os;os.system('kdestroy')"])
+testutil.callMysqlsh(["--py", "-i", "-e", `import os;os.system('${__os_type == 'windows' ? 'klist purge' : 'kdestroy'}')`]);
 
-//@<> WL14553-TSFR_8_2 - Kerberos session with no user/password, should fail as there's no cached TGT {sasl_available}
+//@<> WL14553-TSFR_8_2 - Kerberos session with no user/password, should fail as there's no cached TGT {ldap_kerberos_available}
 args = ["--mysql", "--host=localhost",
     `--port=${__mysql_sandbox_port1}`,
     '--schema=test_user_db',
@@ -62,7 +47,7 @@ args = ["--mysql", "--host=localhost",
     "--credential-store-helper=plaintext"]
 
 // WL14553-TSFR_9_4 - No user/password provided
-testutil.callMysqlsh(args.concat(["-i"]));
+testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1"]));
 
 // System user is not automatically added to the connection data
 EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to 'localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`)
@@ -71,8 +56,8 @@ EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to 'localhost:${__mysql_sandb
 EXPECT_OUTPUT_CONTAINS(`SSO user not found, Please perform SSO authentication using kerberos.`)
 WIPE_OUTPUT()
 
-//@<> WL14553-TSFR_9_4 - User given but no password {sasl_available}
-testutil.callMysqlsh(args.concat(["-i", `--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`]));
+//@<> WL14553-TSFR_9_4 - User given but no password {ldap_kerberos_available}
+testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1", `--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`]));
 
 // System user is not automatically added to the connection data
 EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to '${LDAP_KERBEROS_USER}%40MYSQL.LOCAL@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`)
@@ -105,7 +90,7 @@ cli_variants.push([`--password=whatever`])
 // User and wrong password
 cli_variants.push([`--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`, `--password=whatever`])
 
-//@<> Test TGT with independent shell instances {sasl_available}
+//@<> Test TGT with independent shell instances {ldap_kerberos_available}
 for (variant_index in cli_variants) {
     for (query in test_list) {
         testutil.callMysqlsh(args.concat([`${query}`]).concat(cli_variants[variant_index]));
@@ -114,7 +99,7 @@ for (variant_index in cli_variants) {
     }
 }
 
-//@<> Test TGT with interactive shell connections {sasl_available}
+//@<> Test TGT with interactive shell connections {ldap_kerberos_available}
 ok_variants = []
 // Full credentials will cause the TGT to be created
 ok_variants.push(function () {
@@ -162,5 +147,15 @@ for (variant_index in ok_variants) {
     session.close()
 }
 
+//@<> Test loading the plugin {!ldap_kerberos_available}
+WIPE_SHELL_LOG();
+testutil.callMysqlsh([`ldap_kerberos_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--log-level=8", "--json=raw", "--auth-method=authentication_ldap_sasl_client", "--sql", "-e", 'select user()']);
+EXPECT_OUTPUT_CONTAINS('{"user()":"ldap_kerberos_test@localhost"}');
+EXPECT_SHELL_LOG_CONTAINS('authentication_ldap_sasl_client.AUTHENTICATE.AUTH_PLUGIN');
+
 //@<> Cleanup
+if (debugAuthPlugins()) {
+    println(testutil.catFile(testutil.getSandboxLogPath(__mysql_sandbox_port1)));
+}
+
 testutil.destroySandbox(__mysql_sandbox_port1);

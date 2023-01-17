@@ -1,43 +1,34 @@
-//@ {hasAuthEnvironment('LDAP_SIMPLE')}
+//@ {hasAuthEnvironment('LDAP_SIMPLE') && isAuthMethodSupported('LDAP_SIMPLE')}
+
 //@<> Setup
-if (__os_type == 'windows') {
-    plugin = "authentication_ldap_simple.dll"
-} else {
-    plugin = "authentication_ldap_simple.so"
-}
+testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', getAuthServerConfig('LDAP_SIMPLE'));
 
-var server_conf = {
-    "plugin-load-add": plugin,
-    "authentication_ldap_simple_server_host": `${LDAP_SIMPLE_SERVER_HOST}`,
-    "authentication_ldap_simple_server_port": parseInt(`${LDAP_SIMPLE_SERVER_PORT}`),
-    "authentication_ldap_simple_bind_base_dn": `${LDAP_SIMPLE_BIND_BASE_DN}`
-}
-
-if (__os_type == 'windows') {
-    server_conf['named_pipe'] = 1
-    server_conf['socket'] = "MyNamedPipe"
-}
-
-testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', server_conf);
-
-shell.connect(__sandbox_uri1);
-session.runSql("CREATE DATABASE test_user_db");
-session.runSql(`CREATE USER '${LDAP_SIMPLE_USER}' IDENTIFIED WITH authentication_ldap_simple BY '${LDAP_SIMPLE_AUTH_STRING}'`);
-session.runSql("CREATE USER 'common'");
-session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'common'");
-session.runSql(`GRANT PROXY on 'common' TO '${LDAP_SIMPLE_USER}'`);
 var socket = "";
 var raw_socket = "";
-var result = session.runSql("SHOW VARIABLES LIKE 'socket'");
-if (result) {
-    var row = result.fetchOne();
-    if (row) {
-        raw_socket = row[1];
-        socket = testutil.getSandboxPath(__mysql_sandbox_port1, raw_socket);
-    }
-}
 
-session.close();
+try {
+    shell.connect(__sandbox_uri1);
+
+    session.runSql("CREATE DATABASE test_user_db");
+    session.runSql(`CREATE USER '${LDAP_SIMPLE_USER}' IDENTIFIED WITH authentication_ldap_simple BY '${LDAP_SIMPLE_AUTH_STRING}'`);
+    session.runSql("CREATE USER 'common'");
+    session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'common'");
+    session.runSql(`GRANT PROXY on 'common' TO '${LDAP_SIMPLE_USER}'`);
+
+    var result = session.runSql("SHOW VARIABLES LIKE 'socket'");
+    if (result) {
+        var row = result.fetchOne();
+        if (row) {
+            raw_socket = row[1];
+            socket = testutil.getSandboxPath(__mysql_sandbox_port1, raw_socket);
+        }
+    }
+
+    session.close();
+} catch (error) {
+    println(testutil.catFile(testutil.getSandboxLogPath(__mysql_sandbox_port1)));
+    throw error;
+}
 
 //@<> Attempts without specifying the mysql_clear_password plugin
 EXPECT_THROWS(function () {

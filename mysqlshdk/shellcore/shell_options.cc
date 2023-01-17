@@ -270,8 +270,8 @@ Shell_options::Shell_options(
 
   std::string default_mysql_plugin_dir;
 #ifdef DEFAULT_MYSQL_PLUGIN_DIR
-  default_mysql_plugin_dir = shcore::path::join_path(
-      shcore::get_mysqlx_home_path(), DEFAULT_MYSQL_PLUGIN_DIR);
+  default_mysql_plugin_dir = shcore::path::normalize(shcore::path::join_path(
+      shcore::get_mysqlx_home_path(), DEFAULT_MYSQL_PLUGIN_DIR));
 #endif
 
   const auto create_result_format_handler = [this](const char *value) {

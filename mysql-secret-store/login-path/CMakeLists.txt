@@ -46,5 +46,5 @@ add_helper_executable()
 
 # If defined, installs the mysql_config_editor binary into the shell bundle
 IF (BUNDLED_MYSQL_CONFIG_EDITOR)
-  install_bundled_binary("${BUNDLED_MYSQL_CONFIG_EDITOR}" "${INSTALL_LIBEXECDIR}" mysql-secret-store-login-path)
+  install_bundled_binaries(BINARIES "${BUNDLED_MYSQL_CONFIG_EDITOR}" DESTINATION "${INSTALL_LIBEXECDIR}" TARGET mysql-secret-store-login-path)
 ENDIF()

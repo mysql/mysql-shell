@@ -216,7 +216,7 @@ IF(HAVE_PYTHON)
     IF (APPLE)
       IF(BUNDLED_OPENSSL_DIR)
         FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
-        SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
+        SET_BUNDLED_OPEN_SSL(BINARIES ${OCI_OPEN_SSL_LIBRARIES})
       ENDIF()
     ENDIF()
   ENDIF()
@@ -285,7 +285,7 @@ IF(HAVE_PYTHON)
 
     IF(APPLE)
       FILE(GLOB PYTHON_OPEN_SSL_LIBRARIES ${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so)
-      SET_BUNDLED_OPEN_SSL("${PYTHON_OPEN_SSL_LIBRARIES}")
+      SET_BUNDLED_OPEN_SSL(BINARIES ${PYTHON_OPEN_SSL_LIBRARIES})
     ENDIF()
 
     # Copy to build dir to allow testing
@@ -316,7 +316,7 @@ IF(HAVE_PYTHON)
 
       if(STRIP_LIBCRYPT_DEPS)
         foreach(_PYTHON_LIB IN LISTS _PYTHON_SHARED_LIB)
-          execute_patchelf(mysqlsh --remove-needed libcrypt.so.1 "${_PYTHON_LIB}")
+          execute_patchelf(--remove-needed libcrypt.so.1 "${_PYTHON_LIB}")
         endforeach()
       endif()
 
@@ -342,43 +342,58 @@ ENDIF(HAVE_PYTHON)
 IF(BUNDLED_SSH_DIR)
   GET_TARGET_PROPERTY(_SSH_LIBRARY_LOCATION ssh LOCATION)
   GET_FILENAME_COMPONENT(_SSH_LIBRARY_DIR ${_SSH_LIBRARY_LOCATION} DIRECTORY)
+
   IF(WIN32)
     FILE(GLOB_RECURSE _SSH_LIBRARIES "${_SSH_LIBRARY_DIR}/*.dll")
   ELSEIF(APPLE)
-    FILE(GLOB_RECURSE _SSH_LIBRARY "${_SSH_LIBRARY_DIR}/libssh.dylib")
-    SET_BUNDLED_OPEN_SSL("${_SSH_LIBRARY}")
     FILE(GLOB_RECURSE _SSH_LIBRARIES "${_SSH_LIBRARY_DIR}/*.dylib")
   ELSE()
     FILE(GLOB_RECURSE _SSH_LIBRARIES "${_SSH_LIBRARY_DIR}/*.so*")
   ENDIF()
+
   IF(NOT _SSH_LIBRARIES)
     MESSAGE(FATAL_ERROR "Could not find the bundled libssh libraries")
   ENDIF()
-  IF(WIN32)
-    FOREACH(_SSH_DLL IN LISTS _SSH_LIBRARIES)
-      INSTALL(PROGRAMS "${_SSH_DLL}" DESTINATION ${INSTALL_BINDIR} COMPONENT main)
-      GET_FILENAME_COMPONENT(_SSH_DLL_NAME "${_SSH_DLL}" NAME)
 
-      # Copy the libraries to the build dir (for running tests in build tree)
-      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_SSH_DLL}"
-                    "$<TARGET_FILE_DIR:mysqlsh>/${_SSH_DLL_NAME}")
-    ENDFOREACH()
-  ELSE()
-    INSTALL(PROGRAMS ${_SSH_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" COMPONENT main)
-  ENDIF()
+  install_bundled_binaries(BINARIES ${_SSH_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
 ENDIF()
 
 # krb5 is an indirect dependency for libssh, platforms that bundle libssh should may optionally
 # require a custom built version of the krb5 library to be also bundled in the shell packages
 # to prevent the shell from having different openssl dependencies (system one/bundled one)
-IF(BUNDLED_KRB5_DIR AND NOT WIN32)
-  FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/lib/*.so*")
+IF(BUNDLED_KRB5_DIR)
+  IF(WIN32)
+    FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/bin/*.dll")
+  ELSE()
+    FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/lib/lib*")
+  ENDIF()
+
   IF(NOT _KRB5_LIBRARIES)
     MESSAGE(FATAL_ERROR "Could not find the bundled krb5 libraries")
   ENDIF()
-  INSTALL(PROGRAMS ${_KRB5_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" COMPONENT main)
-  LINK_DIRECTORIES(${BUNDLED_KRB5_DIR}/lib)
+
+  install_bundled_binaries(BINARIES ${_KRB5_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+ENDIF()
+
+IF(BUNDLED_SASL_DIR)
+  IF(WIN32)
+    FILE(GLOB _SASL_LIBRARIES "${BUNDLED_SASL_DIR}/lib/lib*.dll")
+    FILE(GLOB _SASL_PLUGINS "${BUNDLED_SASL_DIR}/lib/sasl*.dll")
+  ELSEIF(APPLE)
+    FILE(GLOB _SASL_LIBRARIES "${BUNDLED_SASL_DIR}/lib/libsasl2*.dylib")
+    # plugins have .so extension
+    FILE(GLOB _SASL_PLUGINS "${BUNDLED_SASL_DIR}/lib/sasl2/lib*.so")
+  ELSE()
+    FILE(GLOB _SASL_LIBRARIES "${BUNDLED_SASL_DIR}/lib/libsasl2.so*")
+    FILE(GLOB _SASL_PLUGINS "${BUNDLED_SASL_DIR}/lib/sasl2/lib*.so*")
+  ENDIF()
+
+  IF(NOT _SASL_LIBRARIES)
+    MESSAGE(FATAL_ERROR "Could not find the bundled sasl libraries")
+  ENDIF()
+
+  install_bundled_binaries(BINARIES ${_SASL_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+  install_bundled_binaries(BINARIES ${_SASL_PLUGINS} DESTINATION "${INSTALL_LIBDIR}/sasl2" TARGET mysqlsh)
 ENDIF()
 
 IF(BUNDLED_ANTLR_DIR)
@@ -417,16 +432,12 @@ IF(BUNDLED_ANTLR_DIR)
 ENDIF()
 
 # If defined, installs the client authentication plugins
-IF(CLIENT_PLUGINS_PATH)
-  FILE(GLOB AUTH_CLIENT_PLUGINS "${CLIENT_PLUGINS_PATH}/authentication_oci_client*${LIBRARY_SUFIX}")
+IF(AUTH_CLIENT_PLUGINS)
+  IF(AUTH_CLIENT_PLUGINS_DEPS)
+    install_bundled_binaries(BINARIES ${AUTH_CLIENT_PLUGINS_DEPS} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+  ENDIF()
 
-  INSTALL(PROGRAMS ${AUTH_CLIENT_PLUGINS} DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}" COMPONENT main)
-
-  # Install the authentication client plugins
-  ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_MYSQL_PLUGINS_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy ${AUTH_CLIENT_PLUGINS}
-                "${CONFIG_BINARY_DIR}/${INSTALL_MYSQL_PLUGINS_DIR}")
+  install_bundled_binaries(BINARIES ${AUTH_CLIENT_PLUGINS} DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}" TARGET mysqlsh)
 ELSE()
-  MESSAGE(STATUS "Skipping bundling Authentication Client Plugins!")
+  MESSAGE(WARNING "Could not find Authentication Client Plugins!")
 ENDIF()

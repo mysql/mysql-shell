@@ -1656,6 +1656,10 @@ void Shell_script_tester::set_defaults() {
          _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
+  code = get_variable_prefix() + "__version_full = '" +
+         _target_server_version.get_full() + "'";
+  exec_and_out_equals(code);
+
   int64_t version_num = _target_server_version.get_major() * 10000 +
                         _target_server_version.get_minor() * 100 +
                         _target_server_version.get_patch();
@@ -1722,7 +1726,17 @@ void Shell_script_tester::set_defaults() {
   // Variables for MDS Tests
   def_string_var_from_env("MDS_URI");
 
+  auto set_env_if_missing = [](const char *var, const char *value) {
+    if (!getenv(var)) {
+      shcore::setenv(var, value);
+    }
+  };
+
   // Simple LDAP Authentication Variables
+  if (getenv("LDAP_SIMPLE_SERVER_HOST")) {
+    set_env_if_missing("LDAP_SIMPLE_BIND_BASE_DN", "dc=my-domain,dc=com");
+  }
+
   def_string_var_from_env("LDAP_SIMPLE_SERVER_HOST");
   def_string_var_from_env("LDAP_SIMPLE_SERVER_PORT");
   def_string_var_from_env("LDAP_SIMPLE_BIND_BASE_DN");
@@ -1731,6 +1745,13 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("LDAP_SIMPLE_AUTH_STRING");
 
   // LDAP SASL Authentication Variables
+  if (getenv("LDAP_SASL_SERVER_HOST")) {
+    set_env_if_missing("LDAP_SASL_BIND_BASE_DN", "dc=my-domain,dc=com");
+    set_env_if_missing("LDAP_SASL_GROUP_SEARCH_FILTER",
+                       "(|(&(objectClass=posixGroup)(memberUid={UA}))(&("
+                       "objectClass=group)(member={UD})))");
+  }
+
   def_string_var_from_env("LDAP_SASL_SERVER_HOST");
   def_string_var_from_env("LDAP_SASL_SERVER_PORT");
   def_string_var_from_env("LDAP_SASL_BIND_BASE_DN");
@@ -1739,6 +1760,16 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("LDAP_SASL_GROUP_SEARCH_FILTER");
 
   // LDAP Kerberos Authentication Variables
+  if (getenv("LDAP_KERBEROS_SERVER_HOST")) {
+    set_env_if_missing("LDAP_KERBEROS_BIND_BASE_DN",
+                       "CN=users,DC=mysql,DC=local");
+    set_env_if_missing("LDAP_KERBEROS_USER_SEARCH_ATTR", "sAMAccountName");
+    set_env_if_missing("LDAP_KERBEROS_BIND_ROOT_DN",
+                       "CN=test2,CN=Users,DC=mysql,DC=local");
+    set_env_if_missing("LDAP_KERBEROS_GROUP_SEARCH_FILTER",
+                       "(&(objectClass=group)(member={UD}))");
+  }
+
   def_string_var_from_env("LDAP_KERBEROS_SERVER_HOST");
   def_string_var_from_env("LDAP_KERBEROS_SERVER_PORT");
   def_string_var_from_env("LDAP_KERBEROS_BIND_BASE_DN");

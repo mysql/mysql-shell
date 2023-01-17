@@ -485,8 +485,8 @@ class Testutils : public mysqlsh::Extensible_object {
                                    const std::string &mysqld_path);
   bool deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts,
-                                       bool raw,
-                                       const std::string &mysqld_path);
+                                       bool raw, const std::string &mysqld_path,
+                                       int timeout = -1);
   void change_sandbox_uuid(int port, const std::string &server_uuid);
   std::string get_sandbox_datadir(int port);
   void try_rename(const std::string &source, const std::string &target);
