@@ -1,4 +1,4 @@
-#@ {__os_type != "macos" or __machine_type != "aarch64"}
+#@ {__os_type != "macos" and __machine_type != "aarch64"}
 
 # Test is disabled on aarch64, because timers behave wierd there.
 # It is hard to pinpoint why this happen, and it is also hard to create/find

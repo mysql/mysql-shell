@@ -27,6 +27,10 @@ if "MYSQLSH_HTTPS_PROXY" in os.environ:
         https_proxy = os.environ["https_proxy"]
     os.environ["https_proxy"] = os.environ["MYSQLSH_HTTPS_PROXY"]
 
+no_proxy = None
+if "no_proxy" in os.environ:
+    no_proxy = os.environ["no_proxy"]
+os.environ["no_proxy"] = "localhost,127.0.0.1,::1"
 
 import socket
 from contextlib import closing
@@ -367,3 +371,5 @@ testutil.rmfile(os.path.join(__user_config_path, 'plugin-repositories.json'))
 if restore_https_proxy:
     https_proxy = os.environ["https_proxy"] = https_proxy
 
+if no_proxy is not None:
+    os.environ["no_proxy"] = no_proxy

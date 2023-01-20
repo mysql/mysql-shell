@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,7 @@ Connection_options::Connection_options(Comparison_mode mode)
       m_extra_options(m_mode),
       m_enable_connection_attributes(true),
       m_connection_attributes(m_mode) {
-  for (auto o : {kSocket}) m_options.set(o, nullptr, Set_mode::CREATE);
+  for (auto o : {kSocket, kPipe}) m_options.set(o, nullptr, Set_mode::CREATE);
 }
 
 Connection_options::Connection_options(const std::string &uri,
@@ -203,13 +203,14 @@ void Connection_options::set_pipe(const std::string &pipe) {
       (m_options.has_value(kHost) &&
        (get_value(kHost) != "localhost" &&  // only localhost means "use socket"
         !(get_value(kHost) == "." && win32))))
-    raise_connection_type_error("pipe connection to '" + pipe + "'");
+    raise_connection_type_error("named pipe connection to '" + pipe + "'");
 
   if (m_options.has_value(kScheme) && get_value(kScheme) != "mysql") {
     throw std::invalid_argument{"Pipe can only be used with Classic session"};
   }
 
   m_options.set(kSocket, pipe, Set_mode::CREATE_AND_UPDATE);
+  m_options.set(kPipe, pipe, Set_mode::CREATE_AND_UPDATE);
   m_transport_type = Pipe;
 }
 
@@ -473,7 +474,11 @@ bool Connection_options::has(const std::string &name) const {
 bool Connection_options::has_value(const std::string &name) const {
   std::string iname = get_iname(name);
 
-  if (m_options.has(iname))
+  if (m_options.compare(iname, kSocket) == 0)
+    return has_socket();
+  else if (m_options.compare(iname, kPipe) == 0)
+    return has_pipe();
+  else if (m_options.has(iname))
     return m_options.has_value(iname);
   else if (m_ssl_options.has(iname))
     return m_ssl_options.has_value(iname);
@@ -566,6 +571,10 @@ const std::string &Connection_options::get(const std::string &name) const {
     return m_ssl_options.get_value(iname);
   else if (m_extra_options.has(iname))
     return m_extra_options.get_value(iname);
+  else if (m_options.compare(iname, kSocket) == 0)
+    return get_socket();
+  else if (m_options.compare(iname, kPipe) == 0)
+    return get_pipe();
 
   return get_value(name);
 }
@@ -614,6 +623,7 @@ void Connection_options::clear_socket() {
 void Connection_options::clear_pipe() {
   m_transport_type.reset();
   clear_value(kSocket);
+  clear_value(kPipe);
 }
 
 void Connection_options::remove(const std::string &name) {

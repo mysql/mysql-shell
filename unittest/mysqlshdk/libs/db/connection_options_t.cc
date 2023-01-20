@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -197,7 +197,7 @@ TEST(Connection_options, pipe_functions) {
   EXPECT_NO_THROW(options.clear_pipe());
   EXPECT_FALSE(options.has_pipe());
   msg = "The connection option '";
-  msg.append(mysqlshdk::db::kSocket).append("' has no value.");
+  msg.append(mysqlshdk::db::kPipe).append("' has no value.");
   MY_EXPECT_THROW(std::invalid_argument, msg.c_str(), options.get_pipe());
 }
 

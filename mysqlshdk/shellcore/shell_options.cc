@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -369,7 +369,11 @@ Shell_options::Shell_options(
         [this](const std::string&, const char* value) {
           storage.connection_data.clear_port();
           storage.connection_data.clear_pipe();
+#ifdef _WIN32
+          storage.connection_data.set_pipe(value ? value : "");
+#else
           storage.connection_data.set_socket(value ? value : "");
+#endif
         }
       )
     (cmdline("-u", "--user=<name>"),

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,9 @@
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include <set>
+#include <string_view>
+
 namespace mysqlshdk {
 namespace db {
 namespace uri {
@@ -37,9 +40,10 @@ bool IUri_parsable::is_allowed_scheme(const std::string &name) const {
 void IUri_parsable::validate_allowed_scheme(const std::string &scheme) const {
   if (!is_allowed_scheme(scheme)) {
     const auto &schemes = allowed_schemes();
+    std::set<std::string_view> ordered{schemes.begin(), schemes.end()};
     throw std::invalid_argument(shcore::str_format(
         "Invalid scheme [%s], supported schemes include: %s", scheme.c_str(),
-        shcore::str_join(schemes.begin(), schemes.end(), ", ").c_str()));
+        shcore::str_join(ordered.begin(), ordered.end(), ", ").c_str()));
   }
 }
 

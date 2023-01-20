@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022 Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,12 +27,18 @@
 #include <unordered_set>
 #include <vector>
 
+#ifndef _WIN32
+#include <unistd.h>
+extern char **environ;
+#endif
+
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 #include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -43,6 +49,42 @@ extern "C" const char *g_test_home;
 namespace mysqlshdk {
 namespace rest {
 namespace test {
+
+namespace {
+
+bool debug() {
+  const static bool s_debug = getenv("TEST_DEBUG") != nullptr;
+  return s_debug;
+}
+
+void debug_env_vars() {
+  if (debug()) {
+    std::cerr << "Environment variables:" << std::endl;
+
+#ifdef _WIN32
+    auto env = GetEnvironmentStringsA();
+    const auto env_head = env;
+
+    while (*env) {
+      std::cerr << '\t' << env << std::endl;
+      env += strlen(env) + 1;
+    }
+
+    if (env_head) {
+      FreeEnvironmentStringsA(env_head);
+    }
+#else
+    auto env = environ;
+
+    while (*env) {
+      std::cerr << '\t' << *env << std::endl;
+      ++env;
+    }
+#endif
+  }
+}
+
+}  // namespace
 
 class Test_server {
  public:
@@ -55,72 +97,77 @@ class Test_server {
       return false;
     }
 
+    const auto shell_executable =
+        shcore::path::join_path(shcore::get_binary_folder(), "mysqlsh");
     const auto script =
         shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
     const auto port_number = std::to_string(m_port);
     m_address = "https://127.0.0.1:" + port_number;
 
-    const auto debug = getenv("TEST_DEBUG") != nullptr;
     bool server_ready = false;
 
-    for (const auto python_cmd : {"python", "python3"}) {
-      if (server_ready) break;
+    const std::vector<const char *> args = {
+        shell_executable.c_str(), "--py",  "--file", script.c_str(),
+        port_number.c_str(),      nullptr,
+    };
 
-      if (debug) {
-        std::cerr << "executing: " << python_cmd << " " << script << " "
-                  << port_number << std::endl;
-      }
+    if (debug()) {
+      std::cerr << "executing: ";
 
-      std::vector<const char *> args = {python_cmd, script.c_str(),
-                                        port_number.c_str(), nullptr};
-
-      m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
-      m_server->enable_reader_thread();
-#ifdef _WIN32
-      m_server->set_create_process_group();
-#endif  // _WIN32
-      m_server->start();
-
-      static constexpr uint32_t sleep_time = 100;   // 100ms
-      static constexpr uint32_t wait_time = 10100;  // 10s
-      uint32_t current_time = 0;
-      Rest_service rest{m_address, false};
-
-      if (debug) {
-        std::cerr << "Trying to connect to: " << m_address << std::endl;
-      }
-
-      while (!server_ready) {
-        shcore::sleep_ms(sleep_time);
-        current_time += sleep_time;
-
-        // Server not running or time exceeded
-        if (m_server->check() || current_time > wait_time) break;
-
-        try {
-          auto request = Request("/ping");
-          const auto response = rest.head(&request);
-
-          if (debug) {
-            std::cerr << "HTTPS server replied with: "
-                      << Response::status_code(response.status)
-                      << ", body: " << response.buffer.raw()
-                      << ", waiting time: " << current_time << "ms"
-                      << std::endl;
-          }
-
-          server_ready = response.status == Response::Status_code::OK;
-        } catch (const std::exception &e) {
-          std::cerr << "HTTPS server not ready after " << current_time << "ms";
-
-          if (debug) {
-            std::cerr << ": " << e.what() << std::endl;
-            std::cerr << "Output so far:" << std::endl;
-            std::cerr << m_server->read_all();
-          }
-
-          std::cerr << std::endl;
+      for (const auto arg : args) {
+        if (arg) {
+          std::cerr << arg << ' ';
         }
+      }
+
+      std::cerr << std::endl;
+    }
+
+    m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
+    m_server->enable_reader_thread();
+#ifdef _WIN32
+    m_server->set_create_process_group();
+#endif  // _WIN32
+    m_server->start();
+
+    static constexpr uint32_t sleep_time = 100;   // 100ms
+    static constexpr uint32_t wait_time = 10100;  // 10s
+    uint32_t current_time = 0;
+    Rest_service rest{m_address, false};
+
+    if (debug()) {
+      std::cerr << "Trying to connect to: " << m_address << std::endl;
+    }
+
+    while (!server_ready) {
+      shcore::sleep_ms(sleep_time);
+      current_time += sleep_time;
+
+      // Server not running or time exceeded
+      if (m_server->check() || current_time > wait_time) break;
+
+      try {
+        auto request = Request("/ping");
+        const auto response = rest.head(&request);
+
+        if (debug()) {
+          std::cerr << "HTTPS server replied with: "
+                    << Response::status_code(response.status)
+                    << ", body: " << response.buffer.raw()
+                    << ", waiting time: " << current_time << "ms" << std::endl;
+        }
+
+        server_ready = response.status == Response::Status_code::OK;
+      } catch (const std::exception &e) {
+        std::cerr << "HTTPS server not ready after " << current_time << "ms";
+
+        if (debug()) {
+          std::cerr << ": " << e.what() << std::endl;
+          std::cerr << "Output so far:" << std::endl;
+          std::cerr << m_server->read_all();
+        }
+
+        std::cerr << std::endl;
       }
     }
 
@@ -128,7 +175,7 @@ class Test_server {
   }
 
   void stop_server() {
-    if (getenv("TEST_DEBUG") != nullptr) {
+    if (debug()) {
       std::cerr << m_server->read_all() << std::endl;
     }
 
@@ -201,33 +248,30 @@ class Rest_service_test : public ::testing::Test {
   }
 
   static void setup_env_vars() {
+    debug_env_vars();
+
     const auto no_proxy = ::getenv(s_no_proxy);
 
     if (no_proxy) {
       s_no_proxy_env = no_proxy;
     }
 
-    std::unordered_set<std::string> unique_hosts;
+    shcore::setenv(s_no_proxy, "*");
 
-    {
-      auto hosts = shcore::str_split(s_no_proxy_env, ",", -1, true);
-      std::move(hosts.begin(), hosts.end(),
-                std::inserter(unique_hosts, unique_hosts.begin()));
-    }
-
-    unique_hosts.emplace("localhost");
-    unique_hosts.emplace("127.0.0.1");
-    unique_hosts.emplace("::1");
-
-    shcore::setenv(s_no_proxy, shcore::str_join(unique_hosts, ","));
+    debug_env_vars();
   }
 
   static void restore_env_vars() {
+    debug_env_vars();
+
     if (s_no_proxy_env.empty()) {
       shcore::unsetenv(s_no_proxy);
     } else {
       shcore::setenv(s_no_proxy, s_no_proxy_env);
+      s_no_proxy_env.clear();
     }
+
+    debug_env_vars();
   }
 
   static std::unique_ptr<Test_server> s_test_server;
@@ -694,7 +738,8 @@ TEST_F(Rest_service_test, retry_strategy_generic_errors) {
 
   // Even with retry logic the same error is generated at the end
   EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
-                            "Connection refused|couldn't connect to host");
+                            "Connection refused|couldn't connect to host|"
+                            "Couldn't connect to server");
   // retry strategy is not used in case of non-recoverable error
   EXPECT_EQ(0, retry_strategy.get_retry_count());
 }

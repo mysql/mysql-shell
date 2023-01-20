@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -154,6 +154,8 @@ std::vector<Security_invoker::Entry> Security_invoker::list() {
 
           if (value != empty_marker) {
             value = shcore::str_strip(value, "\"");
+          } else {
+            value.clear();
           }
 
           if (attribute == id_marker) {

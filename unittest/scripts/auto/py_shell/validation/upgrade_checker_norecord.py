@@ -19,5 +19,5 @@
     https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
   #mysql50#lost+found - Schema name
-  UCTEST1.#mysql50#lost+found - Table name
+  uctest1.#mysql50#lost+found - Table name
 

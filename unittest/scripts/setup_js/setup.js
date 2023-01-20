@@ -77,7 +77,7 @@ function get_socket_path(session, uri = undefined) {
 
   var row = session.runSql(`SELECT @@${"mysql" === shell.parseUri(uri).scheme ? "socket" : "mysqlx_socket"}, @@datadir`).fetchOne();
 
-  if (row[0][0] == '/')
+  if (row[0][0] == '/' || __os_type == 'windows')
     p = row[0];
   else if (row[1][row[1].length-1] == '/')
     p = row[1] + row[0];

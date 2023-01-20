@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -737,14 +737,18 @@ bool load_text_file(const std::string &path, std::string &data,
   s.seekg(0, std::ios_base::beg);
   data.resize(fsize);
   s.read(data.data(), fsize);
+  // if preserve_cr is true, we may read less characters, in which case read()
+  // sets both failbit and eofbit
+  data.resize(s.gcount());
 
   // OK if no errors reading
-  if (s.fail()) {
+  if (s.fail() && !s.eof()) {
     auto err = errno;
     s.close();
     errno = err;
     return false;
   }
+
   return true;
 }
 

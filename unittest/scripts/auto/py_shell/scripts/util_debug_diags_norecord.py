@@ -104,7 +104,7 @@ CHECK_ALL_ERROR(check, path={})
 #@<> TSFR_1_3_2 - bad dir
 CHECK_ALL_ERROR(lambda out: EXPECT_STDOUT_CONTAINS("No such file or directory"), path=outdir+"/invalid/out.zip", keep_file=True)
 
-#@<> TSFR_1_3_2 - not writable
+#@<> TSFR_1_3_2 - not writable {__os_type != "windows"}
 os.mkdir(outdir+"/unwritable", mode=0o555)
 CHECK_ALL_ERROR(lambda out: EXPECT_STDOUT_CONTAINS("Permission denied"), path=outdir+"/unwritable/out.zip", keep_file=True)
 os.rmdir(outdir+"/unwritable")
@@ -297,9 +297,8 @@ def check(outpath):
     EXPECT_FILE_CONTENTS(outpath, f"{cqfn}_0.tsv", b"^CUSTOM SQL$")
     EXPECT_FILE_CONTENTS(outpath, f"{cqfn}_1.tsv", b"^CUSTOM SQL2$")
 
-CHECK_ALL(check, {"customShell": ['echo "custom script"',
-                                'echo "custom script2"',
-                                'false || true'],
+CHECK_ALL(check, {"customShell": ['echo custom script',
+                                  'echo custom script2'],
                                       "customSql":["select upper('custom sql')",
                                                     "select upper('custom sql2')"]},
         uri=__sandbox_uri1)
@@ -336,7 +335,7 @@ CHECK_ALL_ERROR(check, {"customSql":["THIS WILL CAUSE AN ERROR",
 #@<> customSql and customShell - before/during/after - TSFR_1_6_4, TSFR_1_6_7, TSFR_13_1, TSFR_13_2
 options = {
     "customSql": ["before:select 'before'", "during:select 'during'", "during:select 'during2'", "after:select 'after'"],
-    "customShell": ["before:echo 'before'", "during:echo 'during'", "during:echo 'during2'", "after:echo 'after'", "echo $bla"]
+    "customShell": ["before:echo before", "during:echo during", "during:echo during2", "after:echo after", "echo $bla" if __os_type != "windows" else "echo %bla%"]
 }
 outpath = run_collect_hl(__sandbox_uri1, None, options, env=["bla=inherited"])
 EXPECT_FILE_CONTENTS(outpath, "custom_shell-before.txt", b"^before$")

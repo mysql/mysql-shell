@@ -39,6 +39,11 @@ def prepare(sbport, options={}):
         # small sort buffer to force stray filesorts to be triggered even if we don't have much data
         "sort_buffer_size": 32768
     })
+    if __os_type == "windows":
+        options.update({
+            "named_pipe": "1",
+            "socket": f"mysql-dl-{sbport}"
+        })
     testutil.deploy_sandbox(sbport, "root", options)
 
 
@@ -2047,6 +2052,9 @@ session.run_sql("analyze table t;")
 # get the socket URI, use invalid credentials
 socket_uri = shell.unparse_uri({ **shell.parse_uri(get_socket_uri(session)), "user": "invalid", "password": "invalid" })
 
+if __os_type == "windows":
+    socket_uri += "?get-server-public-key=true"
+
 # enable --skip-grant-tables, restart the server
 testutil.change_sandbox_conf(__mysql_sandbox_port2, "skip-grant-tables", "ON")
 testutil.restart_sandbox(__mysql_sandbox_port2)
@@ -2061,8 +2069,14 @@ EXPECT_STDOUT_CONTAINS("WARNING: Server is running with the --skip-grant-tables 
 
 # disable --skip-grant-tables, restart the server
 testutil.change_sandbox_conf(__mysql_sandbox_port2, "skip-grant-tables", "OFF")
+
 # testutil.restart_sandbox() will not work here, as ports are not active (--skip-grant-tables enables --skip-networking)
-session.run_sql("SHUTDOWN")
+try:
+    session.run_sql("SHUTDOWN")
+except Exception as e:
+    # we may get an exception while shutting down, i.e. lost connection
+    print("Exception while shutting down:", e)
+
 testutil.wait_sandbox_dead(__mysql_sandbox_port2)
 testutil.start_sandbox(__mysql_sandbox_port2)
 testutil.wait_sandbox_alive(__mysql_sandbox_port2)
@@ -2272,7 +2286,10 @@ EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpSchemas\(\): tid=\d+: MySQL
 wipe_dir(dump_dir)
 session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 70")
 WIPE_SHELL_LOG()
-EXPECT_THROWS(lambda: util.dump_tables("world", ["City", "Country"], dump_dir), "Fatal error during dump")
+tables = ["City", "Country"]
+if __os_type == "windows":
+    tables = [ t.lower() for t in tables ]
+EXPECT_THROWS(lambda: util.dump_tables("world", tables, dump_dir), "Fatal error during dump")
 EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpTables\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
 
 session1.run_sql("DROP USER admin@'%'")
