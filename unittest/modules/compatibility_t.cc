@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1139,7 +1139,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `oli` int unsigned NOT NULL,
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
        {{R"(FULLTEXT KEY (`opening_line`))"}, {}, {R"(KEY `oli` (`oli`))"}},
-       {R"(ALTER TABLE `films` ADD CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`);)"},
+       {R"(CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`))"},
        {}});
 
   EXPECT_STMTS(R"(CREATE TABLE IF NOT EXISTS `films` (
@@ -1259,7 +1259,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
   `description` text,
   PRIMARY KEY (`id`)) ;)",
        {{R"(FULLTEXT KEY (`description`))"}, {}, {R"(KEY `idx1` (`data`))"}},
-       {R"(ALTER TABLE `se` ADD CONSTRAINT `fk1` FOREIGN KEY (`fk`) REFERENCES `se2` (`id`);)"},
+       {R"(CONSTRAINT `fk1` FOREIGN KEY (`fk`) REFERENCES `se2` (`id`))"},
        "ALTER TABLE `se` SECONDARY_ENGINE=tmp;"});
 
   EXPECT_STMTS(
@@ -1339,7 +1339,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
        {{R"(FULLTEXT KEY (`opening_line`))"},
         {R"(SPATIAL KEY (`loc`))"},
         {R"(KEY `oli` (`oli`))"}},
-       {R"(ALTER TABLE `films` ADD CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`);)"},
+       {R"(CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`))"},
        {}});
 
   EXPECT_STMTS(
@@ -1452,7 +1452,7 @@ TEST_F(Compatibility_test, indexes_recreation) {
       ASSERT_NO_THROW(session->execute(index_query(q)));
     }
     for (const auto &q : stmts.foreign_keys) {
-      ASSERT_NO_THROW(session->execute(q));
+      ASSERT_NO_THROW(session->execute(index_query(q)));
     }
     EXPECT_EQ(create_table, session->query("show create table " + table_name)
                                 ->fetch_one()

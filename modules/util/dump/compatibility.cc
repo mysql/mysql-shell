@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1060,14 +1060,7 @@ Deferred_statements check_create_table_for_indexes(
       offsets.emplace_back(start, end);
     }
 
-    auto index_definition = shcore::str_strip(index_clause);
-
-    if (storage == &ret.foreign_keys) {
-      storage->emplace_back("ALTER TABLE " + table_name + " ADD " +
-                            index_definition + ";");
-    } else {
-      storage->emplace_back(std::move(index_definition));
-    }
+    storage->emplace_back(shcore::str_strip(index_clause));
   }
 
   while (it.valid()) {

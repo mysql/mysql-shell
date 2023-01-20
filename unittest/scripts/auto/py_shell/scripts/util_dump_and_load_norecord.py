@@ -2583,6 +2583,25 @@ compare_schema(session1, session2, tested_schema, check_rows=True)
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
+#@<> BUG#34566034 - load failed if "deferTableIndexes": "all", "ignoreExistingObjects": True options were set and instance contained existing tables with indexes
+# constants
+dump_dir = os.path.join(outdir, "bug_34566034")
+
+# setup
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+dba.create_cluster("C")
+
+# dump
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dump should not fail")
+
+# load
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "ignoreExistingObjects": True, "showProgress": False }), "Load should not fail")
+
+#@<> BUG#34566034 - cleanup
+shell.connect(__sandbox_uri2)
+dba.drop_metadata_schema({ 'force': True })
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

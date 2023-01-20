@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,13 +53,15 @@ namespace mysqlsh {
 inline std::string schema_object_key(std::string_view schema,
                                      std::string_view table) {
   std::string res;
-  res.reserve(schema.size() + table.size() + 1);
+  res.reserve(schema.size() + table.size() + 5);
 
   res.append(shcore::quote_identifier(schema));
-  if (table.empty()) return res;
 
-  res.append(".");
-  res.append(shcore::quote_identifier(table));
+  if (!table.empty()) {
+    res.append(".");
+    res.append(shcore::quote_identifier(table));
+  }
+
   return res;
 }
 
