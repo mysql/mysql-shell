@@ -263,11 +263,11 @@ FUNCTIONS
       query(session, argv)
             Executes the SQL statement given as arguments.
 
-      threads(session[, argv][, options])
-            Lists threads that belong to the user who owns the current session.
-
       thread(session[, argv][, options])
             Provides various information regarding the specified thread.
+
+      threads(session[, argv][, options])
+            Lists threads that belong to the user who owns the current session.
 
 //@<OUT> Help on addExtensionObjectMember
 NAME
@@ -2023,3 +2023,4 @@ DESCRIPTION
       the same formats supported by the shell.
 
       Note that the resultset will be consumed by the function.
+

@@ -747,6 +747,7 @@ FUNCTIONS
       help([member])
             Provides help about this object and it's members
 
+
 #@<OUT> Help from thread
 NAME
       aaa - Brief description of the aaa plugin.
@@ -762,9 +763,44 @@ FUNCTIONS
       help([member])
             Provides help about this object and it's members
 
-#@<OUT> Bug#33462107 - plugin_function: unable to attach function to existing object
-MySQL Py> sample.my_object.test_function()
-My test function
-MySQL Py> 
-0
+
+#@<OUT> plugin1.list.data
+MySQL Py> \? plugin1.list.data
+NAME
+      data - Get users configured within a service and/or auth_app
+
+SYNTAX
+      plugin1.list.data(one, two, three)
+
+WHERE
+      one: String - Use this service_id to search for all users within this
+           service.
+      two: String - Use this auth_app_id to list all the users for this
+           auth_app.
+      three: Object - The database session to use.
+
+DESCRIPTION
+      Returns:
+
+          None
+
+#@<OUT> plugin2.list.data
+MySQL Py> \? plugin2.list.data
+NAME
+      data - Lists users
+
+SYNTAX
+      plugin2.list.data(four, five, six)
+
+WHERE
+      four: Object - An OCI config object or None.
+      five: Bool - If set to false exceptions are raised.
+      six: Bool - If set to true, a list object is returned.
+
+DESCRIPTION
+      Lists all users of a given compartment.
+
+      Returns:
+
+          A list of users
 

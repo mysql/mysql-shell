@@ -1018,6 +1018,7 @@ TEST(utils_string, pctencode) {
   EXPECT_EQ("%2Fa%2F", pctencode("/a/"));
   EXPECT_EQ("%2Ftmp%2Ftmp.hS8tDOeTG0%2F3316%2Fdata%2Fmysqld.sock",
             pctencode("/tmp/tmp.hS8tDOeTG0/3316/data/mysqld.sock"));
+  EXPECT_EQ("%C5%BC%C3%B3%C5%82w", pctencode("żółw"));
 }
 
 TEST(utils_string, pctdecode) {
@@ -1030,6 +1031,7 @@ TEST(utils_string, pctdecode) {
   EXPECT_EQ("/a/", pctdecode("%2Fa%2F"));
   EXPECT_EQ("/tmp/tmp.hS8tDOeTG0/3316/data/mysqld.sock",
             pctdecode("%2Ftmp%2Ftmp.hS8tDOeTG0%2F3316%2Fdata%2Fmysqld.sock"));
+  EXPECT_EQ("żółw", pctdecode("%C5%BC%C3%B3%C5%82w"));
 }
 
 }  // namespace shcore

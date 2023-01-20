@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -263,7 +263,7 @@ std::string Help_topic::get_name(IShell_core::Mode mode) const {
 }
 
 std::string Help_topic::get_base_name() const {
-  // Member topics may have different names bsaed on the scripting
+  // Member topics may have different names based on the scripting
   // mode
   if (is_member()) {
     auto names = shcore::str_split(m_name, "|");
@@ -817,7 +817,7 @@ void Help_registry::register_topic(Help_topic *topic, bool new_topic,
   // The help function is 'injected' into every object, we need to do the same
   if (topic->is_api_object()) {
     // for it's help data
-    std::string help_tag = shcore::str_upper(topic->m_name) + "_HELP";
+    std::string help_tag = shcore::str_upper(topic->m_id) + ".HELP";
     std::string type;
 
     switch (topic->m_type) {
@@ -1226,15 +1226,27 @@ std::vector<const Help_topic *> Help_manager::search_topics(
 }
 
 std::vector<std::string> Help_manager::resolve_help_text(
-    const Help_topic &object, const std::string &suffix) {
+    const Help_topic &object, const std::string &suffix, bool legacy) {
   std::vector<std::string> help_text;
 
   auto object_ptr = &object;
 
-  while (object_ptr && help_text.empty()) {
-    help_text = get_help_text(object_ptr->m_name + "_" + suffix);
-    object_ptr =
-        m_registry->get_class_parent(const_cast<Help_topic *>(object_ptr));
+  if (legacy) {
+    while (object_ptr && help_text.empty()) {
+      help_text = get_help_text(object_ptr->m_name + "_" + suffix);
+      object_ptr =
+          m_registry->get_class_parent(const_cast<Help_topic *>(object_ptr));
+    }
+  } else {
+    // In new format, searches the very specific help registered using the fully
+    // qualified object id
+    help_text = get_help_text(object_ptr->m_id + "_" + suffix);
+
+    // If not found, falls back to the legacy help resolution
+    if (help_text.empty()) {
+      return resolve_help_text(*object.m_parent,
+                               object.get_base_name() + "_" + suffix, true);
+    }
   }
 
   return help_text;
@@ -1363,7 +1375,7 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
   // Ellipsis indicates the function is overloaded
   std::vector<std::string> signatures;
   if (signature == "(...)") {
-    signatures = resolve_help_text(*parent, name + "_SIGNATURE");
+    signatures = resolve_help_text(function, "SIGNATURE");
     for (auto &item : signatures) {
       item = fsyntax + item;
     }
@@ -1377,7 +1389,7 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
 
   std::vector<std::pair<std::string, std::string>> pdata;
   if (signature != "()" || (cli && !signature.empty())) {
-    auto params = resolve_help_text(*parent, name + "_PARAM");
+    auto params = resolve_help_text(function, "PARAM");
 
     pdata = parse_function_parameters(params);
 
@@ -1417,7 +1429,7 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
     }
   }
 
-  auto returns = resolve_help_text(*function.m_parent, name + "_RETURNS");
+  auto returns = resolve_help_text(function, "RETURNS");
   if (!returns.empty()) {
     std::string ret = textui::bold("RETURNS") + HEADER_CONTENT_SEPARATOR;
     // Removes the @returns tag
@@ -1427,27 +1439,31 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
   }
 
   if (cli) {
-    add_cli_options_section(name + "_DETAIL", *parent, pdata, sections,
+    add_cli_options_section("DETAIL", function, pdata, sections,
                             SECTION_PADDING, cli);
   } else {
     // Description
-    add_member_section(HELP_TITLE_DESCRIPTION, name + "_DETAIL", *parent,
-                       sections, SECTION_PADDING);
-
-    // Exceptions
-    add_member_section("EXCEPTIONS", name + "_THROWS", *parent, sections,
+    add_member_section(HELP_TITLE_DESCRIPTION, "DETAIL", function, sections,
                        SECTION_PADDING);
 
-    add_examples_section(parent->m_name + "_" + name + "_EXAMPLE", sections,
-                         SECTION_PADDING);
+    // Exceptions
+    add_member_section("EXCEPTIONS", "THROWS", function, sections,
+                       SECTION_PADDING);
+
+    // Examples are registered in sequential order, identifies the proper prefix
+    // to be used in the example lookup, uses the fully qualified ID first and
+    // falls back to the old format then
+    std::string x_tag = parent->m_id + "." + name + "_EXAMPLE";
+    if (m_registry->get_token(x_tag).empty())
+      x_tag = parent->m_name + "_" + name + "_EXAMPLE";
+
+    add_examples_section(x_tag, sections, SECTION_PADDING);
   }
 }
 
 std::string Help_manager::get_signature(const Help_topic &function,
                                         cli::Shell_cli_mapper *cli) {
   std::string signature;
-  Help_topic *parent = function.m_parent;
-  std::string name = function.get_base_name();
   std::vector<std::string> signatures;
 
   if (cli) {
@@ -1487,12 +1503,12 @@ std::string Help_manager::get_signature(const Help_topic &function,
       }
     }
   } else {
-    signatures = resolve_help_text(*parent, name + "_SIGNATURE");
+    signatures = resolve_help_text(function, "SIGNATURE");
 
     if (signatures.empty()) {
       std::vector<std::string> params;
       // No signatures, we create it using the defined parameters
-      params = resolve_help_text(*parent, name + "_PARAM");
+      params = resolve_help_text(function, "PARAM");
 
       parse_function_parameters(params, &signature);
     } else if (signatures.size() > 1) {
@@ -1761,12 +1777,10 @@ std::string Help_manager::format_topic_list(
 
 std::vector<std::string> Help_manager::get_member_brief(
     const Help_topic *member) {
-  std::string tag = member->m_help_tag + "_BRIEF";
-  auto help_text = resolve_help_text(*member->m_parent, tag);
+  auto help_text = resolve_help_text(*member, "BRIEF");
 
   // Deprecation notices are added as part of the description on list format
-  tag = member->m_help_tag + "_DEPRECATED";
-  auto deprecated = resolve_help_text(*member->m_parent, tag);
+  auto deprecated = resolve_help_text(*member, "DEPRECATED");
   for (const auto &text : deprecated) {
     help_text.push_back(text);
   }
@@ -1787,8 +1801,7 @@ std::string Help_manager::format_member_list(
     // If it is a function we need to retrieve the signature
     if (do_signatures && member->is_function()) {
       std::string name = member->get_base_name();
-      auto chain_definition =
-          resolve_help_text(*member->m_parent, name + "_CHAINED");
+      auto chain_definition = resolve_help_text(*member, "CHAINED");
 
       if (chain_definition.empty()) {
         description += get_signature(*member);
@@ -1870,7 +1883,7 @@ void Help_manager::add_name_section(const Help_topic &topic,
   std::vector<std::string> brief;
 
   if (topic.is_member() && !topic.is_object())
-    brief = resolve_help_text(*topic.m_parent, topic.m_help_tag + "_BRIEF");
+    brief = resolve_help_text(topic, "BRIEF");
   else
     brief = get_help_text(topic.m_help_tag + "_BRIEF");
 
@@ -2048,20 +2061,20 @@ void Help_manager::add_section_data(const std::string &title,
 
 void Help_manager::add_member_section(const std::string &title,
                                       const std::string &tag,
-                                      const Help_topic &parent,
+                                      const Help_topic &member,
                                       std::vector<std::string> *sections,
                                       size_t padding) {
-  auto details = resolve_help_text(parent, tag);
+  auto details = resolve_help_text(member, tag);
   add_section_data(title, &details, sections, padding);
 }
 
 void Help_manager::add_cli_options_section(
-    const std::string &tag, const Help_topic &parent,
+    const std::string &tag, const Help_topic &member,
     const std::vector<std::pair<std::string, std::string>> &pdata,
     std::vector<std::string> *sections, size_t padding,
     cli::Shell_cli_mapper *cli) {
   if (!cli->options().empty()) {
-    auto option_data = parse_cli_option_data(resolve_help_text(parent, tag));
+    auto option_data = parse_cli_option_data(resolve_help_text(member, tag));
     std::vector<std::string> options_details;
 
     for (size_t index = 0; index < cli->metadata()->signature.size(); index++) {
@@ -2139,8 +2152,7 @@ std::string Help_manager::format_function_help(const Help_topic &function,
   // Brief Description
   add_name_section(function, &sections, cli);
 
-  auto chain_definition =
-      resolve_help_text(*function.m_parent, name + "_CHAINED");
+  auto chain_definition = resolve_help_text(function, "CHAINED");
 
   std::string additional_help;
   if (chain_definition.empty()) {
@@ -2153,8 +2165,6 @@ std::string Help_manager::format_function_help(const Help_topic &function,
 }
 
 std::string Help_manager::format_property_help(const Help_topic &property) {
-  std::string name = property.m_name;
-  Help_topic *parent = property.m_parent;
   std::vector<std::string> sections;
 
   add_name_section(property, &sections);
@@ -2178,8 +2188,8 @@ std::string Help_manager::format_property_help(const Help_topic &property) {
   sections.push_back(syntax);
 
   // Details
-  add_member_section(HELP_TITLE_DESCRIPTION, name + "_DETAIL", *parent,
-                     &sections, SECTION_PADDING);
+  add_member_section(HELP_TITLE_DESCRIPTION, "DETAIL", property, &sections,
+                     SECTION_PADDING);
 
   return shcore::str_join(sections, "\n\n");
 }

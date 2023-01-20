@@ -537,7 +537,7 @@ std::string pctencode(std::string_view s) {
   enc.reserve(s.size() * 3);
 
   for (const auto c : s) {
-    if (k_reserved_chars[static_cast<unsigned int>(c)]) {
+    if (k_reserved_chars[static_cast<unsigned char>(c)]) {
       enc.push_back('%');
       enc.push_back(hexmap[(c & 0xF0) >> 4]);
       enc.push_back(hexmap[c & 0x0F]);
