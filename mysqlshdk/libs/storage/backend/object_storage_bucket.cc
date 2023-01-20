@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -376,7 +376,8 @@ void Container::abort_multipart_upload(const Multipart_object &object) {
 
 rest::Signed_rest_service *Container::ensure_connection() {
   static thread_local std::unordered_map<
-      std::string, std::unique_ptr<rest::Signed_rest_service>>
+      std::string, std::pair<std::unique_ptr<rest::Signed_rest_service>,
+                             Config_ptr::weak_type>>
       services;
 
   // need to detect when this instance was passed to another thread and replace
@@ -388,13 +389,23 @@ rest::Signed_rest_service *Container::ensure_connection() {
   }
 
   if (!m_rest_service) {
-    auto &service = services[m_config->hash()];
-
-    if (!service) {
-      service = std::make_unique<rest::Signed_rest_service>(*m_config);
+    // remove stale instances
+    for (auto it = services.begin(); it != services.end();) {
+      if (it->second.second.expired()) {
+        it = services.erase(it);
+      } else {
+        ++it;
+      }
     }
 
-    m_rest_service = service.get();
+    auto &service = services[m_config->hash()];
+
+    if (!service.first) {
+      service = std::make_pair(
+          std::make_unique<rest::Signed_rest_service>(*m_config), m_config);
+    }
+
+    m_rest_service = service.first.get();
     m_rest_service_thread = current_thread;
   }
 
