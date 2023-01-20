@@ -197,7 +197,7 @@ def compute_crc(schema, table, columns):
     session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY {0};".format(("!," * len(columns))[:-1]), columns + [schema, table] + columns)
     return session.run_sql("SELECT @crc;").fetch_one()[0]
 
-def TEST_LOAD(schema, table, options = {}):
+def TEST_LOAD(schema, table, options = {}, source_table = None):
     print("---> testing: `{0}`.`{1}` with options: {2}".format(schema, table, options))
     # prepare the options
     run_options = { "showProgress": False }
@@ -207,7 +207,7 @@ def TEST_LOAD(schema, table, options = {}):
     EXPECT_SUCCESS(quote(schema, table), test_output_absolute, run_options)
     # create target table
     recreate_verification_schema()
-    session.run_sql("CREATE TABLE !.! LIKE !.!;", [verification_schema, verification_table, schema, table])
+    session.run_sql("CREATE TABLE !.! LIKE !.!;", [verification_schema, verification_table, schema, source_table if source_table is not None else table])
     # prepare options for load
     run_options.update({ "schema": verification_schema, "table": verification_table, "characterSet": "utf8mb4" })
     # rename the character set key (if it was provided)
@@ -1307,6 +1307,15 @@ EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verifica
 
 TEST_LOAD(schema_name, subpartitions_table_name, { "partitions": [] })
 EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verification_schema, verification_table))
+
+#@<> BUG#34663934 - allow exporting data from views
+# setup
+view_name = "test_view"
+session.run_sql("CREATE VIEW !.! AS SELECT * FROM !.!", [ schema_name, test_view, schema_name, no_partitions_table_name ])
+
+# test
+TEST_LOAD(schema_name, test_view, source_table = no_partitions_table_name)
+TEST_LOAD(schema_name, test_view, { "where": "id > 12345" }, source_table = no_partitions_table_name)
 
 #@<> WL15311 - cleanup
 session.run_sql("DROP SCHEMA !;", [schema_name])

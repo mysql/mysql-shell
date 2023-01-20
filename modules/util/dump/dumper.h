@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,7 +128,9 @@ class Dumper {
     std::vector<Partition_info> partitions;
   };
 
-  struct View_info : public Object_info {};
+  struct View_info : public Object_info {
+    const Instance_cache::View *info = nullptr;
+  };
 
   struct Schema_info : public Object_info {
     std::vector<Table_info> tables;
@@ -269,6 +271,9 @@ class Dumper {
 
   Table_task create_table_task(const Schema_info &schema,
                                const Table_info &table);
+
+  Table_task create_table_task(const Schema_info &schema,
+                               const View_info &view);
 
   void push_table_task(Table_task &&task);
 

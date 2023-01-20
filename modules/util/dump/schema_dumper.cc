@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2000, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1207,7 +1207,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           This will not be necessary once we can determine dependencies
           between views and can simply dump them in the appropriate order.
         */
-        std::vector<std::string> columns;
+        std::vector<Instance_cache::Column> columns;
 
         if (!m_cache) {
           mysqlshdk::db::Error err;
@@ -1228,7 +1228,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           }
 
           while ((row = result->fetch_one())) {
-            columns.emplace_back(row->get_string(0));
+            Instance_cache::Column column;
+            column.name = row->get_string(0);
+            column.quoted_name = shcore::quote_identifier(column.name);
+            columns.emplace_back(std::move(column));
           }
         }
 
@@ -1266,12 +1269,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           */
           auto column = all_columns.begin();
 
-          fprintf(sql_file, " 1 AS %s",
-                  shcore::quote_identifier(*column).c_str());
+          fprintf(sql_file, " 1 AS %s", column->quoted_name.c_str());
 
           while (++column != all_columns.end()) {
-            fprintf(sql_file, ",\n 1 AS %s",
-                    shcore::quote_identifier(*column).c_str());
+            fprintf(sql_file, ",\n 1 AS %s", column->quoted_name.c_str());
           }
 
           fprintf(sql_file,

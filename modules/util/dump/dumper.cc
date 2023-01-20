@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2534,6 +2534,7 @@ void Dumper::create_schema_tasks() {
       view.quoted_name = quote(schema.name, view.name);
       view.basename =
           get_basename(encode_table_basename(schema.name, view.name));
+      view.info = &v.second;
 
       schema.views.emplace_back(std::move(view));
     }
@@ -3047,6 +3048,17 @@ void Dumper::create_table_tasks() {
         push_table_task(std::move(task));
       }
     }
+
+    // BUG#34663934 - allow exporting data from views
+    if (m_options.is_export_only()) {
+      for (const auto &view : schema.views) {
+        auto task = create_table_task(schema, view);
+
+        if (m_options.dump_data()) {
+          push_table_task(std::move(task));
+        }
+      }
+    }
   }
 
   m_all_table_metadata_tasks_scheduled = true;
@@ -3065,6 +3077,22 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.info = table.info;
   task.partitions = table.partitions;
   task.where = m_options.where(schema.name, table.name);
+
+  on_create_table_task(task.schema, task.name, task.info);
+
+  return task;
+}
+
+Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
+                                             const View_info &view) {
+  Table_task task;
+  task.task_name = view.quoted_name;
+  task.name = view.name;
+  task.quoted_name = view.quoted_name;
+  task.schema = schema.name;
+  task.basename = view.basename;
+  task.info = view.info;
+  task.where = m_options.where(schema.name, view.name);
 
   on_create_table_task(task.schema, task.name, task.info);
 
