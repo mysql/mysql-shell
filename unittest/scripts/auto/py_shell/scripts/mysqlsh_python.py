@@ -20,8 +20,8 @@ if __name__ == "__main__":
     proc.close()
 """)
 
-testutil.call_mysqlsh(["-f", __tmp_dir+"/subproc.py"])
+# on systems which use 'spawn' start method, if PYTHONDONTWRITEBYTECODE env var
+# is set, python will add the -B command line option to the spawned process
+testutil.call_mysqlsh(["-f", __tmp_dir+"/subproc.py"], "", ["PYTHONDONTWRITEBYTECODE=0"])
 
 EXPECT_STDOUT_CONTAINS("HELLO WORLD")
-
-

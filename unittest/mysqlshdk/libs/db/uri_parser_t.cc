@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -334,8 +334,8 @@ TEST(Uri_parser, parse_scheme) {
   //                0    5    0    5    0    5    0    5    0    5    0    5
   validate_bad_uri("://mysql.com", "Scheme is missing");
   validate_bad_uri("other://mysql.com",
-                   "Invalid scheme [other], supported schemes include: mysqlx, "
-                   "mysql");
+                   "Invalid scheme [other], supported schemes include: mysql, "
+                   "mysqlx");
   validate_bad_uri("mysqlx ://mysql.com", "Illegal space found at position 6");
   validate_bad_uri("mysq=lx://mysql.com",
                    "Illegal character [=] found at position 4");

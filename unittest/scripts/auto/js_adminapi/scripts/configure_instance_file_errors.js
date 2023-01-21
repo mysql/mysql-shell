@@ -16,8 +16,8 @@
 // TODO - also add the same for configureLocalInstance, for after instance is in group
 
 function diff_text(expected, actual) {
-  var exp = expected.split("\n").sort();
-  var act = actual.split("\n").sort();
+  var exp = expected.replaceAll("\r\n", "\n").split("\n").sort();
+  var act = actual.replaceAll("\r\n", "\n").split("\n").sort();
 
   // Ignore empty lines (remove from the lists of strings to compare).
   for(var i = exp.length-1; i--;){
@@ -49,7 +49,7 @@ function EXPECT_MYCNF_UNCHANGED(path) {
   if (diff.length > 0) {
     println("Differences:");
     println(diff.join("\n"));
-    testutil.fail("<red>Test check failed:</red> my.cnf file was changed but it was not supposed to");
+    testutil.fail(`<red>Test check failed:</red> ${path} file was changed but it was not supposed to`);
   }
 }
 
@@ -60,7 +60,7 @@ function EXPECT_MYCNF_FIXED(path) {
   if (diff.length > 0) {
     println("Differences:");
     println(diff.join("\n"));
-    testutil.fail("<red>Test check failed:</red> my.cnf file was not fixed as expected");
+    testutil.fail(`<red>Test check failed:</red> ${path} file was not fixed as expected`);
   }
 }
 

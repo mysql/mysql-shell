@@ -8,15 +8,15 @@ util.check_for_server_upgrade()
 
 #@ Invalid Name Check
 datadir = testutil.get_sandbox_datadir(__mysql_sandbox_port1)
-session.run_sql("CREATE SCHEMA UCTEST1")
-session.run_sql("CREATE TABLE UCTEST1.DEMO (ID INT)")
-session.run_sql("CREATE SCHEMA UCTEST2")
+session.run_sql("CREATE SCHEMA uctest1")
+session.run_sql("CREATE TABLE uctest1.demo (ID INT)")
+session.run_sql("CREATE SCHEMA uctest2")
 
 testutil.stop_sandbox(__mysql_sandbox_port1, options={"wait":1})
 
-old_table_name = os.path.join(datadir, "UCTEST1", "DEMO")
-new_table_name = os.path.join(datadir, "UCTEST1", "lost+found")
-old_schema_folder = os.path.join(datadir, "UCTEST2")
+old_table_name = os.path.join(datadir, "uctest1", "demo")
+new_table_name = os.path.join(datadir, "uctest1", "lost+found")
+old_schema_folder = os.path.join(datadir, "uctest2")
 new_schema_folder = os.path.join(datadir, "lost+found")
 
 os.rename(old_schema_folder, new_schema_folder)

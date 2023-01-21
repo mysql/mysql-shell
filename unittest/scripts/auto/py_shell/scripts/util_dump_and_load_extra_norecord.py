@@ -8,6 +8,7 @@ import json
 import os
 import os.path
 import random
+import shutil
 import threading
 import time
 
@@ -69,7 +70,10 @@ target = outdir+"/partdump"
 
 
 def copy(f):
-    testutil.cpfile(os.path.join(source, f), os.path.join(target, f))
+    suffix = ".tmp"
+    # first copy into a file with suffix, then rename to the correct path
+    shutil.copy2(os.path.join(source, f), os.path.join(target, f + suffix))
+    os.replace(os.path.join(target, f + suffix), os.path.join(target, f))
 
 
 shell.connect(__sandbox_uri1)

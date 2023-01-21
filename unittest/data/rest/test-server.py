@@ -203,13 +203,15 @@ def usage():
 def test_server(port):
     server = ThreadedHTTPServer(('127.0.0.1', port), TestRequestHandler)
     ssl_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ssl')
-    server.socket = ssl.wrap_socket(
-        server.socket,
-        keyfile=os.path.join(ssl_dir, 'key.pem'),
-        certfile=os.path.join(ssl_dir, 'cert.pem'),
-        server_side=True)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.verify_mode = ssl.CERT_NONE
+    context.load_cert_chain(os.path.join(ssl_dir, 'cert.pem'), os.path.join(ssl_dir, 'key.pem'))
+    server.socket = context.wrap_socket(server.socket, server_side=True)
 
     print('HTTPS test server running on 127.0.0.1:%d' % port)
+    print('Environment variables:')
+    for k, v in os.environ.items():
+        print(f'\tos.environ[{k}] = {v}')
     sys.stdout.flush()
 
     try:

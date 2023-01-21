@@ -605,7 +605,7 @@ def get_socket_path(session, uri=None):
         uri = session.uri
     row = session.run_sql(
         f"SELECT @@{'socket' if 'mysql' == shell.parse_uri(uri).scheme else 'mysqlx_socket'}, @@datadir").fetch_one()
-    if row[0][0] == '/':
+    if row[0][0] == '/' or __os_type == "windows":
         p = row[0]
     else:
         p = os.path.join(row[1], row[0])

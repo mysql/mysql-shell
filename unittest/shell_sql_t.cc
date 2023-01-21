@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -114,7 +114,7 @@ TEST_F(Shell_sql_test, test_initial_state) {
 }
 
 TEST_F(Shell_sql_test, full_statement) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "show databases;";
   handle_input(query, state);
 
@@ -128,7 +128,7 @@ TEST_F(Shell_sql_test, full_statement) {
 }
 
 TEST_F(Shell_sql_test, sql_multi_line_statement) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "show";
   handle_input(query, state);
 
@@ -163,7 +163,7 @@ TEST_F(Shell_sql_test, sql_multi_line_statement) {
 }
 
 TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "delimiter %%%";
   handle_input(query, state);
 
@@ -212,7 +212,7 @@ TEST_F(Shell_sql_test, sql_multi_line_string_delimiter) {
 }
 
 TEST_F(Shell_sql_test, multiple_statements_continued) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "show databases; show";
   handle_input(query, state);
 
@@ -234,7 +234,7 @@ TEST_F(Shell_sql_test, multiple_statements_continued) {
 }
 
 TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "show";
   handle_input(query, state);
 
@@ -262,7 +262,7 @@ TEST_F(Shell_sql_test, global_multi_line_statement_ignored) {
 }
 
 TEST_F(Shell_sql_test, multiple_statements_and_continued) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "show databases; select 1;show";
   handle_input(query, state);
 
@@ -284,7 +284,7 @@ TEST_F(Shell_sql_test, multiple_statements_and_continued) {
 }
 
 TEST_F(Shell_sql_test, multiline_comment) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "/*";
   handle_input(query, state);
 
@@ -310,7 +310,7 @@ TEST_F(Shell_sql_test, multiline_comment) {
 }
 
 TEST_F(Shell_sql_test, multiline_single_quote_continued_string) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 'hello ";
   handle_input(query, state);
 
@@ -328,7 +328,7 @@ TEST_F(Shell_sql_test, multiline_single_quote_continued_string) {
 }
 
 TEST_F(Shell_sql_test, multiline_double_quote_continued_string) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select \"hello ";
   handle_input(query, state);
 
@@ -346,7 +346,7 @@ TEST_F(Shell_sql_test, multiline_double_quote_continued_string) {
 }
 
 TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select * from `t";
   handle_input(query, state);
 
@@ -364,7 +364,7 @@ TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string) {
 }
 
 TEST_F(Shell_sql_test, multiple_single_double_quotes) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "SELECT '''' as a;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
@@ -397,7 +397,7 @@ TEST_F(Shell_sql_test, multiple_single_double_quotes) {
 TEST_F(Shell_sql_test, stmt_inline_comment) {
   // A multiline comment in the middle of a statement is
   // not trimmed off
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "SELECT 1 /* This is an inline comment */AS _one;";
 
   handle_input(query, state);
@@ -412,7 +412,7 @@ TEST_F(Shell_sql_test, stmt_inline_comment) {
 TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
   // A multiline comment in the middle of a statement is
   // not trimmed off
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "SELECT 1 AS _one /*";
 
   handle_input(query, state);
@@ -449,7 +449,7 @@ TEST_F(Shell_sql_test, continued_stmt_multiline_comment) {
 
 TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
   // ATM dash dash comments are trimmed from statements
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 1 as one -- sample comment";
 
   handle_input(query, state);
@@ -474,7 +474,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment) {
 
 TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment_batch) {
   // ATM dash dash comments are trimmed from statements
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 1 as one -- sample comment\n;select 2 as two;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
@@ -487,7 +487,7 @@ TEST_F(Shell_sql_test, continued_stmt_dash_dash_comment_batch) {
 
 TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
   // ATM hash comments are trimmed from statements
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 1 as one #sample comment";
 
   handle_input(query, state);
@@ -512,7 +512,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment) {
 
 TEST_F(Shell_sql_test, continued_stmt_hash_comment_batch) {
   // ATM hash comments are trimmed from statements
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 1 as one #sample comment\n;select 2 as two;";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
@@ -524,7 +524,7 @@ TEST_F(Shell_sql_test, continued_stmt_hash_comment_batch) {
 }
 
 TEST_F(Shell_sql_test, batch_script) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 1;\nselect 2;\nselect 3;\n";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);
@@ -534,7 +534,7 @@ TEST_F(Shell_sql_test, batch_script) {
 }
 
 TEST_F(Shell_sql_test, batch_script_error) {
-  Input_state state;
+  Input_state state = Input_state::Ok;
   std::string query = "select 1;\ndrop schema badschema_;\nselect 3;\n";
   handle_input(query, state);
   EXPECT_EQ(Input_state::Ok, state);

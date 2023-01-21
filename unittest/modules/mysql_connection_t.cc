@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,7 +110,7 @@ TEST_F(Mysql_connection_test, connect_named_pipe) {
     try {
       // Test default named pipe connection using hostname = "."
       mysqlshdk::db::Connection_options connection_options;
-      connection_options.set_socket(named_pipe);
+      connection_options.set_pipe(named_pipe);
       connection_options.set_user(_user);
       connection_options.set_password(_pwd);
       auto pipe_conn = mysqlshdk::db::mysql::Session::create();

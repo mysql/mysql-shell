@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,7 +77,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void set_ssh_options(const ssh::Ssh_connection_options &options);
   const std::string &get_schema() const { return get_value(kSchema); }
   const std::string &get_socket() const { return get_value(kSocket); }
-  const std::string &get_pipe() const { return get_value(kSocket); }
+  const std::string &get_pipe() const { return get_value(kPipe); }
   int get_port() const override;
   int get_target_port() const;
 
@@ -111,8 +111,8 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   bool has_data() const override;
   bool has_schema() const { return has_value(kSchema); }
-  bool has_socket() const { return has_value(kSocket); }
-  bool has_pipe() const { return has_value(kSocket); }
+  bool has_socket() const { return m_options.has_value(kSocket); }
+  bool has_pipe() const { return m_options.has_value(kPipe); }
   bool has_transport_type() const { return m_transport_type.has_value(); }
   bool has_compression() const { return m_extra_options.has(kCompression); }
   bool has_compression_algorithms() const {

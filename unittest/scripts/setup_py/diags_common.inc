@@ -1,20 +1,22 @@
 import os
 import sys
 
-outdir = __tmp_dir+"/diagout"
+outdir = os.path.join(__tmp_dir, "diagout")
 if os.path.exists(outdir):
     shutil.rmtree(outdir)
 os.makedirs(outdir)
 
+env_path = os.environ.get("PATH")
+
 if sys.platform not in ("win32", "cygwin", "msys"):
     # add a dummy sudo so that tests don't try to use it for real
     for bin in ["sudo", "top", "egrep", "dmesg", "netstat", "sysctl", "lsblk"]:
-        with open(outdir+"/"+bin, "w+") as f:
+        with open(os.path.join(outdir, bin), "w+") as f:
             f.write("echo 'IT WORKS!!!'\n")
-        os.chmod(outdir+"/"+bin,0o555)
-    env_path="PATH="+outdir+":"+os.environ.get("PATH")
-else:
-    env_path=""
+        os.chmod(os.path.join(outdir, bin), 0o555)
+    env_path = outdir + ":" + env_path
+
+env_path = "PATH=" + env_path
 
 # connect via not-localhost so that slow system collection isn't always executed
 hostname_uri = f"mysql://root:root@{hostname}:{__mysql_sandbox_port1}"
@@ -69,8 +71,12 @@ def EXPECT_FILE_CONTENTS(fn, path, pattern):
     with zipfile.ZipFile(fn, mode="r") as zf:
         ZEXPECT_EXISTS(zf, path)
         with zf.open(zfpath(zf, path), "r") as f:
-            contents = f.read()
-            EXPECT_TRUE(re.findall(pattern, contents, re.M), f"{pattern} expected in {path} but missing")
+            contents = f.read().replace(b'\r\n', b'\n')
+            results = re.findall(pattern, contents, re.M)
+            EXPECT_TRUE(results, f"{pattern} expected in {path} but missing")
+            if not results:
+                print(f"contents of {path}:")
+                print(contents)
 
 
 
@@ -233,7 +239,8 @@ def CHECK_INSTANCE(session, zf, instance_id, expected_files_per_instance, innodb
 
 
 def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False, allMembers=1, schemaStats=False, slowQueries=False, localTarget=False):
-    EXPECT_EQ(0o600, os.stat(file).st_mode & 0o777, file) # TSFR_1_3_1
+    if __os_type != "windows":
+        EXPECT_EQ(0o600, os.stat(file).st_mode & 0o777, file) # TSFR_1_3_1
     diag_type = "basic"
     expected_files_per_instance = g_expected_files_per_instance[:]
     if "_hl" in file:

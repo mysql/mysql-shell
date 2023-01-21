@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,10 +79,10 @@ std::string Uri_encoder::encode_uri(const IUri_encodable &info,
   }
 
   if (format.is_set(Tokens::Transport)) {
-    if (info.has_value(db::kSocket)) {
-      ret_val.append(encode_socket(info.get(db::kSocket)));
-    } else if (info.has_value(db::kPipe)) {
+    if (info.has_value(db::kPipe)) {
       ret_val.append("\\\\.\\").append(encode_value(info.get(db::kPipe)));
+    } else if (info.has_value(db::kSocket)) {
+      ret_val.append(encode_socket(info.get(db::kSocket)));
     } else {
       if (!host.empty()) {
         ret_val.append(encode_host(host));

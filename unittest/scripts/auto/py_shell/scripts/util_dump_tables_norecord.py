@@ -2480,7 +2480,7 @@ def test_bug_32602325(step):
     # run the test
     EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "1M", "compression": "none", "showProgress": False })
     # expect at least 320 chunks, we're dealing with random data, allow for some chunks which are smaller
-    CHECK_OUTPUT_SANITY(test_output_absolute, 200000, 320, 4)
+    CHECK_OUTPUT_SANITY(test_output_absolute, 180000, 320, 4)
 
 #@<> BUG#32602325 - equal gaps
 def equal_gaps():

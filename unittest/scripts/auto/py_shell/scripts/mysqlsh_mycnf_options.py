@@ -27,9 +27,7 @@ session.run_sql("create user mycnfusr@'%' identified by 'testpwd'")
 session.run_sql("drop user if exists lpathusr@'%'")
 session.run_sql("create user lpathusr@'%' identified by 'lpathusrpwd'")
 
-datadir, socket = session.run_sql("select @@datadir, @@socket").fetch_one()
-if not os.path.isabs(socket):
-    socket = os.path.join(datadir, socket)
+socket = get_socket_path(session)
 
 #@<> check that options are read as expected from my.cnf 
 # TSFR_1_1, TSFR_1_2, TSFR_2_1
