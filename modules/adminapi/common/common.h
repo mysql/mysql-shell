@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_COMMON_H_
 #define MODULES_ADMINAPI_COMMON_COMMON_H_
 
+#include <array>
 #include <functional>
 #include <locale>
 #include <map>
@@ -31,6 +32,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -281,6 +283,10 @@ inline constexpr const char kGrTransactionSizeLimit[] =
 constexpr const char kRequireCertIssuer[] = "requireCertIssuer";
 constexpr const char kRequireCertSubject[] = "requireCertSubject";
 constexpr const char kPasswordExpiration[] = "passwordExpiration";
+constexpr const char kMemberAuthType[] = "memberAuthType";
+constexpr const char kCertIssuer[] = "certIssuer";
+constexpr const char kCertSubject[] = "certSubject";
+constexpr const char kReplicationSslMode[] = "replicationSslMode";
 
 inline constexpr const int k_group_replication_members_limit = 9;
 
@@ -375,18 +381,38 @@ enum class Cluster_ssl_mode {
   NONE
 };
 
-constexpr const char *kClusterSSLModeAuto = "AUTO";
-constexpr const char *kClusterSSLModeDisabled = "DISABLED";
-constexpr const char *kClusterSSLModeRequired = "REQUIRED";
-constexpr const char *kClusterSSLModeVerifyCA = "VERIFY_CA";
-constexpr const char *kClusterSSLModeVerifyIdentity = "VERIFY_IDENTITY";
+inline constexpr const char *kClusterSSLModeAuto = "AUTO";
+inline constexpr const char *kClusterSSLModeDisabled = "DISABLED";
+inline constexpr const char *kClusterSSLModeRequired = "REQUIRED";
+inline constexpr const char *kClusterSSLModeVerifyCA = "VERIFY_CA";
+inline constexpr const char *kClusterSSLModeVerifyIdentity = "VERIFY_IDENTITY";
 
-const std::set<std::string> kClusterSSLModeValues = {
-    kClusterSSLModeAuto, kClusterSSLModeDisabled, kClusterSSLModeRequired,
-    kClusterSSLModeVerifyCA, kClusterSSLModeVerifyIdentity};
+inline constexpr std::array<std::string_view, 5> kClusterSSLModeValues = {
+    kClusterSSLModeDisabled, kClusterSSLModeRequired, kClusterSSLModeVerifyCA,
+    kClusterSSLModeVerifyIdentity, kClusterSSLModeAuto};
 
 std::string to_string(Cluster_ssl_mode ssl_mode);
-Cluster_ssl_mode to_cluster_ssl_mode(const std::string &ssl_mode);
+Cluster_ssl_mode to_cluster_ssl_mode(std::string_view ssl_mode);
+
+// Authentication type to use for the managed replication accounts
+enum class Replication_auth_type {
+  PASSWORD,
+  CERT_ISSUER,
+  CERT_SUBJECT,
+  CERT_ISSUER_PASSWORD,
+  CERT_SUBJECT_PASSWORD
+};
+
+inline constexpr const char *kReplicationMemberAuthPassword = "PASSWORD";
+inline constexpr const char *kReplicationMemberAuthCertIssuer = "CERT_ISSUER";
+inline constexpr const char *kReplicationMemberAuthCertSubject = "CERT_SUBJECT";
+inline constexpr const char *kReplicationMemberAuthCertIssuerPassword =
+    "CERT_ISSUER_PASSWORD";
+inline constexpr const char *kReplicationMemberAuthCertSubjectPassword =
+    "CERT_SUBJECT_PASSWORD";
+
+std::string to_string(Replication_auth_type auth);
+Replication_auth_type to_replication_auth_type(std::string_view auth);
 
 constexpr const char *kCommunicationStackMySQL = "MYSQL";
 constexpr const char *kCommunicationStackXCom = "XCOM";
@@ -447,6 +473,20 @@ void resolve_instance_ssl_mode_option(
 void validate_instance_ssl_mode(Cluster_type type,
                                 const mysqlshdk::mysql::IInstance &instance,
                                 Cluster_ssl_mode ssl_mode);
+
+void validate_instance_member_auth_type(
+    const mysqlshdk::mysql::IInstance &instance, bool is_replica_cluster,
+    Cluster_ssl_mode ssl_mode, std::string_view ssl_mode_option,
+    Replication_auth_type auth_type);
+
+void validate_instance_member_auth_options(std::string_view context,
+                                           bool is_replica_cluster,
+                                           Replication_auth_type member_auth,
+                                           std::string_view cert_subject);
+void validate_instance_member_auth_options(std::string_view context,
+                                           Replication_auth_type member_auth,
+                                           std::string_view cert_issuer,
+                                           std::string_view cert_subject);
 
 std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const mysqlshdk::mysql::IInstance &group_server,
@@ -712,6 +752,10 @@ TargetType::Type get_instance_type(
 Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
                                           Instance *group_server = nullptr,
                                           bool skip_version_check = true);
+
+mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
+    const mysqlshdk::mysql::IInstance &instance, Cluster_ssl_mode ssl_mode,
+    Replication_auth_type auth_type);
 
 namespace cluster_topology_executor_ops {
 /**

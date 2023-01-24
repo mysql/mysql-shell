@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,8 +20,12 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "modules/adminapi/dba/api_options.h"
+
+#include <array>
+#include <string_view>
+
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/dba/api_options.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -31,6 +35,13 @@
 
 namespace mysqlsh {
 namespace dba {
+
+namespace {
+constexpr std::array<std::string_view, 5> kReplicationMemberAuthValues = {
+    kReplicationMemberAuthPassword, kReplicationMemberAuthCertIssuer,
+    kReplicationMemberAuthCertSubject, kReplicationMemberAuthCertIssuerPassword,
+    kReplicationMemberAuthCertSubjectPassword};
+}  // namespace
 
 Common_sandbox_options::Common_sandbox_options() {
   sandbox_dir = mysqlsh::current_shell_options()->get().sandbox_directory;
@@ -229,12 +240,55 @@ const shcore::Option_pack_def<Configure_replicaset_instance_options>
   return opts;
 }
 
+const shcore::Option_pack_def<Replication_auth_options>
+    &Replication_auth_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Replication_auth_options>()
+          .optional(kMemberAuthType, &Replication_auth_options::set_auth_type)
+          .optional(kCertIssuer, &Replication_auth_options::set_cert_issuer)
+          .optional(kCertSubject, &Replication_auth_options::set_cert_subject);
+
+  return opts;
+}
+
+void Replication_auth_options::set_auth_type(const std::string &value) {
+  if (std::find(kReplicationMemberAuthValues.begin(),
+                kReplicationMemberAuthValues.end(), shcore::str_upper(value)) ==
+      kReplicationMemberAuthValues.end()) {
+    std::string valid_values =
+        shcore::str_join(kReplicationMemberAuthValues, ", ");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Supported values: %s.", kMemberAuthType,
+        valid_values.c_str()));
+  }
+
+  member_auth_type = to_replication_auth_type(value);
+}
+
+void Replication_auth_options::set_cert_issuer(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertIssuer));
+
+  cert_issuer = value;
+}
+void Replication_auth_options::set_cert_subject(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertSubject));
+
+  cert_subject = value;
+}
+
 const shcore::Option_pack_def<Create_cluster_options>
     &Create_cluster_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Create_cluster_options>()
           .include(&Create_cluster_options::gr_options)
           .include(&Create_cluster_options::clone_options)
+          .include(&Create_cluster_options::member_auth_options)
           .optional(kMultiPrimary, &Create_cluster_options::set_multi_primary)
           .optional(kMultiMaster, &Create_cluster_options::set_multi_primary,
                     "", shcore::Option_extract_mode::CASE_INSENSITIVE,
@@ -278,11 +332,16 @@ const shcore::Option_pack_def<Create_replicaset_options>
           .optional(kDryRun, &Create_replicaset_options::dry_run)
           .optional(kInstanceLabel,
                     &Create_replicaset_options::set_instance_label)
+
+          .optional(kReplicationSslMode,
+                    &Create_replicaset_options::set_ssl_mode)
+
           .optional(kGtidSetIsComplete,
                     &Create_replicaset_options::gtid_set_is_complete)
           .optional(kReplicationAllowedHost,
                     &Create_replicaset_options::replication_allowed_host)
-          .include<Interactive_option>();
+          .include<Interactive_option>()
+          .include(&Create_replicaset_options::member_auth_options);
 
   return opts;
 }
@@ -294,6 +353,18 @@ void Create_replicaset_options::set_instance_label(const std::string &value) {
   } else {
     instance_label = value;
   }
+}
+
+void Create_replicaset_options::set_ssl_mode(const std::string &value) {
+  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
+    auto valid_values = shcore::str_join(kClusterSSLModeValues, ", ");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Supported values: %s.",
+        kReplicationSslMode, valid_values.c_str()));
+  }
+
+  ssl_mode = to_cluster_ssl_mode(value);
 }
 
 const shcore::Option_pack_def<Drop_metadata_schema_options>

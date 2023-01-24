@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,7 @@ const shcore::Option_pack_def<Add_instance_options>
           .include(&Add_instance_options::clone_options)
           .optional(kLabel, &Add_instance_options::label)
           .optional(kWaitRecovery, &Add_instance_options::set_wait_recovery)
+          .optional(kCertSubject, &Add_instance_options::set_cert_subject)
           .include<Password_interactive_options>();
   return opts;
 }
@@ -60,6 +61,15 @@ void Add_instance_options::set_wait_recovery(int value) {
   }
 
   wait_recovery = value;
+}
+
+void Add_instance_options::set_cert_subject(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertSubject));
+
+  cert_subject = value;
 }
 
 const shcore::Option_pack_def<Rejoin_instance_options>

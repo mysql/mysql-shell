@@ -145,6 +145,8 @@ DESCRIPTION
       - timeout: timeout in seconds for transaction sync operations; 0 disables
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT".
 
       The recoveryMethod option supports the following values:
 

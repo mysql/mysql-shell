@@ -715,6 +715,10 @@ Shell_options::Shell_options(
         "Timeout in seconds to wait for MySQL server to come back after a "
         "restart during clone recovery.",
         shcore::opts::Range<int>(0, std::numeric_limits<int>::max()))
+    (&storage.dba_connectivity_checks, true, SHCORE_DBA_CONNECTIVITY_CHECKS,
+        "Checks SSL settings and network connectivity between instances when "
+        "creating a cluster, replicaset or clusterset, or adding an instance "
+        "to one.")
     (&storage.wizards, true, SHCORE_USE_WIZARDS, "Enables wizard mode.")
     (&storage.initial_mode, shcore::IShell_core::Mode::None,
         "defaultMode", "Specifies the shell mode to use when shell is started "

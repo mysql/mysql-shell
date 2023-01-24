@@ -99,7 +99,7 @@ CHECK_RECOVERY_USER(session3, 0);
 CHECK_RECOVERY_USER(session4, 0);
 
 //@<> check options
-EXPECT_EQ([{"option": "replicationAllowedHost", "value": "%"}], cs.options()["clusterSet"]["globalOptions"]);
+EXPECT_EQ([{"option": "replicationAllowedHost", "value": "%"}, {"option": "clusterSetReplicationSslMode", "value": "REQUIRED"}], cs.options()["clusterSet"]["globalOptions"]);
 
 //@<> check primary switch
 cs.setPrimaryCluster("cluster2");
@@ -158,7 +158,7 @@ session2 = mysql.getSession(__sandbox_uri2);
 
 cs.setOption("replicationAllowedHost", hostname_ip);
 
-EXPECT_EQ([{"option": "replicationAllowedHost", "value": hostname_ip}], cs.options()["clusterSet"]["globalOptions"]);
+EXPECT_EQ([{"option": "replicationAllowedHost", "value": hostname_ip}, {"option": "clusterSetReplicationSslMode", "value": "REQUIRED"}], cs.options()["clusterSet"]["globalOptions"]);
 
 c2.addInstance(__sandbox_uri3, {recoveryMethod:"clone"});
 session3 = mysql.getSession(__sandbox_uri3);
@@ -228,7 +228,7 @@ CHECK_RECOVERY_USER(session4, 0);
 
 
 //@<> check options2
-EXPECT_EQ([{"option": "replicationAllowedHost", "value": hostname_ip}], cs.options()["clusterSet"]["globalOptions"]);
+EXPECT_EQ([{"option": "replicationAllowedHost", "value": hostname_ip}, {"option": "clusterSetReplicationSslMode", "value": "REQUIRED"}], cs.options()["clusterSet"]["globalOptions"]);
 
 EXPECT_EQ(hostname_ip, get_global_option(c1.options(), "replicationAllowedHost"));
 EXPECT_EQ("%", get_global_option(c2.options(), "replicationAllowedHost"));
@@ -296,13 +296,13 @@ reset_instance(session4);
 c2 = cs.createReplicaCluster(__sandbox_uri2, "cluster2", {recoveryMethod:"clone"});
 session2 = mysql.getSession(__sandbox_uri2);
 
-EXPECT_EQ([{"option": "replicationAllowedHost", "value": hostname_ip}], cs.options()["clusterSet"]["globalOptions"]);
+EXPECT_EQ([{"option": "replicationAllowedHost", "value": hostname_ip}, {"option": "clusterSetReplicationSslMode", "value": "REQUIRED"}], cs.options()["clusterSet"]["globalOptions"]);
 
 CHECK_CLUSTER_USERS(session1, ["cluster1", "cluster2"], hostname_ip, 0);
 
 cs.setOption("replicationAllowedHost", "%");
 
-EXPECT_EQ([{"option": "replicationAllowedHost", "value": "%"}], cs.options()["clusterSet"]["globalOptions"]);
+EXPECT_EQ([{"option": "replicationAllowedHost", "value": "%"}, {"option": "clusterSetReplicationSslMode", "value": "REQUIRED"}], cs.options()["clusterSet"]["globalOptions"]);
 
 c2.addInstance(__sandbox_uri3, {recoveryMethod:"clone"});
 session3 = mysql.getSession(__sandbox_uri3);

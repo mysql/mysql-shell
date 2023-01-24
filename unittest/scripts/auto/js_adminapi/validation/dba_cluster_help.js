@@ -161,6 +161,8 @@ DESCRIPTION
         primary election on failover.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT".
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -1319,15 +1321,21 @@ DESCRIPTION
 
       The clusterSetReplicationSslMode option supports the following values:
 
-      - REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
-        replication channels.
-      - DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
-        replication channels.
-      - AUTO: if used, SSL (encryption) will be enabled if supported by the
-        instance, otherwise disabled.
+      - DISABLED: TLS encryption is disabled for the ClusterSet replication
+        channels.
+      - REQUIRED: TLS encryption is enabled for the ClusterSet replication
+        channels.
+      - VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS
+        certificate against the configured Certificate Authority (CA)
+        certificates.
+      - VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer
+        server certificate matches the host to which the connection is
+        attempted.
+      - AUTO: TLS encryption will be enabled if supported by the instance,
+        otherwise disabled.
 
-      If clusterSetReplicationSslMode is not specified AUTO will be used by
-      default.
+      If clusterSetReplicationSslMode is not specified, it defaults to the
+      value of the cluster's memberSslMode option.
 
 //@<OUT> getClusterSet
 NAME

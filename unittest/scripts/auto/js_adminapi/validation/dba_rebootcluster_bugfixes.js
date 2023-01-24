@@ -43,6 +43,14 @@
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.22)}
             },
             {
@@ -113,6 +121,10 @@
                     "option": "memberWeight",
                     "value": "<<<member_weight1>>>",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -212,6 +224,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
 ?{VER(>=8.0.23)}
                     "value": "WRITESET",
 ?{}
@@ -283,6 +299,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ],
         "tags": {
@@ -336,6 +360,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -423,6 +451,10 @@
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -505,6 +537,14 @@
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.22)}
             },
             {
@@ -575,6 +615,10 @@
                     "option": "memberWeight",
                     "value": "<<<member_weight1>>>",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -674,6 +718,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
 ?{VER(>=8.0.23)}
                     "value": "WRITESET",
 ?{}
@@ -745,6 +793,14 @@
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ],
         "tags": {
@@ -798,6 +854,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -885,6 +945,10 @@
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}

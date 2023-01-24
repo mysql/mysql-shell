@@ -123,6 +123,10 @@ OPTIONS
             Integer value to indicate if the command shall wait for the
             recovery process to finish and its verbosity level.
 
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT".
+
 --password=<str>
             The instance connection password
 

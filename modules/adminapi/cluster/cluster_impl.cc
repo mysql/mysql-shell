@@ -538,9 +538,11 @@ std::vector<Instance_metadata> Cluster_impl::get_instances(
 
   if (states.empty()) return all_instances;
 
-  std::vector<Instance_metadata> res;
   std::vector<mysqlshdk::gr::Member> members =
       mysqlshdk::gr::get_members(*get_cluster_server());
+
+  std::vector<Instance_metadata> res;
+  res.reserve(all_instances.size());
 
   for (const auto &i : all_instances) {
     auto m = std::find_if(members.begin(), members.end(),
@@ -1398,24 +1400,61 @@ void Cluster_impl::configure_cluster_set_member(
   }
 }
 
-void Cluster_impl::restore_recovery_account_all_members() const {
+void Cluster_impl::restore_recovery_account_all_members(
+    bool reset_password) const {
+  // if we don't need to reset the password (for example the recovery accounts
+  // only use certificates), all we need to do is to update the replication
+  // credentials
+  if (!reset_password) {
+    log_info("Restoring recovery accounts with certificates only.");
+
+    execute_in_members(
+        [this](const std::shared_ptr<Instance> &instance,
+               const Instance_md_and_gr_member &info) {
+          if (info.second.state != mysqlshdk::gr::Member_state::ONLINE)
+            return true;
+
+          auto [recovery_user, recovery_host] =
+              get_metadata_storage()->get_instance_repl_account(
+                  instance->get_uuid(), Cluster_type::GROUP_REPLICATION);
+
+          mysqlshdk::mysql::Replication_credentials_options options;
+
+          mysqlshdk::mysql::change_replication_credentials(
+              *instance, mysqlshdk::gr::k_gr_recovery_channel, recovery_user,
+              options);
+
+          return true;
+        },
+        [](const shcore::Error &, const Instance_md_and_gr_member &) {
+          return true;
+        });
+
+    return;
+  }
+
   execute_in_members(
       [this](const std::shared_ptr<Instance> &instance,
              const Instance_md_and_gr_member &info) {
-        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
-          try {
-            reset_recovery_password(instance);
-          } catch (const std::exception &e) {
-            // If we can't change the recovery account password for some
-            // reason, we must re-create it
-            log_info(
-                "Unable to reset the recovery password of instance '%s', "
-                "re-creating a new account: %s",
-                instance->descr().c_str(), e.what());
+        if (info.second.state != mysqlshdk::gr::Member_state::ONLINE)
+          return true;
 
-            recreate_replication_user(instance);
-          }
+        try {
+          reset_recovery_password(instance);
+        } catch (const std::exception &e) {
+          // If we can't change the recovery account password for some
+          // reason, we must re-create it
+          log_info(
+              "Unable to reset the recovery password of instance '%s', "
+              "re-creating a new account: %s",
+              instance->descr().c_str(), e.what());
+
+          auto cert_subject =
+              query_cluster_instance_auth_cert_subject(*instance);
+
+          recreate_replication_user(instance, cert_subject);
         }
+
         return true;
       },
       [](const shcore::Error &, const Instance_md_and_gr_member &) {
@@ -1428,17 +1467,22 @@ void Cluster_impl::change_recovery_credentials_all_members(
   execute_in_members(
       [&repl_account](const std::shared_ptr<Instance> &instance,
                       const Instance_md_and_gr_member &info) {
-        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
-          try {
-            mysqlshdk::mysql::change_replication_credentials(
-                *instance, repl_account.user, *repl_account.password,
-                mysqlshdk::gr::k_gr_recovery_channel);
-          } catch (const std::exception &e) {
-            current_console()->print_warning(shcore::str_format(
-                "Error updating recovery credentials for %s: %s",
-                instance->descr().c_str(), e.what()));
-          }
+        if (info.second.state != mysqlshdk::gr::Member_state::ONLINE)
+          return true;
+
+        try {
+          mysqlshdk::mysql::Replication_credentials_options options;
+          options.password = repl_account.password.value_or("");
+
+          mysqlshdk::mysql::change_replication_credentials(
+              *instance, mysqlshdk::gr::k_gr_recovery_channel,
+              repl_account.user, options);
+        } catch (const std::exception &e) {
+          current_console()->print_warning(shcore::str_format(
+              "Error updating recovery credentials for %s: %s",
+              instance->descr().c_str(), e.what()));
         }
+
         return true;
       },
       [](const shcore::Error &, const Instance_md_and_gr_member &) {
@@ -1448,7 +1492,9 @@ void Cluster_impl::change_recovery_credentials_all_members(
 
 void Cluster_impl::create_local_replication_user(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-    const Group_replication_options &gr_options) {
+    std::string_view auth_cert_subject,
+    const Group_replication_options &gr_options,
+    bool propagate_credentials_donors) {
   // When using the 'MySQL' communication stack, the account must already
   // exist in the joining member since authentication is based on MySQL
   // credentials so the account must exist in both ends before GR
@@ -1464,7 +1510,7 @@ void Cluster_impl::create_local_replication_user(
   mysqlshdk::mysql::Auth_options repl_account;
 
   std::tie(repl_account, std::ignore) =
-      create_replication_user(target_instance.get(), true,
+      create_replication_user(target_instance.get(), auth_cert_subject, true,
                               gr_options.recovery_credentials.value_or(
                                   mysqlshdk::mysql::Auth_options{}),
                               false);
@@ -1475,7 +1521,8 @@ void Cluster_impl::create_local_replication_user(
   // connect and authenticate to the joining member.
   // NOTE: Instances in RECOVERING must be skipped since won't be used as donor
   // and the change source command would fail anyway
-  change_recovery_credentials_all_members(repl_account);
+  if (propagate_credentials_donors)
+    change_recovery_credentials_all_members(repl_account);
 
   DBUG_EXECUTE_IF("fail_recovery_mysql_stack", {
     // Revoke the REPLICATION_SLAVE to make the distributed recovery fail
@@ -1485,6 +1532,51 @@ void Cluster_impl::create_local_replication_user(
     target_instance->execute("REVOKE REPLICATION SLAVE on *.* from " +
                              repl_account.user);
   });
+}
+
+void Cluster_impl::create_replication_users_at_instance(
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance) {
+  // When using the 'MySQL' communication stack and the recovery accounts
+  // require certificates, we need to make sure that every account for all
+  // current members also exists in the target (new) instance. To avoid having
+  // errant transactions when GR starts, we do this with binlog disabled.
+  mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance.get());
+
+  if (target_instance->get_sysvar_bool("super_read_only", false))
+    target_instance->set_sysvar("super_read_only", false);
+
+  execute_in_members(
+      [this, &target_instance](const std::shared_ptr<Instance> &instance,
+                               const Instance_md_and_gr_member &info) {
+        if ((info.second.state != mysqlshdk::gr::Member_state::ONLINE) &&
+            (info.second.state != mysqlshdk::gr::Member_state::RECOVERING))
+          return true;
+
+        std::tuple<std::string, std::vector<std::string>, bool> user;
+        user = get_replication_user(*instance);
+
+        for (const auto &host : std::get<1>(user)) {
+          if (target_instance->user_exists(std::get<0>(user), host)) {
+            log_info(
+                "User '%s'@'%s' already existed at instance '%s'. It will be "
+                "deleted and created again.",
+                std::get<0>(user).c_str(), host.c_str(),
+                target_instance->descr().c_str());
+
+            target_instance->drop_user(std::get<0>(user), host);
+          }
+
+          log_info("Copying user '%s'@'%s' to instance '%s'.",
+                   std::get<0>(user).c_str(), host.c_str(),
+                   target_instance->descr().c_str());
+          clone_user(*instance, *target_instance, std::get<0>(user), host);
+        }
+
+        return true;
+      },
+      [](const shcore::Error &, const Instance_md_and_gr_member &) {
+        return true;
+      });
 }
 
 void Cluster_impl::update_group_peers(
@@ -2255,14 +2347,12 @@ shcore::Value Cluster_impl::options(const bool all) {
   // Create the Cluster_options command and execute it.
   cluster::Options op_option(*this, all);
   // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_option]() { op_option.finish(); });
+  shcore::on_leave_scope finally([&op_option]() { op_option.finish(); });
   // Prepare the Cluster_options command execution (validations).
   op_option.prepare();
 
   // Execute Cluster_options operations.
-  shcore::Value res = op_option.execute();
-
-  return res;
+  return op_option.execute();
 }
 
 void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
@@ -2727,6 +2817,7 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
 
 std::pair<mysqlshdk::mysql::Auth_options, std::string>
 Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
+                                      std::string_view auth_cert_subject,
                                       bool only_on_target,
                                       mysqlshdk::mysql::Auth_options creds,
                                       bool print_recreate_note) const {
@@ -2768,7 +2859,7 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
   for (const auto &hostname : recovery_user_hosts) {
     if (!primary->user_exists(creds.user, hostname)) continue;
 
-    std::string note = shcore::str_format(
+    auto note = shcore::str_format(
         "User '%s'@'%s' already existed at instance '%s'. It will be "
         "deleted and created again with a new password.",
         creds.user.c_str(), hostname.c_str(), primary->descr().c_str());
@@ -2785,39 +2876,60 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
   // Check if clone is available on ALL cluster members, to avoid a failing
   // SQL query because BACKUP_ADMIN is not supported
   // Do the same for MySQL commStack, being the grant GROUP_REPLICATION_STREAM
-  bool clone_available_all_members = false;
-  bool mysql_comm_stack_available_all_members = false;
-
   mysqlshdk::utils::Version lowest_version = get_lowest_instance_version();
-  if (lowest_version >= mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
-    clone_available_all_members = true;
+  bool clone_available_all_members =
+      (lowest_version >=
+       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version);
+  bool mysql_comm_stack_available_all_members =
+      (lowest_version >= k_mysql_communication_stack_initial_version);
 
-  if (lowest_version >= k_mysql_communication_stack_initial_version)
-    mysql_comm_stack_available_all_members = true;
-
-  // Check if clone is supported on the target instance
   auto target_version = target->get_version();
-  bool clone_available_on_target =
-      target_version >= mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
 
-  bool clone_available =
-      clone_available_all_members && clone_available_on_target;
+  std::vector<std::string> hosts;
+  hosts.push_back(host);
 
-  bool mysql_comm_stack_available_on_target =
-      target_version >= k_mysql_communication_stack_initial_version;
+  mysqlshdk::gr::Create_recovery_user_options user_options;
+  user_options.clone_supported =
+      clone_available_all_members &&
+      (target_version >=
+       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version);
+  user_options.auto_failover = false;
+  user_options.mysql_comm_stack_supported =
+      mysql_comm_stack_available_all_members &&
+      (target_version >= k_mysql_communication_stack_initial_version);
 
-  bool mysql_comm_stack_available = mysql_comm_stack_available_all_members &&
-                                    mysql_comm_stack_available_on_target;
+  // setup password, cert issuer and/or subject
+  auto auth_type = query_cluster_auth_type();
+  validate_instance_member_auth_options("cluster", false, auth_type,
+                                        auth_cert_subject);
 
-  if (!creds.password)
-    return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, {host},
-                                                {}, clone_available, false,
-                                                mysql_comm_stack_available),
-            host};
+  switch (auth_type) {
+    case Replication_auth_type::PASSWORD:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      user_options.requires_password = true;
+      user_options.password = creds.password;
+      break;
+    default:
+      user_options.requires_password = false;
+      break;
+  }
 
-  return {mysqlshdk::gr::create_recovery_user(
-              creds.user, *primary, {host}, creds.password, clone_available,
-              false, mysql_comm_stack_available),
+  switch (auth_type) {
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      user_options.cert_subject = auth_cert_subject;
+      [[fallthrough]];
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      user_options.cert_issuer = query_cluster_auth_cert_issuer();
+      break;
+    default:
+      break;
+  }
+
+  return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, hosts,
+                                              user_options),
           host};
 }
 
@@ -2825,6 +2937,16 @@ void Cluster_impl::reset_recovery_password(
     const std::shared_ptr<Instance> &target,
     const std::string &recovery_account,
     const std::vector<std::string> &hosts) const {
+  bool needs_password{false};
+  switch (auto auth_type = query_cluster_auth_type(); auth_type) {
+    case Replication_auth_type::PASSWORD:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      needs_password = true;
+    default:
+      break;
+  }
+
   // Get the recovery account for the target instance
   std::string recovery_user = recovery_account;
   std::vector<std::string> recovery_user_hosts = hosts;
@@ -2834,30 +2956,36 @@ void Cluster_impl::reset_recovery_password(
         get_replication_user(*target);
   }
 
-  std::string password;
-
-  log_info("Resetting recovery account credentials for '%s'",
-           target->descr().c_str());
+  log_info("Resetting recovery account credentials for '%s'%s.",
+           target->descr().c_str(),
+           needs_password ? " (with password)" : " (without password)");
 
   // Generate and set a new password and update the replication credentials
-  mysqlshdk::mysql::set_random_password(*get_primary_master(), recovery_user,
-                                        recovery_user_hosts, &password);
+  mysqlshdk::mysql::Replication_credentials_options options;
+  if (needs_password) {
+    std::string password;
+    mysqlshdk::mysql::set_random_password(*get_primary_master(), recovery_user,
+                                          recovery_user_hosts, &password);
+
+    options.password = std::move(password);
+  }
 
   mysqlshdk::mysql::change_replication_credentials(
-      *target, recovery_user, password, mysqlshdk::gr::k_gr_recovery_channel);
+      *target, mysqlshdk::gr::k_gr_recovery_channel, recovery_user, options);
 }
 
 std::pair<std::string, std::string> Cluster_impl::recreate_replication_user(
-    const std::shared_ptr<Instance> &target) const {
-  std::string repl_account_host;
-  mysqlshdk::mysql::Auth_options repl_account;
+    const std::shared_ptr<Instance> &target,
+    std::string_view auth_cert_subject) const {
+  auto [repl_account, repl_account_host] = create_replication_user(
+      target.get(), auth_cert_subject, false, {}, false);
 
-  std::tie(repl_account, repl_account_host) =
-      create_replication_user(target.get(), false, {}, false);
+  mysqlshdk::mysql::Replication_credentials_options options;
+  options.password = repl_account.password.value_or("");
 
   mysqlshdk::mysql::change_replication_credentials(
-      *target, repl_account.user, repl_account.password.value_or(""),
-      mysqlshdk::gr::k_gr_recovery_channel);
+      *target, mysqlshdk::gr::k_gr_recovery_channel, repl_account.user,
+      options);
 
   return std::pair<std::string, std::string>(repl_account.user,
                                              repl_account_host);

@@ -94,6 +94,9 @@ EXPECT_SHELL_LOG_CONTAINS("Revert: Recording back ClusterSet member removed");
 EXPECT_SHELL_LOG_CONTAINS("Revert: Re-creating Cluster recovery accounts");
 EXPECT_SHELL_LOG_CONTAINS("Revert: Re-creating Cluster's metadata");
 
+session2 = mysql.getSession(__sandbox_uri2);
+wait_channel_ready(session2, __mysql_sandbox_port1, "clusterset_replication");
+
 CHECK_REPLICA_CLUSTER([__sandbox_uri2], cluster, replicacluster);
 
 // Confirm that skip_replica_start was enabled back

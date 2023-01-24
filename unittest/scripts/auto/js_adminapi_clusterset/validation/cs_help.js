@@ -161,6 +161,8 @@ DESCRIPTION
         starts, otherwise it must be started manually.
       - memberSslMode: SSL mode for communication channels opened by Group
         Replication from one server to another.
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT".
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to

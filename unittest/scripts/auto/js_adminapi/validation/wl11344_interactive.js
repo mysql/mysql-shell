@@ -7,6 +7,7 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -42,6 +43,7 @@ group_replication_ip_whitelist = AUTOMATIC
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 group_replication_member_weight = 50
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -92,6 +94,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
 Creating InnoDB Cluster 'C' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -121,6 +125,7 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -150,6 +155,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'ClusterName' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -172,6 +179,7 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -208,6 +216,7 @@ group_replication_ip_whitelist = AUTOMATIC
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 group_replication_member_weight = 50
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -255,6 +264,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -423,6 +433,7 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -449,6 +460,7 @@ group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{}
 group_replication_local_address = localhost:<<<__local_address_2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -476,6 +488,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -502,6 +515,7 @@ group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -531,6 +545,7 @@ group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -573,6 +588,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -593,6 +609,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -685,6 +702,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -710,6 +728,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -731,6 +750,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -750,6 +770,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -864,6 +885,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -883,6 +905,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -910,6 +933,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -940,6 +964,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -962,6 +987,7 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -981,6 +1007,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -1061,6 +1088,7 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED

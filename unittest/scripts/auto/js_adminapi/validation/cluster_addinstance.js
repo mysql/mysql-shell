@@ -46,7 +46,6 @@
 //@<OUT> BUG#27677227 cluster with x protocol disabled, mysqlx should be NULL
 <<<hostname>>>:<<<__mysql_sandbox_port1>>> = {"grLocal": "<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"}
 <<<hostname>>>:<<<__mysql_sandbox_port2>>> = {"grLocal": "<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"}
-<<<hostname>>>:<<<__mysql_sandbox_port3>>> = {"mysqlX": "<<<hostname>>>:<<<__mysql_sandbox_x_port3>>>", "grLocal": "<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>", "mysqlClassic": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>"}
 
 //@ BUG#27677227 cluster with x protocol disabled cleanup
 ||
@@ -138,7 +137,7 @@ Number of accounts for '<<<recovery_user_2>>>': 1
 Number of recovery user before addInstance(): 1
 
 //@<ERR> BUG#25503159: add instance fail (using an invalid localaddress).
-Cluster.addInstance: Group Replication failed to start: [[*]]
+Cluster.addInstance: Server address configuration error (RuntimeError)
 
 //@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
 |WARNING: Clone process appears to have finished and tried to restart the MySQL server, but it has not yet started back up.|

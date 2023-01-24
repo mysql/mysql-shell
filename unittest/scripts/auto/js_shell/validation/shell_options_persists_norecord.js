@@ -307,6 +307,7 @@
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
  dba.connectTimeout              5
+ dba.connectivityChecks          true
  dba.gtidWaitTimeout             60
  dba.logSql                      0
  dba.restartWaitTimeout          60
@@ -346,6 +347,7 @@
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
  dba.connectTimeout              5 (Compiled default)
+ dba.connectivityChecks          true (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)
@@ -466,6 +468,7 @@
  credentialStore.helper          default
  credentialStore.savePasswords   prompt
  dba.connectTimeout              5
+ dba.connectivityChecks          true
  dba.gtidWaitTimeout             60
  dba.logSql                      0
  dba.restartWaitTimeout          60
@@ -506,6 +509,7 @@ Switching to SQL mode... Commands end with ;
  credentialStore.helper          default (Compiled default)
  credentialStore.savePasswords   prompt (Compiled default)
  dba.connectTimeout              5 (Compiled default)
+ dba.connectivityChecks          true (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)

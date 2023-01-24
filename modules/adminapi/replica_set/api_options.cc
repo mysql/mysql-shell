@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,8 +77,18 @@ const shcore::Option_pack_def<Add_instance_options>
       shcore::Option_pack_def<Add_instance_options>()
           .include<Rejoin_instance_options>()
           .include(&Add_instance_options::ar_options)
-          .optional(kLabel, &Add_instance_options::instance_label);
+          .optional(kLabel, &Add_instance_options::instance_label)
+          .optional(kCertSubject, &Add_instance_options::set_cert_subject);
   return opts;
+}
+
+void Add_instance_options::set_cert_subject(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertSubject));
+
+  cert_subject = value;
 }
 
 const shcore::Option_pack_def<Gtid_wait_timeout_option>

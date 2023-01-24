@@ -25,6 +25,9 @@ DESCRIPTION
         allowed values: "always", "prompt" or "never"
       - dba.connectTimeout: float, default connection timeout used for sessions
         created in AdminAPI operations, in seconds
+      - dba.connectivityChecks: bool, checks SSL settings and network
+        connectivity between instances when creating a cluster, replicaset or
+        clusterset, or adding an instance to one.
       - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
         synchronized
       - dba.logSql: 0..2, log SQL statements executed by AdminAPI operations: 0

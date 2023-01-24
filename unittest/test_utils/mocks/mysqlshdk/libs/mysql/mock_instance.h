@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -59,13 +60,13 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD1(get_cached_global_sysvar_as_bool,
                      std::optional<bool>(const std::string &));
 
-  MOCK_CONST_METHOD2(get_sysvar_bool, std::optional<bool>(const std::string &,
+  MOCK_CONST_METHOD2(get_sysvar_bool, std::optional<bool>(std::string_view,
                                                           const Var_qualifier));
   MOCK_CONST_METHOD2(get_sysvar_string,
-                     std::optional<std::string>(const std::string &,
+                     std::optional<std::string>(std::string_view,
                                                 const Var_qualifier));
   MOCK_CONST_METHOD2(get_sysvar_int,
-                     std::optional<int64_t>(const std::string &,
+                     std::optional<int64_t>(std::string_view,
                                             const Var_qualifier));
   MOCK_CONST_METHOD3(set_sysvar, void(const std::string &, const std::string &,
                                       const Var_qualifier));
@@ -92,11 +93,8 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD1(uninstall_plugin, void(const std::string &));
   MOCK_CONST_METHOD1(get_plugin_status,
                      std::optional<std::string>(const std::string &));
-  MOCK_CONST_METHOD5(
-      create_user,
-      void(const std::string &, const std::string &, const std::string &,
-           const std::vector<std::tuple<std::string, std::string, bool>> &,
-           bool));
+  MOCK_CONST_METHOD3(create_user, void(std::string_view, std::string_view,
+                                       const Create_user_options &));
   MOCK_CONST_METHOD3(drop_user,
                      void(const std::string &, const std::string &, bool));
   MOCK_CONST_METHOD0(get_connection_options,

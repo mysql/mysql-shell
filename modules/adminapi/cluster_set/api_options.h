@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,13 +47,16 @@ struct Create_replica_cluster_options : public Interactive_option,
                                         public Timeout_option {
   static const shcore::Option_pack_def<Create_replica_cluster_options>
       &options();
+
   void set_recovery_verbosity(int value);
+  void set_cert_subject(const std::string &value);
 
   Cluster_set_group_replication_options gr_options;
   Create_replica_cluster_clone_options clone_options;
   bool dry_run = false;
   int recovery_verbosity = isatty(STDOUT_FILENO) ? 2 : 1;
   std::string replication_allowed_host;
+  std::string cert_subject;
 };
 
 struct Remove_cluster_options : public Timeout_option {

@@ -111,15 +111,54 @@ std::string to_string(Cluster_ssl_mode ssl_mode) {
   return {};
 }
 
-Cluster_ssl_mode to_cluster_ssl_mode(const std::string &mode) {
-  if (shcore::str_caseeq("AUTO", mode)) return Cluster_ssl_mode::AUTO;
-  if (shcore::str_caseeq("DISABLED", mode)) return Cluster_ssl_mode::DISABLED;
-  if (shcore::str_caseeq("REQUIRED", mode)) return Cluster_ssl_mode::REQUIRED;
-  if (shcore::str_caseeq("VERIFY_CA", mode)) return Cluster_ssl_mode::VERIFY_CA;
-  if (shcore::str_caseeq("VERIFY_IDENTITY", mode))
+Cluster_ssl_mode to_cluster_ssl_mode(std::string_view mode) {
+  if (shcore::str_caseeq(kClusterSSLModeAuto, mode))
+    return Cluster_ssl_mode::AUTO;
+  if (shcore::str_caseeq(kClusterSSLModeDisabled, mode))
+    return Cluster_ssl_mode::DISABLED;
+  if (shcore::str_caseeq(kClusterSSLModeRequired, mode))
+    return Cluster_ssl_mode::REQUIRED;
+  if (shcore::str_caseeq(kClusterSSLModeVerifyCA, mode))
+    return Cluster_ssl_mode::VERIFY_CA;
+  if (shcore::str_caseeq(kClusterSSLModeVerifyIdentity, mode))
     return Cluster_ssl_mode::VERIFY_IDENTITY;
 
-  throw std::runtime_error("Unsupported Cluster SSL-mode: " + mode);
+  throw std::runtime_error(
+      shcore::str_format("Unsupported Cluster SSL-mode: %.*s",
+                         static_cast<int>(mode.size()), mode.data()));
+}
+
+std::string to_string(Replication_auth_type auth) {
+  switch (auth) {
+    case Replication_auth_type::PASSWORD:
+      return kReplicationMemberAuthPassword;
+    case Replication_auth_type::CERT_ISSUER:
+      return kReplicationMemberAuthCertIssuer;
+    case Replication_auth_type::CERT_SUBJECT:
+      return kReplicationMemberAuthCertSubject;
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      return kReplicationMemberAuthCertIssuerPassword;
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      return kReplicationMemberAuthCertSubjectPassword;
+  }
+  return {};
+}
+
+Replication_auth_type to_replication_auth_type(std::string_view auth) {
+  if (shcore::str_caseeq(kReplicationMemberAuthPassword, auth))
+    return Replication_auth_type::PASSWORD;
+  if (shcore::str_caseeq(kReplicationMemberAuthCertIssuer, auth))
+    return Replication_auth_type::CERT_ISSUER;
+  if (shcore::str_caseeq(kReplicationMemberAuthCertSubject, auth))
+    return Replication_auth_type::CERT_SUBJECT;
+  if (shcore::str_caseeq(kReplicationMemberAuthCertIssuerPassword, auth))
+    return Replication_auth_type::CERT_ISSUER_PASSWORD;
+  if (shcore::str_caseeq(kReplicationMemberAuthCertSubjectPassword, auth))
+    return Replication_auth_type::CERT_SUBJECT_PASSWORD;
+
+  throw std::runtime_error(
+      shcore::str_format("Unsupported replication member authentication: %.*s",
+                         static_cast<int>(auth.size()), auth.data()));
 }
 
 std::string get_mysqlprovision_error_string(
@@ -423,6 +462,140 @@ void validate_instance_ssl_mode(Cluster_type type,
           "instance or enable TLS on the " +
           to_display_string(type, Display_form::THING) + ".");
     }
+  }
+}
+
+void validate_instance_member_auth_type(
+    const mysqlshdk::mysql::IInstance &instance, bool is_replica_cluster,
+    Cluster_ssl_mode ssl_mode, std::string_view ssl_mode_option,
+    Replication_auth_type auth_type) {
+  if (auth_type == Replication_auth_type::PASSWORD) return;
+
+  if (ssl_mode == Cluster_ssl_mode::DISABLED) {
+    if (is_replica_cluster)
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "Instance '%s' has the \"%.*s\" option with the value "
+          "'DISABLED', which isn't compatible with the \"memberAuthType\" "
+          "value of '%s' inherited from the ClusterSet.",
+          instance.descr().c_str(), static_cast<int>(ssl_mode_option.length()),
+          ssl_mode_option.data(), to_string(auth_type).c_str()));
+
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Instance '%s' has the \"%.*s\" option with the value "
+        "'DISABLED', which means that \"memberAuthType\" only accepts the "
+        "value 'PASSWORD'.",
+        instance.descr().c_str(), static_cast<int>(ssl_mode_option.length()),
+        ssl_mode_option.data()));
+  }
+
+  if (!instance.is_ssl_enabled()) {
+    std::string_view cluster_set_ctx{
+        is_replica_cluster ? " (inherited from the ClusterSet)" : ""};
+
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Instance '%s' does not support TLS, which means that "
+        "\"memberAuthType\"%.*s with value '%s' isn't supported.",
+        instance.descr().c_str(), static_cast<int>(cluster_set_ctx.length()),
+        cluster_set_ctx.data(), to_string(auth_type).c_str()));
+  }
+
+  // verify the certificates
+  ensure_certificates_set(instance, auth_type);
+}
+
+void validate_instance_member_auth_options(std::string_view context,
+                                           bool is_replica_cluster,
+                                           Replication_auth_type auth_type,
+                                           std::string_view cert_subject) {
+  std::string_view cluster_set_ctx{
+      is_replica_cluster ? " (inherited from the ClusterSet)" : ""};
+
+  switch (auth_type) {
+    case Replication_auth_type::PASSWORD:
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      if (!cert_subject.empty())
+        mysqlsh::current_console()->print_note(shcore::str_format(
+            "The %.*s's SSL mode%.*s is set to %s, which makes the "
+            "'certSubject' option not required. The option will be ignored.",
+            static_cast<int>(context.length()), context.data(),
+            static_cast<int>(cluster_set_ctx.length()), cluster_set_ctx.data(),
+            to_string(auth_type).c_str()));
+      break;
+
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      if (cert_subject.empty())
+        throw shcore::Exception(
+            shcore::str_format(
+                "The %.*s's SSL mode%.*s is set to %s but the 'certSubject' "
+                "option for the instance wasn't supplied.",
+                static_cast<int>(context.length()), context.data(),
+                static_cast<int>(cluster_set_ctx.length()),
+                cluster_set_ctx.data(), to_string(auth_type).c_str()),
+            SHERR_DBA_MISSING_CERT_OPTION);
+      break;
+    default:
+      break;
+  }
+}
+
+void validate_instance_member_auth_options(std::string_view context,
+                                           Replication_auth_type auth_type,
+                                           std::string_view cert_issuer,
+                                           std::string_view cert_subject) {
+  if (auth_type == Replication_auth_type::PASSWORD) {
+    if (cert_issuer.empty() && cert_subject.empty()) return;
+
+    mysqlsh::current_console()->print_note(shcore::str_format(
+        "The %.*s's SSL mode is set to %s, which makes both the 'certIssuer' "
+        "and 'certSubject' options not required. Both options will be ignored.",
+        static_cast<int>(context.length()), context.data(),
+        to_string(auth_type).c_str()));
+    return;
+  }
+
+  switch (auth_type) {
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      if (cert_issuer.empty())
+        throw shcore::Exception(
+            shcore::str_format("The %.*s's SSL mode is set to %s but the "
+                               "'certIssuer' option wasn't supplied.",
+                               static_cast<int>(context.length()),
+                               context.data(), to_string(auth_type).c_str()),
+            SHERR_DBA_MISSING_CERT_OPTION);
+      break;
+    default:
+      break;
+  }
+
+  switch (auth_type) {
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      if (!cert_subject.empty())
+        mysqlsh::current_console()->print_note(shcore::str_format(
+            "The %.*s's SSL mode is set to %s, which makes the 'certSubject' "
+            "option not required. The option will be ignored.",
+            static_cast<int>(context.length()), context.data(),
+            to_string(auth_type).c_str()));
+      break;
+
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      if (cert_subject.empty())
+        throw shcore::Exception(
+            shcore::str_format(
+                "The %.*s's SSL mode is set to %s but the 'certSubject' option "
+                "for the instance wasn't supplied.",
+                static_cast<int>(context.length()), context.data(),
+                to_string(auth_type).c_str()),
+            SHERR_DBA_MISSING_CERT_OPTION);
+      break;
+    default:
+      break;
   }
 }
 
@@ -2139,6 +2312,39 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
   }
 
   return state;
+}
+
+mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
+    const mysqlshdk::mysql::IInstance &instance, Cluster_ssl_mode ssl_mode,
+    Replication_auth_type auth_type) {
+  mysqlshdk::db::Ssl_options ssl_options;
+
+  if (ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
+      ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY ||
+      auth_type != Replication_auth_type::PASSWORD) {
+    ssl_options = read_ssl_client_options(
+        instance, ssl_mode != Cluster_ssl_mode::REQUIRED ||
+                      auth_type != Replication_auth_type::PASSWORD);
+  }
+  switch (ssl_mode) {
+    case Cluster_ssl_mode::NONE:
+    case Cluster_ssl_mode::AUTO:
+      assert(0);  // these are supposed to be resolved before reaching here
+      [[fallthrough]];
+    case Cluster_ssl_mode::DISABLED:
+      ssl_options.set_mode(mysqlshdk::db::Ssl_mode::Disabled);
+      break;
+    case Cluster_ssl_mode::REQUIRED:
+      ssl_options.set_mode(mysqlshdk::db::Ssl_mode::Required);
+      break;
+    case Cluster_ssl_mode::VERIFY_CA:
+      ssl_options.set_mode(mysqlshdk::db::Ssl_mode::VerifyCa);
+      break;
+    case Cluster_ssl_mode::VERIFY_IDENTITY:
+      ssl_options.set_mode(mysqlshdk::db::Ssl_mode::VerifyIdentity);
+      break;
+  }
+  return ssl_options;
 }
 
 namespace cluster_topology_executor_ops {

@@ -271,6 +271,14 @@ ${*}
             {
                 "option": "replicationAllowedHost", 
                 "value": null
+            },
+            {
+                "option": "memberAuthType",
+                "value": null
+            },
+            {
+                "option": "certIssuer",
+                "value": null
 ?{VER(>=8.0.27)}
             },
             {
@@ -341,6 +349,10 @@ ${*}
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {
@@ -438,6 +450,10 @@ ${*}
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {

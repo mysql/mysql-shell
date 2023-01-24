@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -173,44 +173,48 @@ void Topology_configuration_command::update_topology_mode_metadata(
 }
 
 void Topology_configuration_command::print_cluster_members_role_changes() {
-  auto console = mysqlsh::current_console();
-
   // Get the current members list
   std::vector<Instance_metadata> cluster_instances = m_cluster->get_instances();
+
+  // ensure a consistent order is used when writting to the console
+  std::sort(cluster_instances.begin(), cluster_instances.end(),
+            [](const auto &a, const auto &b) {
+              return std::less<std::string>()(a.address, b.address);
+            });
 
   // Get the final status of the members
   std::vector<mysqlshdk::gr::Member> final_members_info(
       mysqlshdk::gr::get_members(*m_cluster_session_instance));
 
-  const Instance_metadata *instance;
-
+  std::vector<std::string> remained, switched;
   for (const auto &member : m_initial_members_info) {
-    std::string old_role = mysqlshdk::gr::to_string(member.role);
+    auto old_role = mysqlshdk::gr::to_string(member.role);
 
-    for (const auto &i : cluster_instances) {
-      if (i.uuid == member.uuid) {
-        instance = &i;
+    for (const auto &instance : cluster_instances) {
+      if (instance.uuid != member.uuid) continue;
 
-        for (const auto &member_new : final_members_info) {
-          std::string new_role;
+      for (const auto &member_new : final_members_info) {
+        if (member_new.uuid != instance.uuid) continue;
 
-          if (member_new.uuid == member.uuid) {
-            new_role = mysqlshdk::gr::to_string(member_new.role);
+        auto new_role = mysqlshdk::gr::to_string(member_new.role);
 
-            if (new_role != old_role) {
-              console->print_info("Instance '" + instance->endpoint +
-                                  "' was switched from " + old_role + " to " +
-                                  new_role + ".");
-            } else {
-              console->print_info("Instance '" + instance->endpoint +
-                                  "' remains " + old_role + ".");
-            }
-          }
+        if (new_role != old_role) {
+          switched.push_back(shcore::str_format(
+              "Instance '%s' was switched from %s to %s.",
+              instance.endpoint.c_str(), old_role.c_str(), new_role.c_str()));
+        } else {
+          remained.push_back(shcore::str_format("Instance '%s' remains %s.",
+                                                instance.endpoint.c_str(),
+                                                old_role.c_str()));
         }
       }
     }
   }
 
+  auto console = mysqlsh::current_console();
+
+  for (const auto &i : remained) console->print_info(i);
+  for (const auto &i : switched) console->print_info(i);
   console->print_info();
 }
 

@@ -1,5 +1,18 @@
 //@ {VER(>=8.0.27)}
 
+// This should combine all server options that are supported (ie won't be reconfigured away)
+// and not mutually exclusive. Other tests derived from this should have this removed.
+
+k_mycnf_options = {
+  sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO', 
+  autocommit:1,
+  require_secure_transport:1,
+  loose_group_replication_consistency:"BEFORE",
+  plugin_load:"validate_password",
+  loose_validate_password_policy:"STRONG"
+}
+// TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
+
 // Plain ClusterSet test, use as a template for other tests that check
 // a specific feature/aspect across the whole API
 
@@ -8,13 +21,11 @@
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname, ...k_mycnf_options});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, ...k_mycnf_options});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, log_error_verbosity:3, ...k_mycnf_options});
 
-// override default sql_mode to test that we always override it
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, log_error_verbosity:3, sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
-
-testutil.deployRawSandbox(__mysql_sandbox_port4, 'root', {report_host: hostname, "log-error-verbosity": "3", sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+testutil.deployRawSandbox(__mysql_sandbox_port4, 'root', {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options});
 
 shell.options.useWizards = false;
 
@@ -204,12 +215,16 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port4}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port4}1'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 
 * Checking transaction state of the instance...
 
 NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
 
 Incremental state recovery selected through the recoveryMethod option
+
+* Checking connectivity and SSL configuration to PRIMARY Cluster...
 
 Creating InnoDB Cluster 'replicacluster' on '${hostname}:${__mysql_sandbox_port4}'...
 
@@ -218,6 +233,7 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
+Cluster "memberAuthType" is set to 'PASSWORD' (inherited from the ClusterSet).
 * Configuring ClusterSet managed replication channel...
 ** Changing replication source of ${hostname}:${__mysql_sandbox_port4} to ${hostname}:${__mysql_sandbox_port1}
 

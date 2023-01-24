@@ -91,6 +91,7 @@ A new replicaset with instance '<<<__address1>>>' will be created.
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 <<<__address1>>>: Instance configuration is suitable.
 
+* Checking connectivity and SSL configuration...
 * Updating metadata...
 
 ReplicaSet object successfully created for <<<__address1>>>.
@@ -134,6 +135,8 @@ This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port3>>>
 
 * Checking async replication topology...
 
+* Checking connectivity and SSL configuration...
+
 * Checking transaction state of the instance...
 
 NOTE: The target instance '<<<__address3>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
@@ -156,26 +159,6 @@ The instance '<<<__address3>>>' was added to the replicaset and is replicating f
 
 //@<OUT> removeInstance
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was removed from the replicaset.
-
-Adding instance to the replicaset...
-
-* Performing validation checks
-
-This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
-<<<__address2>>>: Instance configuration is suitable.
-
-* Checking async replication topology...
-
-* Checking transaction state of the instance...
-
-Incremental state recovery selected through the recoveryMethod option
-
-* Updating topology
-** Changing replication source of <<<__address2>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>
-** Waiting for new instance to synchronize with PRIMARY...
-
-
-The instance '<<<__address2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 
 //@<OUT> setPrimaryInstance
 127.0.0.1:<<<__mysql_sandbox_port3>>> will be promoted to PRIMARY of 'myrs'.
@@ -388,7 +371,8 @@ true
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null
+                    "replicationLag": null,
+                    "replicationSsl": null
                 },
                 "status": "ONLINE"
             },
@@ -401,7 +385,8 @@ true
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null
+                    "replicationLag": null,
+                    "replicationSsl": null
                 },
                 "status": "ONLINE"
             }

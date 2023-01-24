@@ -122,6 +122,14 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -190,6 +198,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -284,6 +296,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
 ?{VER(>=8.0.23)}
                     "value": "WRITESET",
 ?{}
@@ -374,6 +390,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -453,6 +473,14 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -521,6 +549,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -615,6 +647,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
 ?{VER(>=8.0.23)}
                     "value": "WRITESET",
 ?{}
@@ -705,6 +741,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}

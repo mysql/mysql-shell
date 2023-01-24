@@ -28,6 +28,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -54,19 +55,23 @@ namespace mysqlsh {
 namespace dba {
 
 // User provided option to disabling clone
-constexpr const char k_cluster_attribute_disable_clone[] = "opt_disableClone";
+inline constexpr std::string_view k_cluster_attribute_disable_clone{
+    "opt_disableClone"};
 // Flag to indicate the default cluster in the metadata
-constexpr const char k_cluster_attribute_default[] = "default";
+inline constexpr std::string_view k_cluster_attribute_default{"default"};
 
 // Whether group_replication_start_on_boot should be enabled in each instance
 // (false by default)
-constexpr const char k_cluster_attribute_manual_start_on_boot[] =
-    "opt_manualStartOnBoot";
-
+inline constexpr std::string_view k_cluster_attribute_manual_start_on_boot{
+    "opt_manualStartOnBoot"};
 // Timestamp of when the instance was added to the group
-constexpr const char k_instance_attribute_join_time[] = "joinTime";
+inline constexpr std::string_view k_instance_attribute_join_time{"joinTime"};
 
-constexpr const char k_instance_attribute_server_id[] = "server_id";
+inline constexpr std::string_view k_instance_attribute_server_id{"server_id"};
+
+// replication account certificate subject
+inline constexpr std::string_view k_instance_attribute_cert_subject{
+    "opt_certSubject"};
 
 class MetadataStorage;
 struct Cluster_metadata;
@@ -193,6 +198,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   create_replication_user(mysqlshdk::mysql::IInstance *target,
+                          std::string_view auth_cert_subject,
                           bool only_on_target = false,
                           mysqlshdk::mysql::Auth_options creds = {},
                           bool print_recreate_node = true) const;
@@ -221,7 +227,8 @@ class Cluster_impl final : public Base_cluster_impl,
    * @param target          Target instance
    */
   std::pair<std::string, std::string> recreate_replication_user(
-      const std::shared_ptr<Instance> &target) const;
+      const std::shared_ptr<Instance> &target,
+      std::string_view auth_cert_subject) const;
 
   bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
                              const std::string &endpoint = "",
@@ -573,7 +580,7 @@ class Cluster_impl final : public Base_cluster_impl,
    * updated to use that same account. This ensures distributed recovery is
    * possible at any circumstance.
    */
-  void restore_recovery_account_all_members() const;
+  void restore_recovery_account_all_members(bool reset_password = true) const;
 
   /**
    * Change the recovery user credentials of all Cluster members
@@ -592,7 +599,19 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   void create_local_replication_user(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const Group_replication_options &gr_options);
+      std::string_view auth_cert_subject,
+      const Group_replication_options &gr_options,
+      bool propagate_credentials_donors);
+
+  /**
+   * Create all accounts present in the current members of the cluster to the
+   * target cluster
+   *
+   * Required when using the 'MySQL' communication stack and when the recovery
+   * accounts need certificates.
+   */
+  void create_replication_users_at_instance(
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance);
 
   void update_group_peers(const mysqlshdk::mysql::IInstance &target_instance,
                           const Group_replication_options &gr_options,

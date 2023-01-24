@@ -448,6 +448,12 @@ DESCRIPTION
         existing replication group.
       - memberSslMode: SSL mode for communication channels opened by Group
         Replication from one server to another.
+      - memberAuthType: controls the authentication type to use for the
+        internal replication accounts.
+      - certIssuer: common certificate issuer to use when 'memberAuthType'
+        contains either "CERT_ISSUER" or "CERT_SUBJECT".
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT".
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
@@ -552,6 +558,24 @@ DESCRIPTION
         instance, otherwise disabled
 
       If memberSslMode is not specified AUTO will be used by default.
+
+      The memberAuthType option supports the following values:
+
+      - PASSWORD: account authenticates with password only.
+      - CERT_ISSUER: account authenticates with client certificate, which must
+        match the expected issuer (see 'certIssuer' option).
+      - CERT_SUBJECT: account authenticates with client certificate, which must
+        match the expected issuer and subject (see 'certSubject' option).
+      - CERT_ISSUER_PASSWORD: combines both "CERT_ISSUER" and "PASSWORD"
+        values.
+      - CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD"
+        values.
+
+      When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate
+      is used as its client certificate when authenticating replication
+      channels with peer servers. memberSslMode must be at least REQUIRED,
+      although VERIFY_CA or VERIFY_IDENTITY are recommended for additional
+      security.
 
       The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
@@ -826,6 +850,47 @@ DESCRIPTION
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode.
+      - memberAuthType: controls the authentication type to use for the
+        internal replication accounts.
+      - certIssuer: common certificate issuer to use when 'memberAuthType'
+        contains either "CERT_ISSUER" or "CERT_SUBJECT".
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT".
+      - replicationSslMode: SSL mode to use to configure the asynchronous
+        replication channels of the replicaset.
+
+      The replicationSslMode option supports the following values:
+
+      - DISABLED: TLS encryption is disabled for the replication channel.
+      - REQUIRED: TLS encryption is enabled for the replication channel.
+      - VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS
+        certificate against the configured Certificate Authority (CA)
+        certificates.
+      - VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer
+        server certificate matches the host to which the connection is
+        attempted.
+      - AUTO: TLS encryption will be enabled if supported by the instance,
+        otherwise disabled.
+
+      If replicationSslMode is not specified AUTO will be used by default.
+
+      The memberAuthType option supports the following values:
+
+      - PASSWORD: account authenticates with password only.
+      - CERT_ISSUER: account authenticates with client certificate, which must
+        match the expected issuer (see 'certIssuer' option).
+      - CERT_SUBJECT: account authenticates with client certificate, which must
+        match the expected issuer and subject (see 'certSubject' option).
+      - CERT_ISSUER_PASSWORD: combines both "CERT_ISSUER" and "PASSWORD"
+        values.
+      - CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD"
+        values.
+
+      When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate
+      is used as its client certificate when authenticating replication
+      channels with peer servers. replicationSslMode must be at least REQUIRED,
+      although VERIFY_CA or VERIFY_IDENTITY are recommended for additional
+      security.
 
 //@<OUT> Delete Sandbox
 NAME

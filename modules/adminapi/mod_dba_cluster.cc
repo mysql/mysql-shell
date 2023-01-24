@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -267,6 +267,7 @@ ${OPT_INTERACTIVE}
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
+${OPT_CERT_SUBJECT}
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -344,11 +345,11 @@ void Cluster::add_instance(
   }
 
   // Validate the label value.
-  if (!options->label.is_null()) {
-    mysqlsh::dba::validate_label(*(options->label));
+  if (options->label.has_value()) {
+    mysqlsh::dba::validate_label(*options->label);
 
     if (!impl()->get_metadata_storage()->is_instance_label_unique(
-            impl()->get_id(), *(options->label))) {
+            impl()->get_id(), *options->label)) {
       throw shcore::Exception::argument_error(
           "An instance with label '" + *(options->label) +
           "' is already part of this InnoDB cluster");
@@ -1585,14 +1586,13 @@ any other member using accounts with this hostname value.
 
 The clusterSetReplicationSslMode option supports the following values:
 
-@li REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
-replication channels.
-@li DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
-replication channels.
-@li AUTO: if used, SSL (encryption) will be enabled if supported by the
-instance, otherwise disabled.
+@li DISABLED: TLS encryption is disabled for the ClusterSet replication channels.
+@li REQUIRED: TLS encryption is enabled for the ClusterSet replication channels.
+@li VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS certificate against the configured Certificate Authority (CA) certificates.
+@li VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer server certificate matches the host to which the connection is attempted.
+@li AUTO: TLS encryption will be enabled if supported by the instance, otherwise disabled.
 
-If clusterSetReplicationSslMode is not specified AUTO will be used by default.
+If clusterSetReplicationSslMode is not specified, it defaults to the value of the cluster's memberSslMode option.
 )*");
 
 /**

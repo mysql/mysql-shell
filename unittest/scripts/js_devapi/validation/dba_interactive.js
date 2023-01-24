@@ -7,8 +7,8 @@
 ||Argument #1 is expected to be a string
 ||The Cluster name cannot be empty
 ||Invalid options: another, invalid
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
@@ -50,6 +50,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
@@ -68,6 +70,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
+
+* Checking connectivity and SSL configuration...
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...

@@ -34,7 +34,7 @@ var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
 var server_id1 = session.runSql("SELECT @@server_id").fetchOne()[0];
 EXPECT_THROWS(function(){dba.upgradeMetadata()}, "This function is not available through a session to a standalone instance")
 
-//@ Creates the sample cluster
+//@<> Creates the sample cluster
 shell.connect(cluster_admin_uri);
 var cluster = dba.createCluster('sample');
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});

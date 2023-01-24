@@ -86,6 +86,8 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
@@ -106,6 +108,8 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
 The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
@@ -125,6 +129,8 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port1}'. Use the localAddress option to override.
+
+* Checking connectivity and SSL configuration...
 
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
@@ -731,7 +737,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // Force a failure of the create_cluster function after the replication-user was created
 //@<> BUG#29308037: Create cluster using an invalid localAddress
 shell.connect(__sandbox_uri2);
-EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "Group Replication failed to start");
+EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "Server address configuration error");
 
 //@<OUT> BUG#29308037: Confirm that all replication users where removed
 print(get_query_single_result(session, number_of_rpl_users_query) + "\n");
@@ -812,6 +818,8 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
@@ -831,6 +839,8 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
 Adding Seed Instance...
@@ -849,6 +859,8 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port1}'. Use the localAddress option to override.
+
+* Checking connectivity and SSL configuration...
 
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 

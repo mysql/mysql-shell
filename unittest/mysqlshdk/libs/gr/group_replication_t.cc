@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -186,9 +186,14 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_FALSE(res.has_grant_option());
 
   // Create a recovery user with a random password.
-  std::optional<std::string> password;
-  auto creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
-                                                   {"%"}, password);
+  mysqlshdk::mysql::Auth_options creds;
+  {
+    std::vector<std::string> hosts;
+    hosts.push_back("%");
+
+    creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
+                                                hosts, {});
+  }
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*m_instance, "test_gr_user", "%");
 
@@ -199,13 +204,20 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_EQ(creds.user, "test_gr_user");
   // it is expected a random password is generated when using an empty password
   // as parameter.
-  EXPECT_EQ(false, password.has_value());
   EXPECT_EQ(true, creds.password.has_value());
 
   // Drop user and recreate it with a given password
-  password = "password";
-  creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
-                                              {"%"}, password);
+  {
+    std::vector<std::string> hosts;
+    hosts.push_back("%");
+
+    mysqlshdk::gr::Create_recovery_user_options options;
+    options.password = "password";
+
+    creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
+                                                hosts, options);
+  }
+
   // Check replication user (now it exist and it has no missing privileges).
   res = mysqlshdk::gr::check_replication_user(*m_instance, "test_gr_user", "%");
 
@@ -214,8 +226,8 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_FALSE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
   EXPECT_EQ(creds.user, "test_gr_user");
-  EXPECT_EQ(static_cast<bool>(creds.password), static_cast<bool>(password));
-  EXPECT_EQ(*creds.password, *password);
+  EXPECT_TRUE(static_cast<bool>(creds.password));
+  EXPECT_EQ(*creds.password, "password");
 
   // Clean up (remove the create user at the end)
   m_instance->drop_user("test_gr_user", "%");
@@ -475,15 +487,16 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_57) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
+  using namespace std::literals;
 
   mysqlshdk::mysql::Mock_instance inst;
 
   std::vector<Invalid_config> res;
 
   // Test everything assuming 5.7, with binlog default OFF and no SET PERSIST
-  EXPECT_CALL(inst, get_sysvar_bool("log_bin", Var_qualifier::GLOBAL))
+  EXPECT_CALL(inst, get_sysvar_bool("log_bin"sv, Var_qualifier::GLOBAL))
       .WillRepeatedly(Return(std::optional<bool>(false)));
-  EXPECT_CALL(inst, get_sysvar_string("log_bin", Var_qualifier::GLOBAL))
+  EXPECT_CALL(inst, get_sysvar_string("log_bin"sv, Var_qualifier::GLOBAL))
       .WillRepeatedly(Return(std::optional<std::string>("OFF")));
   EXPECT_CALL(inst, get_version())
       .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 24)));
@@ -572,6 +585,7 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
   using mysqlshdk::mysql::Config_types;
   using mysqlshdk::mysql::Invalid_config;
   using mysqlshdk::mysql::Var_qualifier;
+  using namespace std::literals;
 
   mysqlshdk::mysql::Mock_instance inst;
 
@@ -579,9 +593,9 @@ TEST_F(Group_replication_test, check_log_bin_compatibility_disabled_80) {
 
   // With 8.0, "log_bin" is read-only and cannot be persisted. The only way to
   // disable it is with skip_log_bin or disable_log_bin
-  EXPECT_CALL(inst, get_sysvar_bool("log_bin", Var_qualifier::GLOBAL))
+  EXPECT_CALL(inst, get_sysvar_bool("log_bin"sv, Var_qualifier::GLOBAL))
       .WillRepeatedly(Return(std::optional<bool>(false)));
-  EXPECT_CALL(inst, get_sysvar_string("log_bin", Var_qualifier::GLOBAL))
+  EXPECT_CALL(inst, get_sysvar_string("log_bin"sv, Var_qualifier::GLOBAL))
       .WillRepeatedly(Return(std::optional<std::string>("OFF")));
   EXPECT_CALL(inst, get_version())
       .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 3)));

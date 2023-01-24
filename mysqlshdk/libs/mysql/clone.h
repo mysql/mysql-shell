@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,12 +103,14 @@ int64_t force_clone(const mysqlshdk::mysql::IInstance &instance);
  * information of the donor instance
  * @param clone_recovery_account Auth_options object with the clone recovery
  * account
+ * @param require_ssl True to enable encrypted connection
  *
  * @return nothing
  */
 void do_clone(const mysqlshdk::mysql::IInstance &recipient,
               const mysqlshdk::db::Connection_options &clone_donor_opts,
-              const mysqlshdk::mysql::Auth_options &clone_recovery_account);
+              const mysqlshdk::mysql::Auth_options &clone_recovery_account,
+              bool require_ssl);
 
 /**
  * Cancels the on-going execution of a clone of an instance using the MySQL

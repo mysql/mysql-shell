@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,7 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -59,6 +60,16 @@ const built_in_tags_map_t k_supported_set_option_tags{
     {"_hidden", shcore::Value_type::Bool},
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
 }  // namespace
+
+std::string Base_cluster_impl::make_replication_user_name(
+    uint32_t server_id, std::string_view user_prefix, bool server_id_hexa) {
+  if (server_id_hexa)
+    return shcore::str_format("%.*s%x", static_cast<int>(user_prefix.length()),
+                              user_prefix.data(), server_id);
+
+  return shcore::str_format("%.*s%u", static_cast<int>(user_prefix.length()),
+                            user_prefix.data(), server_id);
+}
 
 Base_cluster_impl::Base_cluster_impl(
     const std::string &cluster_name, std::shared_ptr<Instance> group_server,
@@ -188,11 +199,6 @@ void Base_cluster_impl::sync_transactions(
 
   current_console()->print_info();
   current_console()->print_info();
-}
-
-std::string Base_cluster_impl::make_replication_user_name(
-    uint32_t server_id, const std::string &user_prefix) const {
-  return user_prefix + std::to_string(server_id);
 }
 
 void Base_cluster_impl::set_target_server(
@@ -514,6 +520,36 @@ void Base_cluster_impl::set_option(const std::string &option,
   } else {
     set_cluster_tag(opt, val);
   }
+}
+
+Replication_auth_type Base_cluster_impl::query_cluster_auth_type() const {
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_member_auth_type, &value)) {
+    return to_replication_auth_type(value.as_string());
+  }
+
+  return Replication_auth_type::PASSWORD;
+}
+
+std::string Base_cluster_impl::query_cluster_auth_cert_issuer() const {
+  if (shcore::Value value;
+      get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_cert_issuer, &value) &&
+      (value.type == shcore::String))
+    return value.as_string();
+
+  return {};
+}
+
+std::string Base_cluster_impl::query_cluster_instance_auth_cert_subject(
+    std::string_view instance_uuid) const {
+  if (shcore::Value value;
+      get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_cert_subject, &value) &&
+      (value.type == shcore::String))
+    return value.as_string();
+
+  return {};
 }
 
 std::tuple<std::string, std::string, shcore::Value>

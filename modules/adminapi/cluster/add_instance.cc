@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/common/cluster_topology_executor.h"
+#include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
@@ -227,13 +228,15 @@ void Add_instance::handle_clone_plugin_state(bool enable_clone) const {
 bool Add_instance::create_replication_user() {
   // Creates the replication user ONLY if not already given.
   // NOTE: User always created at the seed instance.
-  if (!m_options.gr_options.recovery_credentials ||
-      m_options.gr_options.recovery_credentials->user.empty()) {
-    std::tie(m_options.gr_options.recovery_credentials, m_account_host) =
-        m_cluster_impl->create_replication_user(m_target_instance.get());
-    return true;
-  }
-  return false;
+  if (m_options.gr_options.recovery_credentials &&
+      !m_options.gr_options.recovery_credentials->user.empty())
+    return false;
+
+  std::tie(m_options.gr_options.recovery_credentials, m_account_host) =
+      m_cluster_impl->create_replication_user(m_target_instance.get(),
+                                              m_options.cert_subject);
+
+  return true;
 }
 
 void Add_instance::clean_replication_user() {
@@ -340,7 +343,7 @@ void Add_instance::store_local_replication_account() const {
                     m_account_host);
           } catch (const std::exception &e) {
             log_info(
-                "Failed updating Metatada of '%s' to include the recovery "
+                "Failed updating Metadata of '%s' to include the recovery "
                 "account of the joining member",
                 instance->descr().c_str());
           }
@@ -421,10 +424,13 @@ void Add_instance::restore_group_replication_account() const {
       m_target_instance->get_version());
   log_debug("Re-issuing the CHANGE %s command", source_term.c_str());
 
+  mysqlshdk::mysql::Replication_credentials_options options;
+  options.password =
+      m_options.gr_options.recovery_credentials->password.value_or("");
+
   mysqlshdk::mysql::change_replication_credentials(
-      *m_target_instance, m_options.gr_options.recovery_credentials->user,
-      m_options.gr_options.recovery_credentials->password.value_or(""),
-      mysqlshdk::gr::k_gr_recovery_channel);
+      *m_target_instance, mysqlshdk::gr::k_gr_recovery_channel,
+      m_options.gr_options.recovery_credentials->user, options);
 
   // Update the recovery account to the right one
   log_debug("Adding recovery account to metadata");
@@ -497,6 +503,19 @@ void Add_instance::prepare() {
   // Check for various instance specific configuration issues
   check_and_resolve_instance_configuration();
 
+  // recovery auth checks
+
+  auto auth_type = m_cluster_impl->query_cluster_auth_type();
+
+  // check if member auth request mode is supported
+  validate_instance_member_auth_type(*m_target_instance, false,
+                                     m_options.gr_options.ssl_mode,
+                                     "memberSslMode", auth_type);
+
+  // check if certSubject was correctly supplied
+  validate_instance_member_auth_options("cluster", false, auth_type,
+                                        m_options.cert_subject);
+
   // Validate localAddress
   if (m_options.gr_options.local_address.has_value()) {
     validate_local_address_option(
@@ -505,6 +524,23 @@ void Add_instance::prepare() {
         m_target_instance->get_canonical_port());
   }
 
+  // Check connectivity and SSL
+  if (current_shell_options()->get().dba_connectivity_checks) {
+    current_console()->print_info(
+        "* Checking connectivity and SSL configuration...");
+
+    std::string cert_issuer = m_cluster_impl->query_cluster_auth_cert_issuer();
+    mysqlshdk::mysql::Set_variable disable_sro(*m_target_instance,
+                                               "super_read_only", false, true);
+    test_peer_connection(
+        *m_target_instance, m_options.gr_options.local_address.value_or(""),
+        m_options.cert_subject, *m_primary_instance,
+        m_primary_instance->get_sysvar_string("group_replication_local_address")
+            .value_or(""),
+        m_cluster_impl->query_cluster_instance_auth_cert_subject(
+            m_primary_instance->get_uuid()),
+        m_options.gr_options.ssl_mode, auth_type, cert_issuer);
+  }
   // Set the transaction size limit
   m_options.gr_options.transaction_size_limit =
       m_cluster_impl->get_transaction_size_limit();
@@ -574,16 +610,12 @@ void Add_instance::do_run() {
           m_cluster_impl->get_id());
 
   // Clone handling
-  bool clone_disabled = m_cluster_impl->get_disable_clone_option();
-  bool clone_supported =
-      mysqlshdk::mysql::is_clone_available(*m_target_instance);
-
   int64_t restore_clone_threshold = 0;
   bool restore_recovery_accounts = false;
-
-  if (clone_supported) {
+  if (mysqlshdk::mysql::is_clone_available(*m_target_instance)) {
     // Clone must be uninstalled only when disableClone is enabled on the
     // Cluster
+    bool clone_disabled = m_cluster_impl->get_disable_clone_option();
     bool enable_clone = !clone_disabled;
 
     // Force clone if requested
@@ -671,6 +703,20 @@ void Add_instance::do_run() {
     std::string join_begin_time =
         m_target_instance->queryf_one_string(0, "", "SELECT NOW(3)");
 
+    bool recovery_certificates{false};
+    bool recovery_needs_password{true};
+    switch (m_cluster_impl->query_cluster_auth_type()) {
+      case mysqlsh::dba::Replication_auth_type::CERT_ISSUER:
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+        recovery_needs_password = false;
+        [[fallthrough]];
+      case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        recovery_certificates = true;
+      default:
+        break;
+    }
+
     {
       if (m_already_member) {
         // START GROUP_REPLICATION is the last thing that happens in
@@ -680,7 +726,7 @@ void Add_instance::do_run() {
                  m_target_instance->descr().c_str());
       } else {
         log_info(
-            "Joining '%s' to cluster using account %s to peer '%s'.",
+            "Joining '%s' to cluster using account '%s' to peer '%s'.",
             m_target_instance->descr().c_str(),
             m_primary_instance->get_connection_options().get_user().c_str(),
             m_primary_instance->descr().c_str());
@@ -692,25 +738,55 @@ void Add_instance::do_run() {
         // disabled before starting GR, otherwise we'd create errant
         // transaction
         if (m_comm_stack == kCommunicationStackMySQL) {
-          m_cluster_impl->create_local_replication_user(m_target_instance,
-                                                        m_options.gr_options);
+          // NOTE: if the recovery users use certificates, we can't change GR's
+          // recovery replication credentials in all possible donors. That would
+          // simply fail, because in any given donor other than the new
+          // instance, using the recovery user of the new instance will fail
+          // (because the certificate only exists on the new instance server).
+          m_cluster_impl->create_local_replication_user(
+              m_target_instance, m_options.cert_subject, m_options.gr_options,
+              !recovery_certificates);
+
+          // if recovery accounts need certificates, we much ensure that the
+          // recovery accounts of all members also exist on the target instance
+          if (recovery_certificates) {
+            m_cluster_impl->create_replication_users_at_instance(
+                m_target_instance);
+          }
 
           // At this point, all Cluster members got the recovery credentials
-          // changed to be able to use the account created for the joining
-          // member so in case of failure, we must restore all
-          restore_recovery_accounts = true;
+          // changed (if certificates aren't needed), to be able to use the
+          // account created for the joining member so in case of failure, we
+          // must restore all
+          restore_recovery_accounts = !recovery_certificates;
 
           DBUG_EXECUTE_IF("fail_add_instance_mysql_stack", {
             // Throw an exception to simulate a failure at
             // this point in addInstance()
             throw std::logic_error("debug");
           });
+        } else if (recovery_certificates && (restore_clone_threshold > 0)) {
+          // reaching this point, we're using 'XCOM' communication stack, the
+          // recovery users use certificates and the recovery process will use
+          // clone. This means that, at the end of the clone, GR in the new
+          // instance will use the recovery user from the seed instance, which
+          // will fail because of the certificates. To solve this, we kind of
+          // imitate the behavior of the MySQL comm stack: we create the new
+          // replication user on all existing members, change the recovery
+          // credentials on them to use the new user (so that the clone leaves
+          // the new instance configured properly) and then revert everything
+          // back
+          m_cluster_impl->create_local_replication_user(
+              m_target_instance, m_options.cert_subject, m_options.gr_options,
+              true);
+
+          restore_recovery_accounts = true;
         }
 
         // Join the instance to the Group Replication group.
         mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance,
-                                   m_options.gr_options, cluster_member_count,
-                                   cfg.get());
+                                   m_options.gr_options, recovery_certificates,
+                                   cluster_member_count, cfg.get());
       }
 
       // Wait until recovery done. Will throw an exception if recovery fails.
@@ -741,10 +817,14 @@ void Add_instance::do_run() {
     // If the instance is not on the Metadata, we must add it.
     if (!is_instance_on_md) {
       m_cluster_impl->add_metadata_for_instance(*m_target_instance,
-                                                m_options.label.get_safe());
+                                                m_options.label.value_or(""));
       m_cluster_impl->get_metadata_storage()->update_instance_attribute(
           m_target_instance->get_uuid(), k_instance_attribute_join_time,
           shcore::Value(join_begin_time));
+
+      m_cluster_impl->get_metadata_storage()->update_instance_attribute(
+          m_target_instance->get_uuid(), k_instance_attribute_cert_subject,
+          shcore::Value(m_options.cert_subject));
 
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
@@ -809,9 +889,22 @@ void Add_instance::do_run() {
     // finished so the credentials for the replication channel (that are
     // cloned to the instance joining) won't match since they were already
     // reset in the Cluster by restore_recovery_account_all_members().
-    if (m_comm_stack == kCommunicationStackMySQL &&
-        m_progress_style != Recovery_progress_style::NOWAIT) {
-      m_cluster_impl->restore_recovery_account_all_members();
+    //
+    // Another scenario to take into account (also detailed above), where in
+    // case of XCOM comm stack, the recovery users needing certificates and
+    // using clone, all members are currently using the new recovery user, which
+    // means that we need to restore them all back to their corresponding users.
+    {
+      auto restore_accounts =
+          (m_comm_stack == kCommunicationStackMySQL) &&
+          !recovery_certificates &&
+          (m_progress_style != Recovery_progress_style::NOWAIT);
+      restore_accounts |= (m_comm_stack != kCommunicationStackMySQL) &&
+                          recovery_certificates &&
+                          (restore_clone_threshold > 0);
+      if (restore_accounts)
+        m_cluster_impl->restore_recovery_account_all_members(
+            recovery_needs_password);
     }
 
     // Only commit transaction once everything is done, so that things don't

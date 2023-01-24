@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/common/cluster_topology_executor.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/provision.h"
@@ -193,13 +194,15 @@ void Rejoin_instance::check_and_resolve_instance_configuration() {
 bool Rejoin_instance::create_replication_user() {
   // Creates the replication user ONLY if not already given.
   // NOTE: User always created at the seed instance.
-  if (!m_options.gr_options.recovery_credentials ||
-      m_options.gr_options.recovery_credentials->user.empty()) {
-    std::tie(m_options.gr_options.recovery_credentials, m_account_host) =
-        m_cluster_impl->create_replication_user(m_target_instance.get());
-    return true;
-  }
-  return false;
+  if (m_options.gr_options.recovery_credentials &&
+      !m_options.gr_options.recovery_credentials->user.empty())
+    return false;
+
+  std::tie(m_options.gr_options.recovery_credentials, m_account_host) =
+      m_cluster_impl->create_replication_user(m_target_instance.get(),
+                                              m_auth_cert_subject);
+
+  return true;
 }
 
 void Rejoin_instance::do_run() {
@@ -256,6 +259,37 @@ void Rejoin_instance::do_run() {
       }
     }
 
+    // get the cert subject to use (we're in a rejoin, so it should be there,
+    // but check it anyway)
+    m_auth_cert_subject =
+        m_cluster_impl->query_cluster_instance_auth_cert_subject(
+            *m_target_instance);
+
+    switch (auto auth_type = m_cluster_impl->query_cluster_auth_type();
+            auth_type) {
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        if (m_auth_cert_subject.empty()) {
+          current_console()->print_error(shcore::str_format(
+              "The cluster's SSL mode is set to '%s' but the instance being "
+              "rejoined doesn't have a valid 'certSubject' option. Please stop "
+              "GR on that instance and then add it back using "
+              "Cluster.<<<addInstance>>>() with the appropriate authentication "
+              "options.",
+              to_string(auth_type).c_str()));
+
+          throw shcore::Exception(
+              shcore::str_format(
+                  "The cluster's SSL mode is set to '%s' but the 'certSubject' "
+                  "option for the instance isn't valid.",
+                  to_string(auth_type).c_str()),
+              SHERR_DBA_MISSING_CERT_OPTION);
+        }
+        break;
+      default:
+        break;
+    }
+
     // Check for various instance specific configuration issues
     check_and_resolve_instance_configuration();
 
@@ -276,8 +310,9 @@ void Rejoin_instance::do_run() {
   std::unique_ptr<mysqlshdk::config::Config> cfg = create_server_config(
       m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
-  console->print_info("Rejoining instance '" + m_target_instance->descr() +
-                      "' to cluster '" + m_cluster_impl->get_name() + "'...");
+  console->print_info(shcore::str_format(
+      "Rejoining instance '%s' to cluster '%s'...",
+      m_target_instance->descr().c_str(), m_cluster_impl->get_name().c_str()));
   console->print_info();
 
   // Make sure the GR plugin is installed (only installed if needed).
@@ -311,7 +346,7 @@ void Rejoin_instance::do_run() {
   //       the cluster excluding the joining node, thus cluster_count must
   //       exclude the rejoining node (cluster size - 1) since it already
   //       belongs to the metadata (BUG#30174191).
-  std::optional<uint64_t> cluster_count =
+  uint64_t cluster_count =
       m_cluster_impl->get_metadata_storage()->get_cluster_size(
           m_cluster_impl->get_id()) -
       1;
@@ -321,6 +356,17 @@ void Rejoin_instance::do_run() {
   // resolution is timestamp(3) irrespective of platform
   std::string join_begin_time =
       m_target_instance->queryf_one_string(0, "", "SELECT NOW(3)");
+
+  bool recovery_certificates{false};
+  switch (m_cluster_impl->query_cluster_auth_type()) {
+    case mysqlsh::dba::Replication_auth_type::CERT_ISSUER:
+    case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+    case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
+    case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      recovery_certificates = true;
+    default:
+      break;
+  }
 
   // If using 'MySQL' communication stack, the account must already
   // exist in the rejoining member since authentication is based on MySQL
@@ -337,8 +383,9 @@ void Rejoin_instance::do_run() {
 
     // Re-create the account in the instance but with binlog disabled before
     // starting GR, otherwise we'd create errant transaction.
-    m_cluster_impl->create_local_replication_user(m_target_instance,
-                                                  m_options.gr_options);
+    m_cluster_impl->create_local_replication_user(
+        m_target_instance, m_auth_cert_subject, m_options.gr_options,
+        !recovery_certificates);
 
     // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
     m_options.gr_options.ip_allowlist = "AUTOMATIC";
@@ -356,7 +403,8 @@ void Rejoin_instance::do_run() {
   }
 
   mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance,
-                             m_options.gr_options, cluster_count, cfg.get());
+                             m_options.gr_options, recovery_certificates,
+                             cluster_count, cfg.get());
 
   if (m_comm_stack == kCommunicationStackMySQL) {
     // We cannot call restore_recovery_account_all_members() without knowing

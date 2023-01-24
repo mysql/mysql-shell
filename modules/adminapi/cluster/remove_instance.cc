@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,7 +96,8 @@ void Remove_instance::undo_remove_instance_metadata(
   m_cluster_impl->get_metadata_storage()->insert_instance(instance_def);
 
   // Recreate the recovery account previously removed too
-  m_cluster_impl->recreate_replication_user(m_target_instance);
+  m_cluster_impl->recreate_replication_user(m_target_instance,
+                                            instance_def.cert_subject);
 }
 
 bool Remove_instance::prompt_to_force_remove() const {
@@ -183,7 +184,7 @@ void Remove_instance::check_protocol_upgrade_possible() const {
 
 void Remove_instance::cleanup_leftover_recovery_account() const {
   // Generate the recovery account username that was created for the instance
-  std::string user = m_cluster_impl->make_replication_user_name(
+  std::string user = Cluster_impl::make_replication_user_name(
       m_instance_id, mysqlshdk::gr::k_group_recovery_user_prefix);
 
   // Get the Cluster's allowedHost

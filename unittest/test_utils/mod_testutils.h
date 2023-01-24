@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -287,7 +287,7 @@ class Testutils : public mysqlsh::Extensible_object {
 
   int wait_for_repl_connection_error(int port, const std::string &channel);
 
-  int wait_for_rpl_applier_error(int port, const std::string &channel);
+  int wait_for_repl_applier_error(int port, const std::string &channel);
 
   std::string wait_member_state(int member_port, const std::string &states,
                                 bool direct_connection);

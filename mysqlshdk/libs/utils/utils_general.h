@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,10 +120,15 @@ class Scoped_callback_list {
 
   void call() {
     if (m_cancelled) return;
-
-    for (const auto &cb : m_callbacks) cb();
-
     m_cancelled = true;  // can only call once (assume cancelled)
+
+    try {
+      for (const auto &cb : m_callbacks) cb();
+    } catch (const std::exception &e) {
+      log_error("Unexpected exception: %s", e.what());
+      throw;
+    }
+
     m_callbacks.clear();
   }
 

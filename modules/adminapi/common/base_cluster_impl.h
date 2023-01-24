@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,20 +46,32 @@ namespace dba {
 
 // User provided option for telling us to assume that the cluster was created
 // with a server where the full update history is reflected in its GTID set
-constexpr inline const char k_cluster_attribute_assume_gtid_set_complete[] =
-    "opt_gtidSetIsComplete";
+inline constexpr std::string_view k_cluster_attribute_assume_gtid_set_complete{
+    "opt_gtidSetIsComplete"};
 
 // host (as in user@host) to use when creating managed replication accounts
-constexpr inline const char k_cluster_attribute_replication_allowed_host[] =
-    "opt_replicationAllowedHost";
+inline constexpr std::string_view k_cluster_attribute_replication_allowed_host{
+    "opt_replicationAllowedHost"};
 
-constexpr const char k_cluster_attribute_transaction_size_limit[] =
-    "opt_transactionSizeLimit";
+inline constexpr std::string_view k_cluster_attribute_transaction_size_limit{
+    "opt_transactionSizeLimit"};
+
+// replication account authentication type
+inline constexpr std::string_view k_cluster_attribute_member_auth_type{
+    "opt_memberAuthType"};
+// replication account certificate issuer
+inline constexpr std::string_view k_cluster_attribute_cert_issuer{
+    "opt_certIssuer"};
 
 // Cluster capabilities
-constexpr inline const char k_cluster_capabilities[] = "capabilities";
+inline constexpr const char k_cluster_capabilities[] = "capabilities";
 
 class Base_cluster_impl {
+ public:
+  static std::string make_replication_user_name(uint32_t server_id,
+                                                std::string_view user_prefix,
+                                                bool server_id_hexa = false);
+
  public:
   Base_cluster_impl(const std::string &cluster_name,
                     std::shared_ptr<Instance> group_server,
@@ -145,6 +157,16 @@ class Base_cluster_impl {
 
   void set_option(const std::string &option, const shcore::Value &value);
 
+  Replication_auth_type query_cluster_auth_type() const;
+  std::string query_cluster_auth_cert_issuer() const;
+
+  std::string query_cluster_instance_auth_cert_subject(
+      std::string_view instance_uuid) const;
+  std::string query_cluster_instance_auth_cert_subject(
+      const mysqlshdk::mysql::IInstance &instance) const {
+    return query_cluster_instance_auth_cert_subject(instance.get_uuid());
+  }
+
   /**
    * Get the tags for a specific Cluster/ReplicaSet
    *
@@ -197,9 +219,6 @@ class Base_cluster_impl {
   std::shared_ptr<Instance> connect_target_instance(
       const mysqlshdk::db::Connection_options &instance_def,
       bool print_error = true, bool allow_account_override = false);
-
-  std::string make_replication_user_name(uint32_t server_id,
-                                         const std::string &user_prefix) const;
 
  protected:
   Cluster_id m_id;

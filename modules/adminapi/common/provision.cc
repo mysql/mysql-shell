@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,6 +41,7 @@ namespace {
 
 void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
                     const mysqlsh::dba::Group_replication_options &gr_opts,
+                    bool requires_certificates,
                     mysqlshdk::config::Config *config,
                     std::optional<bool> single_primary_mode,
                     const std::string &gr_group_name = "",
@@ -87,8 +88,28 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
     }
   }
 
-  // Handle SSL-mode
+  // handle recovery SSL-mode
   {
+    log_debug("SSL modes: %s %s", to_string(gr_opts.ssl_mode).c_str(),
+              requires_certificates ? "(with certificates)"
+                                    : "(without certificates)");
+
+    if (requires_certificates) {
+      using namespace std::literals;
+
+      std::array<std::string_view, 2> var_names{"ssl_cert"sv, "ssl_key"sv};
+
+      for (const auto key : var_names) {
+        auto value = instance.get_sysvar_string(key);
+        if (!value.has_value()) continue;
+
+        auto var_name =
+            shcore::str_format("group_replication_recovery_%.*s",
+                               static_cast<int>(key.size()), key.data());
+        config->set(var_name, *value);
+      }
+    }
+
     // SET the GR SSL variable according to the ssl_mode value (resolved by the
     // caller).
     if (gr_opts.ssl_mode == mysqlsh::dba::Cluster_ssl_mode::DISABLED) {
@@ -104,55 +125,61 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
       config->set("group_replication_recovery_use_ssl",
                   std::optional<bool>{false});
     } else {
+      using namespace std::literals;
+
+      std::array<std::string_view, 6> var_names{"ssl_ca"sv,      "ssl_capath"sv,
+                                                "ssl_cipher"sv,  "ssl_crl"sv,
+                                                "ssl_crlpath"sv, ""sv};
+
+      if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 19))
+        var_names.back() = "tls_version"sv;
+
       // Enable SSL on GR
       config->set("group_replication_recovery_use_ssl",
                   std::optional<bool>{true});
 
-      // Set GR's SSL configurations when memberSslMode is either VERIFY_CA or
-      // VERIFY_IDENTITY. Group Replication SSL settings must be set according
-      // to the corresponding settings used by the Server (copy the values),
-      // regardless of the communication stack in use
+      config->set("group_replication_recovery_ssl_verify_server_cert",
+                  std::optional<bool>{
+                      (gr_opts.ssl_mode ==
+                       mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY)});
 
+      // Set GR's SSL configurations for either VERIFY_CA or VERIFY_IDENTITY.
+      // Group Replication SSL settings must be set according to the
+      // corresponding settings used by the Server (copy the values), regardless
+      // of the communication stack in use
       if (gr_opts.ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA ||
           gr_opts.ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY) {
-        std::string ssl_ca = instance.get_sysvar_string("ssl_ca").value_or("");
-        std::string ssl_capath =
-            instance.get_sysvar_string("ssl_capath").value_or("");
-        std::string ssl_cert =
-            instance.get_sysvar_string("ssl_cert").value_or("");
-        std::string ssl_cipher =
-            instance.get_sysvar_string("ssl_cipher").value_or("");
-        std::string ssl_crl =
-            instance.get_sysvar_string("ssl_crl").value_or("");
-        std::string ssl_crl_path =
-            instance.get_sysvar_string("ssl_crlpath").value_or("");
-        std::string ssl_crl_key =
-            instance.get_sysvar_string("ssl_key").value_or("");
+        for (const auto key : var_names) {
+          if (key.empty()) continue;
 
-        config->set("group_replication_recovery_ssl_ca", ssl_ca);
-        config->set("group_replication_recovery_ssl_capath", ssl_capath);
-        config->set("group_replication_recovery_ssl_cert", ssl_cert);
-        config->set("group_replication_recovery_ssl_cipher", ssl_cipher);
-        config->set("group_replication_recovery_ssl_crl", ssl_crl);
-        config->set("group_replication_recovery_ssl_crlpath", ssl_crl_path);
-        config->set("group_replication_recovery_ssl_key", ssl_crl_key);
+          auto value = instance.get_sysvar_string(key);
+          if (!value.has_value()) continue;
+
+          auto var_name =
+              shcore::str_format("group_replication_recovery_%.*s",
+                                 static_cast<int>(key.size()), key.data());
+          config->set(var_name, *value);
+        }
+
       } else {
         // Reset to the defaults in case the options are already set or
         // persisted with different values
-        instance.set_sysvar_default("group_replication_recovery_ssl_ca");
-        instance.set_sysvar_default("group_replication_recovery_ssl_capath");
-        instance.set_sysvar_default("group_replication_recovery_ssl_cert");
-        instance.set_sysvar_default("group_replication_recovery_ssl_cipher");
-        instance.set_sysvar_default("group_replication_recovery_ssl_crl");
-        instance.set_sysvar_default("group_replication_recovery_ssl_crlpath");
-        instance.set_sysvar_default("group_replication_recovery_ssl_key");
+        for (const auto key : var_names) {
+          if (key.empty()) continue;
+
+          auto var_name =
+              shcore::str_format("group_replication_recovery_%.*s",
+                                 static_cast<int>(key.size()), key.data());
+
+          instance.set_sysvar_default(var_name);
+        }
       }
     }
-
-    // Set the ssl_mode
-    config->set("group_replication_ssl_mode", to_string(gr_opts.ssl_mode),
-                "memberSslMode");
   }
+
+  // Set the ssl_mode
+  config->set("group_replication_ssl_mode", to_string(gr_opts.ssl_mode),
+              "memberSslMode");
 
   // The local_address value is determined based on the given localAddress
   // option (resolved by the caller).
@@ -699,6 +726,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
 
 void start_cluster(const mysqlshdk::mysql::IInstance &instance,
                    const Group_replication_options &gr_opts,
+                   bool requires_certificates,
                    std::optional<bool> multi_primary,
                    mysqlshdk::config::Config *config) {
   assert(config);
@@ -737,7 +765,8 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - Enable GR start on boot;
   // - communication stack (if provided).
   // - transactionSizeLimit (if provided)
-  set_gr_options(instance, gr_opts, config, single_primary_mode);
+  set_gr_options(instance, gr_opts, requires_certificates, config,
+                 single_primary_mode);
 
   if (multi_primary) {
     // Set auto-increment settings (depending on the topology type) on the seed
@@ -769,6 +798,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
 void join_cluster(const mysqlshdk::mysql::IInstance &instance,
                   const mysqlshdk::mysql::IInstance &peer_instance,
                   const Group_replication_options &gr_opts,
+                  bool requires_certificates,
                   std::optional<uint64_t> cluster_size,
                   mysqlshdk::config::Config *config) {
   // An non-null Config is expected.
@@ -825,7 +855,7 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - expel timeout (if provided);
   // - auto-rejoin tries (if provided);
   // - Enable GR start on boot;
-  set_gr_options(instance, gr_opts, config,
+  set_gr_options(instance, gr_opts, requires_certificates, config,
                  std::optional<bool>(single_primary_mode), gr_group_name,
                  gr_view_change_uuid);
 
@@ -854,10 +884,13 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
       !gr_opts.recovery_credentials->user.empty()) {
     log_debug("Setting Group Replication recovery user to '%s'.",
               gr_opts.recovery_credentials->user.c_str());
+
+    mysqlshdk::mysql::Replication_credentials_options options;
+    options.password = gr_opts.recovery_credentials->password.value_or("");
+
     mysqlshdk::mysql::change_replication_credentials(
-        instance, gr_opts.recovery_credentials->user,
-        gr_opts.recovery_credentials->password.value_or(""),
-        mysqlshdk::gr::k_gr_recovery_channel);
+        instance, mysqlshdk::gr::k_gr_recovery_channel,
+        gr_opts.recovery_credentials->user, options);
   }
 
   log_debug("Starting Group Replication to join group...");

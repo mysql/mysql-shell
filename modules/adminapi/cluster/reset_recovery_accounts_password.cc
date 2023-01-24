@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,20 @@ bool Reset_recovery_accounts_password::prompt_to_force_reset() const {
 }
 
 void Reset_recovery_accounts_password::prepare() {
+  // check if changing the pwd actually makes sense
+  switch (auto auth_type = m_cluster.query_cluster_auth_type(); auth_type) {
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_SUBJECT:
+      mysqlsh::current_console()->print_note(shcore::str_format(
+          "The Cluster's authentication type is '%s', which doesn't assign a "
+          "password for the recovery users.\n",
+          to_string(auth_type).c_str()));
+      m_is_no_op = true;
+      return;
+    default:
+      break;
+  }
+
   // Get all cluster instances from the Metadata and their respective GR state.
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
       instance_defs = m_cluster.get_instances_with_state();
@@ -163,16 +177,20 @@ void Reset_recovery_accounts_password::handle_not_online_instances(
     console->print_info();
   }
 }
+
 shcore::Value Reset_recovery_accounts_password::execute() {
+  if (m_is_no_op) return {};
+
   // Determine the recovery user each of the online instances and reset its
   // password
 
   auto console = mysqlsh::current_console();
-  std::string user;
-  std::vector<std::string> hosts;
   std::string primary_rpr = m_cluster.get_cluster_server()->descr();
 
   for (const auto &instance : m_online_instances) {
+    std::string user;
+    std::vector<std::string> hosts;
+
     std::string instance_repr = instance->descr();
     // get recovery user for the instance
     log_debug("Getting recovery user for instance '%s'", instance_repr.c_str());
@@ -204,8 +222,12 @@ shcore::Value Reset_recovery_accounts_password::execute() {
 
     // do a change master on the instance to user the new replication account
     log_debug("Changing '%s'\'s recovery credentials", instance_repr.c_str());
+
+    mysqlshdk::mysql::Replication_credentials_options options;
+    options.password = std::move(password);
+
     mysqlshdk::mysql::change_replication_credentials(
-        *instance, user, password, mysqlshdk::gr::k_gr_recovery_channel);
+        *instance, mysqlshdk::gr::k_gr_recovery_channel, user, options);
   }
 
   // Print appropriate output message depending if some operation was skipped.
@@ -246,10 +268,6 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     console->print_info();
   }
   return shcore::Value();
-}
-
-void Reset_recovery_accounts_password::rollback() {
-  // Do nothing.
 }
 
 void Reset_recovery_accounts_password::finish() {

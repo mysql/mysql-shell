@@ -233,12 +233,10 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 WIPE_SHELL_LOG();
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"mysqlx":"0", report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0", report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 c = dba.createCluster('noxplugin', {gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
-c.addInstance(__sandbox_uri3);
 
 var msg1 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port1 + "'. No value will be assumed for the X protocol address.";
 var msg2 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port2 + "'. No value will be assumed for the X protocol address.";
@@ -253,7 +251,6 @@ c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-testutil.destroySandbox(__mysql_sandbox_port3);
 
 // BUG28056944: cannot add instance after removing its metadata
 //@ BUG28056944 deploy sandboxes.

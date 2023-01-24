@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -282,6 +282,7 @@ ${OPT_INTERACTIVE}
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
+${OPT_CERT_SUBJECT}
 
 The recoveryMethod option supports the following values:
 
@@ -349,10 +350,10 @@ void ReplicaSet::add_instance(
   // object
   execute_with_pool(
       [&]() {
-        impl()->add_instance(instance_def, options->ar_options,
-                             options->clone_options, options->instance_label,
-                             progress_style, options->timeout,
-                             options->interactive(), options->dry_run);
+        impl()->add_instance(
+            instance_def, options->ar_options, options->clone_options,
+            options->instance_label, options->cert_subject, progress_style,
+            options->timeout, options->interactive(), options->dry_run);
         return shcore::Value();
       },
       options->interactive());

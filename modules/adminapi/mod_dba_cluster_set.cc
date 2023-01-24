@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -270,6 +270,7 @@ clone from. IPv6 addresses are not supported for this option.
 cluster instances will automatically start and rejoin when MySQL starts,
 otherwise it must be started manually.
 ${CLUSTER_OPT_MEMBER_SSL_MODE}
+${OPT_CERT_SUBJECT}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 ${CLUSTER_OPT_LOCAL_ADDRESS}
 ${CLUSTER_OPT_EXIT_STATE_ACTION}

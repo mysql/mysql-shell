@@ -5,6 +5,18 @@
 
 // simple_plain should be _norecord to force at least one direct execution of the API in all platforms
 
+// This should combine all server options that are supported (ie won't be reconfigured away)
+// and not mutually exclusive. Other tests derived from this should have this removed.
+
+k_mycnf_options = {
+    sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO', 
+    autocommit:1,
+    require_secure_transport:1,
+    plugin_load:"validate_password",
+    loose_validate_password_policy:"STRONG"
+}
+// TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
+
 function get_open_sessions(session) {
     var r = session.runSql("SELECT processlist_id FROM performance_schema.threads WHERE processlist_user is not null");
     pids = []
@@ -36,11 +48,11 @@ function check_open_sessions(session, ignore_pids) {
 //@<> Setup
 
 // override default sql_mode to test that we always override it
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {"sql_mode":"NO_BACKSLASH_ESCAPES,ANSI_QUOTES"});
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {"sql_mode":"NO_BACKSLASH_ESCAPES,ANSI_QUOTES"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {"sql_mode":"NO_BACKSLASH_ESCAPES,ANSI_QUOTES"});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.options.useWizards = false;
@@ -210,8 +222,8 @@ EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ listRouters
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (1, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (2, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
 
 rs.listRouters();
 
@@ -247,13 +259,17 @@ EXPECT_REPLICAS_USE_SSL(session1, 2);
 reset_instance(session1);
 reset_instance(session2);
 reset_instance(session3);
-
+testutil.changeSandboxConf(__mysql_sandbox_port1, "require_secure_transport", "0");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "skip_ssl", "1");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "require_secure_transport", "0");
 testutil.changeSandboxConf(__mysql_sandbox_port3, "skip_ssl", "1");
+testutil.changeSandboxConf(__mysql_sandbox_port3, "require_secure_transport", "0");
 
+testutil.restartSandbox(__mysql_sandbox_port1);
 testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port3);
 
+session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2 + "?ssl-mode=DISABLED&get-server-public-key=1");
 session3 = mysql.getSession(__sandbox_uri3 + "?ssl-mode=DISABLED&get-server-public-key=1");
 
@@ -276,6 +292,7 @@ rs = dba.createReplicaSet("rs", {gtidSetIsComplete:1});
 
 EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri3);}, `Instance '127.0.0.1:${__mysql_sandbox_port3}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);
 EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri2);}, `Instance '127.0.0.1:${__mysql_sandbox_port2}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);
+
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

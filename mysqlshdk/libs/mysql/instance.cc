@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -158,54 +158,38 @@ const std::string &Instance::get_version_compile_machine() const {
   return m_version_compile_machine;
 }
 
-namespace {
-bool sysvar_to_bool(const std::string &name, const std::string &str_value) {
-  const char *value = str_value.c_str();
-  bool ret_val = false;
-  if (shcore::str_caseeq(value, "YES") || shcore::str_caseeq(value, "TRUE") ||
-      shcore::str_caseeq(value, "1") || shcore::str_caseeq(value, "ON"))
-    ret_val = true;
-  else if (shcore::str_caseeq(value, "NO") ||
-           shcore::str_caseeq(value, "FALSE") ||
-           shcore::str_caseeq(value, "0") || shcore::str_caseeq(value, "OFF"))
-    ret_val = false;
-  else
-    throw std::runtime_error("The variable " + name + "is not boolean.");
-  return ret_val;
-}
-}  // namespace
-
-std::optional<bool> Instance::get_sysvar_bool(const std::string &name,
+std::optional<bool> Instance::get_sysvar_bool(std::string_view name,
                                               const Var_qualifier scope) const {
-  auto variables = get_system_variables({name}, scope);
-  if (variables[name]) return sysvar_to_bool(name, *variables[name]);
+  auto value = get_system_variable(name, scope);
+  if (!value.has_value()) return {};
 
-  return {};
+  if (shcore::str_caseeq(*value, "YES", "TRUE", "1", "ON")) return true;
+  if (shcore::str_caseeq(*value, "NO", "FALSE", "0", "OFF")) return false;
+
+  throw std::runtime_error(
+      shcore::str_format("The variable %.*s is not boolean.",
+                         static_cast<int>(name.size()), name.data()));
 }
 
 std::optional<std::string> Instance::get_sysvar_string(
-    const std::string &name, const Var_qualifier scope) const {
-  return get_system_variables({name}, scope)[name];
+    std::string_view name, const Var_qualifier scope) const {
+  return get_system_variable(name, scope);
 }
 
 std::optional<int64_t> Instance::get_sysvar_int(
-    const std::string &name, const Var_qualifier scope) const {
-  auto variables = get_system_variables({name}, scope);
-  if (variables[name]) {
-    const auto &value = *variables[name];
+    std::string_view name, const Var_qualifier scope) const {
+  auto value = get_system_variable(name, scope);
+  if (!value.has_value()) return {};
 
-    if (!value.empty()) {
-      try {
-        return shcore::lexical_cast<int64_t>(value);
+  if (value->empty()) return {};
 
-      } catch (const std::invalid_argument &) {
-        throw std::runtime_error("The variable " + name +
-                                 " is not an integer.");
-      }
-    }
+  try {
+    return shcore::lexical_cast<int64_t>(*value);
+  } catch (const std::invalid_argument &) {
+    throw std::runtime_error(
+        shcore::str_format("The variable %.*s is not an integer.",
+                           static_cast<int>(name.size()), name.data()));
   }
-
-  return {};
 }
 
 /**
@@ -315,62 +299,28 @@ void Instance::set_sysvar(const std::string &name, const bool value,
   query(set_stmt);
 }
 
-std::map<std::string, std::optional<std::string>>
-Instance::get_system_variables(const std::vector<std::string> &names,
-                               const Var_qualifier scope) const {
-  std::map<std::string, std::optional<std::string>> ret_val;
+std::optional<std::string> Instance::get_system_variable(
+    std::string_view name, const Var_qualifier scope) const {
+  shcore::sqlstring query;
+  if (scope == Var_qualifier::GLOBAL)
+    query = "show GLOBAL variables where ! in (?)"_sql;
+  else if (scope == Var_qualifier::SESSION)
+    query = "show SESSION variables where ! in (?)"_sql;
+  else
+    throw std::runtime_error(
+        "Invalid variable scope to get variables value, "
+        "only GLOBAL and SESSION is supported.");
 
-  std::shared_ptr<db::IResult> result;
-  if (!names.empty()) {
-    std::string query_format;
-    if (scope == Var_qualifier::GLOBAL)
-      query_format = "show GLOBAL variables where ! in (?";
-    else if (scope == Var_qualifier::SESSION)
-      query_format = "show SESSION variables where ! in (?";
-    else
-      throw std::runtime_error(
-          "Invalid variable scope to get variables value, "
-          "only GLOBAL and SESSION is supported.");
+  query << "variable_name" << name;
+  query.done();
 
-    ret_val[names[0]] = std::nullopt;
-
-    for (size_t index = 1; index < names.size(); index++) {
-      query_format.append(", ?");
-      ret_val[names[index]] = std::nullopt;
-    }
-
-    query_format.append(")");
-
-    shcore::sqlstring query(query_format.c_str(), 0);
-
-    query << "variable_name";
-
-    for (const auto &name : names) query << name;
-
-    query.done();
-
-    result = this->query(query);
-  } else {
-    if (scope == Var_qualifier::GLOBAL)
-      result = query("SHOW GLOBAL VARIABLES");
-    else if (scope == Var_qualifier::SESSION)
-      result = query("SHOW SESSION VARIABLES");
-    else
-      throw std::runtime_error(
-          "Invalid variable scope to get variables value, "
-          "only GLOBAL and SESSION is supported.");
-  }
+  auto result = this->query(query);
+  if (!result) return {};
 
   auto row = result->fetch_one();
-  while (row) {
-    if (row->is_null(1))
-      ret_val[row->get_string(0)] = std::nullopt;
-    else
-      ret_val[row->get_string(0)] = row->get_string(1);
-    row = result->fetch_one();
-  }
+  if (!row || row->is_null(1)) return {};
 
-  return ret_val;
+  return row->get_string(1);
 }
 
 std::map<std::string, std::optional<std::string>>
@@ -529,10 +479,7 @@ void Instance::install_plugin(const std::string &plugin_name) const {
 
   // Install the GR plugin.
   try {
-    std::string stmt_fmt = "INSTALL PLUGIN ! SONAME ?";
-    shcore::sqlstring stmt = shcore::sqlstring(stmt_fmt.c_str(), 0);
-    stmt << plugin_name;
-    stmt << plugin_lib;
+    auto stmt = ("INSTALL PLUGIN ! SONAME ?"_sql << plugin_name << plugin_lib);
     stmt.done();
     execute(stmt);
   } catch (const std::exception &err) {
@@ -550,10 +497,9 @@ void Instance::install_plugin(const std::string &plugin_name) const {
  * @throw std::runtime_error if an error occurs uninstalling the plugin.
  */
 void Instance::uninstall_plugin(const std::string &plugin_name) const {
-  std::string stmt_fmt = "UNINSTALL PLUGIN !";
-  shcore::sqlstring stmt = shcore::sqlstring(stmt_fmt.c_str(), 0);
-  stmt << plugin_name;
+  auto stmt = ("UNINSTALL PLUGIN !"_sql << plugin_name);
   stmt.done();
+
   // Uninstall the plugin.
   try {
     execute(stmt);
@@ -567,49 +513,45 @@ void Instance::uninstall_plugin(const std::string &plugin_name) const {
 /**
  * Create the specified new user.
  *
- * @param user string with the username part for the user account to create.
- * @param host string with the host part of the user account to create.
- * @param pwd string with the password for the user account.
- * @param grants vector of tuples with with the privileges to grant on objects.
- *               The tuple has three elements: the first is a string with a
- *               comma separated list of the privileges to grant (e.g., "SELECT,
- *               INSERT, UPDATE"), the second is a string with the target
- *               object to grant those privileges on (e.g., "mysql.*"), and the
- *               third is a boolean value indicating if the grants will be
- *               given with the "GRANT OPTION" privilege (true) or not (false).
- * @param disable_pwd_expire boolean indicating if password expiration will be
- *                           disabled (true) or not. By default, false: no
- *                           password expiration policy is set.
+ * @param options
  */
-void Instance::create_user(
-    const std::string &user, const std::string &host, const std::string &pwd,
-    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    bool disable_pwd_expire) const {
-  // Create the user
-  std::string create_stmt_fmt =
-      "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*((*/ ? /*))*/";
-  if (disable_pwd_expire) {
-    // Disable password expiration for user (if desired).
-    create_stmt_fmt.append(" PASSWORD EXPIRE NEVER");
-  }
-  shcore::sqlstring create_stmt = shcore::sqlstring(create_stmt_fmt.c_str(), 0);
-  create_stmt << user;
-  create_stmt << host;
-  create_stmt << pwd;
-  create_stmt.done();
-  execute(create_stmt);
+void Instance::create_user(std::string_view user, std::string_view host,
+                           const Create_user_options &options) const {
+  auto user_stmt = ("CREATE USER IF NOT EXISTS ?@?"_sql << user << host).str();
 
-  // Grant privileges
-  for (size_t i = 0; i < grants.size(); i++) {
-    std::string grant_stmt_fmt = "GRANT " + std::get<0>(grants[i]) + " ON " +
-                                 std::get<1>(grants[i]) + " TO ?@?";
-    if (std::get<2>(grants[i]))
-      grant_stmt_fmt = grant_stmt_fmt + " WITH GRANT OPTION";
-    shcore::sqlstring grant_stmt = shcore::sqlstring(grant_stmt_fmt.c_str(), 0);
-    grant_stmt << user;
-    grant_stmt << host;
-    grant_stmt.done();
-    execute(grant_stmt);
+  if (options.password.has_value())
+    user_stmt.append(
+        (" IDENTIFIED BY /*((*/ ? /*))*/"_sql << *options.password).str());
+
+  if (options.cert_issuer.empty() && options.cert_subject.empty()) {
+    user_stmt.append(" REQUIRE NONE");
+  } else if (!options.cert_issuer.empty() && !options.cert_subject.empty()) {
+    user_stmt.append((" REQUIRE ISSUER ? AND SUBJECT ?"_sql
+                      << options.cert_issuer << options.cert_subject)
+                         .str());
+
+  } else {
+    if (!options.cert_issuer.empty())
+      user_stmt.append((" REQUIRE ISSUER ?"_sql << options.cert_issuer).str());
+    else
+      user_stmt.append(
+          (" REQUIRE SUBJECT ?"_sql << options.cert_subject).str());
+  }
+
+  if (options.password.has_value() && options.disable_pwd_expire)
+    user_stmt.append(" PASSWORD EXPIRE NEVER");
+
+  execute(user_stmt);
+
+  // grant privileges
+  for (const auto &grant : options.grants) {
+    auto grant_stmt = shcore::str_format(
+        "GRANT %s ON %s TO ?@?%s", grant.privileges.c_str(),
+        grant.target.c_str(), grant.grant_option ? " WITH GRANT OPTION" : "");
+
+    shcore::sqlstring sql_str(grant_stmt.c_str(), 0);
+    (sql_str << user << host).done();
+    execute(sql_str);
   }
 }
 
@@ -621,14 +563,9 @@ void Instance::create_user(
  */
 void Instance::drop_user(const std::string &user, const std::string &host,
                          bool if_exists) const {
-  // Drop the user
-  std::string drop_stmt_fmt =
-      if_exists ? "DROP USER IF EXISTS ?@?" : "DROP USER ?@?";
-  shcore::sqlstring drop_stmt = shcore::sqlstring(drop_stmt_fmt.c_str(), 0);
-  drop_stmt << user;
-  drop_stmt << host;
-  drop_stmt.done();
-  execute(drop_stmt);
+  auto stmt = (if_exists ? "DROP USER IF EXISTS ?@?"_sql : "DROP USER ?@?"_sql);
+  (stmt << user << host).done();
+  execute(stmt);
 }
 
 /**

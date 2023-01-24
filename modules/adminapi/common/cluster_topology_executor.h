@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,11 +21,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_COMMON_INSTANCE_MANAGER_H_
-#define MODULES_ADMINAPI_COMMON_INSTANCE_MANAGER_H_
+#ifndef MODULES_ADMINAPI_COMMON_CLUSTER_TOPOLOGY_EXECUTOR_H_
+#define MODULES_ADMINAPI_COMMON_CLUSTER_TOPOLOGY_EXECUTOR_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/mod_dba.h"
@@ -104,7 +107,7 @@ class Add_instance {
     } else {
       m_progress_style = Recovery_progress_style::PROGRESSBAR;
     }
-  };
+  }
 
   Add_instance(const Add_instance &) = delete;
   Add_instance(Add_instance &&) = delete;
@@ -168,7 +171,7 @@ class Remove_instance {
 
     m_target_address =
         m_target_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
-  };
+  }
 
   Remove_instance(const Remove_instance &) = delete;
   Remove_instance(Remove_instance &&) = delete;
@@ -256,12 +259,11 @@ class Rejoin_instance {
   explicit Rejoin_instance(
       Cluster_impl *cluster,
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const cluster::Rejoin_instance_options &options,
-      bool switch_comm_stack = false, bool ignore_cluster_set = false,
-      bool within_reboot_cluster = false)
+      cluster::Rejoin_instance_options options, bool switch_comm_stack = false,
+      bool ignore_cluster_set = false, bool within_reboot_cluster = false)
       : m_cluster_impl(cluster),
         m_target_instance(target_instance),
-        m_options(options),
+        m_options{std::move(options)},
         m_is_switching_comm_stack(switch_comm_stack),
         m_ignore_cluster_set(ignore_cluster_set),
         m_within_reboot_cluster(within_reboot_cluster) {
@@ -301,6 +303,7 @@ class Rejoin_instance {
   bool m_ignore_cluster_set = false;
   std::string m_account_host;
   bool m_within_reboot_cluster = false;
+  std::string m_auth_cert_subject;
 };
 
 }  // namespace cluster
@@ -390,4 +393,4 @@ class Reboot_cluster_from_complete_outage {
 
 }  // namespace mysqlsh::dba
 
-#endif  // MODULES_ADMINAPI_COMMON_INSTANCE_MANAGER_H_
+#endif  // MODULES_ADMINAPI_COMMON_CLUSTER_TOPOLOGY_EXECUTOR_H_

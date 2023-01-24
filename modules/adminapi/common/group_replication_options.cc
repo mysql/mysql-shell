@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,8 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <array>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
@@ -622,7 +624,8 @@ const shcore::Option_pack_def<Reboot_group_replication_options>
 }
 
 void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
-  if (kClusterSSLModeValues.count(shcore::str_upper(value)) == 0) {
+  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
     std::string valid_values = shcore::str_join(kClusterSSLModeValues, ",");
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value for %s option. Supported values: %s.",

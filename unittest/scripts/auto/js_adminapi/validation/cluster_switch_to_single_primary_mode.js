@@ -135,8 +135,8 @@ The cluster successfully switched to Single-Primary mode.
 //@<OUT> WL#12052: Switch to single-primary mode defining which shall be the primary {VER(>=8.0.13)}
 Switching cluster 'cluster' to Single-Primary mode...
 
-Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY to SECONDARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' remains PRIMARY.
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY to SECONDARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was switched from PRIMARY to SECONDARY.
 
 WARNING: Existing connections that expected a R/W connection must be disconnected, i.e. instances that became SECONDARY.

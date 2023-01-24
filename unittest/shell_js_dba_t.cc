@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -375,43 +375,6 @@ TEST_F(Shell_js_dba_tests, cluster_multimaster_interactive) {
   // Tests cluster functionality, adding, removing instances
   // error conditions.
   validate_interactive("dba_cluster_multimaster_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
-  _options->wizards = false;
-  reset_replayable_shell();
-  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
-
-  validate_interactive("dba_cluster_no_misconfigurations.js");
-
-  std::vector<std::string> log = {
-      // "DBA: root@localhost:" + _mysql_sandbox_port1 +
-      //     " : Server variable binlog_format was changed from 'MIXED' to
-      //     'ROW'",
-      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_ports[0]) +
-      " : Server variable binlog_checksum was changed from 'CRC32' to "
-      "'NONE'"};
-
-  MY_EXPECT_LOG_NOT_CONTAINS(log);
-}
-
-TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
-  _options->interactive = true;
-  reset_replayable_shell();
-
-  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
-
-  validate_interactive("dba_cluster_no_misconfigurations_interactive.js");
-
-  std::vector<std::string> log = {
-      // "DBA: root@localhost:" + _mysql_sandbox_port1 +
-      //     " : Server variable binlog_format was changed from 'MIXED' to
-      //     'ROW'",
-      "DBA: root@localhost:" + std::to_string(_mysql_sandbox_ports[0]) +
-      " : Server variable binlog_checksum was changed from 'CRC32' to "
-      "'NONE'"};
-
-  MY_EXPECT_LOG_NOT_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_mts) {

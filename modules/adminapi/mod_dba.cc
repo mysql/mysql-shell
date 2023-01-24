@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -239,6 +239,27 @@ to disconnect existing connections from instances that are marked to be hidden.
 @note '_hidden' and '_disconnect_existing_sessions_when_hidden' can be useful to shut
 down the instance and perform maintenance on it without disrupting incoming
 application traffic.
+)*");
+
+REGISTER_HELP(OPT_MEMBER_AUTH_TYPE,
+              "@li memberAuthType: controls the authentication type to use for "
+              "the internal replication accounts.");
+REGISTER_HELP(
+    OPT_CERT_ISSUER,
+    "@li certIssuer: common certificate issuer to use when 'memberAuthType' "
+    "contains either \"CERT_ISSUER\" or \"CERT_SUBJECT\".");
+REGISTER_HELP(OPT_CERT_SUBJECT,
+              "@li certSubject: instance's certificate subject to use when "
+              "'memberAuthType' contains \"CERT_SUBJECT\".");
+
+REGISTER_HELP_DETAIL_TEXT(OPT_MEMBER_AUTH_TYPE_EXTRA, R"*(
+The memberAuthType option supports the following values:
+
+@li PASSWORD: account authenticates with password only.
+@li CERT_ISSUER: account authenticates with client certificate, which must match the expected issuer (see 'certIssuer' option).
+@li CERT_SUBJECT: account authenticates with client certificate, which must match the expected issuer and subject (see 'certSubject' option).
+@li CERT_ISSUER_PASSWORD: combines both "CERT_ISSUER" and "PASSWORD" values.
+@li CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD" values.
 )*");
 
 /*
@@ -1271,6 +1292,9 @@ ${OPT_INTERACTIVE}
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.
 ${CLUSTER_OPT_MEMBER_SSL_MODE}
+${OPT_MEMBER_AUTH_TYPE}
+${OPT_CERT_ISSUER}
+${OPT_CERT_SUBJECT}
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 @li groupName: string value with the Group Replication group name UUID to be
@@ -1340,6 +1364,13 @@ Group Replication setup, enabling use of MySQL Router and the shell AdminAPI
 for managing it.
 
 ${CLUSTER_OPT_MEMBER_SSL_MODE_DETAIL}
+
+${OPT_MEMBER_AUTH_TYPE_EXTRA}
+
+When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate is used
+as its client certificate when authenticating replication channels with peer
+servers. memberSslMode must be at least REQUIRED, although VERIFY_CA or
+VERIFY_IDENTITY are recommended for additional security.
 
 ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
@@ -1859,6 +1890,26 @@ internal replication accounts (i.e. 'mysql_innodb_rs_###'@'hostname'). Default i
 It must be possible for any member of the ReplicaSet to connect to any other
 member using accounts with this hostname value.
 ${OPT_INTERACTIVE}
+${OPT_MEMBER_AUTH_TYPE}
+${OPT_CERT_ISSUER}
+${OPT_CERT_SUBJECT}
+@li replicationSslMode: SSL mode to use to configure the asynchronous replication channels of the replicaset.
+
+The replicationSslMode option supports the following values:
+
+@li DISABLED: TLS encryption is disabled for the replication channel.
+@li REQUIRED: TLS encryption is enabled for the replication channel.
+@li VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS certificate against the configured Certificate Authority (CA) certificates.
+@li VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer server certificate matches the host to which the connection is attempted.
+@li AUTO: TLS encryption will be enabled if supported by the instance, otherwise disabled.
+
+If replicationSslMode is not specified AUTO will be used by default.
+
+${OPT_MEMBER_AUTH_TYPE_EXTRA}
+
+When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate is used as its client certificate when authenticating replication channels
+with peer servers. replicationSslMode must be at least REQUIRED, although VERIFY_CA or VERIFY_IDENTITY are recommended for additional security.
+
 )*");
 /**
  * $(DBA_CREATEREPLICASET_BRIEF)

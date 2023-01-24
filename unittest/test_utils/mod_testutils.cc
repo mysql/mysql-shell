@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,9 +61,9 @@
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -230,7 +230,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("waitForReplConnectionError",
          &Testutils::wait_for_repl_connection_error, "port", "?channel",
          "group_replication_recovery");
-  expose("waitForRplApplierError", &Testutils::wait_for_rpl_applier_error,
+  expose("waitForReplApplierError", &Testutils::wait_for_repl_applier_error,
          "port", "?channel", "");
   expose("injectGtidSet", &Testutils::inject_gtid_set, "port", "gtidset");
 
@@ -1011,7 +1011,11 @@ void Testutils::stop_group(const shcore::Array_t &ports) {
           }
           session->connect(cnx_opt);
           ++current;
-          session->execute("stop group_replication");
+          try {
+            session->execute("stop group_replication");
+          } catch (const shcore::Error &e) {
+            std::cerr << "STOP GR@" << p << ": " << e.format() << "\n";
+          }
 
           session->close();
 
@@ -2488,13 +2492,13 @@ int Testutils::wait_for_repl_connection_error(int port,
  * Waits until the given rpl applier channel stops and errors out.
  */
 #if DOXYGEN_JS
-Undefined Testutils::waitForRplApplierError(Integer port, String channel);
+Undefined Testutils::waitForReplApplierError(Integer port, String channel);
 #elif DOXYGEN_PY
-None Testutils::wait_for_rpl_applier_error(int port, str channel);
+None Testutils::wait_for_repl_applier_error(int port, str channel);
 #endif
 ///@}
-int Testutils::wait_for_rpl_applier_error(int port,
-                                          const std::string &channel) {
+int Testutils::wait_for_repl_applier_error(int port,
+                                           const std::string &channel) {
   int elapsed_time = 0;
   int last_error_num = 0;
   std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
@@ -3112,56 +3116,52 @@ str Testutils::ssl_create_ca(str s, String issuer);
 ///@}
 std::string Testutils::ssl_create_ca(const std::string &name,
                                      const std::string &issuer) {
-  if (!_skip_server_interaction) {
-    std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
-    if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
+  if (_skip_server_interaction) return {};
 
-    std::string key_path = shcore::path::join_path(basedir, name + "-key.pem");
-    std::string req_path = shcore::path::join_path(basedir, name + "-req.pem");
-    std::string ca_path = shcore::path::join_path(basedir, name + ".pem");
+  std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
+  if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
 
-    std::string cmd;
+  std::string key_path = shcore::path::join_path(basedir, name + "-key.pem");
+  std::string req_path = shcore::path::join_path(basedir, name + "-req.pem");
+  std::string ca_path = shcore::path::join_path(basedir, name + ".pem");
 
-    std::string cav3_ext = shcore::path::join_path(basedir, "cav3.ext");
-    std::string certv3_ext = shcore::path::join_path(basedir, "certv3.ext");
-    shcore::delete_file(cav3_ext);
-    shcore::delete_file(certv3_ext);
+  std::string cav3_ext = shcore::path::join_path(basedir, "cav3.ext");
+  std::string certv3_ext = shcore::path::join_path(basedir, "certv3.ext");
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
 
-    shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
-    shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
+  shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
+  shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
 
-    std::string keyfmt =
-        "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $ca-key.pem$ "
-        "-subj $subj$ -out $ca-req.pem$ "
-        "&& openssl rsa -in $ca-key.pem$ -out $ca-key.pem$";
+  std::string_view keyfmt =
+      "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $ca-key.pem$ "
+      "-subj $subj$ -out $ca-req.pem$ && openssl rsa -in $ca-key.pem$ -out "
+      "$ca-key.pem$";
 
-    cmd = shcore::str_replace(keyfmt, "$ca-key.pem$", key_path.c_str());
-    cmd = shcore::str_replace(cmd, "$subj$", issuer.c_str());
-    cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
+  std::string cmd;
+  cmd = shcore::str_replace(keyfmt, "$ca-key.pem$", key_path);
+  cmd = shcore::str_replace(cmd, "$subj$", issuer);
+  cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path);
 
-    dprint("-> " + cmd);
-    if (system(cmd.c_str()) != 0)
-      throw std::runtime_error("CA creation failed");
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0) throw std::runtime_error("CA creation failed");
 
-    std::string certfmt =
-        "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -CAcreateserial "
-        "-req -in $ca-req.pem$ -signkey $ca-key.pem$ -out $ca.pem$";
-    cmd = shcore::str_replace(certfmt, "$ca-key.pem$", key_path.c_str());
-    cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
-    cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path.c_str());
-    cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext.c_str());
+  std::string_view certfmt =
+      "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -CAcreateserial "
+      "-req -in $ca-req.pem$ -signkey $ca-key.pem$ -out $ca.pem$";
+  cmd = shcore::str_replace(certfmt, "$ca-key.pem$", key_path);
+  cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path);
+  cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path);
+  cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext);
 
-    dprint("-> " + cmd);
-    if (system(cmd.c_str()) != 0)
-      throw std::runtime_error("CA creation failed");
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0) throw std::runtime_error("CA creation failed");
 
-    shcore::delete_file(req_path);
-    shcore::delete_file(cav3_ext);
-    shcore::delete_file(certv3_ext);
+  shcore::delete_file(req_path);
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
 
-    return ca_path;
-  }
-  return "";
+  return ca_path;
 }
 
 //!<  @name Testing Utilities
@@ -3191,73 +3191,68 @@ str Testutils::ssl_create_cert(str name, str caname, str subj, int sbport);
 std::string Testutils::ssl_create_cert(const std::string &name,
                                        const std::string &caname,
                                        const std::string &subj, int sbport) {
-  if (!_skip_server_interaction) {
-    std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
-    std::string sbdir = sbport == 0 ? basedir : get_sandbox_datadir(sbport);
+  if (_skip_server_interaction) return {};
 
-    std::string ca_key_path =
-        shcore::path::join_path(basedir, caname + "-key.pem");
-    std::string ca_path = shcore::path::join_path(basedir, caname + ".pem");
+  std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
+  std::string sbdir = sbport == 0 ? basedir : get_sandbox_datadir(sbport);
 
-    if (sbport != 0) {
-      // first copy the CA to the target dir
-      shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca.pem"));
-      // Note: in reality, I don't think we would deploy the CA key too, but we
-      // do to overwrite the one generated by default
-      shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca-key.pem"));
-    }
-    {
-      std::string key_path = shcore::path::join_path(sbdir, name + "-key.pem");
-      std::string req_path = shcore::path::join_path(sbdir, name + "-req.pem");
-      std::string cert_path =
-          shcore::path::join_path(sbdir, name + "-cert.pem");
+  std::string ca_key_path =
+      shcore::path::join_path(basedir, caname + "-key.pem");
+  std::string ca_path = shcore::path::join_path(basedir, caname + ".pem");
 
-      std::string cmd;
-
-      std::string cav3_ext = shcore::path::join_path(sbdir, "cav3.ext");
-      std::string certv3_ext = shcore::path::join_path(sbdir, "certv3.ext");
-      shcore::delete_file(cav3_ext);
-      shcore::delete_file(certv3_ext);
-
-      shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
-      shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
-
-      std::string keyfmt =
-          "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout "
-          "$cert-key.pem$ "
-          "-subj '$subj$' -out $cert-req.pem$ "
-          "&& openssl rsa -in $cert-key.pem$ -out $cert-key.pem$";
-
-      cmd = shcore::str_replace(keyfmt, "$cert-key.pem$", key_path.c_str());
-      cmd = shcore::str_replace(cmd, "$subj$", subj.c_str());
-      cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
-
-      dprint("-> " + cmd);
-      if (system(cmd.c_str()) != 0)
-        throw std::runtime_error("cert creation failed");
-
-      std::string certfmt =
-          "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ "
-          "-req -in $cert-req.pem$ -CA $ca.pem$ -CAkey $ca-key.pem$ "
-          "-CAcreateserial -out $cert.pem$";
-      cmd = shcore::str_replace(certfmt, "$ca-key.pem$", ca_key_path.c_str());
-      cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cert.pem$", cert_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext.c_str());
-
-      dprint("-> " + cmd);
-      if (system(cmd.c_str()) != 0)
-        throw std::runtime_error("cert creation failed");
-
-      shcore::delete_file(req_path);
-      shcore::delete_file(cav3_ext);
-      shcore::delete_file(certv3_ext);
-
-      return cert_path;
-    }
+  if (sbport != 0) {
+    // first copy the CA to the target dir
+    shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca.pem"));
+    // Note: in reality, I don't think we would deploy the CA key too, but we
+    // do to overwrite the one generated by default
+    shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca-key.pem"));
   }
-  return "";
+
+  std::string key_path = shcore::path::join_path(sbdir, name + "-key.pem");
+  std::string req_path = shcore::path::join_path(sbdir, name + "-req.pem");
+  std::string cert_path = shcore::path::join_path(sbdir, name + "-cert.pem");
+
+  std::string cav3_ext = shcore::path::join_path(sbdir, "cav3.ext");
+  std::string certv3_ext = shcore::path::join_path(sbdir, "certv3.ext");
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
+
+  shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
+  shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
+
+  std::string_view keyfmt =
+      "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $cert-key.pem$ "
+      "-subj '$subj$' -out $cert-req.pem$ && openssl rsa -in $cert-key.pem$ "
+      "-out $cert-key.pem$";
+
+  std::string cmd;
+  cmd = shcore::str_replace(keyfmt, "$cert-key.pem$", key_path);
+  cmd = shcore::str_replace(cmd, "$subj$", subj);
+  cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path);
+
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0)
+    throw std::runtime_error("cert creation failed");
+
+  std::string_view certfmt =
+      "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -req -in "
+      "$cert-req.pem$ -CA $ca.pem$ -CAkey $ca-key.pem$ -CAcreateserial -out "
+      "$cert.pem$";
+  cmd = shcore::str_replace(certfmt, "$ca-key.pem$", ca_key_path);
+  cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path);
+  cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path);
+  cmd = shcore::str_replace(cmd, "$cert.pem$", cert_path);
+  cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext);
+
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0)
+    throw std::runtime_error("cert creation failed");
+
+  shcore::delete_file(req_path);
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
+
+  return cert_path;
 }
 
 std::string Testutils::fetch_captured_stdout(bool eat_one) {

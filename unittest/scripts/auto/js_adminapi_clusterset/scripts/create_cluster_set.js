@@ -26,7 +26,7 @@ EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("my::clusterset")}, "Clus
 EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("")}, "The ClusterSet name cannot be empty.", "ArgumentError");
 EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("1234567890123456789012345678901234567890123456789012345678901234")}, "The ClusterSet name can not be greater than 63 characters", "ArgumentError");
 EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS", {clusterSetReplicationSslMode: 1})}, "Argument #2: Option 'clusterSetReplicationSslMode' is expected to be of type String, but is Integer", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS", {clusterSetReplicationSslMode: "YES"})}, "Argument #2: Invalid value for clusterSetReplicationSslMode option. Supported values: AUTO,DISABLED,REQUIRED.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS", {clusterSetReplicationSslMode: "YES"})}, "Argument #2: Invalid value for clusterSetReplicationSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.", "ArgumentError");
 EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS", {invalidOption: true})}, "Argument #2: Invalid options: invalidOption", "ArgumentError");
 
 //@<> On a disconnected Cluster

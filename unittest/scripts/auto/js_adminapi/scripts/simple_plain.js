@@ -1,6 +1,25 @@
 // Plain cluster test, use as a template for other tests that check
 // a specific feature/aspect across the whole API
 
+// This should combine all server options that are supported (ie won't be reconfigured away)
+// and not mutually exclusive. Other tests derived from this should have this removed.
+
+k_mycnf_options = {
+    sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO', 
+    autocommit:1,
+    require_secure_transport:1,
+    loose_group_replication_consistency:"BEFORE",
+}
+// TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
+
+if (__version_num > 80000) {
+    k_mycnf_options = {
+        plugin_load:"validate_password",
+        loose_validate_password_policy:"STRONG",
+        ...k_mycnf_options
+    }
+}
+
 function get_open_sessions(session) {
     var r = session.runSql("SELECT processlist_id FROM performance_schema.threads WHERE processlist_user is not null");
     pids = []
@@ -31,9 +50,9 @@ function check_open_sessions(session, ignore_pids) {
 
 //@<> Setup
 // override default sql_mode to test that we always override it
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES'});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.options.useWizards = false;
 
@@ -68,7 +87,6 @@ check_open_sessions(session2, expected_pids2);
 shell.connect(__sandbox_uri1);
 
 expected_pids1 = get_open_sessions(session1);
-
 cluster = dba.createCluster("mycluster");
 
 check_open_sessions(session1, expected_pids1);
@@ -236,8 +254,8 @@ check_open_sessions(session2, expected_pids2);
 
 //@<> listRouters
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (1, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (2, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
 
 cluster.listRouters();
 

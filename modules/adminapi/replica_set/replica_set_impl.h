@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,7 +81,8 @@ class Replica_set_impl : public Base_cluster_impl {
   void add_instance(const std::string &instance_def,
                     const Async_replication_options &ar_options,
                     const Clone_options &clone_options,
-                    const mysqlshdk::null_string &label,
+                    const std::string &label,
+                    const std::string &auth_cert_subject,
                     Recovery_progress_style progress_style, int sync_timeout,
                     bool interactive, bool dry_run);
 
@@ -144,7 +145,8 @@ class Replica_set_impl : public Base_cluster_impl {
                              mysqlshdk::mysql::IInstance *slave = nullptr);
 
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
-  create_replication_user(mysqlshdk::mysql::IInstance *slave, bool dry_run,
+  create_replication_user(mysqlshdk::mysql::IInstance *slave,
+                          std::string_view auth_cert_subject, bool dry_run,
                           mysqlshdk::mysql::IInstance *master = nullptr);
 
  private:
@@ -164,7 +166,8 @@ class Replica_set_impl : public Base_cluster_impl {
                              mysqlshdk::mysql::IInstance *master,
                              Instance *target_instance,
                              Async_replication_options *ar_options,
-                             Clone_options *clone_options, bool interactive);
+                             Clone_options *clone_options,
+                             const std::string &cert_subject, bool interactive);
 
   void validate_rejoin_instance(Global_topology_manager *topology_mng,
                                 Instance *target, Clone_options *clone_options,
@@ -223,6 +226,7 @@ class Replica_set_impl : public Base_cluster_impl {
                     const Clone_options &clone_options,
                     const Async_replication_options &ar_options,
                     const std::string &repl_account_host,
+                    const std::string &repl_account_cert_subject,
                     const Recovery_progress_style &progress_style,
                     int sync_timeout, bool dry_run);
 

@@ -5,7 +5,6 @@
 ||The port '<<<__busy_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__busy_port>>>'. (RuntimeError)
 
 //@ Create cluster errors using localAddress option
-||Group Replication failed to start
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
@@ -53,7 +52,7 @@
 ||
 
 //@ Add instance errors using localAddress option {VER(<8.0.22)}
-|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please check the MySQL server error log for more information.|
+||Server address configuration error
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
@@ -66,8 +65,7 @@
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
 
 //@ Add instance errors using localAddress option {VER(>=8.0.30)}
-|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'.|
-|The MySQL error_log contains the following messages:|
+||Server address configuration error
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)

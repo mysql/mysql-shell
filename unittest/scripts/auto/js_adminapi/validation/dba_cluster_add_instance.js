@@ -17,8 +17,8 @@ mysql_innodb_cluster_111	%
 mysql_innodb_cluster_222	%
 2
 instance_name	attributes
-<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"server_id": 111, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_111"}
-<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"joinTime": [[*]], "server_id": 222, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_222"}
+<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"server_id": 111, "opt_certSubject": "", "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_111"}
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>	{"joinTime": [[*]], "server_id": 222, "opt_certSubject": "", "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_222"}
 2
 user_name
 mysql_innodb_cluster_111

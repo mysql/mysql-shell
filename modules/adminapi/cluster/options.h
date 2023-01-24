@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,14 +66,14 @@ class Options : public Command_interface {
    *
    * NOTE: Not currently used (does nothing).
    */
-  void rollback() override;
+  void rollback() override {}
 
   /**
    * Finalize the command execution.
    * More specifically:
    * - Reset all auxiliary (temporary) data used for the operation execution.
    */
-  void finish() override;
+  void finish() override {}
 
  private:
   const Cluster_impl &m_cluster;

@@ -41,7 +41,7 @@ user	host
 mysql_innodb_cluster_111	%
 1
 instance_name	attributes
-<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"server_id": 111, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_111"}
+<<<hostname>>>:<<<__mysql_sandbox_port1>>>	{"server_id": 111, "opt_certSubject": "", "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_111"}
 1
 user_name
 mysql_innodb_cluster_111

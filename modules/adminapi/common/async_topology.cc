@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,35 +39,38 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
 // static constexpr const int k_replication_start_timeout = 60;
-static constexpr const int k_replication_stop_timeout = 60;
+constexpr const int k_replication_stop_timeout = 60;
 
-void change_master(mysqlshdk::mysql::IInstance *slave,
-                   mysqlshdk::mysql::IInstance *new_master,
+void change_master(const mysqlshdk::mysql::IInstance &slave,
+                   const mysqlshdk::mysql::IInstance &new_master,
                    const std::string &channel_name,
                    const Async_replication_options &repl_options,
                    bool dry_run) {
   auto console = current_console();
-  mysqlshdk::mysql::Replication_channel channel;
-
   console->print_info(shcore::str_format(
-      "** Changing replication source of %s to %s", slave->descr().c_str(),
-      new_master->get_canonical_address().c_str()));
+      "** Changing replication source of %s to %s", slave.descr().c_str(),
+      new_master.get_canonical_address().c_str()));
+
+  if (dry_run) return;
 
   try {
     // if credentials given, change everything, otherwise just change the
     // host:port
     if (repl_options.repl_credentials) {
       try {
-        if (!dry_run) {
-          mysqlshdk::mysql::change_master(
-              slave, new_master->get_canonical_hostname(),
-              new_master->get_canonical_port(), channel_name,
-              repl_options.repl_credentials.get_safe(), repl_options.ssl_mode,
-              repl_options.master_connect_retry,
-              repl_options.master_retry_count, repl_options.auto_failover,
-              repl_options.master_delay);
-        }
+        auto creds = *repl_options.repl_credentials;
+
+        creds.ssl_options = prepare_replica_ssl_options(
+            slave, repl_options.ssl_mode, repl_options.auth_type);
+
+        mysqlshdk::mysql::change_master(
+            slave, new_master.get_canonical_hostname(),
+            new_master.get_canonical_port(), channel_name, creds,
+            repl_options.master_connect_retry, repl_options.master_retry_count,
+            repl_options.auto_failover, repl_options.master_delay);
+
       } catch (const shcore::Error &e) {
         console->print_error(
             shcore::str_format("Error setting up async replication channel: %s",
@@ -76,19 +79,18 @@ void change_master(mysqlshdk::mysql::IInstance *slave,
       }
 
     } else {
-      if (!dry_run) {
-        mysqlshdk::mysql::change_master_host_port(
-            slave, new_master->get_canonical_hostname(),
-            new_master->get_canonical_port(), channel_name);
-      }
+      mysqlshdk::mysql::change_master_host_port(
+          slave, new_master.get_canonical_hostname(),
+          new_master.get_canonical_port(), channel_name);
     }
   } catch (const shcore::Error &e) {
     console->print_error(
         shcore::str_format("%s: Error setting up async replication channel: %s",
-                           slave->descr().c_str(), e.format().c_str()));
+                           slave.descr().c_str(), e.format().c_str()));
     throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
+}  // namespace
 
 void fence_instance(mysqlshdk::mysql::IInstance *instance) {
   try {
@@ -122,7 +124,7 @@ void async_add_replica(mysqlshdk::mysql::IInstance *primary,
                        bool fence_slave, bool dry_run, bool start_replica) {
   stop_channel(target, channel_name, true, dry_run);
 
-  change_master(target, primary, channel_name, repl_options, dry_run);
+  change_master(*target, *primary, channel_name, repl_options, dry_run);
 
   if (start_replica) start_channel(target, channel_name, dry_run);
 
@@ -145,7 +147,7 @@ void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
   stop_channel(target, channel_name, true, false);
 
   // Setting primary for target instance and restarting replication.
-  change_master(target, primary, channel_name, rpl_options, false);
+  change_master(*target, *primary, channel_name, rpl_options, false);
 
   start_channel(target, channel_name, false);
 
@@ -184,9 +186,11 @@ void async_update_replica_credentials(
       stop_channel(target, channel_name, false, dry_run);
 
   if (!dry_run) {
-    change_replication_credentials(
-        *target, rpl_options.repl_credentials->user,
-        rpl_options.repl_credentials->password.value_or(""), channel_name);
+    mysqlshdk::mysql::Replication_credentials_options options;
+    options.password = rpl_options.repl_credentials->password.value_or("");
+
+    change_replication_credentials(*target, channel_name,
+                                   rpl_options.repl_credentials->user, options);
   }
 
   if (channel_stopped == Stop_channel_result::STOPPED)
@@ -227,7 +231,8 @@ void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
         [=]() { reset_channel(current_primary, channel_name, true, dry_run); });
 
   // Make old master a slave of new master
-  change_master(current_primary, promoted, channel_name, repl_options, dry_run);
+  change_master(*current_primary, *promoted, channel_name, repl_options,
+                dry_run);
 
   if (undo_list)
     undo_list->push_front(
@@ -274,7 +279,7 @@ void async_create_channel(mysqlshdk::mysql::IInstance *target,
                           const std::string &channel_name,
                           const Async_replication_options &repl_options,
                           bool dry_run) {
-  change_master(target, primary, channel_name, repl_options, dry_run);
+  change_master(*target, *primary, channel_name, repl_options, dry_run);
 }
 
 void async_change_primary(mysqlshdk::mysql::IInstance *replica,
@@ -342,138 +347,135 @@ void wait_all_apply_retrieved_trx(
                             wait_apply_retrieved_trx(inst.get(), timeout);
                           });
 
-  if (!errors.empty()) {
-    for (const auto &err : errors) {
-      std::string instance_uuid = err->get_string("uuid");
-      std::string instance_desc = err->get_string("from");
-      std::string err_msg{shcore::str_format(
-          "%s: Failed to apply retrieved GTIDs: %s", instance_desc.c_str(),
-          err->get_string("errmsg").c_str())};
+  if (errors.empty()) return;
 
-      if (!invalidate_error_instances) {
-        console->print_error(err_msg);
-      } else {
-        log_warning("%s", err_msg.c_str());
-
-        // Get instance metadata info and add it to invalidate list.
-        auto md_it =
-            std::find_if(out_instances_md->begin(), out_instances_md->end(),
-                         [&instance_uuid](const Instance_metadata &i_md) {
-                           return i_md.uuid == instance_uuid;
-                         });
-        if (md_it != out_instances_md->end()) {
-          out_invalidate_ids->push_back(md_it->id);
-        }
-
-        console->print_note(
-            md_it->label +
-            " will be invalidated (fail to apply received GTIDs) and must be "
-            "fixed or removed from the replicaset.");
-
-        // Remove instance to invalidate from lists.
-        instances->remove_if(
-            [&instance_uuid](const std::shared_ptr<Instance> &i) {
-              return i->get_uuid() == instance_uuid;
-            });
-        out_instances_md->erase(md_it);
-      }
-    }
+  for (const auto &err : errors) {
+    auto instance_uuid = err->get_string("uuid");
+    auto instance_desc = err->get_string("from");
+    auto err_msg = shcore::str_format("%s: Failed to apply retrieved GTIDs: %s",
+                                      instance_desc.c_str(),
+                                      err->get_string("errmsg").c_str());
 
     if (!invalidate_error_instances) {
-      console->print_error(
-          "One or more SECONDARY instances failed to apply retrieved "
-          "transactions. Use the 'invalidateErrorInstances' option to "
-          "perform the failover anyway by skipping and invalidating "
-          "instances with errors.");
-      throw shcore::Exception(
-          shcore::str_format(
-              "%zi instance(s) failed to apply retrieved transactions",
-              errors.size()),
-          SHERR_DBA_GTID_SYNC_ERROR);
+      console->print_error(err_msg);
     } else {
-      console->print_info();
+      log_warning("%s", err_msg.c_str());
+
+      // Get instance metadata info and add it to invalidate list.
+      auto md_it =
+          std::find_if(out_instances_md->begin(), out_instances_md->end(),
+                       [&instance_uuid](const Instance_metadata &i_md) {
+                         return i_md.uuid == instance_uuid;
+                       });
+      if (md_it != out_instances_md->end()) {
+        out_invalidate_ids->push_back(md_it->id);
+      }
+
+      console->print_note(
+          md_it->label +
+          " will be invalidated (fail to apply received GTIDs) and must be "
+          "fixed or removed from the replicaset.");
+
+      // Remove instance to invalidate from lists.
+      instances->remove_if(
+          [&instance_uuid](const std::shared_ptr<Instance> &i) {
+            return i->get_uuid() == instance_uuid;
+          });
+      out_instances_md->erase(md_it);
     }
+  }
+
+  if (!invalidate_error_instances) {
+    console->print_error(
+        "One or more SECONDARY instances failed to apply retrieved "
+        "transactions. Use the 'invalidateErrorInstances' option to "
+        "perform the failover anyway by skipping and invalidating "
+        "instances with errors.");
+    throw shcore::Exception(
+        shcore::str_format(
+            "%zi instance(s) failed to apply retrieved transactions",
+            errors.size()),
+        SHERR_DBA_GTID_SYNC_ERROR);
+  } else {
+    console->print_info();
   }
 }
 
 Stop_channel_result stop_channel(mysqlshdk::mysql::IInstance *instance,
                                  const std::string &channel_name, bool safe,
                                  bool dry_run) {
-  auto console = mysqlsh::current_console();
-  Stop_channel_result channel_stopped = Stop_channel_result::NOT_EXIST;
-
   log_info("Stopping channel '%s' at %s", channel_name.c_str(),
            instance->descr().c_str());
-  if (!dry_run) {
-    try {
-      mysqlshdk::mysql::Replication_channel channel;
 
-      if (!mysqlshdk::mysql::get_channel_status(*instance, channel_name,
-                                                &channel)) {
-        log_info("%s: Replication channel '%s' does not exist. Skipping stop.",
-                 instance->descr().c_str(), channel_name.c_str());
-        channel_stopped = Stop_channel_result::NOT_EXIST;
-      } else if (channel.status() ==
-                 mysqlshdk::mysql::Replication_channel::Status::OFF) {
-        log_info("%s: Replication channel '%s' is already stopped.",
-                 instance->descr().c_str(), channel_name.c_str());
-        channel_stopped = Stop_channel_result::NOT_RUNNING;
-      } else {
-        // safe means we wait all transactions to be completely applied first
-        if (safe) {
-          if (!mysqlshdk::mysql::stop_replication_safe(
-                  instance, channel_name, k_replication_stop_timeout)) {
-            throw shcore::Exception(
-                "Could not stop replication channel at " + instance->descr() +
-                    " because there are unexpected open temporary tables.",
-                SHERR_DBA_REPLICATION_INVALID);
-          }
-        } else {
-          mysqlshdk::mysql::stop_replication(instance, channel_name);
-        }
+  if (dry_run) return Stop_channel_result::NOT_EXIST;
 
-        // If the replication channel was stopped due to an error it's not
-        // possible to configure it with a CHANGE REPLICA due to a protection
-        // to avoid possible gaps in the replication stream. For that reason,
-        // we must always reset the channel first to avoid being blocked with
-        // that protection.
-        if (channel.status() !=
-            mysqlshdk::mysql::Replication_channel::Status::ON) {
-          log_info(
-              "%s: Resetting channel because channel status of '%s' was not "
-              "ON: %s",
-              instance->descr().c_str(), channel_name.c_str(),
-              mysqlshdk::mysql::format_status(channel).c_str());
+  try {
+    mysqlshdk::mysql::Replication_channel channel;
 
-          reset_channel(instance, channel_name, false, dry_run);
-        }
-
-        channel_stopped = Stop_channel_result::STOPPED;
-      }
-    } catch (const shcore::Error &e) {
-      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+    if (!mysqlshdk::mysql::get_channel_status(*instance, channel_name,
+                                              &channel)) {
+      log_info("%s: Replication channel '%s' does not exist. Skipping stop.",
+               instance->descr().c_str(), channel_name.c_str());
+      return Stop_channel_result::NOT_EXIST;
     }
+
+    if (channel.status() ==
+        mysqlshdk::mysql::Replication_channel::Status::OFF) {
+      log_info("%s: Replication channel '%s' is already stopped.",
+               instance->descr().c_str(), channel_name.c_str());
+      return Stop_channel_result::NOT_RUNNING;
+    }
+
+    // safe means we wait all transactions to be completely applied first
+    if (safe) {
+      if (!mysqlshdk::mysql::stop_replication_safe(
+              *instance, channel_name, k_replication_stop_timeout)) {
+        throw shcore::Exception(
+            "Could not stop replication channel at " + instance->descr() +
+                " because there are unexpected open temporary tables.",
+            SHERR_DBA_REPLICATION_INVALID);
+      }
+    } else {
+      mysqlshdk::mysql::stop_replication(*instance, channel_name);
+    }
+
+    // If the replication channel was stopped due to an error it's not
+    // possible to configure it with a CHANGE REPLICA due to a protection
+    // to avoid possible gaps in the replication stream. For that reason,
+    // we must always reset the channel first to avoid being blocked with
+    // that protection.
+    if (channel.status() != mysqlshdk::mysql::Replication_channel::Status::ON) {
+      log_info(
+          "%s: Resetting channel because channel status of '%s' was not "
+          "ON: %s",
+          instance->descr().c_str(), channel_name.c_str(),
+          mysqlshdk::mysql::format_status(channel).c_str());
+
+      reset_channel(instance, channel_name, false, dry_run);
+    }
+
+    return Stop_channel_result::STOPPED;
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 
-  return channel_stopped;
+  return Stop_channel_result::NOT_EXIST;
 }
 
 void start_channel(mysqlshdk::mysql::IInstance *instance,
                    const std::string &channel_name, bool dry_run) {
-  auto console = mysqlsh::current_console();
-
   log_info("Starting channel '%s' at %s", channel_name.c_str(),
            instance->descr().c_str());
-  if (!dry_run) {
-    try {
-      mysqlshdk::mysql::start_replication(instance, channel_name);
-    } catch (const shcore::Error &e) {
-      console->print_error(
-          shcore::str_format("%s: Error starting async replication channel: %s",
-                             instance->descr().c_str(), e.format().c_str()));
+  if (dry_run) return;
 
-      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-    }
+  try {
+    mysqlshdk::mysql::start_replication(*instance, channel_name);
+  } catch (const shcore::Error &e) {
+    mysqlsh::current_console()->print_error(
+        shcore::str_format("%s: Error starting async replication channel: %s",
+                           instance->descr().c_str(), e.format().c_str()));
+
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 
@@ -482,12 +484,12 @@ void reset_channel(mysqlshdk::mysql::IInstance *instance,
                    bool dry_run) {
   log_info("Resetting replica for channel '%s' at %s", channel_name.c_str(),
            instance->descr().c_str());
-  if (!dry_run) {
-    try {
-      mysqlshdk::mysql::reset_slave(instance, channel_name, reset_credentials);
-    } catch (const shcore::Error &e) {
-      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-    }
+  if (dry_run) return;
+
+  try {
+    mysqlshdk::mysql::reset_slave(*instance, channel_name, reset_credentials);
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 
@@ -547,50 +549,54 @@ void delete_managed_connection_failover(
         "No entry (GroupReplication, %s) in "
         "replication_asynchronous_connection_failover_managed at %s",
         channel_name.c_str(), target_instance.descr().c_str());
-  } else {
-    shcore::sqlstring query(
-        "SELECT asynchronous_connection_failover_delete_managed(?,?)", 0);
-    query << channel_name;
-    query << source_name;
-    query.done();
+    return;
+  }
 
-    try {
-      log_debug("Executing UDF: %s",
-                query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
-      if (!dry_run) {
-        auto res = target_instance.query_udf(query);
-        auto row = res->fetch_one();
-        log_debug("UDF returned '%s'", row->get_string(0, "NULL").c_str());
-      }
-    } catch (const mysqlshdk::db::Error &error) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
+  auto query = "SELECT asynchronous_connection_failover_delete_managed(?,?)"_sql
+               << channel_name << source_name;
+  query.done();
+
+  try {
+    log_debug("Executing UDF: %s",
+              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+    if (!dry_run) {
+      auto res = target_instance.query_udf(query);
+      auto row = res->fetch_one();
+      log_debug("UDF returned '%s'", row->get_string(0, "NULL").c_str());
     }
+  } catch (const mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
   }
 }
 
 void create_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,
     const mysqlshdk::mysql::Auth_options &donor_account,
-    const std::string &account_host, bool dry_run) {
+    const std::string &account_host, const std::string &account_cert_issuer,
+    const std::string &account_cert_subject, bool dry_run) {
   log_info("Creating clone recovery user %s@%s at %s%s.",
            donor_account.user.c_str(), account_host.c_str(),
            target_instance->descr().c_str(), dry_run ? " (dryRun)" : "");
 
-  if (!dry_run) {
-    try {
-      auto console = mysqlsh::current_console();
+  if (dry_run) return;
 
-      mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
-      // Create recovery user for clone equal to the donor user
-      mysqlshdk::mysql::create_user_with_password(
-          *target_instance, donor_account.user, {account_host},
-          {std::make_tuple("CLONE_ADMIN, EXECUTE", "*.*", false),
-           std::make_tuple("SELECT", "performance_schema.*", false)},
-          *donor_account.password);
-    } catch (const shcore::Error &e) {
-      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-    }
+  try {
+    mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
+
+    // Create recovery user for clone equal to the donor user
+
+    mysqlshdk::mysql::IInstance::Create_user_options options;
+    options.password = donor_account.password;
+    options.cert_issuer = account_cert_issuer;
+    options.cert_subject = account_cert_subject;
+    options.grants.push_back({"CLONE_ADMIN, EXECUTE", "*.*", false});
+    options.grants.push_back({"SELECT", "performance_schema.*", false});
+
+    mysqlshdk::mysql::create_user(*target_instance, donor_account.user,
+                                  {account_host}, options);
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
   }
 }
 

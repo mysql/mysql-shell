@@ -127,6 +127,7 @@ A new replicaset with instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' will be c
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance configuration is suitable.
 
+* Checking connectivity and SSL configuration...
 * Updating metadata...
 
 ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.

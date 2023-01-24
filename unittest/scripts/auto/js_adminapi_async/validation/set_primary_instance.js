@@ -91,7 +91,8 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": [[*]]
+                    "replicationLag": [[*]],
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
                 },
                 "status": "ONLINE"
             },
@@ -110,7 +111,8 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": [[*]]
+                    "replicationLag": [[*]],
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
                 },
                 "status": "ONLINE"
             }

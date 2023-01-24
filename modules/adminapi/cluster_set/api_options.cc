@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,7 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <set>
+#include <array>
+#include <string_view>
 
 #include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/common/common.h"
@@ -32,10 +33,9 @@ namespace mysqlsh {
 namespace dba {
 namespace clusterset {
 
-const std::set<std::string> kClusterSetReplicationSslModeValues = {
-    kClusterSSLModeAuto, kClusterSSLModeRequired, kClusterSSLModeDisabled};
-
+namespace {
 constexpr const char *kInvalidateReplicaClusters = "invalidateReplicaClusters";
+}  // namespace
 
 const shcore::Option_pack_def<Create_cluster_set_options>
     &Create_cluster_set_options::options() {
@@ -51,10 +51,9 @@ const shcore::Option_pack_def<Create_cluster_set_options>
 }
 
 void Create_cluster_set_options::set_ssl_mode(const std::string &value) {
-  if (kClusterSetReplicationSslModeValues.count(shcore::str_upper(value)) ==
-      0) {
-    std::string valid_values =
-        shcore::str_join(kClusterSetReplicationSslModeValues, ",");
+  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
+    std::string valid_values = shcore::str_join(kClusterSSLModeValues, ",");
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s option. Supported values: %s.",
         kClusterSetReplicationSslMode, valid_values.c_str()));
@@ -76,7 +75,9 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
           .optional(kReplicationAllowedHost,
                     &Create_replica_cluster_options::replication_allowed_host)
           .include(&Create_replica_cluster_options::gr_options)
-          .include(&Create_replica_cluster_options::clone_options);
+          .include(&Create_replica_cluster_options::clone_options)
+          .optional(kCertSubject,
+                    &Create_replica_cluster_options::set_cert_subject);
 
   return opts;
 }
@@ -91,6 +92,16 @@ void Create_replica_cluster_options::set_recovery_verbosity(int value) {
   }
 
   recovery_verbosity = value;
+}
+
+void Create_replica_cluster_options::set_cert_subject(
+    const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertSubject));
+
+  cert_subject = value;
 }
 
 const shcore::Option_pack_def<Remove_cluster_options>

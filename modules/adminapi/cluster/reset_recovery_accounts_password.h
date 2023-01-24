@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,7 +72,7 @@ class Reset_recovery_accounts_password : public Command_interface {
    *
    * NOTE: Not currently used (does nothing).
    */
-  void rollback() override;
+  void rollback() override{};
 
   /**
    * Finalize the command execution.
@@ -82,6 +82,7 @@ class Reset_recovery_accounts_password : public Command_interface {
   void finish() override;
 
  private:
+  bool m_is_no_op{false};
   const bool m_interactive;
   mysqlshdk::utils::nullable<bool> m_force;
   std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_online_instances;

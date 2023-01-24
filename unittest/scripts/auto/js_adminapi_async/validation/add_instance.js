@@ -249,7 +249,7 @@
 |                 Channel_Name: |
 |           Master_TLS_Version: |
 |       Master_public_key_path: |
-|        Get_master_public_key: 1|
+|        Get_master_public_key: 0|
 |            Network_Namespace: |
 
 //@# target is super-read-only

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -70,22 +70,44 @@ int64_t force_clone(const mysqlshdk::mysql::IInstance &instance) {
 
 void do_clone(const mysqlshdk::mysql::IInstance &recipient,
               const mysqlshdk::db::Connection_options &clone_donor_opts,
-              const mysqlshdk::mysql::Auth_options &clone_recovery_account) {
-  log_debug("Cloning instance '%s' into '%s'.",
-            clone_donor_opts.uri_endpoint().c_str(), recipient.descr().c_str());
+              const mysqlshdk::mysql::Auth_options &clone_recovery_account,
+              bool require_ssl) {
+  log_debug("Cloning instance '%s' into '%s'%s.",
+            clone_donor_opts.uri_endpoint().c_str(), recipient.descr().c_str(),
+            require_ssl ? " (encrypted)" : "");
 
-  std::string clone_donor_host = clone_donor_opts.get_host();
-  std::string clone_donor_port = std::to_string(clone_donor_opts.get_port());
+  if (require_ssl) {
+    using namespace std::literals;
 
-  std::string clone_stmt_ftm = "CLONE INSTANCE FROM ?@?:" + clone_donor_port +
-                               " IDENTIFIED BY /*((*/ ? /*))*/";
+    std::array<std::string_view, 3> var_names{"ssl_ca"sv, "ssl_cert"sv,
+                                              "ssl_key"sv};
 
-  try {
-    recipient.executef(clone_stmt_ftm, clone_recovery_account.user,
-                       clone_donor_host, *clone_recovery_account.password);
-  } catch (const std::exception &err) {
-    throw;
+    for (const auto key : var_names) {
+      auto value = recipient.get_sysvar_string(key);
+      if (!value.has_value()) continue;
+
+      auto var_name = shcore::str_format(
+          "clone_%.*s", static_cast<int>(key.size()), key.data());
+
+      recipient.set_sysvar(var_name, *value, Var_qualifier::GLOBAL);
+    }
   }
+
+  auto stmt = ("CLONE INSTANCE FROM ?@?:?"_sql << clone_recovery_account.user
+                                               << clone_donor_opts.get_host()
+                                               << clone_donor_opts.get_port())
+                  .str();
+
+  if (clone_recovery_account.password.has_value())
+    stmt.append((" IDENTIFIED BY /*((*/ ? /*))*/"_sql
+                 << *clone_recovery_account.password)
+                    .str());
+  else
+    stmt.append(" IDENTIFIED BY ''");
+
+  if (require_ssl) stmt.append(" REQUIRE SSL");
+
+  recipient.execute(stmt);
 }
 
 void cancel_clone(const mysqlshdk::mysql::IInstance &recipient) {

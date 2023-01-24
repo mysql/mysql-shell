@@ -92,6 +92,7 @@
                 "receiver": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>",
                 "receiverStatus": "ON", 
                 "receiverThreadState": "Waiting for source to send event", 
+                "replicationSsl": null,
                 "source": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
             }, 
             "clusterSetReplicationStatus": "OK", 
@@ -132,6 +133,7 @@
                 "receiver": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>",
                 "receiverStatus": "ON", 
                 "receiverThreadState": "Waiting for source to send event", 
+                "replicationSsl": null,
                 "source": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
             }, 
             "clusterSetReplicationStatus": "OK", 

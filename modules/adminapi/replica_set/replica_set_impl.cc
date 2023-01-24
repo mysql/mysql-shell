@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/global_topology_check.h"
@@ -78,10 +79,8 @@ constexpr const int k_clone_start_timeout = 30;
 namespace {
 std::unique_ptr<topology::Server_global_topology> discover_unmanaged_topology(
     Instance *instance) {
-  auto console = current_console();
-
-  std::unique_ptr<topology::Server_global_topology> topology(
-      new topology::Server_global_topology(k_replicaset_channel_name));
+  auto topology = std::make_unique<topology::Server_global_topology>(
+      k_replicaset_channel_name);
 
   // perform initial discovery
   topology->discover_from_unmanaged(instance);
@@ -270,8 +269,6 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
     const std::string &full_cluster_name, Global_topology_type topology_type,
     const std::shared_ptr<Instance> &target_server,
     const Create_replicaset_options &options) {
-  auto console = current_console();
-
   // Acquire required locks on target instance.
   // No "write" operation allowed to be executed concurrently on the target
   // instance.
@@ -281,12 +278,21 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
   mysqlsh::dba::validate_cluster_name(full_cluster_name,
                                       Cluster_type::ASYNC_REPLICATION);
 
+  // if adopting, memberAuth only support "password"
+  if (options.adopt && (options.member_auth_options.member_auth_type !=
+                        Replication_auth_type::PASSWORD))
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Cannot set '%s' to a value other than 'PASSWORD' "
+                           "if '%s' is set to true.",
+                           kMemberAuthType, kAdoptFromAR));
+
   std::string domain_name;
   std::string cluster_name;
   parse_fully_qualified_cluster_name(full_cluster_name, &domain_name, nullptr,
                                      &cluster_name);
   if (domain_name.empty()) domain_name = k_default_domain_name;
 
+  auto console = current_console();
   if (options.adopt) {
     console->print_info("A new replicaset with the topology visible from '" +
                         target_server->descr() + "' will be created.\n");
@@ -300,17 +306,16 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
         "but no changes will be applied.");
   }
 
-  std::shared_ptr<MetadataStorage> metadata;
-  metadata.reset(new MetadataStorage(target_server));
+  auto metadata = std::make_shared<MetadataStorage>(target_server);
 
   auto cluster = std::make_shared<Replica_set_impl>(cluster_name, target_server,
                                                     metadata, topology_type);
 
   if (options.adopt) {
     console->print_info("* Scanning replication topology...");
-    std::unique_ptr<Star_global_topology_manager> topology(
-        new Star_global_topology_manager(
-            0, discover_unmanaged_topology(target_server.get())));
+    auto topology = std::make_unique<Star_global_topology_manager>(
+        0, discover_unmanaged_topology(target_server.get()));
+
     console->print_info();
     cluster->adopt(topology.get(), options, options.dry_run);
   } else {
@@ -345,10 +350,28 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
   m_primary_master = m_cluster_server;
   m_primary_master->retain();
 
-  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::AUTO;
-
+  Cluster_ssl_mode ssl_mode = options.ssl_mode;
   resolve_ssl_mode_option("replicationSslMode", "ReplicaSet", *m_cluster_server,
                           &ssl_mode);
+
+  // check if member auth request mode is supported
+  validate_instance_member_auth_type(
+      *m_primary_master, false, ssl_mode, "replicationSslMode",
+      options.member_auth_options.member_auth_type);
+
+  // check if SSL options are valid
+  validate_instance_member_auth_options(
+      "replicaset", options.member_auth_options.member_auth_type,
+      options.member_auth_options.cert_issuer,
+      options.member_auth_options.cert_subject);
+
+  if (current_shell_options()->get().dba_connectivity_checks) {
+    console->print_info("* Checking connectivity and SSL configuration...");
+    test_self_connection(*m_cluster_server, "", ssl_mode,
+                         options.member_auth_options.member_auth_type,
+                         options.member_auth_options.cert_issuer,
+                         options.member_auth_options.cert_subject);
+  }
 
   console->print_info("* Updating metadata...");
 
@@ -370,6 +393,14 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
               : shcore::Value(options.replication_allowed_host));
 
       m_metadata_storage->update_cluster_attribute(
+          id, k_cluster_attribute_member_auth_type,
+          shcore::Value(
+              to_string(options.member_auth_options.member_auth_type)));
+      m_metadata_storage->update_cluster_attribute(
+          id, k_cluster_attribute_cert_issuer,
+          shcore::Value(options.member_auth_options.cert_issuer));
+
+      m_metadata_storage->update_cluster_attribute(
           id, k_replica_set_attribute_ssl_mode,
           shcore::Value(to_string(ssl_mode)));
 
@@ -377,12 +408,19 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
     }
 
     // create repl user to be used in the future
-    auto user = create_replication_user(m_cluster_server.get(), dry_run);
+    auto user = create_replication_user(
+        m_cluster_server.get(), options.member_auth_options.cert_subject,
+        dry_run);
 
     log_info("Recording metadata for %s", m_cluster_server->descr().c_str());
-    if (!dry_run)
+    if (!dry_run) {
       manage_instance(m_cluster_server.get(), {user.first.user, user.second},
                       options.instance_label, 0, true);
+
+      get_metadata_storage()->update_instance_attribute(
+          m_cluster_server.get()->get_uuid(), k_instance_attribute_cert_subject,
+          shcore::Value(options.member_auth_options.cert_subject));
+    }
     console->print_info();
   } catch (...) {
     console->print_error(
@@ -454,11 +492,18 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
         m_metadata_storage->update_cluster_attribute(
             id, k_cluster_attribute_replication_allowed_host,
             shcore::Value(options.replication_allowed_host));
+
+      m_metadata_storage->update_instance_attribute(
+          id, k_instance_attribute_cert_subject,
+          shcore::Value(options.member_auth_options.cert_subject));
+
       trx.commit();
     }
 
     // Create rpl user to be used in the future (for primary).
-    auto user = create_replication_user(m_cluster_server.get(), dry_run);
+    auto user = create_replication_user(
+        m_cluster_server.get(), options.member_auth_options.cert_subject,
+        dry_run);
 
     Instance_id primary_id = 0;
 
@@ -467,21 +512,24 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
     console->print_info();
 
     for (const auto *server : topology->topology()->nodes()) {
-      if (server != primary) {
-        Scoped_instance instance(ipool->connect_unchecked_endpoint(
-            server->get_primary_member()->endpoint));
+      if (server == primary) continue;
 
-        // Create rpl user to be used in the future (for secondary).
-        user = create_replication_user(instance.get(), dry_run);
+      Scoped_instance instance(ipool->connect_unchecked_endpoint(
+          server->get_primary_member()->endpoint));
 
-        log_info("Fencing SECONDARY %s", server->label.c_str());
+      std::string cert_subject;
+      if (!dry_run)
+        cert_subject = query_cluster_instance_auth_cert_subject(*instance);
 
-        if (!dry_run) fence_instance(instance.get());
+      // Create rpl user to be used in the future (for secondary).
+      user = create_replication_user(instance.get(), cert_subject, dry_run);
 
-        log_info("Recording metadata for %s", server->label.c_str());
-        if (!dry_run)
-          manage_instance(instance.get(), {}, "", primary_id, false);
-      }
+      log_info("Fencing SECONDARY %s", server->label.c_str());
+
+      if (!dry_run) fence_instance(instance.get());
+
+      log_info("Recording metadata for %s", server->label.c_str());
+      if (!dry_run) manage_instance(instance.get(), {}, "", primary_id, false);
     }
   } catch (...) {
     console->print_error(
@@ -499,19 +547,26 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
 
 void Replica_set_impl::read_replication_options(
     Async_replication_options *ar_options) {
-  shcore::Value ssl_mode;
-  get_metadata_storage()->query_cluster_attribute(
-      get_id(), k_replica_set_attribute_ssl_mode, &ssl_mode);
-  if (ssl_mode)
-    ar_options->ssl_mode = to_cluster_ssl_mode(ssl_mode.as_string());
+  // Get the ClusterSet configured SSL mode
+  {
+    shcore::Value value;
+    get_metadata_storage()->query_cluster_attribute(
+        get_id(), k_replica_set_attribute_ssl_mode, &value);
+    if (value)
+      ar_options->ssl_mode = to_cluster_ssl_mode(value.as_string());
+    else
+      ar_options->ssl_mode = Cluster_ssl_mode::DISABLED;
+  }
+
+  // get the recovery auth mode
+  ar_options->auth_type = query_cluster_auth_type();
 }
 
 void Replica_set_impl::validate_add_instance(
     Global_topology_manager *topology, mysqlshdk::mysql::IInstance * /*master*/,
     Instance *target_instance, Async_replication_options *ar_options,
-    Clone_options *clone_options, bool interactive) {
-  auto console = current_console();
-
+    Clone_options *clone_options, const std::string &cert_subject,
+    bool interactive) {
   auto validate_not_managed = [this](const Instance &target) {
     // Check if the instance is already a member of this replicaset
     Instance_metadata md;
@@ -611,6 +666,7 @@ void Replica_set_impl::validate_add_instance(
   validate_instance_ssl_mode(Cluster_type::ASYNC_REPLICATION, *target_instance,
                              ar_options->ssl_mode);
 
+  auto console = current_console();
   // check consistency of the global topology
   console->print_info();
   topology->validate_add_replica(nullptr, target_instance, *ar_options);
@@ -618,6 +674,22 @@ void Replica_set_impl::validate_add_instance(
   std::shared_ptr<Instance> donor_instance = get_cluster_server();
 
   console->print_info();
+
+  if (current_shell_options()->get().dba_connectivity_checks) {
+    console->print_info("* Checking connectivity and SSL configuration...");
+    mysqlshdk::mysql::Set_variable sro(*target_instance, "super_read_only", 0,
+                                       true);
+
+    auto member_auth = query_cluster_auth_type();
+    std::string cert_issuer = query_cluster_auth_cert_issuer();
+
+    test_peer_connection(
+        *target_instance, "", cert_subject, *m_primary_master, "",
+        query_cluster_instance_auth_cert_subject(m_primary_master->get_uuid()),
+        ar_options->ssl_mode, member_auth, cert_issuer);
+  }
+  console->print_info();
+
   console->print_info("* Checking transaction state of the instance...");
 
   clone_options->recovery_method = validate_instance_recovery(
@@ -631,7 +703,8 @@ void Replica_set_impl::validate_add_instance(
 void Replica_set_impl::add_instance(
     const std::string &instance_def,
     const Async_replication_options &ar_options_,
-    const Clone_options &clone_options_, const mysqlshdk::null_string &label,
+    const Clone_options &clone_options_, const std::string &label,
+    const std::string &auth_cert_subject,
     Recovery_progress_style progress_style, int sync_timeout, bool interactive,
     bool dry_run) {
   check_preconditions_and_primary_availability("addInstance");
@@ -643,8 +716,6 @@ void Replica_set_impl::add_instance(
   // if/when a replication delay option is ever added.
   DBUG_EXECUTE_IF("dba_add_instance_master_delay",
                   { ar_options.master_delay = 3; });
-
-  auto console = current_console();
 
   // Connect to the target Instance.
   const auto target_instance =
@@ -665,27 +736,43 @@ void Replica_set_impl::add_instance(
 
   auto topology = setup_topology_manager();
 
+  auto console = current_console();
   console->print_info("Adding instance to the replicaset...");
   console->print_info();
 
   read_replication_options(&ar_options);
 
+  // recovery auth checks
+  {
+    auto auth_type = query_cluster_auth_type();
+
+    // check if member auth request mode is supported
+    validate_instance_member_auth_type(*target_instance, false,
+                                       ar_options.ssl_mode,
+                                       "replicationSslMode", auth_type);
+
+    // check if certSubject was correctly supplied
+    validate_instance_member_auth_options("replicaset", false, auth_type,
+                                          auth_cert_subject);
+  }
+
   console->print_info("* Performing validation checks");
   validate_add_instance(topology.get(), get_primary_master().get(),
                         target_instance.get(), &ar_options, &clone_options,
-                        interactive);
+                        auth_cert_subject, interactive);
 
   console->print_info("* Updating topology");
 
   // Create the recovery account
-  auto user = create_replication_user(target_instance.get(), dry_run);
+  auto user = create_replication_user(target_instance.get(), auth_cert_subject,
+                                      dry_run);
   ar_options.repl_credentials = user.first;
 
   try {
     if (*clone_options.recovery_method == Member_recovery_method::CLONE) {
       // Do and monitor the clone
       handle_clone(target_instance, clone_options, ar_options, user.second,
-                   progress_style, sync_timeout, dry_run);
+                   auth_cert_subject, progress_style, sync_timeout, dry_run);
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -712,7 +799,6 @@ void Replica_set_impl::add_instance(
     // (bad address, private vs public address, network issue, account issues,
     // firewalls etc), so we do this first to keep an eventual rollback to a
     // minimum while retries would also be simpler to handle.
-
     async_add_replica(get_primary_master().get(), target_instance.get(),
                       k_replicaset_channel_name, ar_options, true, dry_run);
 
@@ -741,9 +827,14 @@ void Replica_set_impl::add_instance(
                                 ->instance_id;
 
     log_info("Recording metadata for %s", target_instance->descr().c_str());
-    if (!dry_run)
+    if (!dry_run) {
       manage_instance(target_instance.get(), {user.first.user, user.second},
-                      *label, master_id, false);
+                      label, master_id, false);
+
+      get_metadata_storage()->update_instance_attribute(
+          target_instance->get_uuid(), k_instance_attribute_cert_subject,
+          shcore::Value(auth_cert_subject));
+    }
   } catch (const cancel_sync &) {
     if (!dry_run) {
       revert_topology_changes(target_instance.get(), true, false);
@@ -894,9 +985,31 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
 
   try {
     if (*clone_options.recovery_method == Member_recovery_method::CLONE) {
+      auto cert_subject =
+          query_cluster_instance_auth_cert_subject(*target_instance);
+
+      // since we're in a rejoin, check if the value is valid
+      switch (auto auth_type = query_cluster_auth_type(); auth_type) {
+        case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+        case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          if (cert_subject.empty())
+            throw shcore::Exception::runtime_error(shcore::str_format(
+                "The replicaset's SSL mode is set to %s but the instance being "
+                "rejoined doesn't have a valid 'certSubject' option. Please "
+                "stop "
+                "GR on that instance and then add it back using "
+                "cluster.addInstance() with the appropriate authentication "
+                "options.",
+                to_string(auth_type).c_str()));
+          break;
+        default:
+          break;
+      }
+
       // Do and monitor the clone
       handle_clone(target_instance, clone_options, ar_options,
-                   repl_account_host, progress_style, sync_timeout, dry_run);
+                   repl_account_host, cert_subject, progress_style,
+                   sync_timeout, dry_run);
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -1705,26 +1818,80 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
 shcore::Value Replica_set_impl::status(int extended) {
   check_preconditions_and_primary_availability("status", false);
 
-  Cluster_metadata cmd = get_metadata();
+  shcore::Dictionary_t status;
 
-  std::unique_ptr<topology::Global_topology> topo(
-      topology::scan_global_topology(get_metadata_storage().get(), cmd,
-                                     k_replicaset_channel_name, true));
+  // topology info
+  {
+    Cluster_metadata cmd = get_metadata();
 
-  Status_options opts;
-  opts.show_members = true;
-  opts.show_details = extended;
+    std::unique_ptr<topology::Global_topology> topo(
+        topology::scan_global_topology(get_metadata_storage().get(), cmd,
+                                       k_replicaset_channel_name, true));
 
-  shcore::Dictionary_t status = replica_set_status(
-      *dynamic_cast<topology::Server_global_topology *>(topo.get()), opts);
+    Status_options opts;
+    opts.show_members = true;
+    opts.show_details = extended;
 
-  status->get_map("replicaSet")->set("name", shcore::Value(get_name()));
+    status = replica_set_status(
+        *dynamic_cast<topology::Server_global_topology *>(topo.get()), opts);
+
+    status->get_map("replicaSet")->set("name", shcore::Value(get_name()));
+  }
 
   // Gets the metadata version
-  if (opts.show_details >= 1) {
+  if (extended >= 1) {
     auto version = mysqlsh::dba::metadata::installed_version(
         m_metadata_storage->get_md_server());
     status->set("metadataVersion", shcore::Value(version.get_base()));
+  }
+
+  // gets the async replication channels SSL info
+  {
+    auto instances =
+        get_metadata_storage()->get_replica_set_instances(get_id());
+
+    auto topo = status->get_map("replicaSet")->get_map("topology");
+
+    for (const auto &i : instances) {
+      if (!topo->has_key(i.endpoint)) continue;
+      if (!topo->get_map(i.endpoint)->has_key("replication")) continue;
+
+      std::string repl_account;
+      {
+        auto [account_user, account_host] =
+            get_metadata_storage()->get_instance_repl_account(
+                i.uuid, Cluster_type::ASYNC_REPLICATION);
+
+        repl_account = std::move(account_user);
+      }
+
+      std::string ssl_cipher, ssl_version;
+      mysqlshdk::mysql::iterate_thread_variables(
+          *(get_metadata_storage()->get_md_server()), "Binlog Dump GTID",
+          repl_account, "Ssl%",
+          [&ssl_cipher, &ssl_version](std::string var_name,
+                                      std::string var_value) {
+            if (var_name == "Ssl_cipher")
+              ssl_cipher = std::move(var_value);
+            else if (var_name == "Ssl_version")
+              ssl_version = std::move(var_value);
+
+            return (ssl_cipher.empty() || ssl_version.empty());
+          });
+
+      if (ssl_cipher.empty() && ssl_version.empty()) continue;
+
+      auto target_map = topo->get_map(i.endpoint)->get_map("replication");
+      assert(target_map->has_key("replicationSsl"));
+
+      if (ssl_cipher.empty())
+        (*target_map)["replicationSsl"] = shcore::Value(std::move(ssl_version));
+      else if (ssl_version.empty())
+        (*target_map)["replicationSsl"] = shcore::Value(std::move(ssl_cipher));
+      else
+        (*target_map)["replicationSsl"] = shcore::Value(shcore::str_format(
+            "%s %s", ssl_cipher.c_str(), ssl_version.c_str()));
+    }
   }
 
   return shcore::Value(status);
@@ -2154,6 +2321,7 @@ void Replica_set_impl::handle_clone(
     const Clone_options &clone_options,
     const Async_replication_options &ar_options,
     const std::string &repl_account_host,
+    const std::string &repl_account_cert_subject,
     const Recovery_progress_style &progress_style, int sync_timeout,
     bool dry_run) {
   auto console = current_console();
@@ -2232,9 +2400,9 @@ void Replica_set_impl::handle_clone(
   //
   // For that reason, we create a user in the recipient with the same username
   // and password as the replication user created in the donor.
-  create_clone_recovery_user_nobinlog(recipient.get(),
-                                      *ar_options.repl_credentials,
-                                      repl_account_host, dry_run);
+  create_clone_recovery_user_nobinlog(
+      recipient.get(), *ar_options.repl_credentials, repl_account_host,
+      query_cluster_auth_cert_issuer(), repl_account_cert_subject, dry_run);
 
   if (!dry_run) {
     // Ensure the donor's recovery account has the clone usage required
@@ -2291,31 +2459,43 @@ void Replica_set_impl::handle_clone(
 
     std::exception_ptr error_ptr;
 
-    auto clone_thread = spawn_scoped_thread(
-        [&recipient_clone, clone_donor_opts, ar_options, &error_ptr] {
-          mysqlsh::thread_init();
+    auto clone_thread = spawn_scoped_thread([&recipient_clone, clone_donor_opts,
+                                             ar_options, &error_ptr] {
+      mysqlsh::thread_init();
 
-          try {
-            mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
-                                       *ar_options.repl_credentials);
-          } catch (const shcore::Error &err) {
-            // Clone canceled
-            if (err.code() == ER_QUERY_INTERRUPTED) {
-              log_info("Clone canceled: %s", err.format().c_str());
-            } else {
-              log_info("Error cloning from instance '%s': %s",
-                       clone_donor_opts.uri_endpoint().c_str(),
-                       err.format().c_str());
-              error_ptr = std::current_exception();
-            }
-          } catch (const std::exception &err) {
-            log_info("Error cloning from instance '%s': %s",
-                     clone_donor_opts.uri_endpoint().c_str(), err.what());
-            error_ptr = std::current_exception();
-          }
+      bool enabled_ssl{false};
+      switch (ar_options.auth_type) {
+        case Replication_auth_type::CERT_ISSUER:
+        case Replication_auth_type::CERT_SUBJECT:
+        case Replication_auth_type::CERT_ISSUER_PASSWORD:
+        case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          enabled_ssl = true;
+          break;
+        default:
+          break;
+      }
 
-          mysqlsh::thread_end();
-        });
+      try {
+        mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
+                                   *ar_options.repl_credentials, enabled_ssl);
+      } catch (const shcore::Error &err) {
+        // Clone canceled
+        if (err.code() == ER_QUERY_INTERRUPTED) {
+          log_info("Clone canceled: %s", err.format().c_str());
+        } else {
+          log_info("Error cloning from instance '%s': %s",
+                   clone_donor_opts.uri_endpoint().c_str(),
+                   err.format().c_str());
+          error_ptr = std::current_exception();
+        }
+      } catch (const std::exception &err) {
+        log_info("Error cloning from instance '%s': %s",
+                 clone_donor_opts.uri_endpoint().c_str(), err.what());
+        error_ptr = std::current_exception();
+      }
+
+      mysqlsh::thread_end();
+    });
 
     shcore::Scoped_callback join([&clone_thread, error_ptr]() {
       if (clone_thread.joinable()) clone_thread.join();
@@ -2769,6 +2949,7 @@ void Replica_set_impl::drop_replication_user(
 
 std::pair<mysqlshdk::mysql::Auth_options, std::string>
 Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
+                                          std::string_view auth_cert_subject,
                                           bool dry_run,
                                           mysqlshdk::mysql::IInstance *master) {
   if (!master) master = m_primary_master.get();
@@ -2776,8 +2957,8 @@ Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
   mysqlshdk::mysql::Auth_options creds;
   std::string host = "%";
 
-  shcore::Value allowed_host;
-  if (!dry_run &&
+  if (shcore::Value allowed_host;
+      !dry_run &&
       get_metadata_storage()->query_cluster_attribute(
           get_id(), k_cluster_attribute_replication_allowed_host,
           &allowed_host) &&
@@ -2790,34 +2971,64 @@ Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
                                           k_async_cluster_user_name);
 
   try {
-    std::string repl_password;
-
     // Create replication accounts for this instance at the master
     // replicaset unless the user provided one.
-
-    auto console = mysqlsh::current_console();
 
     // Accounts are created at the master replicaset regardless of who will use
     // them, since they'll get replicated everywhere.
 
-    log_info("Creating replication user %s@%s with random password at %s%s",
-             creds.user.c_str(), host.c_str(), master->descr().c_str(),
-             dry_run ? " (dryRun)" : "");
+    log_info("Creating replication user %s@%s at %s%s", creds.user.c_str(),
+             host.c_str(), master->descr().c_str(), dry_run ? " (dryRun)" : "");
 
-    std::vector<std::tuple<std::string, std::string, bool>> grants;
-    grants.push_back(std::make_tuple("REPLICATION SLAVE", "*.*", false));
+    if (dry_run) return {creds, host};
 
     // re-create replication with a new generated password
-    if (!dry_run) {
-      // Check if the replication user already exists and delete it if it does,
-      // before creating it again.
-      mysqlshdk::mysql::drop_all_accounts_for_user(*master, creds.user);
 
-      mysqlshdk::mysql::create_user_with_random_password(
-          *master, creds.user, {host}, grants, &repl_password);
+    // Check if the replication user already exists and delete it if it does,
+    // before creating it again.
+    mysqlshdk::mysql::drop_all_accounts_for_user(*master, creds.user);
+
+    mysqlshdk::mysql::IInstance::Create_user_options user_options;
+    user_options.grants.push_back({"REPLICATION SLAVE", "*.*", false});
+
+    auto auth_type = query_cluster_auth_type();
+
+    // setup password
+    bool requires_password{false};
+    switch (auth_type) {
+      case Replication_auth_type::PASSWORD:
+      case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        requires_password = true;
+        break;
+      default:
+        break;
     }
 
-    creds.password = repl_password;
+    // setup cert issuer and/or subject
+    switch (auth_type) {
+      case Replication_auth_type::CERT_SUBJECT:
+      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        user_options.cert_subject = auth_cert_subject;
+        [[fallthrough]];
+      case Replication_auth_type::CERT_ISSUER:
+      case Replication_auth_type::CERT_ISSUER_PASSWORD:
+        user_options.cert_issuer = query_cluster_auth_cert_issuer();
+        break;
+      default:
+        break;
+    }
+
+    if (requires_password) {
+      std::string repl_password;
+      mysqlshdk::mysql::create_user_with_random_password(
+          *master, creds.user, {host}, user_options, &repl_password);
+
+      creds.password = std::move(repl_password);
+    } else {
+      mysqlshdk::mysql::create_user(*master, creds.user, {host}, user_options);
+    }
+
   } catch (const std::exception &e) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Error while setting up replication account: %s", e.what()));
@@ -2837,27 +3048,37 @@ shcore::Dictionary_t Replica_set_impl::get_topology_options() {
 
   for (const topology::Server &server :
        static_cast<topology::Server_global_topology *>(topo.get())->servers()) {
-    // Get the instance parallel applier options
-    shcore::Array_t array = shcore::make_array();
-
     const topology::Instance *instance = server.get_primary_member();
 
     if (instance->connect_error.empty()) {
+      shcore::Array_t array = shcore::make_array();
+
       // Get the parallel-appliers options
       for (const auto &[name, value] : instance->parallel_appliers) {
         shcore::Dictionary_t option = shcore::make_dict();
         (*option)["variable"] = shcore::Value(name);
-        // Check if the option exists in the target server
         (*option)["value"] =
             value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
-        array->push_back(shcore::Value(option));
+        array->push_back(shcore::Value(std::move(option)));
+      }
+
+      // cert_subject
+      {
+        auto cert_subject =
+            query_cluster_instance_auth_cert_subject(instance->uuid);
+
+        shcore::Dictionary_t option = shcore::make_dict();
+        (*option)["option"] = shcore::Value(kCertSubject);
+        (*option)["value"] = shcore::Value(std::move(cert_subject));
+
+        array->push_back(shcore::Value(std::move(option)));
       }
 
       ret->set(server.label, shcore::Value(array));
     } else {
       shcore::Dictionary_t connect_error = shcore::make_dict();
       (*connect_error)["connectError"] = shcore::Value(instance->connect_error);
-      ret->set(server.label, shcore::Value(connect_error));
+      ret->set(server.label, shcore::Value(std::move(connect_error)));
     }
   }
 
@@ -2869,11 +3090,8 @@ shcore::Value Replica_set_impl::options() {
     check_preconditions("options");
   } catch (const shcore::Exception &e) {
     // The primary might not be available, but options() must work anyway
-    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) {
-      current_console()->print_warning(e.format());
-    } else {
-      throw;
-    }
+    if (e.code() != SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) throw;
+    current_console()->print_warning(e.format());
   }
 
   shcore::Dictionary_t inner_dict = shcore::make_dict();
@@ -2887,25 +3105,32 @@ shcore::Value Replica_set_impl::options() {
   // get the tags
   (*inner_dict)[kTags] = Base_cluster_impl::get_cluster_tags();
 
+  // read replica attributes
   {
-    shcore::Value allowed_host;
-    if (!get_metadata_storage()->query_cluster_attribute(
-            get_id(), k_cluster_attribute_replication_allowed_host,
-            &allowed_host))
-      allowed_host = shcore::Value::Null();
+    std::array<std::tuple<std::string_view, std::string_view>, 3> attribs{
+        std::make_tuple(k_cluster_attribute_replication_allowed_host,
+                        kReplicationAllowedHost),
+        std::make_tuple(k_cluster_attribute_member_auth_type, kMemberAuthType),
+        std::make_tuple(k_cluster_attribute_cert_issuer, kCertIssuer)};
 
     shcore::Array_t options = shcore::make_array();
+    for (const auto &[attrib_name, attrib_desc] : attribs) {
+      shcore::Value attrib_value;
+      if (!get_metadata_storage()->query_cluster_attribute(
+              get_id(), attrib_name, &attrib_value))
+        attrib_value = shcore::Value::Null();
 
-    options->emplace_back(shcore::Value(
-        shcore::make_dict("option", shcore::Value(kReplicationAllowedHost),
-                          "value", allowed_host)));
+      options->emplace_back(
+          shcore::Value(shcore::make_dict("option", shcore::Value(attrib_desc),
+                                          "value", std::move(attrib_value))));
+    }
 
-    (*inner_dict)["globalOptions"] = shcore::Value(options);
+    (*inner_dict)["globalOptions"] = shcore::Value(std::move(options));
   }
 
   shcore::Dictionary_t res = shcore::make_dict();
-  (*res)["replicaSet"] = shcore::Value(inner_dict);
-  return shcore::Value(res);
+  (*res)["replicaSet"] = shcore::Value(std::move(inner_dict));
+  return shcore::Value(std::move(res));
 }
 
 void Replica_set_impl::_set_instance_option(
@@ -2965,13 +3190,16 @@ void Replica_set_impl::update_replication_allowed_host(
         mysqlshdk::mysql::set_random_password(*get_primary_master(),
                                               account.first, {host}, &password);
 
-        mysqlshdk::mysql::stop_replication_receiver(target.get(),
+        mysqlshdk::mysql::stop_replication_receiver(*target,
                                                     k_replicaset_channel_name);
 
-        mysqlshdk::mysql::change_replication_credentials(
-            *target, account.first, password, k_replicaset_channel_name);
+        mysqlshdk::mysql::Replication_credentials_options options;
+        options.password = password;
 
-        mysqlshdk::mysql::start_replication_receiver(target.get(),
+        mysqlshdk::mysql::change_replication_credentials(
+            *target, k_replicaset_channel_name, account.first, options);
+
+        mysqlshdk::mysql::start_replication_receiver(*target,
                                                      k_replicaset_channel_name);
       }
     }

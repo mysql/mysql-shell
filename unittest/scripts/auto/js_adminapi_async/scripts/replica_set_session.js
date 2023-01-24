@@ -61,7 +61,8 @@ function expect_rs_variable() {
                     "applierThreadState": "Slave has read all relay log; waiting for more updates",
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for master to send event",
-                    "replicationLag": null
+                    "replicationLag": null,
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
                 },
                 "status": "ONLINE"
             }
@@ -97,7 +98,8 @@ function expect_rs_variable() {
                     "applierWorkerThreads": 4,
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for ${__source_keyword} to send event",
-                    "replicationLag": null
+                    "replicationLag": null,
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
                 },
                 "status": "ONLINE"
             }

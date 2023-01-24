@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -679,7 +679,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
         if (status == mysqlshdk::mysql::Replication_channel::OFF) {
           try {
             mysqlshdk::mysql::reset_slave(
-                m_target_instance.get(), k_clusterset_async_channel_name, true);
+                *m_target_instance, k_clusterset_async_channel_name, true);
           } catch (const shcore::Error &e) {
             throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
           }
@@ -830,19 +830,30 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
       }
 
       // Create a new recovery account
-      repl_account = mysqlshdk::gr::create_recovery_user(
-          repl_account.user, *m_target_instance, {repl_account_host}, {}, true,
-          false, true);
+      {
+        std::vector<std::string> hosts;
+        hosts.push_back(repl_account_host);
+
+        mysqlshdk::gr::Create_recovery_user_options options;
+        options.clone_supported = true;
+        options.auto_failover = false;
+        options.mysql_comm_stack_supported = true;
+
+        repl_account = mysqlshdk::gr::create_recovery_user(
+            repl_account.user, *m_target_instance, hosts, options);
+      }
 
       // Change GR's recovery replication credentials in all possible
       // donors so whenever GR picks a suitable donor it will be able to
       // connect and authenticate at the target
       // NOTE: Instances in RECOVERING must be skipped since won't be used
       // as donor and the change source command would fail anyway
+      mysqlshdk::mysql::Replication_credentials_options options;
+      options.password = repl_account.password.value_or("");
+
       mysqlshdk::mysql::change_replication_credentials(
-          *m_target_instance, repl_account.user,
-          repl_account.password.value_or(""),
-          mysqlshdk::gr::k_gr_recovery_channel);
+          *m_target_instance, mysqlshdk::gr::k_gr_recovery_channel,
+          repl_account.user, options);
 
       if (m_cluster->impl()->is_cluster_set_member() &&
           !m_cluster->impl()->is_primary_cluster()) {
@@ -907,9 +918,21 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
     auto multi_primary = m_cluster->impl()->get_cluster_topology_type() ==
                          mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
 
+    bool requires_certificates{false};
+    switch (m_cluster->impl()->query_cluster_auth_type()) {
+      case mysqlsh::dba::Replication_auth_type::CERT_ISSUER:
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+      case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        requires_certificates = true;
+      default:
+        break;
+    }
+
     // Start the cluster to bootstrap Group Replication.
     mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
-                                multi_primary, cfg.get());
+                                requires_certificates, multi_primary,
+                                cfg.get());
 
     // Wait for the seed instance to become ONLINE in the Group.
     // Especially relevant on Replica Clusters to ensure the seed instance is

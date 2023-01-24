@@ -51,6 +51,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -74,6 +75,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -134,6 +136,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
 group_replication_member_weight = 75
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -159,6 +162,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -372,6 +376,14 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -438,6 +450,10 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -511,6 +527,14 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -570,6 +594,10 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -646,6 +674,14 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -710,6 +746,10 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
 ?{VER(>=8.0.23)}

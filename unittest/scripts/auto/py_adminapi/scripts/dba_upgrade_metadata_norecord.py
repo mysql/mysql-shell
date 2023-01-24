@@ -6,7 +6,7 @@ snapshot_file = 'metadata-1.0.1-5.7.27-snapshot.sql'
 #@<> Snapshot File Name {VER(>=8.0.0)}
 snapshot_file = 'metadata-1.0.1-8.0.17-snapshot.sql'
 
-#@ Creates the sample cluster
+#@<> Creates the sample cluster
 testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {'report_host': hostname})
 dba.configure_instance(__sandbox_uri1, {'clusterAdmin': 'tst_admin', 'clusterAdminPassword': 'tst_pwd'})
 testutil.snapshot_sandbox_conf(__mysql_sandbox_port1)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,19 +24,14 @@
 #ifndef MYSQLSHDK_LIBS_DB_SSL_OPTIONS_H_
 #define MYSQLSHDK_LIBS_DB_SSL_OPTIONS_H_
 
-#include <map>
-#include <memory>
-#include <set>
 #include <string>
-#include <vector>
+
 #include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
 
 namespace mysqlshdk {
 namespace db {
-using mysqlshdk::utils::nullable_options::Comparison_mode;
-using mysqlshdk::utils::nullable_options::Set_mode;
 
 enum class SHCORE_PUBLIC Ssl_mode {
   Disabled = 1,
@@ -48,7 +43,8 @@ enum class SHCORE_PUBLIC Ssl_mode {
 
 struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   explicit Ssl_options(
-      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+      mysqlshdk::utils::nullable_options::Comparison_mode mode = mysqlshdk::
+          utils::nullable_options::Comparison_mode::CASE_INSENSITIVE);
 
   bool has_data() const;
   bool has_mode() const { return has_value(kSslMode); }
@@ -101,12 +97,6 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void set(const std::string &name, const std::string &value);
   void remove(const std::string &name);
   void validate() const;
-
-  static constexpr const char *const option_str_list[] = {
-      kSslCa,     kSslCaPath,     kSslCert,
-      kSslKey,    kSslCrl,        kSslCrlPath,
-      kSslCipher, kSslTlsVersion, kSslTlsCiphersuites,
-      kSslMode};
 
  private:
   const std::string &_get(const std::string &attribute) const;
