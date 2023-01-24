@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -169,5 +169,6 @@
 #define SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE 51616
 #define SHERR_DBA_CLUSTER_NOT_FENCED 51617
 #define SHERR_DBA_CLUSTER_NOT_CONFIGURED_TRANSACTION_SIZE_LIMIT 51618
+#define SHERR_DBA_CLUSTER_OFFLINE 51619
 
 #endif  // MODULES_ADMINAPI_COMMON_DBA_ERRORS_H_
