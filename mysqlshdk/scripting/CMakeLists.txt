@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@ set(SCRIPTING_SOURCES
 # Will generate the js_core_definitions file which will contain the
 # core.js file in a variable.
 if(HAVE_V8)
-  include_directories("${V8_INCLUDE_DIR}")
+  include_directories(SYSTEM "${V8_INCLUDE_DIR}")
   # Copy the core.js file to another directory.
   # This ensures that it's treated as a dependency, allowing to reconfigure
   # the jscript_core_definitions.h header file whenever core.js is changed.

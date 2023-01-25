@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -97,6 +97,12 @@ function(add_shell_executable)
     set_property(TARGET "${ARGV0}" PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
     set_property(TARGET "${ARGV0}" PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
   endif()
+  endif()
+  if(HAVE_V8)
+    # strip the whole binary on 32bit Ubuntu 18.04, avoid OOM linker errors
+    if(LINUX_UBUNTU_18_04 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+      MY_TARGET_LINK_OPTIONS("${ARGV0}" "LINKER:--strip-all")
+    endif()
   endif()
 endfunction()
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -54,7 +54,7 @@ set(SHELLCORE_SOURCES
   wizard.cc)
 
 if(HAVE_V8)
-  include_directories("${V8_INCLUDE_DIR}")
+  include_directories(SYSTEM "${V8_INCLUDE_DIR}")
   set(SHELLCORE_SOURCES
         ${SHELLCORE_SOURCES}
         provider_javascript.cc

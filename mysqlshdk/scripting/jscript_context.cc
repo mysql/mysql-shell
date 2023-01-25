@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -189,7 +189,7 @@ void SHCORE_PUBLIC JScript_context_init() {
 void SHCORE_PUBLIC JScript_context_fini() {
   if (g_platform) {
     v8::V8::Dispose();
-    v8::V8::ShutdownPlatform();
+    v8::V8::DisposePlatform();
     g_platform.reset(nullptr);
 
     finalize_tracing();
@@ -392,7 +392,7 @@ void JScript_context::Impl::load_core_module() const {
 
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
-  v8::ScriptOrigin script_origin{v8_string("core.js")};
+  v8::ScriptOrigin script_origin{m_isolate, v8_string("core.js")};
   auto script = v8::Script::Compile(
       lcontext, v8_string("(function (){" + shcore::js_core_module + "})();"),
       &script_origin);
@@ -431,7 +431,7 @@ void JScript_context::Impl::load_module(const std::string &path,
   const auto new_context = copy_global_context();
   v8::Context::Scope context_scope(new_context);
 
-  v8::ScriptOrigin script_origin{v8_string(path)};
+  v8::ScriptOrigin script_origin{m_isolate, v8_string(path)};
   // immediately invoked function expression inside of another IIFE, this saves
   // some C++ code to extract the data from the module object
   v8::MaybeLocal<v8::Script> script = v8::Script::Compile(
@@ -939,16 +939,20 @@ std::tuple<JSObject, std::string> JScript_context::get_global_js(
   // set context to be the default context for everything in this scope
   const auto lcontext = context();
   v8::Context::Scope context_scope(lcontext);
-
   v8::Local<v8::Value> global(m_impl->get_global(name));
+
   if (global->IsObject()) {
     auto obj_type = m_impl->to_string(type_info(global));
-    if (shcore::str_beginswith(obj_type, "m.")) obj_type = obj_type.substr(2);
-    return std::tuple<JSObject, std::string>(
+
+    if (shcore::str_beginswith(obj_type, "m.")) {
+      obj_type = obj_type.substr(2);
+    }
+
+    return std::make_tuple(
         JSObject(isolate(), global->ToObject(lcontext).ToLocalChecked()),
         obj_type);
   } else {
-    return std::tuple<JSObject, std::string>(JSObject(), "");
+    return std::make_tuple(JSObject(), "");
   }
 }
 
@@ -1102,7 +1106,7 @@ std::pair<Value, bool> JScript_context::execute(const std::string &code_str,
   // set context to be the default context for everything in this scope
   v8::Local<v8::Context> lcontext = context();
   v8::Context::Scope context_scope(lcontext);
-  v8::ScriptOrigin origin(v8_string(source));
+  v8::ScriptOrigin origin(isolate(), v8_string(source));
   v8::Local<v8::String> code = v8_string(code_str);
   v8::MaybeLocal<v8::Script> script =
       v8::Script::Compile(lcontext, code, &origin);
@@ -1193,7 +1197,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
           message == unterminated_template_exc) {
         *r_state = Input_state::ContinuedBlock;
       } else if (message == unexpected_tok_exc) {
-        v8::ScriptOrigin origin(v8_string(k_origin_shell));
+        v8::ScriptOrigin origin(isolate(), v8_string(k_origin_shell));
 
         auto comment_pos = code_str.rfind("/*");
 
@@ -1497,7 +1501,7 @@ bool JScript_context::load_plugin(const Plugin_definition &plugin) {
   const auto lcontext = context();
   v8::Context::Scope context_scope(lcontext);
 
-  v8::ScriptOrigin script_origin{v8_string("(load_plugin)")};
+  v8::ScriptOrigin script_origin{iso, v8_string("(load_plugin)")};
   v8::MaybeLocal<v8::Script> script =
       v8::Script::Compile(lcontext,
                           v8_string("require.__mh.__load_module(" +
@@ -1557,7 +1561,8 @@ v8::Local<v8::ArrayBuffer> v8_array_buffer(v8::Isolate *isolate,
 
 std::string to_string(v8::Isolate *isolate, v8::Local<v8::Value> obj) {
   const v8::String::Utf8Value utf8{
-      isolate, obj->IsSymbol() ? obj.As<v8::Symbol>()->Name() : obj};
+      isolate,
+      obj->IsSymbol() ? obj.As<v8::Symbol>()->Description(isolate) : obj};
   const auto ptr = *utf8;
   return nullptr == ptr ? "" : std::string(ptr, utf8.length());
 }
