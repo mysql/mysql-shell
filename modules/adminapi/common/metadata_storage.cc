@@ -2355,58 +2355,45 @@ static void parse_router_definition(const std::string &router_def,
   }
 }
 
-bool MetadataStorage::remove_router(const std::string &router_def) {
+bool MetadataStorage::remove_router(const std::string &router_def,
+                                    bool lock_metadata) {
   std::string address;
   std::string name;
-
   parse_router_definition(router_def, &address, &name);
 
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
+  shcore::on_leave_scope finally;
+  if (lock_metadata) {
+    // Acquire required lock on the Metadata (try at most during 60 sec).
+    get_lock_exclusive();
 
-  // Always release locks at the end, when leaving the function scope.
-  shcore::on_leave_scope finally([this]() { release_lock(); });
+    // Always release locks at the end, when leaving the function scope.
+    finally = shcore::on_leave_scope([this]() { release_lock(); });
+  }
 
   // This has to support MD versions 1.0 and 2.0, so that we can remove older
   // router versions while upgrading the MD.
+  std::shared_ptr<mysqlshdk::db::IResult> result;
   if (real_version().get_major() == 1) {
-    auto result = execute_sqlf(
-        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
-        " JOIN mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id"
-        " WHERE r.router_name = ? AND LOWER(h.host_name) = LOWER(?)",
+    result = execute_sqlf(
+        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r JOIN "
+        "mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id WHERE "
+        "r.router_name = ? AND LOWER(h.host_name) = LOWER(?)",
         name, address);
-
-    if (auto row = result->fetch_one()) {
-      int router_id = row->get_int(0);
-
-      execute_sqlf(
-          "DELETE FROM mysql_innodb_cluster_metadata.routers"
-          " WHERE router_id = ?",
-          router_id);
-
-      return true;
-    } else {
-      return false;
-    }
   } else {
-    auto result = execute_sqlf(
-        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
-        " WHERE r.router_name = ? AND r.address = ?",
+    result = execute_sqlf(
+        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r WHERE "
+        "r.router_name = ? AND r.address = ?",
         name, address);
-
-    if (auto row = result->fetch_one()) {
-      int router_id = row->get_int(0);
-
-      execute_sqlf(
-          "DELETE FROM mysql_innodb_cluster_metadata.routers"
-          " WHERE router_id = ?",
-          router_id);
-
-      return true;
-    } else {
-      return false;
-    }
   }
+
+  auto row = result->fetch_one();
+  if (!row) return false;
+
+  execute_sqlf(
+      "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE router_id = ?",
+      row->get_int(0));
+
+  return true;
 }
 
 void MetadataStorage::set_target_cluster_for_all_routers(
@@ -2667,11 +2654,6 @@ void MetadataStorage::cleanup_for_cluster(Cluster_id cluster_id) {
 Cluster_set_id MetadataStorage::create_cluster_set_record(
     Cluster_set_impl *clusterset, Cluster_id seed_cluster_id,
     shcore::Dictionary_t seed_attributes) {
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_created(?, ?, ?, @_cs_id)",
       clusterset->get_name(), seed_cluster_id,
@@ -2686,12 +2668,6 @@ Cluster_set_id MetadataStorage::create_cluster_set_record(
 
 void MetadataStorage::record_cluster_set_member_added(
     const Cluster_set_member_metadata &cluster) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_member_added(?, ?, ?, '{}')",
       cluster.cluster_set_id, cluster.cluster.cluster_id,
@@ -2700,12 +2676,6 @@ void MetadataStorage::record_cluster_set_member_added(
 
 void MetadataStorage::record_cluster_set_member_removed(
     const Cluster_set_id &cs_id, const Cluster_id &cluster_id) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf("CALL mysql_innodb_cluster_metadata.v2_cs_member_removed(?, ?)",
                cs_id, cluster_id);
 }
@@ -2713,12 +2683,6 @@ void MetadataStorage::record_cluster_set_member_removed(
 void MetadataStorage::record_cluster_set_member_rejoined(
     const Cluster_set_id &cs_id, const Cluster_id &cluster_id,
     const Cluster_id &master_cluster_id) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_member_rejoined(?, ?, ?, '{}')",
       cs_id, cluster_id, master_cluster_id);

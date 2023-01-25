@@ -462,9 +462,10 @@ class MetadataStorage {
    * Deletes metadata for the named router instance.
    *
    * @param router_def router identifier, as address[::name]
+   * @param lock_metadata controls if the metadata is locked for the operation
    * @return false if router_def doesn't match any router instances
    */
-  bool remove_router(const std::string &router_def);
+  bool remove_router(const std::string &router_def, bool lock_metadata = false);
 
   /**
    * Sets a target-cluster for all Routers of a Cluster

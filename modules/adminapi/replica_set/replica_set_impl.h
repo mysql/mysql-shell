@@ -114,7 +114,7 @@ class Replica_set_impl : public Base_cluster_impl {
 
   shcore::Value list_routers(bool only_upgrade_required) override;
 
-  void remove_router_metadata(const std::string &router) override;
+  void remove_router_metadata(const std::string &router);
 
   void setup_admin_account(const std::string &username, const std::string &host,
                            const Setup_account_options &options) override;

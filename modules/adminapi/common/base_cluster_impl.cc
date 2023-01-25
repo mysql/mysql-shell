@@ -439,8 +439,14 @@ void Base_cluster_impl::setup_router_account(
   setup_account_common(username, host, options, Setup_account_type::ROUTER);
 }
 
-void Base_cluster_impl::remove_router_metadata(const std::string &router) {
-  if (!get_metadata_storage()->remove_router(router)) {
+void Base_cluster_impl::remove_router_metadata(const std::string &router,
+                                               bool lock_metadata) {
+  /*
+   * The metadata lock is currently only used in ReplicaSet, and only until it's
+   * removed (deprecated because we use DB transactions). At that time, all
+   * metadata locks will be removed, along with this parameter.
+   */
+  if (!get_metadata_storage()->remove_router(router, lock_metadata)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
                                             router + "'");
   }

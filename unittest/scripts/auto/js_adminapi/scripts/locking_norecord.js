@@ -15,6 +15,8 @@ function cluster_lock_check(func, test_shared = true) {
         EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
         testutil.releaseLocks(session, "AdminAPI_cluster");
     }
+
+    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 function instance_lock_check(session_lock, session_port, func, test_shared = true) {
@@ -34,6 +36,8 @@ function instance_lock_check(session_lock, session_port, func, test_shared = tru
         EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the lock on instance '${hostname}:${session_port}'. Another operation requiring access to the instance is still in progress, please wait for it to finish and try again.`);
         testutil.releaseLocks(session_lock, "AdminAPI_instance");
     }
+
+    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 //@<> INCLUDE gr_utils.inc
@@ -41,7 +45,6 @@ function instance_lock_check(session_lock, session_port, func, test_shared = tru
 //@<> Initialization
 var lock_cluster = "AdminAPI_cluster";
 var lock_instance = "AdminAPI_instance";
-var lock_metadata = "AdminAPI_metadata";
 var lock_name = "AdminAPI_lock";
 
 var allowlist = "127.0.0.1," + hostname_ip;
@@ -226,6 +229,21 @@ EXPECT_NO_THROWS(function() {
 });
 testutil.releaseLocks(session, lock_cluster);
 
+//@<> shared lock on cluster.removeRouterMetadata()
+cluster_lock_check(function() {
+    cluster.removeRouterMetadata("bogus");
+}, false);
+
+cluster_lock_check(function() {
+    cluster2.removeRouterMetadata("bogus");
+}, false);
+
+testutil.getSharedLock(session, lock_cluster, lock_name);
+EXPECT_THROWS(function() {
+    cluster.removeRouterMetadata("bogus");
+}, "Invalid router instance 'bogus'");
+testutil.releaseLocks(session, lock_cluster);
+
 // **************
 // Instance locks
 
@@ -376,9 +394,11 @@ session.runSql("DROP FUNCTION IF EXISTS service_get_read_locks");
 session.runSql("DROP FUNCTION IF EXISTS service_get_write_locks");
 session.runSql("DROP FUNCTION IF EXISTS service_release_locks");
 
+session2.runSql("set global super_read_only=0");
 session2.runSql("DROP FUNCTION IF EXISTS service_get_read_locks");
 session2.runSql("DROP FUNCTION IF EXISTS service_get_write_locks");
 session2.runSql("DROP FUNCTION IF EXISTS service_release_locks");
+session2.runSql("set global super_read_only=1");
 
 EXPECT_NO_THROWS(function() {
     cluster.resetRecoveryAccountsPassword();

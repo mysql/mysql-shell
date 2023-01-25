@@ -2845,7 +2845,7 @@ void Replica_set_impl::remove_router_metadata(const std::string &router) {
   // instances.
   auto plock = get_primary_master()->get_lock_shared();
 
-  Base_cluster_impl::remove_router_metadata(router);
+  Base_cluster_impl::remove_router_metadata(router, true);
 }
 
 void Replica_set_impl::setup_admin_account(

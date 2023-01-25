@@ -8,6 +8,8 @@ function clusterset_lock_check(func, test_shared = true) {
     }, `Failed to acquire ClusterSet lock through global primary member '${hostname}:${__mysql_sandbox_port1}'`);
     EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the ClusterSet lock through global primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
     testutil.releaseLocks(session, "AdminAPI_clusterset");
+
+    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 function cluster_lock_check(func) {
@@ -25,6 +27,8 @@ function cluster_lock_check(func) {
     }, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'`);
     EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
     testutil.releaseLocks(session, "AdminAPI_cluster");
+
+    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 //@<> INCLUDE gr_utils.inc
@@ -33,7 +37,6 @@ function cluster_lock_check(func) {
 var lock_cluster = "AdminAPI_cluster";
 var lock_cluster_set = "AdminAPI_clusterset";
 var lock_instance = "AdminAPI_instance";
-var lock_metadata = "AdminAPI_metadata";
 var lock_name = "AdminAPI_lock";
 
 var allowlist = "127.0.0.1," + hostname_ip;
@@ -101,17 +104,20 @@ EXPECT_THROWS(function() {
     cset.createReplicaCluster(__sandbox_uri3, "rcluster1", {recoveryMethod:"clone"});
 }, `Failed to acquire lock on instance '${hostname}:${__mysql_sandbox_port3}'`);
 EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the lock on instance '${hostname}:${__mysql_sandbox_port3}'. Another operation requiring access to the instance is still in progress, please wait for it to finish and try again.`);
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 testutil.releaseLocks(session3, lock_instance);
 
 EXPECT_NO_THROWS(function() {
     cset.createReplicaCluster(__sandbox_uri3, "rcluster1", {recoveryMethod:"clone"});
 });
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 testutil.releaseLocks(session1, lock_cluster_set);
 
 //@<> shared lock on clusterset.rejoinCluster() (with a shared lock on the primary cluster and an exclusive lock on the target cluster)
 cset.createReplicaCluster(__sandbox_uri4, "rcluster2", {recoveryMethod:"clone"});
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 disable_auto_rejoin(__mysql_sandbox_port4);
 
@@ -257,6 +263,7 @@ EXPECT_THROWS(function() {
     cset.removeCluster("rcluster2");
 }, `Failed to acquire ClusterSet lock through global primary member '${hostname}:${__mysql_sandbox_port1}'`);
 EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the ClusterSet lock through global primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 testutil.releaseLocks(session1, lock_cluster_set);
 
@@ -264,6 +271,7 @@ EXPECT_THROWS(function() {
     cset.removeCluster("rcluster2");
 }, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'`);
 EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 testutil.releaseLocks(session1, lock_cluster);
 testutil.getExclusiveLock(session4, lock_cluster, lock_name);
@@ -272,12 +280,14 @@ EXPECT_THROWS(function() {
     cset.removeCluster("rcluster2");
 }, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port4}'`);
 EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port4}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 testutil.releaseLocks(session4, lock_cluster);
 
 EXPECT_NO_THROWS(function() {
     cset.removeCluster("rcluster2");
 });
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 //@<> exclusive lock on clusterset.setOption() (with an optional exclusive lock on the primary cluster)
 

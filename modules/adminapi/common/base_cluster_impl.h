@@ -144,7 +144,8 @@ class Base_cluster_impl {
                                     const std::string &host,
                                     const Setup_account_options &options);
 
-  virtual void remove_router_metadata(const std::string &router);
+  void remove_router_metadata(const std::string &router,
+                              bool lock_metadata = false);
 
   void set_instance_tag(const std::string &instance_def,
                         const std::string &option, const shcore::Value &value);

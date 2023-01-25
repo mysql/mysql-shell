@@ -1867,6 +1867,9 @@ shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
 }
 
 void Cluster_impl::remove_router_metadata(const std::string &router) {
+  // put a shared lock on the cluster
+  auto c_lock = get_lock_shared();
+
   check_preconditions("removeRouterMetadata");
 
   Base_cluster_impl::remove_router_metadata(router);

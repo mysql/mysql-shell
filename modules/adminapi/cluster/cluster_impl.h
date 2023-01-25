@@ -120,7 +120,7 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value options(const bool all);
   shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
-  void remove_router_metadata(const std::string &router) override;
+  void remove_router_metadata(const std::string &router);
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
   void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
