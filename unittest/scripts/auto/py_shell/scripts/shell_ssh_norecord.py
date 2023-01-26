@@ -39,7 +39,7 @@ EXPECT_THROWS(lambda: shell.connect({"uri": MYSQL_OVER_SSH_URI,
 # Updates the file with the right permissions
 create_ssh_conf(config_file, default_config)
 
-#this test must be executed as a first one to create valid known_hosts file so all futher connections won't need to confirm the fingerprint
+#this test must be executed as a first one to create valid known_hosts file so all further connections won't need to confirm the fingerprint
 # we will also test cAsEsEnSiTiViTy on 'ssh' and 'config-file'
 #@<> WL#14246 - TSFR_11_2 connect to the sshd and create a tunnel without known host
 testutil.expect_prompt("The authenticity of host '{}' can't be established.".format(SSH_HOST), "y")
