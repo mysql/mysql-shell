@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -461,6 +461,95 @@ TEST_F(Command_line_test, batch_ansi_quotes) {
   }
   EXPECT_NE(std::string::npos,
             out.find(R"(Unknown column '\";select version();#')"));
+}
+
+TEST_F(Command_line_test, user_before_uri) {
+  mysqlshdk::db::Connection_options options;
+  options.set_host(_host);
+  options.set_port(std::stoi(_mysql_port));
+  options.set_user(_user);
+  options.set_password(_pwd);
+
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(options);
+  session->execute("drop user if exists testuser1@'%'");
+  session->execute("drop user if exists testuser2@'%'");
+  session->execute("create user testuser1@'%' identified by 'pass1'");
+  session->execute("create user testuser2@'%' identified by 'pass2'");
+
+  // -uuser mysql://localhost should become user@localhost
+  // mysql://localhost -uuser should become user@localhost
+  // -uuser mysql://localhost -utestuser2 should become testuser2@localhost
+  // -uuser mysql://testuser2@localhost should become testuser2@localhost
+  // mysql://user@localhost -utestuser2 should become testuser2@localhost
+
+  {
+    std::string uri = shcore::str_format("mysql://testuser1:pass1@localhost:%s",
+                                         _mysql_port.c_str());
+    execute({_mysqlsh, uri.c_str(), "--sql", "-e",
+             "select concat('test1=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test1=testuser1@%");
+  }
+  {
+    std::string uri = shcore::str_format("mysql://testuser1@localhost:%s",
+                                         _mysql_port.c_str());
+    execute({_mysqlsh, uri.c_str(), "-ppass1", "--sql", "-e",
+             "select concat('test2=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test2=testuser1@%");
+  }
+  {
+    std::string uri =
+        shcore::str_format("mysql://localhost:%s", _mysql_port.c_str());
+    execute({_mysqlsh, "-utestuser1", "-ppass1", uri.c_str(), "--sql", "-e",
+             "select concat('test3=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test3=testuser1@%");
+  }
+  {
+    std::string uri =
+        shcore::str_format("mysql://localhost:%s", _mysql_port.c_str());
+    execute({_mysqlsh, "-utestuser1", uri.c_str(), "-ppass1", "--sql", "-e",
+             "select concat('test4=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test4=testuser1@%");
+  }
+  {
+    std::string uri =
+        shcore::str_format("mysql://localhost:%s", _mysql_port.c_str());
+    execute({_mysqlsh, uri.c_str(), "-ppass1", "-utestuser1", "--sql", "-e",
+             "select concat('test5=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test5=testuser1@%");
+  }
+  {
+    std::string uri =
+        shcore::str_format("mysql://localhost:%s", _mysql_port.c_str());
+    execute({_mysqlsh, "-ppass1", uri.c_str(), "-utestuser1", "--sql", "-e",
+             "select concat('test6=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test6=testuser1@%");
+  }
+  {
+    std::string uri =
+        shcore::str_format("mysql://localhost:%s", _mysql_port.c_str());
+    execute({_mysqlsh, "-utestuser1", "-ppass1", uri.c_str(), "-utestuser2",
+             "-ppass2", "--sql", "-e",
+             "select concat('test7=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test7=testuser2@%");
+  }
+  {
+    std::string uri = shcore::str_format("mysql://testuser2:pass2@localhost:%s",
+                                         _mysql_port.c_str());
+    execute({_mysqlsh, "-utestuser1", "-ppass1", uri.c_str(), "--sql", "-e",
+             "select concat('test8=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test8=testuser2@%");
+  }
+  {
+    std::string uri = shcore::str_format("mysql://testuser1@localhost:%s",
+                                         _mysql_port.c_str());
+    execute({_mysqlsh, uri.c_str(), "-utestuser2", "-ppass2", "--sql", "-e",
+             "select concat('test9=', current_user())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("test9=testuser2@%");
+  }
+
+  session->execute("drop user testuser1@'%'");
+  session->execute("drop user testuser2@'%'");
 }
 
 }  // namespace tests

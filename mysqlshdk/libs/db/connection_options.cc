@@ -98,7 +98,8 @@ void Connection_options::override_with(const Connection_options &options) {
   }
 
   for (int i = 0; i < 3; i++) {
-    m_mfa_passwords[i] = options.m_mfa_passwords[i];
+    if (options.m_mfa_passwords[i].has_value())
+      set_mfa_password(i, *options.m_mfa_passwords[i]);
   }
 }
 
@@ -144,9 +145,31 @@ void Connection_options::set_ssl_options(const Ssl_options &options) {
   m_ssl_options = options;
 }
 
+void Connection_options::set_password(const std::string &password) {
+  IConnection::set_password(password);
+  m_mfa_passwords[0] = password;
+}
+
+void Connection_options::set_mfa_password(int factor,
+                                          const std::string &password) {
+  if (factor < 0 || factor >= 3)
+    throw std::invalid_argument("invalid factor #");
+  if (factor == 0) set_password(password);
+  m_mfa_passwords[factor] = password;
+}
+
+void Connection_options::set_mfa_passwords(const Mfa_passwords &mfa_passwords) {
+  m_mfa_passwords = mfa_passwords;
+  if (mfa_passwords[0].has_value()) set_password(*mfa_passwords[0]);
+}
+
 const std::string &Connection_options::get_password() const {
-  return m_mfa_passwords[0].has_value() ? *m_mfa_passwords[0]
-                                        : get_value(kPassword);
+  return get_value(kPassword);
+}
+
+void Connection_options::clear_password() {
+  IConnection::clear_password();
+  m_mfa_passwords[0].reset();
 }
 
 void Connection_options::set_ssh_options(
@@ -593,10 +616,11 @@ bool Connection_options::has_mfa_passwords() const {
   for (const auto &p : m_mfa_passwords) {
     if (p.has_value()) return true;
   }
-  return false;
+  return has_password();
 }
 
 void Connection_options::clear_mfa_passwords() {
+  clear_password();
   for (auto &p : m_mfa_passwords) {
     p.reset();
   }

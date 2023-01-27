@@ -190,7 +190,10 @@ void Shell_options::Storage::set_uri(const std::string &uri) {
     connection_data.clear_schema();
     connection_data.clear_port();
     connection_data.clear_socket();
-    connection_data.override_with(shcore::get_connection_options(uri, true));
+    // don't set defaults to the parsed URI because we don't want to override
+    // options like user, pass and scheme that were specified before the URI
+    // with defaults
+    connection_data.override_with(shcore::get_connection_options(uri, false));
   }
 }
 
@@ -909,6 +912,9 @@ Shell_options::Shell_options(
     } else {
       // if we didn't get any password in the cmdline, restore the ones we got
       // from my.cnf (if any)
+      if (mycnf_connection_data.has_password())
+        storage.connection_data.set_password(
+            mycnf_connection_data.get_password());
       if (mycnf_connection_data.has_mfa_passwords())
         storage.connection_data.set_mfa_passwords(
             mycnf_connection_data.get_mfa_passwords());
