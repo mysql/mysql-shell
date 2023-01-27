@@ -927,9 +927,9 @@ Shell_options::Shell_options(
 
     check_password_conflicts();
     check_host_socket_conflicts();
+    check_ssh_conflicts();
     if (!flags.is_set(Option_flags::CONNECTION_ONLY)) {
       check_file_execute_conflicts();
-      check_ssh_conflicts();
       check_import_options();
       check_result_format();
     }

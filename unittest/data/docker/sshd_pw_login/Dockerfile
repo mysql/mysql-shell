@@ -1,4 +1,4 @@
-FROM "mysql:latest"
+FROM "mysql:8.0.32-debian"
 RUN apt-get update && apt-get install -y openssh-server
 RUN mkdir /var/run/sshd
 RUN echo 'root:root' | chpasswd
@@ -14,20 +14,7 @@ COPY authorized_keys.test /root/.ssh/authorized_keys
 RUN chmod 600 /root/.ssh/authorized_keys
 
 # We need to inject sshd into docker-entrypoint
-RUN head -1 /usr/local/bin/docker-entrypoint.sh > /docker-entrypoint.sh.tmp
-RUN printf 'echo "About to start sshd"\n\
-/usr/sbin/sshd\n\
-status=$?\n\
-if [ $status -ne 0 ]; then\n\
-  echo "Failed to start sshd: $status"\n\
-  exit $status\n\
-fi\n\
-echo "sshd started"\n\
-' >> docker-entrypoint.sh.tmp
-
-RUN tail -n +2 /usr/local/bin/docker-entrypoint.sh >> /docker-entrypoint.sh.tmp
-RUN mv /docker-entrypoint.sh.tmp /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN perl -i.original -pe 's/(\s*)_main "\$@"/$1me=`whoami`\n$1if [ "\$me" != "mysql" ]; then\n$1  echo "About to start sshd"\n$1  \/usr\/sbin\/sshd\n$1  status=\$?\n\n$1  if [ \$status -ne 0 ]; then\n$1    echo "Failed to start sshd: \$status"\n$1  else\n$1   echo "sshd started successfully!"\n$1  fi\n$1fi\n\n$1_main "\$@"/igs' /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 2222
 CMD ["mysqld"]

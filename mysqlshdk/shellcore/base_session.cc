@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,7 +172,7 @@ std::string ShellBaseSession::uri(
 std::string ShellBaseSession::ssh_uri() const {
   if (_connection_options.get_ssh_options().has_data()) {
     return _connection_options.get_ssh_options().as_uri(
-        mysqlshdk::db::uri::formats::no_schema_no_query());
+        mysqlshdk::db::uri::formats::full_no_password());
   }
   return "";
 }

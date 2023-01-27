@@ -170,6 +170,8 @@ ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
 
     if (has_host() && mysql_port != 0) {
       m_ssh_options.set_remote_host(get_host());
+
+      m_ssh_options.clear_remote_port();
       m_ssh_options.set_remote_port(mysql_port);
     } else {
       throw std::invalid_argument(
