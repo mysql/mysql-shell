@@ -212,6 +212,7 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check();
   static std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check();
   static std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check();
+  static std::unique_ptr<Sql_upgrade_check> get_index_too_large_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,

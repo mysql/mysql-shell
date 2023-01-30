@@ -1548,4 +1548,50 @@ TEST_F(MySQL_upgrade_check_test, dollar_sign_name_check) {
       session->execute("DROP SCHEMA IF EXISTS $wrong_schema_dollar_name;"));
 }
 
+TEST_F(MySQL_upgrade_check_test, too_large_index_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(5, 7, 34));
+
+  PrepareTestDatabase("index_test");
+
+  ASSERT_NO_THROW(
+      session->execute("set GLOBAL innodb_default_row_format='redundant';"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `test123` (`id` int unsigned NOT NULL AUTO_INCREMENT, "
+      "`comment` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci "
+      "NOT NULL DEFAULT '', PRIMARY KEY(`id`)) ENGINE = InnoDB DEFAULT CHARSET "
+      "= utf8;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "insert into test123(comment) "
+      "values('"
+      "kncfosdncfvlknsadkvnalksdnvlkansdlkvcnalkdsncvlkasnfcklanskldnlaksndklas"
+      "ndlkanslkdnaslkndlkasndklanslkdnkncfosdncfvlknsadkvnalksdnvlkansdlkvcnal"
+      "kdsncvlkasnfcklanskldnlaksndklasndlkanslkdnaslkndlkasndklanslkdnkncfosdn"
+      "cfvlknsadkvnalksdnvlkansdlkvcnalkdsncq');"));
+
+  const auto check = Sql_upgrade_check::get_index_too_large_check();
+  EXPECT_NO_ISSUES(check.get());
+
+  EXPECT_ANY_THROW(
+      session->execute("create index idx123 on test123 (`comment`);"));
+
+  ASSERT_NO_THROW(
+      session->execute("set GLOBAL innodb_default_row_format='dynamic';"));
+
+  ASSERT_NO_THROW(
+      session->execute("create index idx123 on test123 (`comment`);"));
+
+  EXPECT_ISSUES(check.get(), 1);
+
+  EXPECT_EQ("index_test", issues[0].schema);
+  EXPECT_EQ("test123", issues[0].table);
+  EXPECT_EQ("idx123", issues[0].column);
+
+  ASSERT_NO_THROW(
+      session->execute("set GLOBAL innodb_default_row_format=DEFAULT;"));
+
+  ASSERT_NO_THROW(session->execute("DROP SCHEMA IF EXISTS index_test;"));
+}
+
 }  // namespace mysqlsh

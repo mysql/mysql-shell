@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -410,4 +410,15 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 # sign, also end with it, similary to quotes ($example$). 
 
 * mysqlDollarSignNameCheck.docLink
+
+* mysqlIndexTooLargeCheck.title
+# Check for indexes that are too large to work on higher versions of MySQL Server than 5.7
+
+* mysqlIndexTooLargeCheck.description
+# Error: The following indexes ware made too large for their format in an older version of MySQL
+# (older than 5.7.34). Normally those indexes within tables with compact or redundant row formats
+# shouldn't be larger than 767 bytes. To fix this problem those indexes should be dropped before
+# upgrading or those tables will be inaccessible. 
+
+* mysqlIndexTooLargeCheck.docLink
 
