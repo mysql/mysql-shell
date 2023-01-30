@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,8 @@ class Aws_signer : public rest::Signer {
   bool refresh_auth_data() override;
 
   bool auth_data_expired(time_t now) const override;
+
+  bool is_authorization_error(const rest::Response &response) const override;
 
  private:
 #ifdef FRIEND_TEST

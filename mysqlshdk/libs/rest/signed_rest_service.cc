@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -243,11 +243,18 @@ Response::Status_code Signed_rest_service::execute(Signed_request *request,
 
   do {
     code = rest->execute(request, response);
-    retry = Response::Status_code::UNAUTHORIZED == code &&
-            ++retries <= k_authorization_retry_limit &&
-            m_signer->refresh_auth_data();
+    retry = Response::is_error(code) &&
+            m_signer->is_authorization_error(*response) &&
+            ++retries <= k_authorization_retry_limit;
 
     if (retry) {
+      log_info("Refreshing authentication data");
+      retry = m_signer->refresh_auth_data();
+    }
+
+    if (retry) {
+      log_info("Retrying a request which failed due to an authorization error");
+      response->body->clear();
       // we've refreshed the authorization data, cache is no longer valid
       invalidate_cache();
     }

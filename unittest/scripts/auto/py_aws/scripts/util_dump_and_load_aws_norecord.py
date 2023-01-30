@@ -5,7 +5,10 @@
 #@<> INCLUDE dump_utils.inc
 
 #@<> imports
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import os.path
+import random
+import threading
 
 #@<> setup
 setup_tests(load_tests = True)
@@ -56,6 +59,36 @@ def EXPECT_FAIL(error, msg, options = {}, excluded_options = [], argument_error 
     dump("schemas", [ "world" ])
     dump("tables", "world", [ "Country" ])
     load()
+
+class FailHTTPRequest(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    def do_GET(self):
+        self.send_response(self.status_code)
+        self.send_header('Content-Type', 'application/xml')
+        self.send_header('Content-Length', str(len(self.response)))
+        self.end_headers()
+        self.wfile.write(self.response.encode('ascii'))
+        self.close_connection = True
+    def log_message(self, format, *args):
+        pass
+
+def start_test_server(handler):
+    while True:
+        http_port = random.randint(50000, 60000)
+        if not testutil.is_tcp_port_listening("127.0.0.1", http_port):
+            break
+    http_server = HTTPServer(("127.0.0.1", http_port), handler)
+    http_thread = threading.Thread(target = http_server.serve_forever)
+    http_thread.start()
+    return (http_port, http_server, http_thread)
+
+def test_server_url(server):
+    return f"http://127.0.0.1:{server[0]}"
+
+def stop_test_server(server):
+    server[1].shutdown()
+    server[1].server_close()
+    server[2].join()
 
 #@<> WL14387-TSFR_1
 help_text = """
@@ -291,30 +324,11 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { **aw
 shell.options["logLevel"] = current_log_level
 
 #@<> WL14387-TSFR_6_3_1
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import threading
+class RejectGet(FailHTTPRequest):
+    status_code = 403
+    response = "<Error><Message>Access forbidden!</Message></Error>"
 
-class RejectGet(BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
-    def do_GET(self):
-        response = "<Error><Message>Access forbidden!</Message></Error>"
-        self.send_response(403)
-        self.send_header('Content-Type', 'application/xml')
-        self.send_header('Content-Length', str(len(response)))
-        self.end_headers()
-        self.wfile.write(response.encode('ascii'))
-        self.close_connection = True
-    def log_message(self, format, *args):
-        pass
-
-while True:
-    http_port = random.randint(50000, 60000)
-    if not testutil.is_tcp_port_listening("127.0.0.1", http_port):
-        break
-
-http_server = HTTPServer(("127.0.0.1", http_port), RejectGet)
-http_thread = threading.Thread(target = http_server.serve_forever)
-http_thread.start()
+http_server = start_test_server(RejectGet)
 
 current_log_level = shell.options["logLevel"]
 shell.options["logLevel"] = 8
@@ -324,14 +338,12 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { **aw
     setup_session(__sandbox_uri1)
     clean_bucket()
     WIPE_SHELL_LOG()
-    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": f"http://127.0.0.1:{http_port}/", "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), "Access forbidden! (403)")
-    EXPECT_SHELL_LOG_CONTAINS(f"http://127.0.0.1:{http_port} GET")
+    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": test_server_url(http_server), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), "Access forbidden! (403)")
+    EXPECT_SHELL_LOG_CONTAINS(f"{test_server_url(http_server)} GET")
 
 shell.options["logLevel"] = current_log_level
 
-http_server.shutdown()
-http_server.server_close()
-http_thread.join()
+stop_test_server(http_server)
 
 #@<> WL14387-TSFR_6_3_2
 current_log_level = shell.options["logLevel"]
@@ -451,6 +463,71 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "cre
 EXPECT_EQ(6, read_control_file().count('\n'))
 
 #@<> BUG#34840953 - cleanup
+if os.path.exists(creds_script):
+    os.remove(creds_script)
+
+#@<> BUG#35027093 - retry in case of AWS errors returned for an expired token
+# setup
+creds_script = os.path.abspath("creds.py")
+
+with open(creds_script, 'w', encoding="utf-8") as f:
+    f.write(f"""# returns hardcoded credentials with expiration time in the past
+import datetime
+import json
+
+creds = {{
+    'Version': 1,
+    'AccessKeyId': 'ACCESS-KEY',
+    'SecretAccessKey': 'SECRET-ACCESS-KEY',
+    'SessionToken': 'SESSION-TOKEN',
+    'Expiration': (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(milliseconds = 100)).isoformat()
+}}
+
+print(json.dumps(creds))
+""")
+
+class ExpiredToken(FailHTTPRequest):
+    status_code = 400
+    response = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>ExpiredToken</Code>
+  <Message>The provided token has expired.</Message>
+  <Token-0>SESSION-TOKEN</Token-0>
+  <RequestId>REQUEST-ID</RequestId>
+  <HostId>HOST-ID</HostId>
+</Error>
+"""
+
+class TokenRefreshRequired(FailHTTPRequest):
+    status_code = 400
+    response = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>TokenRefreshRequired</Code>
+  <Message>The provided token must be refreshed.</Message>
+  <Token-0>SESSION-TOKEN</Token-0>
+  <RequestId>REQUEST-ID</RequestId>
+  <HostId>HOST-ID</HostId>
+</Error>
+"""
+
+def TEST_BUG35027093(http_server, expected_error):
+    WIPE_SHELL_LOG()
+    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": test_server_url(http_server), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), expected_error)
+    EXPECT_SHELL_LOG_CONTAINS_COUNT("Refreshing authentication data", 2)
+    EXPECT_SHELL_LOG_CONTAINS_COUNT("Retrying a request which failed due to an authorization error", 2)
+
+expired_token_server = start_test_server(ExpiredToken)
+token_refresh_server = start_test_server(TokenRefreshRequired)
+
+#@<> BUG#35027093 - test
+with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "credential_process": f"{__mysqlsh} --py --file {creds_script}" }):
+    TEST_BUG35027093(expired_token_server, "The provided token has expired. (400)")
+    TEST_BUG35027093(token_refresh_server, "The provided token must be refreshed. (400)")
+
+#@<> BUG#35027093 - cleanup
+stop_test_server(expired_token_server)
+stop_test_server(token_refresh_server)
+
 if os.path.exists(creds_script):
     os.remove(creds_script)
 

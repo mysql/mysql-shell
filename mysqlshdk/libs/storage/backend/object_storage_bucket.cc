@@ -76,7 +76,7 @@ std::vector<Object_details> Container::list_objects(
     try {
       ensure_connection()->get(&request, &response);
     } catch (const Response_error &error) {
-      throw Response_error(error.code(),
+      throw Response_error(error.status_code(),
                            "Failed to list objects using prefix '" + prefix +
                                "': " + error.what());
     }
@@ -118,8 +118,9 @@ size_t Container::head_object(const std::string &object_name) {
   try {
     ensure_connection()->head(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to get summary for object '" +
-                                           object_name + "': " + error.what());
+    throw Response_error(error.status_code(),
+                         "Failed to get summary for object '" + object_name +
+                             "': " + error.what());
   }
 
   return response.content_length();
@@ -131,8 +132,9 @@ void Container::delete_object(const std::string &object_name) {
   try {
     ensure_connection()->delete_(&request);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to delete object '" +
-                                           object_name + "': " + error.what());
+    throw Response_error(
+        error.status_code(),
+        "Failed to delete object '" + object_name + "': " + error.what());
   }
 }
 
@@ -141,9 +143,9 @@ void Container::rename_object(const std::string &src_name,
   try {
     execute_rename_object(ensure_connection(), src_name, new_name);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to rename object '" + src_name +
-                                           "' to '" + new_name +
-                                           "': " + error.what());
+    throw Response_error(error.status_code(),
+                         "Failed to rename object '" + src_name + "' to '" +
+                             new_name + "': " + error.what());
   }
 }
 
@@ -161,8 +163,9 @@ void Container::put_object(const std::string &object_name, const char *data,
 
     ensure_connection()->put(&request);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to put object '" + object_name +
-                                           "': " + error.what());
+    throw Response_error(
+        error.status_code(),
+        "Failed to put object '" + object_name + "': " + error.what());
   }
 }
 
@@ -190,7 +193,7 @@ size_t Container::get_object(const std::string &object_name,
   try {
     ensure_connection()->get(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(),
+    throw Response_error(error.status_code(),
                          "Failed to get object '" + object_name + "'" +
                              (range.empty() ? "" : " [" + range + "]") + ": " +
                              error.what());
@@ -227,7 +230,7 @@ std::vector<Multipart_object> Container::list_multipart_uploads(size_t limit) {
     ensure_connection()->get(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(
-        error.code(),
+        error.status_code(),
         std::string{"Failed to list multipart uploads: "} + error.what());
   }
 
@@ -254,7 +257,7 @@ std::vector<Multipart_object_part> Container::list_multipart_uploaded_parts(
   try {
     ensure_connection()->get(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(),
+    throw Response_error(error.status_code(),
                          "Failed to list uploaded parts for object '" +
                              object.name + "': " + error.what());
   }
@@ -298,7 +301,7 @@ Multipart_object Container::create_multipart_upload(
   try {
     handle_multipart_request(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(),
+    throw Response_error(error.status_code(),
                          "Failed to create a multipart upload for object '" +
                              object_name + "': " + error.what());
   }
@@ -333,7 +336,7 @@ Multipart_object_part Container::upload_part(const Multipart_object &object,
     ensure_connection()->put(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(
-        error.code(),
+        error.status_code(),
         shcore::str_format("Failed to upload part %zu for object '%s': %s",
                            part_num, object.name.c_str(), error.what()));
   }
@@ -356,7 +359,7 @@ void Container::commit_multipart_upload(
   try {
     handle_multipart_request(&request);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(),
+    throw Response_error(error.status_code(),
                          "Failed to commit multipart upload for object '" +
                              object.name + "': " + error.what());
   }
@@ -368,7 +371,7 @@ void Container::abort_multipart_upload(const Multipart_object &object) {
   try {
     ensure_connection()->delete_(&request);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(),
+    throw Response_error(error.status_code(),
                          "Failed to abort multipart upload for object '" +
                              object.name + "': " + error.what());
   }

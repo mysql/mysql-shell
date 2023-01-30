@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "mysqlshdk/libs/rest/headers.h"
 
@@ -183,25 +184,28 @@ struct Response {
 
 class Response_error : public std::runtime_error {
  public:
-  explicit Response_error(Response::Status_code code,
-                          const char *what = nullptr)
-      : std::runtime_error(what == nullptr ? Response::status_code(code)
-                                           : what),
-        m_code(code) {}
-
-  Response_error(Response::Status_code code, const std::string &description)
-      : std::runtime_error(description.empty() ? Response::status_code(code)
-                                               : description),
+  explicit Response_error(Response::Status_code status_code,
+                          std::string_view message = {},
+                          std::string_view code = {})
+      : std::runtime_error(message.empty() ? Response::status_code(status_code)
+                                           : std::string{message}),
+        m_status_code(status_code),
         m_code(code) {}
 
   virtual ~Response_error() {}
 
-  Response::Status_code code() const noexcept { return m_code; }
+  Response::Status_code status_code() const noexcept { return m_status_code; }
+
+  const std::string &code() const noexcept { return m_code; }
 
   virtual std::string format() const;
 
  protected:
-  Response::Status_code m_code;
+  Response::Status_code m_status_code;
+
+  // A short error code meant for programmatic parsing that defines the error,
+  // corresponds to the human-readable error message string. (optional)
+  std::string m_code;
 };
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -191,7 +191,7 @@ bool Http_object::exists() const {
   bool result = true;
 
   if (const auto error = fetch_file_size(); error.has_value()) {
-    if (rest::Response::Status_code::NOT_FOUND == error->code()) {
+    if (rest::Response::Status_code::NOT_FOUND == error->status_code()) {
       result = false;
     } else {
       throw_if_error(error, "Failed to access object");

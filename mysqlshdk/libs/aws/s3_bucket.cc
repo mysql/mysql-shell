@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -408,7 +408,7 @@ bool S3_bucket::exists() {
     service->head(&request);
     return true;
   } catch (const Response_error &error) {
-    if (rest::Response::Status_code::NOT_FOUND == error.code()) {
+    if (rest::Response::Status_code::NOT_FOUND == error.status_code()) {
       return false;
     } else {
       throw;

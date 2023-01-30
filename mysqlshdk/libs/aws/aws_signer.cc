@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -271,9 +271,28 @@ bool Aws_signer::auth_data_expired(time_t now) const {
   return m_credentials->expired(now);
 }
 
+bool Aws_signer::is_authorization_error(const rest::Response &response) const {
+  if (rest::Response::Status_code::BAD_REQUEST == response.status) {
+    if (const auto error = response.get_error(); error.has_value()) {
+      if ("ExpiredToken" == error->code() ||
+          "TokenRefreshRequired" == error->code()) {
+        // ExpiredToken: The provided token has expired.
+        // TokenRefreshRequired: The provided token must be refreshed.
+        return true;
+      }
+    }
+  }
+
+  return Signer::is_authorization_error(response);
+}
+
 bool Aws_signer::update_credentials() {
   if (auto credentials = m_credentials_provider->credentials()) {
     if (!m_credentials || *credentials != *m_credentials) {
+      if (m_credentials) {
+        log_info("The AWS credentials have been refreshed.");
+      }
+
       set_credentials(std::move(credentials));
       return true;
     }

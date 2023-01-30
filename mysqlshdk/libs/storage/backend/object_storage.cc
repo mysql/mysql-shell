@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -246,7 +246,7 @@ bool Object::exists() const {
   try {
     file_size();
   } catch (const rest::Response_error &error) {
-    if (error.code() == rest::Response::Status_code::NOT_FOUND)
+    if (error.status_code() == rest::Response::Status_code::NOT_FOUND)
       ret_val = false;
     else
       throw rest::to_exception(error);
@@ -486,7 +486,7 @@ Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   } catch (const rest::Response_error &error) {
     std::string prefix;
 
-    if (error.code() == rest::Response::Status_code::NOT_FOUND) {
+    if (error.status_code() == rest::Response::Status_code::NOT_FOUND) {
       // For Not Found generates a custom message as the one for the get()
       // doesn't make much sense
       prefix = "Failed opening object '" + m_object->full_path().masked() +

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,7 @@ namespace rest {
 shcore::Exception to_exception(const Response_error &error,
                                const std::string &context) {
   return shcore::Exception(context + error.format(),
-                           54'000 + static_cast<int>(error.code()));
+                           54'000 + static_cast<int>(error.status_code()));
 }
 
 void translate_current_exception(const std::string &context) {

@@ -795,7 +795,7 @@ TEST_F(Rest_service_test, retry_strategy_server_errors) {
   {
     // response is used, this error is retriable regardless of error message,
     // even if it does not match
-    auto request = Request("/server_error/500/Some-error");
+    auto request = Request("/server_error/500/Some-error/Important-Code");
     request.type = Type::GET;
     request.retry_strategy = &retry_strategy;
     String_response response;
@@ -803,6 +803,11 @@ TEST_F(Rest_service_test, retry_strategy_server_errors) {
     code = m_service.execute(&request, &response);
     EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
     EXPECT_EQ(2, retry_strategy.get_retry_count());
+
+    const auto error = response.get_error();
+    ASSERT_TRUE(error.has_value());
+    EXPECT_STREQ("Some-error", error->what());
+    EXPECT_EQ("Important-Code", error->code());
   }
 
   {
