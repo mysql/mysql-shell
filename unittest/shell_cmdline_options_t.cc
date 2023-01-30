@@ -118,7 +118,9 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "schema")
       return options->connection_options().get_schema();
     else if (option == "sock")
-      return options->connection_options().get_socket();
+      return options->connection_options().has_socket()
+                 ? options->connection_options().get_socket()
+                 : "";
     else if (option == "ssl-ca")
       return options->connection_options().get_ssl_options().get_ca();
     else if (option == "ssl-cert")
@@ -1343,38 +1345,6 @@ TEST_F(Shell_cmdline_options, conflicts_output) {
                            "The acceptable values for the option "
                            "--result-format are: table, tabbed, vertical, "
                            "json, ndjson, json/raw, json/array, json/pretty\n");
-}
-
-#ifdef _WIN32
-#define SOCKET_NAME "named pipe"
-#else  // !_WIN32
-#define SOCKET_NAME "socket"
-#endif  // !_WIN32
-
-TEST_F(Shell_cmdline_options, conflicts_host_socket) {
-  auto error = "Unable to set a " SOCKET_NAME
-               " connection to '/some/socket/path', a tcp connection to "
-               "'127.0.0.1' is already defined.\n";
-
-  char uri0[] = "--uri=root@127.0.0.1";
-  char *argv0[] = {const_cast<char *>("ut"), uri0,
-                   const_cast<char *>("--socket=/some/socket/path"), NULL};
-  test_conflicting_options("--uri --socket", 3, argv0, error);
-
-  char *argv1[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--host=127.0.0.1"),
-                   const_cast<char *>("--socket=/some/socket/path"), NULL};
-  test_conflicting_options("--host --socket", 3, argv1, error);
-
-#ifndef _WIN32
-  error = "Unable to set a " SOCKET_NAME
-          " connection, a tcp connection to '127.0.0.1' is already defined.\n";
-
-  char *argv2[] = {const_cast<char *>("ut"),
-                   const_cast<char *>("--host=127.0.0.1"),
-                   const_cast<char *>("--socket"), NULL};
-  test_conflicting_options("--host --socket", 3, argv2, error);
-#endif
 }
 
 TEST_F(Shell_cmdline_options, override_port) {

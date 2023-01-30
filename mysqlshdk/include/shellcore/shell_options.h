@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -291,7 +291,6 @@ class Shell_options final : public shcore::Options {
   void set_ssl_mode(const std::string &option, const char *value);
 
   void check_password_conflicts();
-  void check_host_socket_conflicts();
   void check_result_format();
   void check_file_execute_conflicts();
   void check_ssh_conflicts();

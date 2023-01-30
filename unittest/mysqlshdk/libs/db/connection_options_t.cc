@@ -552,75 +552,64 @@ TEST(Connection_options, set_socket) {
     EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
   }
 
-  // Using socket is not allowed for localhost is port was defined
+  // Using socket is now allowed for localhost if port was defined
   {
     mysqlshdk::db::Connection_options data;
     data.set_host("localhost");
     data.set_port(3307);
 
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a socket connection to '/Path/To/Socket', "
-                    "a tcp connection to 'localhost:3307' is already defined.",
-                    data.set_socket("/Path/To/Socket"));
+    EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
+
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
+
+    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
   }
 
-  // Using socket is not allowed for 127.0.0.1
+  // Using socket is now allowed for 127.0.0.1
   {
     mysqlshdk::db::Connection_options data;
     data.set_host("127.0.0.1");
-    EXPECT_THROW(data.set_socket("/Path/To/Socket"), std::invalid_argument);
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
 
     EXPECT_TRUE(data.has_host());
-    EXPECT_FALSE(data.has_socket());
+    EXPECT_TRUE(data.has_socket());
     EXPECT_TRUE(data.has_transport_type());
 
     EXPECT_STREQ("127.0.0.1", data.get_host().c_str());
-    EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
+    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
   }
 
-  // Using socket is not allowed for 127.0.0.1 is port was defined
+  // Using socket is now allowed for 127.0.0.1 if port was defined
   {
     mysqlshdk::db::Connection_options data;
     data.set_host("127.0.0.1");
     data.set_port(3307);
 
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a socket connection to '/Path/To/Socket', "
-                    "a tcp connection to '127.0.0.1:3307' is already defined.",
-                    data.set_socket("/Path/To/Socket"));
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
   }
 
-  // Error trying to set a socket when a host was previously set
+  // NO Error trying to set a socket when a host was previously set
   {
     mysqlshdk::db::Connection_options data;
     data.set_host("192.168.1.110");
 
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a socket connection to '/Path/To/Socket', "
-                    "a tcp connection to '192.168.1.110' is already defined.",
-                    data.set_socket("/Path/To/Socket"));
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
   }
 
-  // Error trying to set socket when a port was previously set
+  // NO Error trying to set socket when a port was previously set
   {
     mysqlshdk::db::Connection_options data;
     data.set_port(3307);
 
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a socket connection to '/Path/To/Socket', "
-                    "a tcp connection to port '3307' is already defined.",
-                    data.set_socket("/Path/To/Socket"));
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
   }
 
-  // Error trying to set a socket when a pipe was previously set
+  // set a socket when a pipe was previously set = override
   {
     mysqlshdk::db::Connection_options data;
     data.set_pipe("PipeName");
 
-    MY_EXPECT_THROW(std::invalid_argument,
-                    "Unable to set a socket connection to '/Path/To/Socket', "
-                    "a pipe connection to 'PipeName' is already defined.",
-                    data.set_socket("/Path/To/Socket"));
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
   }
 }
 

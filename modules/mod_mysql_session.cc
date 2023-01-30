@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -483,12 +483,14 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
       (*status)["SERVER_VERSION"] = shcore::Value(row->get_string(4));
       (*status)["RESULTS_CHARSET"] = shcore::Value(row->get_string(8));
 
-      if (!_connection_options.has_transport_type() ||
-          _connection_options.get_transport_type() ==
-              mysqlshdk::db::Transport_type::Tcp) {
+      mysqlshdk::db::Transport_type transport_type =
+          mysqlshdk::db::Transport_type::Socket;
+      if (_connection_options.has_transport_type()) {
+        transport_type = _connection_options.get_transport_type();
+      }
+      if (transport_type == mysqlshdk::db::Transport_type::Tcp) {
         (*status)["TCP_PORT"] = shcore::Value(row->get_int(6));
-      } else if (_connection_options.get_transport_type() ==
-                 mysqlshdk::db::Transport_type::Socket) {
+      } else if (transport_type == mysqlshdk::db::Transport_type::Socket) {
         const std::string datadir = row->get_string(7);
         const std::string socket = row->get_string(5);
         const std::string socket_abs_path = shcore::path::normalize(

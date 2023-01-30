@@ -464,6 +464,8 @@ TEST_F(Command_line_test, batch_ansi_quotes) {
 }
 
 TEST_F(Command_line_test, user_before_uri) {
+  // Bug#35020175 -u/--user And --password Options Are Ignored When Specified
+  // Before Uri
   mysqlshdk::db::Connection_options options;
   options.set_host(_host);
   options.set_port(std::stoi(_mysql_port));
@@ -550,6 +552,183 @@ TEST_F(Command_line_test, user_before_uri) {
 
   session->execute("drop user testuser1@'%'");
   session->execute("drop user testuser2@'%'");
+}
+
+TEST_F(Command_line_test, socket_and_port) {
+  // Bug#35023480	shell cannot connect if both port and socket file/named
+  // path specified
+
+  mysqlshdk::db::Connection_options options;
+  options.set_host(_host);
+  options.set_port(std::stoi(_mysql_port));
+  options.set_user(_user);
+  options.set_password(_pwd);
+
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(options);
+  session->execute("drop user if exists testuser1@'%'");
+  session->execute("create user testuser1@'%' identified by 'pass1'");
+
+  std::string port_ = "-P" + _mysql_port;
+  const char *port = port_.c_str();
+
+  std::string socket_ = "-S" + _mysql_socket;
+  const char *socket = socket_.c_str();
+
+  const char *user = "-utestuser1";
+  const char *pwd = "-ppass1";
+
+#ifdef _WIN32
+  // just a plain successful connect to make caching_sha2_password work
+
+  {
+    execute({_mysqlsh, user, pwd, "-h.", socket, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+        "MySQL Error 2061 (HY000): Authentication plugin "
+        "'caching_sha2_password' reported error: Authentication requires "
+        "secure connection.",
+        "Named pipe:");
+  }
+#endif
+
+#ifdef _WIN32
+#define CONNECT_TO_DOT_HOST_MESSAGE \
+  "MySQL Error 2017 (HY000): Can't open named pipe to host: ."
+#else
+#define CONNECT_TO_DOT_HOST_MESSAGE \
+  "MySQL Error 2005: No such host is known '.'"
+#endif
+  {
+    execute({_mysqlsh, user, pwd, "-h.", port, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
+  }
+  {
+    execute({_mysqlsh, user, pwd, socket, "-h.", "--js", "-e",
+             "print(shell.status())", NULL});
+#ifdef _WIN32
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+        "MySQL Error 2061 (HY000): Authentication plugin "
+        "'caching_sha2_password' reported error: Authentication requires "
+        "secure connection.",
+        "Named pipe:");
+#else
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "MySQL Error 2005: No such host is known '.'");
+#endif
+  }
+  {
+    execute({_mysqlsh, user, pwd, port, "-h.", "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
+  }
+
+  {
+    execute({_mysqlsh, user, pwd, socket, port, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  }
+  {
+    execute({_mysqlsh, user, pwd, port, socket, "--js", "-e",
+             "print(shell.status())", NULL});
+#ifdef _WIN32
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Named pipe:");
+#else
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Localhost via UNIX socket");
+#endif
+  }
+  {
+    execute({_mysqlsh, user, pwd, "-h.", socket, port, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
+  }
+  {
+    execute({_mysqlsh, user, pwd, socket, "-h.", port, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
+  }
+  {
+    execute({_mysqlsh, user, pwd, socket, port, "-h.", "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
+  }
+#ifdef _WIN32
+  // -h. is not supported in linux, just treat it as undefined behaviour
+  {
+    execute({_mysqlsh, user, pwd, "-h.", port, socket, "--js", "-e",
+             "print(shell.status())", NULL});
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Named pipe: ");
+  }
+  {
+    execute({_mysqlsh, user, pwd, port, "-h.", socket, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Named pipe: ");
+  }
+#endif
+#undef CONNECT_TO_DOT_HOST_MESSAGE
+#ifdef _WIN32
+#define CONNECT_TO_DOT_HOST_MESSAGE "Named pipe: "
+#else
+#define CONNECT_TO_DOT_HOST_MESSAGE \
+  "MySQL Error 2005: No such host is known '.'"
+#endif
+  {
+    execute({_mysqlsh, user, pwd, port, socket, "-h.", "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
+  }
+
+  {
+    execute({_mysqlsh, user, pwd, "-hlocalhost", socket, port, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  }
+  {
+    execute({_mysqlsh, user, pwd, socket, "-hlocalhost", port, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  }
+  {
+    execute({_mysqlsh, user, pwd, socket, port, "-hlocalhost", "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  }
+#ifdef _WIN32
+#define CONNECT_TO_SOCKET_MESSAGE "Named pipe: "
+#else
+#define CONNECT_TO_SOCKET_MESSAGE "Localhost via UNIX socket"
+#endif
+  {
+    execute({_mysqlsh, user, pwd, "-hlocalhost", port, socket, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_SOCKET_MESSAGE);
+  }
+  {
+    execute({_mysqlsh, user, pwd, port, "-hlocalhost", socket, "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_SOCKET_MESSAGE);
+  }
+#ifndef _WIN32
+  {
+    execute({_mysqlsh, user, pwd, port, socket, "-hlocalhost", "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_SOCKET_MESSAGE);
+  }
+#endif
+
+  session->execute("drop user testuser1@'%'");
+}
+
+TEST_F(Command_line_test, empty_socket) {
+  // mysqlsh -uroot -S   was producing:
+  // ERROR: Failed to retrieve the password: Invalid URL: Invalid address
+  {
+    execute({_mysqlsh, "-uroot", "-S", "--nw", "--js", "-e",
+             "print(shell.status())", NULL});
+    MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
+  }
 }
 
 }  // namespace tests

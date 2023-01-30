@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -228,20 +228,20 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
-      {"MySQL server has gone away",
-       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
-           _mysql_port + "' seems to speak the classic MySQL protocol"}));
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+      "MySQL server has gone away",
+      "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+          _mysql_port + "' seems to speak the classic MySQL protocol");
 
   // FR_EXTRA_12 : mysqlsh --uri mysqlx://user@host:3306/db --mx
   execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mx",
            "--interactive=full", "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
-      {"MySQL server has gone away",
-       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
-           _mysql_port + "' seems to speak the classic MySQL protocol"}));
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+      "MySQL server has gone away",
+      "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+          _mysql_port + "' seems to speak the classic MySQL protocol");
 
   // FR_EXTRA_15 : mysqlsh --uri mysqlx://user@host:33060/db --mysqlx -ma
   execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mysqlx", "-ma",
@@ -260,19 +260,19 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   execute({_mysqlsh, "--uri", mysql_uri_db.c_str(), "--mysqlx",
            "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
-      {"MySQL server has gone away",
-       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
-           _mysql_port + "' seems to speak the classic MySQL protocol"}));
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+      "MySQL server has gone away",
+      "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+          _mysql_port + "' seems to speak the classic MySQL protocol");
 
   // FR_EXTRA_20 : mysqlsh --uri user@host:3306/db --mx
   execute({_mysqlsh, "--uri", mysql_uri_db.c_str(), "--mx",
            "--interactive=full", "-e", "\\status", NULL});
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(std::vector<std::string>(
-      {"MySQL server has gone away",
-       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
-           _mysql_port + "' seems to speak the classic MySQL protocol"}));
+  MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+      "MySQL server has gone away",
+      "Requested session assumes MySQL X Protocol but '" + _host + ":" +
+          _mysql_port + "' seems to speak the classic MySQL protocol");
 
   // FR_EXTRA_SUCCEED_1 : mysqlsh --uri mysql://user@host:3306/db -ma
   execute({_mysqlsh, "--uri", mysql_uri_scheme_db.c_str(), "-ma",
@@ -631,7 +631,7 @@ TEST_F(Command_line_connection_test, socket_connection) {
     execute({_mysqlsh, "-e", cmd.c_str(), nullptr});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "Connection:                   localhost via Unix socket");
+        "Connection:                   Localhost via UNIX socket");
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
   }
 }
@@ -652,7 +652,7 @@ TEST_F(Command_line_connection_test, socket_connection_with_default_path) {
     if (_output.find("Can't connect to local MySQL server through socket") ==
         std::string::npos) {
       MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "Connection:                   localhost via Unix socket");
+          "Connection:                   Localhost via UNIX socket");
       MY_EXPECT_CMD_OUTPUT_CONTAINS("Unix socket:");
     }
   }

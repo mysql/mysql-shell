@@ -210,7 +210,6 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   bool is_extra_option(const std::string &option);
   bool is_bool_value(const std::string &value);
 
-  void raise_connection_type_error(const std::string &source);
   void check_compression_conflicts();
 
   std::optional<Transport_type> m_transport_type;

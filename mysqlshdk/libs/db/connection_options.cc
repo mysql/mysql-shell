@@ -80,10 +80,6 @@ void Connection_options::override_with(const Connection_options &options) {
   m_connection_attributes.override_from(options.m_connection_attributes, true);
   m_enable_connection_attributes = options.m_enable_connection_attributes;
 
-  if (options.has_transport_type()) {
-    m_transport_type = options.get_transport_type();
-  }
-
   if (options.has_compression_level()) {
     clear_compression_level();
     set_compression_level(options.get_compression_level());
@@ -95,6 +91,12 @@ void Connection_options::override_with(const Connection_options &options) {
   } else {
     // "default" port should also override old value
     clear_port();
+  }
+
+  if (options.has_transport_type()) {
+    m_transport_type = options.get_transport_type();
+  } else {
+    m_transport_type.reset();
   }
 
   for (int i = 0; i < 3; i++) {
@@ -218,18 +220,6 @@ void Connection_options::_set_fixed(const std::string &key,
 }
 
 void Connection_options::set_pipe(const std::string &pipe) {
-#ifdef _WIN32
-  const bool win32 = true;
-#else
-  const bool win32 = false;
-#endif
-  if ((m_transport_type.has_value() && *m_transport_type == Socket) ||
-      m_port.has_value() ||
-      (m_options.has_value(kHost) &&
-       (get_value(kHost) != "localhost" &&  // only localhost means "use socket"
-        !(get_value(kHost) == "." && win32))))
-    raise_connection_type_error("named pipe connection to '" + pipe + "'");
-
   if (m_options.has_value(kScheme) && get_value(kScheme) != "mysql") {
     throw std::invalid_argument{"Pipe can only be used with Classic session"};
   }
@@ -278,74 +268,23 @@ void Connection_options::set_compression_algorithms(
 }
 
 void Connection_options::set_socket(const std::string &socket) {
-  if ((m_transport_type.has_value() && *m_transport_type == Pipe) ||
-      m_port.has_value() ||
-      (has_value(kHost) &&
-       get_value(kHost) != "localhost"))  // only localhost means "use socket"
-    raise_connection_type_error(socket.empty()
-                                    ? "socket connection"
-                                    : "socket connection to '" + socket + "'");
-
   m_options.set(kSocket, socket, Set_mode::CREATE_AND_UPDATE);
   m_transport_type = Socket;
 }
 
-void Connection_options::raise_connection_type_error(
-    const std::string &source) {
-  std::string type;
-  std::string target;
-
-  if (has_value(kHost) || m_port.has_value()) {
-    if (has_value(kHost)) {
-      if (get_value(kHost) != "localhost") type = "tcp ";
-
-      target = "to '" + get_value(kHost);
-    }
-
-    if (m_port.has_value()) {
-      if (target.empty())
-        target = "to port '";
-      else
-        target.append(":");
-
-      target.append(std::to_string(*m_port));
-      type = "tcp ";
-    }
-
-    target.append("'");
-  } else if (*m_transport_type == Socket) {
-    type = "socket ";
-    target = "to '" + get_value(kSocket) + "'";
-  } else if (*m_transport_type == Pipe) {
-    type = "pipe ";
-    target = "to '" + get_value(kSocket) + "'";
-  }
-
-  throw std::invalid_argument(
-      shcore::str_format("Unable to set a %s, a %s"
-                         "connection %s is already defined.",
-                         source.c_str(), type.c_str(), target.c_str()));
-}
-
 void Connection_options::set_host(const std::string &host) {
-  if (m_transport_type.has_value() && *m_transport_type != Tcp &&
-      host != "localhost"
-#ifdef _WIN32
-      && host != "."
-#endif  // _WIN32
-  )
-    raise_connection_type_error("connection to '" + host + "'");
+  m_options.set(kHost, host, Set_mode::CREATE_AND_UPDATE);
 
-  if (host != "localhost"
 #ifdef _WIN32
-      && host != "."
-#endif  // _WIN32
-  )
+  if (host == ".") {
+    m_transport_type = Pipe;
+    return;
+  }
+#endif  // _WIN32i
+  if (host != "localhost")
     m_transport_type = Tcp;
   else if (!m_port.has_value())
     m_transport_type.reset();
-
-  m_options.set(kHost, host, Set_mode::CREATE_AND_UPDATE);
 }
 
 void Connection_options::set_port(int port) {

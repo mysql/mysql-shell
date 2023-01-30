@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -737,19 +737,12 @@ shcore::Value::Map_type_ref Session::get_status() {
           shcore::Value(row->is_null(8) ? "" : row->get_string(8));
 
       mysqlshdk::db::Transport_type transport_type =
-          mysqlshdk::db::Transport_type::Tcp;
+          mysqlshdk::db::Transport_type::Socket;
       if (_connection_options.has_transport_type()) {
         transport_type = _connection_options.get_transport_type();
-        std::stringstream ss;
-        if (_connection_options.has_host())
-          ss << _connection_options.get_host() << " via ";
-        else
-          ss << "localhost via ";
-        ss << to_string(transport_type);
-        (*status)["CONNECTION"] = shcore::Value(ss.str());
-      } else {
-        (*status)["CONNECTION"] = shcore::Value("localhost via TCP/IP");
       }
+      (*status)["CONNECTION"] = shcore::Value(_session->get_connection_info());
+
       if (transport_type == mysqlshdk::db::Transport_type::Tcp) {
         (*status)["TCP_PORT"] =
             shcore::Value(row->is_null(6) ? "" : row->get_as_string(6));

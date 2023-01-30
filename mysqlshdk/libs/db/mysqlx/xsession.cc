@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -391,12 +391,13 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   std::string host = _connection_options.has_host() &&
                              !_connection_options.get_ssh_options().has_data()
-                         ? _connection_options.get_host().c_str()
-                         : "localhost";
+                         ? _connection_options.get_host()
+                         : std::string{"localhost"};
 
   DBUG_LOG("sqlall", "CONNECT: " << data.uri_endpoint());
 
-  if ((host.empty() || host == "localhost") && data.has_socket()) {
+  if (!_connection_options.has_transport_type() ||
+      _connection_options.get_transport_type() != mysqlshdk::db::Tcp) {
     err = _mysql->connect(
         data.has_socket()
             ? (data.get_socket().empty() ? MYSQLX_UNIX_ADDR
@@ -417,6 +418,11 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
                         data.has_password() ? data.get_password().c_str() : "",
                         data.has_schema() ? data.get_schema().c_str() : "");
     _connection_info = host + " via TCP/IP";
+
+    // When neither port or socket were specified on the connection data
+    // it means it was able to use default connection data
+    if (!_connection_options.has_port())
+      _connection_options.set_port(MYSQLX_TCP_PORT);
   }
   if (err) {
     _mysql.reset();
@@ -477,14 +483,6 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   // fill in defaults
   if (!_connection_options.has_scheme())
     _connection_options.set_scheme("mysqlx");
-
-  // When neither port or socket were specified on the connection data
-  // it means it was able to use default connection data
-  if (!_connection_options.has_port() && !_connection_options.has_socket()) {
-    // if neither port nor socket are set, connection is going to use default
-    // X port
-    _connection_options.set_port(MYSQLX_TCP_PORT);
-  }
 }
 
 void XSession_impl::close() {

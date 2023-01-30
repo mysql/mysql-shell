@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,10 +100,27 @@ void Session_impl::connect(
   _connection_options = connection_options;
 
   auto used_ssl_mode = setup_ssl(_connection_options.get_ssl_options());
-  if (_connection_options.has_transport_type() &&
-      _connection_options.get_transport_type() == mysqlshdk::db::Tcp) {
-    unsigned int tcp = MYSQL_PROTOCOL_TCP;
-    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  if (_connection_options.has_transport_type()) {
+    unsigned int proto = MYSQL_PROTOCOL_TCP;
+
+    switch (_connection_options.get_transport_type()) {
+      case mysqlshdk::db::Tcp:
+        proto = MYSQL_PROTOCOL_TCP;
+        break;
+
+      case mysqlshdk::db::Socket:
+        proto = MYSQL_PROTOCOL_SOCKET;
+        break;
+
+      case mysqlshdk::db::Pipe:
+#ifndef _WIN32
+        assert(0);
+#endif
+        // Enable pipe connection if required
+        proto = MYSQL_PROTOCOL_PIPE;
+        break;
+    }
+    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &proto);
   }
 
   // Connection attributes are only sent if they are not disabled
@@ -153,7 +170,8 @@ void Session_impl::connect(
               "channels.");
         } else if (final_ssl_mode == mysqlshdk::db::Ssl_mode::Preferred) {
           throw std::runtime_error(
-              "Clear password authentication requires a secure channel, please "
+              "Clear password authentication requires a secure channel, "
+              "please "
               "use ssl-mode=REQUIRED to guarantee a secure channel.");
         }
       }
@@ -164,18 +182,8 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_DEFAULT_AUTH, auth.c_str());
   }
 
-#ifdef _WIN32
-  // Enable pipe connection if required
-  if (!_connection_options.has_port() &&
-      ((_connection_options.has_host() &&
-        _connection_options.get_host() == ".") ||
-       _connection_options.has_pipe())) {
-    uint pipe = MYSQL_PROTOCOL_PIPE;
-    mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &pipe);
-  }
-#endif
-
-  {  // Sets the connection timeout (comes in milliseconds, must be in seconds)
+  {  // Sets the connection timeout (comes in milliseconds, must be in
+     // seconds)
     uint connect_timeout = mysqlshdk::db::default_connect_timeout();
 
     if (_connection_options.has(kConnectTimeout)) {
@@ -234,9 +242,10 @@ void Session_impl::connect(
   // max_allowed_packet sets the maximum size of a full packet that can
   // be received from the server, such as a single row.
   // net_buffer_length is the size of the buffer used for reading results
-  // packets from the server. Multiple buffer reads may be needed to completely
-  // read a packet, so net_buffer_length can be smaller, but max_allowed_packet
-  // must be as big as the biggest expected row to be fetched.
+  // packets from the server. Multiple buffer reads may be needed to
+  // completely read a packet, so net_buffer_length can be smaller, but
+  // max_allowed_packet must be as big as the biggest expected row to be
+  // fetched.
   if (connection_options.has(mysqlshdk::db::kMaxAllowedPacket)) {
     const unsigned long max_allowed_packet =  // NOLINT(runtime/int)
         std::stoul(connection_options.get(kMaxAllowedPacket));
@@ -324,8 +333,8 @@ void Session_impl::connect(
     if (connection_info.find("via TCP/IP") != std::string::npos) {
       _connection_options.set_port(MYSQL_PORT);
     } else {
-      // If connection was not through TCP/IP it means either the default socket
-      // path or windows named pipe was used
+      // If connection was not through TCP/IP it means either the default
+      // socket path or windows named pipe was used
 #ifdef _WIN32
       _connection_options.set_pipe("MySQL");
 #else
