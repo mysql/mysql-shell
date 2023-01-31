@@ -166,6 +166,49 @@ std::unique_ptr<mysqlshdk::aws::S3_bucket> s3_bucket(
   }
 }
 
+void update_root_user_password(mysqlshdk::db::ISession *session,
+                               const std::string &rootpass) {
+  session->execute("SET sql_log_bin = 0");
+
+  auto stmt = "ALTER USER 'root'@'localhost' IDENTIFIED BY ?"_sql << rootpass;
+  session->execute(stmt.str_view());
+
+  session->execute("SET sql_log_bin = 1");
+}
+
+void handle_remote_root_user(const std::string &rootpass,
+                             mysqlshdk::db::ISession *session,
+                             bool create_remote_root = true) {
+  // Connect to sandbox using default root@localhost account.
+
+  // Create root user to allow access using other hostnames, otherwise only
+  // access through 'localhost' will be allowed leading to access denied
+  // errors if the reported replication host (from the metadata) is used.
+  // By default, create_remote_root = true.
+  if (create_remote_root) {
+    session->execute("SET sql_log_bin = 0");
+
+    std::string remote_root = "%";
+    shcore::sqlstring create_user(
+        "CREATE USER IF NOT EXISTS root@? IDENTIFIED BY ?", 0);
+    create_user << remote_root << rootpass;
+    create_user.done();
+    session->execute(create_user.str_view());
+
+    shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
+    grant << remote_root;
+    grant.done();
+    session->execute(grant.str_view());
+
+    session->execute("SET sql_log_bin = 1");
+  } else {
+    // Drop the user in case it already exists (copied from boilerplate).
+    session->execute("SET sql_log_bin = 0");
+    session->execute("DROP USER IF EXISTS 'root'@'%'");
+    session->execute("SET sql_log_bin = 1");
+  }
+}
+
 }  // namespace
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -234,7 +277,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "port", "?channel", "");
   expose("injectGtidSet", &Testutils::inject_gtid_set, "port", "gtidset");
 
-  expose("stopGroup", &Testutils::stop_group, "ports");
+  expose("stopGroup", &Testutils::stop_group, "ports", "?rootpass");
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value",
          "?options");
@@ -983,6 +1026,7 @@ void Testutils::wait_for_delayed_gr_start(int port,
  * Parallel stop group_replication in all given sandboxes
  *
  * @param ports List of sandbox ports
+ * @param rootpass The password to be used for the root user.
  */
 #if DOXYGEN_JS
 Undefined Testutils::stopGroup(Array ports);
@@ -990,18 +1034,19 @@ Undefined Testutils::stopGroup(Array ports);
 None Testutils::stop_group(list ports)
 #endif
 ///@}
-void Testutils::stop_group(const shcore::Array_t &ports) {
+void Testutils::stop_group(const shcore::Array_t &ports,
+                           const std::string &root_pass) {
   std::vector<std::thread> workers;
   std::atomic<int> current = 0;
 
   for (const auto &port : *ports) {
-    workers.push_back(
-        mysqlsh::spawn_scoped_thread([p = port.as_int(), ports, &current]() {
+    workers.push_back(mysqlsh::spawn_scoped_thread(
+        [p = port.as_int(), ports, &current, &root_pass]() {
           mysqlsh::thread_init();
 
           mysqlshdk::db::Connection_options cnx_opt;
           cnx_opt.set_user("root");
-          cnx_opt.set_password("root");
+          cnx_opt.set_password(root_pass.empty() ? "root" : root_pass);
           cnx_opt.set_host("localhost");
           cnx_opt.set_port(p);
           auto session = mysqlshdk::db::mysql::Session::create();
@@ -1388,32 +1433,41 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
   }
 
   _passwords[port] = rootpass;
+
+  if (_skip_server_interaction) return;
+
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_skip_server_interaction) {
-    wait_sandbox_dead(port);
 
-    // Sandbox from a boilerplate
-    if (k_boilerplate_root_password == rootpass) {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      if (!deploy_sandbox_from_boilerplate(port, my_cnf_options, false,
-                                           mysqld_path)) {
-        std::cerr << "Unable to deploy boilerplate sandbox\n";
-        abort();
-      }
-    } else {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
-    }
+  // NOTE: we cannot yet record the correct password because this password is
+  // used by several methods to access the sandbox. Since we need to create the
+  // sandbox with "root", we must, for now, also store "root" as the password
+  // for this port.
+  if (k_boilerplate_root_password != rootpass)
+    _passwords[port] = k_boilerplate_root_password;
 
-    {
-      auto session = connect_to_sandbox(port);
-      handle_remote_root_user(rootpass, session.get(), create_remote_root);
+  wait_sandbox_dead(port);
 
-      _general_log_files[port] = session->query("select @@general_log_file")
-                                     ->fetch_one_or_throw()
-                                     ->get_string(0);
-    }
+  // Sandbox from a boilerplate (always start with root password)
+  prepare_sandbox_boilerplate(port, mysqld_path);
+  deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
+
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  if (k_boilerplate_root_password == rootpass) {
+    session = connect_to_sandbox(port);
+
+    handle_remote_root_user(k_boilerplate_root_password, session.get(),
+                            create_remote_root);
+  } else {
+    session = connect_to_sandbox(port, k_boilerplate_root_password);
+    _passwords[port] = rootpass;  // store the correct password
+
+    update_root_user_password(session.get(), rootpass);
+    handle_remote_root_user(rootpass, session.get(), create_remote_root);
   }
+
+  _general_log_files[port] = session->query("select @@general_log_file")
+                                 ->fetch_one_or_throw()
+                                 ->get_string(0);
 }
 
 //!<  @name Sandbox Operations
@@ -1447,33 +1501,42 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
   }
 
   _passwords[port] = rootpass;
+
+  if (_skip_server_interaction) return;
+
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_skip_server_interaction) {
-    wait_sandbox_dead(port);
-    // Sandbox from a boilerplate
-    if (k_boilerplate_root_password == rootpass) {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      wait_sandbox_dead(port);
-      if (!deploy_sandbox_from_boilerplate(port, my_cnf_opts, true,
-                                           mysqld_path)) {
-        std::cerr << "Unable to deploy boilerplate sandbox\n";
-        abort();
-      }
-    } else {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      wait_sandbox_dead(port);
-      deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
-    }
 
-    {
-      auto session = connect_to_sandbox(port);
-      handle_remote_root_user(rootpass, session.get(), create_remote_root);
+  // NOTE: we cannot yet record the correct password because this password is
+  // used by several methods to access the sandbox. Since we need to create the
+  // sandbox with "root", we must, for now, also store "root" as the password
+  // for this port.
+  if (k_boilerplate_root_password != rootpass)
+    _passwords[port] = k_boilerplate_root_password;
 
-      _general_log_files[port] = session->query("select @@general_log_file")
-                                     ->fetch_one_or_throw()
-                                     ->get_string(0);
-    }
+  wait_sandbox_dead(port);
+
+  // Sandbox from a boilerplate (always start with root password)
+  prepare_sandbox_boilerplate(port, mysqld_path);
+  wait_sandbox_dead(port);
+  deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
+
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  if (k_boilerplate_root_password == rootpass) {
+    session = connect_to_sandbox(port);
+
+    handle_remote_root_user(k_boilerplate_root_password, session.get(),
+                            create_remote_root);
+  } else {
+    session = connect_to_sandbox(port, k_boilerplate_root_password);
+    _passwords[port] = rootpass;  // store the correct password
+
+    update_root_user_password(session.get(), rootpass);
+    handle_remote_root_user(rootpass, session.get(), create_remote_root);
   }
+
+  _general_log_files[port] = session->query("select @@general_log_file")
+                                 ->fetch_one_or_throw()
+                                 ->get_string(0);
 }
 
 //!<  @name Sandbox Operations
@@ -1579,7 +1642,7 @@ void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
           }
         }
       }
-    } catch (const std::runtime_error &error) {
+    } catch (const std::runtime_error &) {
       // print the error log contents
       std::string error_log_path = get_sandbox_log_path(port);
       try {
@@ -1624,7 +1687,7 @@ void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
       session->close();
 
       if (wait) wait_sandbox_dead(port);
-    } catch (const std::runtime_error &error) {
+    } catch (const std::runtime_error &) {
       // print the error log contents
       std::string error_log_path = get_sandbox_log_path(port);
       try {
@@ -1890,7 +1953,7 @@ void Testutils::wait_sandbox_alive(
   while (retries > 0) {
     try {
       session = connect();
-    } catch (const std::exception &err) {
+    } catch (const std::exception &) {
       --retries;
       shcore::sleep_ms(500);
       continue;
@@ -1918,49 +1981,47 @@ bool Testutils::is_port_available_for_sandbox_to_bind(int port) const {
 
   if (result != 0) throw mysqlshdk::utils::net_error(gai_strerror(result));
 
-  if (info != nullptr) {
-    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
-    // initialize socket
-    int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+  if (!info) throw std::runtime_error("Could not resolve address 0.0.0.0");
+
+  std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+  // initialize socket
+  int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 #ifndef _WIN32
-    const int socket_error = -1;
+  const int socket_error = -1;
 #else
-    const int socket_error = INVALID_SOCKET;
+  const int socket_error = INVALID_SOCKET;
 #endif
-    if (sock == socket_error) {
-      throw std::runtime_error("Could not create socket: " +
+  if (sock == socket_error) {
+    throw std::runtime_error("Could not create socket: " +
+                             shcore::errno_to_string(errno));
+  }
+  for (p = info; p != nullptr; p = p->ai_next) {
+#ifndef _WIN32
+    const int opt_val = 1;
+#else
+    const char opt_val = 0;
+#endif
+    // set socket as reusable for non windows systems since according to
+    // sql/conn_handler/socket_connection.cc:383 mysqld doesn't set
+    // SO_REUSEADDR for Windows.
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof opt_val) <
+        0) {
+      throw std::runtime_error("Could not set socket as reusable: " +
                                shcore::errno_to_string(errno));
     }
-    for (p = info; p != nullptr; p = p->ai_next) {
-#ifndef _WIN32
-      const int opt_val = 1;
-#else
-      const char opt_val = 0;
-#endif
-      // set socket as reusable for non windows systems since according to
-      // sql/conn_handler/socket_connection.cc:383 mysqld doesn't set
-      // SO_REUSEADDR for Windows.
-      if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof opt_val) <
-          0) {
-        throw std::runtime_error("Could not set socket as reusable: " +
-                                 shcore::errno_to_string(errno));
-      }
-      if (bind(sock, p->ai_addr, p->ai_addrlen) != 0) {
-        // cannot bind
-        return false;
-      } else {
+    if (bind(sock, p->ai_addr, p->ai_addrlen) != 0) {
+      // cannot bind
+      return false;
+    } else {
 #ifdef _WIN32
-        closesocket(sock);
+      closesocket(sock);
 #else
-        close(sock);
+      close(sock);
 #endif
-      }
     }
-    // could bind on all
-    return true;
-  } else {
-    throw std::runtime_error("Could not resolve address 0.0.0.0");
   }
+  // could bind on all
+  return true;
 }
 
 void Testutils::wait_until_file_lock_released(const std::string &filepath,
@@ -3286,41 +3347,7 @@ void Testutils::handle_sandbox_encryption(const std::string &path) const {
   shcore::ch_mod(path, 0750);
 }
 
-void Testutils::handle_remote_root_user(const std::string &rootpass,
-                                        mysqlshdk::db::ISession *session,
-                                        bool create_remote_root) const {
-  // Connect to sandbox using default root@localhost account.
-
-  // Create root user to allow access using other hostnames, otherwise only
-  // access through 'localhost' will be allowed leading to access denied
-  // errors if the reported replication host (from the metadata) is used.
-  // By default, create_remote_root = true.
-  if (create_remote_root) {
-    session->execute("SET sql_log_bin = 0");
-
-    std::string remote_root = "%";
-    shcore::sqlstring create_user(
-        "CREATE USER IF NOT EXISTS root@? IDENTIFIED BY ?", 0);
-    create_user << remote_root << rootpass;
-    create_user.done();
-    session->execute(create_user.str_view());
-
-    shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
-    grant << remote_root;
-    grant.done();
-    session->execute(grant.str_view());
-
-    session->execute("SET sql_log_bin = 1");
-  } else {
-    // Drop the user in case it already exists (copied from boilerplate).
-    session->execute("SET sql_log_bin = 0");
-    session->execute("DROP USER IF EXISTS 'root'@'%'");
-    session->execute("SET sql_log_bin = 1");
-  }
-}
-
-void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
-                                            int port,
+void Testutils::prepare_sandbox_boilerplate(int port,
                                             const std::string &mysqld_path) {
   if (g_test_trace_scripts) std::cerr << "Preparing sandbox boilerplate...\n";
 
@@ -3328,6 +3355,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
 
   std::string bp_folder{"myboilerplate"};
   if (!mysqld_path.empty()) bp_folder.append("-" + mysqld_version);
+
   std::string boilerplate = shcore::path::join_path(_sandbox_dir, bp_folder);
   if (shcore::is_folder(boilerplate) && _use_boilerplate) {
     if (g_test_trace_scripts)
@@ -3347,8 +3375,8 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
 
-  _mp.create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
-                     true, true, 60, mysqld_path, &errors);
+  _mp.create_sandbox(port, port * 10, _sandbox_dir, k_boilerplate_root_password,
+                     mycnf_options, true, true, 60, mysqld_path, &errors);
   if (errors && !errors->empty()) {
     std::cerr << "Error deploying sandbox:\n";
     for (auto &v : *errors) std::cerr << v.descr() << "\n";
@@ -3467,7 +3495,7 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
 #endif
         shcore::copy_file(item_from, item_to, true);
       }
-    } catch (std::runtime_error &e) {
+    } catch (std::runtime_error &) {
       if (errno != ENOENT) throw;
     }
     return true;
@@ -3506,7 +3534,7 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
   }
 }
 
-bool Testutils::deploy_sandbox_from_boilerplate(
+void Testutils::deploy_sandbox_from_boilerplate(
     int port, const shcore::Dictionary_t &opts, bool raw,
     const std::string &mysqld_path, int timeout) {
   if (g_test_trace_scripts) {
@@ -3650,8 +3678,6 @@ bool Testutils::deploy_sandbox_from_boilerplate(
   }
 
   start_sandbox(port, start_options);
-
-  return true;
 }
 
 //!<  @name Misc Utilities
@@ -4097,10 +4123,10 @@ void Testutils::try_rename(const std::string &source,
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
-    int port) {
+    int port, const std::optional<std::string> &rootpass) {
   mysqlshdk::db::Connection_options cnx_opt;
   cnx_opt.set_user("root");
-  {
+  if (!rootpass.has_value()) {
     auto pass = _passwords.find(port);
 
     if (_passwords.end() == pass) {
@@ -4109,9 +4135,13 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
     }
 
     cnx_opt.set_password(_passwords.end() == pass ? "root" : pass->second);
+  } else {
+    cnx_opt.set_password(*rootpass);
   }
+
   cnx_opt.set_host("127.0.0.1");
   cnx_opt.set_port(port);
+
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(cnx_opt);
   return session;

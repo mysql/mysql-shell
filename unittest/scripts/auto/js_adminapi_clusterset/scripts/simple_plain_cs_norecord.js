@@ -8,7 +8,7 @@ k_mycnf_options = {
   autocommit:1,
   require_secure_transport:1,
   loose_group_replication_consistency:"BEFORE",
-  plugin_load:"validate_password",
+  plugin_load:"validate_password" + (__os_type != "windows" ? ".so" : ".dll"),
   loose_validate_password_policy:"STRONG"
 }
 // TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
@@ -21,31 +21,34 @@ k_mycnf_options = {
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname, ...k_mycnf_options});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, ...k_mycnf_options});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, log_error_verbosity:3, ...k_mycnf_options});
 
-testutil.deployRawSandbox(__mysql_sandbox_port4, 'root', {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options});
+var pwdAdmin = "C0mPL1CAT3D_pa22w0rd_adm1n";
+var pwdExtra = "C0mPL1CAT3D_pa22w0rd_3x7ra";
+
+testutil.deployRawSandbox(__mysql_sandbox_port1, __secure_password, {report_host: hostname, ...k_mycnf_options});
+testutil.deploySandbox(__mysql_sandbox_port2, __secure_password, {report_host: hostname, ...k_mycnf_options});
+testutil.deploySandbox(__mysql_sandbox_port3, __secure_password, {report_host: hostname, log_error_verbosity:3, ...k_mycnf_options});
+
+testutil.deployRawSandbox(__mysql_sandbox_port4, __secure_password, {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options});
 
 shell.options.useWizards = false;
 
 //@<> configureInstances
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"}); });
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"}); });
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri3, {clusterAdmin:"admin", clusterAdminPassword:"bla"}); });
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri4, {clusterAdmin:"admin", clusterAdminPassword:"bla"}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri_secure_password2, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri_secure_password3, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri_secure_password4, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin}); });
 
-__sandbox_uri1="mysql://admin:bla@localhost:"+__mysql_sandbox_port1;
-__sandbox_uri2="mysql://admin:bla@localhost:"+__mysql_sandbox_port2;
-__sandbox_uri3="mysql://admin:bla@localhost:"+__mysql_sandbox_port3;
-__sandbox_uri4="mysql://admin:bla@localhost:"+__mysql_sandbox_port4;
+__sandbox_uri1=`mysql://admin:${pwdAdmin}@localhost:${__mysql_sandbox_port1}`;
+__sandbox_uri2=`mysql://admin:${pwdAdmin}@localhost:${__mysql_sandbox_port2}`;
+__sandbox_uri3=`mysql://admin:${pwdAdmin}@localhost:${__mysql_sandbox_port3}`;
+__sandbox_uri4=`mysql://admin:${pwdAdmin}@localhost:${__mysql_sandbox_port4}`;
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port3);
 testutil.restartSandbox(__mysql_sandbox_port4);
 
-//
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
@@ -250,7 +253,7 @@ Replica Cluster 'replicacluster' successfully created on ClusterSet 'clusterset'
 `);
 
 //@<> validate replica cluster - incremental recovery
-CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster, undefined, __secure_password);
 
 replicacluster.disconnect();
 
@@ -272,6 +275,7 @@ clusterset = dba.getClusterSet();
 //  - Setup router account
 
 shell.connect(__sandbox_uri1);
+
 cluster = dba.getCluster();
 
 //@<> addInstance on primary cluster
@@ -305,10 +309,10 @@ EXPECT_NO_THROWS(function() { cluster.setInstanceOption(__sandbox_uri2, "memberW
 EXPECT_NO_THROWS(function() { cluster.setOption("memberWeight", 50); });
 
 //@<> setupAdminAccount() on a primary cluster
-EXPECT_NO_THROWS(function() { cluster.setupAdminAccount("cadmin@'%'", {password:"boo"}); });
+EXPECT_NO_THROWS(function() { cluster.setupAdminAccount("cadmin@'%'", {password:pwdExtra}); });
 
 //@<> setupRouterAccount() on a primary cluster
-EXPECT_NO_THROWS(function() { cluster.setupRouterAccount("router@'%'", {password:"boo"}); });
+EXPECT_NO_THROWS(function() { cluster.setupRouterAccount("router@'%'", {password:pwdExtra}); });
 
 //@<> removeInstance on primary cluster
 EXPECT_NO_THROWS(function() { cluster.removeInstance(__sandbox_uri3); });
@@ -316,7 +320,7 @@ CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster)
 
 //@<> addInstance on replica cluster
 EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
-CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
 //@<> rejoinInstance on a replica cluster
 session3 = mysql.getSession(__sandbox_uri3);
@@ -324,7 +328,7 @@ session3.runSql("STOP group_replication");
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function() { replicacluster.rejoinInstance(__sandbox_uri3); });
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
 //@<> rescan() on a replica cluster
 // delete sb3 from the metadata so that rescan picks it up
@@ -334,11 +338,11 @@ session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instan
 EXPECT_NO_THROWS(function() { replicacluster.rescan({addInstances: "auto"}); });
 shell.connect(__sandbox_uri4);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
 //@<> resetRecoveryAccountsPassword() on a replica cluster
 EXPECT_NO_THROWS(function() { replicacluster.resetRecoveryAccountsPassword(); });
-CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
 //@<> setInstanceOption() on a replica cluster
 EXPECT_NO_THROWS(function() { replicacluster.setInstanceOption(__sandbox_uri3, "memberWeight", 25); });
@@ -347,14 +351,14 @@ EXPECT_NO_THROWS(function() { replicacluster.setInstanceOption(__sandbox_uri3, "
 EXPECT_NO_THROWS(function() { replicacluster.setOption("memberWeight", 50); });
 
 //@<> setupAdminAccount() on a replica cluster
-EXPECT_NO_THROWS(function() { replicacluster.setupAdminAccount("cadminreplica@'%'", {password:"boo"}); });
+EXPECT_NO_THROWS(function() { replicacluster.setupAdminAccount("cadminreplica@'%'", {password:pwdExtra}); });
 
 //@<> setupRouterAccount() on a replica cluster
-EXPECT_NO_THROWS(function() { replicacluster.setupRouterAccount("routerreplica@'%'", {password:"boo"}); });
+EXPECT_NO_THROWS(function() { replicacluster.setupRouterAccount("routerreplica@'%'", {password:pwdExtra}); });
 
 //@<> removeInstance on replica cluster
 EXPECT_NO_THROWS(function() { replicacluster.removeInstance(__sandbox_uri3); });
-CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster, undefined, __secure_password);
 
 //@<> removeCluster()
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster"); });
@@ -378,14 +382,14 @@ The Cluster 'replicacluster' was removed from the ClusterSet.
 `);
 
 //@<> validate remove cluster
-CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
+CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster", __secure_password);
 
 //@<> createReplicaCluster() - clone recovery
 EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
 session4 = mysql.getSession(__sandbox_uri4);
 
 //@<> validate replica cluster - clone recovery
-CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster, undefined, __secure_password);
 
 //@<> setPrimaryCluster
 shell.connect(__sandbox_uri1);

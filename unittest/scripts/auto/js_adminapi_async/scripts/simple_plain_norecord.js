@@ -12,7 +12,7 @@ k_mycnf_options = {
     sql_mode: 'NO_BACKSLASH_ESCAPES,ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO', 
     autocommit:1,
     require_secure_transport:1,
-    plugin_load:"validate_password",
+    plugin_load:"validate_password" + (__os_type != "windows" ? ".so" : ".dll"),
     loose_validate_password_policy:"STRONG"
 }
 // TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
@@ -47,28 +47,30 @@ function check_open_sessions(session, ignore_pids) {
 
 //@<> Setup
 
+var pwdAdmin = "C0mPL1CAT3D_pa22w0rd_adm1n";
+
 // override default sql_mode to test that we always override it
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", k_mycnf_options);
+testutil.deployRawSandbox(__mysql_sandbox_port1, __secure_password, k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", k_mycnf_options);
+testutil.deploySandbox(__mysql_sandbox_port2, __secure_password, k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root", k_mycnf_options);
+testutil.deploySandbox(__mysql_sandbox_port3, __secure_password, k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.options.useWizards = false;
 
-session1 = mysql.getSession(__sandbox_uri1);
-session2 = mysql.getSession(__sandbox_uri2);
-session3 = mysql.getSession(__sandbox_uri3);
+session1 = mysql.getSession(__sandbox_uri1, __secure_password);
+session2 = mysql.getSession(__sandbox_uri2, __secure_password);
+session3 = mysql.getSession(__sandbox_uri3, __secure_password);
 
 expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
 expected_pids3 = get_open_sessions(session3);
 
 //@ configureReplicaSetInstance + create admin user
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureReplicaSetInstance", dba.configureReplicaSetInstance, __sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureReplicaSetInstance", dba.configureReplicaSetInstance, __sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
-dba.configureReplicaSetInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+dba.configureReplicaSetInstance(__sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -76,19 +78,19 @@ check_open_sessions(session3, expected_pids3);
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 
-session1 = mysql.getSession(__sandbox_uri1);
+session1 = mysql.getSession(__sandbox_uri1, __secure_password);
 expected_pids1 = get_open_sessions(session1);
 
 //@ configureReplicaSetInstance
-dba.configureReplicaSetInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
-dba.configureReplicaSetInstance(__sandbox_uri3, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+dba.configureReplicaSetInstance(__sandbox_uri_secure_password2, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
+dba.configureReplicaSetInstance(__sandbox_uri_secure_password3, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ createReplicaSet
-shell.connect(__sandbox_uri1);
+shell.connect(__sandbox_uri1, __secure_password);
 
 expected_pids1 = get_open_sessions(session1);
 
@@ -119,9 +121,9 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ addInstance (incremental)
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, __sandbox_uri3, {recoveryMethod:'incremental'});
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, __sandbox_uri_secure_password3, {recoveryMethod:'incremental'});
 
-rs.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
+rs.addInstance(__sandbox_uri_secure_password3, {recoveryMethod:'incremental'});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -130,9 +132,9 @@ check_open_sessions(session3, expected_pids3);
 EXPECT_REPLICAS_USE_SSL(session1, 1);
 
 //@ addInstance (clone) {VER(>=8.0.17)}
-rs.addInstance(__sandbox_uri2, {recoveryMethod:'clone'});
+rs.addInstance(__sandbox_uri_secure_password2, {recoveryMethod:'clone'});
 
-session2 = mysql.getSession(__sandbox_uri2);
+session2 = mysql.getSession(__sandbox_uri2, __secure_password);
 expected_pids2 = get_open_sessions(session2);
 
 check_open_sessions(session1, expected_pids1);
@@ -142,7 +144,7 @@ check_open_sessions(session3, expected_pids3);
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ addInstance (no clone) {VER(<8.0.17)}
-rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+rs.addInstance(__sandbox_uri_secure_password2, {recoveryMethod:'incremental'});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -151,20 +153,20 @@ check_open_sessions(session3, expected_pids3);
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ removeInstance
-rs.removeInstance(__sandbox_uri2);
+rs.removeInstance(__sandbox_uri_secure_password2);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
-rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+rs.addInstance(__sandbox_uri_secure_password2, {recoveryMethod:'incremental'});
 
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ setPrimaryInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.setPrimaryInstance", rs.setPrimaryInstance, __sandbox_uri3);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.setPrimaryInstance", rs.setPrimaryInstance, __sandbox_uri_secure_password3);
 
-rs.setPrimaryInstance(__sandbox_uri3);
+rs.setPrimaryInstance(__sandbox_uri_secure_password3);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -179,9 +181,10 @@ rs = dba.getReplicaSet();
 rs.status();
 
 //@ forcePrimaryInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.forcePrimaryInstance, __sandbox_uri1);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.forcePrimaryInstance, __sandbox_uri_secure_password1);
 
-rs.forcePrimaryInstance(__sandbox_uri1);
+rs.forcePrimaryInstance(__sandbox_uri_secure_password1);
+
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -192,12 +195,12 @@ EXPECT_REPLICAS_USE_SSL(session1, 1);
 testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitSandboxAlive(__mysql_sandbox_port3);
 
-session3 = mysql.getSession(__sandbox_uri3);
+session3 = mysql.getSession(__sandbox_uri3, __secure_password);
 expected_pids3 = get_open_sessions(session3);
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInstance, __sandbox_uri3);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInstance, __sandbox_uri_secure_password3);
 
-rs.rejoinInstance(__sandbox_uri3);
+rs.rejoinInstance(__sandbox_uri_secure_password3);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -206,12 +209,12 @@ check_open_sessions(session3, expected_pids3);
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ rejoinInstance (clone) {VER(>=8.0.17)}
-session3 = mysql.getSession(__sandbox_uri3);
+session3 = mysql.getSession(__sandbox_uri3, __secure_password);
 session3.runSql("STOP SLAVE");
 
-rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"clone"});
+rs.rejoinInstance(__sandbox_uri_secure_password3, {recoveryMethod:"clone"});
 
-session3 = mysql.getSession(__sandbox_uri3);
+session3 = mysql.getSession(__sandbox_uri3, __secure_password);
 expected_pids3 = get_open_sessions(session3);
 
 check_open_sessions(session1, expected_pids1);
@@ -269,30 +272,29 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port3);
 
-session1 = mysql.getSession(__sandbox_uri1);
-session2 = mysql.getSession(__sandbox_uri2 + "?ssl-mode=DISABLED&get-server-public-key=1");
-session3 = mysql.getSession(__sandbox_uri3 + "?ssl-mode=DISABLED&get-server-public-key=1");
+session1 = mysql.getSession(__sandbox_uri1, __secure_password);
+session2 = mysql.getSession(__sandbox_uri2 + "?ssl-mode=DISABLED&get-server-public-key=1", __secure_password);
+session3 = mysql.getSession(__sandbox_uri3 + "?ssl-mode=DISABLED&get-server-public-key=1", __secure_password);
 
-shell.connect(__sandbox_uri2);
+shell.connect(__sandbox_uri2, __secure_password);
 rs = dba.createReplicaSet("rs", {gtidSetIsComplete:1});
 
-rs.addInstance(__sandbox_uri3);
-rs.addInstance(__sandbox_uri1);
+rs.addInstance(__sandbox_uri_secure_password3);
+rs.addInstance(__sandbox_uri_secure_password1);
 
-rs.setPrimaryInstance(__sandbox_uri1);
-rs.setPrimaryInstance(__sandbox_uri2);
+rs.setPrimaryInstance(__sandbox_uri_secure_password1);
+rs.setPrimaryInstance(__sandbox_uri_secure_password2);
 
 //@<> createReplicaSet with ssl in seed
 reset_instance(session1);
 reset_instance(session2);
 reset_instance(session3);
 
-shell.connect(__sandbox_uri1);
+shell.connect(__sandbox_uri1, __secure_password);
 rs = dba.createReplicaSet("rs", {gtidSetIsComplete:1});
 
-EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri3);}, `Instance '127.0.0.1:${__mysql_sandbox_port3}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);
-EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri2);}, `Instance '127.0.0.1:${__mysql_sandbox_port2}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);
-
+EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri_secure_password3);}, `Instance '127.0.0.1:${__mysql_sandbox_port3}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);
+EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri_secure_password2);}, `Instance '127.0.0.1:${__mysql_sandbox_port2}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

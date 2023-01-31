@@ -26,6 +26,7 @@
 #endif
 
 #include <algorithm>
+
 #include "modules/adminapi/common/sql.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -107,6 +108,12 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
     exec_and_out_equals(code);
     code = "var __mysql_port = " + m_mysql_port + ";";
     exec_and_out_equals(code);
+
+    code = shcore::str_format("var __secure_password = '%.*s';",
+                              static_cast<int>(k_secure_password.length()),
+                              k_secure_password.data());
+    exec_and_out_equals(code);
+
     for (int i = 0; i < tests::sandbox::k_num_ports; i++) {
       code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
@@ -122,14 +129,24 @@ class Shell_js_dba_tests : public Shell_js_script_tester {
                                   _mysql_sandbox_ports[i]);
       }
       exec_and_out_equals(code);
+
       code = shcore::str_format(
           "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
           _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
+
+      code = shcore::str_format(
+          "var __sandbox_uri_secure_password%i = "
+          "'mysql://root:%.*s@localhost:%i';",
+          i + 1, static_cast<int>(k_secure_password.length()),
+          k_secure_password.data(), _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+
       code = shcore::str_format(
           "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
           hostname().c_str(), _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
+
       code = shcore::str_format("var uri%i = 'localhost:%i';", i + 1,
                                 _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);

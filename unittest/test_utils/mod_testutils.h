@@ -242,7 +242,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void restart_sandbox(int port);
 
-  void stop_group(const shcore::Array_t &ports);
+  void stop_group(const shcore::Array_t &ports,
+                  const std::string &root_pass = {});
 
   void wait_sandbox_alive(const shcore::Value &port_or_uri);
   void wait_sandbox_alive(
@@ -478,12 +479,9 @@ class Testutils : public mysqlsh::Extensible_object {
                                      int timeout) const;
 
   void handle_sandbox_encryption(const std::string &path) const;
-  void handle_remote_root_user(const std::string &rootpass,
-                               mysqlshdk::db::ISession *session,
-                               bool create_remote_root = true) const;
-  void prepare_sandbox_boilerplate(const std::string &rootpass, int port,
-                                   const std::string &mysqld_path);
-  bool deploy_sandbox_from_boilerplate(int port,
+
+  void prepare_sandbox_boilerplate(int port, const std::string &mysqld_path);
+  void deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts,
                                        bool raw, const std::string &mysqld_path,
                                        int timeout = -1);
@@ -493,7 +491,8 @@ class Testutils : public mysqlsh::Extensible_object {
   void make_empty_file(const std::string &path);
   void create_file(const std::string &path, const std::string &content);
 
-  std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(int port);
+  std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(
+      int port, const std::optional<std::string> &rootpass = {});
   std::string get_user_config_path();
 
   bool validate_oci_config();

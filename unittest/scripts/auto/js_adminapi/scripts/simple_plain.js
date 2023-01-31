@@ -14,7 +14,7 @@ k_mycnf_options = {
 
 if (__version_num > 80000) {
     k_mycnf_options = {
-        plugin_load:"validate_password",
+        plugin_load:"validate_password" + (__os_type != "windows" ? ".so" : ".dll"),
         loose_validate_password_policy:"STRONG",
         ...k_mycnf_options
     }
@@ -48,43 +48,62 @@ function check_open_sessions(session, ignore_pids) {
     }
 }
 
+function get_uri(port, pwd) {
+    if (pwd === undefined) {
+        return `mysql://root@localhost:${port}`
+    }
+    else {
+        return `mysql://root:${pwd}@localhost:${port}`
+    }
+}
+
 //@<> Setup
+
+var pwd = "root";
+var pwdAdmin = "bla";
+var pwdExtra = "boo";
+if (__version_num > 80000) {
+    pwd = __secure_password;
+    pwdAdmin = "C0mPL1CAT3D_pa22w0rd_adm1n";
+    pwdExtra = "C0mPL1CAT3D_pa22w0rd_3x7ra";
+}
+
 // override default sql_mode to test that we always override it
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", k_mycnf_options);
+testutil.deployRawSandbox(__mysql_sandbox_port1, pwd, k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", k_mycnf_options);
+testutil.deploySandbox(__mysql_sandbox_port2, pwd, k_mycnf_options);
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.options.useWizards = false;
 
-session1 = mysql.getSession(__sandbox_uri1);
-session2 = mysql.getSession(__sandbox_uri2);
+session1 = mysql.getSession(__sandbox_uri1, pwd);
+session2 = mysql.getSession(__sandbox_uri2, pwd);
 
 expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
 
 //@<> configureLocalInstance
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureLocalInstance", dba.configureLocalInstance, __sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureLocalInstance", dba.configureLocalInstance, get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureLocalInstance(get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 
-session1 = mysql.getSession(__sandbox_uri1);
+session1 = mysql.getSession(__sandbox_uri1, pwd);
 expected_pids1 = get_open_sessions(session1);
 
 //@<> configureInstance
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, __sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
-dba.configureInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+dba.configureInstance(get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> createCluster
-shell.connect(__sandbox_uri1);
+shell.connect(__sandbox_uri1, pwd);
 
 expected_pids1 = get_open_sessions(session1);
 cluster = dba.createCluster("mycluster");
@@ -99,9 +118,9 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> checkInstanceState
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.checkInstanceState", cluster.checkInstanceState, __sandbox_uri2);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.checkInstanceState", cluster.checkInstanceState, get_uri(__mysql_sandbox_port2, pwd));
 
-cluster.checkInstanceState(__sandbox_uri2);
+cluster.checkInstanceState(get_uri(__mysql_sandbox_port2, pwd));
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -122,49 +141,49 @@ check_open_sessions(session2, expected_pids2);
 cluster = dba.getCluster();
 
 //@<> addInstance unsupported X-protocol error
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, __sandbox_uri2, {recoveryMethod:'incremental'});
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
 
 //@<> addInstance using clone recovery {VER(>=8.0.17)}
-cluster.addInstance(__sandbox_uri2, {recoveryMethod:'clone'});
+cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'clone'});
 
-session2 = mysql.getSession(__sandbox_uri2);
+session2 = mysql.getSession(__sandbox_uri2, pwd);
 expected_pids2 = get_open_sessions(session2);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> addInstance using incremental recovery {VER(<8.0.17)}
-cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> removeInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.removeInstance", cluster.removeInstance, __sandbox_uri2);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.removeInstance", cluster.removeInstance, get_uri(__mysql_sandbox_port2));
 
-cluster.removeInstance(__sandbox_uri2);
+cluster.removeInstance(get_uri(__mysql_sandbox_port2));
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
 
 //@<> setPrimaryInstance {VER(>=8.0.0)}
-CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(__sandbox_uri2)}' does not belong to the cluster: 'mycluster'.`, cluster.setPrimaryInstance, __sandbox_uri2);
+CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(get_uri(__mysql_sandbox_port2))}' does not belong to the cluster: 'mycluster'.`, cluster.setPrimaryInstance, get_uri(__mysql_sandbox_port2));
 
-cluster.setPrimaryInstance(__sandbox_uri2);
+cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port2));
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-cluster.setPrimaryInstance(__sandbox_uri1);
+cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1));
 
 //@<> rejoinInstance
 session2.runSql("STOP group_replication");
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinInstance, __sandbox_uri2);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinInstance, get_uri(__mysql_sandbox_port2));
 
-cluster.rejoinInstance(__sandbox_uri2);
+cluster.rejoinInstance(get_uri(__mysql_sandbox_port2));
 
 //@<> skip_replica_start is kept unchanged if the instance does not belong to a ClusterSet {VER(>=8.0.27)}
 var skip_replica_start = session2.runSql("SELECT @@skip_replica_start").fetchOne()[0];
@@ -177,21 +196,21 @@ check_open_sessions(session2, expected_pids2);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.forceQuorumUsingPartitionOf", cluster.forceQuorumUsingPartitionOf, __sandbox_uri1);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.forceQuorumUsingPartitionOf", cluster.forceQuorumUsingPartitionOf, get_uri(__mysql_sandbox_port1, pwd));
 
-cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
+cluster.forceQuorumUsingPartitionOf(get_uri(__mysql_sandbox_port1, pwd));
 
 check_open_sessions(session1, expected_pids1);
 
 testutil.startSandbox(__mysql_sandbox_port2);
-session2 = mysql.getSession(__sandbox_uri2);
+session2 = mysql.getSession(__sandbox_uri2, pwd);
 
 expected_pids2 = get_open_sessions(session2);
 
-cluster.rejoinInstance(__sandbox_uri2);
+cluster.rejoinInstance(get_uri(__mysql_sandbox_port2));
 
 //@<> rebootClusterFromCompleteOutage
-testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2], pwd);
 
 cluster = dba.rebootClusterFromCompleteOutage();
 
@@ -199,7 +218,7 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 // TODO(alfredo) - the reboot should auto-rejoin all members
-cluster.rejoinInstance(__sandbox_uri2);
+cluster.rejoinInstance(get_uri(__mysql_sandbox_port2));
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> setOption
@@ -213,9 +232,9 @@ custom_weigth=50;
 //@<> setInstanceOption {VER(>=8.0.0)}
 custom_weigth=20;
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, __sandbox_uri1, "memberWeight", custom_weigth);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
 
-cluster.setInstanceOption(__sandbox_uri1, "memberWeight", custom_weigth);
+cluster.setInstanceOption(get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -238,9 +257,9 @@ cluster.switchToSinglePrimaryMode();
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-cluster.setPrimaryInstance(__sandbox_uri1);
+cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1));
 
-shell.connect(__sandbox_uri1);
+shell.connect(__sandbox_uri1, pwd);
 cluster = dba.getCluster(); // shouldn't be necessary
 
 //@<> rescan
@@ -272,7 +291,7 @@ cluster.listRouters();
 
 
 //@<> setupRouterAccount
-cluster.setupRouterAccount("router@'%'", {password:"boo"});
+cluster.setupRouterAccount("router@'%'", {password:pwdExtra});
 
 session.runSql("show grants for router@'%'");
 
@@ -280,7 +299,7 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> setupAdminAccount
-cluster.setupAdminAccount("cadmin@'%'", {password:"boo"});
+cluster.setupAdminAccount("cadmin@'%'", {password:pwdExtra});
 
 session.runSql("show grants for cadmin@'%'");
 
