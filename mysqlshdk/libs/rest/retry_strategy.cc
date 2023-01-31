@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,8 +55,8 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
       "The Authorization header has a date that is either too early or too "
       "late, check that your local clock is correct");
 
-  // retry in case of partial file error reported by CURL, can happen when
-  // due to a network error, when received data is shorter than the reported
+  // retry in case of partial file error reported by CURL, can happen due to a
+  // network error, when received data is shorter than reported
   retry_strategy->add_retriable_curl_error_code(CURLE_PARTIAL_FILE);
 
   // Throttling handling: equal jitter guarantees some wait time before next
