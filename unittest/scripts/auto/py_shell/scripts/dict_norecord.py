@@ -192,9 +192,11 @@ dict_members = [
 
 if sys.hexversion >= 0x03090000:
     dict_members.append("__class_getitem__")
-    dict_members = sorted(dict_members)
 
-EXPECT_EQ(dict_members, dir(shdict()))
+if sys.hexversion >= 0x030b0000:
+    dict_members.append("__getstate__")
+
+EXPECT_EQ(sorted(dict_members), dir(shdict()))
 
 #@<> constructors
 EXPECT_EQ(dict(), shdict())
@@ -779,7 +781,10 @@ items_members = [
     "mapping"
 ]
 
-EXPECT_EQ(items_members, dir(shdict().items()))
+if sys.hexversion >= 0x030b0000:
+    items_members.append("__getstate__")
+
+EXPECT_EQ(sorted(items_members), dir(shdict().items()))
 
 #@<> items - __and__
 SETUP_VIEW("items", "__and__")
@@ -1468,7 +1473,10 @@ keys_members = [
     "mapping"
 ]
 
-EXPECT_EQ(keys_members, dir(shdict().keys()))
+if sys.hexversion >= 0x030b0000:
+    keys_members.append("__getstate__")
+
+EXPECT_EQ(sorted(keys_members), dir(shdict().keys()))
 
 #@<> keys - __and__
 SETUP_VIEW("keys", "__and__")
@@ -2193,7 +2201,10 @@ values_members = [
     "mapping"
 ]
 
-EXPECT_EQ(values_members, dir(shdict().values()))
+if sys.hexversion >= 0x030b0000:
+    values_members.append("__getstate__")
+
+EXPECT_EQ(sorted(values_members), dir(shdict().values()))
 
 #@<> values - __class__
 SETUP_VIEW("values", "__class__")

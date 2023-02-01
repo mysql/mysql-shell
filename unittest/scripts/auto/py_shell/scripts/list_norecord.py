@@ -207,9 +207,11 @@ list_members = [
 
 if sys.hexversion >= 0x03090000:
     list_members.append("__class_getitem__")
-    list_members = sorted(list_members)
 
-EXPECT_EQ(list_members, dir(shlist()))
+if sys.hexversion >= 0x030b0000:
+    list_members.append("__getstate__")
+
+EXPECT_EQ(sorted(list_members), dir(shlist()))
 
 #@<> constructors
 EXPECT_EQ(list(), shlist())
