@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,7 +148,7 @@ inline void assert_transaction_is_open(
         "READ");
     // no exception -> transaction is not active
     assert(false);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch ([[maybe_unused]] const mysqlshdk::db::Error &e) {
     // make sure correct error is reported
     assert(e.code() == ER_CANT_CHANGE_TX_CHARACTERISTICS);
   } catch (...) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,9 +61,9 @@
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -1575,7 +1575,7 @@ void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
           }
         }
       }
-    } catch (const std::runtime_error &error) {
+    } catch (const std::runtime_error &) {
       // print the error log contents
       std::string error_log_path = get_sandbox_log_path(port);
       try {
@@ -1620,7 +1620,7 @@ void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
       session->close();
 
       if (wait) wait_sandbox_dead(port);
-    } catch (const std::runtime_error &error) {
+    } catch (const std::runtime_error &) {
       // print the error log contents
       std::string error_log_path = get_sandbox_log_path(port);
       try {
@@ -1886,7 +1886,7 @@ void Testutils::wait_sandbox_alive(
   while (retries > 0) {
     try {
       session = connect();
-    } catch (const std::exception &err) {
+    } catch (const std::exception &) {
       --retries;
       shcore::sleep_ms(500);
       continue;
@@ -2299,12 +2299,16 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
 //!<  @name InnoDB Cluster Utilities
 ///@{
 /**
- * Waits until a cluster member reaches one of the specified states.
+ * Waits until a cluster member reaches one of the specified states. It also
+ * supports ReplicaSets, in which case the specified states correspond to the
+ * asynchronous replication channel state.
+ *
  * @param port The port of the instance to be polled listens for MySQL
  * connections.
  * @param states An array containing the states that would cause the poll cycle
  * to finish.
  * @param direct If true, opens a direct session to the member to be observed.
+ * When used with ReplicaSets, this must be true.
  * @returns The state of the member.
  *
  * This function is to be used with the members of a cluster.
@@ -2327,8 +2331,6 @@ std::string Testutils::wait_member_state(int member_port,
     throw std::invalid_argument(
         "states argument for wait_member_state() can't be empty");
 
-  std::string current_state;
-  int curtime = 0;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   if (direct) {
     session = connect_to_sandbox(member_port);
@@ -2347,6 +2349,58 @@ std::string Testutils::wait_member_state(int member_port,
       throw std::logic_error("Lost reference to shell object");
     }
   }
+
+  std::string current_state;
+  int curtime = 0;
+
+  bool is_replica_set{false};
+  try {
+    auto result = session->query(
+        "SELECT c.cluster_type FROM mysql_innodb_cluster_metadata.instances i "
+        "INNER JOIN (SELECT @@GLOBAL.server_id id) s ON "
+        "(i.attributes->'$.server_id' = s.id) INNER JOIN "
+        "mysql_innodb_cluster_metadata.clusters c ON (i.cluster_id = "
+        "c.cluster_id);");
+
+    if (auto row = result->fetch_one(); row)
+      is_replica_set = shcore::str_caseeq(row->get_string(0), "ar");
+  } catch (const std::exception &) {
+  }
+
+  // if it's a replica set
+  if (is_replica_set) {
+    while (curtime < k_wait_member_timeout) {
+      // Get the replication channel status
+      auto result = session->query(("SELECT service_state FROM "
+                                    "performance_schema.replication_connection_"
+                                    "status WHERE channel_name = ''"_sql)
+                                       .str());
+
+      current_state = "OFF";
+      if (auto row = result->fetch_one(); row)
+        current_state = row->get_string(0);
+
+      if (states.find(current_state) != std::string::npos) {
+        session->close();
+        return {};
+      }
+
+      shcore::sleep((mysqlshdk::db::replay::g_replay_mode ==
+                     mysqlshdk::db::replay::Mode::Replay)
+                        ? std::chrono::milliseconds(1)
+                        : std::chrono::seconds(1));
+
+      curtime++;
+    }
+
+    session->close();
+
+    throw std::runtime_error(
+        "Timeout while waiting for read-replica to become one of '" + states +
+        "': seems to be stuck as " + current_state);
+  }
+
+  // it's a cluster
 
   while (curtime < k_wait_member_timeout) {
     auto result = session->query(
@@ -3470,7 +3524,7 @@ void copy_boilerplate_sandbox(const std::string &from, const std::string &to) {
 #endif
         shcore::copy_file(item_from, item_to, true);
       }
-    } catch (std::runtime_error &e) {
+    } catch (std::runtime_error &) {
       if (errno != ENOENT) throw;
     }
     return true;
