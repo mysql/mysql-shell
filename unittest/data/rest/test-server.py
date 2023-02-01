@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2019, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         self._handlers = {
             r'^/timeout/([0-9]*\.?[0-9]*)$': self.handle_timeout,
             r'^/redirect/([1-9][0-9]*)$': self.handle_redirect,
-            r'^/server_error/([1-9][0-9]*)/?(.*)$': self.handle_server_error,
+            r'^/server_error/([1-9][0-9]*)/?([^/]*)/?(.*)$': self.handle_server_error,
             r'^/basic/([^/]+)/(.+)$': self.handle_basic,
             r'^/headers?.+$': self.handle_headers,
             r'^/partial_file/([1-9][0-9]*)$': self.handle_partial_file
@@ -112,6 +112,8 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         response = {}
         if len(args) >= 2:
             response['message'] = args[1]
+        if len(args) >= 3:
+            response['code'] = args[2]
         self.reply(status=int(args[0]), extra_response=response)
         return True
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -508,27 +508,31 @@ void Instance_cache_builder::filter_tables() {
   iterate_schemas(
       info, [this](const std::string &, Instance_cache::Schema *schema,
                    const mysqlshdk::db::IRow *row) {
-        const auto table_name = row->get_string(1);  // TABLE_NAME
         const auto table_type = row->get_string(2);  // TABLE_TYPE
 
-        if ("BASE TABLE" == table_type) {
-          auto &table = schema->tables[table_name];
-          table.row_count = row->get_uint(3, 0);           // TABLE_ROWS
-          table.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
-          table.engine = row->get_string(5, "");           // ENGINE
-          table.create_options = row->get_string(6, "");   // CREATE_OPTIONS
-          table.comment = row->get_string(7, "");          // TABLE_COMMENT
+        if ("SYSTEM VIEW" == table_type) {
+          return;
+        }
 
+        const auto table_name = row->get_string(1);  // TABLE_NAME
+        const auto is_table = "BASE TABLE" == table_type;
+        Instance_cache::Table &target =
+            is_table ? schema->tables[table_name] : schema->views[table_name];
+
+        target.row_count = row->get_uint(3, 0);           // TABLE_ROWS
+        target.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
+        target.engine = row->get_string(5, "");           // ENGINE
+        target.create_options = row->get_string(6, "");   // CREATE_OPTIONS
+        target.comment = row->get_string(7, "");          // TABLE_COMMENT
+
+        if (is_table) {
           set_has_tables();
 
           ++m_cache.filtered.tables;
 
           DBUG_EXECUTE_IF("dumper_average_row_length_0",
-                          { table.average_row_length = 0; });
-        } else if ("VIEW" == table_type) {
-          // nop, just to insert the view
-          schema->views[table_name].character_set_client.clear();
-
+                          { target.average_row_length = 0; });
+        } else {
           set_has_views();
 
           ++m_cache.filtered.views;
@@ -648,45 +652,47 @@ void Instance_cache_builder::fetch_columns() {
       table_columns;
   // schema -> view -> columns
   std::unordered_map<
-      std::string,
-      std::unordered_map<std::string, std::map<uint64_t, std::string>>>
+      std::string, std::unordered_map<
+                       std::string, std::map<uint64_t, Instance_cache::Column>>>
       view_columns;
+
+  const auto create_column = [](const mysqlshdk::db::IRow *row) {
+    Instance_cache::Column column;
+    // these can be NULL in 8.0, as per output of 'SHOW COLUMNS', but it's
+    // not likely, as they're NOT NULL in definition of mysql.columns hidden
+    // table
+    column.name = row->get_string(2, "");  // COLUMN_NAME
+    column.quoted_name = shcore::quote_identifier(column.name);
+    const auto data_type = row->get_string(3, "");  // DATA_TYPE
+    column.type = mysqlshdk::db::dbstring_to_type(
+        data_type, row->get_string(6));  // COLUMN_TYPE
+    column.csv_unsafe = shcore::str_iendswith(data_type, "binary", "blob") ||
+                        mysqlshdk::db::Type::Bit == column.type ||
+                        mysqlshdk::db::Type::Geometry == column.type;
+    const auto extra = row->get_string(7, "");  // EXTRA
+    column.generated = extra.find(" GENERATED") != std::string::npos;
+    column.auto_increment = extra.find("auto_increment") != std::string::npos;
+    column.nullable = shcore::str_caseeq(row->get_string(5),
+                                         "YES");  // IS_NULLABLE
+
+    return column;
+  };
 
   iterate_tables_and_views(
       info,
-      [&table_columns](const std::string &schema_name,
-                       const std::string &table_name, Instance_cache::Table *,
-                       const mysqlshdk::db::IRow *row) {
-        Instance_cache::Column column;
-        // these can be NULL in 8.0, as per output of 'SHOW COLUMNS', but it's
-        // not likely, as they're NOT NULL in definition of mysql.columns hidden
-        // table
-        column.name = row->get_string(2, "");  // COLUMN_NAME
-        column.quoted_name = shcore::quote_identifier(column.name);
-        const auto data_type = row->get_string(3, "");  // DATA_TYPE
-        column.type = mysqlshdk::db::dbstring_to_type(
-            data_type, row->get_string(6));  // COLUMN_TYPE
-        column.csv_unsafe =
-            shcore::str_iendswith(data_type, "binary", "blob") ||
-            mysqlshdk::db::Type::Bit == column.type ||
-            mysqlshdk::db::Type::Geometry == column.type;
-        const auto extra = row->get_string(7, "");  // EXTRA
-        column.generated = extra.find(" GENERATED") != std::string::npos;
-        column.auto_increment =
-            extra.find("auto_increment") != std::string::npos;
-        column.nullable = shcore::str_caseeq(row->get_string(5),
-                                             "YES");  // IS_NULLABLE
-
+      [&table_columns, &create_column](
+          const std::string &schema_name, const std::string &table_name,
+          Instance_cache::Table *, const mysqlshdk::db::IRow *row) {
         table_columns[schema_name][table_name].emplace(
-            row->get_uint(4),
-            std::move(column));  // ORDINAL_POSITION
+            row->get_uint(4),  // ORDINAL_POSITION
+            create_column(row));
       },
-      [&view_columns](const std::string &schema_name,
-                      const std::string &view_name, Instance_cache::View *,
-                      const mysqlshdk::db::IRow *row) {
+      [&view_columns, &create_column](
+          const std::string &schema_name, const std::string &view_name,
+          Instance_cache::View *, const mysqlshdk::db::IRow *row) {
         view_columns[schema_name][view_name].emplace(
-            row->get_uint(4),
-            row->get_string(2, ""));  // ORDINAL_POSITION, COLUMN_NAME
+            row->get_uint(4),  // ORDINAL_POSITION
+            create_column(row));
       });
 
   for (auto &schema : table_columns) {
@@ -717,6 +723,10 @@ void Instance_cache_builder::fetch_columns() {
 
       for (auto &column : view.second) {
         v.all_columns.emplace_back(std::move(column.second));
+
+        if (!v.all_columns.back().generated) {
+          v.columns.emplace_back(&v.all_columns.back());
+        }
       }
     }
   }

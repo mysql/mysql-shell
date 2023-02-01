@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -206,7 +206,8 @@ std::optional<Response_error> Response::get_error() const {
         try {
           auto json = shcore::Value::parse(body->data(), body->size()).as_map();
           if (json->get_type("message") == shcore::Value_type::String) {
-            return Response_error(status, json->get_string("message"));
+            return Response_error(status, json->get_string("message"),
+                                  json->get_string("code"));
           }
         } catch (const shcore::Exception &error) {
           // This handles the case where the content/type indicates it's JSON
@@ -218,9 +219,19 @@ std::optional<Response_error> Response::get_error() const {
         if (tinyxml2::XMLError::XML_SUCCESS ==
             xml.Parse(body->data(), body->size())) {
           if (const auto root = xml.FirstChildElement("Error")) {
-            if (const auto msg = root->FirstChildElement("Message")) {
-              return Response_error(status, msg->GetText());
+            const char *message = "";
+
+            if (const auto child = root->FirstChildElement("Message")) {
+              message = child->GetText();
             }
+
+            const char *code = "";
+
+            if (const auto child = root->FirstChildElement("Code")) {
+              code = child->GetText();
+            }
+
+            return Response_error(status, message, code);
           }
         }
       }
@@ -259,7 +270,16 @@ std::size_t Response::content_length() const {
 }
 
 std::string Response_error::format() const {
-  return shcore::str_format("%s (%d)", what(), static_cast<int>(m_code));
+  std::string msg;
+
+  if (!m_code.empty()) {
+    msg += m_code;
+    msg += ": ";
+  }
+
+  msg += shcore::str_format("%s (%d)", what(), static_cast<int>(m_status_code));
+
+  return msg;
 }
 
 size_t Static_char_ref_buffer::append_data(const char *data, size_t data_size) {

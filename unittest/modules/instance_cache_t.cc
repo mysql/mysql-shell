@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1134,7 +1134,9 @@ TEST_F(Instance_cache_test, view_metadata) {
       const auto &one = cache.schemas.at("second").views.at("one");
       EXPECT_EQ("latin1", one.character_set_client);
       EXPECT_EQ("latin1_spanish_ci", one.collation_connection);
-      EXPECT_EQ(std::vector<std::string>{"id"}, one.all_columns);
+      ASSERT_EQ(1, one.all_columns.size());
+      EXPECT_EQ("id", one.all_columns[0].name);
+      EXPECT_EQ("`id`", one.all_columns[0].quoted_name);
     }
 
     {

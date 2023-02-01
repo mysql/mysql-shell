@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -353,7 +353,7 @@ PAR Oci_bucket::create_pre_authenticated_request(
     request.size = body.size();
     service->post(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), error_msg + error.what());
+    throw Response_error(error.status_code(), error_msg + error.what());
   }
 
   shcore::Dictionary_t map;
@@ -390,7 +390,7 @@ void Oci_bucket::delete_pre_authenticated_request(const std::string &id) {
     service->delete_(&request);
   } catch (const Response_error &error) {
     throw Response_error(
-        error.code(),
+        error.status_code(),
         shcore::str_format("Failed to delete PAR: %s", error.what()));
   }
 }
@@ -434,7 +434,7 @@ std::vector<PAR> Oci_bucket::list_preauthenticated_requests(
     auto request = Signed_request(path);
     service->get(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), msg + ": " + error.what());
+    throw Response_error(error.status_code(), msg + ": " + error.what());
   }
 
   shcore::Array_t data;
@@ -476,7 +476,7 @@ bool Oci_bucket::exists() {
     service->head(&request);
     return true;
   } catch (const Response_error &error) {
-    if (rest::Response::Status_code::NOT_FOUND == error.code()) {
+    if (rest::Response::Status_code::NOT_FOUND == error.status_code()) {
       return false;
     } else {
       throw;

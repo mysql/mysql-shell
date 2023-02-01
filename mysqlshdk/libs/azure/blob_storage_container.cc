@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -200,7 +200,7 @@ bool Blob_container::exists() {
     service->head(&request);
     return true;
   } catch (const Response_error &error) {
-    if (Response::Status_code::NOT_FOUND == error.code()) {
+    if (Response::Status_code::NOT_FOUND == error.status_code()) {
       return false;
     } else {
       throw;
@@ -435,7 +435,8 @@ void Blob_container::on_multipart_upload_created(
                             {{"comp", "metadata"}});
     ensure_connection()->put(&request);
   } catch (const mysqlshdk::rest::Response_error &error) {
-    if (error.code() != mysqlshdk::rest::Response::Status_code::NOT_FOUND)
+    if (error.status_code() !=
+        mysqlshdk::rest::Response::Status_code::NOT_FOUND)
       throw;
   }
 }
@@ -508,7 +509,8 @@ void Blob_container::abort_multipart_upload(const Multipart_object &object) {
   } catch (const mysqlshdk::rest::Response_error &error) {
     // NOT_FOUND indicates it is a new Blob, The tag operation will fail, but it
     // is OK
-    if (error.code() == mysqlshdk::rest::Response::Status_code::NOT_FOUND) {
+    if (error.status_code() ==
+        mysqlshdk::rest::Response::Status_code::NOT_FOUND) {
       commit_multipart_upload(object, {});
       delete_object(object.name);
     } else {
