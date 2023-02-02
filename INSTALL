@@ -13,10 +13,12 @@ Mandatory
 - zip (gnuwin32 in windows)
 - python 3.8+
 - libssh 0.9.2
+- antlr4 runtime 4.10.1 (patch version should not matter)
 
 Optional
 - gtest and gmock 1.8 (can be automatically downloaded)
 - v8 8.5.210.20
+
 
 Building From Source
 ====================
