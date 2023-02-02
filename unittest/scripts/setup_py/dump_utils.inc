@@ -43,6 +43,7 @@ def snapshot_accounts(session):
 
 def snapshot_table_data(session, schema, table):
     # CHECKSUM TABLE returns different values for floating point values when they're loaded with LOAD DATA - BUG#31071891
+    # CHECKSUM TABLE doesn't work well with JSON columns (5.7)
     # cksum = session.run_sql("CHECKSUM TABLE !.!", [schema, table]).fetch_one()[1]
     # count = session.run_sql("SELECT count(*) FROM !.!", [schema, table])).fetch_one()[0]
     # return {"checksum":cksum, "rowcount":count}
