@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -346,17 +346,7 @@ std::string format_table(const std::string &schema, const std::string &table,
 
 void Dump_loader::Worker::Task::handle_current_exception(
     Worker *worker, Dump_loader *loader, const std::string &error) {
-  const auto id = worker->id();
-
-  if (!loader->m_thread_exceptions[id]) {
-    current_console()->print_error(
-        shcore::str_format("[Worker%03zu] %s", id, error.c_str()));
-    loader->m_thread_exceptions[id] = std::current_exception();
-  }
-
-  loader->m_num_errors += 1;
-  loader->m_worker_interrupt = true;
-  loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
+  worker->handle_current_exception(loader, error);
 }
 
 bool Dump_loader::Worker::Schema_ddl_task::execute(
@@ -1017,18 +1007,27 @@ Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
     : m_id(id), m_owner(owner), m_connection_id(0) {}
 
 void Dump_loader::Worker::run() {
+  try {
+    do_run();
+  } catch (const mysqlshdk::db::Error &e) {
+    handle_current_exception(e.format());
+  } catch (const shcore::Error &e) {
+    handle_current_exception(e.format());
+  } catch (const std::exception &e) {
+    handle_current_exception(e.what());
+  } catch (...) {
+    handle_current_exception("Unknown exception");
+  }
+}
+
+void Dump_loader::Worker::do_run() {
   auto console = current_console();
 
   try {
     connect();
   } catch (const shcore::Error &e) {
-    console->print_error(shcore::str_format(
-        "[Worker%03zu] Error opening connection to MySQL: %s", m_id,
-        e.format().c_str()));
-
-    m_owner->m_thread_exceptions[m_id] = std::current_exception();
-    m_owner->m_num_errors += 1;
-    m_owner->post_worker_event(this, Worker_event::FATAL_ERROR);
+    handle_current_exception("Error opening connection to MySQL: " +
+                             e.format());
     return;
   }
 
@@ -1059,6 +1058,21 @@ void Dump_loader::Worker::schedule(std::unique_ptr<Task> task) {
   task->set_id(m_id);
   m_task = std::move(task);
   m_work_ready.push(true);
+}
+
+void Dump_loader::Worker::handle_current_exception(Dump_loader *loader,
+                                                   const std::string &error) {
+  const auto id = this->id();
+
+  if (!loader->m_thread_exceptions[id]) {
+    current_console()->print_error(
+        shcore::str_format("[Worker%03zu] %s", id, error.c_str()));
+    loader->m_thread_exceptions[id] = std::current_exception();
+  }
+
+  loader->m_num_errors += 1;
+  loader->m_worker_interrupt = true;
+  loader->post_worker_event(this, Worker_event::FATAL_ERROR);
 }
 
 // ----
