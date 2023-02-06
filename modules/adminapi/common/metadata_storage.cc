@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1271,15 +1271,14 @@ std::string MetadataStorage::get_recovery_account_user(
   return row->get_string(0);
 }
 
-size_t MetadataStorage::iterate_recovery_account_mismatch(
+size_t MetadataStorage::iterate_recovery_account(
     const std::function<bool(uint32_t, std::string)> &cb) {
   auto query =
       "SELECT CAST(attributes->>'$.server_id' AS UNSIGNED), "
       "attributes->>'$.recoveryAccountUser' FROM "
       "mysql_innodb_cluster_metadata.instances WHERE "
       "(COALESCE(CAST(attributes->>'$.server_id' AS UNSIGNED), 0) > 0) AND "
-      "(attributes->>'$.recoveryAccountUser' <> "
-      "CONCAT(\"mysql_innodb_cluster_\", attributes->>'$.server_id'))"_sql;
+      "(attributes->>'$.recoveryAccountUser' IS NOT NULL)"_sql;
 
   auto result = execute_sql(query);
 

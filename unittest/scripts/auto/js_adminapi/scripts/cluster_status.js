@@ -341,6 +341,32 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<> restore the original uuid
 session1.runSql("update mysql_innodb_cluster_metadata.instances set mysql_server_uuid=? where instance_id=?", [uuid, instance_id]);
 
+//@<> Make sure that checking for incorrect recovery accounts supports legacy prefix BUG#35046654
+
+shell.connect(__sandbox_uri1);
+var cluster = dba.getCluster();
+
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+
+// create a new user with "mysql_innodb_cluster_r" (old) prefix
+var old_user = `mysql_innodb_cluster_${session.runSql("SELECT @@server_id").fetchOne()[0]}`;
+var new_user = `mysql_innodb_cluster_r${session.runSql("SELECT @@server_id").fetchOne()[0]}`;
+
+session.runSql(`CREATE USER IF NOT EXISTS '${new_user}'\@'%' IDENTIFIED BY 'foo' PASSWORD EXPIRE NEVER`);
+session.runSql(`GRANT REPLICATION SLAVE ON *.* TO '${new_user}'\@'%'`);
+if (__version_num > 80000) {
+    session.runSql(`GRANT CONNECTION_ADMIN ON *.* TO '${new_user}'\@'%'`);
+}
+
+session.runSql(`CHANGE MASTER TO MASTER_USER = '${new_user}', MASTER_PASSWORD = 'foo' FOR CHANNEL 'group_replication_recovery'`);
+
+session.runSql(`DROP USER IF EXISTS '${old_user}'\@'%'`);
+session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_set(COALESCE(attributes, '{}'), '$.recoveryAccountUser', '${new_user}') WHERE (mysql_server_uuid = CAST(@@server_uuid as char))`);
+
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+
 //@<OUT> Status cluster
 var stat = cluster.status();
 println(stat);

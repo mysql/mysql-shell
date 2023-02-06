@@ -3353,9 +3353,18 @@ Cluster_impl::get_mismatched_recovery_accounts() const {
       mysqlsh::dba::metadata::current_version())
     return accounts;
 
-  m_metadata_storage->iterate_recovery_account_mismatch(
-      [&accounts](uint32_t server_id, std::string user) {
-        accounts[server_id] = std::move(user);
+  m_metadata_storage->iterate_recovery_account(
+      [&accounts](uint32_t server_id, std::string recovery_account) {
+        // must match either the new prefix or the old one
+        auto account = shcore::str_format(
+            "%s%u", mysqlshdk::gr::k_group_recovery_user_prefix, server_id);
+        if (account == recovery_account) return true;
+
+        account = shcore::str_format(
+            "%s%u", mysqlshdk::gr::k_group_recovery_old_user_prefix, server_id);
+        if (account == recovery_account) return true;
+
+        accounts[server_id] = std::move(recovery_account);
         return true;
       });
 
