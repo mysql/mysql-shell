@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,9 +47,11 @@ static std::vector<std::string> k_builtin_keywords = {
 
 class JavaScript_proxy : public Object {
  public:
-  explicit JavaScript_proxy(Provider_javascript *completer, const JSObject &obj,
+  explicit JavaScript_proxy(Provider_javascript *completer, JSObject obj,
                             const std::string &obj_class, bool /* callable */)
-      : completer_(completer), jsobj_(obj), jsobj_class_(obj_class) {}
+      : completer_(completer),
+        jsobj_(std::move(obj)),
+        jsobj_class_(obj_class) {}
 
   std::string get_type() const override { return jsobj_class_; }
 
@@ -87,13 +89,15 @@ class JavaScript_proxy : public Object {
         wrapped_placeholder_ =
             completer_->object_registry()->lookup(get_type());
       } else {
-        member.reset(
-            new JavaScript_proxy(completer_, object, object_type, callable));
+        member = std::make_shared<JavaScript_proxy>(
+            completer_, std::move(object), object_type, callable);
       }
     }
+
     if (!member && wrapped_placeholder_) {
       member = wrapped_placeholder_->get_member(name);
     }
+
     return member;
   }
 
@@ -156,11 +160,13 @@ std::shared_ptr<Object> Provider_javascript::lookup_global_object(
   JSObject obj;
   std::string obj_type;
   std::tie(obj, obj_type) = context_->get_global_js(name);
+
   if (!obj.IsEmpty()) {
-    return std::shared_ptr<Object>(
-        new JavaScript_proxy(this, obj, obj_type, obj_type.empty()));
+    return std::make_shared<JavaScript_proxy>(this, std::move(obj), obj_type,
+                                              obj_type.empty());
   }
-  return std::shared_ptr<Object>();
+
+  return {};
 }
 
 /** Parse the given string, and return the last Chain object in the string,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,8 +37,7 @@ namespace shcore {
 
 class Object_registry;
 
-using JSObject =
-    v8::Persistent<v8::Object, v8::CopyablePersistentTraits<v8::Object>>;
+using JSObject = v8::Global<v8::Object>;
 
 class JScript_function_storage;
 struct JScript_type_bridger;

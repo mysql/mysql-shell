@@ -53,7 +53,7 @@
 |undefined|
 
 //@ Testing drop functions using execute
-||TypeError: Cannot read property 'execute' of undefined
+||TypeError: Cannot read properties of undefined (reading 'execute')
 
 //@ Testing existence
 |Valid: true|
