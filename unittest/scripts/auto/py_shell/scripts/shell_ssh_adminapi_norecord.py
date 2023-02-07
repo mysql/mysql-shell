@@ -1,4 +1,4 @@
-#@ {has_ssh_environment()}
+#@ {has_ssh_environment() and __version_num >= 80000}
 
 from _ssh_utils import *
 from pathlib import Path
@@ -106,4 +106,3 @@ for fun in funcs:
     testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "-e", "dba.{}('test');".format(fun)], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")
     WIPE_STDOUT()
-

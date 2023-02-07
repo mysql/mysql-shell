@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -251,6 +251,15 @@ class Dump_loader {
     uint64_t get_connection_id() const { return m_connection_id; }
 
    private:
+    void handle_current_exception(Dump_loader *loader,
+                                  const std::string &error);
+
+    inline void handle_current_exception(const std::string &error) {
+      handle_current_exception(m_owner, error);
+    }
+
+    void do_run();
+
     void connect();
 
     size_t m_id = 0;

@@ -1,4 +1,4 @@
-#@ {has_ssh_environment()}
+#@ {has_ssh_environment() and __version_num >= 80000}
 
 from _ssh_utils import *
 from pathlib import Path
