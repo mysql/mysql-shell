@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,6 +112,17 @@ class Create_cluster : public Command_interface {
    * NOTE: Do nothing currently.
    */
   void finish() override;
+
+  /**
+   * Returns the communication stack with which the cluster will be created.
+   *
+   * NOTE: this should only be called after calling prepare() to make sure
+   * that, if the default is "mysql" (e.g.: the version allows it), it is
+   * properly returned.
+   *
+   * @return The communication stack intended for the new cluster.
+   */
+  std::string get_communication_stack() const;
 
  private:
   std::shared_ptr<MetadataStorage> m_metadata;

@@ -370,7 +370,7 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
     test_self_connection(*m_cluster_server, "", ssl_mode,
                          options.member_auth_options.member_auth_type,
                          options.member_auth_options.cert_issuer,
-                         options.member_auth_options.cert_subject);
+                         options.member_auth_options.cert_subject, "");
   }
 
   console->print_info("* Updating metadata...");
@@ -686,7 +686,7 @@ void Replica_set_impl::validate_add_instance(
     test_peer_connection(
         *target_instance, "", cert_subject, *m_primary_master, "",
         query_cluster_instance_auth_cert_subject(m_primary_master->get_uuid()),
-        ar_options->ssl_mode, member_auth, cert_issuer);
+        ar_options->ssl_mode, member_auth, cert_issuer, "");
   }
   console->print_info();
 

@@ -54,6 +54,17 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+bool check_comm_stack_defaults_to_mysql(
+    const Create_cluster_options &options,
+    const mysqlsh::dba::Instance &instance) {
+  return !options.gr_options.communication_stack.has_value() &&
+         !options.adopt_from_gr.has_value() &&
+         (instance.get_version() >=
+          k_mysql_communication_stack_initial_version);
+}
+}  // namespace
+
 Create_cluster::Create_cluster(const std::shared_ptr<Instance> &target_instance,
                                const std::string &cluster_name,
                                const Create_cluster_options &options)
@@ -241,10 +252,7 @@ void Create_cluster::prepare() {
   // instance is running 8.0.27+
   // NOTE: When adoptFromGR is used, we don't set the communication stack since
   // the one in use by the unmanaged GR group must be kept
-  if (!m_options.gr_options.communication_stack.has_value() &&
-      !m_options.adopt_from_gr.has_value() &&
-      m_target_instance->get_version() >=
-          k_mysql_communication_stack_initial_version) {
+  if (check_comm_stack_defaults_to_mysql(m_options, *m_target_instance)) {
     m_options.gr_options.communication_stack = kCommunicationStackMySQL;
 
     // Verify if the allowlist is used when the communication stack is MySQL by
@@ -372,12 +380,13 @@ void Create_cluster::prepare() {
       if (current_shell_options()->get().dba_connectivity_checks) {
         console->print_info("* Checking connectivity and SSL configuration...");
 
-        test_self_connection(*m_target_instance,
-                             m_options.gr_options.local_address.value_or(""),
-                             m_options.gr_options.ssl_mode,
-                             m_options.member_auth_options.member_auth_type,
-                             m_options.member_auth_options.cert_issuer,
-                             m_options.member_auth_options.cert_subject);
+        test_self_connection(
+            *m_target_instance, m_options.gr_options.local_address.value_or(""),
+            m_options.gr_options.ssl_mode,
+            m_options.member_auth_options.member_auth_type,
+            m_options.member_auth_options.cert_issuer,
+            m_options.member_auth_options.cert_subject,
+            m_options.gr_options.communication_stack.value_or(""));
       }
 
       console->print_info();
@@ -1188,6 +1197,13 @@ void Create_cluster::rollback() {
 
 void Create_cluster::finish() {
   // Do nothing.
+}
+
+std::string Create_cluster::get_communication_stack() const {
+  if (check_comm_stack_defaults_to_mysql(m_options, *m_target_instance))
+    return kCommunicationStackMySQL;
+
+  return m_options.gr_options.communication_stack.value_or("");
 }
 
 }  // namespace dba

@@ -25,8 +25,11 @@
 
 #include <mysql.h>
 #include <mysqld_error.h>
+
+#include <optional>
 #include <string>
 #include <utility>
+
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -253,7 +256,6 @@ mysqlshdk::mysql::Replication_channel::Error try_connect_channel(
 
   return channel.receiver.last_error;
 }
-}  // namespace
 
 /**
  * @brief Opens a connection to verify network and SSL
@@ -276,10 +278,10 @@ mysqlshdk::mysql::Replication_channel::Error try_connect_channel(
 void test_async_channel_connection(
     const mysqlshdk::mysql::IInstance &from_instance,
     const mysqlshdk::mysql::IInstance &to_instance, std::string_view to_address,
-    std::string_view to_address_source, Cluster_ssl_mode ssl_mode,
-    Replication_auth_type member_auth_type, const std::string &user,
-    const std::string &password, std::string_view cert_issuer,
-    std::string_view cert_subject) {
+    int to_address_port, std::string_view to_address_source,
+    Cluster_ssl_mode ssl_mode, Replication_auth_type member_auth_type,
+    const std::string &user, const std::string &password,
+    std::string_view cert_issuer, std::string_view cert_subject) {
   assert(member_auth_type == Replication_auth_type::PASSWORD ||
          ssl_mode != Cluster_ssl_mode::NONE);
 
@@ -288,8 +290,7 @@ void test_async_channel_connection(
       "auth_type=%s "
       "cert_issuer=%.*s cert_subject=%.*s",
       from_instance.descr().c_str(), user.c_str(),
-      static_cast<int>(to_address.size()), to_address.data(),
-      to_instance.get_canonical_port(),
+      static_cast<int>(to_address.size()), to_address.data(), to_address_port,
       static_cast<int>(to_address_source.size()), to_address_source.data(),
       to_string(ssl_mode).c_str(), to_string(member_auth_type).c_str(),
       static_cast<int>(cert_issuer.size()), cert_issuer.data(),
@@ -305,8 +306,7 @@ void test_async_channel_connection(
 
   mysqlshdk::mysql::change_master(
       from_instance, std::string{to_address.data(), to_address.size()},
-      to_instance.get_canonical_port(), "mysqlsh.test", creds, 0, 0, {}, 0,
-      false);
+      to_address_port, "mysqlsh.test", creds, 0, 0, {}, 0, false);
 
   shcore::Scoped_callback cleanup_channel([&from_instance]() {
     try {
@@ -317,7 +317,11 @@ void test_async_channel_connection(
     mysqlshdk::mysql::reset_slave(from_instance, "mysqlsh.test", true);
   });
 
-  auto io_error = try_connect_channel(from_instance, to_address);
+  auto to_address_complete =
+      shcore::str_format("%.*s:%d", static_cast<int>(to_address.size()),
+                         to_address.data(), to_address_port);
+
+  auto io_error = try_connect_channel(from_instance, to_address_complete);
 
   if (io_error.code == ER_ACCESS_DENIED_ERROR &&
       (member_auth_type == Replication_auth_type::CERT_SUBJECT ||
@@ -325,12 +329,13 @@ void test_async_channel_connection(
     log_debug(
         "Authentication from %s to %.*s with REQUIRE SUBJECT failed, retrying "
         "with just issuer",
-        from_instance.descr().c_str(), static_cast<int>(to_address.size()),
-        to_address.data());
+        from_instance.descr().c_str(),
+        static_cast<int>(to_address_complete.size()),
+        to_address_complete.data());
     downgrade_temp_account_to_issuer_only(to_instance, "mysqlsh.test",
                                           cert_issuer);
     mysqlshdk::mysql::stop_replication_receiver(from_instance, "mysqlsh.test");
-    auto io_error2 = try_connect_channel(from_instance, to_address);
+    auto io_error2 = try_connect_channel(from_instance, to_address_complete);
     // neither subject nor issuer succeeded
     if (io_error2.code == ER_ACCESS_DENIED_ERROR) {
       // If both REQUIRE SUBJECT and REQUIRE ISSUER fail, we complain first
@@ -341,30 +346,119 @@ void test_async_channel_connection(
 
   throw_connect_error_diagnostic(
       io_error, from_instance.get_canonical_address(),
-      to_instance.get_canonical_address(), to_address, to_address_source,
-      cert_issuer, cert_subject, ssl_mode, member_auth_type);
+      to_instance.get_canonical_address(), to_address_complete,
+      to_address_source, cert_issuer, cert_subject, ssl_mode, member_auth_type);
 }
 
-namespace {
-std::string get_ip(std::string_view address) {
-  if (address.front() == '[') {
-    auto pos = address.find(']');
-    if (pos != std::string_view::npos) {
-      return std::string{address.data() + 1, pos - 1};
+/**
+ * Keeps track of the local endpoint (if specified) and the instance endpoint
+ * (retrieved from the canonical hostname and port). Endpoint in this context
+ * refers to the host/ip plus the port.
+ *
+ * We need to consider the port because the server can announce to other members
+ * of the group (option "localAddress") an endpoint that may only have a
+ * different port (e.g.: ":1234"), and so we need to test a connection to that
+ * endpoint and not just the ip.
+ */
+class Endpoint_info {
+  struct Endpoint {
+    std::string ip;
+    std::optional<int> port;
+  };
+  Endpoint m_local_endpoint;
+  Endpoint m_instance_endpoint;
+
+  static std::string get_ip(std::string_view address) {
+    if (address.front() == '[') {
+      if (auto pos = address.find(']'); pos != std::string_view::npos)
+        return std::string{address.data() + 1, pos - 1};
     }
+
+    // extract only the host
+    if (auto pos = address.rfind(':'); pos != std::string_view::npos)
+      return std::string{address.data(), pos};
+
+    // if the address is all digits, it's the port
+    if (std::all_of(address.cbegin(), address.cend(), ::isdigit)) return {};
+
+    // the address is just the host
+    return std::string{address};
   }
-  auto pos = address.rfind(':');
-  if (pos == std::string_view::npos) pos = address.size();
-  return std::string{address.data(), pos};
-}
 
-bool match_address(std::string_view address, const std::string &hostname) {
-  auto ips = mysqlshdk::utils::Net::get_hostname_ips(hostname);
+  static std::optional<int> get_port(std::string_view address) {
+    // extract the port
+    if (auto pos = address.rfind(':'); pos != std::string_view::npos)
+      address = address.substr(pos + 1);
 
-  if (address == hostname) return true;
+    if (address.empty()) return std::nullopt;
 
-  return std::find(ips.begin(), ips.end(), address) != ips.end();
-}
+    // if the address is all digits, it's the port
+    if (std::all_of(address.cbegin(), address.cend(), ::isdigit))
+      return shcore::lexical_cast<int>(address);
+
+    return std::nullopt;
+  }
+
+  bool match_address() const {
+    if (m_local_endpoint.ip == m_instance_endpoint.ip) return true;
+
+    auto ips = mysqlshdk::utils::Net::get_hostname_ips(m_instance_endpoint.ip);
+    return std::find(ips.begin(), ips.end(), m_local_endpoint.ip) != ips.end();
+  }
+
+ public:
+  Endpoint_info(const mysqlshdk::mysql::IInstance &instance,
+                std::string_view local_endpoint, bool ignore_port) {
+    // for replica sets, the local_endpoint is always empty
+    if (!local_endpoint.empty()) {
+      m_local_endpoint.ip = get_ip(local_endpoint);
+      if (!ignore_port) m_local_endpoint.port = get_port(local_endpoint);
+    }
+
+    m_instance_endpoint.ip = instance.get_canonical_hostname();
+    m_instance_endpoint.port = instance.get_canonical_port();
+  }
+
+  /**
+   * Checks if both endpoints are equivalent (the local one and the instance).
+   * Being equivalent, the connectivity test may be skipped.
+   *
+   * @return True if the specified local endpoint is equivalent to the instance
+   * one.
+   */
+  bool are_endpoints_equivalent() const {
+    // both address and port weren't specified, so we assume they are equivalent
+    if (m_local_endpoint.ip.empty() && !m_local_endpoint.port.has_value())
+      return true;
+
+    // if the address or port specified don't match the instance ones
+    if (!m_local_endpoint.ip.empty() && !match_address()) return false;
+    if (m_local_endpoint.port.has_value() &&
+        (m_local_endpoint.port.value() != m_instance_endpoint.port.value()))
+      return false;
+
+    // endpoint is the same as the instance one
+    return true;
+  }
+
+  std::string ip() const {
+    return m_local_endpoint.ip.empty() ? m_instance_endpoint.ip
+                                       : m_local_endpoint.ip;
+  }
+
+  int port() const {
+    assert(m_instance_endpoint.port.has_value());
+    if (!m_local_endpoint.port.has_value())
+      return m_instance_endpoint.port.value();
+
+    if (m_local_endpoint.port.value() ==
+        (m_instance_endpoint.port.value() * 10 + 1))
+      return m_instance_endpoint.port.value();
+
+    return m_local_endpoint.port.value();
+  }
+};
+
 }  // namespace
 
 void test_self_connection(const mysqlshdk::mysql::IInstance &instance,
@@ -372,7 +466,8 @@ void test_self_connection(const mysqlshdk::mysql::IInstance &instance,
                           Cluster_ssl_mode ssl_mode,
                           Replication_auth_type member_auth,
                           std::string_view cert_issuer,
-                          std::string_view cert_subject) {
+                          std::string_view cert_subject,
+                          std::string_view comm_stack) {
   mysqlshdk::mysql::Set_variable slave_net_timeout(
       instance, "slave_net_timeout", 5, true);
 
@@ -385,19 +480,19 @@ void test_self_connection(const mysqlshdk::mysql::IInstance &instance,
     instance.execute("DROP USER IF EXISTS `mysqlsh.test`@'%'");
   });
 
-  std::string local_address_ip;
-  if (!local_address.empty()) local_address_ip = get_ip(local_address);
-
   test_async_channel_connection(
-      instance, instance, instance.get_canonical_hostname(), "report_host",
-      ssl_mode, member_auth, "mysqlsh.test", password, cert_issuer,
-      cert_subject);
+      instance, instance, instance.get_canonical_hostname(),
+      instance.get_canonical_port(), "report_host", ssl_mode, member_auth,
+      "mysqlsh.test", password, cert_issuer, cert_subject);
 
-  if (!local_address_ip.empty() &&
-      !match_address(local_address_ip, instance.get_canonical_hostname())) {
-    test_async_channel_connection(
-        instance, instance, local_address_ip, "localAddress", ssl_mode,
-        member_auth, "mysqlsh.test", password, cert_issuer, cert_subject);
+  Endpoint_info local_endpoint_info(instance, local_address,
+                                    comm_stack != kCommunicationStackMySQL);
+
+  if (!local_endpoint_info.are_endpoints_equivalent()) {
+    test_async_channel_connection(instance, instance, local_endpoint_info.ip(),
+                                  local_endpoint_info.port(), "localAddress",
+                                  ssl_mode, member_auth, "mysqlsh.test",
+                                  password, cert_issuer, cert_subject);
   }
 }
 
@@ -409,13 +504,10 @@ void test_peer_connection(const mysqlshdk::mysql::IInstance &from_instance,
                           std::string_view to_cert_subject,
                           Cluster_ssl_mode ssl_mode,
                           Replication_auth_type member_auth,
-                          std::string_view cert_issuer, bool skip_self_check) {
+                          std::string_view cert_issuer,
+                          std::string_view comm_stack, bool skip_self_check) {
   // We perform full tests from from to to, but only connectivity checks the
   // other way around
-
-  std::string from_local_address_ip;
-  if (!from_local_address.empty())
-    from_local_address_ip = get_ip(from_local_address);
 
   shcore::Scoped_callback cleanup_user([&to_instance, &from_instance]() {
     {
@@ -467,58 +559,56 @@ void test_peer_connection(const mysqlshdk::mysql::IInstance &from_instance,
     has_from_account = false;
   }
 
+  Endpoint_info from_local_endpoint_info(
+      from_instance, from_local_address,
+      comm_stack != kCommunicationStackMySQL);
+
   {
     mysqlshdk::mysql::Set_variable slave_net_timeout1(
         from_instance, "slave_net_timeout", 5, true);
 
-    if (!skip_self_check) {
-      if (has_from_account)
-        test_async_channel_connection(
-            from_instance, from_instance,
-            from_local_address_ip.empty()
-                ? from_instance.get_canonical_hostname()
-                : from_local_address_ip,
-            "localAddress", ssl_mode, member_auth, "mysqlsh-lo.test",
-            from_local_password, cert_issuer, from_cert_subject);
+    if (!skip_self_check && has_from_account) {
+      test_async_channel_connection(
+          from_instance, from_instance, from_local_endpoint_info.ip(),
+          from_local_endpoint_info.port(), "localAddress", ssl_mode,
+          member_auth, "mysqlsh-lo.test", from_local_password, cert_issuer,
+          from_cert_subject);
     }
 
-    std::string local_address_ip;
-    if (!to_local_address.empty()) local_address_ip = get_ip(to_local_address);
-
-    if (has_to_account)
+    if (has_to_account) {
       test_async_channel_connection(
           from_instance, to_instance, to_instance.get_canonical_hostname(),
-          "report_host", ssl_mode, member_auth, "mysqlsh.test", from_password,
-          cert_issuer, from_cert_subject);
+          to_instance.get_canonical_port(), "report_host", ssl_mode,
+          member_auth, "mysqlsh.test", from_password, cert_issuer,
+          from_cert_subject);
 
-    if (!local_address_ip.empty() &&
-        !match_address(local_address_ip,
-                       to_instance.get_canonical_hostname())) {
-      if (has_to_account)
+      Endpoint_info local_endpoint_info(to_instance, to_local_address,
+                                        comm_stack != kCommunicationStackMySQL);
+
+      if (!local_endpoint_info.are_endpoints_equivalent()) {
         test_async_channel_connection(
-            from_instance, to_instance, local_address_ip, "localAddress",
-            ssl_mode, member_auth, "mysqlsh.test", from_password, cert_issuer,
-            from_cert_subject);
+            from_instance, to_instance, local_endpoint_info.ip(),
+            local_endpoint_info.port(), "localAddress", ssl_mode, member_auth,
+            "mysqlsh.test", from_password, cert_issuer, from_cert_subject);
+      }
     }
   }
-  {
+
+  if (has_from_account) {
     mysqlshdk::mysql::Set_variable slave_net_timeout2(
         to_instance, "slave_net_timeout", 5, true);
 
-    if (has_from_account)
-      test_async_channel_connection(
-          to_instance, from_instance, from_instance.get_canonical_hostname(),
-          "report_host", ssl_mode, member_auth, "mysqlsh.test", to_password,
-          cert_issuer, to_cert_subject);
+    test_async_channel_connection(
+        to_instance, from_instance, from_instance.get_canonical_hostname(),
+        from_instance.get_canonical_port(), "report_host", ssl_mode,
+        member_auth, "mysqlsh.test", to_password, cert_issuer, to_cert_subject);
 
-    if (!from_local_address_ip.empty() &&
-        !match_address(from_local_address_ip,
-                       from_instance.get_canonical_hostname())) {
-      if (has_from_account)
-        test_async_channel_connection(
-            to_instance, from_instance, from_local_address_ip, "localAddress",
-            ssl_mode, member_auth, "mysqlsh.test", to_password, cert_issuer,
-            to_cert_subject);
+    if (!from_local_endpoint_info.are_endpoints_equivalent()) {
+      test_async_channel_connection(
+          to_instance, from_instance, from_local_endpoint_info.ip(),
+          from_local_endpoint_info.port(), "localAddress", ssl_mode,
+          member_auth, "mysqlsh.test", to_password, cert_issuer,
+          to_cert_subject);
     }
   }
 }

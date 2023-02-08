@@ -26,6 +26,9 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 shell.connect(__sandbox_uri1);
 
 //@ WL#11465: Create single-primary cluster with specific options

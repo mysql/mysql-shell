@@ -167,7 +167,7 @@ c.dissolve();
 //@<> check error log dumping on create if supported {VER(>=8.0.22)}
 
 // force GR start to fail by passing an invalid localAddress
-EXPECT_THROWS(function(){dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1"})}, "Group Replication failed to start:");
+EXPECT_THROWS(function(){dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0"})}, "Group Replication failed to start:");
 
 EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
 EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
@@ -175,7 +175,7 @@ EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no lo
 //@<> check error log dumping on add if supported {VER(>=8.0.22)}
 var c = dba.createCluster("test", {communicationStack: "XCOM"});
 
-EXPECT_THROWS(function(){c.addInstance(__sandbox_uri2, {localAddress:"0.0.0.0:1", recoveryMethod:"incremental"})}, "Group Replication failed to start:");
+EXPECT_THROWS(function(){c.addInstance(__sandbox_uri2, {localAddress:"0.0.0.0", recoveryMethod:"incremental"})}, "Group Replication failed to start:");
 
 EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
 EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");

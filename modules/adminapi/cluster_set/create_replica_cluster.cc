@@ -748,7 +748,8 @@ void Create_replica_cluster::prepare() {
             .value_or(""),
         primary_cluster->query_cluster_instance_auth_cert_subject(
             primary->get_uuid()),
-        m_ssl_mode, auth_type, cert_issuer, true);
+        m_ssl_mode, auth_type, cert_issuer,
+        m_op_create_cluster->get_communication_stack(), true);
   }
 
   console->print_info();

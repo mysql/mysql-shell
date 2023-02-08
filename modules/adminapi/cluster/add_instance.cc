@@ -539,7 +539,7 @@ void Add_instance::prepare() {
             .value_or(""),
         m_cluster_impl->query_cluster_instance_auth_cert_subject(
             m_primary_instance->get_uuid()),
-        m_options.gr_options.ssl_mode, auth_type, cert_issuer);
+        m_options.gr_options.ssl_mode, auth_type, cert_issuer, m_comm_stack);
   }
   // Set the transaction size limit
   m_options.gr_options.transaction_size_limit =

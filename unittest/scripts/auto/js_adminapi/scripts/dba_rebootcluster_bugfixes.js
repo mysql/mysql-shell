@@ -21,6 +21,10 @@ var uri1 = hostname + ":" + __mysql_sandbox_port1;
 var uri2 = hostname + ":" + __mysql_sandbox_port2;
 
 //@ BUG29265869 - Create cluster with custom GR settings. {VER(>=8.0.16)}
+
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 shell.connect(__sandbox_uri1);
 var c;
 
@@ -32,7 +36,12 @@ if (__version_num < 80027) {
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ BUG29265869 - Create cluster with custom GR settings for 5.7. {VER(<8.0.0)}
+
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 shell.connect(__sandbox_uri1);
+
 var c = dba.createCluster("test", {localAddress: local_address1, ipWhitelist: ip_white_list57, groupName: grp_name, gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
@@ -60,6 +69,8 @@ disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
+
+shell.options["dba.connectivityChecks"] = true;
 
 //@ BUG29265869 - Kill all cluster members.
 c.disconnect();

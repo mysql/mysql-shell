@@ -37,7 +37,8 @@ void test_self_connection(const mysqlshdk::mysql::IInstance &instance,
                           Cluster_ssl_mode ssl_mode,
                           Replication_auth_type member_auth_type,
                           std::string_view cert_issuer,
-                          std::string_view cert_subject);
+                          std::string_view cert_subject,
+                          std::string_view comm_stack);
 
 void test_peer_connection(
     const mysqlshdk::mysql::IInstance &from_instance,
@@ -45,7 +46,8 @@ void test_peer_connection(
     const mysqlshdk::mysql::IInstance &to_instance,
     std::string_view to_local_address, std::string_view to_cert_subject,
     Cluster_ssl_mode ssl_mode, Replication_auth_type member_auth,
-    std::string_view cert_issuer, bool skip_self_check = false);
+    std::string_view cert_issuer, std::string_view comm_stack,
+    bool skip_self_check = false);
 
 }  // namespace dba
 }  // namespace mysqlsh
