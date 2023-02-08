@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -683,6 +683,15 @@ int main(int argc, char **argv) {
     SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
   }
 #endif  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+
+  // init Winsock
+  {
+    WSADATA wsa;
+    if (int err = WSAStartup(MAKEWORD(2, 2), &wsa); err != 0) {
+      std::cerr << "Unable to load Winsock: " << err << "\n";
+      exit(1);
+    }
+  }
 #else
   auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
   // logger is not initialized yet here
@@ -941,6 +950,10 @@ int main(int argc, char **argv) {
     std::cerr << e.what() << std::endl;
     ret_val = 1;
   }
+
+#ifdef _WIN32
+  WSACleanup();
+#endif
 
   return ret_val;
 }

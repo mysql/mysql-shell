@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,13 +56,6 @@ inline int ssh_poll(pollfd *data, size_t size) {
 
 Ssh_tunnel_manager::Ssh_tunnel_manager()
     : m_wakeup_socket_port(0), m_wakeup_socket(-1) {
-#if _MSC_VER
-  WSADATA wsa_data;
-  int i_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-  if (i_result != NO_ERROR) {
-    throw Ssh_tunnel_exception("Error at WSAStartup()");
-  }
-#endif
   init_libssh();
   auto ret_val = create_socket();
   log_info("SSH: tunnel manager: Wakeup socket port created: %d", ret_val.port);
@@ -87,9 +80,6 @@ Ssh_tunnel_manager::~Ssh_tunnel_manager() {
     it.second->stop();
     it.second->release();
   }
-#if _MSC_VER
-  WSACleanup();
-#endif
 }
 
 std::unique_lock<std::recursive_mutex> Ssh_tunnel_manager::lock_socket_list() {
