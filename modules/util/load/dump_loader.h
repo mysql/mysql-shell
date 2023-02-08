@@ -146,17 +146,21 @@ class Dump_loader {
       bool placeholder() const { return m_placeholder; }
 
      private:
-      void process(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          Dump_loader *loader);
+      void pre_process(Dump_loader *loader);
 
       void load_ddl(
           const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
           Dump_loader *loader);
 
-      void extract_pending_indexes(
+      void post_process(
           const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          bool fulltext_only, bool check_recreated, Dump_loader *loader);
+          Dump_loader *loader);
+
+      void extract_deferred_statements(Dump_loader *loader);
+
+      void remove_duplicate_deferred_statements(
+          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+          Dump_loader *loader);
 
      private:
       std::string m_script;
@@ -525,7 +529,7 @@ class Dump_loader {
      * Callback should return true if this statement should be executed.
      */
     void add_execute_conditionally(
-        std::function<bool(std::string_view, std::string_view)> f);
+        std::function<bool(std::string_view, const std::string &)> f);
 
     /**
      * Whenever a USE `schema` or CREATE DATABASE ... `schema` statement is

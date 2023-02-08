@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,7 @@
 #include <numeric>
 #include <utility>
 
-#include "modules/util/dump/dump_utils.h"
+#include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -687,8 +687,12 @@ uint64_t Dump_reader::add_deferred_statements(
       !m_options.load_deferred_indexes() || stmts.index_info.empty();
   t->second->indexes = std::move(stmts.index_info);
 
-  std::move(stmts.foreign_keys.begin(), stmts.foreign_keys.end(),
-            std::back_inserter(s->second->foreign_key_queries));
+  const auto table_name = schema_object_key(schema, table);
+
+  for (const auto &fk : stmts.foreign_keys) {
+    s->second->foreign_key_queries.emplace_back("ALTER TABLE " + table_name +
+                                                " ADD " + fk);
+  }
 
   if (!stmts.secondary_engine.empty()) {
     s->second->queries_on_schema_end.emplace_back(
@@ -768,11 +772,11 @@ void Dump_reader::validate_options() {
 }
 
 std::string Dump_reader::Table_info::script_name() const {
-  return dump::get_table_filename(basename);
+  return dump::common::get_table_filename(basename);
 }
 
 std::string Dump_reader::Table_info::triggers_script_name() const {
-  return dump::get_table_data_filename(basename, "triggers.sql");
+  return dump::common::get_table_data_filename(basename, "triggers.sql");
 }
 
 bool Dump_reader::Table_info::ready() const {
@@ -781,7 +785,7 @@ bool Dump_reader::Table_info::ready() const {
 
 std::string Dump_reader::Table_info::metadata_name() const {
   // schema@table.json
-  return dump::get_table_data_filename(basename, "json");
+  return dump::common::get_table_data_filename(basename, "json");
 }
 
 bool Dump_reader::Table_info::should_fetch_metadata_file(
@@ -940,7 +944,7 @@ void Dump_reader::Table_data_info::rescan_data(const Files &files,
     }
 
     const auto it = files.find(
-        dump::get_table_data_filename(basename, extension, params...));
+        dump::common::get_table_data_filename(basename, extension, params...));
 
     if (it == files.end()) {
       return false;
@@ -996,11 +1000,11 @@ void Dump_reader::Table_data_info::rescan_data(const Files &files,
 }
 
 std::string Dump_reader::View_info::script_name() const {
-  return dump::get_table_filename(basename);
+  return dump::common::get_table_filename(basename);
 }
 
 std::string Dump_reader::View_info::pre_script_name() const {
-  return dump::get_table_data_filename(basename, "pre.sql");
+  return dump::common::get_table_data_filename(basename, "pre.sql");
 }
 
 void Dump_reader::View_info::rescan(const Files &files) {
@@ -1027,12 +1031,12 @@ bool Dump_reader::Schema_info::ready() const {
 }
 
 std::string Dump_reader::Schema_info::script_name() const {
-  return dump::get_schema_filename(basename);
+  return dump::common::get_schema_filename(basename);
 }
 
 std::string Dump_reader::Schema_info::metadata_name() const {
   // schema.json
-  return dump::get_schema_filename(basename, "json");
+  return dump::common::get_schema_filename(basename, "json");
 }
 
 bool Dump_reader::Schema_info::should_fetch_metadata_file(
@@ -1409,37 +1413,42 @@ void Dump_reader::on_table_metadata_parsed(const Table_info &info) {
   on_metadata_parsed();
 }
 
-bool Dump_reader::include_schema(std::string_view schema) const {
-  return m_options.include_schema(override_schema(schema));
+bool Dump_reader::include_schema(const std::string &schema) const {
+  return m_options.filters().schemas().is_included(override_schema(schema));
 }
 
-bool Dump_reader::include_table(std::string_view schema,
-                                std::string_view table) const {
-  return m_options.include_table(override_schema(schema), table);
+bool Dump_reader::include_table(const std::string &schema,
+                                const std::string &table) const {
+  return m_options.filters().tables().is_included(override_schema(schema),
+                                                  table);
 }
 
-bool Dump_reader::include_event(std::string_view schema,
-                                std::string_view event) const {
-  return m_options.include_event(override_schema(schema), event);
+bool Dump_reader::include_event(const std::string &schema,
+                                const std::string &event) const {
+  return m_options.filters().events().is_included(override_schema(schema),
+                                                  event);
 }
 
-bool Dump_reader::include_routine(std::string_view schema,
-                                  std::string_view routine) const {
-  return m_options.include_routine(override_schema(schema), routine);
+bool Dump_reader::include_routine(const std::string &schema,
+                                  const std::string &routine) const {
+  return m_options.filters().routines().is_included(override_schema(schema),
+                                                    routine);
 }
 
-bool Dump_reader::include_routine_ci(std::string_view schema,
-                                     std::string_view routine) const {
-  return m_options.include_routine_ci(override_schema(schema), routine);
+bool Dump_reader::include_routine_ci(const std::string &schema,
+                                     const std::string &routine) const {
+  return m_options.filters().routines().is_included_ci(override_schema(schema),
+                                                       routine);
 }
 
-bool Dump_reader::include_trigger(std::string_view schema,
-                                  std::string_view table,
-                                  std::string_view trigger) const {
-  return m_options.include_trigger(override_schema(schema), table, trigger);
+bool Dump_reader::include_trigger(const std::string &schema,
+                                  const std::string &table,
+                                  const std::string &trigger) const {
+  return m_options.filters().triggers().is_included(override_schema(schema),
+                                                    table, trigger);
 }
 
-std::string_view Dump_reader::override_schema(std::string_view s) const {
+const std::string &Dump_reader::override_schema(const std::string &s) const {
   if (!m_schema_override.has_value()) return s;
 
   const auto &value = *m_schema_override;

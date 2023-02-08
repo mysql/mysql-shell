@@ -28,6 +28,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -178,6 +179,33 @@ bool contains_sensitive_information(const std::string &statement);
 std::string replace_quoted_strings(const std::string &statement,
                                    std::string_view replacement,
                                    std::vector<std::string> *replaced);
+
+struct Privilege_level_info {
+  enum class Level {
+    GLOBAL,
+    SCHEMA,
+    TABLE,
+    ROUTINE,
+  };
+
+  bool grant = true;
+  Level level = Level::GLOBAL;
+  std::string schema;
+  std::string object;
+  std::unordered_set<std::string> privileges;
+};
+
+/**
+ * Parses the grant/revoke statement and extracts information about privileges.
+ *
+ * @param statement Statement to be checked.
+ * @param[out] info Extracted information.
+ *
+ * @returns true if information was extracted
+ * @throws std::runtime_error if statement is malformed
+ */
+bool parse_grant_statement(const std::string &statement,
+                           Privilege_level_info *info);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

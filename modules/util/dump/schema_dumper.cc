@@ -2689,8 +2689,7 @@ std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
 }
 
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
-    IFile *file, const std::vector<shcore::Account> &included,
-    const std::vector<shcore::Account> &excluded) {
+    IFile *file, const common::Filtering_options &filters) {
   std::vector<Issue> problems;
   std::map<std::string, std::string> default_roles;
 
@@ -2699,7 +2698,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
 
-  const auto roles = get_roles(included, excluded);
+  const auto roles = get_roles(filters.users());
   const auto is_role = [&roles](const shcore::Account &a) {
     return roles.end() != std::find(roles.begin(), roles.end(), a);
   };
@@ -2775,7 +2774,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
   std::vector<std::string> users;
 
-  for (const auto &u : get_users(included, excluded)) {
+  for (const auto &u : get_users(filters.users())) {
     const auto user = shcore::make_account(u);
 
     if (u.user.find('\'') != std::string::npos) {
@@ -2909,8 +2908,86 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         }
       }
 
-      if (!grant.empty() && !include_grant(grant)) {
-        grant = "/* " + grant + " */";
+      if (!grant.empty()) {
+        compatibility::Privilege_level_info priv;
+        bool comment_out = false;
+
+        if (include_grant(grant, filters, &priv)) {
+          // check if grant is on an existing object
+          using Level = compatibility::Privilege_level_info::Level;
+
+          const auto check_if_missing = [this, &priv, &problems, &user, &grant,
+                                         &comment_out](
+                                            const std::string &query) {
+            const auto result =
+                query_log_error(query, priv.schema, priv.object);
+
+            if (result->fetch_one()) {
+              // object exists
+              return;
+            }
+
+            std::string object_type;
+
+            switch (priv.level) {
+              case Level::TABLE:
+                object_type = "table";
+                break;
+
+              case Level::ROUTINE:
+                object_type = "routine";
+                break;
+
+              default:
+                throw std::logic_error("Unexpected object type");
+            }
+
+            if (opt_strip_invalid_grants) {
+              comment_out = true;
+              problems.emplace_back(
+                  "User " + user + " had grant statement on a non-existent " +
+                      object_type + " removed (" + grant + ")",
+                  Issue::Status::FIXED);
+            } else {
+              Issue issue{"User " + user +
+                              " has grant statement on a non-existent " +
+                              object_type + " (" + grant + ")",
+                          Issue::Status::USE_STRIP_INVALID_GRANTS};
+
+              if (opt_mysqlaas) {
+                problems.emplace_back(std::move(issue));
+              } else {
+                current_console()->print_error(issue.description);
+                THROW_ERROR0(SHERR_DUMP_INVALID_GRANT_STATEMENT);
+              }
+            }
+          };
+
+          // NOTE: grants on a missing schema are valid
+
+          if (Level::TABLE == priv.level) {
+            // grant on a missing table is invalid if it does not contain a
+            // CREATE privilege
+            if (0 == priv.privileges.count("CREATE")) {
+              check_if_missing(
+                  "SELECT TABLE_NAME FROM information_schema.tables WHERE "
+                  "TABLE_SCHEMA=? AND TABLE_NAME=?");
+            }
+          } else if (Level::ROUTINE == priv.level) {
+            // all grants on a missing routine are invalid
+            check_if_missing(
+                "SELECT ROUTINE_NAME FROM information_schema.routines WHERE "
+                "ROUTINE_SCHEMA=? AND ROUTINE_NAME=?");
+          }
+        } else {
+          log_info("Commenting out grant for an excluded object: %s",
+                   grant.c_str());
+          comment_out = true;
+        }
+
+        if (comment_out) {
+          grant = "/* " + grant + " */";
+        }
       }
     }
 
@@ -2952,8 +3029,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 }
 
 std::vector<shcore::Account> Schema_dumper::get_users(
-    const std::vector<shcore::Account> &included,
-    const std::vector<shcore::Account> &excluded) {
+    const common::Filtering_options::User_filters &filters) {
   if (m_cache) {
     return m_cache->users;
   }
@@ -2964,7 +3040,7 @@ std::vector<shcore::Account> Schema_dumper::get_users(
     // information_schema.user_privileges, though on servers < 8.0.17, the
     // grantee column is too short and the host name can be truncated
     return fetch_users("SELECT DISTINCT user, host from mysql.user", "",
-                       included, excluded, false);
+                       filters, false);
   } catch (const mysqlshdk::db::Error &e) {
     if (m_mysql->get_server_version() < Version(8, 0, 17)) {
       log_warning(
@@ -2982,13 +3058,12 @@ std::vector<shcore::Account> Schema_dumper::get_users(
         " LOCATE('@', REVERSE(grantee))-3) AS host "
         "FROM information_schema.user_privileges) AS user";
 
-    return fetch_users(users_query, "", included, excluded);
+    return fetch_users(users_query, "", filters);
   }
 }
 
 std::vector<shcore::Account> Schema_dumper::get_roles(
-    const std::vector<shcore::Account> &included,
-    const std::vector<shcore::Account> &excluded) {
+    const common::Filtering_options::User_filters &filters) {
   if (m_cache) {
     return m_cache->roles;
   }
@@ -3014,7 +3089,7 @@ std::vector<shcore::Account> Schema_dumper::get_roles(
   return fetch_users("SELECT DISTINCT user, host FROM mysql.user",
                      "authentication_string='' AND account_locked='Y' AND "
                      "password_expired='Y'",
-                     included, excluded);
+                     filters);
 }
 
 const char *Schema_dumper::version() { return DUMP_VERSION; }
@@ -3022,8 +3097,8 @@ const char *Schema_dumper::version() { return DUMP_VERSION; }
 std::string Schema_dumper::preprocess_users_script(
     const std::string &script,
     const std::function<bool(const std::string &)> &include_user_cb,
-    const std::function<bool(const std::string &, const std::string &,
-                             Object_type)> &include_object_cb,
+    const std::function<bool(const compatibility::Privilege_level_info &)>
+        &include_object_cb,
     const std::function<bool(const std::string &, const std::string &)>
         &strip_privilege_cb) {
   std::string out;
@@ -3114,8 +3189,7 @@ std::string Schema_dumper::preprocess_users_script(
 
 std::vector<shcore::Account> Schema_dumper::fetch_users(
     const std::string &select, const std::string &where,
-    const std::vector<shcore::Account> &included,
-    const std::vector<shcore::Account> &excluded, bool log_error) {
+    const common::Filtering_options::User_filters &filters, bool log_error) {
   std::string where_filter = where;
 
   if (!where_filter.empty()) {
@@ -3139,8 +3213,8 @@ std::vector<shcore::Account> Schema_dumper::fetch_users(
 
       return result;
     };
-    const auto include = filter(included);
-    const auto exclude = filter(excluded);
+    const auto include = filter(filters.included());
+    const auto exclude = filter(filters.excluded());
 
     if (!include.empty()) {
       if (!where_filter.empty()) {
@@ -3226,141 +3300,59 @@ Instance_cache::Binlog Schema_dumper::binlog(bool quiet) {
   return binlog;
 }
 
-bool Schema_dumper::include_grant(const std::string &grant) const {
+bool Schema_dumper::include_grant(
+    const std::string &grant, const common::Filtering_options &filters,
+    compatibility::Privilege_level_info *out_priv) const {
   return include_grant(
-      grant, [this](const std::string &schema, const std::string &object,
-                    Object_type type) {
-        if (m_cache) {
-          const auto cached_schema = m_cache->schemas.find(schema);
+      grant,
+      [&filters, out_priv](const compatibility::Privilege_level_info &priv) {
+        using Level = compatibility::Privilege_level_info::Level;
 
-          // if schema is not included in the dump, grant should also be
-          // excluded
-          if (m_cache->schemas.end() == cached_schema) {
-            return false;
-          }
-
-          switch (type) {
-            case Object_type::SCHEMA:
-              // nothing more to do
-              break;
-
-            case Object_type::TABLE: {
-              const auto &tables = cached_schema->second.tables;
-              const auto &views = cached_schema->second.views;
-
-              // exclude the grant if table or view is not included
-              if (tables.end() == tables.find(object) &&
-                  views.end() == views.find(object)) {
-                return false;
-              }
-            } break;
-
-            case Object_type::ROUTINE: {
-              const auto &functions = cached_schema->second.functions;
-              const auto &procedures = cached_schema->second.procedures;
-
-              // BUG#34764157 routine names are case insensitive, MySQL 5.7 has
-              // lower-case names of routines in grant statements
-              const auto r = shcore::utf8_to_wide(object);
-              const auto contains_ci = [&r](const auto &c) {
-                for (const auto &e : c) {
-                  if (shcore::str_caseeq(r, shcore::utf8_to_wide(e))) {
-                    return true;
-                  }
-                }
-                return false;
-              };
-
-              // exclude the grant if routine is not included
-              if (!contains_ci(functions) && !contains_ci(procedures)) {
-                return false;
-              }
-            } break;
-          }
+        if (out_priv) {
+          *out_priv = priv;
         }
 
-        return true;
+        switch (priv.level) {
+          case Level::GLOBAL:
+            return true;
+
+          case Level::SCHEMA:
+            return filters.schemas().is_included(priv.schema);
+
+          case Level::TABLE:
+            return filters.tables().is_included(priv.schema, priv.object);
+
+          case Level::ROUTINE:
+            // BUG#34764157 routine names are case insensitive, MySQL 5.7 has
+            // lower-case names of routines in grant statements
+            return filters.routines().is_included_ci(priv.schema, priv.object);
+        }
+
+        throw std::logic_error("Should not happen");
       });
 }
 
 bool Schema_dumper::include_grant(
     const std::string &grant,
-    const std::function<bool(const std::string &, const std::string &,
-                             Object_type)> &include_object) {
+    const std::function<bool(const compatibility::Privilege_level_info &)>
+        &include_object) {
   assert(include_object);
 
-  mysqlshdk::utils::SQL_iterator it(grant, 0, false);
+  compatibility::Privilege_level_info info;
 
-  if (!shcore::str_caseeq(it.next_token(), "GRANT", "REVOKE")) {
-    throw std::runtime_error("Expected GRANT or REVOKE statement");
-  }
+  if (compatibility::parse_grant_statement(grant, &info)) {
+    using Level = compatibility::Privilege_level_info::Level;
 
-  // we're only interested in the PROXY privilege (which can only appear alone),
-  // because the clause after ON is going to be user_or_role and not priv_level;
-  // or ALTER ROUTINE and EXECUTE, because if priv_level is in form of
-  // schema.object, then object is a routine
-  bool first_privilege = true;
-  bool proxy_privilege = false;
-  bool object_is_routine = false;
+    switch (info.level) {
+      case Level::GLOBAL:
+        break;
 
-  while (it.valid()) {
-    auto token = it.next_token();
-
-    if (first_privilege) {
-      if (shcore::str_caseeq(token, "PROXY")) {
-        proxy_privilege = true;
-      } else if (shcore::str_caseeq(token, "EXECUTE")) {
-        object_is_routine = true;
-      } else if (shcore::str_caseeq(token, "ALTER")) {
-        token = it.next_token();
-
-        if (shcore::str_caseeq(token, "ROUTINE")) {
-          object_is_routine = true;
+      default:
+        if (is_system_schema(info.schema)) {
+          break;
         }
-      }
 
-      first_privilege = false;
-    }
-
-    if (shcore::str_caseeq(token, "ON")) {
-      // end of privileges
-      break;
-    }
-  }
-
-  // if iterator is not valid at this point, there was no "ON" clause and this
-  // is a GRANT/REVOKE role statement
-  if (it.valid() && !proxy_privilege) {
-    auto priv_level = it.next_token();
-
-    if (shcore::str_caseeq(priv_level, "TABLE")) {
-      object_is_routine = false;
-      // priv_level follows
-      priv_level = it.next_token();
-    } else if (shcore::str_caseeq(priv_level, "FUNCTION", "PROCEDURE")) {
-      object_is_routine = true;
-      // priv_level follows
-      priv_level = it.next_token();
-    }
-
-    std::string schema;
-    std::string object;
-
-    shcore::split_priv_level(std::string{priv_level}, &schema, &object);
-
-    // global privileges and privileges for system schemas are always included
-    if ("*" != schema && !is_system_schema(schema)) {
-      if (!include_object(schema, "", Object_type::SCHEMA)) {
-        return false;
-      }
-
-      if ("*" != object) {
-        if (!include_object(schema, object,
-                            object_is_routine ? Object_type::ROUTINE
-                                              : Object_type::TABLE)) {
-          return false;
-        }
-      }
+        return include_object(info);
     }
   }
 

@@ -195,8 +195,8 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-        "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -480,6 +480,10 @@ DESCRIPTION
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
 
+      strip_invalid_grants - Strips grant statements which would fail when
+      users are loaded, i.e. grants referring to a specific routine which does
+      not exist.
+
       strip_restricted_grants - Certain privileges are restricted in the MySQL
       Database Service. Attempting to create users granting these privileges
       would fail, so this option allows dumped GRANT statements to be stripped
@@ -759,8 +763,8 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-        "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -1022,6 +1026,10 @@ DESCRIPTION
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
+
+      strip_invalid_grants - Strips grant statements which would fail when
+      users are loaded, i.e. grants referring to a specific routine which does
+      not exist.
 
       strip_restricted_grants - Certain privileges are restricted in the MySQL
       Database Service. Attempting to create users granting these privileges
@@ -1301,8 +1309,8 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-        "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces".
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - excludeTriggers: list of strings (default: empty) - List of triggers to
@@ -1559,6 +1567,10 @@ DESCRIPTION
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
+
+      strip_invalid_grants - Strips grant statements which would fail when
+      users are loaded, i.e. grants referring to a specific routine which does
+      not exist.
 
       strip_restricted_grants - Certain privileges are restricted in the MySQL
       Database Service. Attempting to create users granting these privileges

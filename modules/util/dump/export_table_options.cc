@@ -113,8 +113,8 @@ void Export_table_options::validate_options() const {
 
 void Export_table_options::on_set_schema() {
   if (!schema().empty()) {
-    m_included_schemas.emplace(schema());
-    m_included_tables[schema()].emplace(table());
+    filters().schemas().include(schema());
+    filters().tables().include(schema(), table());
 
     set_where_clause(schema(), table(), m_where);
     set_partitions(schema(), table(), m_partitions);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,8 +31,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "modules/mod_utils.h"
-#include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
@@ -46,18 +44,24 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/mod_utils.h"
+#include "modules/util/common/dump/filtering_options.h"
+#include "modules/util/import_table/helpers.h"
+
 namespace mysqlsh {
 
 inline std::string schema_object_key(std::string_view schema,
                                      std::string_view table) {
   std::string res;
-  res.reserve(schema.size() + table.size() + 1);
+  res.reserve(schema.size() + table.size() + 5);
 
   res.append(shcore::quote_identifier(schema));
-  if (table.empty()) return res;
 
-  res.append(".");
-  res.append(shcore::quote_identifier(table));
+  if (!table.empty()) {
+    res.append(".");
+    res.append(shcore::quote_identifier(table));
+  }
+
   return res;
 }
 
@@ -156,14 +160,13 @@ class Load_dump_options {
 
   bool force() const { return m_force; }
 
-  bool include_schema(std::string_view schema) const;
-  bool include_table(std::string_view schema, std::string_view table) const;
-  bool include_event(std::string_view schema, std::string_view event) const;
-  bool include_routine(std::string_view schema, std::string_view routine) const;
-  bool include_routine_ci(std::string_view schema,
-                          std::string_view routine) const;
-  bool include_trigger(std::string_view schema, std::string_view table,
-                       std::string_view trigger) const;
+  const dump::common::Filtering_options &filters() const {
+    return m_filtering_options;
+  }
+
+  inline dump::common::Filtering_options &filters() {
+    return m_filtering_options;
+  }
 
   bool ignore_existing_objects() const { return m_ignore_existing_objects; }
 
@@ -176,8 +179,6 @@ class Load_dump_options {
   }
 
   Analyze_table_mode analyze_tables() const { return m_analyze_tables; }
-
-  bool include_user(const shcore::Account &account) const;
 
   Update_gtid_set update_gtid_set() const { return m_update_gtid_set; }
 
@@ -217,10 +218,6 @@ class Load_dump_options {
 
  private:
   void set_wait_timeout(const double &timeout_seconds);
-  void set_str_vector_option(const std::string &option,
-                             const std::vector<std::string> &data);
-  void set_str_unordered_set_option(
-      const std::string &option, const std::unordered_set<std::string> &data);
 
   void set_max_bytes_per_transaction(const std::string &value);
 
@@ -231,8 +228,6 @@ class Load_dump_options {
     return m_base_session->query(sql);
   }
 
-  void add_excluded_users(std::vector<shcore::Account> &&users);
-
   bool include_object(std::string_view schema, std::string_view object,
                       const std::unordered_set<std::string> &included,
                       const std::unordered_set<std::string> &excluded) const;
@@ -240,13 +235,6 @@ class Load_dump_options {
   bool include_object_ci(std::string_view schema, std::string_view object,
                          const std::unordered_set<std::string> &included,
                          const std::unordered_set<std::string> &excluded) const;
-
-  bool error_on_object_filters_conflicts(
-      const std::unordered_set<std::string> &included,
-      const std::unordered_set<std::string> &excluded,
-      const std::string &object_label, const std::string &option_suffix) const;
-
-  bool error_on_trigger_filters_conflicts() const;
 
   std::string m_url;
   uint64_t m_threads_count = 4;
@@ -261,25 +249,7 @@ class Load_dump_options {
   Connection_options m_target;
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
 
-  std::unordered_set<std::string> m_include_schemas;  // only load these schemas
-  std::unordered_set<std::string> m_exclude_schemas;  // skip these schemas
-
-  std::unordered_set<std::string> m_include_tables;  // only load these tables
-  std::unordered_set<std::string> m_exclude_tables;  // skip these tables
-
-  std::unordered_set<std::string> m_include_events;  // only load these events
-  std::unordered_set<std::string> m_exclude_events;  // skip these events
-
-  std::unordered_set<std::string>
-      m_include_routines;  // only load these routines
-  std::unordered_set<std::string> m_exclude_routines;  // skip these routines
-
-  std::unordered_set<std::string>
-      m_include_triggers;  // only load these triggers
-  std::unordered_set<std::string> m_exclude_triggers;  // skip these triggers
-
-  std::vector<shcore::Account> m_included_users;  // only load these users
-  std::vector<shcore::Account> m_excluded_users;  // skip these users
+  dump::common::Filtering_options m_filtering_options;
 
   uint64_t m_wait_dump_timeout_ms = 0;
   bool m_reset_progress = false;

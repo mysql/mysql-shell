@@ -23,6 +23,7 @@
 
 #include "modules/util/dump/instance_cache.h"
 
+#include <array>
 #include <set>
 #include <string>
 
@@ -37,6 +38,7 @@ namespace tests {
 
 namespace {
 
+using common::Filtering_options;
 using mysqlshdk::utils::Version;
 
 void verify(const Instance_cache &cache, const std::string &name,
@@ -139,8 +141,8 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("all filters are empty");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+    Filtering_options filters;
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -161,9 +163,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude table from non-existing schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"fourth", {"four"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("fourth", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -184,9 +186,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude non-existing table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"third", {"four"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("third", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -207,9 +209,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude existing table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"third", {"two"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("third", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -232,10 +234,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "exclude existing, non-existing table and a table in non-existing "
         "schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {}, {},
-                           {{"third", {"two", "four"}}, {"fourth", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.tables().exclude("third", std::array{"two", "four"});
+    filters.tables().exclude("fourth", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -256,9 +258,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude existing tables/views from the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {},
-                                              {{"third", {"two", "three"}}})
-                           .build();
+    Filtering_options filters;
+    filters.tables().exclude("third", std::array{"two", "three"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
     first.views = {{"three", {}}};
@@ -277,10 +279,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude all tables/views from the same schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {},
-                               {{"third", {"one", "two", "three"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("third", std::array{"one", "two", "three"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -299,11 +300,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude existing tables/views from different schemas");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {}, {}, {},
-            {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "one");
+    filters.tables().exclude("second", "two");
+    filters.tables().exclude("third", "three");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"two", {}}};
@@ -323,9 +324,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include table from non-existing schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"fourth", {"four"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("fourth", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -340,9 +341,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include non-existing table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"third", {"four"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("third", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -357,9 +358,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"third", {"two"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("third", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema third;
     third.tables = {{"two", {}}};
@@ -369,11 +370,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing and non-existing tables");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {}, {{"third", {"two", "four"}}, {"fourth", {"four"}}},
-            {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("third", std::array{"two", "four"});
+    filters.tables().include("fourth", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema third;
     third.tables = {{"two", {}}};
@@ -383,9 +383,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing table and view from the same schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"third", {"two", "three"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.tables().include("third", std::array{"two", "three"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema third;
     third.tables = {{"two", {}}};
@@ -396,12 +396,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing tables/views from different schemas");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {},
-            {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}}, {},
-            {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().include("second", "two");
+    filters.tables().include("third", "three");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -419,10 +418,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include and exclude the same existing table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"third", {"two"}}}, {},
-                               {{"third", {"two"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("third", "two");
+    filters.tables().exclude("third", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -437,11 +436,12 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include and exclude the same existing table + some more");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {}, {{"third", {"two"}}}, {},
-            {{"second", {"two"}}, {"third", {"two"}}, {"fourth", {"four"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("third", "two");
+    filters.tables().exclude("second", "two");
+    filters.tables().exclude("third", "two");
+    filters.tables().exclude("fourth", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -457,12 +457,14 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "include and exclude existing tables/views from different schemas");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {},
-            {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}}, {},
-            {{"first", {"three"}}, {"second", {"two"}}, {"third", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().include("second", "two");
+    filters.tables().include("third", "three");
+    filters.tables().exclude("first", "three");
+    filters.tables().exclude("second", "two");
+    filters.tables().exclude("third", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -476,8 +478,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude non-existing schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"fourth"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().exclude("fourth");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -498,8 +501,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude existing schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"third"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().exclude("third");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -517,9 +521,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude existing and non-existing schemas");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"third", "fourth"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude(std::array{"third", "fourth"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -537,9 +541,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude multiple existing schemas");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"second", "third"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude(std::array{"second", "third"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -555,9 +559,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "exclude non-existing schema and a table in another non-existing "
         "schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"fourth"},
-                                              {{"fifth", {"five"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("fourth");
+    filters.tables().exclude("fifth", "five");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -578,9 +583,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude non-existing schema and a non-existing table");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"fourth"},
-                                              {{"third", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("fourth");
+    filters.tables().exclude("third", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -601,9 +607,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude non-existing schema and an existing table");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"fourth"},
-                                              {{"third", {"three"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("fourth");
+    filters.tables().exclude("third", "three");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -624,9 +631,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "exclude existing schema and an existing table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"third"},
-                                              {{"third", {"three"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("third");
+    filters.tables().exclude("third", "three");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -645,9 +653,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "exclude existing schema and an existing table in another schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"third"},
-                                              {{"second", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("third");
+    filters.tables().exclude("second", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"two", {}}};
@@ -665,9 +674,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("exclude non-existing schema, include existing table");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"second", {"two"}}}, {"fourth"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("fourth");
+    filters.tables().include("second", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema second;
     second.tables = {{"two", {}}};
@@ -678,9 +688,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "exclude existing schema, include existing table in another schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"second", {"two"}}}, {"third"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("third");
+    filters.tables().include("second", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema second;
     second.tables = {{"two", {}}};
@@ -691,9 +702,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "exclude existing schema, include existing table in the same schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"second", {"two"}}}, {"second"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("second");
+    filters.tables().include("second", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -708,11 +720,12 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "exclude an existing schema, an existing table, include tables");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {},
-                               {{"second", {"two"}}, {"third", {"three"}}},
-                               {"second"}, {{"third", {"three"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude("second");
+    filters.tables().include("second", "two");
+    filters.tables().include("third", "three");
+    filters.tables().exclude("third", "three");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -727,12 +740,13 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "exclude an existing schema, an existing table, include more tables");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {},
-            {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}},
-            {"second"}, {{"third", {"three"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().include("second", "two");
+    filters.tables().include("third", "three");
+    filters.tables().exclude("third", "three");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -742,16 +756,18 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include non-existing schema -> empty result set");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"fourth"}, {}, {}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("fourth");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
     SCOPED_TRACE("include existing schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"third"}, {}, {}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -764,9 +780,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing and non-existing schemas");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"third", "fourth"}, {}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"third", "fourth"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -779,9 +795,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include multiple existing schemas");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first", "third"}, {}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "third"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(2, cache.schemas.size());
 
@@ -799,9 +815,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing schema, exclude non-existing one");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"third"}, {}, {"fourth"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.schemas().exclude("fourth");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -814,8 +831,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include and exclude the same schema -> empty result set");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"third"}, {}, {"third"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.schemas().exclude("third");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
@@ -823,18 +842,20 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "include and exclude the same schema + some more -> empty result set");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"third"}, {}, {"first", "third"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.schemas().exclude(std::array{"first", "third"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
     SCOPED_TRACE("exclude and include the same schema + some more");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first", "third"}, {}, {"third"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "third"});
+    filters.schemas().exclude("third");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -849,9 +870,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include non-existing schema, include existing table -> empty result "
         "set");
 
-    const auto cache = Instance_cache_builder(m_session, {"fourth"},
-                                              {{"first", {"one"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("fourth");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
@@ -859,9 +881,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "include existing schema, include existing table in another schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"third"},
-                                              {{"first", {"one"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -873,9 +896,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "include existing schema, include existing table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"},
-                                              {{"first", {"one"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -889,9 +913,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include existing schemas, include existing table in one of the "
         "schemas");
 
-    const auto cache = Instance_cache_builder(m_session, {"first", "second"},
-                                              {{"first", {"one"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second"});
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(2, cache.schemas.size());
 
@@ -908,10 +933,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include existing schemas, include existing table in one of the "
         "schemas, exclude the other schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first", "second"},
-                               {{"first", {"one"}}}, {"second"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second"});
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -925,10 +951,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include existing schemas, include existing table in one of the "
         "schemas, exclude the same schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first", "second"},
-                               {{"first", {"one"}}}, {"first"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second"});
+    filters.schemas().exclude("first");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -940,9 +967,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "include existing schema, exclude table in non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"third"}, {}, {},
-                                              {{"fourth", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.tables().exclude("fourth", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -957,9 +985,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include existing schema, exclude non-existing table in another "
         "schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"third"}, {}, {},
-                                              {{"second", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.tables().exclude("second", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -974,9 +1003,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
         "include existing schema, exclude non-existing table in the same "
         "schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"third"}, {}, {},
-                                              {{"third", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.tables().exclude("third", "four");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -989,9 +1019,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("include existing schema, exclude table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"third"}, {}, {},
-                                              {{"third", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.tables().exclude("third", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -1005,9 +1036,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
     SCOPED_TRACE(
         "include existing schema, exclude table/view in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"third"}, {}, {},
-                                              {{"third", {"two", "three"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("third");
+    filters.tables().exclude("third", std::array{"two", "three"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -1019,11 +1051,13 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables) {
   {
     SCOPED_TRACE("a little bit of everything");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "third"},
-                           {{"first", {"two", "three"}}, {"third", {"one"}}},
-                           {"third"}, {{"first", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "third"});
+    filters.schemas().exclude("third");
+    filters.tables().include("first", std::array{"two", "three"});
+    filters.tables().include("third", "one");
+    filters.tables().exclude("first", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -1044,8 +1078,8 @@ TEST_F(Instance_cache_test, schema_collation) {
   {
     SCOPED_TRACE("test collations");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+    Filtering_options filters;
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ("utf8mb4_polish_ci", cache.schemas.at("first").collation);
     EXPECT_EQ("utf8mb4_bin", cache.schemas.at("second").collation);
@@ -1078,8 +1112,8 @@ TEST_F(Instance_cache_test, table_metadata) {
   {
     SCOPED_TRACE("test table metadata");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+    Filtering_options filters;
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     {
       const auto &one = cache.schemas.at("first").tables.at("one");
@@ -1127,8 +1161,9 @@ TEST_F(Instance_cache_test, view_metadata) {
   {
     SCOPED_TRACE("test view metadata");
 
+    Filtering_options filters;
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
+        Instance_cache_builder(m_session, filters).metadata({}).build();
 
     {
       const auto &one = cache.schemas.at("second").views.at("one");
@@ -1260,8 +1295,9 @@ TEST_F(Instance_cache_test, table_columns) {
     using mysqlshdk::db::Type;
     SCOPED_TRACE("test table columns");
 
+    Filtering_options filters;
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
+        Instance_cache_builder(m_session, filters).metadata({}).build();
 
     const auto validate = [this, &cache](const std::string &schema,
                                          const std::string &table,
@@ -1587,8 +1623,9 @@ TEST_F(Instance_cache_test, table_indexes) {
   {
     SCOPED_TRACE("test table indexes");
 
+    Filtering_options filters;
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
+        Instance_cache_builder(m_session, filters).metadata({}).build();
 
     const auto validate =
         [&cache](const std::string &schema, const std::string &table,
@@ -1659,8 +1696,9 @@ TEST_F(Instance_cache_test, table_histograms) {
   {
     SCOPED_TRACE("test table histograms");
 
+    Filtering_options filters;
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).metadata({}).build();
+        Instance_cache_builder(m_session, filters).metadata({}).build();
 
     const auto validate =
         [&cache](const std::string &schema, const std::string &table,
@@ -1710,8 +1748,8 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("all filters are empty");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+    Filtering_options filters;
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -1730,8 +1768,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {}, {}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -1744,17 +1783,18 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema - uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"FIRST"}, {}, {}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("FIRST");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
     SCOPED_TRACE("include table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -1771,9 +1811,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"FIRST", {"one"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -1789,9 +1829,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table - table uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"ONE"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -1807,9 +1847,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include view");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"two"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.views = {{"two", {}}};
@@ -1826,9 +1866,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include view - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"FIRST", {"two"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("FIRST", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -1844,9 +1884,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include view - view uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"TWO"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "TWO");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -1862,8 +1902,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"first"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -1880,8 +1921,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema - uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"FIRST"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().exclude("FIRST");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -1901,9 +1943,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.views = {{"two", {}}};
@@ -1922,9 +1964,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude table - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"FIRST", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -1944,9 +1986,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude table - table uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"first", {"ONE"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -1966,9 +2008,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude view");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"first", {"two"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -1987,9 +2029,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude view - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"FIRST", {"two"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("FIRST", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2009,9 +2051,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude view - view uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"first", {"TWO"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "TWO");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2031,9 +2073,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"},
-                                              {{"first", {"one"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2045,9 +2088,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table - schema uppercase");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"},
-                                              {{"FIRST", {"one"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2058,9 +2102,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table - table uppercase");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"},
-                                              {{"first", {"ONE"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2071,16 +2116,20 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {}, {"first"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("first");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
     SCOPED_TRACE("include schema, exclude schema - uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {}, {"FIRST"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("FIRST");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2093,9 +2142,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude table");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"}, {}, {},
-                                              {{"first", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2107,9 +2157,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude table - schema uppercase");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"}, {}, {},
-                                              {{"FIRST", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().exclude("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2122,9 +2173,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude table - table uppercase");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"}, {}, {},
-                                              {{"first", {"ONE"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().exclude("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2137,9 +2189,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude the same schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"first", {"one"}}}, {"first"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2154,9 +2207,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude schema - uppercase");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"first", {"one"}}}, {"FIRST"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("FIRST");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2173,10 +2227,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude the same table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {},
-                               {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -2192,10 +2246,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude table - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {},
-                               {{"FIRST", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().exclude("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2212,10 +2266,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude table - table uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {},
-                               {{"first", {"ONE"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2232,9 +2286,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema, exclude table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"first"},
-                                              {{"first", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2251,9 +2306,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema, exclude table - schema uppercase");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"first"},
-                                              {{"FIRST", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().exclude("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2270,9 +2326,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema, exclude table - table uppercase");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"first"},
-                                              {{"first", {"ONE"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().exclude("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2289,10 +2346,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table, exclude schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}},
-                               {"second"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2304,10 +2362,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table, exclude schema - uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}},
-                               {"SECOND"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("SECOND");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2319,10 +2378,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table, exclude table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}}, {},
-                               {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2334,10 +2394,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
     SCOPED_TRACE(
         "include schema, include table, exclude table - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}}, {},
-                               {{"FIRST", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2350,10 +2411,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
     SCOPED_TRACE(
         "include schema, include table, exclude table - table uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}}, {},
-                               {{"first", {"ONE"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2365,10 +2427,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude schema, exclude table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {"second"},
-                               {{"second", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("second", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2385,10 +2448,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
     SCOPED_TRACE(
         "include table, exclude schema, exclude table - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {"second"},
-                               {{"SECOND", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("SECOND", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2405,10 +2469,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
     SCOPED_TRACE(
         "include table, exclude schema, exclude table - table uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {"second"},
-                               {{"second", {"ONE"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("second", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2424,10 +2489,12 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("all filters");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}},
-                               {"second"}, {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2438,10 +2505,12 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("all filters - schema uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}},
-                               {"second"}, {{"FIRST", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("FIRST", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2453,10 +2522,12 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("all filters - table uppercase");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"one"}}},
-                               {"second"}, {{"first", {"ONE"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("second");
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "ONE");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2486,8 +2557,8 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("all filters are empty");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+    Filtering_options filters;
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"One", {}}};
@@ -2503,8 +2574,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {}, {}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2517,9 +2589,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2532,9 +2604,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include view");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"Two"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "Two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.views = {{"Two", {}}};
@@ -2547,8 +2619,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {"First"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().exclude("First");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"One", {}}};
@@ -2561,9 +2634,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"One", {}}};
@@ -2579,9 +2652,9 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude view");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {{"first", {"Two"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().exclude("first", "Two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}, {"One", {}}};
@@ -2597,9 +2670,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"},
-                                              {{"first", {"One"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "One");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2611,9 +2685,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table in another schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"},
-                                              {{"First", {"One"}}}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("First", "One");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2624,8 +2699,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude another schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {}, {"First"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("First");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2638,17 +2715,20 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude the same schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"First"}, {}, {"First"}, {}).build();
+    Filtering_options filters;
+    filters.schemas().include("First");
+    filters.schemas().exclude("First");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
     EXPECT_TRUE(cache.schemas.empty());
   }
 
   {
     SCOPED_TRACE("include schema, exclude table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"}, {}, {},
-                                              {{"first", {"One"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().exclude("first", "One");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2661,9 +2741,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, exclude table in another schema");
 
-    const auto cache = Instance_cache_builder(m_session, {"first"}, {}, {},
-                                              {{"First", {"One"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().exclude("First", "One");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2676,9 +2757,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude the same schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"first", {"one"}}}, {"first"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2689,9 +2771,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude another schema");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {}, {{"first", {"one"}}}, {"First"}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("First");
+    filters.tables().include("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2703,10 +2786,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude the same table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {},
-                               {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     verify(cache, "first", first);
@@ -2718,10 +2801,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude another table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"one"}}}, {},
-                               {{"first", {"One"}}})
-            .build();
+    Filtering_options filters;
+    filters.tables().include("first", "one");
+    filters.tables().exclude("first", "One");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"one", {}}};
@@ -2734,9 +2817,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema, exclude table in the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"first"},
-                                              {{"first", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2749,9 +2833,10 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("exclude schema, exclude table in another schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {"first"},
-                                              {{"First", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().exclude("first");
+    filters.tables().exclude("First", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_FALSE(contains(cache.schemas, "first"));
 
@@ -2764,10 +2849,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table, exclude schema");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"One"}}},
-                               {"First"}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("First");
+    filters.tables().include("first", "One");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2779,10 +2865,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include schema, include table, exclude table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"One"}}}, {},
-                               {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.tables().include("first", "One");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2794,10 +2881,11 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("include table, exclude schema, exclude table");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {{"first", {"One"}}}, {"First"},
-                               {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude("First");
+    filters.tables().include("first", "One");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     Instance_cache::Schema first;
     first.tables = {{"One", {}}};
@@ -2809,10 +2897,12 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   {
     SCOPED_TRACE("all filters");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {"first"}, {{"first", {"One"}}},
-                               {"First"}, {{"first", {"one"}}})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include("first");
+    filters.schemas().exclude("First");
+    filters.tables().include("first", "One");
+    filters.tables().exclude("first", "one");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_EQ(1, cache.schemas.size());
 
@@ -2834,7 +2924,7 @@ TEST_F(Instance_cache_test, bug32540460) {
       "test_schema_" + std::to_string(rand() % (schemas - 1));
   // exclude all existing schemas, to make sure only newly created ones are in
   // the result
-  Instance_cache_builder::Filter excluded_schemas;
+  std::unordered_set<std::string> excluded_schemas;
 
   const auto cleanup = [this](std::size_t s) {
     for (std::size_t i = 0; i < s; ++i) {
@@ -2868,12 +2958,11 @@ TEST_F(Instance_cache_test, bug32540460) {
   {
     // create the cache, do not fetch metadata, this will return just list of
     // schemas, tables and views
-    auto cache =
-        Instance_cache_builder(m_session, {}, {}, excluded_schemas, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().exclude(excluded_schemas);
+    auto cache = Instance_cache_builder(m_session, filters).build();
     // recreate the cache, use the existing one, fetch metadata
-    auto builder = Instance_cache_builder(m_session, {}, {}, excluded_schemas,
-                                          {}, std::move(cache));
+    auto builder = Instance_cache_builder(m_session, filters, std::move(cache));
     cache = builder.metadata({}).build();
 
     EXPECT_EQ(schemas, cache.schemas.size());
@@ -2928,9 +3017,9 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("all filters are empty");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {})
-                           .build();
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one", "two"});
     EXPECT_EVENTS(cache, "second", {"one", "two"});
@@ -2940,9 +3029,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("exclude event from non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {{"fourth", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().exclude("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one", "two"});
     EXPECT_EVENTS(cache, "second", {"one", "two"});
@@ -2952,9 +3042,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("exclude non-existing event");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {{"third", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().exclude("third", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one", "two"});
     EXPECT_EVENTS(cache, "second", {"one", "two"});
@@ -2964,9 +3055,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("exclude existing event");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {{"third", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().exclude("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one", "two"});
     EXPECT_EVENTS(cache, "second", {"one", "two"});
@@ -2978,10 +3070,11 @@ TEST_F(Instance_cache_test, filter_events) {
         "exclude existing, non-existing event and an event in non-existing "
         "schema");
 
+    Filtering_options filters;
+    filters.events().exclude("third", std::array{"two", "four"});
+    filters.events().exclude("fourth", "four");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .events({}, {{"third", {"two", "four"}}, {"fourth", {"four"}}})
-            .build();
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one", "two"});
     EXPECT_EVENTS(cache, "second", {"one", "two"});
@@ -2991,9 +3084,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("exclude all events from the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {{"third", {"one", "two", "three"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().exclude("third", std::array{"one", "two", "three"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one", "two"});
     EXPECT_EVENTS(cache, "second", {"one", "two"});
@@ -3003,11 +3097,12 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("exclude existing events from different schemas");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {{"first", {"one"}},
-                                        {"second", {"two"}},
-                                        {"third", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().exclude("first", "one");
+    filters.events().exclude("second", "two");
+    filters.events().exclude("third", "one");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"two"});
     EXPECT_EVENTS(cache, "second", {"one"});
@@ -3017,9 +3112,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include event from non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({{"fourth", {"four"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.events().include("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3029,9 +3125,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include non-existing event");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({{"third", {"four"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.events().include("third", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3041,9 +3138,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include existing event");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({{"third", {"two"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.events().include("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3053,10 +3151,11 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include existing and non-existing events");
 
+    Filtering_options filters;
+    filters.events().include("third", std::array{"two", "four"});
+    filters.events().include("fourth", "four");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .events({{"third", {"two", "four"}}, {"fourth", {"four"}}}, {})
-            .build();
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3066,9 +3165,10 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include existing events from the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({{"third", {"one", "two"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.events().include("third", std::array{"one", "two"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3078,12 +3178,12 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include existing events from different schemas");
 
+    Filtering_options filters;
+    filters.events().include("first", "one");
+    filters.events().include("second", "two");
+    filters.events().include("third", "three");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .events(
-                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}},
-                {})
-            .build();
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one"});
     EXPECT_EVENTS(cache, "second", {"two"});
@@ -3093,9 +3193,11 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include and exclude the same existing event");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({{"third", {"two"}}}, {{"third", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().include("third", "two");
+    filters.events().exclude("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3105,11 +3207,13 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include and exclude the same existing event + some more");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({{"third", {"two"}}}, {{"second", {"two"}},
-                                                          {"third", {"two"}},
-                                                          {"fourth", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.events().include("third", "two");
+    filters.events().exclude("second", "two");
+    filters.events().exclude("third", "two");
+    filters.events().exclude("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {});
     EXPECT_EVENTS(cache, "second", {});
@@ -3119,12 +3223,15 @@ TEST_F(Instance_cache_test, filter_events) {
   {
     SCOPED_TRACE("include and exclude existing events from different schemas");
 
+    Filtering_options filters;
+    filters.events().include("first", "one");
+    filters.events().include("second", "two");
+    filters.events().include("third", "two");
+    filters.events().exclude("first", "two");
+    filters.events().exclude("second", "two");
+    filters.events().exclude("third", "one");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .events(
-                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"two"}}},
-                {{"first", {"two"}}, {"second", {"two"}}, {"third", {"one"}}})
-            .build();
+        Instance_cache_builder(m_session, filters).events().build();
 
     EXPECT_EVENTS(cache, "first", {"one"});
     EXPECT_EVENTS(cache, "second", {});
@@ -3168,9 +3275,9 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("all filters are empty");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {})
-                           .build();
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one", "two"});
     EXPECT_ROUTINES(cache, "second", {"one", "two"});
@@ -3180,9 +3287,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("exclude routine from non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {{"fourth", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.routines().exclude("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one", "two"});
     EXPECT_ROUTINES(cache, "second", {"one", "two"});
@@ -3192,9 +3300,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("exclude non-existing routine");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {{"third", {"four"}}})
-                           .build();
+    Filtering_options filters;
+    filters.routines().exclude("third", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one", "two"});
     EXPECT_ROUTINES(cache, "second", {"one", "two"});
@@ -3204,9 +3313,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("exclude existing routine");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {{"third", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.routines().exclude("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one", "two"});
     EXPECT_ROUTINES(cache, "second", {"one", "two"});
@@ -3218,10 +3328,11 @@ TEST_F(Instance_cache_test, filter_routines) {
         "exclude existing, non-existing routine and a routine in non-existing "
         "schema");
 
+    Filtering_options filters;
+    filters.routines().exclude("third", std::array{"two", "four"});
+    filters.routines().exclude("fourth", "four");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .routines({}, {{"third", {"two", "four"}}, {"fourth", {"four"}}})
-            .build();
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one", "two"});
     EXPECT_ROUTINES(cache, "second", {"one", "two"});
@@ -3231,9 +3342,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("exclude all routines from the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {{"third", {"one", "two", "three"}}})
-                           .build();
+    Filtering_options filters;
+    filters.routines().exclude("third", std::array{"one", "two", "three"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one", "two"});
     EXPECT_ROUTINES(cache, "second", {"one", "two"});
@@ -3243,11 +3355,12 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("exclude existing routines from different schemas");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {{"first", {"one"}},
-                                          {"second", {"two"}},
-                                          {"third", {"one"}}})
-                           .build();
+    Filtering_options filters;
+    filters.routines().exclude("first", "one");
+    filters.routines().exclude("second", "two");
+    filters.routines().exclude("third", "one");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"two"});
     EXPECT_ROUTINES(cache, "second", {"one"});
@@ -3257,9 +3370,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include routine from non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({{"fourth", {"four"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.routines().include("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3269,9 +3383,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include non-existing routine");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({{"third", {"four"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.routines().include("third", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3281,9 +3396,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include existing routine");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({{"third", {"two"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.routines().include("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3293,10 +3409,11 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include existing and non-existing routines");
 
+    Filtering_options filters;
+    filters.routines().include("third", std::array{"two", "four"});
+    filters.routines().include("fourth", "four");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .routines({{"third", {"two", "four"}}, {"fourth", {"four"}}}, {})
-            .build();
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3306,9 +3423,10 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include existing routines from the same schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({{"third", {"one", "two"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.routines().include("third", std::array{"one", "two"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3318,12 +3436,12 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include existing routines from different schemas");
 
+    Filtering_options filters;
+    filters.routines().include("first", "one");
+    filters.routines().include("second", "two");
+    filters.routines().include("third", "three");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .routines(
-                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"three"}}},
-                {})
-            .build();
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one"});
     EXPECT_ROUTINES(cache, "second", {"two"});
@@ -3333,9 +3451,11 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include and exclude the same existing routine");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({{"third", {"two"}}}, {{"third", {"two"}}})
-                           .build();
+    Filtering_options filters;
+    filters.routines().include("third", "two");
+    filters.routines().exclude("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3345,12 +3465,13 @@ TEST_F(Instance_cache_test, filter_routines) {
   {
     SCOPED_TRACE("include and exclude the same existing routine + some more");
 
+    Filtering_options filters;
+    filters.routines().include("third", "two");
+    filters.routines().exclude("second", "two");
+    filters.routines().exclude("third", "two");
+    filters.routines().exclude("fourth", "four");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .routines(
-                {{"third", {"two"}}},
-                {{"second", {"two"}}, {"third", {"two"}}, {"fourth", {"four"}}})
-            .build();
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3361,12 +3482,15 @@ TEST_F(Instance_cache_test, filter_routines) {
     SCOPED_TRACE(
         "include and exclude existing routines from different schemas");
 
+    Filtering_options filters;
+    filters.routines().include("first", "one");
+    filters.routines().include("second", "two");
+    filters.routines().include("third", "two");
+    filters.routines().exclude("first", "two");
+    filters.routines().exclude("second", "two");
+    filters.routines().exclude("third", "one");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .routines(
-                {{"first", {"one"}}, {"second", {"two"}}, {"third", {"two"}}},
-                {{"first", {"two"}}, {"second", {"two"}}, {"third", {"one"}}})
-            .build();
+        Instance_cache_builder(m_session, filters).routines().build();
 
     EXPECT_ROUTINES(cache, "first", {"one"});
     EXPECT_ROUTINES(cache, "second", {});
@@ -3442,9 +3566,9 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("all filters are empty");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {})
-                           .build();
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3457,9 +3581,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude trigger from non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"fourth", {{"four", {"t1"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("fourth", "four", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3473,9 +3598,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
     SCOPED_TRACE(
         "exclude trigger from non-existing table (name does not match)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"third", {{"three", {"t9"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("third", "three", "t9");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3488,9 +3614,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude trigger from non-existing table (name matches)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"third", {{"three", {"t1"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("third", "three", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3503,9 +3630,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude non-existing trigger");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"third", {{"one", {"t7"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("third", "one", "t7");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3518,9 +3646,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude existing trigger");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"third", {{"one", {"t1"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("third", "one", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3533,9 +3662,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude existing trigger from another table");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"third", {{"one", {"t4"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("third", "one", "t4");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3550,11 +3680,13 @@ TEST_F(Instance_cache_test, filter_triggers) {
         "exclude existing, non-existing trigger and a trigger in non-existing "
         "schema");
 
+    Filtering_options filters;
+    filters.triggers().exclude("third", "one", "t1");
+    filters.triggers().exclude("third", "one", "t4");
+    filters.triggers().exclude("third", "one", "t7");
+    filters.triggers().exclude("fourth", "four", "t1");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .triggers({}, {{"third", {{"one", {"t1", "t4", "t7"}}}},
-                           {"fourth", {{"four", {"t1"}}}}})
-            .build();
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3567,10 +3699,12 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude all triggers from the same table");
 
+    Filtering_options filters;
+    filters.triggers().exclude("third", "one", "t1");
+    filters.triggers().exclude("third", "one", "t2");
+    filters.triggers().exclude("third", "one", "t3");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .triggers({}, {{"third", {{"one", {"t1", "t2", "t3"}}}}})
-            .build();
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3583,9 +3717,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude all triggers from the same table (2)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"third", {{"one", {}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("third", "one", "");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1", "t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3598,11 +3733,14 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("exclude existing triggers from different schemas");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {{"first", {{"one", {"t1", "t5"}}}},
-                                          {"second", {{"two", {"t3", "t5"}}}},
-                                          {"third", {{"one", {}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().exclude("first", "one", "t1");
+    filters.triggers().exclude("first", "one", "t5");
+    filters.triggers().exclude("second", "two", "t3");
+    filters.triggers().exclude("second", "two", "t5");
+    filters.triggers().exclude("third", "one", "");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t2"});
     EXPECT_TRIGGERS(cache, "first", "two", {"t3", "t4"});
@@ -3615,9 +3753,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include trigger from non-existing schema");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"fourth", {{"four", {"t1"}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("fourth", "four", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3631,9 +3770,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
     SCOPED_TRACE(
         "include trigger from non-existing table (name does not match)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"three", {"t9"}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "three", "t9");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3646,9 +3786,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include trigger from non-existing table (name matches)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"three", {"t1"}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "three", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3661,9 +3802,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include non-existing trigger");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t7"}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t7");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3676,9 +3818,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include existing trigger");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t1"}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3691,9 +3834,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include existing trigger from another table");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t4"}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t4");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3706,10 +3850,12 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include all triggers");
 
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t1");
+    filters.triggers().include("third", "one", "t2");
+    filters.triggers().include("third", "one", "t3");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .triggers({{"third", {{"one", {"t1", "t2", "t3"}}}}}, {})
-            .build();
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3722,9 +3868,10 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include all triggers (2)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {}}}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3737,11 +3884,13 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include existing and non-existing triggers");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t1", "t4", "t7"}}}},
-                                      {"fourth", {{"four", {"t1"}}}}},
-                                     {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t1");
+    filters.triggers().include("third", "one", "t4");
+    filters.triggers().include("third", "one", "t7");
+    filters.triggers().include("fourth", "four", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3754,12 +3903,12 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include existing triggers from different schemas");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"first", {{"one", {"t1"}}}},
-                                      {"second", {{"two", {"t3"}}}},
-                                      {"third", {{"one", {}}}}},
-                                     {})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("first", "one", "t1");
+    filters.triggers().include("second", "two", "t3");
+    filters.triggers().include("third", "one", "");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {"t1"});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3772,10 +3921,11 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include and exclude the same existing triggers");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t1"}}}}},
-                                     {{"third", {{"one", {"t1"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t1");
+    filters.triggers().exclude("third", "one", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3788,10 +3938,11 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include and exclude triggers from the same table");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {}}}}},
-                                     {{"third", {{"one", {"t1"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "");
+    filters.triggers().exclude("third", "one", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3804,10 +3955,11 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include and exclude triggers from the same table (2)");
 
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "");
+    filters.triggers().exclude("third", "one", "");
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .triggers({{"third", {{"one", {}}}}}, {{"third", {{"one", {}}}}})
-            .build();
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3820,10 +3972,11 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include and exclude triggers from the same table (3)");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t1"}}}}},
-                                     {{"third", {{"one", {}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t1");
+    filters.triggers().exclude("third", "one", "");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3836,11 +3989,12 @@ TEST_F(Instance_cache_test, filter_triggers) {
   {
     SCOPED_TRACE("include and exclude the same existing triggers + some more");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"third", {{"one", {"t1"}}}}},
-                                     {{"first", {{"one", {"t1"}}}},
-                                      {"third", {{"one", {"t1"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("third", "one", "t1");
+    filters.triggers().exclude("first", "one", "t1");
+    filters.triggers().exclude("third", "one", "t1");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -3854,14 +4008,15 @@ TEST_F(Instance_cache_test, filter_triggers) {
     SCOPED_TRACE(
         "include and exclude existing triggers from different schemas");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({{"first", {{"one", {"t1"}}}},
-                                      {"second", {{"two", {"t3"}}}},
-                                      {"third", {{"one", {}}}}},
-                                     {{"first", {{"one", {}}}},
-                                      {"second", {{"two", {"t3"}}}},
-                                      {"third", {{"one", {"t2"}}}}})
-                           .build();
+    Filtering_options filters;
+    filters.triggers().include("first", "one", "t1");
+    filters.triggers().include("second", "two", "t3");
+    filters.triggers().include("third", "one", "");
+    filters.triggers().exclude("first", "one", "");
+    filters.triggers().exclude("second", "two", "t3");
+    filters.triggers().exclude("third", "one", "t2");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     EXPECT_TRIGGERS(cache, "first", "one", {});
     EXPECT_TRIGGERS(cache, "first", "two", {});
@@ -4009,8 +4164,8 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("no filters - schemas and tables");
 
-    const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).build();
+    Filtering_options filters;
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     EXPECT_STATS(expected_total, cache.total);
     EXPECT_STATS(expected_total, cache.filtered);
@@ -4019,9 +4174,9 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("no filters - schemas, tables and events");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .events({}, {})
-                           .build();
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     expected_total.events = total_count("events");
     expected_total.routines = 0;
@@ -4035,9 +4190,9 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("no filters - schemas, tables and routines");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .routines({}, {})
-                           .build();
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     expected_total.events = 0;
     expected_total.routines = total_count("routines");
@@ -4051,9 +4206,9 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("no filters - schemas, tables and triggers");
 
-    const auto cache = Instance_cache_builder(m_session, {}, {}, {}, {})
-                           .triggers({}, {})
-                           .build();
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     expected_total.events = 0;
     expected_total.routines = 0;
@@ -4067,8 +4222,9 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("no filters - schemas, tables and users");
 
+    Filtering_options filters;
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {}).users({}, {}).build();
+        Instance_cache_builder(m_session, filters).users().build();
 
     expected_total.events = 0;
     expected_total.routines = 0;
@@ -4082,10 +4238,11 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter users");
 
+    Filtering_options filters;
+    filters.users().include(
+        std::array{"'first'@'%'", "'second'@'%'", "'third'@'%'"});
     const auto cache =
-        Instance_cache_builder(m_session, {}, {}, {}, {})
-            .users({{"first", "%"}, {"second", "%"}, {"third", "%"}}, {})
-            .build();
+        Instance_cache_builder(m_session, filters).users().build();
 
     expected_total.events = 0;
     expected_total.routines = 0;
@@ -4102,9 +4259,9 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + all tables");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "second", "third"}, {}, {}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4120,11 +4277,11 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + filtered tables");
 
-    const auto cache =
-        Instance_cache_builder(
-            m_session, {"first", "second", "third"},
-            {{"first", {"one", "three"}}, {"third", {"two"}}}, {}, {})
-            .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.tables().include("first", std::array{"one", "three"});
+    filters.tables().include("third", "two");
+    const auto cache = Instance_cache_builder(m_session, filters).build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4140,10 +4297,10 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + all events");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "second", "third"}, {}, {}, {})
-                           .events({}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4159,10 +4316,12 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + filtered events");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "second", "third"}, {}, {}, {})
-                           .events({{"first", {"one"}}, {"third", {"two"}}}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.events().include("first", "one");
+    filters.events().include("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).events().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4178,10 +4337,10 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + all routines");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "second", "third"}, {}, {}, {})
-                           .routines({}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).routines().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4197,11 +4356,12 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + filtered routines");
 
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.routines().include("first", "one");
+    filters.routines().include("third", "two");
     const auto cache =
-        Instance_cache_builder(m_session, {"first", "second", "third"}, {}, {},
-                               {})
-            .routines({{"first", {"one"}}, {"third", {"two"}}}, {})
-            .build();
+        Instance_cache_builder(m_session, filters).routines().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4217,10 +4377,10 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + all triggers");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "second", "third"}, {}, {}, {})
-                           .triggers({}, {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4236,13 +4396,13 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + filtered triggers");
 
-    const auto cache = Instance_cache_builder(
-                           m_session, {"first", "second", "third"}, {}, {}, {})
-                           .triggers({{"first", {{"one", {"t1"}}}},
-                                      {"second", {{"two", {"t3"}}}},
-                                      {"third", {{"one", {}}}}},
-                                     {})
-                           .build();
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.triggers().include("first", "one", "t1");
+    filters.triggers().include("second", "two", "t3");
+    filters.triggers().include("third", "one", "");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4258,12 +4418,12 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + filtered tables + all triggers");
 
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.tables().include("first", std::array{"one", "three"});
+    filters.tables().include("third", "two");
     const auto cache =
-        Instance_cache_builder(
-            m_session, {"first", "second", "third"},
-            {{"first", {"one", "three"}}, {"third", {"two"}}}, {}, {})
-            .triggers({}, {})
-            .build();
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;
@@ -4279,14 +4439,14 @@ TEST_F(Instance_cache_test, stats) {
   {
     SCOPED_TRACE("filter schemas + filtered tables + filtered triggers");
 
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.tables().include("first", std::array{"one", "three"});
+    filters.tables().include("third", "two");
+    filters.triggers().include("first", "one", "t1");
+    filters.triggers().include("third", "two", "t3");
     const auto cache =
-        Instance_cache_builder(
-            m_session, {"first", "second", "third"},
-            {{"first", {"one", "three"}}, {"third", {"two"}}}, {}, {})
-            .triggers(
-                {{"first", {{"one", {"t1"}}}}, {"third", {{"two", {"t3"}}}}},
-                {})
-            .build();
+        Instance_cache_builder(m_session, filters).triggers().build();
 
     expected_total.tables = 6;
     expected_total.views = 3;

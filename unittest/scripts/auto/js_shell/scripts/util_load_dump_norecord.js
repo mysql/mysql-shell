@@ -563,7 +563,7 @@ wipe_instance(session);
 
 //@<> includeTables
 // TSFR8_1, TSFR8_2
-util.loadDump(__tmp_dir+"/ldtest/dump", {includeTables: ["sakila.staff", "xtest.t_json", "bogus.bla"]});
+util.loadDump(__tmp_dir+"/ldtest/dump", {includeSchemas: ["sakila", "xtest", "bogus"], includeTables: ["sakila.staff", "xtest.t_json", "bogus.bla"]});
 
 var snap=snapshot_instance(session);
 

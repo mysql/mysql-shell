@@ -23,6 +23,7 @@
 #include <stdio.h>
 
 #include <algorithm>
+#include <array>
 #include <set>
 
 // needs to be included first for FRIEND_TEST
@@ -48,6 +49,9 @@ namespace dump {
 using ::testing::AnyOf;
 using ::testing::HasSubstr;
 using ::testing::Not;
+
+using common::Filtering_options;
+using User_filters = Filtering_options::User_filters;
 
 class Schema_dumper_test : public Shell_core_test_wrapper {
  public:
@@ -697,7 +701,7 @@ TEST_F(Schema_dumper_test, dump_grants) {
       "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
 
   Schema_dumper sd(session);
-  EXPECT_NO_THROW(sd.dump_grants(file.get(), {}, {}));
+  EXPECT_NO_THROW(sd.dump_grants(file.get(), {}));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   std::string out;
@@ -782,13 +786,10 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
   sd.opt_strip_restricted_grants = true;
-  EXPECT_GE(sd.dump_grants(file.get(), {},
-                           {{"mysql.infoschema", ""},
-                            {"mysql.session", ""},
-                            {"mysql.sys", ""},
-                            {"root", ""}})
-                .size(),
-            3);
+  Filtering_options filters;
+  filters.users().exclude(
+      std::array{"mysql.infoschema", "mysql.session", "mysql.sys", "root"});
+  EXPECT_GE(sd.dump_grants(file.get(), filters).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   file->flush();
@@ -1044,8 +1045,9 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       iss[0].description);
 
   // Users
-  EXPECT_NO_THROW(
-      iss = sd.dump_grants(file.get(), {}, {{"mysql", ""}, {"root", ""}}));
+  Filtering_options filters;
+  filters.users().exclude(std::array{"mysql", "root"});
+  EXPECT_NO_THROW(iss = sd.dump_grants(file.get(), filters));
 
   auto expected_issues =
       _target_server_version < mysqlshdk::utils::Version(8, 0, 0) ?
@@ -1388,8 +1390,9 @@ TEST_F(Schema_dumper_test, compat_ddl) {
        "select 1 AS 1 */"});
 
   // Users
-  EXPECT_NO_THROW(
-      iss = sd.dump_grants(file.get(), {}, {{"mysql", ""}, {"root", ""}}));
+  Filtering_options filters;
+  filters.users().exclude(std::array{"mysql", "root"});
+  EXPECT_NO_THROW(iss = sd.dump_grants(file.get(), filters));
 
   EXPECT_NE(iss.end(),
             std::find_if(iss.begin(), iss.end(), [](const auto &issue) {
@@ -1494,97 +1497,157 @@ TEST_F(Schema_dumper_test, get_users) {
 
   Schema_dumper sd(session);
 
-  // no filtering
-  auto result = sd.get_users({}, {});
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
+  {
+    // no filtering
+    const auto result = sd.get_users({});
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
+  }
 
-  // include non-existent user
-  result = sd.get_users({{"third", ""}}, {});
-  EXPECT_EQ(0, result.size());
+  {
+    // include non-existent user
+    User_filters filters;
+    filters.include(std::array{"third"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(0, result.size());
+  }
 
-  // exclude non-existent user
-  result = sd.get_users({}, {{"third", ""}});
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
+  {
+    // exclude non-existent user
+    User_filters filters;
+    filters.exclude(std::array{"third"});
+    const auto result = sd.get_users(filters);
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
+  }
 
-  // include all accounts for the user first
-  result = sd.get_users({{"first", ""}}, {});
-  EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  {
+    // include all accounts for the user first
+    User_filters filters;
+    filters.include(std::array{"first"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(2, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  }
 
-  // include only 'first'@'localhost'
-  result = sd.get_users({{"first", "localhost"}}, {});
-  EXPECT_EQ(1, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  {
+    // include only 'first'@'localhost'
+    User_filters filters;
+    filters.include(std::array{"'first'@'localhost'"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(1, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  }
 
-  // include all accounts for the user first, exclude second
-  result = sd.get_users({{"first", ""}}, {{"second", ""}});
-  EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  {
+    // include all accounts for the user first, exclude second
+    User_filters filters;
+    filters.include(std::array{"first"});
+    filters.exclude(std::array{"second"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(2, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  }
 
-  // include all accounts for the user first, exclude 'first'@'10.11.12.13'
-  result = sd.get_users({{"first", ""}}, {{"first", "10.11.12.13"}});
-  EXPECT_EQ(1, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  {
+    // include all accounts for the user first, exclude 'first'@'10.11.12.13'
+    User_filters filters;
+    filters.include(std::array{"first"});
+    filters.exclude(std::array{"'first'@'10.11.12.13'"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(1, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  }
 
-  // include all accounts for the user first, exclude first -> cancels out
-  result = sd.get_users({{"first", ""}}, {{"first", ""}});
-  EXPECT_EQ(0, result.size());
+  {
+    // include all accounts for the user first, exclude first -> cancels out
+    User_filters filters;
+    filters.include(std::array{"first"});
+    filters.exclude(std::array{"first"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(0, result.size());
+  }
 
-  // include all accounts for the user first and second
-  result = sd.get_users({{"first", ""}, {"second", ""}}, {});
-  EXPECT_EQ(4, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
+  {
+    // include all accounts for the user first and second
+    User_filters filters;
+    filters.include(std::array{"first", "second"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(4, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
+  }
 
-  // include all accounts for the user first and second, exclude second
-  result = sd.get_users({{"first", ""}, {"second", ""}}, {{"second", ""}});
-  EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  {
+    // include all accounts for the user first and second, exclude second
+    User_filters filters;
+    filters.include(std::array{"first", "second"});
+    filters.exclude(std::array{"second"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(2, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  }
 
-  // include all accounts for the user first and second, exclude
-  // 'second'@'10.11.12.14'
-  result = sd.get_users({{"first", ""}, {"second", ""}},
-                        {{"second", "10.11.12.14"}});
-  EXPECT_EQ(3, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+  {
+    // include all accounts for the user first and second, exclude
+    // 'second'@'10.11.12.14'
+    User_filters filters;
+    filters.include(std::array{"first", "second"});
+    filters.exclude(std::array{"'second'@'10.11.12.14'"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(3, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+  }
 
-  // include all accounts for the user first, include and exclude
-  // 'second'@'10.11.12.14'
-  result = sd.get_users({{"first", ""}, {"second", "10.11.12.14"}},
-                        {{"second", "10.11.12.14"}});
-  EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  {
+    // include all accounts for the user first, include and exclude
+    // 'second'@'10.11.12.14'
+    User_filters filters;
+    filters.include(std::array{"first", "'second'@'10.11.12.14'"});
+    filters.exclude(std::array{"'second'@'10.11.12.14'"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(2, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  }
 
-  // include all accounts for the user first and 'second'@'10.11.12.14', exclude
-  // all accounts for second
-  result = sd.get_users({{"first", ""}, {"second", "10.11.12.14"}},
-                        {{"second", ""}});
-  EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  {
+    // include all accounts for the user first and 'second'@'10.11.12.14',
+    // exclude all accounts for second
+    User_filters filters;
+    filters.include(std::array{"first", "'second'@'10.11.12.14'"});
+    filters.exclude(std::array{"second"});
+    const auto result = sd.get_users(filters);
+    EXPECT_EQ(2, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  }
 
-  // include all accounts for the user first and non-existent third, exclude
-  // non-existent fourth
-  result = sd.get_users({{"first", ""}, {"third", ""}}, {{"fourth", ""}});
-  EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  {
+    // include all accounts for the user first and non-existent third, exclude
+    // non-existent fourth
+    User_filters filters;
+    filters.include(std::array{"first", "third"});
+    filters.exclude(std::array{"fourth"});
+    const auto result = sd.get_users(filters);
+
+    EXPECT_EQ(2, result.size());
+    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  }
 
   // cleanup
   session->execute("DROP USER 'first'@'localhost';");
@@ -1646,33 +1709,35 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
 TEST_F(Schema_dumper_test, include_grant) {
   // BUG#33406711
   // setup
-  Instance_cache cache;
-
-  cache.schemas["s"].tables["t"].comment = "";
-  cache.schemas["s"].views["v"].character_set_client = "";
-  cache.schemas["s"].functions.emplace("f");
-  cache.schemas["s"].procedures.emplace("p");
+  Filtering_options filters;
+  filters.schemas().include("s");
+  filters.tables().include("s", "t");
+  filters.tables().include("s", "v");
+  filters.routines().include("s", "f");
+  filters.routines().include("s", "p");
 
   Schema_dumper sd(session);
-  sd.use_cache(&cache);
+  const auto include_grant = [&](const std::string &grant) {
+    return sd.include_grant(grant, filters);
+  };
 
   // only GRANT/REVOKE statements are supported
-  EXPECT_THROW_LIKE(sd.include_grant("CREATE USER"), std::runtime_error,
+  EXPECT_THROW_LIKE(include_grant("CREATE USER"), std::runtime_error,
                     "Expected GRANT or REVOKE statement");
 
   // GRANT/REVOKE role statements are always included
-  EXPECT_TRUE(sd.include_grant("GRANT role to `user`@`host`"));
-  EXPECT_TRUE(sd.include_grant("REVOKE role FROM 'user'@'host'"));
+  EXPECT_TRUE(include_grant("GRANT role to `user`@`host`"));
+  EXPECT_TRUE(include_grant("REVOKE role FROM 'user'@'host'"));
 
   // GRANT/REVOKE PROXY statements are always included
-  EXPECT_TRUE(sd.include_grant("grant PROXY ON admin@host TO 'user'@host"));
-  EXPECT_TRUE(sd.include_grant("REVOKE PROxY on admin@host FROM user@host"));
+  EXPECT_TRUE(include_grant("grant PROXY ON admin@host TO 'user'@host"));
+  EXPECT_TRUE(include_grant("REVOKE PROxY on admin@host FROM user@host"));
 
   // global GRANT/REVOKE statements are always included
-  EXPECT_TRUE(sd.include_grant("GRANT SELECT ON *.*"));
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ON *.*"));
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON *.*"));
-  EXPECT_TRUE(sd.include_grant("GRANT EXECUTE ON *.*"));
+  EXPECT_TRUE(include_grant("GRANT SELECT ON *.*"));
+  EXPECT_TRUE(include_grant("GRANT ALTER ON *.*"));
+  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON *.*"));
+  EXPECT_TRUE(include_grant("GRANT EXECUTE ON *.*"));
 
   // global statements on system schemas are always included
   for (const std::string schema : {
@@ -1682,55 +1747,53 @@ TEST_F(Schema_dumper_test, include_grant) {
            "performance_schema",
            "sys",
        }) {
-    EXPECT_TRUE(sd.include_grant("GRANT ALTER ON " + schema + ".*"));
-    EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON " + schema + ".*"));
-    EXPECT_TRUE(sd.include_grant("GRANT EXECUTE ON " + schema + ".*"));
-    EXPECT_TRUE(sd.include_grant("REVOKE SELECT ON " + schema + ".table"));
-    EXPECT_TRUE(sd.include_grant("GRANT SELECT ON TABLE " + schema + ".table"));
-    EXPECT_TRUE(sd.include_grant("REVOKE EXECUTE ON " + schema + ".function"));
+    EXPECT_TRUE(include_grant("GRANT ALTER ON " + schema + ".*"));
+    EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON " + schema + ".*"));
+    EXPECT_TRUE(include_grant("GRANT EXECUTE ON " + schema + ".*"));
+    EXPECT_TRUE(include_grant("REVOKE SELECT ON " + schema + ".table"));
+    EXPECT_TRUE(include_grant("GRANT SELECT ON TABLE " + schema + ".table"));
+    EXPECT_TRUE(include_grant("REVOKE EXECUTE ON " + schema + ".function"));
     EXPECT_TRUE(
-        sd.include_grant("GRANT ALTER ROUTINE ON " + schema + ".function"));
+        include_grant("GRANT ALTER ROUTINE ON " + schema + ".function"));
     EXPECT_TRUE(
-        sd.include_grant("REVOKE EXECUTE ON FUNCTION " + schema + ".function"));
-    EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE " + schema +
-                                 ".procedure"));
+        include_grant("REVOKE EXECUTE ON FUNCTION " + schema + ".function"));
+    EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE " + schema +
+                              ".procedure"));
   }
 
   // statements on schema which is not in the cache are excluded
-  EXPECT_FALSE(sd.include_grant("GRANT ALTER ON x.*"));
-  EXPECT_FALSE(sd.include_grant("GRANT ALTER ROUTINE ON x.*"));
-  EXPECT_FALSE(sd.include_grant("GRANT EXECUTE ON x.*"));
-  EXPECT_FALSE(sd.include_grant("REVOKE SELECT ON x.table"));
-  EXPECT_FALSE(sd.include_grant("GRANT SELECT ON TABLE x.table"));
-  EXPECT_FALSE(sd.include_grant("REVOKE EXECUTE ON x.function"));
-  EXPECT_FALSE(sd.include_grant("GRANT ALTER ROUTINE ON x.function"));
-  EXPECT_FALSE(sd.include_grant("REVOKE EXECUTE ON FUNCTION x.function"));
-  EXPECT_FALSE(
-      sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE x.procedure"));
+  EXPECT_FALSE(include_grant("GRANT ALTER ON x.*"));
+  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON x.*"));
+  EXPECT_FALSE(include_grant("GRANT EXECUTE ON x.*"));
+  EXPECT_FALSE(include_grant("REVOKE SELECT ON x.table"));
+  EXPECT_FALSE(include_grant("GRANT SELECT ON TABLE x.table"));
+  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON x.function"));
+  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON x.function"));
+  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON FUNCTION x.function"));
+  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE x.procedure"));
 
   // statements on objects which are in the cache are included
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ON s.*"));
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON s.*"));
-  EXPECT_TRUE(sd.include_grant("GRANT EXECUTE ON s.*"));
-  EXPECT_TRUE(sd.include_grant("REVOKE SELECT ON s.t"));
-  EXPECT_TRUE(sd.include_grant("GRANT SELECT ON TABLE s.t"));
-  EXPECT_TRUE(sd.include_grant("REVOKE EXECUTE ON s.f"));
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON s.f"));
-  EXPECT_TRUE(sd.include_grant("REVOKE EXECUTE ON FUNCTION s.f"));
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.p"));
+  EXPECT_TRUE(include_grant("GRANT ALTER ON s.*"));
+  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON s.*"));
+  EXPECT_TRUE(include_grant("GRANT EXECUTE ON s.*"));
+  EXPECT_TRUE(include_grant("REVOKE SELECT ON s.t"));
+  EXPECT_TRUE(include_grant("GRANT SELECT ON TABLE s.t"));
+  EXPECT_TRUE(include_grant("REVOKE EXECUTE ON s.f"));
+  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON s.f"));
+  EXPECT_TRUE(include_grant("REVOKE EXECUTE ON FUNCTION s.f"));
   // BUG#34764157 - routine names are case insensitive, can appear in grant
   // statements in all lower-case
-  EXPECT_TRUE(sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.P"));
+  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.P"));
   // BUG#34764157 - grants on included views should also be included
-  EXPECT_TRUE(sd.include_grant("GRANT SELECT ON s.v"));
+  EXPECT_TRUE(include_grant("GRANT SELECT ON s.v"));
 
   // statements on objects which are not in the cache are excluded
-  EXPECT_FALSE(sd.include_grant("REVOKE SELECT ON s.f"));
-  EXPECT_FALSE(sd.include_grant("GRANT SELECT ON TABLE s.p"));
-  EXPECT_FALSE(sd.include_grant("REVOKE EXECUTE ON s.t"));
-  EXPECT_FALSE(sd.include_grant("GRANT ALTER ROUTINE ON s.t"));
-  EXPECT_FALSE(sd.include_grant("REVOKE EXECUTE ON FUNCTION s.t"));
-  EXPECT_FALSE(sd.include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.t"));
+  EXPECT_FALSE(include_grant("REVOKE SELECT ON s.f"));
+  EXPECT_FALSE(include_grant("GRANT SELECT ON TABLE s.p"));
+  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON s.t"));
+  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON s.t"));
+  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON FUNCTION s.t"));
+  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.t"));
 }
 
 }  // namespace dump

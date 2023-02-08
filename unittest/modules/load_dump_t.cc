@@ -23,8 +23,8 @@
 
 #include "unittest/gprod_clean.h"
 
+#include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/compatibility.h"
-#include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/dump_loader.h"
 #include "modules/util/load/dump_reader.h"

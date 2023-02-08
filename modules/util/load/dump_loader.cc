@@ -365,7 +365,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
         auto transforms = loader->m_default_sql_transforms;
 
         transforms.add_execute_conditionally(
-            [this, loader](std::string_view type, std::string_view name) {
+            [this, loader](std::string_view type, const std::string &name) {
               bool execute = true;
 
               if (shcore::str_caseeq(type, "EVENT")) {
@@ -419,8 +419,7 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
   loader->post_worker_event(worker, Worker_event::TABLE_DDL_START);
 
   try {
-    std::string script;
-    process(session, loader);
+    pre_process(loader);
 
     if (!loader->m_options.dry_run()) {
       // this is here to detect if data is loaded into a non-existing schema
@@ -428,6 +427,8 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
     }
 
     load_ddl(session, loader);
+
+    post_process(session, loader);
   } catch (const std::exception &e) {
     handle_current_exception(
         worker, loader,
@@ -443,17 +444,12 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
   return true;
 }
 
-void Dump_loader::Worker::Table_ddl_task::process(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Table_ddl_task::pre_process(Dump_loader *loader) {
   if (!m_placeholder && (loader->m_options.load_ddl() ||
                          loader->m_options.load_deferred_indexes())) {
     if (loader->m_options.defer_table_indexes() !=
         Load_dump_options::Defer_index_mode::OFF) {
-      extract_pending_indexes(session,
-                              loader->m_options.defer_table_indexes() ==
-                                  Load_dump_options::Defer_index_mode::FULLTEXT,
-                              m_status == Load_progress_log::DONE, loader);
+      extract_deferred_statements(loader);
     }
 
     if (loader->m_options.load_ddl() && loader->should_create_pks() &&
@@ -464,62 +460,95 @@ void Dump_loader::Worker::Table_ddl_task::process(
   }
 }
 
-void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    bool fulltext_only, bool check_recreated, Dump_loader *loader) {
-  const auto table_name = key();
+void Dump_loader::Worker::Table_ddl_task::extract_deferred_statements(
+    Dump_loader *loader) {
+  const auto &table_name = key();
+  const auto fulltext_only = loader->m_options.defer_table_indexes() ==
+                             Load_dump_options::Defer_index_mode::FULLTEXT;
+
   m_deferred_statements = std::make_unique<compatibility::Deferred_statements>(
       preprocess_table_script_for_indexes(&m_script, table_name,
                                           fulltext_only));
+}
 
-  if (check_recreated && !m_deferred_statements->empty()) {
-    // this handles the case where the table was already created in a previous
-    // run and some indexes may already have been re-created
-    try {
-      const auto ct =
-          Dump_loader::query(session, "show create table " + table_name)
-              ->fetch_one()
-              ->get_string(1);
-      const auto recreated = compatibility::check_create_table_for_indexes(
-          ct, table_name, fulltext_only);
+void Dump_loader::Worker::Table_ddl_task::post_process(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    Dump_loader *loader) {
+  if ((m_status == Load_progress_log::DONE ||
+       loader->m_options.ignore_existing_objects()) &&
+      m_deferred_statements && !m_deferred_statements->empty()) {
+    remove_duplicate_deferred_statements(session, loader);
+  }
+}
 
-      const auto remove_duplicates = [](const std::vector<std::string> &needles,
-                                        std::vector<std::string> *haystack) {
-        for (const auto &n : needles) {
-          haystack->erase(
-              std::remove_if(haystack->begin(), haystack->end(),
-                             [&n](const std::string &i) { return n == i; }),
-              haystack->end());
-        }
-      };
+void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    Dump_loader *loader) {
+  // this handles the case where the table was already created (either in a
+  // previous run or by the user) and some indexes may already have been
+  // re-created
 
-      remove_duplicates(recreated.index_info.fulltext,
-                        &m_deferred_statements->index_info.fulltext);
-      remove_duplicates(recreated.index_info.spatial,
-                        &m_deferred_statements->index_info.spatial);
-      remove_duplicates(recreated.index_info.regular,
-                        &m_deferred_statements->index_info.regular);
-      remove_duplicates(recreated.foreign_keys,
-                        &m_deferred_statements->foreign_keys);
+  const auto &table_name = key();
+  const auto fulltext_only = loader->m_options.defer_table_indexes() ==
+                             Load_dump_options::Defer_index_mode::FULLTEXT;
 
-      if (!recreated.secondary_engine.empty()) {
-        if (m_deferred_statements->has_alters()) {
-          // recreated table already has a secondary engine (possibly table was
-          // modified by the user), but not all indexes were applied, we're
-          // unable to continue, as ALTER TABLE statements will fail
-          THROW_ERROR(SHERR_LOAD_SECONDARY_ENGINE_ERROR, table_name.c_str());
-        } else {
-          // recreated table has all the indexes and the secondary engine in
-          // place, nothing more to do
-          m_deferred_statements->secondary_engine.clear();
-        }
+  std::string ct;
+
+  try {
+    ct = Dump_loader::query(session, "show create table " + table_name)
+             ->fetch_one()
+             ->get_string(1);
+  } catch (const mysqlshdk::db::Error &e) {
+    if ((ER_BAD_DB_ERROR == e.code() || ER_NO_SUCH_TABLE == e.code()) &&
+        loader->m_options.dry_run()) {
+      // table may not exists if we're running in dryRun mode, this is not an
+      // error; there are no duplicates
+      return;
+    } else {
+      // in any other case we throw an exception, table should exist at this
+      // point
+      throw;
+    }
+  }
+
+  const auto recreated = compatibility::check_create_table_for_indexes(
+      ct, table_name, fulltext_only);
+
+  const auto remove_duplicates = [&table_name](
+                                     const std::vector<std::string> &needles,
+                                     std::vector<std::string> *haystack) {
+    for (const auto &n : needles) {
+      const auto pos = std::remove(haystack->begin(), haystack->end(), n);
+
+      if (haystack->end() != pos) {
+        log_info(
+            "Table %s already contains '%s', it's not going to be deferred.",
+            table_name.c_str(), n.c_str());
+
+        haystack->erase(pos, haystack->end());
       }
-    } catch (const shcore::Error &e) {
-      current_console()->print_error(shcore::str_format(
-          "Unable to get status of table %s that according to load status was "
-          "already created, consider resetting progress, error message: %s",
-          table_name.c_str(), e.what()));
-      if (!loader->m_options.force()) throw;
+    }
+  };
+
+  remove_duplicates(recreated.index_info.fulltext,
+                    &m_deferred_statements->index_info.fulltext);
+  remove_duplicates(recreated.index_info.spatial,
+                    &m_deferred_statements->index_info.spatial);
+  remove_duplicates(recreated.index_info.regular,
+                    &m_deferred_statements->index_info.regular);
+  remove_duplicates(recreated.foreign_keys,
+                    &m_deferred_statements->foreign_keys);
+
+  if (!recreated.secondary_engine.empty()) {
+    if (m_deferred_statements->has_alters()) {
+      // recreated table already has a secondary engine (possibly table was
+      // modified by the user), but not all indexes were applied, we're unable
+      // to continue, as ALTER TABLE statements will fail
+      THROW_ERROR(SHERR_LOAD_SECONDARY_ENGINE_ERROR, table_name.c_str());
+    } else {
+      // recreated table has all the indexes and the secondary engine in place,
+      // nothing more to do
+      m_deferred_statements->secondary_engine.clear();
     }
   }
 }
@@ -1378,7 +1407,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
 
           transforms.add_execute_conditionally(
               [this, &schema, &table](std::string_view type,
-                                      std::string_view name) {
+                                      const std::string &name) {
                 if (!shcore::str_caseeq(type, "TRIGGER")) return true;
                 return m_dump->include_trigger(schema, table, name);
               });
@@ -2223,7 +2252,7 @@ void Dump_loader::check_existing_objects() {
   if (m_options.load_users()) {
     std::set<std::string> accounts;
     for (const auto &a : m_dump->accounts()) {
-      if (m_options.include_user(a))
+      if (m_options.filters().users().is_included(a))
         accounts.emplace(shcore::str_lower(
             shcore::str_format("'%s'@'%s'", a.user.c_str(), a.host.c_str())));
     }
@@ -3024,7 +3053,7 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
 }
 
 void Dump_loader::Sql_transform::add_execute_conditionally(
-    std::function<bool(std::string_view, std::string_view)> f) {
+    std::function<bool(std::string_view, const std::string &)> f) {
   add([f = std::move(f)](std::string_view sql, std::string *out_new_sql) {
     *out_new_sql = sql;
 
@@ -3371,21 +3400,25 @@ void Dump_loader::load_users() const {
     script = dump::Schema_dumper::preprocess_users_script(
         script,
         [this](const std::string &account) {
-          return m_options.include_user(shcore::split_account(account));
+          return m_options.filters().users().is_included(account);
         },
-        [this](const std::string &schema, const std::string &object,
-               dump::Schema_dumper::Object_type type) {
-          switch (type) {
-            case dump::Schema_dumper::Object_type::SCHEMA:
-              return m_dump->include_schema(schema);
+        [this](const compatibility::Privilege_level_info &priv) {
+          using Level = compatibility::Privilege_level_info::Level;
 
-            case dump::Schema_dumper::Object_type::TABLE:
-              return m_dump->include_table(schema, object);
+          switch (priv.level) {
+            case Level::GLOBAL:
+              return true;
 
-            case dump::Schema_dumper::Object_type::ROUTINE:
+            case Level::SCHEMA:
+              return m_dump->include_schema(priv.schema);
+
+            case Level::TABLE:
+              return m_dump->include_table(priv.schema, priv.object);
+
+            case Level::ROUTINE:
               // BUG#34764157 routine names are case insensitive, MySQL 5.7
               // has lower-case names of routines in grant statements
-              return m_dump->include_routine_ci(schema, object);
+              return m_dump->include_routine_ci(priv.schema, priv.object);
           }
 
           throw std::logic_error("Should not happen");

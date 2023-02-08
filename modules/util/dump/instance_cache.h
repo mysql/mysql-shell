@@ -38,6 +38,8 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/common/dump/filtering_options.h"
+
 namespace mysqlsh {
 namespace dump {
 
@@ -174,19 +176,15 @@ struct Instance_cache {
 
 class Instance_cache_builder final {
  public:
-  using Users = std::vector<shcore::Account>;
-
-  using Filter = std::unordered_set<std::string>;
-  using Object_filters = std::unordered_map<std::string, Filter>;
-  using Subobject_filters = std::unordered_map<std::string, Object_filters>;
+  using Partition_filters = std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::unordered_set<std::string>>>;
 
   Instance_cache_builder() = delete;
 
   Instance_cache_builder(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Filter &included_schemas, const Object_filters &included_tables,
-      const Filter &excluded_schemas, const Object_filters &excluded_tables,
-      Instance_cache &&cache = {});
+      const common::Filtering_options &filters, Instance_cache &&cache = {});
 
   Instance_cache_builder(const Instance_cache_builder &) = delete;
   Instance_cache_builder(Instance_cache_builder &&) = default;
@@ -194,26 +192,26 @@ class Instance_cache_builder final {
   ~Instance_cache_builder() = default;
 
   Instance_cache_builder &operator=(const Instance_cache_builder &) = delete;
-  Instance_cache_builder &operator=(Instance_cache_builder &&) = default;
+  Instance_cache_builder &operator=(Instance_cache_builder &&) = delete;
 
-  Instance_cache_builder &metadata(const Subobject_filters &partitions);
+  Instance_cache_builder &metadata(const Partition_filters &partitions);
 
-  Instance_cache_builder &users(const Users &included, const Users &excluded);
+  Instance_cache_builder &users();
 
-  Instance_cache_builder &events(const Object_filters &included,
-                                 const Object_filters &excluded);
+  Instance_cache_builder &events();
 
-  Instance_cache_builder &routines(const Object_filters &included,
-                                   const Object_filters &excluded);
+  Instance_cache_builder &routines();
 
-  Instance_cache_builder &triggers(const Subobject_filters &included,
-                                   const Subobject_filters &excluded);
+  Instance_cache_builder &triggers();
 
   Instance_cache_builder &binlog_info();
 
   Instance_cache build();
 
  private:
+  using Object_filters = common::Filtering_options::Object_filters::Filter;
+  using Trigger_filters = common::Filtering_options::Trigger_filters::Filter;
+
   struct Iterate_schema;
 
   struct Iterate_table;
@@ -231,7 +229,7 @@ class Instance_cache_builder final {
 
   void filter_tables();
 
-  void fetch_metadata(const Subobject_filters &partitions);
+  void fetch_metadata(const Partition_filters &partitions);
 
   void fetch_version();
 
@@ -249,7 +247,7 @@ class Instance_cache_builder final {
 
   void fetch_table_histograms();
 
-  void fetch_table_partitions(const Subobject_filters &partitions);
+  void fetch_table_partitions(const Partition_filters &partitions);
 
   void iterate_schemas(
       const Iterate_schema &info,
@@ -285,10 +283,9 @@ class Instance_cache_builder final {
 
   inline void set_has_views() { m_has_views = true; }
 
-  void set_schema_filter(const Filter &included, const Filter &excluded);
+  void set_schema_filter();
 
-  void set_table_filter(const Object_filters &included,
-                        const Object_filters &excluded);
+  void set_table_filter();
 
   std::string schema_filter(const std::string &schema_column) const;
 
@@ -304,8 +301,8 @@ class Instance_cache_builder final {
                             const Object_filters &excluded) const;
 
   std::string trigger_filter(const Iterate_table &info,
-                             const Subobject_filters &included,
-                             const Subobject_filters &excluded) const;
+                             const Trigger_filters &included,
+                             const Trigger_filters &excluded) const;
 
   inline std::shared_ptr<mysqlshdk::db::IResult> query(
       std::string_view sql) const {
@@ -352,6 +349,8 @@ class Instance_cache_builder final {
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
   Instance_cache m_cache;
+
+  const common::Filtering_options &m_filters;
 
   std::string m_schema_filter;
 

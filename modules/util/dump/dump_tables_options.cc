@@ -45,7 +45,7 @@ const shcore::Option_pack_def<Dump_tables_options>
 
 void Dump_tables_options::set_schema(const std::string &schema) {
   m_schema = schema;
-  m_included_schemas.emplace(m_schema);
+  filters().schemas().include(m_schema);
 }
 
 void Dump_tables_options::set_tables(const std::vector<std::string> &tables) {
@@ -55,7 +55,7 @@ void Dump_tables_options::set_tables(const std::vector<std::string> &tables) {
 
   if (m_has_tables) {
     m_tables = {tables.begin(), tables.end()};
-    m_included_tables[m_schema].insert(m_tables.begin(), m_tables.end());
+    filters().tables().include(m_schema, tables);
   }
 }
 

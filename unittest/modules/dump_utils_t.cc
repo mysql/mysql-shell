@@ -23,13 +23,14 @@
 
 #include <gtest/gtest_prod.h>
 #include <cstdlib>
-#include "modules/util/dump/dump_utils.h"
+#include "modules/util/common/dump/utils.h"
 #include "unittest/gtest_clean.h"
 
 #include "modules/util/load/dump_reader.h"
 
 namespace mysqlsh {
 namespace dump {
+namespace common {
 
 TEST(Dump_utils, encode_schema_basename) {
   EXPECT_EQ(".sql", get_schema_filename(encode_schema_basename("")));
@@ -113,6 +114,7 @@ TEST(Dump_utils, encode_table_data_filename_chunks) {
                                     "csv", 4, true));
 }
 
+}  // namespace common
 }  // namespace dump
 
 class Dump_scheduler : public ::testing::Test {
