@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
 
 #include <memory>
+#include <optional>
 #include <set>
 
 // required for FRIEND_TEST
@@ -150,12 +151,11 @@ void setup(const Setup_options &options, Mock_session *session) {
 
   if (options.user_exists && !is_skip_grants_user) {
     EXPECT_CALL(*session, get_server_version())
-        .WillRepeatedly(
-            Return(options.is_8_0 ? Version(8, 0, 0) : Version(5, 7, 28)));
+        .WillRepeatedly(Return(options.version));
 
     std::set<std::string> all_roles;
 
-    if (options.is_8_0) {
+    if (options.version >= Version(8, 0, 0)) {
       {
         std::vector<std::string> activate_all;
 
@@ -216,6 +216,18 @@ void setup(const Setup_options &options, Mock_session *session) {
                          {"user", "host"},
                          {Type::String, Type::String},
                          active_roles}});
+    }
+
+    if (options.version >= Version(8, 0, 16)) {
+      auto &r = session
+                    ->expect_query(
+                        "show GLOBAL variables where `variable_name` in "
+                        "('partial_revokes')")
+                    .then({"Variable_name", "Value"});
+
+      if (options.partial_revokes.has_value()) {
+        r.add_row({"partial_revokes", *options.partial_revokes ? "ON" : "OFF"});
+      }
     }
 
     std::vector<std::vector<std::string>> grants;
@@ -300,7 +312,7 @@ TEST_F(User_privileges_test, validate_user_does_not_exist) {
   setup.host = "notexist_host";
   setup.user_exists = false;
   // Simulate a 5.7 version is used (not relevant for this test).
-  setup.is_8_0 = false;
+  setup.version = Version(5, 7, 28);
 
   const auto up = setup_test(setup);
 
@@ -331,7 +343,7 @@ TEST_F(User_privileges_test, validate_invalid_privileges) {
   setup.user = "test_user";
   setup.host = "test_host";
   // Simulate 8.0.0 version is always used.
-  setup.is_8_0 = true;
+  setup.version = Version(8, 0, 0);
 
   setup.grants = {
       "GRANT USAGE ON *.* TO u@h",
@@ -364,7 +376,7 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   setup.user = "test_user";
   setup.host = "test_host";
   // Simulate 8.0.0 version is always used.
-  setup.is_8_0 = true;
+  setup.version = Version(8, 0, 0);
 
   setup.grants = {
       "GRANT USAGE ON *.* TO u@h",
@@ -430,7 +442,7 @@ TEST_F(User_privileges_test, validate_all_privileges) {
   setup.user = "dba_user";
   setup.host = "dba_host";
   // Simulate 8.0.0 version is always used.
-  setup.is_8_0 = true;
+  setup.version = Version(8, 0, 0);
 
   setup.grants = {
       "GRANT ALL PRIVILEGES ON *.* TO u@h WITH GRANT OPTION",
@@ -481,7 +493,7 @@ TEST_F(User_privileges_test, get_user_roles) {
     setup.user = "dba_user";
     setup.host = "dba_host";
     // 5.7 server, does not support roles
-    setup.is_8_0 = false;
+    setup.version = Version(5, 7, 28);
 
     setup.grants = {
         "GRANT USAGE *.* TO u@h",
@@ -501,7 +513,7 @@ TEST_F(User_privileges_test, get_user_roles) {
     setup.user = "dba_user";
     setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    setup.is_8_0 = true;
+    setup.version = Version(8, 0, 0);
 
     setup.grants = {
         "GRANT USAGE *.* TO u@h",
@@ -521,7 +533,7 @@ TEST_F(User_privileges_test, get_user_roles) {
     setup.user = "dba_user";
     setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    setup.is_8_0 = true;
+    setup.version = Version(8, 0, 0);
 
     setup.grants = {
         "GRANT USAGE *.* TO u@h",
@@ -546,7 +558,7 @@ TEST_F(User_privileges_test, get_user_roles) {
     setup.user = "dba_user";
     setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    setup.is_8_0 = true;
+    setup.version = Version(8, 0, 0);
 
     setup.grants = {
         "GRANT USAGE *.* TO u@h",
@@ -581,7 +593,7 @@ TEST_F(User_privileges_test, get_user_roles) {
     setup.user = "dba_user";
     setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    setup.is_8_0 = true;
+    setup.version = Version(8, 0, 0);
 
     setup.grants = {
         "GRANT USAGE *.* TO u@h",
@@ -648,7 +660,7 @@ TEST_F(User_privileges_test, validate_role_privileges) {
   setup.user = "test_user";
   setup.host = "%";
   // Simulate 8.0.0 version is always used.
-  setup.is_8_0 = true;
+  setup.version = Version(8, 0, 0);
 
   setup.grants = {"GRANT USAGE ON *.* TO u@h",
                   "GRANT CREATE, ALTER ON *.* TO u@h",
@@ -810,6 +822,8 @@ TEST_F(User_privileges_test, parse_grants) {
       "GRANT SELECT, SHOW DATABASES, INSERT, UPDATE, CREATE ROUTINE ON `12`.* "
       "TO u@h IDENTIFIED BY PASSWORD 'hash' WITH GRANT OPTION "
       "MAX_USER_CONNECTIONS 100",
+      "GRANT PROXY ON ``@`` TO `root`@`localhost` WITH GRANT OPTION",
+      "GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION",
   };
 
   const auto up = setup_test(setup);
@@ -824,12 +838,12 @@ TEST_F(User_privileges_test, parse_grants) {
                                    "SELECT"}),
             up.m_revoked_privileges.at("`3`.*"));
 
-  ASSERT_EQ(6, up.m_grantable_privileges.size());
+  ASSERT_EQ(6, up.m_grantable_privileges.regular.size());
   EXPECT_EQ((std::set<std::string>{"SELECT"}),
-            up.m_grantable_privileges.at("`4`.`4`"));
+            up.m_grantable_privileges.regular.at("`4`.`4`"));
   EXPECT_EQ((std::set<std::string>{"SELECT"}),
-            up.m_grantable_privileges.at("`5`.`5`"));
-  EXPECT_EQ(all_privileges(), up.m_grantable_privileges.at("*.*"));
+            up.m_grantable_privileges.regular.at("`5`.`5`"));
+  EXPECT_EQ(all_privileges(), up.m_grantable_privileges.regular.at("*.*"));
   EXPECT_EQ((std::set<std::string>{
                 "ALTER",
                 "ALTER ROUTINE",
@@ -850,7 +864,7 @@ TEST_F(User_privileges_test, parse_grants) {
                 "TRIGGER",
                 "UPDATE",
             }),
-            up.m_grantable_privileges.at("`7`.*"));
+            up.m_grantable_privileges.regular.at("`7`.*"));
   EXPECT_EQ((std::set<std::string>{
                 "ALTER",
                 "CREATE",
@@ -865,7 +879,7 @@ TEST_F(User_privileges_test, parse_grants) {
                 "TRIGGER",
                 "UPDATE",
             }),
-            up.m_grantable_privileges.at("`8`.`8`"));
+            up.m_grantable_privileges.regular.at("`8`.`8`"));
   EXPECT_EQ((std::set<std::string>{
                 "SELECT",
                 "SHOW DATABASES",
@@ -873,10 +887,11 @@ TEST_F(User_privileges_test, parse_grants) {
                 "UPDATE",
                 "CREATE ROUTINE",
             }),
-            up.m_grantable_privileges.at("`12`.*"));
+            up.m_grantable_privileges.regular.at("`12`.*"));
 
-  ASSERT_EQ(1, up.m_privileges.size());
-  EXPECT_EQ((std::set<std::string>{"INSERT"}), up.m_privileges.at("`11`.`11`"));
+  ASSERT_EQ(1, up.m_privileges.regular.size());
+  EXPECT_EQ((std::set<std::string>{"INSERT"}),
+            up.m_privileges.regular.at("`11`.`11`"));
 }
 
 TEST_F(User_privileges_test, skip_grant_tables) {
@@ -929,6 +944,235 @@ TEST_F(User_privileges_test, skip_grant_tables) {
     EXPECT_FALSE(result.has_grant_option());
     EXPECT_FALSE(result.has_missing_privileges());
     EXPECT_TRUE(result.missing_privileges().empty());
+  }
+}
+
+TEST_F(User_privileges_test, wildcard_grants) {
+  Setup_options setup;
+
+  setup.user = "dba_user";
+  setup.host = "dba_host";
+
+  setup.grants = {
+      "GRANT SELECT ON `abc`.* TO u@h WITH GRANT OPTION",
+      "GRANT SELECT ON `xyz`.* TO u@h",
+      "GRANT EVENT ON `abc`.* TO u@h WITH GRANT OPTION",
+      "GRANT EVENT ON `xyz`.* TO u@h",
+      "GRANT INSERT ON `ab_`.* TO u@h WITH GRANT OPTION",
+      "GRANT INSERT ON `xy_`.* TO u@h",
+      "GRANT EXECUTE ON `ab_`.* TO u@h WITH GRANT OPTION",
+      "GRANT EXECUTE ON `xy_`.* TO u@h",
+      "GRANT UPDATE ON `a%`.* TO u@h WITH GRANT OPTION",
+      "GRANT UPDATE ON `x%`.* TO u@h",
+      "GRANT INDEX ON `a%`.* TO u@h WITH GRANT OPTION",
+      "GRANT INDEX ON `x%`.* TO u@h",
+      "GRANT DROP ON `ab\\_`.* TO u@h WITH GRANT OPTION",
+      "GRANT DROP ON `xy\\_`.* TO u@h",
+      "GRANT DELETE ON `ab\\_`.* TO u@h WITH GRANT OPTION",
+      "GRANT DELETE ON `xy\\_`.* TO u@h",
+      "GRANT CREATE ON `a\\%`.* TO u@h WITH GRANT OPTION",
+      "GRANT CREATE ON `x\\%`.* TO u@h",
+      "GRANT ALTER ON `%`.* TO u@h WITH GRANT OPTION",
+      "GRANT TRIGGER ON `%`.* TO u@h",
+  };
+
+  for (const auto &partial_revokes :
+       {std::optional<bool>{}, std::optional<bool>{false}}) {
+    setup.partial_revokes = partial_revokes;
+
+    if (partial_revokes.has_value()) {
+      setup.version = Version(8, 0, 16);
+    } else {
+      // 5.7 server, no partial_revokes
+      setup.version = Version(5, 7, 40);
+    }
+
+    SCOPED_TRACE("Version: " + setup.version.get_full() +
+                 ", partial_revokes: " +
+                 (setup.partial_revokes.value_or(false) ? "ON" : "OFF"));
+
+    const auto up = setup_test(setup);
+
+    {
+      const auto result = up.validate({"SELECT", "EVENT"}, "abc", "*");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"SELECT", "EVENT"}, "xyz", "t");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"INSERT", "EXECUTE"}, "abd", "t");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"INSERT", "EXECUTE"}, "xyd", "*");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"UPDATE", "INDEX"}, "acc", "*");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"UPDATE", "INDEX"}, "xzz", "t");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"DROP", "DELETE"}, "ab_", "T");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"DROP", "DELETE"}, "xy_", "*");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"CREATE"}, "a%", "*");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"CREATE"}, "x%", "T");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"ALTER"}, "mysql", "user");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"TRIGGER"}, "mysql", "user");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"ALTER"}, "%", "a");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"TRIGGER"}, "%", "b");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+  }
+
+  {
+    setup.version = Version(8, 0, 16);
+    setup.partial_revokes = true;
+
+    SCOPED_TRACE("Version: " + setup.version.get_full() +
+                 ", partial_revokes: " +
+                 (setup.partial_revokes.value_or(false) ? "ON" : "OFF"));
+
+    const auto up = setup_test(setup);
+
+    {
+      const auto result = up.validate({"SELECT", "EVENT"}, "abc", "*");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"SELECT", "EVENT"}, "xyz", "t");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"INSERT", "EXECUTE"}, "abd", "t");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_TRUE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"INSERT", "EXECUTE"}, "xyd", "*");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_TRUE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"UPDATE", "INDEX"}, "acc", "*");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_TRUE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"UPDATE", "INDEX"}, "xzz", "t");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_TRUE(result.has_missing_privileges());
+    }
+
+    // these two should also match DROP and DELETE, see BUG#35071950
+    {
+      const auto result = up.validate({"INSERT", "EXECUTE"}, "ab_", "T");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"INSERT", "EXECUTE"}, "xy_", "*");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    // these two should also match CREATE, see BUG#35071950
+    {
+      const auto result = up.validate({"UPDATE", "INDEX"}, "a%", "*");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"UPDATE", "INDEX"}, "x%", "T");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"ALTER"}, "mysql", "user");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_TRUE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"TRIGGER"}, "mysql", "user");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_TRUE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"ALTER"}, "%", "a");
+      EXPECT_TRUE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
+
+    {
+      const auto result = up.validate({"TRIGGER"}, "%", "b");
+      EXPECT_FALSE(result.has_grant_option());
+      EXPECT_FALSE(result.has_missing_privileges());
+    }
   }
 }
 

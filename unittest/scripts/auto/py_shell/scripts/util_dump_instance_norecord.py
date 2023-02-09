@@ -1234,12 +1234,10 @@ def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception = Non
         EXPECT_FAIL("ValueError", expected_exception, test_output_absolute, opts)
     else:
         EXPECT_SUCCESS([test_schema], test_output_absolute, opts)
-    def make_regexp(user):
-        return user.replace("'", "['`]")
     for i in included:
-        EXPECT_FILE_MATCHES(re.compile(f"CREATE USER IF NOT EXISTS {make_regexp(i)}"), os.path.join(test_output_absolute, "@.users.sql"))
+        EXPECT_FILE_CONTAINS(f"CREATE USER IF NOT EXISTS {get_user_account_for_output(i)}", os.path.join(test_output_absolute, "@.users.sql"))
     for e in excluded:
-        EXPECT_FILE_NOT_MATCHES(re.compile(f"CREATE USER IF NOT EXISTS {make_regexp(e)}"), os.path.join(test_output_absolute, "@.users.sql"))
+        EXPECT_FILE_NOT_CONTAINS(f"CREATE USER IF NOT EXISTS {get_user_account_for_output(e)}", os.path.join(test_output_absolute, "@.users.sql"))
 
 #@<> don't include or exclude any users, all accounts are dumped
 # some accounts are always excluded
@@ -1464,8 +1462,8 @@ EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS", os.path.join(test_output_absol
 EXPECT_FILE_CONTAINS("GRANT ", os.path.join(test_output_absolute, "@.users.sql"))
 
 #@<> Check for roles {VER(>=8.0.0)}
-EXPECT_FILE_MATCHES(re.compile(f"CREATE USER IF NOT EXISTS ['`]{test_role}['`]@['`]%['`] IDENTIFIED WITH 'caching_sha2_password'"), os.path.join(test_output_absolute, "@.users.sql"))
-EXPECT_FILE_CONTAINS("GRANT USAGE ON *.* TO `{0}`@`%`;".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
+EXPECT_FILE_CONTAINS(f"CREATE USER IF NOT EXISTS `{test_role}`@`%` IDENTIFIED WITH 'caching_sha2_password'", os.path.join(test_output_absolute, "@.users.sql"))
+EXPECT_FILE_CONTAINS(f"GRANT USAGE ON *.* TO `{test_role}`@`%`;", os.path.join(test_output_absolute, "@.users.sql"))
 
 #@<> WL13807-FR13 - Once the dump is complete, in addition to the summary described in WL#13804, FR15, the following information must be presented to the user:
 # * The number of schemas dumped.
@@ -2085,6 +2083,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: Failed to acquire global read lock: MySQL Error 1
 testutil.clear_traps("mysql")
 
 #@<> prepare user privileges, switch user
+create_users()
 session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
 session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM {test_user_account};")
 shell.connect(test_user_uri(__mysql_sandbox_port1))
@@ -2145,9 +2144,17 @@ EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table 
 #@<> using the same user, run inconsistent dump
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "ddlOnly": True, "showProgress": False })
 
+#@<> BUG#32695301 - cleanup
+setup_session()
+create_users()
+
+#@<> BUG#32695301 - restore partial_revokes {VER(>=8.0.16)}
+session.run_sql("SET GLOBAL partial_revokes=0")
+
 #@<> BUG#33697289 additional consistency checks if user is missing some of the privileges
 # setup
 setup_session()
+create_users()
 session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
 # user cannot execute FTWRL and LOCK INSTANCE FOR BACKUP
 session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ /*!80000 , BACKUP_ADMIN */ ON *.* FROM {test_user_account};")
@@ -3499,6 +3506,70 @@ EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verifica
 #@<> WL15311 - cleanup
 session.run_sql("DROP SCHEMA !;", [schema_name])
 all_schemas.pop()
+
+#@<> BUG#34952027 - ocimds option detects schema-level grants with wildcards
+wild_account = "'test_34952027'@'localhost'"
+
+def account_for_grant():
+    return get_user_account_for_output(wild_account)
+
+session.run_sql(f"CREATE USER {wild_account} IDENTIFIED BY 'pwd'")
+# regular schema-level grant
+schema_level_grant = f"GRANT SELECT ON `miscellaneous`.* TO {account_for_grant()}"
+session.run_sql(schema_level_grant)
+# schema-level grant with _ wildcard
+schema_level_grant_with_underscore = f"GRANT SELECT ON `sample_schema`.* TO {account_for_grant()}"
+session.run_sql(schema_level_grant_with_underscore)
+# schema-level grant with % wildcard
+schema_level_grant_with_percent = f"GRANT SELECT ON `all%`.* TO {account_for_grant()}"
+session.run_sql(schema_level_grant_with_percent)
+# schema-level grant with escaped _ wildcard
+schema_level_grant_with_escaped_underscore = f"GRANT SELECT ON `sample\\_schema`.* TO {account_for_grant()}"
+session.run_sql(schema_level_grant_with_escaped_underscore)
+# schema-level grant with escaped % wildcard
+schema_level_grant_with_escaped_percent = f"GRANT SELECT ON `all\\%`.* TO {account_for_grant()}"
+session.run_sql(schema_level_grant_with_escaped_percent)
+
+#@<> BUG#34952027 - dumping with ocimds fails
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+
+EXPECT_STDOUT_CONTAINS("""
+ERROR: One or more accounts with database level grants containing wildcard characters were found.
+
+      Loading these grants into an MDS instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
+      To continue with the dump you must do one of the following:
+
+      * Use the "excludeUsers" dump option to exclude problematic accounts.
+
+      * Set the "users" dump option to false in order to disable user dumping.
+
+      * Add the "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
+
+      For more information on the interaction between wildcard database level grants and partial_revokes system variable please refer to: https://dev.mysql.com/doc/refman/en/grant.html
+""")
+
+EXPECT_STDOUT_NOT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant).error())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_underscore).error())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_percent).error())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_underscore).error())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_percent).error())
+
+#@<> BUG#34952027 - dumping with ocimds and partial_revokes=ON succeeds {VER(>=8.0.16)}
+session.run_sql("SET @@GLOBAL.partial_revokes = ON")
+EXPECT_SUCCESS([ "invalid" ], test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ wild_account ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS("wildcard")
+session.run_sql("SET @@GLOBAL.partial_revokes = OFF")
+
+#@<> BUG#34952027 - dumping with ocimds and ignore_wildcard_grants succeeds
+EXPECT_SUCCESS([ "invalid" ], test_output_relative, { "ocimds": True, "compatibility": [ "ignore_wildcard_grants" ],"users": True, "includeUsers": [ wild_account ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant).fixed())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_underscore).fixed())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_percent).fixed())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_underscore).fixed())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_percent).fixed())
+
+#@<> BUG#34952027 - cleanup
+session.run_sql(f"DROP USER IF EXISTS {wild_account}")
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

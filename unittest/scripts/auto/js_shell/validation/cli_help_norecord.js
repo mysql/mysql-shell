@@ -302,8 +302,8 @@ OPTIONS
 --compatibility=<str list>
             Apply MySQL Database Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
-            "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces". Default: empty.
 
 --excludeTriggers=<str list>
@@ -541,8 +541,8 @@ OPTIONS
 --compatibility=<str list>
             Apply MySQL Database Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
-            "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces". Default: empty.
 
 --excludeTriggers=<str list>
@@ -761,8 +761,8 @@ OPTIONS
 --compatibility=<str list>
             Apply MySQL Database Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
-            "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces". Default: empty.
 
 --excludeTriggers=<str list>
@@ -1316,8 +1316,11 @@ OPTIONS
             (set sql_log_bin=0). Default: false.
 
 --ignoreExistingObjects=<bool>
-            Load the dump even if it contains objects that already exist in the
-            target database. Default: false.
+            Load the dump even if it contains user accounts or DDL objects that
+            already exist in the target database. If this option is set to
+            false, any existing object results in an error. Setting it to true
+            ignores existing objects, but the CREATE statements are still going
+            to be executed. Default: false.
 
 --ignoreVersion=<bool>
             Load the dump even if the major version number of the server where
@@ -1338,9 +1341,9 @@ OPTIONS
             "fulltext", only full-text indexes will be deferred.
 
 --loadIndexes=<bool>
-            Use together with ‘deferTableIndexes’ to control whether
-            secondary indexes should be recreated at the end of the load.
-            Useful when loading DDL and data separately. Default: true.
+            Use together with deferTableIndexes to control whether secondary
+            indexes should be recreated at the end of the load. Useful when
+            loading DDL and data separately. Default: true.
 
 --schema=<str>
             Load the dump into the given schema. This option can only be used
@@ -1386,6 +1389,14 @@ OPTIONS
 --sessionInitSql=<str list>
             Execute the given list of SQL statements in each session about to
             load data. Default: [].
+
+--handleGrantErrors=<str>
+            "abort", "drop_account", "ignore" (default: abort) - Specifies
+            action to be performed in case of errors related to the
+            GRANT/REVOKE statements, "abort": throws an error and aborts the
+            load, "drop_account": deletes the problematic account and
+            continues, "ignore": ignores the error and continues loading the
+            account.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not

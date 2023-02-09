@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,6 +59,52 @@ SHCORE_PUBLIC std::string quote_identifier(std::string_view identifier,
                                            char q = '`');
 SHCORE_PUBLIC std::string quote_identifier_if_needed(std::string_view ident,
                                                      char q = '`');
+
+/**
+ * Checks if the given string contains a MySQL wildcard character (escaped or
+ * not).
+ *
+ * @param s String to be checked.
+ *
+ * @returns true If the given string contains a wildcard.
+ */
+SHCORE_PUBLIC bool has_sql_wildcard(std::string_view s);
+
+/**
+ * Checks if the given string contains an unescaped MySQL wildcard character.
+ *
+ * @param s String to be checked.
+ *
+ * @returns true If the given string contains an unescaped wildcard.
+ */
+SHCORE_PUBLIC bool has_unescaped_sql_wildcard(std::string_view s);
+
+/**
+ * Case-sensitive SQL wildcard match.
+ *
+ * @param str Input matched against pattern.
+ * @param pattern Pattern with wildcards.
+ *
+ * @returns true if str matches pattern
+ *
+ * @note MySQL uses case-insensitive wildcard match in most cases, this one is
+ * used (only?) in case of grant privileges at database level.
+ */
+SHCORE_PUBLIC bool match_sql_wild(std::string_view str,
+                                  std::string_view pattern);
+
+/**
+ * Maintains the following order of strings:
+ *  1. no wildcards
+ *  2. strings containing wildcards and non-wildcard characters
+ *  3. single multi-wildcard character('%')
+ *  4. empty string
+ * NOTE: order within groups is not lexicographic, second group is ordered by
+ *       the position of the first wildcard character, descending
+ */
+struct SHCORE_PUBLIC SQL_wild_compare {
+  bool operator()(const std::string &a, const std::string &b) const;
+};
 
 class SHCORE_PUBLIC sqlstring {
  public:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,6 +117,11 @@ class Filtering_options final {
     const Filter &included() const { return m_included; }
 
     bool is_included(const std::string &schema) const;
+
+    /**
+     * Checks if the given pattern matches an included schema (case-sensitive).
+     */
+    bool matches_included(const std::string &pattern) const;
 
     template <typename C>
     void exclude(const C &schemas) {

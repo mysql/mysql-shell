@@ -67,7 +67,7 @@ session2.run_sql("set names utf8mb4")
 
 ## Tests to ensure restricted users dumped with strip_restricted_grants can be loaded with a restricted user and not just with root
 
-#@<> ensure accounts dumped in compat mode can be loaded {VER(>=8.0.0) and not __dbug_off}
+#@<> ensure accounts dumped in compat mode can be loaded {VER(>=8.0.16) and not __dbug_off}
 testutil.dbug_set("+d,dump_loader_force_mds")
 session2.run_sql("SET global partial_revokes=1")
 
@@ -128,7 +128,7 @@ shell.connect(__sandbox_uri2)
 util.dump_instance(os.path.join(outdir, "dump_root"), {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(outdir, "dump_root", "@.users.sql"))
+EXPECT_FILE_CONTAINS(f"""CREATE ROLE IF NOT EXISTS {get_user_account_for_output("'administrator'@'%'")}""", os.path.join(outdir, "dump_root", "@.users.sql"))
 
 # dump with admin user
 shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
@@ -136,7 +136,7 @@ shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
 util.dump_instance(os.path.join(outdir, "dump_admin"), {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(outdir, "dump_admin", "@.users.sql"))
+EXPECT_FILE_CONTAINS(f"""CREATE ROLE IF NOT EXISTS {get_user_account_for_output("'administrator'@'%'")}""", os.path.join(outdir, "dump_admin", "@.users.sql"))
 
 # load with admin user
 reset_server(session2)
@@ -185,7 +185,8 @@ REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TAB
 
 testutil.dbug_set("")
 
-reset_server(session2)
+wipeout_server(session2)
+session2.run_sql("SET global partial_revokes=0")
 
 #@<> Dump ddlOnly
 shell.connect(__sandbox_uri1)
@@ -267,11 +268,6 @@ session.run_sql("CREATE USER uuuuuser@localhost IDENTIFIED BY 'pwd'")
 session.run_sql("CREATE USER uuuuuuser@localhost IDENTIFIED BY 'pwd'")
 session.run_sql("CREATE USER uuuuuuuser@localhost IDENTIFIED BY 'pwd'")
 
-session.run_sql("GRANT SELECT ON TABLE schema1.table1 TO uuuser@localhost")
-session.run_sql("GRANT EXECUTE ON FUNCTION schema1.myfun1 TO uuuser@localhost")
-session.run_sql("GRANT ALTER ROUTINE ON PROCEDURE schema1.mysp1 TO uuuser@localhost")
-session.run_sql("GRANT ALTER ON schema2.* TO uuuser@localhost")
-
 dump_dir = os.path.join(outdir, "user_load_order")
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir), "Dump")
 
@@ -282,61 +278,142 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {"loadUsers":True, "excludeUse
 
 compare_servers(session1, session2)
 
-#@<> BUG#33406711 - filtering objects should also filter relevant privileges
+#@<> BUG#34952027 - privileges are no longer filtered based on object filters
+# NOTE: this removes filtering introduced by fix for BUG#33406711
 # setup
+dump_dir = os.path.join(outdir, "bug_34952027")
+
+tested_user = "'user_34952027'@'localhost'"
+tested_user_key = tested_user.replace("'", "")
+tested_user_for_output = get_user_account_for_output(tested_user)
+
+session1.run_sql(f"CREATE USER {tested_user} IDENTIFIED BY 'pwd'")
+grant_on_table = f"GRANT SELECT ON `schema1`.`table1` TO {tested_user_for_output}"
+session1.run_sql(grant_on_table)
+grant_on_function = f"GRANT EXECUTE ON FUNCTION `schema1`.`myfun1` TO {tested_user_for_output}"
+session1.run_sql(grant_on_function)
+grant_on_procedure = f"GRANT ALTER ROUTINE ON PROCEDURE `schema1`.`mysp1` TO {tested_user_for_output}"
+session1.run_sql(grant_on_procedure)
+grant_on_excluded_schema = f"GRANT ALTER ON `schema2`.* TO {tested_user_for_output}"
+session1.run_sql(grant_on_excluded_schema)
+# schema-level privileges with wild-cards
+schema_level_grant_with_underscore = f"GRANT SELECT ON `some_schema`.* TO {tested_user_for_output}"
+session1.run_sql(schema_level_grant_with_underscore)
+schema_level_grant_with_escaped_underscore = f"GRANT SELECT ON `another\\_schema`.* TO {tested_user_for_output}"
+session1.run_sql(schema_level_grant_with_escaped_underscore)
+schema_level_grant_with_percent = f"GRANT SELECT ON `myschema%`.* TO {tested_user_for_output}"
+session1.run_sql(schema_level_grant_with_percent)
+schema_level_grant_with_escaped_percent = f"GRANT SELECT ON `all\\%`.* TO {tested_user_for_output}"
+session1.run_sql(schema_level_grant_with_escaped_percent)
+
 expected_accounts = snapshot_accounts(session1)
 del expected_accounts["root@%"]
-dump_dir = os.path.join(outdir, "bug_33406711")
 
-# dump excluding one of the schemas, load with no filters, schema-related privilege is not present
+#@<> BUG#34952027 - warnings for grants with excluded objects
+shell.connect(__sandbox_uri1)
+
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [ "schema2" ], "showProgress": False }), "Dump")
+
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_table).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_function).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_procedure).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_underscore).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_percent).warning())
+# wildcard grants are not reported
+EXPECT_STDOUT_NOT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_underscore).warning())
+EXPECT_STDOUT_NOT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_percent).warning())
+
+wipe_dir(dump_dir)
+
+#@<> BUG#34952027 - warnings for grants with excluded objects with partial_revokes ON {VER(>=8.0.16)}
+shell.connect(__sandbox_uri1)
+session.run_sql("SET @@GLOBAL.partial_revokes = ON")
+
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [ "schema2" ], "showProgress": False }), "Dump")
+
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_table).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_function).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_procedure).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_underscore).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_percent).warning())
+# partial_revokes is ON, wildcard grants are reported
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_underscore).warning())
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_percent).warning())
+
+wipe_dir(dump_dir)
+session.run_sql("SET @@GLOBAL.partial_revokes = OFF")
+
+#@<> BUG#34952027 - dump excluding one of the schemas, load with no filters, schema-related privilege is present
 wipeout_server(session2)
 
 shell.connect(__sandbox_uri1)
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "excludeSchemas": [ "schema2" ], "showProgress": False }), "Dump")
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_excluded_schema).warning())
 
 shell.connect(__sandbox_uri2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
 
-# privileges for schema2 are not included
-expected_accounts["uuuser@localhost"]["grants"] = [grant for grant in expected_accounts["uuuser@localhost"]["grants"] if "schema2" not in grant]
 # root is not re-created
 actual_accounts = snapshot_accounts(session2)
 del actual_accounts["root@%"]
-# validation
+# validation, privileges for schema2 are included
 EXPECT_EQ(expected_accounts, actual_accounts)
 
-# use the same dump, exclude a table when loading
+#@<> BUG#34952027 - use the same dump, exclude a table when loading, throws because there's a grant which refers to an excluded table
 wipeout_server(session2)
 testutil.rmfile(os.path.join(dump_dir, "load-progress*.json"))
 
 shell.connect(__sandbox_uri2)
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
-EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Filtered statement with excluded database object: GRANT SELECT ON `schema1`.`table1` TO ['`]uuuser['`]@['`]localhost['`]; -> \(skipped\)"))
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Table 'schema1.table1' doesn't exist")
+# 'abort' is the default value for handleGrantErrors
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "abort", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Table 'schema1.table1' doesn't exist")
+# invalid value for handleGrantErrors
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "invalid", "showProgress": False }), "ValueError: Util.load_dump: Argument #2: The value of the 'handleGrantErrors' option must be set to one of: 'abort', 'drop_account', 'ignore'.")
+
+#@<> BUG#34952027 - same as above, ignore the error
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "ignore", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+EXPECT_STDOUT_CONTAINS(f"""
+ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
+NOTE: The above error was ignored, the load operation will continue.
+""")
+EXPECT_STDOUT_CONTAINS("7 accounts were loaded, 1 GRANT statement errors were ignored")
 
 # privileges for schema1.table1 are not included
-expected_accounts["uuuser@localhost"]["grants"] = [grant for grant in expected_accounts["uuuser@localhost"]["grants"] if "table1" not in grant]
+expected_accounts[tested_user_key]["grants"] = [grant for grant in expected_accounts[tested_user_key]["grants"] if "table1" not in grant]
 # root is not re-created
 actual_accounts = snapshot_accounts(session2)
 del actual_accounts["root@%"]
 # validation
 EXPECT_EQ(expected_accounts, actual_accounts)
 
-# use the same dump, exclude a table and a routine when loading
-wipeout_server(session2)
-testutil.rmfile(os.path.join(dump_dir, "load-progress*.json"))
+#@<> BUG#34952027 - same as above, drop the account
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "drop_account", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+EXPECT_STDOUT_CONTAINS(f"""
+ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
+NOTE: Due to the above error the account 'user_34952027'@'localhost' was dropped, the load operation will continue.
+""")
+EXPECT_STDOUT_CONTAINS("6 accounts were loaded, 1 accounts were dropped due to GRANT statement errors")
+# ensure that no more grant statements are executed
+EXPECT_STDOUT_NOT_CONTAINS("You are not allowed to create a user with GRANT")
 
-shell.connect(__sandbox_uri2)
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "excludeRoutines": [ "schema1.myfun1" ], "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
-EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Filtered statement with excluded database object: GRANT SELECT ON `schema1`.`table1` TO ['`]uuuser['`]@['`]localhost['`]; -> \(skipped\)"))
-EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Filtered statement with excluded database object: GRANT EXECUTE ON FUNCTION `schema1`.`myfun1` TO ['`]uuuser['`]@['`]localhost['`]; -> \(skipped\)"))
-
-# privileges for schema1.myfun1 are not included
-expected_accounts["uuuser@localhost"]["grants"] = [grant for grant in expected_accounts["uuuser@localhost"]["grants"] if "myfun1" not in grant]
+# privileges for the user are not included
+del expected_accounts[tested_user_key]
 # root is not re-created
 actual_accounts = snapshot_accounts(session2)
 del actual_accounts["root@%"]
 # validation
 EXPECT_EQ(expected_accounts, actual_accounts)
+
+#@<> BUG#34952027 - a warning if the value of partial_revoke differs between source and target {VER(>=8.0.16)}
+session.run_sql("SET GLOBAL partial_revokes=1")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "drop_account", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+EXPECT_STDOUT_CONTAINS("WARNING: The dump was created on an instance where the 'partial_revokes' system variable was disabled, however the target instance has it enabled. GRANT statements on object names with wildcard characters (% or _) will behave differently.")
+session.run_sql("SET GLOBAL partial_revokes=0")
+
+#@<> BUG#34952027 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql(f"DROP USER {tested_user}")
 
 #@ Source data is utf8mb4, but double-encoded in latin1 (preparation)
 session1.run_sql("create schema dblenc")
@@ -399,13 +476,13 @@ with open(os.path.join(users_outdir, "@.users.sql"), "r+", encoding="utf-8", new
     f.truncate()
 
 # helper function
-def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None):
+def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None, is_mds=False):
     opts = { "loadUsers": True, "showProgress": False, "resetProgress": True }
     opts.update(options)
     shell.connect(__sandbox_uri2)
-    try:
+    if is_mds:
         reset_server(session)
-    except NameError:
+    else:
         wipeout_server(session)
     WIPE_OUTPUT()
     if expected_exception:
@@ -416,11 +493,11 @@ def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None)
     for i in included:
         EXPECT_TRUE(i in all_users, "User {0} should exist".format(i))
         EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(i))
-        EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(i))
+        EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user {0}".format(i))
     for e in excluded:
         EXPECT_TRUE(e not in all_users, "User {0} should not exist".format(e))
         EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(e))
-        EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(e))
+        EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user {0}".format(e))
     for u in included + excluded:
         if u.find('mysql.') != -1:
             session.run_sql("DROP USER IF EXISTS {0};".format(u))
@@ -458,7 +535,7 @@ EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["third"] }, [], ["'first'@'localhost'"
 #@<> exclude non-existent user (and root@%), all accounts are loaded, mysql.sys is always excluded (and it already exists)
 EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third", "'root'@'%'"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
-EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user 'mysql.sys'@'localhost'")
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user 'mysql.sys'@'localhost'")
 
 #@<> include an existing user, one account is loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first@localhost"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
@@ -520,15 +597,18 @@ EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "third"], "excludeUsers": ["f
 #@<> don't include or exclude anything, mysql.sys is always excluded (and it already exists)
 EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True }, [], [])
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
-EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user 'mysql.sys'@'localhost'")
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user 'mysql.sys'@'localhost'")
 
-#@<> don't include or exclude anything when loading into MDS, ocimonitor is always excluded {VER(>=8.0.0) and not __dbug_off}
+#@<> don't include or exclude anything when loading into MDS, ocimonitor is always excluded {VER(>=8.0.16) and not __dbug_off}
 testutil.dbug_set("+d,dump_loader_force_mds")
+session2.run_sql("SET global partial_revokes=1")
 
-EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True, 'ignoreVersion': True }, [], ["'ocimonitor'@'localhost'"])
+EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True, 'ignoreVersion': True }, [], ["'ocimonitor'@'localhost'"], is_mds = True)
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
-EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user 'mysql.sys'@'localhost'")
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user 'mysql.sys'@'localhost'")
 
+wipeout_server(session2)
+session2.run_sql("SET global partial_revokes=0")
 testutil.dbug_set("")
 
 #@<> cleanup tests with include/exclude users
@@ -1018,7 +1098,7 @@ EXPECT_THROWS(lambda: shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysq
 shell.connect(f"{loader_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}")
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%", "root@localhost" ], "showProgress": False }), "load should succeed")
 EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping CREATE/ALTER USER statements for user '{loader_user}'@'{host_with_netmask}'")
-EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping GRANT statements for user '{loader_user}'@'{host_with_netmask}'")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping GRANT/REVOKE statements for user '{loader_user}'@'{host_with_netmask}'")
 
 # dumper user was created
 EXPECT_NO_THROWS(lambda: shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}"), "user should exist")
@@ -2505,7 +2585,7 @@ compare_user_grants(session1, session2, tested_user)
 # NOTE: it's not possible to test routine, as when routine is removed, grant is removed as well
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP VIEW !.!", [ tested_schema, tested_view ])
-invalid_grant = f"""GRANT SELECT ON `{tested_schema}`.`{tested_view}` TO {tested_user if __version_num < 80000 else tested_user.replace("'", "`")}"""
+invalid_grant = f"""GRANT SELECT ON `{tested_schema}`.`{tested_view}` TO {get_user_account_for_output(tested_user)}"""
 
 # without MDS compatibility check
 WIPE_OUTPUT()

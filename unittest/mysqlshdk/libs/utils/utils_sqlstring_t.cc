@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <set>
 #include <string>
 
 #include "unittest/gtest_clean.h"
@@ -55,6 +56,93 @@ TEST(utils_sqlstring, boolean) {
 
 TEST(utils_sqlstring, user_defined_literal) {
   EXPECT_EQ(("sql ?"_sql << 10).str(), (sqlstring("sql ?", 0) << 10).str());
+}
+
+TEST(utils_sqlstring, has_sql_wildcard) {
+  EXPECT_EQ(false, has_sql_wildcard(""));
+
+  EXPECT_EQ(true, has_sql_wildcard("%"));
+  EXPECT_EQ(true, has_sql_wildcard("_"));
+
+  EXPECT_EQ(true, has_sql_wildcard("\\%"));
+  EXPECT_EQ(true, has_sql_wildcard("\\_"));
+
+  EXPECT_EQ(true, has_sql_wildcard("\\\\%"));
+  EXPECT_EQ(true, has_sql_wildcard("\\\\_"));
+
+  EXPECT_EQ(true, has_sql_wildcard("a%"));
+  EXPECT_EQ(true, has_sql_wildcard("a_"));
+  EXPECT_EQ(true, has_sql_wildcard("%a"));
+  EXPECT_EQ(true, has_sql_wildcard("_a"));
+  EXPECT_EQ(true, has_sql_wildcard("a%b"));
+  EXPECT_EQ(true, has_sql_wildcard("a_b"));
+
+  EXPECT_EQ(false, has_sql_wildcard("a"));
+  EXPECT_EQ(false, has_sql_wildcard("ab"));
+  EXPECT_EQ(false, has_sql_wildcard("abc"));
+}
+
+TEST(utils_sqlstring, has_unescaped_sql_wildcard) {
+  EXPECT_EQ(false, has_unescaped_sql_wildcard(""));
+
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("%"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("_"));
+
+  EXPECT_EQ(false, has_unescaped_sql_wildcard("\\%"));
+  EXPECT_EQ(false, has_unescaped_sql_wildcard("\\_"));
+
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("\\\\%"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("\\\\_"));
+
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("a%"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("a_"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("%a"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("_a"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("a%b"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("a_b"));
+
+  EXPECT_EQ(false, has_unescaped_sql_wildcard("a"));
+  EXPECT_EQ(false, has_unescaped_sql_wildcard("ab"));
+  EXPECT_EQ(false, has_unescaped_sql_wildcard("abc"));
+}
+
+TEST(utils_sqlstring, match_sql_wild) {
+  EXPECT_EQ(true, match_sql_wild("", ""));
+
+  EXPECT_EQ(true, match_sql_wild("", "%"));
+  EXPECT_EQ(false, match_sql_wild("", "_"));
+
+  EXPECT_EQ(true, match_sql_wild("_", "_"));
+  EXPECT_EQ(true, match_sql_wild("-", "_"));
+
+  EXPECT_EQ(true, match_sql_wild("_", "\\_"));
+  EXPECT_EQ(false, match_sql_wild("-", "\\_"));
+
+  EXPECT_EQ(true, match_sql_wild("%", "\\%"));
+  EXPECT_EQ(false, match_sql_wild("-", "\\%"));
+
+  EXPECT_EQ(true, match_sql_wild("%", "%"));
+  EXPECT_EQ(true, match_sql_wild("-", "%"));
+
+  EXPECT_EQ(true, match_sql_wild("xyzABCqwe", "%ABC%"));
+  EXPECT_EQ(false, match_sql_wild("xyzABCqwe", "%abc%"));
+}
+
+TEST(utils_sqlstring, SQL_wild_compare) {
+  std::multiset<std::string, SQL_wild_compare> schemas;
+  schemas.emplace("");
+  schemas.emplace("%");
+  schemas.emplace("a_");
+  schemas.emplace("ab%");
+  schemas.emplace("abc");
+
+  ASSERT_EQ(5, schemas.size());
+  auto it = schemas.begin();
+  EXPECT_EQ("abc", *it++);
+  EXPECT_EQ("ab%", *it++);
+  EXPECT_EQ("a_", *it++);
+  EXPECT_EQ("%", *it++);
+  EXPECT_EQ("", *it++);
 }
 
 }  // namespace shcore

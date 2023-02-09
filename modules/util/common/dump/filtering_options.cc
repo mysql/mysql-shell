@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -260,6 +260,24 @@ bool Filtering_options::Schema_filters::is_included(
   if (m_excluded.count(schema) > 0) return false;
 
   if (m_included.empty() || m_included.count(schema) > 0) {
+    return true;
+  }
+
+  return false;
+}
+
+bool Filtering_options::Schema_filters::matches_included(
+    const std::string &pattern) const {
+  const auto matches = [&pattern](const Filter &f) {
+    return f.end() !=
+           std::find_if(f.begin(), f.end(), [&pattern](const auto &s) {
+             return shcore::match_sql_wild(s, pattern);
+           });
+  };
+
+  if (matches(m_excluded)) return false;
+
+  if (m_included.empty() || matches(m_included)) {
     return true;
   }
 

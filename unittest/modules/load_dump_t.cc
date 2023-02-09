@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -540,6 +540,15 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
           .add_row({"4"});
     }
 
+    if (Version(m_version) >= Version(8, 0, 16)) {
+      mock_main_session
+          ->expect_query(
+              "show GLOBAL variables where `variable_name` in "
+              "('partial_revokes')")
+          .then({"Variable_name", "Value"})
+          .add_row({"partial_revokes", "OFF"});
+    }
+
     mock_main_session
         ->expect_query(
             "SELECT VARIABLE_VALUE = 'OFF' FROM "
@@ -662,6 +671,12 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
       .then({"@@server_uuid"})
       .add_row({"UUID"});
 
+  mock_main_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in ('partial_revokes')")
+      .then({"Variable_name", "Value"})
+      .add_row({"partial_revokes", "OFF"});
+
   options.set_session(mock_main_session, "");
 
   Dump_loader loader(options);
@@ -702,9 +717,22 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
         auto filter = loader.filter_user_script_for_mds();
         auto out = dump::Schema_dumper::preprocess_users_script(
-            script, [](const std::string &) { return true; }, {}, filter);
+            script, [](const std::string &) { return true; }, filter);
 
-        EXPECT_EQ(out, expected_out) << path;
+        const auto expected_lines =
+            shcore::str_split(expected_out, "\n", -1, true);
+        std::size_t line = 0;
+
+        for (const auto &g : out) {
+          for (const auto &s : g.statements) {
+            if (line < expected_lines.size()) {
+              EXPECT_EQ(s, expected_lines[line++]) << path;
+            } else {
+              EXPECT_TRUE(false)
+                  << "missing line: " << expected_lines[line++] << " " << path;
+            }
+          }
+        }
 
         return true;
       });

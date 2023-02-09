@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -52,7 +53,9 @@ class Schema_dumper {
       FIXED_BY_CREATE_INVISIBLE_PKS,
       FIXED_BY_IGNORE_MISSING_PKS,
       FIXED,
+      WARNING,
       FIX_MANUALLY,
+      FIX_WILDCARD_GRANTS,
       USE_CREATE_OR_IGNORE_PKS,
       USE_FORCE_INNODB,
       USE_STRIP_DEFINERS,
@@ -68,15 +71,26 @@ class Schema_dumper {
     Status status;
   };
 
+  struct User_statements {
+    enum class Type {
+      UNKNOWN,
+      CREATE_USER,
+      GRANT,
+      DEFAULT_ROLE,
+    };
+
+    Type type = Type::UNKNOWN;
+    std::string account;
+    std::vector<std::string> statements;
+  };
+
   explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
                          const std::vector<std::string>
                              &mysqlaas_supported_charsets = {"utf8mb4"});
 
-  static std::string preprocess_users_script(
+  static std::vector<User_statements> preprocess_users_script(
       const std::string &script,
       const std::function<bool(const std::string &)> &include_user_cb,
-      const std::function<bool(const compatibility::Privilege_level_info &)>
-          &include_object_cb = {},
       const std::function<bool(const std::string &, const std::string &)>
           &strip_revoked_privilege_cb = {});
 
@@ -134,6 +148,8 @@ class Schema_dumper {
 
   Instance_cache::Server_version server_version() const;
 
+  bool partial_revokes() const;
+
  public:
   // Config options
   bool opt_force = false;
@@ -167,6 +183,7 @@ class Schema_dumper {
   bool opt_ignore_missing_pks = false;
   bool opt_create_invisible_pks = false;
   bool opt_strip_invalid_grants = false;
+  bool opt_ignore_wildcard_grants = false;
   std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {
@@ -201,6 +218,8 @@ class Schema_dumper {
   std::string m_dump_info;
 
   const Instance_cache *m_cache = nullptr;
+
+  mutable std::optional<bool> m_partial_revokes;
 
  private:
   int execute_no_throw(const std::string &s,
@@ -323,15 +342,6 @@ class Schema_dumper {
       const std::string &select, const std::string &where,
       const common::Filtering_options::User_filters &filters,
       bool log_error = true);
-
-  bool include_grant(
-      const std::string &grant, const common::Filtering_options &filters,
-      compatibility::Privilege_level_info *out_priv = nullptr) const;
-
-  static bool include_grant(
-      const std::string &grant,
-      const std::function<bool(const compatibility::Privilege_level_info &)>
-          &include_object);
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);

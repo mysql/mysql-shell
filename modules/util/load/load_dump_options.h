@@ -76,6 +76,10 @@ inline std::string schema_table_object_key(std::string_view schema,
   return res;
 }
 
+#ifdef _WIN32
+#undef IGNORE
+#endif
+
 class Load_dump_options {
  public:
   using Connection_options = mysqlshdk::db::Connection_options;
@@ -85,6 +89,8 @@ class Load_dump_options {
   enum class Defer_index_mode { OFF, FULLTEXT, ALL };
 
   enum class Update_gtid_set { OFF, REPLACE, APPEND };
+
+  enum class Handle_grant_errors { ABORT, DROP_ACCOUNT, IGNORE };
 
   Load_dump_options();
 
@@ -216,12 +222,18 @@ class Load_dump_options {
     return m_session_init_sql;
   }
 
+  Handle_grant_errors on_grant_errors() const { return m_handle_grant_errors; }
+
+  bool partial_revokes() const { return m_partial_revokes; }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
 
   void set_max_bytes_per_transaction(const std::string &value);
 
   void set_progress_file(const std::string &file);
+
+  void set_handle_grant_errors(const std::string &action);
 
   inline std::shared_ptr<mysqlshdk::db::IResult> query(
       std::string_view sql) const {
@@ -283,8 +295,13 @@ class Load_dump_options {
 
   std::vector<std::string> m_session_init_sql;
 
+  Handle_grant_errors m_handle_grant_errors = Handle_grant_errors::ABORT;
+
   // how many threads are used by the server per one ALTER TABLE ... ADD INDEX
   uint64_t m_threads_per_add_index = 1;
+
+  // whether partial revokes are enabled
+  bool m_partial_revokes = false;
 };
 
 }  // namespace mysqlsh

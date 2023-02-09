@@ -172,6 +172,7 @@ struct Instance_cache {
   std::vector<shcore::Account> roles;
   Stats total;
   Stats filtered;
+  bool partial_revokes = false;
 };
 
 class Instance_cache_builder final {

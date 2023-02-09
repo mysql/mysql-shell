@@ -143,6 +143,9 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("mdsCompatibility"))
     m_contents.mds_compatibility = md->get_bool("mdsCompatibility");
 
+  if (md->has_key("partialRevokes"))
+    m_contents.partial_revokes = md->get_bool("partialRevokes");
+
   if (md->has_key("compatibilityOptions")) {
     const auto options = md->at("compatibilityOptions")
                              .to_string_container<std::vector<std::string>>();
@@ -1433,12 +1436,6 @@ bool Dump_reader::include_routine(const std::string &schema,
                                   const std::string &routine) const {
   return m_options.filters().routines().is_included(override_schema(schema),
                                                     routine);
-}
-
-bool Dump_reader::include_routine_ci(const std::string &schema,
-                                     const std::string &routine) const {
-  return m_options.filters().routines().is_included_ci(override_schema(schema),
-                                                       routine);
 }
 
 bool Dump_reader::include_trigger(const std::string &schema,

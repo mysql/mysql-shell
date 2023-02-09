@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef UNITTEST_MYSQLSHDK_LIBS_MYSQL_USER_PRIVILEGES_T_H_
 #define UNITTEST_MYSQLSHDK_LIBS_MYSQL_USER_PRIVILEGES_T_H_
 
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -39,12 +40,13 @@ struct Setup_options {
   std::string user = "username";
   std::string host = "hostname";
   bool user_exists = true;
-  bool is_8_0 = true;
+  mysqlshdk::utils::Version version{8, 0, 20};
   bool activate_all_roles_on_login = false;
   std::vector<std::string> mandatory_roles;
   std::vector<shcore::Account> active_roles;
   std::vector<std::string> grants;
   bool allow_skip_grants_user = false;
+  std::optional<bool> partial_revokes;
 };
 
 void setup(const Setup_options &options, Mock_session *session);

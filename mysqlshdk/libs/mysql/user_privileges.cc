@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include <mysqld_error.h>
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <vector>
 
@@ -32,7 +33,6 @@
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -113,15 +113,6 @@ std::set<std::string> validate_privileges(
 }
 
 /**
- * Creates privilege level for the given schema in form `schema`.*.
- *
- * @param schema schema name
- */
-std::string privilege_level(const std::string &schema) {
-  return shcore::quote_identifier(schema) + ".*";
-}
-
-/**
  * Creates privilege level for the given table in form `schema`.`table`.
  *
  * @param schema schema name
@@ -129,8 +120,24 @@ std::string privilege_level(const std::string &schema) {
  */
 std::string privilege_level(const std::string &schema,
                             const std::string &table) {
-  return shcore::quote_identifier(schema) + "." +
-         shcore::quote_identifier(table);
+  const auto quote = [](const std::string &name) {
+    return User_privileges::k_wildcard == name ? name
+                                               : shcore::quote_identifier(name);
+  };
+
+  return quote(schema) + "." + quote(table);
+}
+
+/**
+ * Checks if `schema`.`table` correspond to a database-level privilege.
+ *
+ * @param schema schema name
+ * @param table table name
+ */
+bool is_database_privilege_level(const std::string &schema,
+                                 const std::string &table) {
+  return User_privileges::k_wildcard != schema &&
+         User_privileges::k_wildcard == table;
 }
 
 }  // namespace
@@ -183,6 +190,7 @@ User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
       }
     }
 
+    read_partial_revokes(instance);
     parse_user_grants(instance);
   }
 }
@@ -217,23 +225,41 @@ void User_privileges::parse_user_grants(
 void User_privileges::parse_grant(const std::string &statement) {
   utils::SQL_iterator it(statement, 0, false);
 
-  std::set<std::string> privileges;
-  std::string privilege_level;
-  Privileges *target = nullptr;
+  std::function<std::set<std::string> &(const std::string &)> get_target;
+
+  const auto use = [&get_target](Privileges *target) {
+    get_target = [target](const std::string &level) -> std::set<std::string> & {
+      return (*target)[level];
+    };
+  };
+
+  const auto use_wildcard = [&get_target](Wildcard_privileges *target) {
+    get_target = [target](const std::string &level) -> std::set<std::string> & {
+      const auto range = target->equal_range(level);
+
+      for (auto curr = range.first; curr != range.second; ++curr) {
+        if (level == curr->first) {
+          return curr->second;
+        }
+      }
+
+      return target->emplace(level, std::set<std::string>{})->second;
+    };
+  };
 
   const auto type = it.next_token();
   bool grant = true;
   bool grant_all = false;
 
   if (shcore::str_caseeq(type, "GRANT")) {
-    target = &m_privileges;
+    use(&m_privileges.regular);
 
     if (shcore::str_ibeginswith(statement, k_grant_all)) {
       grant_all = true;
       it.set_position(::strlen(k_grant_all));
     }
   } else if (shcore::str_caseeq(type, "REVOKE")) {
-    target = &m_revoked_privileges;
+    use(&m_revoked_privileges);
 
     // REVOKE statements can appear if partial_revokes is enabled, partial
     // revokes apply at the schema level only (column_list or object_type) does
@@ -242,6 +268,8 @@ void User_privileges::parse_grant(const std::string &statement) {
   } else {
     throw std::logic_error("Unsupported grant statement: " + std::string{type});
   }
+
+  std::set<std::string> privileges;
 
   if (!grant_all) {
     bool all_privileges_done = false;
@@ -285,8 +313,15 @@ void User_privileges::parse_grant(const std::string &statement) {
     } while (!all_privileges_done);
   }
 
+  if (1 == privileges.size() &&
+      shcore::str_caseeq(*privileges.begin(), "PROXY")) {
+    // GRANT PROXY ON user_or_role TO user_or_role ...
+    // PROXY privilege is not handled
+    return;
+  }
+
   // we're now past ON, next is [object_type] priv_level
-  privilege_level = it.next_token();
+  std::string privilege_level{it.next_token()};
 
   if (shcore::str_caseeq(privilege_level, "FUNCTION", "PROCEDURE")) {
     // we're not interested in such privileges
@@ -295,14 +330,23 @@ void User_privileges::parse_grant(const std::string &statement) {
     privilege_level = it.next_token();
   }
 
+  // get the privilege level
+  std::string schema;
+  std::string table;
+  shcore::split_priv_level(privilege_level, &schema, &table);
+
+  const auto uses_wildcards = is_wildcard_privilege_level(schema, table);
+
+  if (uses_wildcards) {
+    // this cannot be a revoked privilege, as partial_revokes has to be disabled
+    use_wildcard(&m_privileges.wildcard);
+    // we're storing wildcard privileges using schema name only
+    privilege_level = schema;
+  }
+
   if (grant_all) {
     // check what kind of privilege level is it, choose which privileges are
     // granted
-    std::string schema;
-    std::string table;
-
-    shcore::split_priv_level(privilege_level, &schema, &table);
-
     if (k_wildcard == schema) {
       privileges = m_all_privileges;
     } else {
@@ -318,17 +362,21 @@ void User_privileges::parse_grant(const std::string &statement) {
   while (it.valid()) {
     if (shcore::str_caseeq(it.next_token(), "GRANT") &&
         shcore::str_caseeq(it.next_token(), "OPTION")) {
-      target = &m_grantable_privileges;
+      if (uses_wildcards) {
+        use_wildcard(&m_grantable_privileges.wildcard);
+      } else {
+        use(&m_grantable_privileges.regular);
+      }
       break;
     }
   }
 
   // AS user does not appear in the output of SHOW GRANTS
 
-  assert(target);
+  assert(get_target);
 
   if (!privileges.empty()) {
-    auto &current_privileges = (*target)[privilege_level];
+    auto &current_privileges = get_target(privilege_level);
 
     std::move(privileges.begin(), privileges.end(),
               std::inserter(current_privileges, current_privileges.begin()));
@@ -336,26 +384,38 @@ void User_privileges::parse_grant(const std::string &statement) {
 }
 
 std::set<std::string> User_privileges::get_privileges_at_level(
-    const Privileges &privileges, const std::string &schema,
+    const All_privileges &privileges, const std::string &schema,
     const std::string &table) const {
   std::set<std::string> user_privileges;
 
-  const auto copy = [&user_privileges, &privileges](const std::string &level) {
-    const auto it = privileges.find(level);
-
-    if (it != privileges.end()) {
-      std::copy(it->second.begin(), it->second.end(),
+  const auto copy = [&user_privileges, &privileges](const std::string &s,
+                                                    const std::string &t) {
+    const auto level = privilege_level(s, t);
+    const auto it = privileges.regular.find(level);
+    const auto insert = [&user_privileges](const auto &container) {
+      std::copy(container.begin(), container.end(),
                 std::inserter(user_privileges, user_privileges.begin()));
+    };
+
+    if (it != privileges.regular.end()) {
+      insert(it->second);
+    } else if (is_database_privilege_level(s, t)) {
+      for (const auto &wild : privileges.wildcard) {
+        if (shcore::match_sql_wild(s, wild.first)) {
+          insert(wild.second);
+          break;
+        }
+      }
     }
   };
 
-  copy("*.*");
+  copy(k_wildcard, k_wildcard);
 
   if (k_wildcard != schema) {
-    copy(privilege_level(schema));
+    copy(schema, k_wildcard);
 
     if (k_wildcard != table) {
-      copy(privilege_level(schema, table));
+      copy(schema, table);
     }
   }
 
@@ -364,36 +424,46 @@ std::set<std::string> User_privileges::get_privileges_at_level(
 
 std::set<std::string> User_privileges::get_missing_privileges(
     const std::set<std::string> &required_privileges, const std::string &schema,
-    const std::string &table, bool only_grantable) const {
-  std::set<std::string> user_privileges =
+    const std::string &table, bool *are_grantable) const {
+  assert(are_grantable);
+
+  auto grantable_privileges =
       get_privileges_at_level(m_grantable_privileges, schema, table);
-
-  if (!only_grantable) {
-    auto privileges = get_privileges_at_level(m_privileges, schema, table);
-
-    std::move(privileges.begin(), privileges.end(),
-              std::inserter(user_privileges, user_privileges.begin()));
-  }
+  auto privileges = get_privileges_at_level(m_privileges, schema, table);
 
   if (k_wildcard != schema) {
     // partial revokes apply at the schema level only
-    const auto it = m_revoked_privileges.find(privilege_level(schema));
+    const auto it =
+        m_revoked_privileges.find(privilege_level(schema, k_wildcard));
 
     if (it != m_revoked_privileges.end()) {
       for (const auto &revoked : it->second) {
-        user_privileges.erase(revoked);
+        grantable_privileges.erase(revoked);
+        privileges.erase(revoked);
       }
     }
   }
 
-  std::set<std::string> missing_privileges;
+  const auto get_missing = [&required_privileges](const auto &actual) {
+    std::set<std::string> missing;
+    std::set_difference(required_privileges.begin(), required_privileges.end(),
+                        actual.begin(), actual.end(),
+                        std::inserter(missing, missing.begin()));
+    return missing;
+  };
 
-  std::set_difference(
-      required_privileges.begin(), required_privileges.end(),
-      user_privileges.begin(), user_privileges.end(),
-      std::inserter(missing_privileges, missing_privileges.begin()));
+  *are_grantable = get_missing(grantable_privileges).empty();
 
-  return missing_privileges;
+  privileges.merge(grantable_privileges);
+  return get_missing(privileges);
+}
+
+bool User_privileges::is_wildcard_privilege_level(
+    const std::string &schema, const std::string &table) const {
+  // wildcard match is used only if partial_revokes is disabled and a
+  // schema name in a database-level privilege contains a SQL wildcard character
+  return !m_partial_revokes && is_database_privilege_level(schema, table) &&
+         shcore::has_sql_wildcard(schema);
 }
 
 User_privileges_result User_privileges::validate(
@@ -493,6 +563,17 @@ void User_privileges::read_user_roles(
   }
 }
 
+void User_privileges::read_partial_revokes(
+    const mysqlshdk::mysql::IInstance &instance) {
+  // Partial revokes were added in 8.0.16
+  if (instance.get_version() < Version(8, 0, 16)) {
+    m_partial_revokes = false;
+  } else {
+    m_partial_revokes =
+        instance.get_sysvar_bool("partial_revokes").value_or(false);
+  }
+}
+
 void User_privileges::set_all_privileges(
     const mysqlshdk::mysql::IInstance &instance) {
   const auto result = instance.query("SHOW PRIVILEGES");
@@ -520,12 +601,8 @@ User_privileges_result::User_privileges_result(
       validate_privileges(required_privileges, privileges.m_all_privileges);
 
   if (m_user_exists) {
-    m_has_grant_option =
-        privileges
-            .get_missing_privileges(uppercase_privileges, schema, table, true)
-            .empty();
     m_missing_privileges = privileges.get_missing_privileges(
-        uppercase_privileges, schema, table, false);
+        uppercase_privileges, schema, table, &m_has_grant_option);
   } else {
     m_has_grant_option = false;
     m_missing_privileges = std::move(uppercase_privileges);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,6 +66,8 @@ class Dump_reader {
   }
 
   bool mds_compatibility() const { return m_contents.mds_compatibility; }
+
+  bool partial_revokes() const { return m_contents.partial_revokes; }
 
   bool should_create_pks() const;
 
@@ -238,8 +240,6 @@ class Dump_reader {
   bool include_event(const std::string &schema, const std::string &event) const;
   bool include_routine(const std::string &schema,
                        const std::string &routine) const;
-  bool include_routine_ci(const std::string &schema,
-                          const std::string &routine) const;
   bool include_trigger(const std::string &schema, const std::string &table,
                        const std::string &trigger) const;
 
@@ -448,6 +448,7 @@ class Dump_reader {
     bool gtid_executed_inconsistent = false;
     bool tz_utc = true;
     bool mds_compatibility = false;
+    bool partial_revokes = false;
     bool create_invisible_pks = false;
     bool table_only = false;
     mysqlshdk::utils::Version server_version;
