@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,6 +65,7 @@ ClassicResult::ClassicResult(
   add_property("executionTime", "getExecutionTime");
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("info", "getInfo");
+  add_property("statementId", "getStatementId");
 
   expose("fetchOne", &ClassicResult::fetch_one);
   expose("fetchOneObject", &ClassicResult::_fetch_one_object);
@@ -507,6 +508,40 @@ List ClassicResult::getWarnings() {}
 list ClassicResult::get_warnings() {}
 #endif
 
+// Documentation of the getStatementId function
+REGISTER_HELP_FUNCTION(getStatementId, ClassicResult);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETSTATEMENTID, R"*(
+Retrieves the statement id of the query that produced this result.
+
+@returns a string value containing the statement id of query that produced this result.
+
+The statement id will be available as long as the following conditions are met:
+
+@li The statement_id session tracker is enabled.
+@li The result has been consumed.
+
+The statement_id session tracker is enabled by configuring the value of the
+<b>session_track_system_variables</b> session variable in any of the following ways:
+
+@li The value '*' which enables all the session trackers.
+@li The value contains 'statement_id' which enables the statement_id session tracker.
+
+If any of the above conditions is not met, the function will return an empty string.
+)*");
+REGISTER_HELP_PROPERTY(statementId, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_STATEMENTID_BRIEF,
+              "${CLASSICRESULT_GETSTATEMENTID_BRIEF}");
+/**
+ * $(CLASSICRESULT_GETSTATEMENTID_BRIEF)
+ *
+ * $(CLASSICRESULT_GETSTATEMENTID)
+ */
+#if DOXYGEN_JS
+String ClassicResult::getStatementId() {}
+#elif DOXYGEN_PY
+str ClassicResult::get_statement_id() {}
+#endif
+
 shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "affectedRowCount" || prop == "affectedItemsCount") {
     if (prop == "affectedRowCount") {
@@ -592,6 +627,10 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
     } else {
       return shcore::Value(shcore::make_array());
     }
+  }
+
+  if (prop == "statementId") {
+    return shcore::Value(_result->get_statement_id());
   }
 
   return ShellBaseResult::get_member(prop);

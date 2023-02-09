@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -586,7 +586,31 @@ std::vector<std::string> Session_impl::get_last_gtids() const {
       gtids.emplace_back(std::string(data, length));
     }
   }
+
   return gtids;
+}
+
+std::optional<std::string> Session_impl::get_last_statement_id() const {
+  const char *data;
+  size_t length;
+  std::optional<std::string> statement_id;
+
+  if (mysql_session_track_get_first(_mysql, SESSION_TRACK_SYSTEM_VARIABLES,
+                                    &data, &length) == 0) {
+    bool found_statement_id = strncmp(data, "statement_id", length) == 0;
+
+    while (!statement_id.has_value() &&
+           mysql_session_track_get_next(_mysql, SESSION_TRACK_SYSTEM_VARIABLES,
+                                        &data, &length) == 0) {
+      if (found_statement_id) {
+        statement_id = std::string(data, length);
+      } else {
+        found_statement_id = strncmp(data, "statement_id", length) == 0;
+      }
+    }
+  }
+
+  return statement_id;
 }
 
 std::string Session::escape_string(std::string_view s) const {

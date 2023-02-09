@@ -39,6 +39,9 @@ PROPERTIES
             Retrieves a string providing information about the most recently
             executed statement.
 
+      statementId
+            Retrieves the statement id of the query that produced this result.
+
       warningCount
             Same as getWarningCount
 
@@ -91,6 +94,9 @@ FUNCTIONS
       getInfo()
             Retrieves a string providing information about the most recently
             executed statement.
+
+      getStatementId()
+            Retrieves the statement id of the query that produced this result.
 
       getWarningCount()
             The number of warnings produced by the last statement execution.

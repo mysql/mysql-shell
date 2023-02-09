@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   String info;                 //!< Same as getInfo()
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
   List warnings;               //!< Same as getWarnings()
+  String statementId;          //!< Same as getStatementId()
   /**
    * Same as getWarningCount()
    *
@@ -90,6 +91,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   List getWarnings();
   Bool nextDataSet();
   Bool nextResult();
+  Srting getStatementId();
 #elif DOXYGEN_PY
   int affected_items_count;  //!< Same as get_affected_items_count()
   /**
@@ -106,6 +108,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   str info;                  //!< Same as get_info()
   int auto_increment_value;  //!< Same as get_auto_increment_value()
   list warnings;             //!< Same as get_warnings()
+  str statement_id;          //!< Same as get_statement_id()
   /**
    * Same as get_warning_count()
    *
@@ -132,6 +135,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   list get_warnings();
   bool next_data_set();
   bool next_result();
+  str get_statement_id();
 #endif
 
   explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);

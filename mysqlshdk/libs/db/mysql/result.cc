@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -232,17 +232,33 @@ const IRow *Result::fetch_one() {
             const char *err = session->get_last_error(&code, &state);
             if (code != 0) throw mysqlshdk::db::Error(err, code, state);
           }
+
+          // It means we are done, time to fetch the statement id
+          fetch_statement_id();
         }
       } else {
         _row.reset();
       }
     } else {
+      fetch_statement_id();
       _row.reset();
     }
     return _row.get();
   }
 
   return nullptr;
+}
+
+void Result::fetch_statement_id() {
+  if (!m_statement_id.has_value()) {
+    if (auto s = _session.lock()) {
+      m_statement_id = s->get_last_statement_id();
+    }
+  }
+}
+
+std::string Result::get_statement_id() const {
+  return m_statement_id.value_or("");
 }
 
 bool Result::next_resultset() {
@@ -311,7 +327,7 @@ void Result::reset(std::shared_ptr<MYSQL_RES> res) {
   _pre_fetched_clear_at_end = false;
   _fetched_row_count = 0;
   _pre_fetched_rows.clear();
-  _result = res;
+  _result = std::move(res);
 
   if (res) {
     _has_resultset = true;
@@ -319,6 +335,9 @@ void Result::reset(std::shared_ptr<MYSQL_RES> res) {
   }
 
   if (auto s = _session.lock()) _gtids = s->get_last_gtids();
+
+  // Non query results may have the statement_id information already available
+  fetch_statement_id();
 }
 
 void Result::buffer() {

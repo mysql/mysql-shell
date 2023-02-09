@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2442,6 +2442,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"autoIncrementValue", "", false},
                                   {"affectedItemsCount", "", true},
                                   {"affectedRowCount", "", true},
+                                  {"statementId", "", false},
                                   {"fetchAll", "", true},
                                   {"fetchOne", "", true},
                                   {"fetchOneObject", "", true},
@@ -2456,6 +2457,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getWarningsCount", "", true},
                                   {"getWarnings", "", true},
                                   {"getInfo", "", true},
+                                  {"getStatementId", "", true},
                                   {"info", "", false},
                                   {"hasData", "", true},
                                   {"help", "", true},
