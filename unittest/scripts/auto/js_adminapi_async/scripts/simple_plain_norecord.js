@@ -111,7 +111,7 @@ EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, _
 
 rs.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
 
-testutil.waitMemberState(__mysql_sandbox_port3, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port3, "", "ON");
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -122,7 +122,7 @@ EXPECT_REPLICAS_USE_SSL(session1, 1);
 //@ addInstance (clone) {VER(>=8.0.17)}
 rs.addInstance(__sandbox_uri2, {recoveryMethod:'clone'});
 
-testutil.waitMemberState(__mysql_sandbox_port2, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port2, "", "ON");
 
 session2 = mysql.getSession(__sandbox_uri2);
 expected_pids2 = get_open_sessions(session2);
@@ -136,7 +136,7 @@ EXPECT_REPLICAS_USE_SSL(session1, 2);
 //@ addInstance (no clone) {VER(<8.0.17)}
 rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
-testutil.waitMemberState(__mysql_sandbox_port2, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port2, "", "ON");
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -153,7 +153,7 @@ check_open_sessions(session3, expected_pids3);
 
 rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
-testutil.waitMemberState(__mysql_sandbox_port2, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port2, "", "ON");
 
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
@@ -179,7 +179,7 @@ EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.force
 
 rs.forcePrimaryInstance(__sandbox_uri1);
 
-testutil.waitMemberState(__mysql_sandbox_port2, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port2, "", "ON");
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -197,7 +197,7 @@ EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInsta
 
 rs.rejoinInstance(__sandbox_uri3);
 
-testutil.waitMemberState(__mysql_sandbox_port3, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port3, "", "ON");
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -211,7 +211,7 @@ session3.runSql("STOP SLAVE");
 
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"clone"});
 
-testutil.waitMemberState(__mysql_sandbox_port3, "ON", true);
+testutil.waitReplicationChannelState(__mysql_sandbox_port3, "", "ON");
 
 session3 = mysql.getSession(__sandbox_uri3);
 expected_pids3 = get_open_sessions(session3);

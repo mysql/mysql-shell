@@ -268,6 +268,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("waitForDelayedGRStart", &Testutils::wait_for_delayed_gr_start, "port",
          "rootpass", "?timeout",
          static_cast<int>(k_wait_delayed_gr_start_timeout));
+  expose("waitReplicationChannelState",
+         &Testutils::wait_replication_channel_state, "port", "channelName",
+         "states");
   expose("mkdir", &Testutils::mk_dir, "name", "?recursive");
   expose("rmdir", &Testutils::rm_dir, "name", "?recursive");
   expose("rename", &Testutils::rename, "path", "newpath");
@@ -975,6 +978,72 @@ void Testutils::wait_for_delayed_gr_start(int port,
     throw std::runtime_error(
         "Timeout waiting for the Group Replication Plugin to start/stop");
   }
+}
+
+///@{
+/**
+ * Waits until the specified channel reaches one of the specified states.
+ * @param port The port of the instance to be polled.
+ * @param channelName The name of the channel to monitor.
+ * @param states An array containing the states that would cause the poll cycle
+ * to finish.
+ *
+ * This function is to be used with the members of a cluster.
+ *
+ * It will start a polling cycle verifying the state of a specific channel,
+ * which ends when one of the expected states is reached or if the timeout of
+ * k_wait_member_timeout seconds occurs.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::waitReplicationChannelState(Integer port,
+                                                 String channelName,
+                                                 String[] states);
+#elif DOXYGEN_PY
+None Testutils::wait_replication_channel_state(int port, str channel_name,
+                                               str[] states);
+#endif
+///@}
+void Testutils::wait_replication_channel_state(int port,
+                                               const std::string &channel_name,
+                                               const std::string &states) {
+  if (states.empty()) {
+    throw std::invalid_argument(
+        "states argument for wait_replication_channel_state() can't be empty");
+  }
+
+  std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
+
+  std::string current_state;
+  int curtime = 0;
+  while (curtime < k_wait_member_timeout) {
+    // Get the replication channel status
+    auto result = session->query(("SELECT service_state FROM "
+                                  "performance_schema.replication_connection_"
+                                  "status WHERE channel_name = ?"_sql
+                                  << channel_name)
+                                     .str());
+
+    current_state = "OFF";
+    if (auto row = result->fetch_one(); row) current_state = row->get_string(0);
+
+    if (states.find(current_state) != std::string::npos) {
+      session->close();
+      return;
+    }
+
+    shcore::sleep((mysqlshdk::db::replay::g_replay_mode ==
+                   mysqlshdk::db::replay::Mode::Replay)
+                      ? std::chrono::milliseconds(1)
+                      : std::chrono::seconds(1));
+    curtime++;
+  }
+
+  session->close();
+
+  throw std::runtime_error(
+      shcore::str_format("Timeout while waiting for replication channel status "
+                         "to reach one of '%s': seems to be stuck as '%s'",
+                         states.c_str(), current_state.c_str()));
 }
 
 //!<  @name InnoDB Cluster Utilities
@@ -2299,16 +2368,12 @@ void Testutils::change_sandbox_uuid(int port, const std::string &server_uuid) {
 //!<  @name InnoDB Cluster Utilities
 ///@{
 /**
- * Waits until a cluster member reaches one of the specified states. It also
- * supports ReplicaSets, in which case the specified states correspond to the
- * asynchronous replication channel state.
- *
+ * Waits until a cluster member reaches one of the specified states.
  * @param port The port of the instance to be polled listens for MySQL
  * connections.
  * @param states An array containing the states that would cause the poll cycle
  * to finish.
  * @param direct If true, opens a direct session to the member to be observed.
- * When used with ReplicaSets, this must be true.
  * @returns The state of the member.
  *
  * This function is to be used with the members of a cluster.
@@ -2352,55 +2417,6 @@ std::string Testutils::wait_member_state(int member_port,
 
   std::string current_state;
   int curtime = 0;
-
-  bool is_replica_set{false};
-  try {
-    auto result = session->query(
-        "SELECT c.cluster_type FROM mysql_innodb_cluster_metadata.instances i "
-        "INNER JOIN (SELECT @@GLOBAL.server_id id) s ON "
-        "(i.attributes->'$.server_id' = s.id) INNER JOIN "
-        "mysql_innodb_cluster_metadata.clusters c ON (i.cluster_id = "
-        "c.cluster_id);");
-
-    if (auto row = result->fetch_one(); row)
-      is_replica_set = shcore::str_caseeq(row->get_string(0), "ar");
-  } catch (const std::exception &) {
-  }
-
-  // if it's a replica set
-  if (is_replica_set) {
-    while (curtime < k_wait_member_timeout) {
-      // Get the replication channel status
-      auto result = session->query(("SELECT service_state FROM "
-                                    "performance_schema.replication_connection_"
-                                    "status WHERE channel_name = ''"_sql)
-                                       .str());
-
-      current_state = "OFF";
-      if (auto row = result->fetch_one(); row)
-        current_state = row->get_string(0);
-
-      if (states.find(current_state) != std::string::npos) {
-        session->close();
-        return {};
-      }
-
-      shcore::sleep((mysqlshdk::db::replay::g_replay_mode ==
-                     mysqlshdk::db::replay::Mode::Replay)
-                        ? std::chrono::milliseconds(1)
-                        : std::chrono::seconds(1));
-
-      curtime++;
-    }
-
-    session->close();
-
-    throw std::runtime_error(
-        "Timeout while waiting for read-replica to become one of '" + states +
-        "': seems to be stuck as " + current_state);
-  }
-
-  // it's a cluster
 
   while (curtime < k_wait_member_timeout) {
     auto result = session->query(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -290,6 +290,9 @@ class Testutils : public mysqlsh::Extensible_object {
   // InnoDB cluster routines
   void wait_for_delayed_gr_start(int port, const std::string &root_pass,
                                  int timeout = 100);
+
+  void wait_replication_channel_state(int port, const std::string &channel_name,
+                                      const std::string &states);
 
   int wait_for_repl_connection_error(int port, const std::string &channel);
 
