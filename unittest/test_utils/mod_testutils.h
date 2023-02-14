@@ -286,6 +286,9 @@ class Testutils : public mysqlsh::Extensible_object {
   void wait_for_delayed_gr_start(int port, const std::string &root_pass,
                                  int timeout = 100);
 
+  void wait_replication_channel_state(int port, const std::string &channel_name,
+                                      const std::string &states);
+
   int wait_for_repl_connection_error(int port, const std::string &channel);
 
   int wait_for_repl_applier_error(int port, const std::string &channel);
