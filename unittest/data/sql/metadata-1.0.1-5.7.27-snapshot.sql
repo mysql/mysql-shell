@@ -151,7 +151,7 @@ CREATE TABLE `replicasets` (
 
 LOCK TABLES `replicasets` WRITE;
 /*!40000 ALTER TABLE `replicasets` DISABLE KEYS */;
-INSERT INTO `replicasets` VALUES (1,1,'gr','pm','default',1,'{\"adopted\": \"0\", \"group_replication_group_name\": \"2dd3eff5-b072-11e9-a287-1c666d9935bf\"}',NULL);
+INSERT INTO `replicasets` VALUES (1,1,'gr','pm','default',1,'{\"adopted\": \"false\", \"group_replication_group_name\": \"2dd3eff5-b072-11e9-a287-1c666d9935bf\"}',NULL);
 /*!40000 ALTER TABLE `replicasets` ENABLE KEYS */;
 UNLOCK TABLES;
 

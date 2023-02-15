@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,7 +87,10 @@ ALTER TABLE mysql_innodb_cluster_metadata_previous.instances DROP FOREIGN KEY in
 
 INSERT INTO clusters
     SELECT CAST(c.cluster_id AS CHAR(36)), c.cluster_name, c.description,
-                c.options, JSON_MERGE_PATCH(JSON_REMOVE(c.attributes, '$.adminType'), JSON_REPLACE(r.attributes, '$.adopted', CONVERT(r.attributes->>'$.adopted', UNSIGNED INTEGER))),
+                c.options, JSON_MERGE_PATCH(JSON_REMOVE(c.attributes, '$.adminType'), JSON_REPLACE(r.attributes, '$.adopted',
+                    CASE WHEN LOWER(r.attributes->>'$.adopted') = "true" THEN 1
+                        WHEN LOWER(r.attributes->>'$.adopted') = "false" THEN 0
+                        ELSE CONVERT(r.attributes->>'$.adopted', UNSIGNED INTEGER) END)),
                 'gr', r.topology_type, NULL
     FROM mysql_innodb_cluster_metadata_previous.clusters AS c,
          mysql_innodb_cluster_metadata_previous.replicasets AS r
