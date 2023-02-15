@@ -205,7 +205,7 @@ SYNTAX
       cluster list-routers [<options>]
 
 RETURNS
-      A JSON object listing the Router instances associated to the cluster.
+      A JSON object listing the Router instances associated to the Cluster.
 
 OPTIONS
 --onlyUpgradeRequired=<bool>
@@ -415,7 +415,7 @@ SYNTAX
       cluster setup-admin-account <user> [<options>]
 
 WHERE
-      user: Name of the InnoDB cluster administrator account.
+      user: Name of the InnoDB Cluster administrator account.
 
 RETURNS
       Nothing.
@@ -441,7 +441,7 @@ OPTIONS
             'DEFAULT' to use the system default.
 
 --password=<str>
-            The password for the InnoDB cluster administrator account.
+            The password for the InnoDB Cluster administrator account.
 
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command

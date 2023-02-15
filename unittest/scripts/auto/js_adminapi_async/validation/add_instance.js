@@ -172,7 +172,7 @@
 ||
 
 //@# add while the instance we got the rs from is down (should fail)
-||Failed to execute query on Metadata server <<<__endpoint_uri1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
+||The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object.
 
 //@# add while PRIMARY down (should fail)
 |Cluster change operations will not be possible unless the PRIMARY can be reached.|

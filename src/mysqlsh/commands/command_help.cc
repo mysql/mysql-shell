@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -198,7 +198,8 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                   name,
                                   const_cast<shcore::Help_topic *>(sql),
                                   {},
-                                  true});
+                                  true,
+                                  {}});
             entry = result->fetch_one();
           }
           // If found a specific topi we are overloading the tag field to
@@ -212,7 +213,8 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                 entry->get_string(desc_col),
                                 const_cast<shcore::Help_topic *>(sql),
                                 {},
-                                true});
+                                true,
+                                {}});
         }
       }
     }
@@ -328,9 +330,9 @@ void Command_help::print_help_global() {
                                     Topic_mask(), "detail,categories"));
 
   if (_shell->interactive_mode() == shcore::IShell_core::Mode::SQL) {
-    help->add_section("", "HELP_AVAILABLE_TOPICS_SQL", &sections, 0);
+    help->add_section({}, "", "HELP_AVAILABLE_TOPICS_SQL", &sections, 0);
   } else {
-    help->add_section("", "HELP_AVAILABLE_TOPICS_SCRIPTING", &sections, 0);
+    help->add_section({}, "", "HELP_AVAILABLE_TOPICS_SCRIPTING", &sections, 0);
   }
 
   sections.push_back(textui::bold("SHELL COMMANDS"));
@@ -355,6 +357,7 @@ void Command_help::print_help_global() {
                                  object->class_name() + "_GLOBAL",
                                  nullptr,
                                  {},
+                                 {},
                                  {}});
       }
     }
@@ -366,12 +369,14 @@ void Command_help::print_help_global() {
                              "MYSQLX_GLOBAL",
                              nullptr,
                              {},
+                             {},
                              {}});
     global_topics.push_back({"",
                              "mysql",
                              shcore::Topic_type::TOPIC,
                              "MYSQL_GLOBAL",
                              nullptr,
+                             {},
                              {},
                              {}});
 
@@ -382,11 +387,11 @@ void Command_help::print_help_global() {
               shcore::Help_topic_compare());
 
     sections.push_back(textui::bold("GLOBAL OBJECTS"));
-    _shell->get_helper()->add_childs_section(global_refs, &sections, 0, false,
-                                             "GLOBALS", "GLOBALS");
-    help->add_examples_section("GLOBALS_EXAMPLE_SCRIPTING", &sections, 0);
+    _shell->get_helper()->add_childs_section({}, global_refs, &sections, 0,
+                                             false, "GLOBALS", "GLOBALS");
+    help->add_examples_section({}, "GLOBALS_EXAMPLE_SCRIPTING", &sections, 0);
   } else {
-    help->add_examples_section("GLOBALS_EXAMPLE_SQL", &sections, 0);
+    help->add_examples_section({}, "GLOBALS_EXAMPLE_SQL", &sections, 0);
   }
 
   mysqlsh::current_console()->println(shcore::str_join(sections, "\n\n"));

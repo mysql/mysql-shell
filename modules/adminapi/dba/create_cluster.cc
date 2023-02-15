@@ -37,6 +37,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
@@ -425,15 +426,14 @@ void Create_cluster::prepare() {
 
       // Generate the GR group name (if needed).
       if (!m_options.gr_options.group_name.has_value()) {
-        m_options.gr_options.group_name =
-            mysqlshdk::gr::generate_uuid(*m_target_instance);
+        m_options.gr_options.group_name = m_target_instance->generate_uuid();
       }
 
       // Generate the GR view-change UUID
       if (m_target_instance->get_version() >=
           Precondition_checker::k_min_cs_version) {
         m_options.gr_options.view_change_uuid =
-            mysqlshdk::gr::generate_uuid(*m_target_instance);
+            m_target_instance->generate_uuid();
       }
     }
 
@@ -1038,6 +1038,12 @@ shcore::Value Create_cluster::execute() {
               m_target_instance->get_sysvar_int(kGrTransactionSizeLimit)
                   .value_or(0)));
     }
+
+    // Set and store the default Routing Options
+    for (const auto &i : k_default_cluster_router_options)
+      metadata->set_global_routing_option(Cluster_type::GROUP_REPLICATION,
+                                          cluster_impl->get_id(), i.first,
+                                          i.second);
 
     // Insert instance into the metadata.
     if (m_options.get_adopt_from_gr()) {

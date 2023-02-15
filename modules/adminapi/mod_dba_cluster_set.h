@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include "modules/adminapi/base_cluster.h"
 #include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
@@ -44,7 +45,7 @@ namespace dba {
  * $(CLUSTERSET)
  */
 class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
-                   public shcore::Cpp_object_bridge {
+                   public Base_cluster {
  public:
 #if DOXYGEN_JS
   String name;  //!< $(CLUSTERSET_GETNAME_BRIEF)
@@ -60,6 +61,8 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   String describe();
   Undefined setRoutingOption(String option, String value);
   Undefined setRoutingOption(String router, String option, String value);
+  Undefined setupAdminAccount(String user, Dictionary options);
+  Undefined setupRouterAccount(String user, Dictionary options);
   Dictionary routingOptions(String router);
   Dictionary listRouters(String router);
   Undefined setOption(String option, String value);
@@ -78,9 +81,11 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   str describe();
   None set_routing_option(str option, str value);
   None set_routing_option(str router, str option, str value);
+  None setup_admin_account(str user, dict options);
+  None setup_router_account(str user, dict options);
   dict routing_options(str router);
   dict list_routers(str router);
-  set_option(str option, str value);
+  None set_option(str option, str value);
   str options();
 #endif
 
@@ -89,12 +94,6 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   virtual ~ClusterSet();
 
   std::string class_name() const override { return "ClusterSet"; }
-  std::string &append_descr(std::string &s_out, int indent = -1,
-                            int quote_strings = 0) const override;
-  void append_json(shcore::JSON_dumper &dumper) const override;
-  bool operator==(const Object_bridge &other) const override;
-
-  shcore::Value get_member(const std::string &prop) const override;
 
  public:
   void disconnect();
@@ -128,6 +127,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   shcore::Value describe();
 
   std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
+  Base_cluster_impl *base_impl() const override { return m_impl.get(); }
 
   shcore::Value options();
 
@@ -135,32 +135,16 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
 
   shcore::Value list_routers(const std::string &router);
 
-  void set_routing_option(const std::string &option,
-                          const shcore::Value &value);
-
-  void set_routing_option(const std::string &router, const std::string &option,
-                          const shcore::Value &value);
-
-  shcore::Value routing_options(const std::string &router);
-
-  void setup_admin_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
-
-  void setup_router_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
-
  protected:
   void init();
 
  private:
   std::shared_ptr<Cluster_set_impl> m_impl;
 
-  void assert_valid(const std::string &function_name);
+  void assert_valid(const std::string &function_name) const override;
 
   template <typename TCallback>
-  auto execute_with_pool(TCallback &&f, bool interactive) {
+  auto execute_with_pool(TCallback &&f, bool interactive = false) const {
     // Init the connection pool
     Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
                                      interactive,

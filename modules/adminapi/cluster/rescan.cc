@@ -722,7 +722,7 @@ void Rescan::ensure_view_change_uuid_set() {
           "group_replication_view_change_uuid...");
 
       // Generate a value for group_replication_view_change_uuid
-      view_change_uuid = mysqlshdk::gr::generate_uuid(*cluster_instance);
+      view_change_uuid = cluster_instance->generate_uuid();
 
       // Get the Cluster Config Object
       // This ensures the config is set on ONLINE || RECOVERING members

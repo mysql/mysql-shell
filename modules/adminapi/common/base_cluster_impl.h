@@ -108,6 +108,8 @@ class Base_cluster_impl {
     return m_primary_master;
   }
 
+  virtual bool check_valid() const;
+
   void check_preconditions(const std::string &function_name,
                            Function_availability *custom_func_avail = nullptr);
 
@@ -132,6 +134,17 @@ class Base_cluster_impl {
 
   virtual void release_primary() = 0;
 
+  // Locking methods (only cluster and clusterset supports them yet)
+  virtual mysqlshdk::mysql::Lock_scoped get_lock_shared(
+      [[maybe_unused]] std::chrono::seconds timeout = {}) {
+    return {};
+  }
+
+  virtual mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
+      [[maybe_unused]] std::chrono::seconds timeout = {}) {
+    return {};
+  }
+
   virtual void disconnect();
 
   virtual shcore::Value list_routers(bool only_upgrade_required);
@@ -144,13 +157,16 @@ class Base_cluster_impl {
                                     const std::string &host,
                                     const Setup_account_options &options);
 
-  void remove_router_metadata(const std::string &router,
-                              bool lock_metadata = false);
+  virtual void remove_router_metadata(const std::string &router,
+                                      bool lock_metadata = false);
 
   void set_instance_tag(const std::string &instance_def,
                         const std::string &option, const shcore::Value &value);
 
   void set_cluster_tag(const std::string &option, const shcore::Value &value);
+
+  void set_router_tag(const std::string &router, const std::string &option,
+                      const shcore::Value &value);
 
   void set_instance_option(const std::string &instance_def,
                            const std::string &option,
@@ -168,6 +184,9 @@ class Base_cluster_impl {
     return query_cluster_instance_auth_cert_subject(instance.get_uuid());
   }
 
+  void set_routing_option(const std::string &router, const std::string &option,
+                          const shcore::Value &value);
+  virtual shcore::Dictionary_t routing_options(const std::string &router);
   /**
    * Get the tags for a specific Cluster/ReplicaSet
    *
@@ -221,6 +240,9 @@ class Base_cluster_impl {
       const mysqlshdk::db::Connection_options &instance_def,
       bool print_error = true, bool allow_account_override = false);
 
+  virtual std::vector<Instance_metadata> get_instances_from_metadata()
+      const = 0;
+
  protected:
   Cluster_id m_id;
   std::string m_cluster_name;
@@ -267,13 +289,15 @@ class Base_cluster_impl {
    * @param value the value that was provided for the option. We use it to
    * validate if built-in tags are of the expected type or can be converted to
    * it.
+   * @param built_in_tags allowed tags+types that start with _
    * @return a tuple with strings and value: namespace, option_name, value.
    * @throws argumentError if the format of the option is invalid, or using an
    * unsupported namespace.
    */
   std::tuple<std::string, std::string, shcore::Value>
   validate_set_option_namespace(const std::string &option,
-                                const shcore::Value &value) const;
+                                const shcore::Value &value,
+                                const built_in_tags_map_t &built_in_tags) const;
 
  private:
   void disconnect_internal();

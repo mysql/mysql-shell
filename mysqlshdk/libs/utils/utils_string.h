@@ -512,6 +512,12 @@ inline std::string str_join(const C &container, std::string_view sep,
 std::string SHCORE_PUBLIC str_replace(std::string_view s, std::string_view from,
                                       std::string_view to);
 
+template <typename... Args>
+inline std::string str_replace(std::string_view s, std::string_view from,
+                               std::string_view to, const Args &... rest) {
+  return str_replace(str_replace(s, from, to), rest...);
+}
+
 std::string SHCORE_PUBLIC bits_to_string(uint64_t bits, int nbits);
 std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(std::string_view s);
 

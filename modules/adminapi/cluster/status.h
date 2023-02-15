@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,9 @@ struct Instance_metadata_info {
 
 class Status : public Command_interface {
  public:
-  Status(const Cluster_impl &cluster, std::optional<uint64_t> extended);
+  Status(const std::shared_ptr<Cluster_impl> &cluster,
+         const std::optional<uint64_t> extended);
+
   ~Status() override;
 
   /**
@@ -89,7 +91,8 @@ class Status : public Command_interface {
   void finish() override;
 
  private:
-  const Cluster_impl &m_cluster;
+  std::shared_ptr<Cluster_impl> m_cluster;
+
   std::optional<uint64_t> m_extended;
 
   shcore::Value get_default_replicaset_status();

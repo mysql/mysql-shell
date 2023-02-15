@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -582,7 +582,8 @@ const std::map<std::string, Function_availability>
         {"ClusterSet.setRoutingOption",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
+          ReplicationQuorum::State::any(),  // XXX review these? shouldn't be
+                                            // Online only?
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
           k_primary_required,
           kClusterGlobalStateAnyOk}},
@@ -591,7 +592,7 @@ const std::map<std::string, Function_availability>
           TargetType::InnoDBClusterSet,
           ReplicationQuorum::State::any(),
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
+          k_primary_not_required,
           kClusterGlobalStateAny,
           true}},
         {"ClusterSet.listRouters",

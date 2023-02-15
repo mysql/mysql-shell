@@ -2829,23 +2829,17 @@ shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
   return r;
 }
 
-void Replica_set_impl::remove_router_metadata(const std::string &router) {
+void Replica_set_impl::remove_router_metadata(const std::string &router,
+                                              bool lock_metadata) {
   check_preconditions_and_primary_availability("removeRouterMetadata");
-
-  bool interactive = current_shell_options()->get().wizards;
-
-  // Initialized Instance pool with the metadata from the current session.
-  Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_cluster_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
-  ipool->set_metadata(get_metadata_storage());
 
   // Acquire a shared lock on the primary. The metadata instance (primary)
   // can be "shared" by other operations executing concurrently on other
   // instances.
-  auto plock = get_primary_master()->get_lock_shared();
+  auto primary = get_primary_master();
+  auto plock = primary->get_lock_shared();
 
-  Base_cluster_impl::remove_router_metadata(router, true);
+  Base_cluster_impl::remove_router_metadata(router, lock_metadata);
 }
 
 void Replica_set_impl::setup_admin_account(

@@ -143,6 +143,10 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
       "clusterRole",
       shcore::Value(mmd.primary_cluster ? "PRIMARY" : "REPLICA"));
 
+  if (mmd.cluster.tags && !mmd.cluster.tags->empty()) {
+    (*res)["tags"] = shcore::Value(mmd.cluster.tags);
+  }
+
   // Handle extended option
   if (extended) {
     auto topology = status_map->get_map("topology");

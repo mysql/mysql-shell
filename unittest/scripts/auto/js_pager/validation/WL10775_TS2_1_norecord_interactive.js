@@ -139,9 +139,6 @@ NAME
 SYNTAX
       <ClassicSession>.rollback()
 
-RETURNS
-      A ClassicResult object.
-
 DESCRIPTION
       All the operations executed after calling startTransaction() will be
       discarded when this function is called.

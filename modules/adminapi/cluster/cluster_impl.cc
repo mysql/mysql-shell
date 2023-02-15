@@ -558,6 +558,11 @@ std::vector<Instance_metadata> Cluster_impl::get_instances(
   return res;
 }
 
+std::vector<Instance_metadata> Cluster_impl::get_instances_from_metadata()
+    const {
+  return get_metadata_storage()->get_all_instances(get_id());
+}
+
 void Cluster_impl::ensure_metadata_has_server_id(
     const mysqlshdk::mysql::IInstance &target_instance) const {
   execute_in_members(
@@ -1829,7 +1834,7 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
 
 shcore::Value Cluster_impl::cluster_status(int64_t extended) {
   // Create the Cluster_status command and execute it.
-  cluster::Status op_status(*this, extended);
+  cluster::Status op_status(shared_from_this(), extended);
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope([&op_status]() { op_status.finish(); });
   // Prepare the Cluster_status command execution (validations).
@@ -1865,15 +1870,6 @@ shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
                                    only_upgrade_required);
 
   return shcore::Value(dict);
-}
-
-void Cluster_impl::remove_router_metadata(const std::string &router) {
-  // put a shared lock on the cluster
-  auto c_lock = get_lock_shared();
-
-  check_preconditions("removeRouterMetadata");
-
-  Base_cluster_impl::remove_router_metadata(router);
 }
 
 void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
@@ -3915,6 +3911,13 @@ mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
   };
 
   return mysqlshdk::mysql::Lock_scoped{std::move(release_cb)};
+}
+
+shcore::Dictionary_t Cluster_impl::routing_options(const std::string &router) {
+  auto dict = Base_cluster_impl::routing_options(router);
+  if (router.empty()) (*dict)["clusterName"] = shcore::Value(get_name());
+
+  return dict;
 }
 
 }  // namespace dba

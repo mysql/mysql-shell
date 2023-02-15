@@ -111,7 +111,8 @@ inline bool set_ts(shcore::Dictionary_t dict, const std::string &prop,
 
 }  // namespace
 
-Status::Status(const Cluster_impl &cluster, std::optional<uint64_t> extended)
+Status::Status(const std::shared_ptr<Cluster_impl> &cluster,
+               std::optional<uint64_t> extended)
     : m_cluster(cluster), m_extended(extended) {}
 
 Status::~Status() = default;
@@ -178,12 +179,12 @@ shcore::Dictionary_t Status::check_group_status(
     desc_status = "Cluster has no quorum as visible from '" + instance.descr() +
                   "' and cannot process write transactions.";
   } else {
-    if (m_cluster.is_fenced_from_writes()) {
+    if (m_cluster->is_fenced_from_writes()) {
       rs_status = Cluster_status::FENCED_WRITES;
 
       desc_status = "Cluster is fenced from Write Traffic.";
-    } else if (m_cluster.is_cluster_set_member() &&
-               m_cluster.is_invalidated()) {
+    } else if (m_cluster->is_cluster_set_member() &&
+               m_cluster->is_invalidated()) {
       rs_status = Cluster_status::INVALIDATED;
 
       desc_status = "Cluster was invalidated by the ClusterSet it belongs to.";
@@ -236,7 +237,7 @@ const Instance_metadata *Status::instance_with_uuid(const std::string &uuid) {
 
 Member_stats_map Status::query_member_stats() {
   Member_stats_map stats;
-  auto group_instance = m_cluster.get_cluster_server();
+  auto group_instance = m_cluster->get_cluster_server();
 
   if (group_instance) {
     try {
@@ -464,14 +465,14 @@ void Status::collect_basic_local_status(shcore::Dictionary_t dict,
   std::string sql;
 
   if (version >= Version(8, 0, 0)) {
-    if (m_cluster.is_cluster_set_member()) {
+    if (m_cluster->is_cluster_set_member()) {
       // PRIMARY of PC has no relevant replication lag info
       // PRIMARY of RC shows lag from clusterset_replication channel
       // SECONDARY members show replication from gr_applier channel
       std::string channel_name;
 
       if (is_primary) {
-        if (!m_cluster.is_primary_cluster()) {
+        if (!m_cluster->is_primary_cluster()) {
           channel_name = k_clusterset_async_channel_name;
         }
       } else {
@@ -1390,7 +1391,7 @@ shcore::Dictionary_t Status::get_topology(
       log_debug("Instance %s with uuid=%s found in group but not in MD",
                 mdi.md.address.c_str(), m.uuid.c_str());
 
-      auto group_instance = m_cluster.get_cluster_server();
+      auto group_instance = m_cluster->get_cluster_server();
 
       mysqlshdk::db::Connection_options opts(mdi.md.endpoint);
       mysqlshdk::db::Connection_options group_session_copts(
@@ -1437,14 +1438,14 @@ shcore::Dictionary_t Status::get_topology(
   }
 
   std::map<std::string, std::string> endpoints;
-  if (m_cluster.get_metadata_storage()->real_version().get_major() > 1) {
+  if (m_cluster->get_metadata_storage()->real_version().get_major() > 1) {
     endpoints =
-        m_cluster.get_metadata_storage()->get_instances_with_recovery_accounts(
-            m_cluster.get_id());
+        m_cluster->get_metadata_storage()->get_instances_with_recovery_accounts(
+            m_cluster->get_id());
   }
 
   auto mismatched_recovery_accounts =
-      m_cluster.get_mismatched_recovery_accounts();
+      m_cluster->get_mismatched_recovery_accounts();
 
   for (const auto &inst : instances) {
     shcore::Dictionary_t member = shcore::make_dict();
@@ -1506,7 +1507,7 @@ shcore::Dictionary_t Status::get_topology(
           std::string status;
           // Get the join timestamp from the Metadata
           shcore::Value join_time;
-          m_cluster.get_metadata_storage()->query_instance_attribute(
+          m_cluster->get_metadata_storage()->query_instance_attribute(
               instance->get_uuid(), k_instance_attribute_join_time, &join_time);
 
           std::tie(status, recovery_info) = recovery_status(
@@ -1575,9 +1576,9 @@ shcore::Dictionary_t Status::get_topology(
 
     {
       shcore::Array_t issues = instance_diagnostics(
-          instance.get(), &m_cluster, inst, recovery_channel, applier_channel,
-          super_read_only, minfo, self_state, parallel_applier_options,
-          *m_cluster_transaction_size_limit);
+          instance.get(), m_cluster.get(), inst, recovery_channel,
+          applier_channel, super_read_only, minfo, self_state,
+          parallel_applier_options, *m_cluster_transaction_size_limit);
 
       if (offline_mode.value_or(false)) {
         issues->push_back(
@@ -1628,6 +1629,10 @@ shcore::Dictionary_t Status::get_topology(
       }
     }
 
+    if (inst.md.tags && !inst.md.tags->empty()) {
+      (*member)["tags"] = shcore::Value(inst.md.tags);
+    }
+
     if ((m_extended.value_or(0) >= 2) &&
         member_stats.find(inst.md.uuid) != member_stats.end()) {
       shcore::Dictionary_t mdict = member;
@@ -1659,15 +1664,15 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  auto group_instance = m_cluster.get_cluster_server();
+  auto group_instance = m_cluster->get_cluster_server();
   bool gr_running =
-      m_cluster.cluster_availability() != Cluster_availability::OFFLINE &&
-      m_cluster.cluster_availability() !=
+      m_cluster->cluster_availability() != Cluster_availability::OFFLINE &&
+      m_cluster->cluster_availability() !=
           Cluster_availability::SOME_UNREACHABLE &&
-      m_cluster.cluster_availability() != Cluster_availability::UNREACHABLE;
+      m_cluster->cluster_availability() != Cluster_availability::UNREACHABLE;
 
   std::string topology_mode =
-      mysqlshdk::gr::to_string(m_cluster.get_cluster_topology_type());
+      mysqlshdk::gr::to_string(m_cluster->get_cluster_topology_type());
 
   // Set Cluster name
   (*ret)["name"] = shcore::Value("default");
@@ -1688,7 +1693,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   }
 
   if (m_extended.value_or(0) >= 1) {
-    (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
+    (*ret)["groupName"] = shcore::Value(m_cluster->get_group_name());
 
     if (group_instance &&
         group_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 26)) {
@@ -1773,7 +1778,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
       }
     }
   } else {
-    if (m_cluster.cluster_availability() == Cluster_availability::OFFLINE) {
+    if (m_cluster->cluster_availability() == Cluster_availability::OFFLINE) {
       (*ret)["status"] = shcore::Value("OFFLINE");
       (*ret)["statusText"] =
           shcore::Value("All members of the group are OFFLINE");
@@ -1784,25 +1789,25 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  auto issues = cluster_diagnostics(m_cluster, member_info, protocol_version);
+  auto issues = cluster_diagnostics(*m_cluster, member_info, protocol_version);
 
   // Get the Cluster's transaction size_limit stored in the Metadata if the
   // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
   // should be the value of the primary member
   shcore::Value value;
   bool is_replica_cluster =
-      m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster();
+      m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster();
 
   if (group_instance) {
     m_cluster_transaction_size_limit =
-        m_cluster.get_cluster_server()
+        m_cluster->get_cluster_server()
             ->get_sysvar_int(kGrTransactionSizeLimit)
             .value_or(0);
   }
 
   if (!is_replica_cluster) {
-    if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
-            m_cluster.get_id(), k_cluster_attribute_transaction_size_limit,
+    if (!m_cluster->get_metadata_storage()->query_cluster_attribute(
+            m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
             &value)) {
       issues->push_back(
           shcore::Value("WARNING: Cluster's transaction size limit is not "
@@ -1843,7 +1848,7 @@ shcore::Array_t Status::validate_recovery_accounts_unused(
   auto issues = shcore::make_array();
 
   auto accounts =
-      m_cluster.get_unused_recovery_accounts(mismatched_recovery_accounts);
+      m_cluster->get_unused_recovery_accounts(mismatched_recovery_accounts);
   if (accounts.empty()) return issues;
 
   std::string msg{accounts.size() == 1
@@ -1863,9 +1868,9 @@ shcore::Array_t Status::validate_recovery_accounts_unused(
 void Status::prepare() {
   // Sanity check: Verify if the topology type changed and issue an error if
   // needed.
-  if (m_cluster.get_cluster_server()) m_cluster.sanity_check();
+  if (m_cluster->get_cluster_server()) m_cluster->sanity_check();
 
-  m_instances = m_cluster.get_instances();
+  m_instances = m_cluster->get_instances();
 
   // Always connect to members to be able to get an accurate mode, based on
   // their super_ready_only value.
@@ -1893,7 +1898,7 @@ shcore::Value Status::get_default_replicaset_status() {
   //   - ERROR
   //
   // If that's the case, a warning must be added to the resulting JSON object
-  auto group_instance = m_cluster.get_cluster_server();
+  auto group_instance = m_cluster->get_cluster_server();
 
   if (group_instance) {
     auto state = get_replication_group_state(
@@ -1919,31 +1924,31 @@ shcore::Value Status::get_default_replicaset_status() {
 shcore::Value Status::execute() {
   shcore::Dictionary_t dict = shcore::make_dict();
 
-  (*dict)["clusterName"] = shcore::Value(m_cluster.get_name());
+  (*dict)["clusterName"] = shcore::Value(m_cluster->get_name());
 
   // If the Cluster belongs to a ClusterSet, include relevant ClusterSet
   // information:
   //   - domainName
   //   - clusterRole
   //   - clusterSetReplicationStatus
-  if (m_cluster.is_cluster_set_member()) {
-    auto cs_md = m_cluster.get_clusterset_metadata();
+  if (m_cluster->is_cluster_set_member()) {
+    auto cs_md = m_cluster->get_clusterset_metadata();
     Cluster_set_metadata cset;
 
-    m_cluster.get_metadata_storage()->get_cluster_set(cs_md.cluster_set_id,
-                                                      true, &cset, nullptr);
+    m_cluster->get_metadata_storage()->get_cluster_set(cs_md.cluster_set_id,
+                                                       true, &cset, nullptr);
 
     (*dict)["domainName"] = shcore::Value(cset.domain_name);
     (*dict)["clusterRole"] =
-        shcore::Value(m_cluster.is_primary_cluster() ? "PRIMARY" : "REPLICA");
+        shcore::Value(m_cluster->is_primary_cluster() ? "PRIMARY" : "REPLICA");
 
     // Get the ClusterSet replication channel status
     Cluster_channel_status ch_status =
-        m_cluster.get_cluster_set_object()->get_replication_channel_status(
-            m_cluster);
+        m_cluster->get_cluster_set_object()->get_replication_channel_status(
+            *m_cluster);
 
     // If the Cluster is a Replica, add the status right away
-    if (!m_cluster.is_primary_cluster()) {
+    if (!m_cluster->is_primary_cluster()) {
       (*dict)["clusterSetReplicationStatus"] =
           shcore::Value(to_string(ch_status));
     } else {
@@ -1960,26 +1965,26 @@ shcore::Value Status::execute() {
   // Get the default replicaSet options
   (*dict)["defaultReplicaSet"] = shcore::Value(get_default_replicaset_status());
 
-  if (m_cluster.get_cluster_server()) {
+  if (m_cluster->get_cluster_server()) {
     // Gets the metadata version
     if (m_extended.value_or(0) >= 1) {
       auto version = mysqlsh::dba::metadata::installed_version(
-          m_cluster.get_cluster_server());
+          m_cluster->get_cluster_server());
       (*dict)["metadataVersion"] = shcore::Value(version.get_base());
     }
 
     // Iterate all replicasets and get the status for each one
 
-    std::string addr = m_cluster.get_cluster_server()->get_canonical_address();
+    std::string addr = m_cluster->get_cluster_server()->get_canonical_address();
     (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
   }
 
-  auto md_server = m_cluster.get_metadata_storage()->get_md_server();
+  auto md_server = m_cluster->get_metadata_storage()->get_md_server();
 
   // metadata server, if its a different one
   if (md_server &&
-      (!m_cluster.get_cluster_server() ||
-       md_server->get_uuid() != m_cluster.get_cluster_server()->get_uuid())) {
+      (!m_cluster->get_cluster_server() ||
+       md_server->get_uuid() != m_cluster->get_cluster_server()->get_uuid())) {
     (*dict)["metadataServer"] =
         shcore::Value(md_server->get_canonical_address());
   }

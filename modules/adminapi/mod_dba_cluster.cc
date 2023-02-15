@@ -23,16 +23,16 @@
 
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
-#include "modules/adminapi/common/accounts.h"
+
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
@@ -42,7 +42,6 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
 using std::placeholders::_1;
@@ -54,7 +53,11 @@ namespace dba {
 using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
 // Documentation of the Cluster Class
-REGISTER_HELP_CLASS(Cluster, adminapi);
+REGISTER_HELP_CLASS_KW(
+    Cluster, adminapi,
+    (std::map<std::string, std::string>({{"FullType", "InnoDB Cluster"},
+                                         {"Type", "Cluster"},
+                                         {"type", "cluster"}})));
 REGISTER_HELP(CLUSTER_BRIEF, "Represents an InnoDB Cluster.");
 REGISTER_HELP(CLUSTER_DETAIL,
               "The cluster object is the entry point to manage and monitor "
@@ -83,23 +86,6 @@ Cluster::Cluster(const std::shared_ptr<Cluster_impl> &impl) : m_impl(impl) {
 
 Cluster::~Cluster() { DEBUG_OBJ_DEALLOC(Cluster); }
 
-std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent),
-                                   int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + impl()->get_name() + ">");
-  return s_out;
-}
-
-void Cluster::append_json(shcore::JSON_dumper &dumper) const {
-  dumper.start_object();
-  dumper.append_string("class", class_name());
-  dumper.append_string("name", impl()->get_name());
-  dumper.end_object();
-}
-
-bool Cluster::operator==(const Object_bridge &other) const {
-  return class_name() == other.class_name() && this == &other;
-}
-
 void Cluster::init() {
   add_property("name", "getName");
   expose("addInstance", &Cluster::add_instance, "instance", "?options")->cli();
@@ -114,11 +100,6 @@ void Cluster::init() {
          &Cluster::reset_recovery_accounts_password, "?options")
       ->cli();
   expose("checkInstanceState", &Cluster::check_instance_state, "instance")
-      ->cli();
-  expose("setupAdminAccount", &Cluster::setup_admin_account, "user", "?options")
-      ->cli();
-  expose("setupRouterAccount", &Cluster::setup_router_account, "user",
-         "?options")
       ->cli();
   expose("rescan", &Cluster::rescan, "?options")->cli();
   expose("forceQuorumUsingPartitionOf",
@@ -137,9 +118,9 @@ void Cluster::init() {
   expose("setInstanceOption", &Cluster::set_instance_option, "instance",
          "option", "value")
       ->cli();
-  expose("listRouters", &Cluster::list_routers, "?options")->cli();
   expose("removeRouterMetadata", &Cluster::remove_router_metadata, "router")
       ->cli();
+
   expose("createClusterSet", &Cluster::create_cluster_set, "domainName",
          "?options")
       ->cli();
@@ -147,6 +128,13 @@ void Cluster::init() {
   expose("fenceAllTraffic", &Cluster::fence_all_traffic)->cli();
   expose("fenceWrites", &Cluster::fence_writes)->cli();
   expose("unfenceWrites", &Cluster::unfence_writes)->cli();
+
+  expose("listRouters", &Cluster::list_routers, "?options")->cli();
+  expose("setupAdminAccount", &Cluster::setup_admin_account, "user", "?options")
+      ->cli();
+  expose("setupRouterAccount", &Cluster::setup_router_account, "user",
+         "?options")
+      ->cli();
 }
 
 // Documentation of the getName function
@@ -170,52 +158,24 @@ String Cluster::getName() {}
 str Cluster::get_name() {}
 #endif
 
-shcore::Value Cluster::get_member(const std::string &prop) const {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid(prop);
-
-  if (prop == "name") return shcore::Value(impl()->get_name());
-  return shcore::Cpp_object_bridge::get_member(prop);
-}
-
 void Cluster::assert_valid(const std::string &option_name) const {
   std::string name;
-  bool obj_disconnected = false;
 
   if (option_name == "disconnect" || option_name == "name") return;
 
   if (has_member(option_name) && m_invalidated) {
     if (has_method(option_name)) {
       name = get_function_name(option_name, false);
-      throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
-                                             "Can't call function '" + name +
+      throw shcore::Exception::runtime_error("Can't call function '" + name +
                                              "' on an offline Cluster");
     } else {
       name = get_member_name(option_name, shcore::current_naming_style());
-      throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
-                                             "Can't access object member '" +
+      throw shcore::Exception::runtime_error("Can't access object member '" +
                                              name + "' on an offline Cluster");
     }
   }
 
-  if (!impl()->get_cluster_server() ||
-      !impl()->get_cluster_server()->get_session() ||
-      !impl()->get_cluster_server()->get_session()->is_open()) {
-    obj_disconnected = true;
-  } else {
-    // Check if the server is still reachable even though the session is open
-    try {
-      impl()->get_cluster_server()->execute("select 1");
-    } catch (const shcore::Error &e) {
-      if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-        obj_disconnected = true;
-      } else {
-        throw;
-      }
-    }
-  }
-
-  if (obj_disconnected) {
+  if (!impl()->check_valid()) {
     throw shcore::Exception::runtime_error(
         "The cluster object is disconnected. Please use dba." +
         get_function_name("getCluster", false) +
@@ -1204,26 +1164,7 @@ void Cluster::set_instance_option(const Connection_options &instance_def,
 }
 
 REGISTER_HELP_FUNCTION(listRouters, Cluster);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTER_LISTROUTERS, R"*(
-Lists the Router instances.
-
-@param options Optional dictionary with options for the operation.
-
-@returns A JSON object listing the Router instances associated to the cluster.
-
-This function lists and provides information about all Router instances
-registered for the cluster.
-
-Whenever a Metadata Schema upgrade is necessary, the recommended process
-is to upgrade MySQL Router instances to the latest version before upgrading
-the Metadata itself, in order to minimize service disruption.
-
-The options dictionary may contain the following attributes:
-
-@li onlyUpgradeRequired: boolean, enables filtering so only router instances
-that support older version of the Metadata Schema and require upgrade are
-included.
-)*");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_LISTROUTERS, LISTROUTERS_HELP_TEXT);
 
 /**
  * $(CLUSTER_LISTROUTERS_BRIEF)
@@ -1235,17 +1176,6 @@ String Cluster::listRouters(Dictionary options) {}
 #elif DOXYGEN_PY
 str Cluster::list_routers(dict options) {}
 #endif
-shcore::Dictionary_t Cluster::list_routers(
-    const shcore::Option_pack_ref<List_routers_options> &options) {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("listRouters");
-
-  auto ret_val = execute_with_pool(
-      [&]() { return impl()->list_routers(options->only_upgrade_required); },
-      false);
-
-  return ret_val.as_map();
-}
 
 REGISTER_HELP_FUNCTION(removeRouterMetadata, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_REMOVEROUTERMETADATA, R"*(
@@ -1278,51 +1208,12 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
   assert_valid("removeRouterMetadata");
 
   return execute_with_pool(
-      [&]() { impl()->remove_router_metadata(router_def); }, false);
+      [&]() { impl()->remove_router_metadata(router_def, true); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, Cluster);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETUPADMINACCOUNT, R"*(
-Create or upgrade an InnoDB Cluster admin account.
-
-@param user Name of the InnoDB cluster administrator account.
-@param options Dictionary with options for the operation.
-
-@returns Nothing.
-
-This function creates/upgrades a MySQL user account with the necessary
-privileges to administer an InnoDB cluster.
-
-This function also allows a user to upgrade an existing admin account
-with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
-
-The mandatory argument user is the name of the MySQL account we want to create
-or upgrade to be used as Administrator account. The accepted format is
-username[@@host] where the host part is optional and if not provided defaults to
-'%'.
-
-The options dictionary may contain the following attributes:
-
-@li password: The password for the InnoDB cluster administrator account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
-
-If the user account does not exist, either the password, requireCertIssuer or
-requireCertSubject are mandatory.
-
-If the user account exists, the update option must be enabled.
-
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
-
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
-
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-)*");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETUPADMINACCOUNT,
+                            SETUPADMINACCOUNT_HELP_TEXT);
 
 /**
  * $(CLUSTER_SETUPADMINACCOUNT_BRIEF)
@@ -1335,61 +1226,9 @@ Undefined Cluster::setupAdminAccount(String user, Dictionary options) {}
 None Cluster::setup_admin_account(str user, dict options) {}
 #endif
 
-void Cluster::setup_admin_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("setupAdminAccount");
-
-  // split user into user/host
-  std::string username, host;
-  std::tie(username, host) = validate_account_name(user);
-
-  return execute_with_pool(
-      [&]() { impl()->setup_admin_account(username, host, *options); }, false);
-}
-
 REGISTER_HELP_FUNCTION(setupRouterAccount, Cluster);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETUPROUTERACCOUNT, R"*(
-Create or upgrade a MySQL account to use with MySQL Router.
-
-@param user Name of the account to create/upgrade for MySQL Router.
-@param options Dictionary with options for the operation.
-
-@returns Nothing.
-
-This function creates/upgrades a MySQL user account with the necessary
-privileges to be used by MySQL Router.
-
-This function also allows a user to upgrade existing MySQL router accounts
-with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
-
-The mandatory argument user is the name of the MySQL account we want to create
-or upgrade to be used by MySQL Router. The accepted format is
-username[@@host] where the host part is optional and if not provided defaults to
-'%'.
-
-The options dictionary may contain the following attributes:
-
-@li password: The password for the MySQL Router account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
-
-If the user account does not exist, either the password, requireCertIssuer or
-requireCertSubject are mandatory.
-
-If the user account exists, the update option must be enabled.
-
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-)*");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETUPROUTERACCOUNT,
+                            SETUPROUTERACCOUNT_HELP_TEXT);
 
 /**
  * $(CLUSTER_SETUPROUTERACCOUNT_BRIEF)
@@ -1401,19 +1240,6 @@ Undefined Cluster::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::setup_router_account(str user, dict options) {}
 #endif
-void Cluster::setup_router_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("setupRouterAccount");
-
-  // split user into user/host
-  std::string username, host;
-  std::tie(username, host) = validate_account_name(user);
-
-  return execute_with_pool(
-      [&]() { impl()->setup_router_account(username, host, *options); }, false);
-}
 
 REGISTER_HELP_FUNCTION(fenceAllTraffic, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FENCEALLTRAFFIC, R"*(

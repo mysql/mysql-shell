@@ -465,11 +465,11 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-      A JSON object listing the Router instances associated to the cluster.
+      A JSON object listing the Router instances associated to the Cluster.
 
 DESCRIPTION
       This function lists and provides information about all Router instances
-      registered for the cluster.
+      registered for the Cluster.
 
       Whenever a Metadata Schema upgrade is necessary, the recommended process
       is to upgrade MySQL Router instances to the latest version before
@@ -932,7 +932,7 @@ SYNTAX
       <Cluster>.setupAdminAccount(user, options)
 
 WHERE
-      user: Name of the InnoDB cluster administrator account.
+      user: Name of the InnoDB Cluster administrator account.
       options: Dictionary with options for the operation.
 
 RETURNS
@@ -940,7 +940,7 @@ RETURNS
 
 DESCRIPTION
       This function creates/upgrades a MySQL user account with the necessary
-      privileges to administer an InnoDB cluster.
+      privileges to administer an InnoDB Cluster.
 
       This function also allows a user to upgrade an existing admin account
       with the necessary privileges before a dba.upgradeMetadata() call.
@@ -952,7 +952,7 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - password: The password for the InnoDB cluster administrator account.
+      - password: The password for the InnoDB Cluster administrator account.
       - passwordExpiration: Password expiration setting for the account. May be
         set to the number of days for expiration, 'NEVER' to disable expiration
         and 'DEFAULT' to use the system default.

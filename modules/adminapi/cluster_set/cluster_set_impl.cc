@@ -877,19 +877,19 @@ Member_recovery_method Cluster_set_impl::validate_instance_recovery(
   return recovery_method;
 }
 
-std::vector<Cluster_metadata> Cluster_set_impl::get_clusters() const {
-  std::vector<Cluster_metadata> all_clusters =
-      get_metadata_storage()->get_all_clusters();
+std::vector<Cluster_set_member_metadata> Cluster_set_impl::get_clusters()
+    const {
+  std::vector<Cluster_set_member_metadata> all_clusters;
 
-  std::vector<Cluster_metadata> res;
+  get_metadata_storage()->get_cluster_set(get_id(), false, nullptr,
+                                          &all_clusters);
 
-  for (const auto &i : all_clusters) {
-    if (i.cluster_set_id == get_id()) {
-      res.push_back(i);
-    }
-  }
+  return all_clusters;
+}
 
-  return res;
+std::vector<Instance_metadata> Cluster_set_impl::get_instances_from_metadata()
+    const {
+  return get_metadata_storage()->get_all_instances();
 }
 
 shcore::Value Cluster_set_impl::create_replica_cluster(
@@ -1662,46 +1662,12 @@ shcore::Value Cluster_set_impl::list_routers(const std::string &router) {
   return routers;
 }
 
-void Cluster_set_impl::set_routing_option(const std::string &router,
-                                          const std::string &option,
-                                          const shcore::Value &value) {
-  // Preconditions the same to sister function
-  check_preconditions("setRoutingOption");
-  shcore::Value value_copy = value;
-
-  validate_router_option(*this, option, value);
-
-  if (value.get_type() != shcore::Value_type::Null &&
-      option == k_router_option_target_cluster &&
-      value.get_string() != "primary") {
-    // Translate the clusterName into the Cluster's UUID
-    // (group_replication_group_name)
-    value_copy = shcore::Value(
-        get_metadata_storage()->get_cluster_group_name(value.get_string()));
-  }
-
-  auto msg = "Routing option '" + option + "' successfully updated";
-  if (router.empty()) {
-    get_metadata_storage()->set_clusterset_global_routing_option(
-        get_id(), option, value_copy);
-    msg += ".";
-  } else {
-    get_metadata_storage()->set_routing_option(router, get_id(), option,
-                                               value_copy);
-    msg += " in router '" + router + "'.";
-  }
-
-  auto console = mysqlsh::current_console();
-  console->print_info(msg);
-}
-
-shcore::Value Cluster_set_impl::routing_options(const std::string &router) {
-  check_preconditions("routingOptions");
-
-  auto dict = router_options(get_metadata_storage().get(), get_id(), router);
+shcore::Dictionary_t Cluster_set_impl::routing_options(
+    const std::string &router) {
+  auto dict = Base_cluster_impl::routing_options(router);
   if (router.empty()) (*dict)["domainName"] = shcore::Value(get_name());
 
-  return shcore::Value(dict);
+  return dict;
 }
 
 void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
@@ -1900,10 +1866,9 @@ void Cluster_set_impl::record_in_metadata(
   metadata->migrate_routers_to_clusterset(seed_cluster_id, get_id());
 
   // Set and store the default Routing Options
-  for (const auto &option : k_default_router_options.defined_options) {
-    metadata->set_clusterset_global_routing_option(csid, option.first,
-                                                   option.second);
-  }
+  for (const auto &i : k_default_clusterset_router_options)
+    metadata->set_global_routing_option(Cluster_type::REPLICATED_CLUSTER, csid,
+                                        i.first, i.second);
 
   trx.commit();
 }
@@ -1961,24 +1926,24 @@ void Cluster_set_impl::_set_instance_option(
 
 void Cluster_set_impl::update_replication_allowed_host(
     const std::string &host) {
-  for (const Cluster_metadata &cluster : get_clusters()) {
-    auto account =
-        get_metadata_storage()->get_cluster_repl_account(cluster.cluster_id);
+  for (const Cluster_set_member_metadata &cluster : get_clusters()) {
+    auto account = get_metadata_storage()->get_cluster_repl_account(
+        cluster.cluster.cluster_id);
 
     if (account.second != host) {
       log_info("Re-creating account for cluster %s: %s@%s -> %s@%s",
-               cluster.cluster_name.c_str(), account.first.c_str(),
+               cluster.cluster.cluster_name.c_str(), account.first.c_str(),
                account.second.c_str(), account.first.c_str(), host.c_str());
       clone_user(*get_primary_master(), account.first, account.second,
                  account.first, host);
 
       get_primary_master()->drop_user(account.first, account.second, true);
 
-      get_metadata_storage()->update_cluster_repl_account(cluster.cluster_id,
-                                                          account.first, host);
+      get_metadata_storage()->update_cluster_repl_account(
+          cluster.cluster.cluster_id, account.first, host);
     } else {
       log_info("Skipping account recreation for cluster %s: %s@%s == %s@%s",
-               cluster.cluster_name.c_str(), account.first.c_str(),
+               cluster.cluster.cluster_name.c_str(), account.first.c_str(),
                account.second.c_str(), account.first.c_str(), host.c_str());
     }
   }

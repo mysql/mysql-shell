@@ -37,7 +37,11 @@ namespace mysqlsh {
 namespace dba {
 
 // Documentation of the ClusterSet Class
-REGISTER_HELP_CLASS(ClusterSet, adminapi);
+REGISTER_HELP_CLASS_KW(
+    ClusterSet, adminapi,
+    (std::map<std::string, std::string>({{"FullType", "InnoDB ClusterSet"},
+                                         {"Type", "ClusterSet"},
+                                         {"type", "clusterset"}})));
 
 REGISTER_HELP_CLASS_TEXT(CLUSTERSET, R"*(
 Represents an InnoDB ClusterSet.
@@ -66,24 +70,6 @@ ClusterSet::ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset)
 
 ClusterSet::~ClusterSet() { DEBUG_OBJ_DEALLOC(ClusterSet); }
 
-std::string &ClusterSet::append_descr(std::string &s_out, int UNUSED(indent),
-                                      int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + impl()->get_name() + ">");
-
-  return s_out;
-}
-
-void ClusterSet::append_json(shcore::JSON_dumper &dumper) const {
-  dumper.start_object();
-  dumper.append_string("class", class_name());
-  dumper.append_string("name", impl()->get_name());
-  dumper.end_object();
-}
-
-bool ClusterSet::operator==(const Object_bridge &other) const {
-  return class_name() == other.class_name() && this == &other;
-}
-
 void ClusterSet::init() {
   add_property("name", "getName");
 
@@ -105,8 +91,6 @@ void ClusterSet::init() {
       ->cli();
   expose("status", &ClusterSet::status, "?options")->cli();
   expose("describe", &ClusterSet::describe)->cli();
-  expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
-  expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
   expose("setupAdminAccount", &ClusterSet::setup_admin_account, "user",
          "?options")
       ->cli();
@@ -116,6 +100,8 @@ void ClusterSet::init() {
   expose("options", &ClusterSet::options)->cli();
   expose("setOption", &ClusterSet::set_option, "option", "value")->cli();
 
+  expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
+  expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
   // TODO(konrad): cli does not support yet such overloads
   expose("setRoutingOption", &ClusterSet::set_routing_option, "option",
          "value");
@@ -123,30 +109,12 @@ void ClusterSet::init() {
          "option", "value");
 }
 
-void ClusterSet::assert_valid(const std::string &function_name) {
-  std::string name;
-  bool obj_disconnected = false;
+void ClusterSet::assert_valid(const std::string &function_name) const {
+  if (function_name == "disconnect" || function_name == "name" ||
+      function_name == "getName")
+    return;
 
-  if (function_name == "disconnect" || function_name == "name") return;
-
-  if (!impl()->get_cluster_server() ||
-      !impl()->get_cluster_server()->get_session() ||
-      !impl()->get_cluster_server()->get_session()->is_open()) {
-    obj_disconnected = true;
-  } else {
-    // Check if the server is still reachable even though the session is open
-    try {
-      impl()->get_cluster_server()->execute("select 1");
-    } catch (const shcore::Error &e) {
-      if (mysqlshdk::db::is_mysql_client_error(e.code())) {
-        obj_disconnected = true;
-      } else {
-        throw;
-      }
-    }
-  }
-
-  if (obj_disconnected) {
+  if (!impl()->check_valid()) {
     throw shcore::Exception::runtime_error(
         "The ClusterSet object is disconnected. Please use "
         "dba." +
@@ -175,18 +143,6 @@ String ClusterSet::getName() {}
 #elif DOXYGEN_PY
 str ClusterSet::get_name() {}
 #endif
-
-shcore::Value ClusterSet::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-
-  if (prop == "name") {
-    ret_val = shcore::Value(impl()->get_name());
-  } else {
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-  }
-
-  return ret_val;
-}
 
 REGISTER_HELP_FUNCTION(disconnect, ClusterSet);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_DISCONNECT, R"*(
@@ -866,7 +822,7 @@ Lists the Router instances of the ClusterSet, or a single Router instance.
 @returns A JSON object listing the Router instances registered in the ClusterSet.
 
 This function lists and provides information about all Router instances registered
-on the Clusters members of the ClusteSet.
+on the Clusters members of the ClusterSet.
 )*");
 
 /**
@@ -906,6 +862,8 @@ cluster is detected as being invalidated. Default value is 'drop_all'.
 value is 0.
 @li use_replica_primary_as_rw: Enable/Disable the RW Port in Replica Clusters.
 Disabled by default.
+@li tags: Associates an arbitrary JSON object with custom key/value pairs with
+the ClusterSet metadata.
 
 The target_cluster option supports the following values:
 
@@ -949,11 +907,6 @@ Undefined ClusterSet::setRoutingOption(String option, String value) {}
 #elif DOXYGEN_PY
 None ClusterSet::set_routing_option(str option, str value) {}
 #endif
-void ClusterSet::set_routing_option(const std::string &option,
-                                    const shcore::Value &value) {
-  return execute_with_pool(
-      [&]() { impl()->set_routing_option("", option, value); }, false);
-}
 
 /**
  * $(CLUSTERSET_SETROUTINGOPTION_BRIEF)
@@ -966,27 +919,10 @@ Undefined ClusterSet::setRoutingOption(String router, String option,
 #elif DOXYGEN_PY
 None ClusterSet::set_routing_option(str router, str option, str value) {}
 #endif
-void ClusterSet::set_routing_option(const std::string &router,
-                                    const std::string &option,
-                                    const shcore::Value &value) {
-  assert_valid("setRoutingOption");
-
-  return execute_with_pool(
-      [&]() { impl()->set_routing_option(router, option, value); }, false);
-}
 
 REGISTER_HELP_FUNCTION(routingOptions, ClusterSet);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTINGOPTIONS, R"*(
-Lists the ClusterSet Routers configuration options.
-
-@param router Optional identifier of the router instance to query for the options.
-
-@returns A JSON object describing the configuration options of all router
-instances of the ClusterSet and its global options or just the given Router.
-
-This function lists the Router configuration options of all Routers of the
-ClusterSet or the target Router.
-)*");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTINGOPTIONS,
+                            ROUTINGOPTIONS_HELP_TEXT);
 
 /**
  * $(CLUSTERSET_ROUTINGOPTIONS_BRIEF)
@@ -998,52 +934,10 @@ Dictionary ClusterSet::routingOptions(String router) {}
 #elif DOXYGEN_PY
 dict ClusterSet::routing_options(str router) {}
 #endif
-shcore::Value ClusterSet::routing_options(const std::string &router) {
-  return execute_with_pool([&]() { return impl()->routing_options(router); },
-                           false);
-}
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, ClusterSet);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPADMINACCOUNT, R"*(
-Create or upgrade an InnoDB ClusterSet admin account.
-
-@param user Name of the InnoDB ClusterSet administrator account.
-@param options Dictionary with options for the operation.
-
-@returns Nothing.
-
-This function creates/upgrades a MySQL user account with the necessary
-privileges to administer an InnoDB ClusterSet.
-
-This function also allows a user to upgrade an existing admin account
-with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
-
-The mandatory argument user is the name of the MySQL account we want to create
-or upgrade to be used as Administrator account. The accepted format is
-username[@@host] where the host part is optional and if not provided defaults to
-'%'.
-
-The options dictionary may contain the following attributes:
-
-@li password: The password for the InnoDB ClusterSet administrator account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
-
-If the user account does not exist, either the password, requireCertIssuer or
-requireCertSubject are mandatory.
-
-If the user account exists, the update option must be enabled.
-
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-)*");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPADMINACCOUNT,
+                            SETUPADMINACCOUNT_HELP_TEXT);
 
 /**
  * $(CLUSTERSET_SETUPADMINACCOUNT_BRIEF)
@@ -1056,74 +950,9 @@ Undefined ClusterSet::setupAdminAccount(String user, Dictionary options) {}
 None ClusterSet::setup_admin_account(str user, dict options) {}
 #endif
 
-void ClusterSet::setup_admin_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
-  // Throw an error if the replicaset is invalid
-  assert_valid("setupAdminAccount");
-
-  // split user into user/host
-  std::string username, host;
-  std::tie(username, host) = validate_account_name(user);
-
-  execute_with_pool(
-      [&]() {
-        impl()->setup_admin_account(username, host, *options);
-        return shcore::Value();
-      },
-      false);
-}
-
 REGISTER_HELP_FUNCTION(setupRouterAccount, ClusterSet);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPROUTERACCOUNT, R"*(
-Create or upgrade a MySQL account to use with MySQL Router.
-
-@param user Name of the account to create/upgrade for MySQL Router.
-@param options Dictionary with options for the operation.
-
-@returns Nothing.
-
-This function creates/upgrades a MySQL user account with the necessary
-privileges to be used by MySQL Router.
-
-This function also allows a user to upgrade existing MySQL router accounts
-with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
-
-The mandatory argument user is the name of the MySQL account we want to create
-or upgrade to be used by MySQL Router. The accepted format is
-username[@@host] where the host part is optional and if not provided defaults to
-'%'.
-
-The options dictionary may contain the following attributes:
-
-@li password: The password for the MySQL Router account.
-@li passwordExpiration: Password expiration setting for the account. May be set
-to the number of days for expiration, 'NEVER' to disable expiration and
-'DEFAULT' to use the system default.
-@li requireCertIssuer: Optional SSL certificate issuer for the account.
-@li requireCertSubject: Optional SSL certificate subject for the account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
-${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
-
-If the user account does not exist, either the password, requireCertIssuer or
-requireCertSubject are mandatory.
-
-If the user account exists, the update option must be enabled.
-
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes to it.
-
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
-
-To change authentication options for an existing account, set `update` to
-`true`. It is possible to change password without affecting certificate options
-or vice-versa but certificate options can only be changed together.
-)*");
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPROUTERACCOUNT,
+                            SETUPROUTERACCOUNT_HELP_TEXT);
 
 /**
  * $(CLUSTERSET_SETUPROUTERACCOUNT_BRIEF)
@@ -1135,23 +964,6 @@ Undefined ClusterSet::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None ClusterSet::setup_router_account(str user, dict options) {}
 #endif
-void ClusterSet::setup_router_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
-  // Throw an error if the replicaset is invalid
-  assert_valid("setupRouterAccount");
-
-  // split user into user/host
-  std::string username, host;
-  std::tie(username, host) = validate_account_name(user);
-
-  execute_with_pool(
-      [&]() {
-        impl()->setup_router_account(username, host, *options);
-        return shcore::Value();
-      },
-      false);
-}
 
 }  // namespace dba
 }  // namespace mysqlsh

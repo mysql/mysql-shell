@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -43,6 +43,31 @@ function (remove_member_indicators input output)
   set(${output} "${value}" PARENT_SCOPE)
 endfunction()
 
+function (remove_keyword_indicators input output)
+  string(LENGTH ${input}, len)
+  math(EXPR new_len "${len} - 7 - 1")
+  string(SUBSTRING "${input}" 4 ${new_len} value)
+  set(${output} "${value}" PARENT_SCOPE)
+endfunction()
+
+function(resolve_keywords input output variable)
+  set(${output} "${input}" PARENT_SCOPE)
+  string(REGEX MATCHALL "<<<:[A-Z|a-z|0-9|_]+>>>" keywords "${input}")
+  foreach(keyword ${keywords})
+    remove_keyword_indicators("${keyword}" keyword_name)
+
+    string(REGEX REPLACE "([A-Z]*)_.*" "\\1" class_name "${variable}")
+
+    set(full_keyword_name "${class_name}_${keyword_name}")
+    if("${${full_keyword_name}}" STREQUAL "")
+    else()
+      string(REPLACE "${keyword}" "${${full_keyword_name}}" input "${input}")
+    endif()
+
+    set(${output} "${input}" PARENT_SCOPE)
+  endforeach()
+endfunction()
+
 function(resolve_member_names input output mode)
   set(${output} "${input}" PARENT_SCOPE)
   string(REGEX MATCHALL "<<<[A-Z|a-z|0-9|_]+>>>" members "${input}")
@@ -59,6 +84,99 @@ function(resolve_member_names input output mode)
   endforeach()
 endfunction()
 
+function(scan_help_keywords file)
+  FILE(READ "${file}" contents)
+
+  string(FIND "${contents}" "REGISTER_HELP_CLASS_KW(" class_kw_start)
+  IF(class_kw_start GREATER 0)
+    MATH(EXPR class_kw_start "${class_kw_start}+23")
+    string(SUBSTRING "${contents}" ${class_kw_start} -1 contents)
+
+    string(REGEX REPLACE "([A-Za-z_]*),.*" "\\1" class_name "${contents}")
+    string(STRIP "${class_name}" class_name)
+    string(TOUPPER "${class_name}" class_name)
+
+    string(FIND "${contents}" "{{" kwlist_start)
+    MATH(EXPR kwlist_start "${kwlist_start}+1")
+    string(FIND "${contents}" "}}" kwlist_end)
+    MATH(EXPR kwlist_end "${kwlist_end}+1")
+
+    MATH(EXPR kwlist_length "${kwlist_end}-${kwlist_start}")
+    string(SUBSTRING "${contents}" ${kwlist_start} ${kwlist_length} keyword_map)
+
+    string(REGEX MATCHALL "{([^}]*)}" keywords "${keyword_map}")
+    foreach(keyword_pair ${keywords})
+      string(REGEX REPLACE "{\"([^\"]*)\",.*}" "\\1" keyword_name "${keyword_pair}")
+      string(REGEX REPLACE "{[^,]*, \"([^\"]*)\"}" "\\1" keyword_value "${keyword_pair}")
+
+      set(full_keyword_name "${class_name}_${keyword_name}")
+      set(${full_keyword_name} "${keyword_value}" PARENT_SCOPE)
+    endforeach()
+  ENDIF()
+endfunction()
+
+function(scan_shared_help_text file)
+  SET(continued "0")
+  SET(ready_line "")
+  SET(varname "")
+
+  # process only headers
+  IF(NOT file MATCHES ".*.h$")
+    RETURN()
+  ENDIF()
+
+  FILE(READ "${file}" contents)
+
+  # To iterate the lines of the file, we must turn it into a ; separated list
+  # - escape pre-existing ;
+  STRING(REGEX REPLACE ";" "\\\\;" contents "${contents}")
+  # - turn empty lines into something non-empty, otherwise cmake skips them
+  STRING(REGEX REPLACE "\n\n" "\n \n" contents "${contents}")
+  STRING(REGEX REPLACE "\n\n" "\n \n" contents "${contents}")
+  # - turn newlines into ;
+  STRING(REGEX REPLACE "\n" ";" contents "${contents}")
+  # - dunno...
+  STRING(REGEX REPLACE "\"\\\\;[ ]*\"" "" contents "${contents}")
+
+  foreach(line ${contents})
+    IF ("${continued}" STREQUAL "0")
+      # format must be REGISTER_HELP_SHARED_TEXT(VARNAME_HELP_TEXT, 
+      #     (R"*(
+      # contents in multiple lines)*"));
+      if("${line}" MATCHES "^REGISTER_HELP_SHARED_TEXT\\(")
+        string(REGEX REPLACE "^REGISTER_HELP_SHARED_TEXT\\(([^,]+),.*" "\\1" varname "${line}")
+        string(FIND "${line}" "\"));" register_end REVERSE)
+        string(REGEX REPLACE ".*R\"\\*\\((.*)" "\\1" ready_line "${line}")
+        IF ("${register_end}" STREQUAL "-1")
+          SET(continued "1")
+        ELSE()
+          SET(process "1")
+        ENDIF()
+      endif()
+    ELSE()
+      IF("${continued}" STREQUAL "1")
+        string(FIND "${line}" "\"));" register_end REVERSE)
+        IF("${register_end}" STREQUAL "-1")
+          string(STRIP "${line}" stripped_line)
+          SET(ready_line "${ready_line}\n${line}")
+        ELSE()
+          string(STRIP "${line}" stripped_line)
+          SET(ready_line "${ready_line}\n${stripped_line}")
+          STRING(REGEX REPLACE "\"\"" "" ready_line "${ready_line}")
+          SET(continued "0")
+
+          string(FIND "${ready_line}" ")*\"" string_end REVERSE)
+
+          string(SUBSTRING "${ready_line}" 0 ${string_end} ready_line)
+
+          SET(${varname} "${ready_line}" PARENT_SCOPE)
+        ENDIF()
+      ENDIF()
+    ENDIF()
+  endforeach()
+endfunction()
+
+
 function (generate_docs type)
 
   file(GLOB docs_SRC
@@ -67,6 +185,12 @@ function (generate_docs type)
       "${CMAKE_SOURCE_DIR}/../../modules/util/*"
       "${CMAKE_SOURCE_DIR}/../../modules/*"
   )
+
+
+  foreach(file ${docs_SRC})
+    scan_help_keywords("${file}")
+    scan_shared_help_text("${file}")
+  endforeach()
 
   foreach(file ${docs_SRC})
     FILE(READ "${file}" contents)
@@ -105,11 +229,10 @@ function (generate_docs type)
       IF ("${continued}" STREQUAL "0")
         if("${line}" MATCHES "^REGISTER_HELP\\(")
           string(FIND "${line}" "\");" register_end REVERSE)
+          SET(ready_line "${line}")
           IF ("${register_end}" STREQUAL "-1")
-            SET(ready_line "${line}")
             SET(continued "1")
           ELSE()
-            SET(ready_line "${line}")
             SET(process "1")
           ENDIF()
         elseif("${line}" MATCHES "^REGISTER_HELP_[A-Z_]*TEXT\\(")
@@ -119,11 +242,18 @@ function (generate_docs type)
           ELSE()
             SET(tmp "3")
           ENDIF()
+          SET(ready_line "${line}")
           IF ("${register_end}" STREQUAL "-1")
-            SET(ready_line "${line}")
-            SET(continued "${tmp}")
+            string(FIND "${line}" "_HELP_TEXT);" register_end_var REVERSE)
+            IF("${register_end_var}" STREQUAL "-1")
+              SET(continued "${tmp}")
+            ELSE()
+              # handle REGISTER_HELP_TEXT(HELP_NAME, XXX_HELP_TEXT)
+              string(REGEX REPLACE ".* ([A-Z]*_HELP_TEXT)\\).*" "\\1" varname "${line}")
+              string(REGEX REPLACE "${varname}" "R\"*(${${varname}})*\"" ready_line "${ready_line}")
+              SET(process "${tmp}")
+            ENDIF()
           ELSE()
-            SET(ready_line "${line}")
             SET(process "${tmp}")
           ENDIF()
         endif()
@@ -141,11 +271,20 @@ function (generate_docs type)
             SET(process "1")
           ENDIF()
         ELSE()
+          SET(ready_line "${ready_line}\n${line}")
           string(FIND "${line}" ")*\");" register_end REVERSE)
-          IF("${register_end}" STREQUAL "-1")
-            SET(ready_line "${ready_line}\n${line}")
+          IF("${register_end}" STREQUAL "-1")  
+            string(FIND "${line}" "_HELP_TEXT);" register_end_var REVERSE)
+            IF("${register_end_var}" STREQUAL "-1")
+            ELSE()
+              # handle REGISTER_HELP_TEXT(HELP_NAME, SHARED_HELP_TEXT)
+              string(REGEX REPLACE ".* ([A-Z]*_HELP_TEXT)\\).*" "\\1" varname "${line}")
+              string(REGEX REPLACE "${varname}" "R\"*(${${varname}})*\"" ready_line "${ready_line}")
+              #message("RESOLVED ${varname} = ${ready_line}")
+              SET(process "${continued}")
+              SET(continued "0")
+            ENDIF()
           ELSE()
-            SET(ready_line "${ready_line}\n${line}")
             SET(process "${continued}")
             SET(continued "0")
           ENDIF()
@@ -161,8 +300,10 @@ function (generate_docs type)
         string(FIND "${ready_line}" "," end)
         MATH(EXPR start "${start}+1")
 
+        SET(original "${ready_line}")
+
         IF ("${end}" STREQUAL "-1")
-          MESSAGE("${file}")
+          MESSAGE(">> ${file}")
           MESSAGE("${ready_line}")
         ENDIF()
 
@@ -182,7 +323,7 @@ function (generate_docs type)
         ENDIF()
 
         IF ("${end}" STREQUAL "-1")
-          MESSAGE("${file}")
+          MESSAGE(">>> ${file}")
           MESSAGE("${ready_line}")
         ENDIF()
 
@@ -203,6 +344,8 @@ function (generate_docs type)
 
         # Creates the variable with the assigned value
         STRING(STRIP "${variable}" stripped_variable)
+
+        resolve_keywords("${value}" value "${stripped_variable}")
         resolve_member_names("${value}" final_value "${type}")
         #MESSAGE ("VAR: '${stripped_variable}' : '${final_value}'")
         SET(ENV{${stripped_variable}} "${final_value}")
@@ -210,6 +353,8 @@ function (generate_docs type)
 
         IF(NOT "${value_brief}" STREQUAL "")
           SET(variable_brief "${stripped_variable}_BRIEF")
+
+          resolve_keywords("${value_brief}" value_brief "${stripped_variable}")
           resolve_member_names("${value_brief}" final_value_brief "${type}")
           #MESSAGE ("VAR: '${variable_brief}' : '${final_value_brief}'")
           SET(ENV{${variable_brief}} "${final_value_brief}")
@@ -232,7 +377,6 @@ function (generate_docs type)
   SET(DOX_EXCLUDE_PATTERNS "*my_aes* *mod_dba_replicaset* *mod_dba_instan* mod_extensible_object* interactive_object_wrapper*")
 
   SET(DOX_LAYOUT_FILE "${CMAKE_SOURCE_DIR}/DoxygenLayout.scripting.xml")
-
 
   # JS Documentation Generation
   SET(DOX_PREDEFINED "DOXYGEN_${type}")
@@ -288,9 +432,7 @@ function (generate_docs type)
       endif()
     endforeach()
   endforeach()
-
 endfunction()
-
 
 generate_docs("JS")
 generate_docs("PY")

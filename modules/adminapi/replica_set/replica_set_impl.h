@@ -114,7 +114,8 @@ class Replica_set_impl : public Base_cluster_impl {
 
   shcore::Value list_routers(bool only_upgrade_required) override;
 
-  void remove_router_metadata(const std::string &router);
+  void remove_router_metadata(const std::string &router,
+                              bool lock_metadata = false) override;
 
   void setup_admin_account(const std::string &username, const std::string &host,
                            const Setup_account_options &options) override;
@@ -148,6 +149,8 @@ class Replica_set_impl : public Base_cluster_impl {
   create_replication_user(mysqlshdk::mysql::IInstance *slave,
                           std::string_view auth_cert_subject, bool dry_run,
                           mysqlshdk::mysql::IInstance *master = nullptr);
+
+  std::vector<Instance_metadata> get_instances_from_metadata() const override;
 
  private:
   void _set_option(const std::string &option,
@@ -194,8 +197,6 @@ class Replica_set_impl : public Base_cluster_impl {
   std::shared_ptr<Global_topology_manager> setup_topology_manager(
       topology::Server_global_topology **out_topology = nullptr,
       bool deep = false);
-
-  std::vector<Instance_metadata> get_instances_from_metadata() const;
 
   const topology::Server *check_target_member(
       topology::Server_global_topology *topology,

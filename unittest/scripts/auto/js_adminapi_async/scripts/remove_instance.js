@@ -85,7 +85,7 @@ var rs = dba.getReplicaSet();
 
 testutil.stopSandbox(__mysql_sandbox_port3, {wait:true});
 // should fail while updating MD on instance 3
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Failed to execute query on Metadata server ${hostname_ip}:${__mysql_sandbox_port3}: Lost connection to MySQL server during query`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, "The replicaset object is disconnected.");
 
 testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);

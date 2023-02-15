@@ -79,9 +79,6 @@ NAME
 SYNTAX
       <ClassicSession>.commit()
 
-RETURNS
-      A ClassicResult object.
-
 DESCRIPTION
       All the operations executed after calling startTransaction() will take
       place when this function is called.
@@ -152,9 +149,6 @@ NAME
 SYNTAX
       <ClassicSession>.rollback()
 
-RETURNS
-      A ClassicResult object.
-
 DESCRIPTION
       All the operations executed after calling startTransaction() will be
       discarded when this function is called.
@@ -189,9 +183,6 @@ NAME
 
 SYNTAX
       <ClassicSession>.startTransaction()
-
-RETURNS
-      A ClassicResult object.
 
 DESCRIPTION
       Calling this function will turn off the autocommit mode on the server.

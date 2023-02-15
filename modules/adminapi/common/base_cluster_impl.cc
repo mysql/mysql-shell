@@ -33,11 +33,13 @@
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/mod_shell.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -46,6 +48,7 @@
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "shellcore/utils_help.h"
 
 namespace mysqlsh {
@@ -55,7 +58,6 @@ namespace {
 /**
  * List with the supported build-in tags for setOption and setInstanceOption
  */
-typedef std::map<std::string, shcore::Value_type> built_in_tags_map_t;
 const built_in_tags_map_t k_supported_set_option_tags{
     {"_hidden", shcore::Value_type::Bool},
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
@@ -96,6 +98,25 @@ void Base_cluster_impl::target_server_invalidated() {
   } else {
     // find some other server to connect to?
   }
+}
+
+bool Base_cluster_impl::check_valid() const {
+  if (!get_cluster_server() || !get_cluster_server()->get_session() ||
+      !get_cluster_server()->get_session()->is_open() ||
+      !get_metadata_storage()) {
+    return false;
+  }
+  // Check if the server is still reachable even though the session is open
+  try {
+    get_cluster_server()->execute("select 1");
+  } catch (const shcore::Error &e) {
+    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+      return false;
+    } else {
+      throw;
+    }
+  }
+  return true;
 }
 
 void Base_cluster_impl::check_preconditions(
@@ -441,6 +462,10 @@ void Base_cluster_impl::setup_router_account(
 
 void Base_cluster_impl::remove_router_metadata(const std::string &router,
                                                bool lock_metadata) {
+  check_preconditions("removeRouterMetadata");
+
+  auto c_lock = get_lock_shared();
+
   /*
    * The metadata lock is currently only used in ReplicaSet, and only until it's
    * removed (deprecated because we use DB transactions). At that time, all
@@ -477,6 +502,13 @@ void Base_cluster_impl::set_cluster_tag(const std::string &option,
   get_metadata_storage()->set_cluster_tag(get_id(), option, value);
 }
 
+void Base_cluster_impl::set_router_tag(const std::string &router,
+                                       const std::string &option,
+                                       const shcore::Value &value) {
+  get_metadata_storage()->set_router_tag(get_type(), get_id(), router, option,
+                                         value);
+}
+
 void Base_cluster_impl::set_instance_option(const std::string &instance_def,
                                             const std::string &option,
                                             const shcore::Value &value) {
@@ -485,7 +517,7 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
   std::string opt_namespace, opt;
   shcore::Value val;
   std::tie(opt_namespace, opt, val) =
-      validate_set_option_namespace(option, value);
+      validate_set_option_namespace(option, value, k_supported_set_option_tags);
   if (opt_namespace.empty()) {
     // no namespace was provided
     _set_instance_option(instance_def, option, val);
@@ -507,7 +539,7 @@ void Base_cluster_impl::set_option(const std::string &option,
   std::string opt_namespace, opt;
   shcore::Value val;
   std::tie(opt_namespace, opt, val) =
-      validate_set_option_namespace(option, value);
+      validate_set_option_namespace(option, value, k_supported_set_option_tags);
 
   Function_availability *custom_precondition{nullptr};
   if (!opt_namespace.empty() && get_type() == Cluster_type::GROUP_REPLICATION) {
@@ -560,7 +592,8 @@ std::string Base_cluster_impl::query_cluster_instance_auth_cert_subject(
 
 std::tuple<std::string, std::string, shcore::Value>
 Base_cluster_impl::validate_set_option_namespace(
-    const std::string &option, const shcore::Value &value) const {
+    const std::string &option, const shcore::Value &value,
+    const built_in_tags_map_t &built_in_tags) const {
   shcore::Value val = value;
   // Check if we're using namespaces
   auto tokens = shcore::str_split(option, ":", 1);
@@ -588,9 +621,8 @@ Base_cluster_impl::validate_set_option_namespace(
       // Even if it is a valid identifier, if it starts with _ we need to make
       // sure it is one of the allowed built-in tags
       if (opt[0] == '_') {
-        built_in_tags_map_t::const_iterator c_it =
-            k_supported_set_option_tags.find(opt);
-        if (c_it == k_supported_set_option_tags.cend()) {
+        built_in_tags_map_t::const_iterator c_it = built_in_tags.find(opt);
+        if (c_it == built_in_tags.cend()) {
           throw shcore::Exception::argument_error(
               "'" + opt + "' is not a valid built-in tag.");
         }
@@ -629,29 +661,25 @@ Base_cluster_impl::validate_set_option_namespace(
 shcore::Value Base_cluster_impl::get_cluster_tags() const {
   shcore::Dictionary_t res = shcore::make_dict();
 
-  // lambda function that does the repetitive work of creating an array of
-  // dictionaries from a string representation of a JSON object.
-  auto helper_func = [](std::string tags) -> shcore::Array_t {
+  assert(get_type() != Cluster_type::REPLICATED_CLUSTER);
+
+  auto map_to_array = [](const shcore::Dictionary_t &tags) -> shcore::Array_t {
     shcore::Array_t result = shcore::make_array();
-    if (!tags.empty()) {
-      auto tags_value = shcore::Value::parse(tags);
-      auto tags_map = tags_value.as_map();
-      auto it = tags_map->begin();
-      while (it != tags_map->end()) {
-        auto dict = shcore::make_dict();
-        (*dict)["option"] = shcore::Value(it->first);
-        (*dict)["value"] = it->second;
-        result->emplace_back(shcore::Value(dict));
-        it++;
+    if (tags) {
+      for (const auto &tag : *tags) {
+        result->emplace_back(shcore::Value(shcore::make_dict(
+            "option", shcore::Value(tag.first), "value", tag.second)));
       }
     }
     return result;
   };
 
-  std::string cluster_tags = get_metadata_storage()->get_cluster_tags(get_id());
+  Cluster_metadata cluster_md;
+
+  get_metadata_storage()->get_cluster(get_id(), &cluster_md);
 
   // Fill cluster tags
-  (*res)["global"] = shcore::Value(helper_func(cluster_tags));
+  (*res)["global"] = shcore::Value(map_to_array(cluster_md.tags));
 
   // Fill the cluster instance tags
   std::vector<Instance_metadata> instance_defs =
@@ -659,9 +687,7 @@ shcore::Value Base_cluster_impl::get_cluster_tags() const {
 
   // get the list of tags each instance
   for (const auto &instance_def : instance_defs) {
-    std::string instance_tags =
-        get_metadata_storage()->get_instance_tags(instance_def.uuid);
-    (*res)[instance_def.label] = shcore::Value(helper_func(instance_tags));
+    (*res)[instance_def.label] = shcore::Value(map_to_array(instance_def.tags));
   }
   return shcore::Value(res);
 }
@@ -680,6 +706,45 @@ void Base_cluster_impl::disconnect_internal() {
   if (m_metadata_storage) {
     m_metadata_storage.reset();
   }
+}
+
+void Base_cluster_impl::set_routing_option(const std::string &router,
+                                           const std::string &option,
+                                           const shcore::Value &value) {
+  // Preconditions the same to sister function
+  check_preconditions("setRoutingOption");
+
+  std::string opt_namespace, opt;
+  shcore::Value val;
+  std::tie(opt_namespace, opt, val) =
+      validate_set_option_namespace(option, value, {});
+  if (opt_namespace.empty()) {
+    auto value_fixed = validate_router_option(*this, opt, val);
+
+    auto msg = "Routing option '" + opt + "' successfully updated";
+    if (router.empty()) {
+      get_metadata_storage()->set_global_routing_option(get_type(), get_id(),
+                                                        opt, value_fixed);
+      msg += ".";
+    } else {
+      get_metadata_storage()->set_routing_option(router, get_id(), opt,
+                                                 value_fixed);
+      msg += " in router '" + router + "'.";
+    }
+
+    auto console = mysqlsh::current_console();
+    console->print_info(msg);
+  } else {
+    set_router_tag(router, opt, val);
+  }
+}
+
+shcore::Dictionary_t Base_cluster_impl::routing_options(
+    const std::string &router) {
+  check_preconditions("routingOptions");
+
+  return router_options(get_metadata_storage().get(), get_type(), get_id(),
+                        router);
 }
 
 }  // namespace dba

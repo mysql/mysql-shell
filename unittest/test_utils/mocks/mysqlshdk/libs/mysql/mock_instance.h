@@ -138,6 +138,8 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
                                     const std::string &, bool));
 
   MOCK_CONST_METHOD1(execute, void(const std::string &));
+
+  MOCK_CONST_METHOD0(generate_uuid, std::string());
 };
 }  // namespace mysql
 }  // namespace mysqlshdk

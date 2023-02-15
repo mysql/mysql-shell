@@ -311,7 +311,7 @@ void Help_topic::get_id_tokens(IShell_core::Mode mode,
   }
 
   tokens->push_back(get_name(mode));
-}  // namespace shcore
+}
 
 std::string Help_topic::get_id(IShell_core::Mode mode,
                                Topic_id_mode id_mode) const {
@@ -331,7 +331,15 @@ std::string Help_topic::get_id(IShell_core::Mode mode,
   ret_val += this_name;
 
   return ret_val;
-}  // namespace shcore
+}
+
+std::string Help_topic::get_keyword(const std::string &keyword) const {
+  if (auto kw = m_keywords.find(keyword); kw != m_keywords.end())
+    return kw->second;
+  if (m_parent) return m_parent->get_keyword(keyword);
+
+  throw std::invalid_argument("Keyword " + keyword + " not defined");
+}
 
 const char Help_registry::HELP_ROOT[] = "Contents";
 const char Help_registry::HELP_COMMANDS[] = "Shell Commands";
@@ -659,7 +667,7 @@ Help_topic *Help_registry::create_help_topic(const std::string &name,
                                              bool do_register) {
   auto lock = ensure_lock();
   Help_topic *new_topic = &(*m_topics.insert(
-      m_topics.end(), {name, name, type, tag, nullptr, {}, true}));
+      m_topics.end(), {name, name, type, tag, nullptr, {}, true, {}}));
   m_topics_by_type[type].push_back(new_topic);
 
   std::string splitter;
@@ -765,13 +773,15 @@ std::unique_lock<std::recursive_mutex> Help_registry::ensure_lock_threaded() {
   return lock;
 }
 
-void Help_registry::add_help_class(const std::string &name,
-                                   const std::string &parent,
-                                   const std::string &upper_class,
-                                   IShell_core::Mode_mask mode) {
+void Help_registry::add_help_class(
+    const std::string &name, const std::string &parent,
+    const std::string &upper_class, IShell_core::Mode_mask mode,
+    std::map<std::string, std::string> keywords) {
   auto lock = ensure_lock();
   Help_topic *topic =
       add_help_topic(name, Topic_type::CLASS, name, parent, mode).back();
+
+  topic->m_keywords = std::move(keywords);
 
   // A parent class has been specified
   if (!upper_class.empty()) {
@@ -1013,7 +1023,7 @@ void Help_registry::register_keyword(const std::string &keyword,
   }
 }
 
-std::string Help_registry::get_token(const std::string &token) {
+std::string Help_registry::get_token(const std::string &token) const {
   std::string ret_val;
 
   try {
@@ -1212,10 +1222,10 @@ bool Help_registry::is_enabled(const Help_topic *topic,
   return ret_val;
 }
 
-Help_class_register::Help_class_register(const std::string &child,
-                                         const std::string &parent,
-                                         const std::string &upper_class,
-                                         Help_mode mode) {
+Help_class_register::Help_class_register(
+    const std::string &child, const std::string &parent,
+    const std::string &upper_class, Help_mode mode,
+    const std::map<std::string, std::string> &keywords) {
   IShell_core::Mode_mask mask;
   using Mode = IShell_core::Mode;
   if (mode == Help_mode::SCRIPTING) {
@@ -1228,7 +1238,8 @@ Help_class_register::Help_class_register(const std::string &child,
     throw std::logic_error("Invalid mode for a scripting class.");
   }
 
-  Help_registry::get()->add_help_class(child, parent, upper_class, mask);
+  Help_registry::get()->add_help_class(child, parent, upper_class, mask,
+                                       keywords);
 }
 
 Help_manager::Help_manager() {
@@ -1437,8 +1448,8 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
           desc_padding += pdata[index].first.size() + 2;
           std::vector<std::string> data = {pdata[index].second};
 
-          std::string desc =
-              format_help_text(&data, MAX_HELP_WIDTH, desc_padding, true);
+          std::string desc = format_help_text(function, &data, MAX_HELP_WIDTH,
+                                              desc_padding, true);
 
           if (!desc.empty()) {
             desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
@@ -1461,7 +1472,8 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
     std::string ret = textui::bold("RETURNS") + HEADER_CONTENT_SEPARATOR;
     // Removes the @returns tag
     returns[0] = returns[0].substr(returns[0].find_first_of(" \t") + 1);
-    ret += format_help_text(&returns, MAX_HELP_WIDTH, SECTION_PADDING, true);
+    ret += format_help_text(function, &returns, MAX_HELP_WIDTH, SECTION_PADDING,
+                            true);
     sections->push_back(ret);
   }
 
@@ -1484,7 +1496,7 @@ void Help_manager::add_simple_function_help(const Help_topic &function,
     if (m_registry->get_token(x_tag).empty())
       x_tag = parent->m_name + "_" + name + "_EXAMPLE";
 
-    add_examples_section(x_tag, sections, SECTION_PADDING);
+    add_examples_section(function, x_tag, sections, SECTION_PADDING);
   }
 }
 
@@ -1572,7 +1584,7 @@ void Help_manager::add_chained_function_help(
   // Gets the chain definition already formatted for the active language
   auto chain_definition = get_help_text(
       parent->m_name + "_" + main_function.get_base_name() + "_CHAINED");
-  format_help_text(&chain_definition, MAX_HELP_WIDTH, 0, false);
+  format_help_text(main_function, &chain_definition, MAX_HELP_WIDTH, 0, false);
 
   // Gets the main chain definition elements
   auto functions = shcore::split_string(chain_definition[0], HELP_API_SPLITTER);
@@ -1657,7 +1669,7 @@ void Help_manager::add_chained_function_help(
   // The main description is taken from the parent class
   std::string tag =
       parent->m_name + "_" + function_topics[0]->m_name + "_DETAIL";
-  add_section(HELP_TITLE_DESCRIPTION, tag, sections, SECTION_PADDING);
+  add_section(*parent, HELP_TITLE_DESCRIPTION, tag, sections, SECTION_PADDING);
 
   // Padding for the chained function descriptions
   padding = SECTION_PADDING + ITEM_DESC_PADDING;
@@ -1666,8 +1678,9 @@ void Help_manager::add_chained_function_help(
 
   // Now adds a light version of the rest of the chained functions
   while (!function_topics.empty()) {
-    std::string name = function_topics[0]->get_base_name();
-    std::string dname = function_topics[0]->get_name(m_mode);
+    const Help_topic &function_topic = *function_topics[0];
+    std::string name = function_topic.get_base_name();
+    std::string dname = function_topic.get_name(m_mode);
     std::string signature = signatures[dname];
     std::string space(SECTION_PADDING, ' ');
     std::vector<std::string> section;
@@ -1681,7 +1694,7 @@ void Help_manager::add_chained_function_help(
         section.push_back("@li " + dname + real_signature);
       }
 
-      add_section_data(title, &section, sections, padding);
+      add_section_data(function_topic, title, &section, sections, padding);
 
       // Since title has been added, we clean it up for the section below
       title = "";
@@ -1690,25 +1703,25 @@ void Help_manager::add_chained_function_help(
     auto details = m_registry->get_token(target_class + "_" + name + "_DETAIL");
 
     if (details.empty())
-      add_section(title, target_class + "_" + name + "_BRIEF", sections,
-                  padding);
+      add_section(function_topic, title, target_class + "_" + name + "_BRIEF",
+                  sections, padding);
     else
-      add_section(title, target_class + "_" + name + "_DETAIL", sections,
-                  padding);
+      add_section(function_topic, title, target_class + "_" + name + "_DETAIL",
+                  sections, padding);
 
     auto single_title = space + "Example";
     auto multi_title = space + "Examples";
-    add_examples_section(target_class + "_" + name + "_EXAMPLE", sections,
-                         padding, single_title, multi_title);
+    add_examples_section(function_topic, target_class + "_" + name + "_EXAMPLE",
+                         sections, padding, single_title, multi_title);
 
     function_topics.erase(function_topics.begin());
   }
 }
 
 std::string Help_manager::format_list_description(
-    const std::string &name, std::vector<std::string> *help_text,
-    size_t name_max_len, size_t lpadding, const std::string &alias,
-    size_t alias_max_len) {
+    const Help_topic &topic, const std::string &name,
+    std::vector<std::string> *help_text, size_t name_max_len, size_t lpadding,
+    const std::string &alias, size_t alias_max_len) {
   std::string desc;
 
   // Adds the extra espace before the descriptions begin
@@ -1719,7 +1732,7 @@ std::string Help_manager::format_list_description(
   if (alias_max_len) dpadding += alias_max_len + 1;
 
   if (help_text && !help_text->empty()) {
-    desc = format_help_text(help_text, MAX_HELP_WIDTH, dpadding, true);
+    desc = format_help_text(topic, help_text, MAX_HELP_WIDTH, dpadding, true);
 
     if (!alias.empty())
       desc.replace(dpadding - alias_max_len - 1, alias.size(), alias);
@@ -1794,9 +1807,9 @@ std::string Help_manager::format_topic_list(
 
     auto help_text = get_topic_brief(topic);
 
-    formatted.push_back(format_list_description(topic->m_name, &help_text,
-                                                name_max_len, lpadding,
-                                                alias_str, alias_max_len));
+    formatted.push_back(
+        format_list_description(*topic, topic->m_name, &help_text, name_max_len,
+                                lpadding, alias_str, alias_max_len));
   }
 
   return shcore::str_join(formatted, "\n");
@@ -1855,7 +1868,7 @@ std::string Help_manager::format_member_list(
       help_text = get_member_brief(member);
 
     if (!help_text.empty()) {
-      description += format_help_text(&help_text, MAX_HELP_WIDTH,
+      description += format_help_text(*member, &help_text, MAX_HELP_WIDTH,
                                       lpadding + ITEM_DESC_PADDING, true);
     }
 
@@ -1866,7 +1879,7 @@ std::string Help_manager::format_member_list(
 }
 
 void Help_manager::add_childs_section(
-    const std::vector<const Help_topic *> &childs,
+    const Help_topic &parent, const std::vector<const Help_topic *> &childs,
     std::vector<std::string> *sections, size_t lpadding, bool members,
     const std::string &tag, const std::string &default_title, bool alias) {
   if (!childs.empty()) {
@@ -1876,7 +1889,7 @@ void Help_manager::add_childs_section(
       if (title.empty()) title = default_title;
 
       size_t count = sections->size();
-      add_section("", tag + "_DESC", sections, lpadding);
+      add_section(parent, "", tag + "_DESC", sections, lpadding);
 
       std::string section_data;
       if (count == sections->size()) {
@@ -1891,7 +1904,7 @@ void Help_manager::add_childs_section(
 
       sections->push_back(section_data);
 
-      add_section("", tag + "_CLOSING_DESC", sections, lpadding);
+      add_section(parent, "", tag + "_CLOSING_DESC", sections, lpadding);
     }
   }
 }
@@ -1915,7 +1928,7 @@ void Help_manager::add_name_section(const Help_topic &topic,
     brief = get_help_text(topic.m_help_tag + "_BRIEF");
 
   if (!brief.empty()) {
-    formatted = format_help_text(&brief, MAX_HELP_WIDTH,
+    formatted = format_help_text(topic, &brief, MAX_HELP_WIDTH,
                                  dname.size() + 3 + SECTION_PADDING, true);
 
     formatted[dname.size() + 1 + SECTION_PADDING] = '-';
@@ -1970,12 +1983,14 @@ std::string Help_manager::format_object_help(const Help_topic &object,
     size_t count = sections.size();
 
     if (object.is_topic()) {
-      add_section("", tag, &sections, lpadding);
+      add_section(object, "", tag, &sections, lpadding);
     } else {
-      add_section(description_title, tag + "_DETAIL", &sections, lpadding);
+      add_section(object, description_title, tag + "_DETAIL", &sections,
+                  lpadding);
 
       if (count == sections.size())
-        add_section(description_title, tag + "_BRIEF", &sections, lpadding);
+        add_section(object, description_title, tag + "_BRIEF", &sections,
+                    lpadding);
     }
   }
 
@@ -2020,56 +2035,57 @@ std::string Help_manager::format_object_help(const Help_topic &object,
   }
 
   if (options.is_set(Help_option::Constants)) {
-    add_childs_section(consts, &sections, lpadding, NO_MEMBER_TOPICS,
+    add_childs_section(object, consts, &sections, lpadding, NO_MEMBER_TOPICS,
                        tag + "_CONSTANTS", "CONSTANTS");
   }
 
   if (options.is_set(Help_option::Properties)) {
-    add_childs_section(prop, &sections, lpadding, MEMBER_TOPICS,
+    add_childs_section(object, prop, &sections, lpadding, MEMBER_TOPICS,
                        tag + "_PROPERTIES", "PROPERTIES");
   }
 
   if (options.is_set(Help_option::Objects)) {
-    add_childs_section(obj, &sections, lpadding, NO_MEMBER_TOPICS,
+    add_childs_section(object, obj, &sections, lpadding, NO_MEMBER_TOPICS,
                        tag + "_OBJECTS", "OBJECTS");
   }
 
   if (options.is_set(Help_option::Functions)) {
-    add_childs_section(func, &sections, lpadding, MEMBER_TOPICS,
+    add_childs_section(object, func, &sections, lpadding, MEMBER_TOPICS,
                        tag + "_FUNCTIONS", "FUNCTIONS");
   }
 
   if (options.is_set(Help_option::Classes)) {
-    add_childs_section(cls, &sections, lpadding, NO_MEMBER_TOPICS,
+    add_childs_section(object, cls, &sections, lpadding, NO_MEMBER_TOPICS,
                        tag + "_CLASSES", "CLASSES");
   }
 
   if (options.is_set(Help_option::Modules)) {
-    add_childs_section(mod, &sections, lpadding, NO_MEMBER_TOPICS,
+    add_childs_section(object, mod, &sections, lpadding, NO_MEMBER_TOPICS,
                        tag + "_MODULES", "MODULES");
   }
 
   if (options.is_set(Help_option::Categories)) {
-    add_childs_section(cat, &sections, lpadding, NO_MEMBER_TOPICS,
+    add_childs_section(object, cat, &sections, lpadding, NO_MEMBER_TOPICS,
                        tag + "_CATEGORIES", "RELATED CATEGORIES");
   }
 
   if (options.is_set(Help_option::Childs)) {
-    add_childs_section(others, &sections, lpadding, NO_MEMBER_TOPICS,
+    add_childs_section(object, others, &sections, lpadding, NO_MEMBER_TOPICS,
                        tag + "_CHILDS", "RELATED TOPICS",
                        object.m_name == shcore::Help_registry::HELP_COMMANDS);
   }
 
   if (options.is_set(Help_option::Closing))
-    add_section("", tag + "_CLOSING", &sections, lpadding);
+    add_section(object, "", tag + "_CLOSING", &sections, lpadding);
 
   if (options.is_set(Help_option::Example))
-    add_examples_section(tag + "_EXAMPLE", &sections, lpadding);
+    add_examples_section(object, tag + "_EXAMPLE", &sections, lpadding);
 
   return shcore::str_join(sections, "\n\n");
 }
 
-void Help_manager::add_section_data(const std::string &title,
+void Help_manager::add_section_data(const Help_topic &topic,
+                                    const std::string &title,
                                     std::vector<std::string> *details,
                                     std::vector<std::string> *sections,
                                     size_t padding, bool insert_blank_lines) {
@@ -2079,8 +2095,8 @@ void Help_manager::add_section_data(const std::string &title,
     if (!title.empty())
       section += (mysqlshdk::textui::bold(title) + HEADER_CONTENT_SEPARATOR);
 
-    section.append(
-        format_help_text(details, MAX_HELP_WIDTH, padding, insert_blank_lines));
+    section.append(format_help_text(topic, details, MAX_HELP_WIDTH, padding,
+                                    insert_blank_lines));
 
     sections->push_back(section);
   }
@@ -2092,7 +2108,7 @@ void Help_manager::add_member_section(const std::string &title,
                                       std::vector<std::string> *sections,
                                       size_t padding) {
   auto details = resolve_help_text(member, tag);
-  add_section_data(title, &details, sections, padding);
+  add_section_data(member, title, &details, sections, padding);
 }
 
 void Help_manager::add_cli_options_section(
@@ -2125,8 +2141,9 @@ void Help_manager::add_cli_options_section(
               if (param_data != option_data.end()) {
                 std::vector<std::string> brief{param_data->second};
                 option_detail += "\n";
-                option_detail += format_help_text(
-                    &brief, MAX_HELP_WIDTH, padding + ITEM_DESC_PADDING, true);
+                option_detail +=
+                    format_help_text(member, &brief, MAX_HELP_WIDTH,
+                                     padding + ITEM_DESC_PADDING, true);
               }
               options_details.push_back(option_detail);
             }
@@ -2143,8 +2160,9 @@ void Help_manager::add_cli_options_section(
                 // already displayed in the syntax.
                 brief[0] = strip_param_type(brief[0]);
                 option_detail += "\n";
-                option_detail += format_help_text(
-                    &brief, MAX_HELP_WIDTH, padding + ITEM_DESC_PADDING, true);
+                option_detail +=
+                    format_help_text(member, &brief, MAX_HELP_WIDTH,
+                                     padding + ITEM_DESC_PADDING, true);
               }
               break;
             }
@@ -2163,12 +2181,14 @@ void Help_manager::add_cli_options_section(
   }
 }
 
-void Help_manager::add_section(const std::string &title, const std::string &tag,
+void Help_manager::add_section(const Help_topic &topic,
+                               const std::string &title, const std::string &tag,
                                std::vector<std::string> *sections,
                                size_t padding, bool insert_blank_lines) {
   std::vector<std::string> details;
   details = get_help_text(tag);
-  add_section_data(title, &details, sections, padding, insert_blank_lines);
+  add_section_data(topic, title, &details, sections, padding,
+                   insert_blank_lines);
 }
 
 std::string Help_manager::format_function_help(const Help_topic &function,
@@ -2239,20 +2259,21 @@ std::string Help_manager::format_command_help(const Help_topic &command,
   }
 
   if (options.is_set(Help_option::Syntax))
-    add_section(HELP_TITLE_SYNTAX, tag + "_SYNTAX", &sections, SECTION_PADDING,
-                false);
+    add_section(command, HELP_TITLE_SYNTAX, tag + "_SYNTAX", &sections,
+                SECTION_PADDING, false);
 
   if (options.is_set(Help_option::Detail))
-    add_section(HELP_TITLE_DESCRIPTION, tag + "_DETAIL", &sections,
+    add_section(command, HELP_TITLE_DESCRIPTION, tag + "_DETAIL", &sections,
                 SECTION_PADDING);
 
   if (options.is_set(Help_option::Example))
-    add_examples_section(tag + "_EXAMPLE", &sections, SECTION_PADDING);
+    add_examples_section(command, tag + "_EXAMPLE", &sections, SECTION_PADDING);
 
   return shcore::str_join(sections, "\n\n");
 }
 
-void Help_manager::add_examples_section(const std::string &tag,
+void Help_manager::add_examples_section(const Help_topic &topic,
+                                        const std::string &tag,
                                         std::vector<std::string> *sections,
                                         size_t padding,
                                         const std::string &single_title,
@@ -2267,12 +2288,12 @@ void Help_manager::add_examples_section(const std::string &tag,
     while (!example.empty()) {
       std::string formatted;
       std::vector<std::string> data = {example};
-      formatted = format_help_text(&data, MAX_HELP_WIDTH, padding, true);
+      formatted = format_help_text(topic, &data, MAX_HELP_WIDTH, padding, true);
 
       auto desc = get_help_text(current_tag + "_DESC");
       if (!desc.empty()) {
         formatted += "\n";
-        formatted += format_help_text(&desc, MAX_HELP_WIDTH,
+        formatted += format_help_text(topic, &desc, MAX_HELP_WIDTH,
                                       padding + ITEM_DESC_PADDING, true);
       }
 
@@ -2295,7 +2316,7 @@ void Help_manager::add_examples_section(const std::string &tag,
 }
 
 std::map<std::string, std::string> Help_manager::preprocess_help(
-    std::vector<std::string> *text_lines) const {
+    const Help_topic &topic, std::vector<std::string> *text_lines) const {
   std::map<std::string, std::string> no_format_data;
   for (auto &text : *text_lines) {
     if (shcore::str_beginswith(text.c_str(), HELP_NO_FORMAT)) {
@@ -2305,35 +2326,35 @@ std::map<std::string, std::string> Help_manager::preprocess_help(
       no_format_data[id] = data;
       text = id;
     } else {
-      size_t start;
-      size_t end;
+      text = shcore::str_subvars(
+          text,
+          [this, topic](std::string_view s) {
+            if (!s.empty() && s[0] == ':') {
+              // sub context specific keywords
+              return topic.get_keyword(std::string(s.substr(1)));
+            } else {
+              // sub member names by naming convention
+              std::string member_name(s);
 
-      start = text.find("<<<");
-      while (start != std::string::npos) {
-        end = text.find(">>>", start);
-        if (end == std::string::npos)
-          throw std::logic_error("Unterminated <<< in documentation");
+              if (m_mode == IShell_core::Mode::Python)
+                member_name = shcore::from_camel_case(member_name);
 
-        std::string member_name = text.substr(start + 3, end - start - 3);
-
-        if (m_mode == IShell_core::Mode::Python)
-          member_name = shcore::from_camel_case(member_name);
-
-        text.replace(start, end - start + 3, member_name);
-
-        start = text.find("<<<");
-      }
+              return member_name;
+            }
+          },
+          "<<<", ">>>");
     }
   }
 
   return no_format_data;
 }
 
-std::string Help_manager::format_help_text(std::vector<std::string> *lines,
+std::string Help_manager::format_help_text(const Help_topic &topic,
+                                           std::vector<std::string> *lines,
                                            size_t width, size_t left_padding,
                                            bool paragraph_per_line) const {
   std::map<std::string, std::string> no_formats;
-  no_formats = preprocess_help(lines);
+  no_formats = preprocess_help(topic, lines);
   std::string formatted = textui::format_markup_text(
       *lines, width, left_padding, paragraph_per_line);
 
@@ -2430,4 +2451,5 @@ std::string Help_manager::get_help(const std::string &topic_id, Topic_mask type,
 
   return get_help(**found_topics->begin(), options);
 }
+
 }  // namespace shcore

@@ -23,25 +23,34 @@
 
 #include "modules/adminapi/common/router.h"
 
+#include <map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 
 namespace mysqlsh {
 namespace dba {
 
-const Router_options_metadata k_default_router_options = {
-    {},
+const std::map<std::string, shcore::Value> k_default_clusterset_router_options =
     {{k_router_option_invalidated_cluster_routing_policy,
       shcore::Value(
           k_router_option_invalidated_cluster_routing_policy_drop_all)},
      {k_router_option_target_cluster,
       shcore::Value(k_router_option_target_cluster_primary)},
      {k_router_option_stats_updates_frequency, shcore::Value(0)},
-     {k_router_option_use_replica_primary_as_rw, shcore::Value(false)}}};
+     {k_router_option_use_replica_primary_as_rw, shcore::Value::False()},
+     {k_router_option_tags, shcore::Value(shcore::make_dict())}};
+
+const std::map<std::string, shcore::Value> k_default_cluster_router_options = {
+    {k_router_option_tags, shcore::Value(shcore::make_dict())}};
+
+const std::map<std::string, shcore::Value> k_default_replicaset_router_options =
+    {{k_router_option_tags, shcore::Value(shcore::make_dict())}};
 
 inline bool is_router_upgrade_required(
     const mysqlshdk::utils::Version &version) {
@@ -187,39 +196,36 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
   return shcore::Value(router_list);
 }
 
-shcore::Dictionary_t router_options(MetadataStorage *md,
-                                    const std::string &clusterset_id,
+shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
+                                    const std::string &id,
                                     const std::string &router_label) {
   auto router_options = shcore::make_dict();
-  auto romd = md->get_routing_options(clusterset_id);
+  auto romd = md->get_routing_options(type, id);
 
-  const auto get_options_dict = [](const Router_options_metadata &entry) {
-    auto ret = shcore::make_dict();
-    for (const auto &option : entry.defined_options)
-      (*ret)[option.first] = option.second;
-    return shcore::Value(ret);
-  };
+  const auto get_options_dict =
+      [](const std::map<std::string, shcore::Value> &entry) {
+        auto ret = shcore::make_dict();
+        for (const auto &option : entry) (*ret)[option.first] = option.second;
+
+        return shcore::Value(ret);
+      };
 
   if (!router_label.empty()) {
-    for (const auto &entry : romd) {
-      if (entry.router_label == router_label) {
-        (*router_options)[*entry.router_label] = get_options_dict(entry);
-      }
-    }
+    if (romd.routers.find(router_label) != romd.routers.end()) {
+      const auto &entry = romd.routers[router_label];
 
-    if (router_options->empty()) {
+      (*router_options)[router_label] = get_options_dict(entry);
+    } else {
       throw shcore::Exception::argument_error(
-          "Router '" + router_label + "' is not registered in the ClusterSet");
+          "Router '" + router_label + "' is not registered in the " +
+          to_display_string(type, Display_form::THING));
     }
-
   } else {
     auto routers = shcore::make_dict();
-    for (const auto &entry : romd) {
-      if (entry.router_label.is_null()) {
-        (*router_options)["global"] = get_options_dict(entry);
-      } else {
-        (*routers)[*entry.router_label] = get_options_dict(entry);
-      }
+
+    (*router_options)["global"] = get_options_dict(romd.global);
+    for (const auto &entry : romd.routers) {
+      (*routers)[entry.first] = get_options_dict(entry.second);
     }
     (*router_options)["routers"] = shcore::Value(routers);
   }
@@ -227,13 +233,36 @@ shcore::Dictionary_t router_options(MetadataStorage *md,
   return router_options;
 }
 
-void validate_router_option(const Cluster_set_impl &cluster_set,
-                            std::string name, const shcore::Value &value) {
-  if (std::find(k_router_options.begin(), k_router_options.end(), name) ==
-      k_router_options.end())
+shcore::Value validate_router_option(const Base_cluster_impl &cluster,
+                                     const std::string &name,
+                                     const shcore::Value &value) {
+  std::vector<const char *> router_options;
+  shcore::Value fixed_value = value;
+
+  switch (cluster.get_type()) {
+    case Cluster_type::REPLICATED_CLUSTER:
+      router_options =
+          std::vector<const char *>(k_clusterset_router_options.begin(),
+                                    k_clusterset_router_options.end());
+      break;
+    case Cluster_type::GROUP_REPLICATION:
+      router_options = std::vector<const char *>(
+          k_cluster_router_options.begin(), k_cluster_router_options.end());
+      break;
+    case Cluster_type::ASYNC_REPLICATION:
+      router_options =
+          std::vector<const char *>(k_replicaset_router_options.begin(),
+                                    k_replicaset_router_options.end());
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  if (std::find(router_options.begin(), router_options.end(), name) ==
+      router_options.end())
     throw shcore::Exception::argument_error(
         "Unsupported routing option, '" + name +
-        "' supported options: " + shcore::str_join(k_router_options, ", "));
+        "' supported options: " + shcore::str_join(router_options, ", "));
 
   if (value.get_type() != shcore::Value_type::Null) {
     if (name == k_router_option_invalidated_cluster_routing_policy) {
@@ -250,20 +279,24 @@ void validate_router_option(const Cluster_set_impl &cluster_set,
             "', '" +
             k_router_option_invalidated_cluster_routing_policy_drop_all + "'");
     } else if (name == k_router_option_target_cluster) {
-      const auto is_cluster_name = [&cluster_set](const std::string &cname) {
-        auto clusters = cluster_set.get_clusters();
-        // Do case-insensitive comparison for the Cluster name since it's
-        // guaranteed to be unique
-        return std::find_if(clusters.begin(), clusters.end(),
-                            [&](const Cluster_metadata &c) {
-                              return shcore::str_lower(c.cluster_name) ==
-                                     shcore::str_lower(cname);
-                            }) != clusters.end();
-      };
-
-      if (value.get_type() != shcore::Value_type::String ||
-          (value.get_string() != k_router_option_target_cluster_primary &&
-           !is_cluster_name(value.get_string())))
+      bool ok = false;
+      if (value.get_type() == shcore::Value_type::String) {
+        if (value.get_string() == k_router_option_target_cluster_primary) {
+          ok = true;
+        } else {
+          // Translate the clusterName into the Cluster's UUID
+          // (group_replication_group_name)
+          try {
+            fixed_value = shcore::Value(
+                cluster.get_metadata_storage()->get_cluster_group_name(
+                    value.get_string()));
+            ok = true;
+          } catch (const shcore::Exception &e) {
+            if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
+          }
+        }
+      }
+      if (!ok)
         throw shcore::Exception::argument_error(
             std::string("Invalid value for routing option '") +
             k_router_option_target_cluster +
@@ -292,6 +325,7 @@ void validate_router_option(const Cluster_set_impl &cluster_set,
       }
     }
   }
+  return fixed_value;
 }
 
 }  // namespace dba

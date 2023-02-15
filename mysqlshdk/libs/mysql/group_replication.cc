@@ -668,15 +668,6 @@ void stop_group_replication(const mysqlshdk::mysql::IInstance &instance) {
   instance.execute("STOP GROUP_REPLICATION");
 }
 
-std::string generate_uuid(const mysqlshdk::mysql::IInstance &instance) {
-  // Generate a UUID on the MySQL server.
-  std::string get_uuid_stmt = "SELECT UUID()";
-  auto resultset = instance.query(get_uuid_stmt);
-  auto row = resultset->fetch_one();
-
-  return row->get_string(0);
-}
-
 /**
  * Check the specified replication user, namely if it has the required
  * privileges to use for Group Replication.

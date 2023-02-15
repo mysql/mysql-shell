@@ -333,6 +333,11 @@ inline const std::map<std::string, Option_availability>
         {kIpAllowlist,
          {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}}};
 
+/**
+ * List with the supported build-in tags for setOption and setInstanceOption
+ */
+typedef std::map<std::string, shcore::Value_type> built_in_tags_map_t;
+
 struct Instance_definition {
   int host_id;
   int replicaset_id;

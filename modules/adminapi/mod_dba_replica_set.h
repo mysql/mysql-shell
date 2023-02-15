@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,8 @@
 
 #include <memory>
 #include <string>
+#include "modules/adminapi/base_cluster.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/replica_set/api_options.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -46,7 +48,7 @@ class Global_topology_manager;
  * $(REPLICASET_DETAIL)
  */
 class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
-                   public shcore::Cpp_object_bridge {
+                   public Base_cluster {
  public:
 #if DOXYGEN_JS
   String name;  //!< $(REPLICASET_GETNAME_BRIEF)
@@ -93,18 +95,11 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   virtual ~ReplicaSet();
 
   std::string class_name() const override { return "ReplicaSet"; }
-  std::string &append_descr(std::string &s_out, int indent = -1,
-                            int quote_strings = 0) const override;
-  void append_json(shcore::JSON_dumper &dumper) const override;
-  bool operator==(const Object_bridge &other) const override;
-
-  shcore::Value get_member(const std::string &prop) const override;
 
   std::shared_ptr<Replica_set_impl> impl() const { return m_impl; }
+  Base_cluster_impl *base_impl() const override { return m_impl.get(); }
 
-  void assert_valid(const std::string &option_name) const;
-
-  void invalidate() { m_invalidated = true; }
+  void assert_valid(const std::string &option_name) const override;
 
  public:
   void add_instance(
@@ -138,17 +133,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const shcore::Option_pack_ref<replicaset::Force_primary_instance_options>
           &options);
 
-  shcore::Dictionary_t list_routers(
-      const shcore::Option_pack_ref<List_routers_options> &options);
   void remove_router_metadata(const std::string &router_def);
-
-  void setup_admin_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
-
-  void setup_router_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
 
   shcore::Value options();
 
@@ -163,10 +148,42 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
  private:
   std::shared_ptr<Replica_set_impl> m_impl;
-  bool m_invalidated = false;
 
-  shcore::Value execute_with_pool(const std::function<shcore::Value()> &f,
-                                  bool interactive);
+  template <typename TCallback>
+  inline auto execute_with_pool(TCallback &&f, bool interactive = false) const {
+    impl()->get_metadata_storage()->invalidate_cached();
+
+    while (true) {
+      Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                       interactive,
+                                       impl()->default_admin_credentials());
+
+      try {
+        return f();
+      } catch (const shcore::Exception &e) {
+        if (e.code() == SHERR_DBA_ASYNC_MEMBER_INVALIDATED &&
+            e.error()->has_key("new_primary_endpoint")) {
+          std::string new_primary =
+              e.error()->get_string("new_primary_endpoint");
+
+          current_console()->print_warning(e.format() + ": reconnecting to " +
+                                           new_primary);
+
+          Scoped_instance target(
+              scoped_pool->connect_unchecked_endpoint(new_primary));
+
+          impl()->set_target_server(target);
+
+          target->steal();
+
+          // Retry to execute the function using the new primary.
+          continue;
+        } else {
+          throw;
+        }
+      }
+    }
+  }
 };
 
 }  // namespace dba

@@ -63,6 +63,8 @@ struct Instance_metadata {
   bool hidden_from_router = false;
   std::string cert_subject;
 
+  shcore::Dictionary_t tags = nullptr;
+
   // GR clusters only
   std::string group_name;
 
@@ -82,6 +84,8 @@ struct Cluster_metadata {
   std::string cluster_name;
   std::string description;
   bool enabled = true;
+
+  shcore::Dictionary_t tags = nullptr;
 
   std::string full_cluster_name() const { return cluster_name; }
 
@@ -124,11 +128,13 @@ struct Router_metadata {
   mysqlshdk::utils::nullable<std::string> last_checkin;
   mysqlshdk::utils::nullable<std::string> version;
   mysqlshdk::utils::nullable<std::string> target_cluster;
+
+  shcore::Dictionary_t tags = nullptr;
 };
 
 struct Router_options_metadata {
-  mysqlshdk::utils::nullable<std::string> router_label;
-  std::map<std::string, shcore::Value> defined_options;
+  std::map<std::string, shcore::Value> global;
+  std::map<std::string, std::map<std::string, shcore::Value>> routers;
 };
 
 class Cluster_impl;
@@ -281,22 +287,9 @@ class MetadataStorage {
   void set_cluster_tag(const std::string &uuid, const std::string &tagname,
                        const shcore::Value &value);
 
-  /**
-   * Returns the list of tags for a given instance stored on the metadata
-   * @param uuid The uuid of the instance
-   * @return string with the json object representation of the tags for the
-   * given instance. Empty string means there are no tags.
-   */
-  std::string get_instance_tags(const std::string &uuid) const;
-
-  /**
-   * Returns the list of tags for a given cluster/replicaset stored on the
-   * metadata
-   * @param uuid The uuid of the cluster/replicaset
-   * @return string with the json object representation of the tags for the
-   * given cluster/replicaset. Empty string means there are no tags.
-   */
-  std::string get_cluster_tags(const std::string &uuid) const;
+  void set_router_tag(Cluster_type type, const std::string &cluster_id,
+                      const std::string &router, const std::string &tagname,
+                      const shcore::Value &value);
 
   /**
    * Update the information on the metadata about the recovery user being used
@@ -415,19 +408,30 @@ class MetadataStorage {
 
   std::vector<Router_metadata> get_routers(const Cluster_id &cluster_id);
   std::vector<Router_metadata> get_clusterset_routers(const Cluster_set_id &cs);
-  std::vector<Router_options_metadata> get_routing_options(
-      const Cluster_set_id &clusterset_id);
+
+  Router_options_metadata get_routing_options(Cluster_type type,
+                                              const std::string &id);
+
   std::string get_cluster_name(const std::string &group_replication_group_name);
   std::string get_cluster_group_name(const std::string &cluster_name);
 
-  void set_clusterset_global_routing_option(const Cluster_set_id &id,
-                                            const std::string option,
-                                            const shcore::Value &value);
+  void set_global_routing_option(Cluster_type type, const std::string &id,
+                                 const std::string &option,
+                                 const shcore::Value &value);
 
   void set_routing_option(const std::string &router,
-                          const std::string &clusterset_id,
+                          const std::string &cluster_id,
                           const std::string &option,
                           const shcore::Value &value);
+
+  shcore::Value get_global_routing_option(Cluster_type type,
+                                          const std::string &cluster_id,
+                                          const std::string &option);
+
+  shcore::Value get_routing_option(Cluster_type type,
+                                   const std::string &cluster_id,
+                                   const std::string &router,
+                                   const std::string &option);
 
   /**
    * Get the topology mode of the cluster from the metadata.
@@ -494,6 +498,8 @@ class MetadataStorage {
    */
   std::vector<Router_metadata> get_routers_using_cluster_as_target(
       const Cluster_id &cluster_id);
+
+  shcore::Value get_router_info(const std::string &router_name);
 
   // Async cluster view operations
   Instance_id record_async_member_added(const Instance_metadata &member);
@@ -651,10 +657,6 @@ class MetadataStorage {
                      const std::string &uuid_column_name,
                      const std::string &uuid, const std::string &tagname,
                      const shcore::Value &value);
-
-  std::string get_table_tags(const std::string &tablename,
-                             const std::string &uuid_column_name,
-                             const std::string &uuid) const;
 
   bool cluster_sets_supported() const;
 

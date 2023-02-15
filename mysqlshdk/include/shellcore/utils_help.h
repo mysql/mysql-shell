@@ -95,6 +95,7 @@ struct Help_topic {
   Help_topic *m_parent;
   Help_topic_refs m_childs;
   bool m_enabled;
+  std::map<std::string, std::string> m_keywords;
 
   const Help_topic *get_category() const;
 
@@ -124,6 +125,8 @@ struct Help_topic {
   std::string get_id() const { return m_id; }
   std::string get_id(IShell_core::Mode mode,
                      Topic_id_mode id_mode = Topic_id_mode::FULL) const;
+
+  std::string get_keyword(const std::string &keyword) const;
 
   /**
    * Fills the tokens array with the name of every single topic name
@@ -186,7 +189,7 @@ class Help_registry {
   static Help_registry *get();
 
   // Retrieves the help text associated to a specific token
-  std::string get_token(const std::string &help);
+  std::string get_token(const std::string &help) const;
 
   /**
    * Helper function to register multiple help entries for a topic at once.
@@ -283,7 +286,8 @@ class Help_registry {
   void add_help_class(
       const std::string &name, const std::string &parent,
       const std::string &upper_class = "",
-      IShell_core::Mode_mask mode = IShell_core::all_scripting_modes());
+      IShell_core::Mode_mask mode = IShell_core::all_scripting_modes(),
+      std::map<std::string, std::string> keywords = {});
   void inherit_members(Help_topic *parent, Help_topic *child);
   void inherit_member(Help_topic *parent, Help_topic *member);
 
@@ -472,7 +476,8 @@ struct Help_topic_register {
 struct Help_class_register {
   Help_class_register(const std::string &child, const std::string &parent,
                       const std::string &upper_class,
-                      Help_mode mode = Help_mode::SCRIPTING);
+                      Help_mode mode = Help_mode::SCRIPTING,
+                      const std::map<std::string, std::string> &keywords = {});
 };
 enum class Help_option {
   Name,
@@ -532,16 +537,17 @@ class Help_manager {
                        const Help_options &options = Help_options::any(),
                        cli::Shell_cli_mapper *cli = nullptr);
 
-  void add_childs_section(const std::vector<const Help_topic *> &childs,
+  void add_childs_section(const Help_topic &parent,
+                          const std::vector<const Help_topic *> &childs,
                           std::vector<std::string> *sections, size_t padding,
                           bool members, const std::string &tag,
                           const std::string &default_title, bool alias = false);
 
-  void add_section(const std::string &title, const std::string &tag,
-                   std::vector<std::string> *sections, size_t padding,
-                   bool insert_blank_lines = true);
+  void add_section(const Help_topic &topic, const std::string &title,
+                   const std::string &tag, std::vector<std::string> *sections,
+                   size_t padding, bool insert_blank_lines = true);
 
-  void add_examples_section(const std::string &tag,
+  void add_examples_section(const Help_topic &topic, const std::string &tag,
                             std::vector<std::string> *sections, size_t padding,
                             const std::string &single_title = "EXAMPLE",
                             const std::string &multi_title = "EXAMPLES");
@@ -588,8 +594,9 @@ class Help_manager {
    *
    */
   std::map<std::string, std::string> preprocess_help(
-      std::vector<std::string> *text_lines) const;
-  std::string format_help_text(std::vector<std::string> *lines, size_t width,
+      const Help_topic &topic, std::vector<std::string> *text_lines) const;
+  std::string format_help_text(const Help_topic &topic,
+                               std::vector<std::string> *lines, size_t width,
                                size_t left_padding,
                                bool paragraph_per_line) const;
 
@@ -623,7 +630,7 @@ class Help_manager {
    * The following functions format the help data using a specific format for
    * each topic type
    */
-  void add_section_data(const std::string &title,
+  void add_section_data(const Help_topic &topic, const std::string &title,
                         std::vector<std::string> *details,
                         std::vector<std::string> *sections, size_t padding,
                         bool insert_blank_lines = true);
@@ -681,7 +688,8 @@ class Help_manager {
    */
   std::string format_topic_list(const std::vector<const Help_topic *> &topics,
                                 size_t lpadding = 0, bool alias = false);
-  std::string format_list_description(const std::string &name,
+  std::string format_list_description(const Help_topic &topic,
+                                      const std::string &name,
                                       std::vector<std::string> *help_text,
                                       size_t name_max_len, size_t lpadding = 0,
                                       const std::string &alias = "",
@@ -693,13 +701,23 @@ class Help_manager {
 
 }  // namespace shcore
 
+#define REGISTER_HELP_ALIAS(x, y) shcore::Help_register_alias x(#x, #y)
+
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)
 
 #define REGISTER_HELP_CLASS_MODE(name, parent, mode) \
   shcore::Help_class_register class_##parent##name(#name, #parent, "", mode)
 
+#define REGISTER_HELP_CLASS_MODE_KW(name, parent, mode, keywords)         \
+  shcore::Help_class_register class_kw_##parent##name(#name, #parent, "", \
+                                                      mode, keywords)
+
 #define REGISTER_HELP_CLASS(name, parent) \
   REGISTER_HELP_CLASS_MODE(name, parent, shcore::Help_mode::SCRIPTING)
+
+#define REGISTER_HELP_CLASS_KW(name, parent, keywords)                    \
+  REGISTER_HELP_CLASS_MODE_KW(name, parent, shcore::Help_mode::SCRIPTING, \
+                              keywords)
 
 #define REGISTER_HELP_SUB_CLASS(name, parent, upper) \
   shcore::Help_class_register class_##parent##name(#name, #parent, #upper)
@@ -761,5 +779,8 @@ class Help_manager {
 
 #define REGISTER_HELP_DETAIL_TEXT(x, y) \
   shcore::Help_register_split x##detail(#x, y, false, true)
+
+#define REGISTER_HELP_SHARED_TEXT(name, text) \
+  inline constexpr const char *name = text
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_

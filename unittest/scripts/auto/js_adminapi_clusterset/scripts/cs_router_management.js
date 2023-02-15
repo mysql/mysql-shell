@@ -3,52 +3,18 @@
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deployRawSandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 
 shell.options.useWizards = false;
 
-//@<> configureInstances
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"}); });
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"}); });
-
-testutil.restartSandbox(__mysql_sandbox_port1);
-testutil.restartSandbox(__mysql_sandbox_port2);
-
-//@<> create Primary Cluster
 shell.connect(__sandbox_uri1);
+EXPECT_NO_THROWS(function() {cluster = dba.createCluster("cluster", {gtidSetIsComplete:1}); });
 
-var cluster;
-EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster"); });
+EXPECT_NO_THROWS(function() {clusterset = cluster.createClusterSet("clusterset"); });
 
-//@<> createClusterSet
-EXPECT_NO_THROWS(function() {cluster.createClusterSet("clusterset"); });
-
-//@<> validate primary cluster
-CHECK_PRIMARY_CLUSTER([__sandbox_uri1], cluster)
-
-//@<> dba.getClusterSet()
-var clusterset;
-EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
-EXPECT_NE(clusterset, null);
-
-//@<> cluster.getClusterSet()
-var cs;
-EXPECT_NO_THROWS(function() {cs = cluster.getClusterSet(); });
-EXPECT_NE(cs, null);
-
-//@<> createReplicaCluster() - incremental recovery
-// SRO might be set in the instance so we must ensure the proper handling of it in createReplicaCluster.
-var session4 = mysql.getSession(__sandbox_uri2);
-session4.runSql("SET PERSIST super_read_only=true");
-var replicacluster;
-EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri2, "replicacluster", {recoveryMethod: "incremental"}); });
-
-//@<> validate replica cluster - incremental recovery
-CHECK_REPLICA_CLUSTER([__sandbox_uri2], cluster, replicacluster);
+EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri2, "replicacluster"); });
 
 //@<> create routers
 var clusterset_id = session.runSql("SELECT clusterset_id FROM mysql_innodb_cluster_metadata.clustersets").fetchOne()[0];
@@ -62,39 +28,91 @@ session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (4, '', 'mys
 var cr_router3 = "routerhost2::";
 
 //@<> clusterset.routingOptions on invalid router
-EXPECT_THROWS(function(){ clusterset.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the ClusterSet");
+EXPECT_THROWS(function(){ clusterset.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the clusterset");
 
 //@ clusterset.routingOptions() with all defaults
 values = clusterset.routingOptions();
 
-//@ clusterset.setRoutingOption for a router, all valid values
-clusterset.setRoutingOption(cm_router, "target_cluster", "primary");
-clusterset.routingOptions(cm_router);
-clusterset.setRoutingOption(cm_router, "target_cluster", cluster.getName());
-clusterset.routingOptions(cm_router);
+//@<> clusterset.setRoutingOption, all valid values
+function CHECK_SET_ROUTING_OPTION(option, value, expected_value) {
+  orig_options = clusterset.routingOptions();
+
+  router_options = clusterset.routingOptions(cm_router);
+  global_options = clusterset.routingOptions();
+
+  clusterset.setRoutingOption(cm_router, option, value);
+  router_options[cm_router][option] = expected_value;
+  global_options["routers"][cm_router][option] = expected_value;
+  EXPECT_JSON_EQ(router_options, clusterset.routingOptions(cm_router), "router check");
+  EXPECT_JSON_EQ(global_options, clusterset.routingOptions(), "router check 2");
+
+  clusterset.setRoutingOption(option, value);
+  global_options["global"][option] = expected_value;
+  EXPECT_JSON_EQ(global_options, clusterset.routingOptions(), "global check");
+
+  // setting option to null should reset to default
+  clusterset.setRoutingOption(option, null);
+  clusterset.setRoutingOption(cm_router, option, null);
+  EXPECT_JSON_EQ(orig_options, clusterset.routingOptions(), "original check");
+}
+
+CHECK_SET_ROUTING_OPTION("target_cluster", "primary", "primary");
+
 // BUG#33298735 clusterset: inconsistent case in/sensitivity in clustername
 // Verify combinations of the same name using lower and uppercase to test that the command accepts it
-clusterset.setRoutingOption(cm_router, "target_cluster", "Cluster");
-clusterset.routingOptions(cm_router);
-clusterset.setRoutingOption(cm_router, "target_cluster", "clusteR");
-clusterset.routingOptions(cm_router);
-clusterset.setRoutingOption(cm_router, "target_cluster", "CLUSTER");
-clusterset.routingOptions(cm_router);
+CHECK_SET_ROUTING_OPTION("target_cluster", "cluster", "cluster");
+CHECK_SET_ROUTING_OPTION("target_cluster", "Cluster", "cluster");
+CHECK_SET_ROUTING_OPTION("target_cluster", "CLUSTER", "cluster");
 
-clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', 'drop_all');
-clusterset.routingOptions(cm_router);
-clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', 'accept_ro');
-clusterset.routingOptions(cm_router);
+CHECK_SET_ROUTING_OPTION('invalidated_cluster_policy', 'drop_all', 'drop_all');
+CHECK_SET_ROUTING_OPTION('invalidated_cluster_policy', 'accept_ro', 'accept_ro');
 
-clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', 1);
-clusterset.routingOptions(cm_router);
-clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', 15);
-clusterset.routingOptions(cm_router);
+CHECK_SET_ROUTING_OPTION('stats_updates_frequency', 1, 1);
+CHECK_SET_ROUTING_OPTION('stats_updates_frequency', 15, 15);
 
-clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', false);
-clusterset.routingOptions(cm_router);
-clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', true);
-clusterset.routingOptions(cm_router);
+CHECK_SET_ROUTING_OPTION('use_replica_primary_as_rw', false, false);
+CHECK_SET_ROUTING_OPTION('use_replica_primary_as_rw', true, true);
+
+CHECK_SET_ROUTING_OPTION('tags', {}, {});
+CHECK_SET_ROUTING_OPTION('tags', { "a": 123 }, { "a": 123 });
+
+//@<> default values filled in when metadata is missing some option (e.g. upgrade)
+var full_options = clusterset.routingOptions();
+
+var router_options = session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]
+session.runSql("update mysql_innodb_cluster_metadata.clustersets set router_options='{}'");
+
+EXPECT_JSON_EQ(full_options, clusterset.routingOptions());
+
+session.runSql("update mysql_innodb_cluster_metadata.clustersets set router_options=?", [router_options]);
+EXPECT_JSON_EQ(full_options, clusterset.routingOptions());
+
+//@<> BUG#34458017: setRoutingOption to null resets all options
+// Each option should be reset individually and not all of them
+clusterset.setRoutingOption("stats_updates_frequency", 42);
+// clusterset.setRoutingOption(cm_router, "tags", { "a": 3, "b": 4 });
+clusterset.setRoutingOption(cm_router, "stats_updates_frequency", 44);
+var orig = clusterset.routingOptions();
+
+clusterset.setRoutingOption(cm_router, "stats_updates_frequency", null);
+delete orig["routers"][cm_router]["stats_updates_frequency"];
+EXPECT_JSON_EQ(orig, clusterset.routingOptions());
+
+//@<> set individual tags
+clusterset.setRoutingOption("tags", {"old":"oldvalue"});
+
+clusterset.setRoutingOption("tag:test_tag", 1234);
+clusterset.setRoutingOption("tag:bla", "test");
+EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, clusterset.routingOptions()["global"]["tags"]);
+clusterset.setRoutingOption("tags", {});
+EXPECT_JSON_EQ({}, clusterset.routingOptions()["global"]["tags"]);
+
+clusterset.setRoutingOption(cm_router, "tags", {"old":"oldvalue"});
+clusterset.setRoutingOption(cm_router, "tag:test_tag", 1234);
+clusterset.setRoutingOption(cm_router, "tag:bla", "test");
+EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
+clusterset.setRoutingOption(cm_router, "tags", {});
+EXPECT_JSON_EQ({}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
 
 //@<> clusterset.setRoutingOption for a router, invalid values
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, "target_cluster", 'any_not_supported_value'); },
@@ -144,50 +162,10 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_pr
 
 //@<> Router does not belong to the clusterset
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra", 'invalidated_cluster_policy', 'drop_all'); },
-  "Router 'abra' is not part of this ClusterSet");
+  "Router 'abra' is not part of this topology");
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra::cadabra", 'target_cluster', 'primary'); },
-  "Router 'abra::cadabra' is not part of this ClusterSet");
+  "Router 'abra::cadabra' is not part of this topology");
 
-//@ Resetting router option value for a single router,
-clusterset.setRoutingOption(cm_router, "target_cluster", null);
-clusterset.routingOptions(cm_router);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', null);
-clusterset.routingOptions(cm_router);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', null);
-clusterset.routingOptions(cm_router);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', null);
-clusterset.routingOptions(cm_router);
-clusterset.routingOptions();
-
-//@ clusterset.setRoutingOption all valid values
-clusterset.setRoutingOption("target_cluster", "primary");
-clusterset.routingOptions();
-clusterset.setRoutingOption("target_cluster", cluster.getName());
-clusterset.routingOptions();
-clusterset.setRoutingOption('invalidated_cluster_policy', 'drop_all');
-clusterset.routingOptions();
-clusterset.setRoutingOption('invalidated_cluster_policy', 'accept_ro');
-clusterset.routingOptions();
-clusterset.setRoutingOption('use_replica_primary_as_rw', false);
-clusterset.routingOptions();
-clusterset.setRoutingOption('use_replica_primary_as_rw', true);
-clusterset.routingOptions();
-clusterset.setRoutingOption(cm_router, "target_cluster", cluster.getName());
-clusterset.routingOptions();
-clusterset.setRoutingOption(cr_router, "target_cluster", replicacluster.getName());
-clusterset.routingOptions();
-clusterset.setRoutingOption(cr_router3, "invalidated_cluster_policy", "accept_ro");
-clusterset.routingOptions();
-clusterset.setRoutingOption("stats_updates_frequency", 11);
-clusterset.routingOptions();
-clusterset.setRoutingOption(cr_router3, "stats_updates_frequency", 222);
-clusterset.routingOptions();
 
 //@<> check types of clusterset router option values
 // Bug#34604612
@@ -207,24 +185,6 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("target_cluster", 'any_not
   "Invalid value for routing option 'target_cluster', accepted values 'primary' or valid cluster name");
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("invalidated_cluster_policy", 'any_not_supported_value'); },
   "Invalid value for routing option 'invalidated_cluster_policy', accepted values: 'accept_ro', 'drop_all'");
-
-//@ Resetting clusterset routing option
-// BUG#34458017: setRoutingOption to null resets all options
-// Each option should be reset individually and not all of them
-clusterset.setRoutingOption("target_cluster", null);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption('invalidated_cluster_policy', null);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption('stats_updates_frequency', null);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption('use_replica_primary_as_rw', null);
-clusterset.routingOptions();
-
-clusterset.setRoutingOption(cr_router, 'target_cluster', null);
-clusterset.routingOptions();
 
 //@ clusterset.listRouters
 clusterset.setRoutingOption(cm_router, "target_cluster", cluster.getName());
@@ -295,7 +255,7 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes = JS
 // 'routerhost2::' and 'routerhost2::another' must be displayed in the warning msg
 
 //@<> clusterset.listRouters() warning re-bootstrap
-cs.listRouters();
+clusterset.listRouters();
 EXPECT_OUTPUT_CONTAINS("WARNING: The following Routers were bootstrapped before the ClusterSet was created: [routerhost2::system, routerhost2::another]. Please re-bootstrap the Routers to ensure the ClusterSet is recognized and the configurations are updated. Otherwise, Routers will operate as if the Clusters were standalone.");
 
 //@<> Cleanup

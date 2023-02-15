@@ -226,6 +226,8 @@ class IInstance {
 
   virtual std::string get_plugin_library_extension() const = 0;
 
+  virtual std::string generate_uuid() const = 0;
+
  public:
   // Convenience interface for session
   virtual std::shared_ptr<mysqlshdk::db::IResult> query(
@@ -492,6 +494,16 @@ class Instance : public IInstance {
   void suppress_binary_log(bool flag) override;
 
   std::string get_plugin_library_extension() const override;
+
+  /**
+   * Generate a UUID to use for the group name / view change uuid
+   *
+   * The UUID is generated from the target instance (MySQL server) using the
+   * UUID() SQL function.
+   *
+   * @return A string with a new UUID to be used,
+   */
+  std::string generate_uuid() const override;
 
  public:
   std::shared_ptr<mysqlshdk::db::IResult> query(

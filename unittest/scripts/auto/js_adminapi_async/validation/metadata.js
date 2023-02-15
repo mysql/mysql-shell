@@ -13,7 +13,7 @@
   primary_mode: pm
     cluster_id: [[*]]
   cluster_name: mycluster
-router_options: NULL
+router_options: {"tags": {}}
 1
 
 //@<OUT> instances

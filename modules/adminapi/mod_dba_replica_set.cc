@@ -39,7 +39,11 @@ namespace mysqlsh {
 namespace dba {
 
 // Documentation of the ReplicaSet Class
-REGISTER_HELP_CLASS(ReplicaSet, adminapi);
+REGISTER_HELP_CLASS_KW(
+    ReplicaSet, adminapi,
+    (std::map<std::string, std::string>({{"FullType", "InnoDB ReplicaSet"},
+                                         {"Type", "ReplicaSet"},
+                                         {"type", "replicaset"}})));
 REGISTER_HELP(REPLICASET_BRIEF, "Represents an InnoDB ReplicaSet.");
 REGISTER_HELP(
     REPLICASET_DETAIL,
@@ -62,24 +66,6 @@ ReplicaSet::ReplicaSet(const std::shared_ptr<Replica_set_impl> &cluster)
 
 ReplicaSet::~ReplicaSet() { DEBUG_OBJ_DEALLOC(ReplicaSet); }
 
-std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent),
-                                      int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + impl()->get_name() + ">");
-
-  return s_out;
-}
-
-void ReplicaSet::append_json(shcore::JSON_dumper &dumper) const {
-  dumper.start_object();
-  dumper.append_string("class", class_name());
-  dumper.append_string("name", impl()->get_name());
-  dumper.end_object();
-}
-
-bool ReplicaSet::operator==(const Object_bridge &other) const {
-  return class_name() == other.class_name() && this == &other;
-}
-
 void ReplicaSet::init() {
   add_property("name", "getName");
 
@@ -100,20 +86,21 @@ void ReplicaSet::init() {
          "?instance", "?options")
       ->cli();
 
-  expose("listRouters", &ReplicaSet::list_routers, "?options")->cli();
   expose("removeRouterMetadata", &ReplicaSet::remove_router_metadata,
          "routerDef")
-      ->cli();
-  expose("setupAdminAccount", &ReplicaSet::setup_admin_account, "user",
-         "?options")
-      ->cli();
-  expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
-         "?options")
       ->cli();
   expose("options", &ReplicaSet::options)->cli();
   expose("setOption", &ReplicaSet::set_option, "option", "value")->cli();
   expose("setInstanceOption", &ReplicaSet::set_instance_option, "instance",
          "option", "value")
+      ->cli();
+
+  expose("listRouters", &ReplicaSet::list_routers, "?options")->cli();
+  expose("setupAdminAccount", &ReplicaSet::setup_admin_account, "user",
+         "?options")
+      ->cli();
+  expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
+         "?options")
       ->cli();
 
   // TODO(alfredo):
@@ -143,19 +130,6 @@ String ReplicaSet::getName() {}
 str ReplicaSet::get_name() {}
 #endif
 
-shcore::Value ReplicaSet::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-
-  // Throw an error if the cluster has already been dissolved
-  assert_valid(prop);
-
-  if (prop == "name")
-    ret_val = shcore::Value(impl()->get_name());
-  else
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-  return ret_val;
-}
-
 void ReplicaSet::assert_valid(const std::string &option_name) const {
   std::string name;
 
@@ -174,45 +148,10 @@ void ReplicaSet::assert_valid(const std::string &option_name) const {
           name + "' on a dissolved replicaset");
     }
   }
-  if (!impl()->get_cluster_server() || !impl()->get_metadata_storage()) {
+  if (!impl()->check_valid()) {
     throw shcore::Exception::runtime_error(
         "The replicaset object is disconnected. Please use "
         "dba.<<<getReplicaSet>>>() to obtain a new object.");
-  }
-}
-
-shcore::Value ReplicaSet::execute_with_pool(
-    const std::function<shcore::Value()> &f, bool interactive) {
-  impl()->get_metadata_storage()->invalidate_cached();
-
-  while (true) {
-    Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
-                                     interactive,
-                                     impl()->default_admin_credentials());
-
-    try {
-      return f();
-    } catch (const shcore::Exception &e) {
-      if (e.code() == SHERR_DBA_ASYNC_MEMBER_INVALIDATED &&
-          e.error()->has_key("new_primary_endpoint")) {
-        std::string new_primary = e.error()->get_string("new_primary_endpoint");
-
-        current_console()->print_warning(e.format() + ": reconnecting to " +
-                                         new_primary);
-
-        Scoped_instance target(
-            scoped_pool->connect_unchecked_endpoint(new_primary));
-
-        impl()->set_target_server(target);
-
-        target->steal();
-
-        // Retry to execute the function using the new primary.
-        continue;
-      } else {
-        throw;
-      }
-    }
   }
 }
 
@@ -337,7 +276,7 @@ void ReplicaSet::add_instance(
   (void)get_connection_options(shcore::Value(instance_def));
 
   // Init progress_style
-  Recovery_progress_style progress_style;
+  Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
 
   if (options->wait_recovery == 1)
     progress_style = Recovery_progress_style::NOINFO;
@@ -468,7 +407,7 @@ void ReplicaSet::rejoin_instance(
   (void)get_connection_options(shcore::Value(instance_def));
 
   // Init progress_style
-  Recovery_progress_style progress_style;
+  Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
 
   if (options->wait_recovery == 1)
     progress_style = Recovery_progress_style::NOINFO;
@@ -772,26 +711,7 @@ void ReplicaSet::force_primary_instance(
 }
 
 REGISTER_HELP_FUNCTION(listRouters, ReplicaSet);
-REGISTER_HELP_FUNCTION_TEXT(REPLICASET_LISTROUTERS, R"*(
-Lists the Router instances.
-
-@param options Optional dictionary with options for the operation.
-
-@returns A JSON object listing the Router instances associated to the ReplicaSet.
-
-This function lists and provides information about all Router instances
-registered for the ReplicaSet.
-
-Whenever a Metadata Schema upgrade is necessary, the recommended process
-is to upgrade MySQL Router instances to the latest version before upgrading
-the Metadata itself, in order to minimize service disruption.
-
-The options dictionary may contain the following attributes:
-
-@li onlyUpgradeRequired: boolean, enables filtering so only router instances
-that support older version of the Metadata Schema and require upgrade are
-included.
-)*");
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_LISTROUTERS, LISTROUTERS_HELP_TEXT);
 
 /**
  * $(REPLICASET_LISTROUTERS_BRIEF)
@@ -803,18 +723,6 @@ String ReplicaSet::listRouters(Dictionary options) {}
 #elif DOXYGEN_PY
 str ReplicaSet::list_routers(dict options) {}
 #endif
-shcore::Dictionary_t ReplicaSet::list_routers(
-    const shcore::Option_pack_ref<List_routers_options> &options) {
-  // Throw an error if the replicaset has already been dissolved
-  assert_valid("listRouters");
-
-  return execute_with_pool(
-             [&]() {
-               return impl()->list_routers(options->only_upgrade_required);
-             },
-             false)
-      .as_map();
-}
 
 REGISTER_HELP_FUNCTION(removeRouterMetadata, ReplicaSet);
 REGISTER_HELP_FUNCTION_TEXT(REPLICASET_REMOVEROUTERMETADATA, R"*(
@@ -846,55 +754,13 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
   // Throw an error if the replicaset has already been dissolved
   assert_valid("removeRouterMetadata");
 
-  execute_with_pool(
-      [&]() {
-        impl()->remove_router_metadata(router_def);
-        return shcore::Value();
-      },
-      false);
+  return execute_with_pool(
+      [&]() { impl()->remove_router_metadata(router_def, true); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, ReplicaSet);
-REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPADMINACCOUNT, R"*(
-Create or upgrade an InnoDB ReplicaSet admin account.
-
-@param user Name of the InnoDB ReplicaSet administrator account.
-@param options Dictionary with options for the operation.
-
-@returns Nothing.
-
-This function creates/upgrades a MySQL user account with the necessary
-privileges to administer an InnoDB ReplicaSet.
-
-This function also allows a user to upgrade an existing admin account
-with the necessary privileges before a dba.<<<upgradeMetadata>>>() call.
-
-The mandatory argument user is the name of the MySQL account we want to create
-or upgrade to be used as Administrator account. The accepted format is
-username[@@host] where the host part is optional and if not provided defaults to
-'%'.
-
-The options dictionary may contain the following attributes:
-
-@li password: The password for the InnoDB ReplicaSet administrator account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
-
-If the user account does not exist, either the password, requireCertIssuer or
-requireCertSubject are mandatory.
-
-If the user account exists, the update option must be enabled.
-
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-)*");
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPADMINACCOUNT,
+                            SETUPADMINACCOUNT_HELP_TEXT);
 
 /**
  * $(REPLICASET_SETUPADMINACCOUNT_BRIEF)
@@ -907,65 +773,9 @@ Undefined ReplicaSet::setupAdminAccount(String user, Dictionary options) {}
 None ReplicaSet::setup_admin_account(str user, dict options) {}
 #endif
 
-void ReplicaSet::setup_admin_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
-  // Throw an error if the replicaset is invalid
-  assert_valid("setupAdminAccount");
-
-  // split user into user/host
-  std::string username, host;
-  std::tie(username, host) = validate_account_name(user);
-
-  execute_with_pool(
-      [&]() {
-        impl()->setup_admin_account(username, host, *options);
-        return shcore::Value();
-      },
-      false);
-}
-
 REGISTER_HELP_FUNCTION(setupRouterAccount, ReplicaSet);
-REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPROUTERACCOUNT, R"*(
-Create or upgrade a MySQL account to use with MySQL Router.
-
-@param user Name of the account to create/upgrade for MySQL Router.
-@param options Dictionary with options for the operation.
-
-@returns Nothing.
-
-This function creates/upgrades a MySQL user account with the necessary
-privileges to be used by MySQL Router.
-
-This function also allows a user to upgrade existing MySQL router accounts
-with the necessary privileges after a dba.<<<upgradeMetadata>>>() call.
-
-The mandatory argument user is the name of the MySQL account we want to create
-or upgrade to be used by MySQL Router. The accepted format is
-username[@@host] where the host part is optional and if not provided defaults to
-'%'.
-
-The options dictionary may contain the following attributes:
-
-@li password: The password for the MySQL Router account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
-
-If the user account does not exist, either the password, requireCertIssuer or
-requireCertSubject are mandatory.
-
-If the user account exists, the update option must be enabled.
-
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
-
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-)*");
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPROUTERACCOUNT,
+                            SETUPROUTERACCOUNT_HELP_TEXT);
 
 /**
  * $(REPLICASET_SETUPROUTERACCOUNT_BRIEF)
@@ -977,23 +787,6 @@ Undefined ReplicaSet::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::setup_router_account(str user, dict options) {}
 #endif
-void ReplicaSet::setup_router_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
-  // Throw an error if the replicaset is invalid
-  assert_valid("setupRouterAccount");
-
-  // split user into user/host
-  std::string username, host;
-  std::tie(username, host) = validate_account_name(user);
-
-  execute_with_pool(
-      [&]() {
-        impl()->setup_router_account(username, host, *options);
-        return shcore::Value();
-      },
-      false);
-}
 
 REGISTER_HELP_FUNCTION(options, ReplicaSet);
 REGISTER_HELP_FUNCTION_TEXT(REPLICASET_OPTIONS, R"*(

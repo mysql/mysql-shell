@@ -753,7 +753,7 @@ RETURNS
 
 DESCRIPTION
       This function lists and provides information about all Router instances
-      registered on the Clusters members of the ClusteSet.
+      registered on the Clusters members of the ClusterSet.
 
 //@<OUT> routingOptions
 NAME
@@ -802,6 +802,8 @@ DESCRIPTION
         value is 0.
       - use_replica_primary_as_rw: Enable/Disable the RW Port in Replica
         Clusters. Disabled by default.
+      - tags: Associates an arbitrary JSON object with custom key/value pairs
+        with the ClusterSet metadata.
 
       The target_cluster option supports the following values:
 

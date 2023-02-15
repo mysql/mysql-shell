@@ -1879,3 +1879,125 @@ function CHECK_TABLE_SNAPSHOTS(session, snapshot) {
     }
   }
 }
+// Standard Checks
+
+function STDCHECK_ARGTYPES(func, min_args, good_args1, good_args2, good_args3, good_args4, good_args5) {
+  // Usage
+  // Given: myfunction(string, int[, int]), where arg1 can also be null
+  // 
+  // STDCHECK_ARGTYPES(myfunction, 2, ["abc", null], [42], [42])
+  // 
+
+  bad_values = {
+      "number": ["hello", [1], {"a":1}, testutil, false],
+      "boolean": ["hello", [1], {"a":1}, testutil], // number ok
+      "string": [1234, ["a"], {"a":"b"}, testutil],
+      "array": ["hello", 1234, {"a":"b"}, testutil],
+      "map": ["hello", 1234, ["a"], testutil]
+  };
+
+  function type_name(arg) {
+      t = typeof arg;
+      if (t == "object" && Array.isArray(arg))
+          t = "an array";
+      else if (t == "object")
+          t = "a map";
+      else
+          t = "a " + t
+      return t;
+  }
+
+  function get_bad_values(args) {
+    var t = typeof args[0];
+    if (t == "object" && Array.isArray(args[0]))
+        t = "array";
+    else if (t == "object")
+        t = "map";
+    var values = bad_values[t];
+    if (args.indexOf(null) >= 0)
+      values.push(null);
+    return values;
+  }
+
+  // check too few args
+  if (min_args >= 1)
+      EXPECT_THROWS(function(){ func(); }, "Invalid number of arguments");
+  if (min_args >= 2)
+      EXPECT_THROWS(function(){ func(good_args1[0]); }, "Invalid number of arguments");
+  if (min_args >= 3)
+      EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0]); }, "Invalid number of arguments");
+  if (min_args >= 4)
+      EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0]); }, "Invalid number of arguments");
+  if (min_args >= 5)
+      EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], good_args4[0]); }, "Invalid number of arguments");
+  
+  // check bad arg types (this test doesn't support alternative typing)
+  if (good_args5 === undefined) {
+      if (good_args4 === undefined) {
+          if (good_args3 === undefined) {
+              if (good_args2 === undefined) {
+                  // 1 arg
+                  for (arg1 of get_bad_values(good_args1))
+                      EXPECT_THROWS(function() { func(arg1); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
+
+                  EXPECT_THROWS(function(){ func(good_args1[0], "extra"); }, "Invalid number of arguments");
+              } else {
+                  // 2 args
+                  for (arg2 of get_bad_values(good_args2))
+                      EXPECT_THROWS(function() { func(good_args1[0], arg2); }, "Argument #2 is expected to be "+type_name(good_args2[0]));
+
+                  for (arg1 of get_bad_values(good_args1)) 
+                      EXPECT_THROWS(function() { func(arg1, good_args2[0]); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
+
+                  EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], "extra"); }, "Invalid number of arguments");
+              }
+          } else {
+              // 3 args
+              for (arg3 of get_bad_values(good_args3))
+                  EXPECT_THROWS(function() { func(good_args1[0], good_args2[0], arg3); }, "Argument #3 is expected to be "+type_name(good_args3[0]));
+
+              for (arg2 of get_bad_values(good_args2))
+                  EXPECT_THROWS(function() { func(good_args1[0], arg2, good_args3[0]); }, "Argument #2 is expected to be "+type_name(good_args2[0]));
+
+              for (arg1 of get_bad_values(good_args1)) 
+                  EXPECT_THROWS(function() { func(arg1, good_args2[0], good_args3[0]); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
+
+              EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], "extra"); }, "Invalid number of arguments");
+          }
+      } else {
+          // 4 args
+          for (arg4 of get_bad_values(good_args4))
+              EXPECT_THROWS(function() { func(good_args1[0], good_args2[0], good_args3[0], arg4); }, "Argument #4 is expected to be "+type_name(good_args4[0]));
+
+          for (arg3 of get_bad_values(good_args3))
+              EXPECT_THROWS(function() { func(good_args1[0], good_args2[0], arg3, good_args4[0]); }, "Argument #3 is expected to be "+type_name(good_args3[0]));
+
+          for (arg2 of get_bad_values(good_args2))
+              EXPECT_THROWS(function() { func(good_args1[0], arg2, good_args3[0], good_args4[0]); }, "Argument #2 is expected to be "+type_name(good_args2[0]));
+
+          for (arg1 of get_bad_values(good_args1)) 
+              EXPECT_THROWS(function() { func(arg1, good_args2[0], good_args3[0], good_args4[0]); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
+
+          EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], good_args4[0], "extra"); }, "Invalid number of arguments");
+      }
+  } else {
+      // 5 args
+      for (arg5 of get_bad_values(good_args5))
+          EXPECT_THROWS(function() { func(good_args1[0], good_args2[0], good_args3[0], good_args4[0], arg5); }, "Argument #5 is expected to be "+type_name(good_args5[0]));
+
+      for (arg4 of get_bad_values(good_args4))
+          EXPECT_THROWS(function() { func(good_args1[0], good_args2[0], good_args3[0], arg4); }, "Argument #4 is expected to be "+type_name(good_args4[0]));
+
+      for (arg3 of get_bad_values(good_args3))
+          EXPECT_THROWS(function() { func(good_args1[0], good_args2[0], arg3, good_args4[0]); }, "Argument #3 is expected to be "+type_name(good_args3[0]));
+
+      for (arg2 of get_bad_values(good_args2))
+          EXPECT_THROWS(function() { func(good_args1[0], arg2, good_args3[0], good_args4[0]); }, "Argument #2 is expected to be "+type_name(good_args2[0]));
+
+      for (arg1 of get_bad_values(good_args1)) 
+          EXPECT_THROWS(function() { func(arg1, good_args2[0], good_args3[0], good_args4[0]); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
+
+      EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], good_args4[0], good_args5[0], "extra"); }, "Invalid number of arguments");
+  }
+}
+

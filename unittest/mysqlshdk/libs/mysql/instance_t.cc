@@ -1498,4 +1498,18 @@ TEST_F(Instance_test, get_current_user) {
                    "example.com");
 }
 
+TEST_F(Instance_test, generate_uuid) {
+  mysqlshdk::mysql::Instance instance(_session);
+
+  session.expect_query("SELECT UUID()")
+      .then_return({{
+          "",
+          {"UUID()"},
+          {Type::String},
+          {{"259df69c-ae11-11ed-9515-8e644b4d9f38"}},
+      }});
+
+  instance.generate_uuid();
+}
+
 }  // namespace testing

@@ -803,5 +803,14 @@ void Instance::process_result_warnings(const std::string &sql,
   }
 }
 
+std::string Instance::generate_uuid() const {
+  // Generate a UUID on the MySQL server.
+  std::string get_uuid_stmt = "SELECT UUID()";
+  auto resultset = query(get_uuid_stmt);
+  auto row = resultset->fetch_one();
+
+  return row->get_string(0);
+}
+
 }  // namespace mysql
 }  // namespace mysqlshdk

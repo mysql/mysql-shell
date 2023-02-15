@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,7 @@ void Describe::feed_metadata_info(shcore::Dictionary_t dict,
 }
 
 shcore::Array_t Describe::get_topology() {
-  std::vector<Instance_metadata> instance_defs = m_cluster.get_instances();
+  std::vector<Instance_metadata> instance_defs = m_cluster.get_instances({});
 
   shcore::Array_t instances_list = shcore::make_array();
 

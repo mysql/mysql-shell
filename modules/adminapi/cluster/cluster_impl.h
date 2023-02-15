@@ -87,6 +87,7 @@ enum class Check_type;
 }
 
 class Cluster_impl final : public Base_cluster_impl,
+                           public std::enable_shared_from_this<Cluster_impl>,
                            public shcore::NotificationObserver {
  public:
   friend class Cluster;
@@ -120,7 +121,7 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value options(const bool all);
   shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
-  void remove_router_metadata(const std::string &router);
+  shcore::Dictionary_t routing_options(const std::string &router) override;
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
   void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
@@ -425,6 +426,8 @@ class Cluster_impl final : public Base_cluster_impl,
   std::vector<Instance_metadata> get_instances(
       const std::vector<mysqlshdk::gr::Member_state> &states = {}) const;
 
+  std::vector<Instance_metadata> get_instances_from_metadata() const override;
+
   /**
    * Ensures the server_id of each instance is registered as an attribute on the
    * instances table. If an instance does not have it then inserts it.
@@ -522,10 +525,10 @@ class Cluster_impl final : public Base_cluster_impl,
   // Lock methods
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
-      std::chrono::seconds timeout = {});
+      std::chrono::seconds timeout = {}) override;
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
-      std::chrono::seconds timeout = {});
+      std::chrono::seconds timeout = {}) override;
 
  public:
   // clusterset related methods

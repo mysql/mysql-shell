@@ -565,8 +565,8 @@ void Create_replica_cluster::prepare() {
 
   // Do case-insensitive comparison for the Cluster name to error out right away
   auto it = std::find_if(clusters.begin(), clusters.end(),
-                         [&](const Cluster_metadata &c) {
-                           return shcore::str_lower(c.cluster_name) ==
+                         [&](const Cluster_set_member_metadata &c) {
+                           return shcore::str_lower(c.cluster.cluster_name) ==
                                   shcore::str_lower(m_cluster_name);
                          });
 
@@ -696,7 +696,7 @@ void Create_replica_cluster::prepare() {
   for (const auto &cluster : clusters) {
     auto cluster_members =
         m_cluster_set->get_metadata_storage()->get_all_instances(
-            cluster.cluster_id);
+            cluster.cluster.cluster_id);
 
     for (const auto &member : cluster_members) {
       if (member.uuid == target_instance_uuid) {

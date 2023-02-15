@@ -23,7 +23,7 @@
 ||<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY (MYSQLSH 51128)
 
 //@# stop primary and failover with bad handle (should fail)
-||Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
+||The replicaset object is disconnected.
 
 //@# promoted isn't member (should fail)
 ||Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)

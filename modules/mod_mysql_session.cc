@@ -622,11 +622,10 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
 
   return status;
 }
+
 REGISTER_HELP_FUNCTION(startTransaction, ClassicSession);
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_STARTTRANSACTION, R"*(
 Starts a transaction context on the server.
-
-@returns A ClassicResult object.
 
 Calling this function will turn off the autocommit mode on the server.
 
@@ -645,9 +644,9 @@ back to it's state before calling <<<startTransaction>>>().
  * $(CLASSICSESSION_STARTTRANSACTION)
  */
 #if DOXYGEN_JS
-ClassicResult ClassicSession::startTransaction() {}
+Undefined ClassicSession::startTransaction() {}
 #elif DOXYGEN_PY
-ClassicResult ClassicSession::start_transaction() {}
+None ClassicSession::start_transaction() {}
 #endif
 void ClassicSession::start_transaction() {
   if (_tx_deep == 0) execute_sql("start transaction", shcore::Array_t());
@@ -666,8 +665,6 @@ REGISTER_HELP_FUNCTION(commit, ClassicSession);
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_COMMIT, R"*(
 Commits all the operations executed after a call to <<<startTransaction>>>().
 
-@returns A ClassicResult object.
-
 All the operations executed after calling <<<startTransaction>>>() will take place
 when this function is called.
 
@@ -680,9 +677,9 @@ The server autocommit mode will return back to it's state before calling
  * $(CLASSICSESSION_COMMIT)
  */
 #if DOXYGEN_JS
-ClassicResult ClassicSession::commit() {}
+Undefined ClassicSession::commit() {}
 #elif DOXYGEN_PY
-ClassicResult ClassicSession::commit() {}
+None ClassicSession::commit() {}
 #endif
 
 void ClassicSession::commit() {
@@ -705,8 +702,6 @@ REGISTER_HELP_FUNCTION(rollback, ClassicSession);
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_ROLLBACK, R"*(
 Discards all the operations executed after a call to <<<startTransaction>>>().
 
-@returns A ClassicResult object.
-
 All the operations executed after calling <<<startTransaction>>>() will be discarded
 when this function is called.
 
@@ -719,9 +714,9 @@ The server autocommit mode will return back to it's state before calling
  * $(CLASSICSESSION_ROLLBACK)
  */
 #if DOXYGEN_JS
-ClassicResult ClassicSession::rollback() {}
+Undefined ClassicSession::rollback() {}
 #elif DOXYGEN_PY
-ClassicResult ClassicSession::rollback() {}
+None ClassicSession::rollback() {}
 #endif
 void ClassicSession::rollback() {
   _tx_deep--;

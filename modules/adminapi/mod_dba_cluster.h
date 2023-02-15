@@ -31,6 +31,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
+#include "modules/adminapi/base_cluster.h"
 #include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster_set/api_options.h"
@@ -49,7 +50,7 @@ namespace dba {
  * $(CLUSTER_DETAIL)
  */
 class Cluster : public std::enable_shared_from_this<Cluster>,
-                public shcore::Cpp_object_bridge {
+                public Base_cluster {
  public:
 #if DOXYGEN_JS
   String name;  //!< $(CLUSTER_GETNAME_BRIEF)
@@ -117,18 +118,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   virtual ~Cluster();
 
   std::string class_name() const override { return "Cluster"; }
-  std::string &append_descr(std::string &s_out, int indent = -1,
-                            int quote_strings = 0) const override;
-  void append_json(shcore::JSON_dumper &dumper) const override;
-  bool operator==(const Object_bridge &other) const override;
-
-  shcore::Value get_member(const std::string &prop) const override;
 
   std::shared_ptr<Cluster_impl> impl() const { return m_impl; }
 
-  void assert_valid(const std::string &option_name) const;
+  Base_cluster_impl *base_impl() const override { return m_impl.get(); }
 
-  void invalidate() { m_invalidated = true; }
+  void assert_valid(const std::string &option_name) const override;
 
   void add_instance(const Connection_options &instance_def,
                     const shcore::Option_pack_ref<cluster::Add_instance_options>
@@ -145,8 +140,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value describe(void);
   shcore::Value status(
       const shcore::Option_pack_ref<cluster::Status_options> &options);
-  shcore::Dictionary_t list_routers(
-      const shcore::Option_pack_ref<List_routers_options> &options);
   void dissolve(
       const shcore::Option_pack_ref<Force_interactive_options> &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
@@ -158,14 +151,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void disconnect();
 
   void remove_router_metadata(const std::string &router_def);
-
-  void setup_admin_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
-
-  void setup_router_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
 
   void switch_to_single_primary_mode(
       const Connection_options &instance_def = Connection_options());
@@ -203,20 +188,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 
  private:
   std::shared_ptr<Cluster_impl> m_impl;
-  bool m_invalidated = false;
-
-  template <typename TCallback>
-  auto execute_with_pool(TCallback &&f, bool interactive) {
-    // Invalidate the cached metadata state
-    impl()->get_metadata_storage()->invalidate_cached();
-
-    // Init the connection pool
-    Scoped_instance_pool ipool(
-        interactive,
-        Instance_pool::Auth_options(impl()->default_admin_credentials()));
-
-    return f();
-  }
 };
 
 }  // namespace dba

@@ -85,83 +85,6 @@ file(GLOB api_module_SOURCES
       "mod_sys.cc"
       "mod_utils.cc"
       "mod_mysql_constants.cc"
-      "adminapi/dba_utils.cc"
-      "adminapi/mod_dba.cc"
-      "adminapi/mod_dba_replica_set.cc"
-      "adminapi/mod_dba_cluster.cc"
-      "adminapi/mod_dba_cluster_set.cc"
-      "adminapi/common/api_options.cc"
-      "adminapi/common/metadata_storage.cc"
-      "adminapi/common/metadata_management_mysql.cc"
-      "adminapi/common/metadata_backup_handler.cc"
-      "adminapi/common/provisioning_interface.cc"
-      "adminapi/common/common.cc"
-      "adminapi/common/common_status.cc"
-      "adminapi/common/connectivity_check.cc"
-      "adminapi/common/accounts.cc"
-      "adminapi/common/health_enums.cc"
-      "adminapi/common/group_replication_options.cc"
-      "adminapi/common/clone_options.cc"
-      "adminapi/common/parallel_applier_options.cc"
-      "adminapi/common/clone_progress.cc"
-      "adminapi/common/cluster_types.cc"
-      "adminapi/common/sql.cc"
-      "adminapi/common/validations.cc"
-      "adminapi/common/preconditions.cc"
-      "adminapi/common/provision.cc"
-      "adminapi/common/instance_validations.cc"
-      "adminapi/common/instance_pool.cc"
-      "adminapi/common/async_utils.cc"
-      "adminapi/common/global_topology.cc"
-      "adminapi/common/async_topology.cc"
-      "adminapi/common/global_topology_check.cc"
-      "adminapi/common/gtid_validations.cc"
-      "adminapi/common/star_global_topology_manager.cc"
-      "adminapi/common/instance_monitoring.cc"
-      "adminapi/common/instance_pool.cc"
-      "adminapi/common/member_recovery_monitoring.cc"
-      "adminapi/common/router.cc"
-      "adminapi/common/setup_account.cc"
-      "adminapi/common/base_cluster_impl.cc"
-      "adminapi/common/undo.cc"
-      "adminapi/common/server_features.cc"
-      "adminapi/dba/check_instance.cc"
-      "adminapi/dba/configure_async_instance.cc"
-      "adminapi/dba/configure_local_instance.cc"
-      "adminapi/dba/configure_instance.cc"
-      "adminapi/dba/create_cluster.cc"
-      "adminapi/dba/restore_cluster.cc"
-      "adminapi/dba/reboot_cluster_from_complete_outage.cc"
-      "adminapi/dba/upgrade_metadata.cc"
-      "adminapi/dba/api_options.cc"
-      "adminapi/cluster_set/api_options.cc"
-      "adminapi/cluster_set/cluster_set_impl.cc"
-      "adminapi/cluster_set/create_replica_cluster.cc"
-      "adminapi/cluster_set/status.cc"
-      "adminapi/replica_set/api_options.cc"
-      "adminapi/replica_set/replica_set_impl.cc"
-      "adminapi/replica_set/replica_set_status.cc"
-      "adminapi/cluster/check_instance_state.cc"
-      "adminapi/cluster/create_cluster_set.cc"
-      "adminapi/cluster/remove_instance.cc"
-      "adminapi/cluster/cluster_impl.cc"
-      "adminapi/cluster/describe.cc"
-      "adminapi/cluster/status.cc"
-      "adminapi/cluster/dissolve.cc"
-      "adminapi/cluster/reset_recovery_accounts_password.cc"
-      "adminapi/cluster/options.cc"
-      "adminapi/cluster/set_option.cc"
-      "adminapi/cluster/member_recovery.cc"
-      "adminapi/cluster/topology_configuration_command.cc"
-      "adminapi/cluster/switch_to_single_primary_mode.cc"
-      "adminapi/cluster/switch_to_multi_primary_mode.cc"
-      "adminapi/cluster/set_primary_instance.cc"
-      "adminapi/cluster/set_option.cc"
-      "adminapi/cluster/rescan.cc"
-      "adminapi/cluster/set_instance_option.cc"
-      "adminapi/cluster/api_options.cc"
-      "adminapi/cluster/add_instance.cc"
-      "adminapi/cluster/rejoin_instance.cc"
       "reports/native_report.cc"
       "reports/query.cc"
       "reports/thread.cc"
@@ -177,19 +100,9 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 ENDIF()
 
 add_convenience_library(api_modules ${api_module_SOURCES})
-target_link_libraries(api_modules utils)
+target_link_libraries(api_modules utils adminapi_modules)
+
+ADD_SUBDIRECTORY(adminapi)
 
 ADD_STAN_TARGET(api_modules ${api_module_SOURCES})
 
-
-# install metadata scripts
-FILE(GLOB METADATA_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/adminapi/common/metadata/*.sql)
-
-ADD_CUSTOM_COMMAND(OUTPUT metadata_scripts
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata
-    DEPENDS ${METADATA_SCRIPTS}
-    COMMAND ${CMAKE_COMMAND} -E copy ${METADATA_SCRIPTS} ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata/
-)
-
-ADD_CUSTOM_TARGET(module_data ALL DEPENDS metadata_scripts)
-INSTALL(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata COMPONENT main DESTINATION ${INSTALL_SHAREDIR})

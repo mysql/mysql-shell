@@ -148,7 +148,7 @@ class Cluster_set_impl : public Base_cluster_impl,
       Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
       bool interactive);
 
-  std::vector<Cluster_metadata> get_clusters() const;
+  std::vector<Cluster_set_member_metadata> get_clusters() const;
 
   Cluster_channel_status get_replication_channel_status(
       const Cluster_impl &cluster) const;
@@ -172,10 +172,12 @@ class Cluster_set_impl : public Base_cluster_impl,
   // Lock methods
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
-      std::chrono::seconds timeout = {});
+      std::chrono::seconds timeout = {}) override;
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
-      std::chrono::seconds timeout = {});
+      std::chrono::seconds timeout = {}) override;
+
+  std::vector<Instance_metadata> get_instances_from_metadata() const override;
 
  protected:
   void _set_option(const std::string &option,
@@ -225,9 +227,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   void ensure_replica_settings(Cluster_impl *replica, bool dry_run);
 
   shcore::Value list_routers(const std::string &router);
-  void set_routing_option(const std::string &router, const std::string &option,
-                          const shcore::Value &value);
-  shcore::Value routing_options(const std::string &router);
+  shcore::Dictionary_t routing_options(const std::string &router) override;
 
   void record_in_metadata(const Cluster_id &seed_cluster_id,
                           const clusterset::Create_cluster_set_options &options,

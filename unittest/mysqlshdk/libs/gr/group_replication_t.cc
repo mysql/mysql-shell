@@ -168,13 +168,6 @@ TEST_F(Group_replication_test, plugin_installation) {
   }
 }
 
-TEST_F(Group_replication_test, generate_uuid) {
-  std::string name1 = mysqlshdk::gr::generate_uuid(*m_instance);
-  std::string name2 = mysqlshdk::gr::generate_uuid(*m_instance);
-  // Generated group names must be different.
-  EXPECT_STRNE(name1.c_str(), name2.c_str());
-}
-
 TEST_F(Group_replication_test, create_recovery_user) {
   // Confirm that there is no replication user.
   auto res =
@@ -319,7 +312,7 @@ TEST_F(Group_replication_test, start_stop_gr) {
       m_instance->get_sysvar_string("group_replication_local_address");
 
   // Set GR variable to start GR.
-  std::string group_name = mysqlshdk::gr::generate_uuid(*m_instance);
+  std::string group_name = m_instance->generate_uuid();
   m_instance->set_sysvar("group_replication_group_name", group_name,
                          Var_qualifier::GLOBAL);
   std::string local_address = "localhost:13013";
