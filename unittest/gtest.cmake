@@ -1,4 +1,4 @@
-# Copyright (c) 2010, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2010, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -63,6 +63,12 @@ IF (WITH_GMOCK)
               PATHS ${GMOCK_DIR}
               NO_DEFAULT_PATH
              )
+
+    GET_FILENAME_COMPONENT(GMOCK_PACKAGE_NAME ${GMOCK_ZIP} NAME_WLE)
+    IF (GMOCK_PACKAGE_NAME MATCHES "^googletest-")
+        string(REGEX REPLACE "^googletest-" "" GMOCK_PACKAGE_NAME ${GMOCK_PACKAGE_NAME})
+    ENDIF()
+
   ELSE()
     ## Did we get a path name to the directory of the .zip file?
     ## Check for both release-x.y.z.zip and googletest-release-x.y.z.zip

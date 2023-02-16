@@ -736,11 +736,37 @@ IF(WIN32)
   ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
   ADD_DEFINITIONS(-DNOMINMAX)
   ADD_DEFINITIONS(-DNOGDI)
+  ADD_DEFINITIONS(-DNOMB)
+  ADD_DEFINITIONS(-DNOMEMMGR)
+  ADD_DEFINITIONS(-DNOMETAFILE)
+  ADD_DEFINITIONS(-DNOSCROLL)
+  ADD_DEFINITIONS(-DNOSERVICE)
+  ADD_DEFINITIONS(-DNOSOUND)
+  ADD_DEFINITIONS(-DNOTEXTMETRIC)
+  ADD_DEFINITIONS(-DNOWH)
+  ADD_DEFINITIONS(-DNOWINOFFSETS)
+  ADD_DEFINITIONS(-DNOCOMM)
+  ADD_DEFINITIONS(-DNOKANJI)
+  ADD_DEFINITIONS(-DNOHELP)
+  ADD_DEFINITIONS(-DNOPROFILER)
+  ADD_DEFINITIONS(-DNODEFERWINDOWPOS)
+  ADD_DEFINITIONS(-DNOMCX)
+
   # Silence warnings about functions that are perfectly fine for posix
   ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
 
   # Sets the windows versions that should be supported
   ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)
+
+  IF (MSVC)
+      # Enable parallel builds
+      ADD_COMPILE_OPTIONS(/MP)
+      # Make sure source files and execution context are set to UTF8
+      ADD_COMPILE_OPTIONS(/utf-8)
+      # Make sure we keep with the language standards conformance
+      ADD_COMPILE_OPTIONS(/permissive-)
+  ENDIF()
+
 ELSE()
   # Non windows builds should build dev packages by default
   SET(WITH_DEV "1")

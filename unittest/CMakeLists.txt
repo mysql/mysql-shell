@@ -94,6 +94,7 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"
     )
+
     if(NOT HAVE_PROTOBUF)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")
     endif()
@@ -110,6 +111,10 @@ if(WITH_TESTS)
     endif()
 
     if(NOT HAVE_PYTHON)
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/shell_py_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/shell_py_mysql_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/shell_py_mysqlx_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/auto_script_py_t.cc")
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/test_py_dev_api_samples_t.cc")
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/shellcore/completer_python_t.cc")
@@ -182,6 +187,12 @@ if(WITH_TESTS)
     if(HAVE_PYTHON)
       target_link_libraries(run_unit_tests "${PYTHON_LIBRARIES}")
     endif()
+
+    # Makes things more organized in IDEs
+
+    get_property(run_unit_tests_SOURCES TARGET run_unit_tests PROPERTY SOURCES)
+    source_group(TREE "${PROJECT_SOURCE_DIR}" FILES ${run_unit_tests_SOURCES})
+
 else()
   message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1 -DWITH_GMOCK=path or -DENABLE_DOWNLOADS=1 -DWITH_TESTS=1")
 endif()

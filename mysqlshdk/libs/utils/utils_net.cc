@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -552,10 +552,8 @@ void closesocket(int sock) { ::close(sock); }
 namespace {
 int set_nonblocking(int sock, bool f) {
 #ifdef _WIN32
-  int ret;
-  u_long arg = !f ? 0 : 1;
-  ret = ioctlsocket(sock, FIONBIO, &arg);
-  return ret;
+  u_long arg = f ? 1 : 0;
+  return ioctlsocket(sock, FIONBIO, &arg);
 
 #else
   int flags;
@@ -586,79 +584,80 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
       getaddrinfo(address.c_str(), std::to_string(port).c_str(), &hints, &info);
 
   if (result != 0) throw net_error(gai_strerror(result));
+  if (!info) throw std::runtime_error("Could not resolve address");
 
-  if (info != nullptr) {
-    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+  std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
 
-    auto sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
-    if (sock < 0) {
-      throw std::runtime_error("Could not create socket: " +
-                               shcore::errno_to_string(errno));
-    }
+  auto sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+  if (sock < 0) {
+    throw std::runtime_error("Could not create socket: " +
+                             shcore::errno_to_string(errno));
+  }
 
-    set_nonblocking(sock, true);
+  set_nonblocking(sock, true);
 
-    if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
-      closesocket(sock);
-      return true;
-    }
+  if (connect(sock, info->ai_addr, info->ai_addrlen) == 0) {
+    closesocket(sock);
+    return true;
+  }
 
 #ifdef _WIN32
-    auto last_error = []() { return WSAGetLastError(); };
-    const int connection_refused = WSAECONNREFUSED;
-    auto would_block = [](int err) {
-      return err == WSAEWOULDBLOCK || err == WSAEINPROGRESS;
-    };
+  auto last_error = []() { return WSAGetLastError(); };
+  const int connection_refused = WSAECONNREFUSED;
+  auto would_block = [](int err) {
+    return err == WSAEWOULDBLOCK || err == WSAEINPROGRESS;
+  };
 #else
-    auto last_error = []() { return errno; };
-    const int connection_refused = ECONNREFUSED;
-    auto would_block = [](int err) {
-      return err == EWOULDBLOCK || err == EINPROGRESS;
-    };
+  auto last_error = []() { return errno; };
+  const int connection_refused = ECONNREFUSED;
+  auto would_block = [](int err) {
+    return err == EWOULDBLOCK || err == EINPROGRESS;
+  };
 #endif
-    int err;
+  int err;
 
-    struct timeval timeout;
-    timeout.tv_sec = k_port_check_timeout;
-    timeout.tv_usec = 0;
+  struct timeval timeout;
+  timeout.tv_sec = k_port_check_timeout;
+  timeout.tv_usec = 0;
 
-    while (would_block((err = last_error()))) {
-      fd_set rfds;
-      fd_set wfds;
-      FD_ZERO(&rfds);
-      FD_ZERO(&wfds);
-      FD_SET(sock, &rfds);
-      FD_SET(sock, &wfds);
-      err = select(sock + 1, &rfds, &wfds, nullptr, &timeout);
-      if (err > 0) {
-        socklen_t len = sizeof(err);
-        if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char *)&err, &len) < 0) {
-          err = last_error();
-        } else {
-          if (err == 0) {
-            closesocket(sock);
-            return true;
-          }
-        }
-        break;
-      } else if (err == 0) {
-        // timeout
-        closesocket(sock);
-        return false;
-      }
-    }
-    closesocket(sock);
+  while (would_block((err = last_error()))) {
+    fd_set wfds, efds;
+    FD_ZERO(&wfds);
+    FD_SET(sock, &wfds);
+    FD_ZERO(&efds);
+    FD_SET(sock, &efds);
 
-    if (err == connection_refused) {
+    err = select(sock + 1, nullptr, &wfds, &efds, &timeout);
+    if (err == 0) {
+      // timeout
+      closesocket(sock);
       return false;
     }
-#ifdef _WIN32
-    throw net_error(shcore::last_error_to_string(err));
-#else
-    throw net_error(shcore::errno_to_string(err));
-#endif
+
+    if (err > 0) {
+      socklen_t len = sizeof(err);
+      if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char *)&err, &len) < 0) {
+        err = last_error();
+      } else {
+        if (err == 0) {
+          closesocket(sock);
+          return true;
+        }
+      }
+      break;
+    }
   }
-  throw std::runtime_error("Could not resolve address");
+
+  closesocket(sock);
+
+  if (err == connection_refused) {
+    return false;
+  }
+#ifdef _WIN32
+  throw net_error(shcore::last_error_to_string(err));
+#else
+  throw net_error(shcore::errno_to_string(err));
+#endif
 }
 
 std::pair<std::string, uint16_t> split_host_and_port(const std::string &s) {

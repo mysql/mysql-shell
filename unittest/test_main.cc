@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -865,6 +865,16 @@ int main(int argc, char **argv) {
     SetConsoleCP(origcp);
     SetConsoleOutputCP(origocp);
   });
+
+  // init Winsock
+  {
+    WSADATA wsa;
+    if (int err = WSAStartup(MAKEWORD(2, 2), &wsa); err != 0) {
+      std::cerr << "Unable to load Winsock: " << err << "\n";
+      exit(1);
+    }
+  }
+
 #else
   auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
   if (!locale) {
@@ -1211,5 +1221,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_PYTHON
   shcore::Python_init_singleton::destroy_python();
 #endif
+
+#ifdef WIN32
+  WSACleanup();
+#endif
+
   return ret_val;
 }
