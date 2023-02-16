@@ -10,8 +10,7 @@ function print_metadata_instance_addresses(session) {
 
 function get_recovery_user(session) {
     var res = session.runSql(
-        "SELECT user_name FROM mysql.slave_master_info " +
-        "WHERE Channel_name = 'group_replication_recovery'");
+        "SELECT user_name FROM mysql.slave_master_info WHERE Channel_name = 'group_replication_recovery'");
     var row = res.fetchOne();
     return row[0];
 }
@@ -55,7 +54,9 @@ function check_auto_increment_multi_primary(session, base_value) {
 
 //@ BUG#27084767: Initialize new instances
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
 
@@ -63,6 +64,7 @@ shell.connect(__sandbox_uri1);
 var session2 = mysql.getSession(__sandbox_uri2);
 session.runSql("SET GLOBAL offline_mode=1");
 session2.runSql("SET GLOBAL offline_mode=1");
+session2.close();
 
 //@ BUG#27084767: Create a cluster in single-primary mode
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
@@ -82,6 +84,21 @@ EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 // ensure offline_mode was disabled (BUG#33396423)
 EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port1, "offline_mode"));
 EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port2, "offline_mode"));
+
+// ensure offline_mode wasn't persisted (BUG#34778797) {VER(<8.0.11)}
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port1, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
+EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port2, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
+
+//@<> ensure offline_mode wasn't persisted (BUG#34778797) {VER(>=8.0.11)}
+shell.connect(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+
+EXPECT_EQ(0, session.runSql("SELECT count(*) FROM performance_schema.persisted_variables WHERE (variable_name = 'offline_mode')").fetchOne()[0], `Variable 'offline_mode' is persisted in '${__sandbox_uri1}'`);
+EXPECT_EQ(0, session2.runSql("SELECT count(*) FROM performance_schema.persisted_variables WHERE (variable_name = 'offline_mode')").fetchOne()[0], `Variable 'offline_mode' is persisted in '${__sandbox_uri2}'`);
+
+session2.close();
 
 // Test in multi-primary mode
 

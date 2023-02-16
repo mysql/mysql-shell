@@ -121,6 +121,7 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 //@ BUG#29754915: create cluster.
 // Use XCOM comm stack, otherwise, with MYSQL comm stack recovery won't even start
@@ -147,11 +148,11 @@ session.runSql("START GROUP_REPLICATION");
 testutil.waitMemberState(__mysql_sandbox_port2, "RECOVERING");
 
 //@ BUG#29754915: stop Group Replication on instance 3.
-session.close();
-shell.connect(__sandbox_uri3);
+
 // Enable offline_mode (BUG#33396423)
-session.runSql("SET GLOBAL offline_mode=1");
-session.runSql("STOP GROUP_REPLICATION");
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("SET GLOBAL offline_mode=1");
+session3.runSql("STOP GROUP_REPLICATION");
 
 //@ BUG#29754915: get cluster to try to rejoin instance 3.
 session.close();
@@ -165,7 +166,15 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 // ensure offline_mode was disabled (BUG#33396423)
 EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port3, "offline_mode"));
 
+// ensure offline_mode wasn't persisted (BUG#34778797) {VER(<8.0.11)}
+EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port3, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
+
+//@<> ensure offline_mode wasn't persisted (BUG#34778797) {VER(>=8.0.11)}
+EXPECT_EQ(0, session3.runSql("SELECT count(*) FROM performance_schema.persisted_variables WHERE (variable_name = 'offline_mode')").fetchOne()[0], `Variable 'offline_mode' is persisted in '${__sandbox_uri3}'`);
+
 //@<> BUG#29754915: confirm cluster status.
+session3.close();
+
 var topology = c.status()["defaultReplicaSet"]["topology"];
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "RECOVERING");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
