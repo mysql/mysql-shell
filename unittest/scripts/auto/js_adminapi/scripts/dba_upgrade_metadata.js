@@ -1,3 +1,12 @@
+function parseBoolOrInt(val)
+{
+    if (typeof val === 'string' && (val.toLowerCase() === 'true'))
+        return 1;
+    if (typeof val === 'string' && (val.toLowerCase() === 'false'))
+        return 0;
+    return parseInt(val);
+}
+
 //@<> INCLUDE metadata_schema_utils.inc
 
 //@<> Initialization and supporting code
@@ -273,7 +282,7 @@ EXPECT_EQ(new_cluster_attributes.opt_gtidSetIsComplete, old_cluster_attributes.o
 EXPECT_FALSE('adminType' in new_cluster_attributes);
 
 // Old Replicaset Attributes
-EXPECT_EQ(new_cluster_attributes.adopted, parseInt(old_replicaset_attributes.adopted));
+EXPECT_EQ(new_cluster_attributes.adopted, parseBoolOrInt(old_replicaset_attributes.adopted));
 EXPECT_EQ(new_cluster_attributes.group_replication_group_name, old_replicaset_attributes.group_replication_group_name);
 
 // New Instance Data Validation
