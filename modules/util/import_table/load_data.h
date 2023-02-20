@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,32 +60,13 @@ class Transaction_buffer {
 
   Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
                      const Transaction_options &options = {})
-      : Transaction_buffer(dialect, file, options.max_trx_size) {
+      : Transaction_buffer(dialect, file, options.max_trx_size,
+                           options.skip_bytes) {
     m_options = options;
   }
 
   Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
-                     uint64_t max_transaction_size)
-      : m_dialect(dialect), m_file(file) {
-    m_options.max_trx_size = max_transaction_size;
-
-    if (m_dialect == Dialect::default_()) {
-      find_first_row_boundary_after =
-          &Transaction_buffer::find_first_row_boundary_after_impl_default;
-      find_last_row_boundary_before =
-          &Transaction_buffer::find_last_row_boundary_before_impl_default;
-    } else if (m_dialect.fields_escaped_by.empty()) {
-      find_first_row_boundary_after =
-          &Transaction_buffer::find_first_row_boundary_after_impl_no_escape;
-      find_last_row_boundary_before =
-          &Transaction_buffer::find_last_row_boundary_before_impl_no_escape;
-    } else {
-      find_first_row_boundary_after =
-          &Transaction_buffer::find_first_row_boundary_after_impl_escape;
-      find_last_row_boundary_before =
-          &Transaction_buffer::find_last_row_boundary_before_impl_escape;
-    }
-  }
+                     uint64_t max_transaction_size, uint64_t skip_bytes);
 
   void before_query();
 
@@ -151,7 +132,6 @@ struct File_info {
   int64_t worker_id = -1;  //< Thread worker id
   std::string filename;    //< Import data filename path
   std::unique_ptr<mysqlshdk::storage::IFile> filehandler = nullptr;
-  size_t chunk_start = 0;   //< File chunk start offset
   size_t bytes_left = 0;    //< Bytes left to read from file
   bool range_read = false;  //< Reading whole file vs chunk range
 

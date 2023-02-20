@@ -2,6 +2,8 @@
 
 #@<> INCLUDE oci_utils.inc
 
+#@<> INCLUDE dump_utils.inc
+
 #@<> Setup
 import os
 
@@ -110,6 +112,40 @@ rc = testutil.call_mysqlsh([__sandbox_uri1, '--schema=' + TARGET_SCHEMA, '--', '
 EXPECT_EQ(0, rc)
 EXPECT_STDOUT_CONTAINS("File '{0}' (209.75 KB) was imported in ".format(SOURCE_FILE))
 EXPECT_STDOUT_CONTAINS('Total rows affected in {0}.cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0'.format(TARGET_SCHEMA))
+
+#@<> BUG#35018278 skipRows=X should be applied even if a compressed file or multiple files are loaded
+# setup
+test_schema = "bug_35018278"
+test_table = "t"
+test_table_qualified = quote_identifier(test_schema, test_table)
+test_rows = 10
+output_dir = test_schema
+# create the directory
+put_object(OS_NAMESPACE, OS_BUCKET_NAME, f"{output_dir}/tmp", "")
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+session.run_sql(f"CREATE TABLE {test_table_qualified} (k INT PRIMARY KEY, v TEXT)")
+
+for i in range(test_rows):
+    session.run_sql(f"INSERT INTO {test_table_qualified} VALUES ({i}, REPEAT('a', 10000))")
+
+for compression, extension in { "none": "", "zstd": ".zst" }.items():
+    util.export_table(test_table_qualified, f"{output_dir}/1.tsv{extension}", { "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "compression": compression, "where": f"k < {test_rows / 2}", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE })
+    util.export_table(test_table_qualified, f"{output_dir}/2.tsv{extension}", { "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "compression": compression, "where": f"k >= {test_rows / 2}", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE })
+
+#@<> BUG#35018278 - tests
+for extension in [ "", ".zst" ]:
+    for files in [ [ "1.tsv", "2.tsv" ], [ "*.tsv" ] ]:
+        for skip in range(int(test_rows / 2) + 2):
+            context = f"skip: {skip}"
+            session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+            for f in files:
+                EXPECT_NO_THROWS(lambda: util.import_table(f"{output_dir}/{f}{extension}", { "skipRows": skip, "schema": test_schema, "table": test_table, "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE }), f"file: {f}{extension}, {context}")
+            EXPECT_EQ(max(test_rows - 2 * skip, 0), session.run_sql(f"SELECT COUNT(*) FROM {test_table_qualified}").fetch_one()[0], f"files: {files}, extension: {extension}, {context}")
+
+#@<> BUG#35018278 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 
 #@<> Cleanup
 delete_bucket(OS_BUCKET_NAME)

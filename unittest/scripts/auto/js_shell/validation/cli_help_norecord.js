@@ -1094,8 +1094,9 @@ OPTIONS
             stdout is a tty, false otherwise.
 
 --skipRows=<uint>
-            Skip first n rows of the data in the file. You can use this option
-            to skip an initial header line containing column names. Default: 0.
+            Skip first N physical lines from each of the imported files. You
+            can use this option to skip an initial header line containing
+            column names. Default: 0.
 
 --decodeColumns=<key>[:<type>]=<value>
             A map between columns names and SQL expressions to be applied on
