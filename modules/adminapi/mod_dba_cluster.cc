@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,24 +170,12 @@ String Cluster::getName() {}
 str Cluster::get_name() {}
 #endif
 
-shcore::Value Cluster::call(const std::string &name,
-                            const shcore::Argument_list &args) {
-  // Throw an error if the cluster has already been dissolved
-  assert_valid(name);
-  return Cpp_object_bridge::call(name, args);
-}
-
 shcore::Value Cluster::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-
   // Throw an error if the cluster has already been dissolved
   assert_valid(prop);
 
-  if (prop == "name")
-    ret_val = shcore::Value(impl()->get_name());
-  else
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-  return ret_val;
+  if (prop == "name") return shcore::Value(impl()->get_name());
+  return shcore::Cpp_object_bridge::get_member(prop);
 }
 
 void Cluster::assert_valid(const std::string &option_name) const {
@@ -201,12 +189,12 @@ void Cluster::assert_valid(const std::string &option_name) const {
       name = get_function_name(option_name, false);
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
                                              "Can't call function '" + name +
-                                             "' on an offline cluster");
+                                             "' on an offline Cluster");
     } else {
       name = get_member_name(option_name, shcore::current_naming_style());
       throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
                                              "Can't access object member '" +
-                                             name + "' on an offline cluster");
+                                             name + "' on an offline Cluster");
     }
   }
 
@@ -337,6 +325,9 @@ None Cluster::add_instance(InstanceDef instance, dict options) {}
 void Cluster::add_instance(
     const Connection_options &instance_def_,
     const shcore::Option_pack_ref<cluster::Add_instance_options> &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("addInstance");
+
   auto instance_def = instance_def_;
 
   if (!options->password.is_null()) {
@@ -481,6 +472,9 @@ None Cluster::remove_instance(InstanceDef instance, dict options) {}
 void Cluster::remove_instance(
     const Connection_options &instance_def_,
     const shcore::Option_pack_ref<cluster::Remove_instance_options> &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("removeInstance");
+
   auto instance_def = instance_def_;
 
   if (!options->password.is_null()) {
@@ -1612,6 +1606,9 @@ shcore::Value Cluster::create_cluster_set(
     const std::string &domain_name,
     const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
         &options) {
+  // Throw an error if the cluster has already been dissolved
+  assert_valid("createClusterSet");
+
   return execute_with_pool(
       [&]() { return impl()->create_cluster_set(domain_name, *options); },
       false);

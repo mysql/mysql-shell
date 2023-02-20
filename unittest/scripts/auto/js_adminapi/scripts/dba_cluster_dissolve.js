@@ -152,7 +152,7 @@ EXPECT_NO_THROWS(function() { single.dissolve(); });
 CHECK_DISSOLVED_CLUSTER(session);
 
 //@<> Cluster.dissolve already dissolved
-EXPECT_THROWS(function() { single.dissolve(); }, "Can't call function 'dissolve' on an offline cluster");
+EXPECT_THROWS(function() { single.dissolve(); }, "Can't call function 'dissolve' on an offline Cluster");
 
 //@<> Verify cluster data removed from metadata on all instances
 // WL11889 FR8_01: cluster data removed from metadata on all online instances.

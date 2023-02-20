@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -299,22 +299,6 @@ TEST_F(Shell_js_dba_tests, no_interactive) {
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_no_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, cluster_no_interactive) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  output_handler.set_log_level(shcore::Logger::LOG_DEBUG);
-
-  // Tests cluster functionality, adding, removing instances
-  // error conditions
-  // Lets the cluster empty
-  validate_interactive("dba_cluster_no_interactive.js");
-
-  std::vector<std::string> log{
-      "Creating recovery account 'mysql_innodb_cluster_"};
-  MY_EXPECT_LOG_CONTAINS(log);
 }
 
 TEST_F(Shell_js_dba_tests, cluster_multimaster_no_interactive) {

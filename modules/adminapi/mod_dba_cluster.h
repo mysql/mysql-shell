@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -122,8 +122,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void append_json(shcore::JSON_dumper &dumper) const override;
   bool operator==(const Object_bridge &other) const override;
 
-  shcore::Value call(const std::string &name,
-                     const shcore::Argument_list &args) override;
   shcore::Value get_member(const std::string &prop) const override;
 
   std::shared_ptr<Cluster_impl> impl() const { return m_impl; }
