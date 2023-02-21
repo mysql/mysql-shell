@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,6 +74,8 @@ struct Shell_command {
   std::string triggers;
   Shell_command_function function;
   bool auto_parse_arguments;
+  Mode_mask mode;
+  std::string argument_quotes;
 };
 
 class SHCORE_PUBLIC Shell_command_handler {
@@ -81,22 +83,24 @@ class SHCORE_PUBLIC Shell_command_handler {
   typedef std::list<Shell_command> Command_list;
 
  private:
-  std::vector<std::string> split_command_line(const std::string &command_line);
+  std::vector<std::string> split_command_line(
+      const std::string &command_line, const std::string &allowed_quotes);
   Command_registry _command_dict;
   Command_list _commands;
   bool m_use_help;
 
  public:
   Shell_command_handler(bool use_help = true) : m_use_help(use_help){};
-  bool process(const std::string &command_line);
-  size_t process_inline(const std::string &command);
+  bool process(const std::string &command_line, IShell_core::Mode mode);
+  size_t process_inline(const std::string &command, IShell_core::Mode mode);
   void add_command(const std::string &triggers, const std::string &help_tag,
                    Shell_command_function function,
                    bool case_sensitive_help = false,
                    Mode_mask mode = Mode_mask::all(),
-                   bool auto_parse_arguments = true);
+                   bool auto_parse_arguments = true,
+                   const std::string &argument_quotes = "\"");
   std::vector<std::string> get_command_names_matching(
-      const std::string &prefix) const;
+      const std::string &prefix, IShell_core::Mode mode) const;
 };
 
 class SHCORE_PUBLIC Shell_language {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
@@ -165,7 +166,11 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
             return true;
           });
 
-          result = session->querys(query.data(), query.size());
+          result =
+              session->querys(query.data(), query.size(), false,
+                              _owner->get_dev_session()->query_attributes());
+
+          _owner->get_dev_session()->query_attribute_store().clear();
 
           if ((mysqlshdk::db::replay::g_replay_mode ==
                mysqlshdk::db::replay::Mode::Direct) &&
@@ -178,6 +183,12 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
         timer.stage_end();
         info.elapsed_seconds = timer.total_seconds_elapsed();
       } catch (const mysqlshdk::db::Error &e) {
+        // Clean the query attributes unless it is a connection lost error so
+        // they are available on next execution
+        if (!mysqlshdk::db::is_server_connection_error(e.code())) {
+          _owner->get_dev_session()->query_attribute_store().clear();
+        }
+
         auto exc = shcore::Exception::mysql_error_with_code_and_state(
             e.what(), e.code(), e.sqlstate());
         if (line_num > 0) exc.set_file_context("", line_num);
@@ -329,6 +340,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
   // if no complete statement is found
   m_input_state = Input_state::Ok;
   handle_input(session, false);
+
   state = m_input_state;
 
   // code could have been executed partially ('statement; incomplete statement')

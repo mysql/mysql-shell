@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,11 @@
 
 namespace mysqlshdk {
 namespace db {
+
+Query_attribute::Query_attribute(const std::string &n,
+                                 std::unique_ptr<IQuery_attribute_value> v)
+    : name(n), value(std::move(v)) {}
+
 void ISession::connect(const mysqlshdk::db::Connection_options &data) {
   do_connect(data);
   if (is_open()) {

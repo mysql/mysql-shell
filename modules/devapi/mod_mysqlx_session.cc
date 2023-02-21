@@ -1027,7 +1027,9 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> Session::execute_sql(
-    const std::string &statement, const shcore::Array_t &args) {
+    const std::string &statement, const shcore::Array_t &args,
+    [[maybe_unused]] const std::vector<mysqlshdk::db::Query_attribute>
+        &query_attributes) {
   try {
     return execute_stmt("sql", statement, convert_args(args));
   } catch (const mysqlshdk::db::Error &error) {

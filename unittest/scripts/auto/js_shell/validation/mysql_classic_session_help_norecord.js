@@ -49,6 +49,10 @@ FUNCTIONS
             Executes a query and returns the corresponding ClassicResult
             object.
 
+      setQueryAttributes()
+            Defines query attributes that apply to the next statement sent to
+            the server for execution.
+
       startTransaction()
             Starts a transaction context on the server.
 
@@ -200,4 +204,27 @@ DESCRIPTION
 
       When commit() or rollback() are called, the server autocommit mode will
       return back to it's state before calling startTransaction().
+
+//@<OUT> Help on setQueryAttributes
+NAME
+      setQueryAttributes - Defines query attributes that apply to the next
+                           statement sent to the server for execution.
+
+SYNTAX
+      <ClassicSession>.setQueryAttributes()
+
+DESCRIPTION
+      It is possible to define up to 32 pairs of attribute and values for the
+      next executed SQL statement.
+
+      To access query attributes within SQL statements for which attributes
+      have been defined, the query_attributes component must be installed, this
+      component implements a mysql_query_attribute_string() loadable function
+      that takes an attribute name argument and returns the attribute value as
+      a string, or NULL if the attribute does not exist.
+
+      To install the query_attributes component execute the following
+      statement:
+         session.runSql('INSTALL COMPONENT
+      "file://component_query_attributes"');
 

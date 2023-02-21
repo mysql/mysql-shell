@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,8 +80,9 @@ void Recorder_mysql::do_connect(const mysqlshdk::db::Connection_options &data) {
   }
 }
 
-std::shared_ptr<IResult> Recorder_mysql::querys(const char *sql, size_t length,
-                                                bool) {
+std::shared_ptr<IResult> Recorder_mysql::querys(
+    const char *sql, size_t length, bool,
+    const std::vector<Query_attribute> &query_attributes) {
   // todo - add synchronization points for error.log on every query
   // assuming that error log contents change when a query is executed
   // if (set_log_save_point) set_log_save_point(_port);
@@ -94,7 +95,8 @@ std::shared_ptr<IResult> Recorder_mysql::querys(const char *sql, size_t length,
 
   try {
     // Always buffer to make row serialization easier
-    std::shared_ptr<IResult> result(super::querys(sql, length, true));
+    std::shared_ptr<IResult> result(
+        super::querys(sql, length, true, query_attributes));
     _trace->serialize_result(result, on_recorder_result_value_replace_hook);
     std::dynamic_pointer_cast<mysql::Result>(result)->rewind();
     return result;
@@ -181,8 +183,9 @@ void Recorder_mysqlx::do_connect(
   }
 }
 
-std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
-                                                 bool) {
+std::shared_ptr<IResult> Recorder_mysqlx::querys(
+    const char *sql, size_t length, bool,
+    const std::vector<Query_attribute> &query_attributes) {
   try {
     // todo - add synchronization points for error.log on every query
     // assuming that error log contents change when a query is executed
@@ -193,7 +196,8 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
                                 ? on_recorder_query_replace_hook(query)
                                 : query);
     // Always buffer to make row serialization easier
-    std::shared_ptr<IResult> result(super::querys(sql, length, true));
+    std::shared_ptr<IResult> result(
+        super::querys(sql, length, true, query_attributes));
     _trace->serialize_result(result, nullptr);
     std::dynamic_pointer_cast<mysqlx::Result>(result)->rewind();
     return result;

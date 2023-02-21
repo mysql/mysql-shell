@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -534,6 +534,7 @@ void Shell_core_test_wrapper::execute(int location, const std::string &code) {
   }
 
   _interactive_shell->process_line(code);
+  _interactive_shell->reconnect_if_needed();
 
   if (g_profile_test_scripts > 1) {
     const auto elapsed = std::chrono::steady_clock::now() - now;

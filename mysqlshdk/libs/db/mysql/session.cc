@@ -48,7 +48,8 @@ namespace db {
 namespace mysql {
 namespace {
 std::once_flag trace_register_flag;
-}
+constexpr size_t K_MAX_QUERY_ATTRIBUTES = 32;
+}  // namespace
 
 FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
   if (args.get_int("abort", 0)) {
@@ -61,6 +62,117 @@ FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
                              args.get_int("code"),
                              args.get_string("state", {""}).c_str());
 });
+//-------------------------- Query Attribute Implementation --------------------
+Classic_query_attribute::Classic_query_attribute() {}
+
+Classic_query_attribute::Classic_query_attribute(int64_t val) {
+  value.i = val;
+  type = MYSQL_TYPE_LONGLONG;
+  data_ptr = &value.i;
+  size = sizeof(int64_t);
+  is_null = false;
+}
+
+Classic_query_attribute::Classic_query_attribute(uint64_t val) {
+  value.ui = val;
+  type = MYSQL_TYPE_LONGLONG;
+  data_ptr = &value.ui;
+  size = sizeof(uint64_t);
+  flags = UNSIGNED_FLAG;
+  is_null = false;
+}
+
+Classic_query_attribute::Classic_query_attribute(double val) {
+  value.d = val;
+  type = MYSQL_TYPE_DOUBLE;
+  data_ptr = &value.d;
+  size = sizeof(double);
+  is_null = false;
+}
+
+Classic_query_attribute::Classic_query_attribute(const std::string &val) {
+  value.s = new std::string(val);
+  type = MYSQL_TYPE_STRING;
+  data_ptr = value.s->data();
+  size = val.size();
+  is_null = false;
+}
+
+Classic_query_attribute::Classic_query_attribute(const MYSQL_TIME &val,
+                                                 enum_field_types t) {
+  value.t = val;
+  type = t;
+  data_ptr = &value.t;
+  size = sizeof(MYSQL_TIME);
+  is_null = false;
+}
+
+Classic_query_attribute::~Classic_query_attribute() {
+  if (type == MYSQL_TYPE_STRING) {
+    delete value.s;
+  }
+}
+
+void Classic_query_attribute::update_data_ptr() {
+  switch (type) {
+    case MYSQL_TYPE_LONGLONG:
+      if (flags & UNSIGNED_FLAG) {
+        data_ptr = &value.ui;
+      } else {
+        data_ptr = &value.i;
+      }
+      break;
+    case MYSQL_TYPE_DOUBLE:
+      data_ptr = &value.d;
+      break;
+    case MYSQL_TYPE_STRING:
+      data_ptr = value.s->data();
+      break;
+    default:
+      if (type != MYSQL_TYPE_NULL) {
+        data_ptr = &value.t;
+      } else {
+        data_ptr = nullptr;
+      }
+  }
+}
+
+Classic_query_attribute &Classic_query_attribute::operator=(
+    const Classic_query_attribute &other) {
+  if (type == MYSQL_TYPE_STRING) {
+    delete value.s;
+  }
+
+  value = other.value;
+  type = other.type;
+  size = other.size;
+  flags = other.flags;
+
+  if (type == MYSQL_TYPE_STRING) {
+    value.s = new std::string(*other.value.s);
+  }
+
+  update_data_ptr();
+
+  return *this;
+}
+
+Classic_query_attribute &Classic_query_attribute::operator=(
+    Classic_query_attribute &&other) noexcept {
+  if (type == MYSQL_TYPE_STRING) {
+    delete value.s;
+    value.s = nullptr;
+  }
+
+  std::swap(value, other.value);
+  std::swap(type, other.type);
+  std::swap(size, other.size);
+  std::swap(flags, other.flags);
+
+  update_data_ptr();
+
+  return *this;
+}
 
 //-------------------------- Session Implementation ----------------------------
 void Session_impl::throw_on_connection_fail() {
@@ -415,9 +527,10 @@ void Session_impl::close() {
   }
 }
 
-std::shared_ptr<IResult> Session_impl::query(const char *sql, size_t len,
-                                             bool buffered) {
-  return run_sql(sql, len, buffered, false);
+std::shared_ptr<IResult> Session_impl::query(
+    const char *sql, size_t len, bool buffered,
+    const std::vector<Query_attribute> &query_attributes) {
+  return run_sql(sql, len, buffered, false, query_attributes);
 }
 
 std::shared_ptr<IResult> Session_impl::query_udf(std::string_view sql,
@@ -429,8 +542,9 @@ void Session_impl::execute(const char *sql, size_t len) {
   auto result = run_sql(sql, len, true, false);
 }
 
-std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
-                                               bool buffered, bool is_udf) {
+std::shared_ptr<IResult> Session_impl::run_sql(
+    const char *sql, size_t len, bool buffered, bool is_udf,
+    const std::vector<Query_attribute> &query_attributes) {
   if (_mysql == nullptr) throw std::runtime_error("Not connected");
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("run_sql");
@@ -508,6 +622,31 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
 
     return err;
   };
+
+  // Attribute references need to be alive while the query is executed
+  const char *attribute_names[K_MAX_QUERY_ATTRIBUTES];
+  MYSQL_BIND attribute_values[K_MAX_QUERY_ATTRIBUTES];
+
+  if (!query_attributes.empty()) {
+    memset(attribute_values, 0, sizeof(attribute_values));
+    size_t attribute_count = 0;
+    for (const auto &att : query_attributes) {
+      attribute_names[attribute_count] = att.name.data();
+      const auto &value =
+          dynamic_cast<Classic_query_attribute *>(att.value.get());
+
+      attribute_values[attribute_count].buffer_type = value->type;
+      attribute_values[attribute_count].buffer = value->data_ptr;
+      attribute_values[attribute_count].length = &value->size;
+      attribute_values[attribute_count].is_null = &value->is_null;
+      attribute_values[attribute_count].is_unsigned =
+          (value->flags & UNSIGNED_FLAG) ? true : false;
+      attribute_count++;
+    }
+
+    mysql_bind_param(_mysql, attribute_count, attribute_values,
+                     attribute_names);
+  }
 
   if (mysql_real_query(_mysql, sql, len) != 0) {
     throw process_error({sql, len});

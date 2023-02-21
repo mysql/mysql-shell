@@ -438,3 +438,49 @@ EXAMPLES
       \watch query --nocls show session status like 'Uptime%'
             As above, but screen is not cleared, results are displayed one
             after another.
+
+//@<OUT> Query Attributes Command (JavaScript)
+No help items found matching '\query_attributes'
+
+//@<OUT> Query Attributes Command (Python)
+Switching to Python mode...
+No help items found matching '\query_attributes'
+
+//@<OUT> Query Attributes Command (SQL)
+Switching to SQL mode... Commands end with ;
+NAME
+      \query_attributes - Defines query attributes that apply to the next
+      statement sent to the server for execution.
+
+SYNTAX
+      \query_attributes name1 value1 name2 value2 ... nameN valueN
+
+DESCRIPTION
+      The command allows defining up to 32 pairs of attribute and values for
+      the next executed SQL statement.
+
+      To access query attributes within SQL statements for which attributes
+      have been defined, the query_attributes component must be installed, this
+      component implements a mysql_query_attribute_string() loadable function
+      that takes an attribute name argument and returns the attribute value as
+      a string, or NULL if the attribute does not exist.
+
+      To install the query_attributes component execute the following SQL
+      statement:
+         mysql-sql> INSTALL COMPONENT "file://component_query_attributes";
+
+EXAMPLES
+      \query_attributes sample attribute
+            Defines an attribute named "sample" with value "attribute" for the
+            next SQL statement.
+
+      mysql-sql> select mysql_query_attribute_string("sample");
+            Retrieves the value of the query attribute named "sample".
+
+      \query_attributes "my attribute" "some value"
+            Defines an attribute named "my attribute" with value "some value"
+            for the next SQL statement.
+
+      mysql-sql> select mysql_query_attribute_string("my attribute");
+            Retrieves the value of the query attribute named "my attribute".
+
