@@ -464,5 +464,6 @@
 |See \help forcePrimaryInstance for more information.|
 |        "status": "UNAVAILABLE",|
 |                "status": "UNREACHABLE"|
-|                "status": "ERROR"|
+|                    "NOTE: Replication I/O thread is reconnecting."|
+|                "status": "CONNECTING"|
 

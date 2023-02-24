@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -681,7 +681,7 @@ TEST_F(Replication_test, get_channel_status) {
                 ""}}}});
 
     EXPECT_TRUE(get_channel_status(instance, "mychannel", &ch));
-    EXPECT_EQ(ch.status(), Replication_channel::CONNECTION_ERROR);
+    EXPECT_EQ(ch.status(), Replication_channel::CONNECTING);
 
     EXPECT_EQ(Replication_channel::Receiver::CONNECTING, ch.receiver.state);
     EXPECT_EQ("", ch.receiver.thread_state);

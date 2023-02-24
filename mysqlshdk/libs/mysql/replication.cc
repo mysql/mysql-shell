@@ -226,7 +226,7 @@ void unserialize_channel_info(const mysqlshdk::db::Row_ref_by_name &row,
       channel->receiver.status =
           Replication_channel::Receiver::Status::CONNECTING;
     } else {
-      assert(0);
+      assert(!"Unknown repl channel service state");
     }
 
     channel->receiver.thread_state = row.get_string("io_thread_state", "");
@@ -244,7 +244,7 @@ void unserialize_channel_info(const mysqlshdk::db::Row_ref_by_name &row,
     else if (state == "OFF")
       channel->coordinator.state = Replication_channel::Coordinator::OFF;
     else
-      assert(0);
+      assert(!"Unknown repl channel coordinator state");
 
     channel->coordinator.thread_state = row.get_string("co_thread_state", "");
 
@@ -254,37 +254,36 @@ void unserialize_channel_info(const mysqlshdk::db::Row_ref_by_name &row,
 
 void unserialize_channel_applier_info(const mysqlshdk::db::Row_ref_by_name &row,
                                       Replication_channel *channel) {
-  if (!row.is_null("w_state")) {
-    Replication_channel::Applier applier;
-    std::string state = row.get_string("w_state");
-    if (state == "ON")
-      applier.state = Replication_channel::Applier::ON;
-    else if (state == "OFF")
-      applier.state = Replication_channel::Applier::OFF;
-    else
-      assert(0);
+  if (row.is_null("w_state")) return;
 
-    if (applier.state == Replication_channel::Applier::ON) {
-      if (row.has_field("applier_busy_state")) {  // 8.0 only
-        if (row.get_string("applier_busy_state") == "APPLYING")
-          applier.status = Replication_channel::Applier::Status::APPLYING;
-        else
-          applier.status = Replication_channel::Applier::Status::APPLIED_ALL;
-      } else {
-        applier.status = Replication_channel::Applier::Status::ON;
-      }
-    } else {
-      if (applier.last_error.code != 0)
-        applier.status = Replication_channel::Applier::Status::ERROR;
+  Replication_channel::Applier applier;
+  if (std::string state = row.get_string("w_state"); state == "ON")
+    applier.state = Replication_channel::Applier::ON;
+  else if (state == "OFF")
+    applier.state = Replication_channel::Applier::OFF;
+  else
+    assert(!"Unknown applier state");
+
+  if (applier.state == Replication_channel::Applier::ON) {
+    if (row.has_field("applier_busy_state")) {  // 8.0 only
+      if (row.get_string("applier_busy_state") == "APPLYING")
+        applier.status = Replication_channel::Applier::Status::APPLYING;
       else
-        applier.status = Replication_channel::Applier::Status::OFF;
+        applier.status = Replication_channel::Applier::Status::APPLIED_ALL;
+    } else {
+      applier.status = Replication_channel::Applier::Status::ON;
     }
-
-    applier.thread_state = row.get_string("w_thread_state", "");
-
-    extract_error(&applier.last_error, row, "w_");
-    channel->appliers.push_back(applier);
+  } else {
+    if (applier.last_error.code != 0)
+      applier.status = Replication_channel::Applier::Status::ERROR;
+    else
+      applier.status = Replication_channel::Applier::Status::OFF;
   }
+
+  applier.thread_state = row.get_string("w_thread_state", "");
+
+  extract_error(&applier.last_error, row, "w_");
+  channel->appliers.push_back(applier);
 }
 
 static const char *k_base_channel_query = R"*(SELECT
@@ -399,18 +398,19 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
       std::string(k_base_channel_query) + "WHERE c.channel_name = ?",
       channel_name);
 
-  if (auto row = result->fetch_one_named()) {
-    if (out_channel) {
-      unserialize_channel_info(row, out_channel);
-      unserialize_channel_applier_info(row, out_channel);
+  auto row = result->fetch_one_named();
+  if (!row) return false;
 
-      while ((row = result->fetch_one_named())) {
-        unserialize_channel_applier_info(row, out_channel);
-      }
+  if (out_channel) {
+    unserialize_channel_info(row, out_channel);
+    unserialize_channel_applier_info(row, out_channel);
+
+    while ((row = result->fetch_one_named())) {
+      unserialize_channel_applier_info(row, out_channel);
     }
-    return true;
   }
-  return false;
+
+  return true;
 }
 
 bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
@@ -423,8 +423,6 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
                       channel_name);
   if (auto row = result->fetch_one()) {
     auto io_state = row->get_string(10);
-    auto sql_state = row->get_string(11);
-
     if (io_state == "Yes") {
       *out_io_state = Replication_channel::Receiver::ON;
     } else if (io_state == "No") {
@@ -436,6 +434,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
                              io_state);
     }
 
+    auto sql_state = row->get_string(11);
     if (sql_state == "Yes") {
       *out_sql_state = Replication_channel::Applier::ON;
     } else if (sql_state == "No") {
@@ -444,6 +443,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
       throw std::logic_error("Unexpected value for Replica_SQL_Running: " +
                              sql_state);
     }
+
     return true;
   }
   return false;
@@ -630,15 +630,14 @@ Replication_channel::Status Replication_channel::status() const {
 
   size_t num_applier_off = 0;
   for (const auto &applier : appliers) {
-    if (applier.state == Applier::OFF) {
-      if (applier.last_error.code != 0) {
-        // error is the strongest status
-        return APPLIER_ERROR;
-      } else {
-        num_applier_off++;
-      }
-    }
+    if (applier.state != Applier::OFF) continue;
+
+    // error is the strongest status
+    if (applier.last_error.code != 0) return APPLIER_ERROR;
+
+    num_applier_off++;
   }
+
   if (num_applier_off == appliers.size())
     applier_off = true;
   else if (num_applier_off > 0)
@@ -655,21 +654,20 @@ Replication_channel::Status Replication_channel::status() const {
     }
   }
 
-  if (receiver.last_error.code != 0) {
-    return CONNECTION_ERROR;
+  switch (receiver.state) {
+    case Receiver::OFF:
+      if (receiver.last_error.code != 0) return CONNECTION_ERROR;
+      return applier_off ? OFF : RECEIVER_OFF;
+
+    case Receiver::CONNECTING:
+      return applier_off ? APPLIER_OFF : CONNECTING;
+
+    default:
+      if (receiver.last_error.code != 0) return CONNECTION_ERROR;
+      if (applier_off) return APPLIER_OFF;
+      break;
   }
-  if (receiver.state == Receiver::OFF) {
-    if (applier_off) return OFF;
-    return RECEIVER_OFF;
-  } else if (receiver.state == Receiver::CONNECTING) {
-    if (receiver.last_error.code != 0) {
-      return CONNECTION_ERROR;
-    }
-    if (applier_off) return APPLIER_OFF;
-    return CONNECTING;
-  } else {
-    if (applier_off) return APPLIER_OFF;
-  }
+
   return ON;
 }
 

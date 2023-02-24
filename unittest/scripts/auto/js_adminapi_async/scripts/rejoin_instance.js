@@ -208,15 +208,19 @@ rs.rejoinInstance(__sandbox3);
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");
 
-//@<> Add a connection failure (change password of rpl user for instance 3).
+//@<> Add a connection failure, which puts the channel on connecting (change password of rpl user for instance 3).
 rpl_user3 = "mysql_innodb_rs_33";
 session2.runSql("SET PASSWORD FOR '" + rpl_user3 + "'@'%' = 'wrong_pass'");
 session3.runSql("STOP SLAVE");
 session3.runSql("START SLAVE");
 s = rs.status();
-EXPECT_EQ(s.replicaSet.topology[sb3].status, "ERROR");
+EXPECT_EQ("CONNECTING", s.replicaSet.topology[sb3].status);
+EXPECT_TRUE("instanceErrors" in s.replicaSet.topology[sb3]);
+EXPECT_EQ("NOTE: Replication I/O thread is reconnecting.", s.replicaSet.topology[sb3].instanceErrors[0]);
 
 //@ Rejoin instance with connection failure, rpl user password reset (succeed).
+session3.runSql("STOP SLAVE");
+
 rs.rejoinInstance(__sandbox3);
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");

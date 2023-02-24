@@ -10,9 +10,9 @@
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
 |"status": "UNREACHABLE"|
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",|
-|"status": "ERROR",|
+|"status": "CONNECTING"|
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
-|"status": "ERROR",|
+|"status": "CONNECTING"|
 
 //@# Try addInstance (should fail)
 ||PRIMARY instance is unavailable (MYSQLSH 51118)

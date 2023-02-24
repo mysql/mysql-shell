@@ -176,6 +176,8 @@ std::string to_string(Cluster_channel_status status) {
   switch (status) {
     case Cluster_channel_status::OK:
       return "OK";
+    case Cluster_channel_status::CONNECTING:
+      return "CONNECTING";
     case Cluster_channel_status::STOPPED:
       return "STOPPED";
     case Cluster_channel_status::ERROR:
