@@ -111,10 +111,10 @@ rs.setPrimaryInstance(__sandbox1, {dryRun:true});
 rs.setPrimaryInstance(__sandbox1);
 
 session2.runSql("FLUSH TABLES WITH READ LOCK");
-// sandbox2 slave will be stuck because of the lock
+// sandbox2 slave will be stuck because of the lock
 session.runSql("CREATE SCHEMA testdb");
 
-// sandbox2 slave will be stuck trying to apply this because of the lock, so a timeout will occur
+// sandbox2 slave will be stuck trying to apply this because of the lock, so a timeout will occur
 var before = strip_status(rs.status());
 
 rs.setPrimaryInstance(__sandbox2, {timeout: 1});

@@ -219,6 +219,9 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |        "topology": {|
 |            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {|
 |                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", |
+|                "instanceErrors": [|
+|                    "NOTE: Replication I/O thread is reconnecting."|
+|                ], |
 |                "instanceRole": "SECONDARY", |
 |                "mode": "R/O", |
 |                "replication": {|
@@ -229,10 +232,13 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
 |                }, |
-|                "status": "ERROR"|
+|                "status": "CONNECTING"|
 |            }, |
 |            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {|
 |                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", |
+|                "instanceErrors": [|
+|                    "NOTE: Replication I/O thread is reconnecting."|
+|                ], |
 |                "instanceRole": "SECONDARY", |
 |                "mode": "R/O", |
 |                "replication": {|
@@ -243,7 +249,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
 |                }, |
-|                "status": "ERROR"|
+|                "status": "CONNECTING"|
 |            }, |
 |            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {|
 |                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", |
@@ -269,7 +275,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 * Checking status of last known PRIMARY
 NOTE: 127.0.0.1:<<<__mysql_sandbox_port3>>> is UNREACHABLE
 * Checking status of promoted instance
-NOTE: 127.0.0.1:<<<__mysql_sandbox_port1>>> has status ERROR
+NOTE: 127.0.0.1:<<<__mysql_sandbox_port1>>> has status CONNECTING
 * Checking transaction set status
 * Promoting 127.0.0.1:<<<__mysql_sandbox_port1>>> to a PRIMARY...
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/common/global_topology_check.h"
+
 #include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/include/shellcore/console.h"
 
@@ -65,6 +66,7 @@ void validate_node_status(const topology::Node *node) {
               " is inconsistent with the rest of the replicaset.",
           SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
 
+    case topology::Node_status::CONNECTING:
     case topology::Node_status::ONLINE:
       break;
   }
@@ -82,14 +84,11 @@ void validate_star_topology_consistent(
 
 void validate_global_topology_active_cluster_available(
     const topology::Global_topology &topology) {
-  auto console = current_console();
-
+  assert(topology.is_single_active());
   if (topology.is_single_active()) {
     const topology::Node *master_node = topology.get_primary_master_node();
 
     validate_node_status(master_node);
-  } else {
-    assert(0);
   }
 }
 
@@ -97,10 +96,9 @@ void validate_global_topology_consistent(
     const topology::Global_topology &topology) {
   validate_global_topology_active_cluster_available(topology);
 
+  assert(topology.type() == Global_topology_type::SINGLE_PRIMARY_TREE);
   if (topology.type() == Global_topology_type::SINGLE_PRIMARY_TREE) {
     validate_star_topology_consistent(topology);
-  } else {
-    assert(0);
   }
 
   //   // check the cluster that will be our master

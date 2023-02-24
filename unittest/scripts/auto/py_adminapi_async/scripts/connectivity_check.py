@@ -144,7 +144,7 @@ EXPECT_STDOUT_CONTAINS(
 
 shell.options['dba.connectivityChecks']=False
 EXPECT_THROWS(lambda: rs.add_instance(
-    __sandbox_uri2, {"recoveryMethod": "clone"}), "Error found in replication receiver thread")
+    __sandbox_uri2, {"recoveryMethod": "clone"}), "Timeout waiting for replication to start")
 shell.options['dba.connectivityChecks']=True
 
 dissolve()

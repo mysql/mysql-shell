@@ -115,7 +115,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |* Checking status of last known PRIMARY|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is UNREACHABLE|
 |* Checking status of promoted instance|
-|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has status ERROR|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has status CONNECTING|
 |* Checking transaction set status|
 |* Promoting <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to a PRIMARY...|
 |* Updating metadata...|
@@ -131,7 +131,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |* Checking status of last known PRIMARY|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is UNREACHABLE|
 |* Checking status of promoted instance|
-|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has status ERROR|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has status CONNECTING|
 |* Checking transaction set status|
 |* Promoting <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to a PRIMARY...|
 |* Updating metadata...|
@@ -151,7 +151,6 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |"fenced": null,|
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",|
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
-|"fenced": true,|
 
 //@# try to switch to a different one (should work this time) {false}
 |Failover finished successfully.|

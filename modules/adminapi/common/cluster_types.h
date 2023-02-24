@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,6 +98,7 @@ Cluster_status to_cluster_status(const std::string &s);
 enum class Cluster_global_status {
   OK,  // If it's a Primary, it must have any of the OK_* status. If a Replica,
        // any of the OK_* status plus the Replication Channel status must be OK
+       // or CONNECTING
   OK_NOT_REPLICATING,  // Replica Cluster with any of the OK_* status and
                        // Replication Channel status STOPPED or ERROR
   OK_NOT_CONSISTENT,   // Replica Cluster with any of the OK_* status and
@@ -116,15 +117,16 @@ enum class Cluster_global_status {
 std::string to_string(Cluster_global_status status);
 
 enum class Cluster_channel_status {
-  OK,       // Replication channel up and running
-  STOPPED,  // Replication channel stopped gracefully. Either both IO and SQL
-            // threads or just one of them.
-  ERROR,    // Replication channel stopped due to a replication error (e.g.
-            // conflicting GTID-set)
-  MISCONFIGURED,  // Channel exists but is replicating from the wrong place
-  MISSING,        // Channel doesn't exist
+  OK,          // Replication channel up and running.
+  CONNECTING,  // Replication channel is connecting.
+  STOPPED,     // Replication channel stopped gracefully. Either both IO and SQL
+               // threads or just one of them.
+  ERROR,       // Replication channel stopped due to a replication error (e.g.
+               // conflicting GTID-set).
+  MISCONFIGURED,  // Channel exists but is replicating from the wrong place.
+  MISSING,        // Channel doesn't exist.
   UNKNOWN  // Shell cannot connect to the Replica Cluster to obtain information
-           // about the replication channel and others
+           // about the replication channel and others.
 };
 
 std::string to_string(Cluster_channel_status status);
