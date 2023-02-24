@@ -350,7 +350,7 @@ class MetadataStorage {
   std::string get_recovery_account_user(const Cluster_id &cluster_id,
                                         const std::string &address);
 
-  size_t iterate_recovery_account_mismatch(
+  size_t iterate_recovery_account(
       const std::function<bool(uint32_t, std::string)> &cb);
 
   virtual bool is_instance_on_cluster(const Cluster_id &cluster_id,
