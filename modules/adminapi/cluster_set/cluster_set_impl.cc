@@ -550,53 +550,47 @@ Cluster_channel_status Cluster_set_impl::get_replication_channel_status(
     const Cluster_impl &cluster) const {
   // Get the ClusterSet member metadata
   auto cluster_primary = cluster.get_cluster_server();
+  if (!cluster_primary) return Cluster_channel_status::UNKNOWN;
 
-  if (cluster_primary) {
-    mysqlshdk::mysql::Replication_channel channel;
+  mysqlshdk::mysql::Replication_channel channel;
+  if (!mysqlshdk::mysql::get_channel_status(
+          *cluster_primary, k_clusterset_async_channel_name, &channel))
+    return Cluster_channel_status::MISSING;
 
-    if (mysqlshdk::mysql::get_channel_status(
-            *cluster_primary, k_clusterset_async_channel_name, &channel)) {
-      if (channel.status() != mysqlshdk::mysql::Replication_channel::ON) {
-        log_info("Channel '%s' at %s not ON: %s",
-                 k_clusterset_async_channel_name,
-                 cluster_primary->descr().c_str(),
-                 mysqlshdk::mysql::format_status(channel, true).c_str());
-      } else {
-        if (cluster.is_primary_cluster()) {
-          log_info("Unexpected channel '%s' at %s: %s",
-                   k_clusterset_async_channel_name,
-                   cluster_primary->descr().c_str(),
-                   mysqlshdk::mysql::format_status(channel, true).c_str());
-        }
-      }
+  if (channel.status() != mysqlshdk::mysql::Replication_channel::ON) {
+    log_info("Channel '%s' at %s not ON: %s", k_clusterset_async_channel_name,
+             cluster_primary->descr().c_str(),
+             mysqlshdk::mysql::format_status(channel, true).c_str());
+  } else if (cluster.is_primary_cluster()) {
+    log_info("Unexpected channel '%s' at %s: %s",
+             k_clusterset_async_channel_name, cluster_primary->descr().c_str(),
+             mysqlshdk::mysql::format_status(channel, true).c_str());
+  }
 
-      switch (channel.status()) {
-        case mysqlshdk::mysql::Replication_channel::CONNECTING:
-        case mysqlshdk::mysql::Replication_channel::ON: {
-          auto primary = get_primary_master();
-          auto primary_cluster = get_primary_cluster();
+  switch (channel.status()) {
+    case mysqlshdk::mysql::Replication_channel::CONNECTING:
+      return Cluster_channel_status::CONNECTING;
 
-          if (primary && primary_cluster &&
-              primary_cluster->cluster_availability() ==
-                  Cluster_availability::ONLINE) {
-            if (channel.source_uuid != primary->get_uuid())
-              return Cluster_channel_status::MISCONFIGURED;
-          }
-          return Cluster_channel_status::OK;
-          break;
-        }
+    case mysqlshdk::mysql::Replication_channel::ON: {
+      auto primary = get_primary_master();
+      auto primary_cluster = get_primary_cluster();
 
-        case mysqlshdk::mysql::Replication_channel::OFF:
-        case mysqlshdk::mysql::Replication_channel::RECEIVER_OFF:
-        case mysqlshdk::mysql::Replication_channel::APPLIER_OFF:
-          return Cluster_channel_status::STOPPED;
-        case mysqlshdk::mysql::Replication_channel::CONNECTION_ERROR:
-        case mysqlshdk::mysql::Replication_channel::APPLIER_ERROR:
-          return Cluster_channel_status::ERROR;
-      }
-    } else {
-      return Cluster_channel_status::MISSING;
+      if (primary && primary_cluster &&
+          (primary_cluster->cluster_availability() ==
+           Cluster_availability::ONLINE) &&
+          (channel.source_uuid != primary->get_uuid()))
+        return Cluster_channel_status::MISCONFIGURED;
+
+      return Cluster_channel_status::OK;
     }
+
+    case mysqlshdk::mysql::Replication_channel::OFF:
+    case mysqlshdk::mysql::Replication_channel::RECEIVER_OFF:
+    case mysqlshdk::mysql::Replication_channel::APPLIER_OFF:
+      return Cluster_channel_status::STOPPED;
+    case mysqlshdk::mysql::Replication_channel::CONNECTION_ERROR:
+    case mysqlshdk::mysql::Replication_channel::APPLIER_ERROR:
+      return Cluster_channel_status::ERROR;
   }
 
   return Cluster_channel_status::UNKNOWN;
@@ -676,6 +670,7 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
 
     switch (get_replication_channel_status(*cluster)) {
       case Cluster_channel_status::OK:
+      case Cluster_channel_status::CONNECTING:
       case Cluster_channel_status::MISCONFIGURED:
       case Cluster_channel_status::ERROR:
         // unexpected at primary cluster
@@ -705,6 +700,7 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
     default:
       switch (get_replication_channel_status(*cluster)) {
         case Cluster_channel_status::OK:
+        case Cluster_channel_status::CONNECTING:
           ret = Cluster_global_status::OK;
           break;
         case Cluster_channel_status::STOPPED:

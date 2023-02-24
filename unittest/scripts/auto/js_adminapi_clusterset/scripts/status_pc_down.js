@@ -345,14 +345,14 @@ EXPECT_EQ("UNKNOWN", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNKNOWN", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreachable instances that could still be ONLINE."], cluster2(s)["clusterErrors"]);
 
-EXPECT_EQ("OK_NOT_REPLICATING", cluster3(s)["globalStatus"]);
+EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
 EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
 } else {
-EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("CONNECTING", cluster3(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
-EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
+EXPECT_EQ(undefined, cluster3(s)["clusterErrors"]);
 }
 
 s = cs.status({extended:1});
@@ -368,14 +368,14 @@ EXPECT_EQ("UNKNOWN", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNKNOWN", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 
-EXPECT_EQ("OK_NOT_REPLICATING", cluster3(s)["globalStatus"]);
+EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
 EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
 EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 } else {
-EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("CONNECTING", cluster3(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
-EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
+EXPECT_EQ(undefined, cluster3(s)["clusterErrors"]);
 }
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 

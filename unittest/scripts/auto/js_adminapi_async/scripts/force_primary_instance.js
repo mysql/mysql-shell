@@ -206,8 +206,7 @@ session2.runSql("STOP SLAVE");
 session2.runSql("START SLAVE");
 
 session2.runSql("FLUSH TABLES WITH READ LOCK");
-// sandbox2 slave will be stuck because of the lock, even if its not getting
-// anything from the primary
+// sandbox2 slave be stuck because of the lock, even if its not getting anything from the primary
 session.runSql("CREATE SCHEMA testdb");
 // wait til it gets stuck
 var i = 10;
@@ -227,7 +226,7 @@ testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
 
 shell.connect(__sandbox_uri2);
 rs = dba.getReplicaSet();
-// sandbox3 slave will be stuck trying to apply this because of the lock
+// sandbox3 slave will be stuck trying to apply this because of the lock
 strip_status(rs.status());
 // fail now
 rs.forcePrimaryInstance(__sandbox2, {timeout:1});

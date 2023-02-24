@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,6 +52,8 @@ std::string to_string(topology::Node_status status) {
       return "INCONSISTENT";
     case topology::Node_status::ONLINE:
       return "ONLINE";
+    case topology::Node_status::CONNECTING:
+      return "CONNECTING";
   }
   throw std::logic_error("internal error");
 }
@@ -212,50 +214,46 @@ Node_status Server::status() const {
 
   if (server.status() != Instance_status::OK) return Node_status::UNREACHABLE;
 
-  if (!master_instance_uuid.empty()) {
-    // SECONDARY checks
-    if (!server.master_channel || !master_node_ptr) return Node_status::ERROR;
-
-    // check that the actual source is the expected source
-    if (server.master_channel->info.source_uuid !=
-        master_node_ptr->get_primary_member()->uuid) {
-      log_warning(
-          "Instance %s is expected to have source %s (%s), but is %s:%i (%s)",
-          label.c_str(), master_node_ptr->label.c_str(),
-          master_node_ptr->get_primary_member()->uuid.c_str(),
-          server.master_channel->info.host.c_str(),
-          server.master_channel->info.port,
-          server.master_channel->info.source_uuid.c_str());
-      return Node_status::ERROR;
-    }
-
-    if (server.master_channel->info.status() ==
-            mysqlshdk::mysql::Replication_channel::OFF ||
-        server.master_channel->info.status() ==
-            mysqlshdk::mysql::Replication_channel::APPLIER_OFF ||
-        server.master_channel->info.status() ==
-            mysqlshdk::mysql::Replication_channel::RECEIVER_OFF)
-      return Node_status::OFFLINE;
-
-    if (server.master_channel->info.status() !=
-            mysqlshdk::mysql::Replication_channel::CONNECTING &&
-        server.master_channel->info.status() !=
-            mysqlshdk::mysql::Replication_channel::ON)
-      return Node_status::ERROR;
-
-    // check for GTID set inconsistencies
-    if (errant_transaction_count.value_or(0) > 0)
-      return Node_status::INCONSISTENT;
-
-    if (!server.is_fenced()) return Node_status::ERROR;
-  } else {
+  if (master_instance_uuid.empty()) {
     // PRIMARY checks
     if (server.is_fenced()) return Node_status::ERROR;
-
-    if (server.master_channel) return Node_status::ERROR;
+    return (server.master_channel ? Node_status::ERROR : Node_status::ONLINE);
   }
 
-  return Node_status::ONLINE;
+  // SECONDARY checks
+  if (!server.master_channel || !master_node_ptr) return Node_status::ERROR;
+
+  // check that the actual source is the expected source
+  if (server.master_channel->info.source_uuid !=
+      master_node_ptr->get_primary_member()->uuid) {
+    log_warning(
+        "Instance %s is expected to have source %s (%s), but is %s:%i (%s)",
+        label.c_str(), master_node_ptr->label.c_str(),
+        master_node_ptr->get_primary_member()->uuid.c_str(),
+        server.master_channel->info.host.c_str(),
+        server.master_channel->info.port,
+        server.master_channel->info.source_uuid.c_str());
+    return Node_status::ERROR;
+  }
+
+  switch (auto status = server.master_channel->info.status(); status) {
+    case mysqlshdk::mysql::Replication_channel::ON:
+      break;
+    case mysqlshdk::mysql::Replication_channel::OFF:
+    case mysqlshdk::mysql::Replication_channel::APPLIER_OFF:
+    case mysqlshdk::mysql::Replication_channel::RECEIVER_OFF:
+      return Node_status::OFFLINE;
+    case mysqlshdk::mysql::Replication_channel::CONNECTING:
+      return Node_status::CONNECTING;
+    default:
+      return Node_status::ERROR;
+  }
+
+  // replication channel status is ON, check for GTID set inconsistencies
+  if (errant_transaction_count.value_or(0) > 0)
+    return Node_status::INCONSISTENT;
+
+  return (server.is_fenced() ? Node_status::ONLINE : Node_status::ERROR);
 }
 
 Node_role Server::role() const {

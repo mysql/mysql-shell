@@ -40,11 +40,11 @@ shcore::Array_t cluster_diagnostics(
     shcore::Array_t cluster_errors) {
   using mysqlshdk::mysql::Replication_channel;
 
-  auto append_error = [&cluster_errors](const std::string &msg) {
+  auto append_error = [&cluster_errors](std::string msg) {
     if (!cluster_errors) {
       cluster_errors = shcore::make_array();
     }
-    cluster_errors->push_back(shcore::Value(msg));
+    cluster_errors->push_back(shcore::Value(std::move(msg)));
   };
 
   // GTID_EXECUTED consistency handled elsewhere
@@ -53,30 +53,34 @@ shcore::Array_t cluster_diagnostics(
     if (cluster->is_primary_cluster()) {
       if (!channel.host.empty() ||
           channel.status() != Replication_channel::Status::OFF) {
-        append_error("WARNING: Unexpected replication channel '" +
-                     channel.channel_name + "' at Primary Cluster");
+        append_error(shcore::str_format(
+            "WARNING: Unexpected replication channel '%s' at Primary Cluster",
+            channel.channel_name.c_str()));
       }
     } else {
       if (channel.host.empty()) {
         append_error(
             "WARNING: Replication channel from the Primary Cluster is missing");
       } else {
-        if (channel.status() != Replication_channel::Status::ON) {
+        auto channel_status = channel.status();
+        if ((channel_status != Replication_channel::Status::CONNECTING) &&
+            (channel_status != Replication_channel::Status::ON)) {
           append_error(
               "WARNING: Replication from the Primary Cluster not in expected "
               "state");
-        }
 
-        auto primary = primary_cluster->get_primary_master();
+          auto primary = primary_cluster->get_primary_master();
 
-        if (primary_cluster->cluster_availability() ==
-                Cluster_availability::ONLINE &&
-            channel.source_uuid != primary->get_uuid()) {
-          append_error(shcore::str_format(
-              "WARNING: Replicating from wrong source. Expected %s (%s) but is "
-              "%s:%i (%s)",
-              primary->descr().c_str(), primary->get_uuid().c_str(),
-              channel.host.c_str(), channel.port, channel.source_uuid.c_str()));
+          if (primary_cluster->cluster_availability() ==
+                  Cluster_availability::ONLINE &&
+              channel.source_uuid != primary->get_uuid()) {
+            append_error(shcore::str_format(
+                "WARNING: Replicating from wrong source. Expected %s (%s) but "
+                "is %s:%i (%s)",
+                primary->descr().c_str(), primary->get_uuid().c_str(),
+                channel.host.c_str(), channel.port,
+                channel.source_uuid.c_str()));
+          }
         }
       }
     }

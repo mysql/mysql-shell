@@ -575,6 +575,18 @@ void Star_global_topology_manager::validate_active_unavailable() {
            to_string(primary_master->status()).c_str());
 
   switch (auto s = primary_master->status()) {
+    case topology::Node_status::CONNECTING:
+      console->print_note(primary_master->label +
+                          " is still reachable and has status " +
+                          to_string(primary_master->status()) + ".");
+      console->print_info(
+          "This operation is only allowed if the async PRIMARY is "
+          "unavailable and cannot be restored.");
+
+      throw shcore::Exception(
+          "PRIMARY still reachable and attempting to connect",
+          SHERR_DBA_PRIMARY_CLUSTER_STILL_CONNECTING);
+
     case topology::Node_status::ERROR:
     case topology::Node_status::INCONSISTENT:
       console->print_note(primary_master->label +

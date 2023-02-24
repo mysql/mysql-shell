@@ -64,9 +64,7 @@ session3.runSql("START replica");
 var status = cluster.status();
 print(status);
 
-EXPECT_CONTAINS(`WARNING: Read Replica's replication channel stopped with a connection error: 'Error connecting to source '${rr3_replication_account}@${__endpoint1}'. This was attempt 1/10, with a delay of 3 seconds between attempts. Message: Access denied for user '${rr3_replication_account}'`, status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["instanceErrors"][0]);
-EXPECT_CONTAINS("Use Cluster.rejoinInstance() to restore it.", status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["instanceErrors"][0])
-EXPECT_EQ("ERROR", status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["status"]);
+EXPECT_EQ("CONNECTING", status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["status"]);
 
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri3); });
 
@@ -85,9 +83,7 @@ session3.runSql("START replica");
 var status = cluster.status();
 print(status);
 
-EXPECT_CONTAINS(`WARNING: Read Replica's replication channel stopped with a connection error: 'Error connecting to source '${rr3_replication_account}@${__endpoint1}'. This was attempt 1/10, with a delay of 3 seconds between attempts. Message: Access denied for user '${rr3_replication_account}'`, status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["instanceErrors"][0]);
-EXPECT_CONTAINS("Use Cluster.rejoinInstance() to restore it.", status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["instanceErrors"][0])
-EXPECT_EQ("ERROR", status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["status"]);
+EXPECT_EQ("CONNECTING", status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint3]["status"]);
 
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri3); });
 

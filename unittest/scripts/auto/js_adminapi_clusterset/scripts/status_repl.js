@@ -12,7 +12,7 @@ testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
-session4 = mysql.getSession(__sandbox_uri3);
+session4 = mysql.getSession(__sandbox_uri4);
 
 // prepare a 2/2 clusterset
 shell.connect(__sandbox_uri1);
@@ -365,11 +365,19 @@ session3.runSql("start replica sql_thread for channel 'clusterset_replication'")
 
 //@<> Channel error
 
-user = session3.runSql("show replica status for channel 'clusterset_replication'").fetchOne()['Source_User'];
+user3 = session3.runSql("show replica status for channel 'clusterset_replication'").fetchOne()['Source_User'];
+user4 = session4.runSql("show replica status for channel 'clusterset_replication'").fetchOne()['Source_User'];
+
+session4.runSql("stop replica for channel 'clusterset_replication'");
+session4.runSql("change replication source to source_user='baduser', source_connect_retry=1, source_retry_count=1 for channel 'clusterset_replication'");
+session4.runSql("start replica for channel 'clusterset_replication'");
 
 session3.runSql("stop replica for channel 'clusterset_replication'");
-session3.runSql("change replication source to source_user='baduser' for channel 'clusterset_replication'");
+session3.runSql("change replication source to source_user='baduser', source_connect_retry=1, source_retry_count=1, source_connection_auto_failover=0 for channel 'clusterset_replication'");
 session3.runSql("start replica for channel 'clusterset_replication'");
+
+testutil.waitReplicationChannelState(__mysql_sandbox_port3, "clusterset_replication", "OFF");
+testutil.waitReplicationChannelState(__mysql_sandbox_port4, "clusterset_replication", "OFF");
 
 s = cs.status();
 s1 = c1.status();
@@ -404,8 +412,12 @@ EXPECT_EQ(1045, json_find_key(cluster2(s), "clusterSetReplication")["receiverLas
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster2(s)["clusterErrors"]);
 
 session3.runSql("stop replica for channel 'clusterset_replication'");
-session3.runSql("change replication source to source_user='baduser' for channel ?", [user]);
+session3.runSql("change replication source to source_user=? for channel 'clusterset_replication'", [user3]);
 session3.runSql("start replica for channel 'clusterset_replication'");
+
+session4.runSql("stop replica for channel 'clusterset_replication'");
+session4.runSql("change replication source to source_user=? for channel 'clusterset_replication'", [user4]);
+session4.runSql("start replica for channel 'clusterset_replication'");
 
 //@<> Channel missing
 session3.runSql("stop replica for channel 'clusterset_replication'");
@@ -440,6 +452,49 @@ EXPECT_EQ("MISSING", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("MISSING", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ({}, json_find_key(cluster2(s), "clusterSetReplication"));
 EXPECT_EQ(["WARNING: Replication channel from the Primary Cluster is missing"], cluster2(s)["clusterErrors"]);
+
+//@<> Check if the repl channel is connecting (BUG#34614769)
+shell.connect(__sandbox_uri4);
+reset_instance(session);
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+shell.connect(__sandbox_uri1);
+c1 = dba.createCluster("cluster1", {gtidSetIsComplete:1, expelTimeout: 3});
+c1.addInstance(__sandbox_uri2);
+c1.addInstance(__sandbox_uri3);
+
+cset = c1.createClusterSet("cs");
+cset.createReplicaCluster(__sandbox_uri4, "cluster2");
+
+testutil.killSandbox(__mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING),UNREACHABLE");
+
+cset = dba.getClusterSet();
+
+//keep trying until the new primary is chosen
+var status;
+while (true) {
+    try
+    {
+        status = cset.status();
+        break;
+    } catch (error)
+    {
+        os.sleep(1);
+    }
+}
+
+EXPECT_FALSE("clusterErrors" in status["clusters"]["cluster2"]);
+EXPECT_EQ("CONNECTING", status["clusters"]["cluster2"]["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", status["clusters"]["cluster2"]["globalStatus"]);
+EXPECT_EQ("All Clusters available.", status["statusText"]);
 
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);
