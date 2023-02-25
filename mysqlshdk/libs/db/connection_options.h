@@ -142,14 +142,9 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void set_compression_level(int64_t compression_level) {
     m_compress_level = compression_level;
   }
-  void set_mfa_password(int factor, const std::string &password) {
-    if (factor < 0 || factor >= 3)
-      throw std::invalid_argument("invalid factor #");
-    m_mfa_passwords[factor] = password;
-  }
-  void set_mfa_passwords(const Mfa_passwords &mfa_passwords) {
-    m_mfa_passwords = mfa_passwords;
-  }
+  void set_password(const std::string &password) override;
+  void set_mfa_password(int factor, const std::string &password);
+  void set_mfa_passwords(const Mfa_passwords &mfa_passwords);
 
   void set(const std::string &attribute, const std::string &value) override;
   void set(const std::string &attribute, int value) override;
@@ -160,6 +155,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   void clear_host() override;
   void clear_port() override;
+  void clear_password() override;
   void clear_mfa_passwords();
   void clear_schema() { clear_value(kSchema); }
   void clear_socket();
@@ -214,7 +210,6 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   bool is_extra_option(const std::string &option);
   bool is_bool_value(const std::string &value);
 
-  void raise_connection_type_error(const std::string &source);
   void check_compression_conflicts();
 
   std::optional<Transport_type> m_transport_type;

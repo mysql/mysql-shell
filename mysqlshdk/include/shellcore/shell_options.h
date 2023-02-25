@@ -293,7 +293,6 @@ class Shell_options final : public shcore::Options {
   void set_ssl_mode(const std::string &option, const char *value);
 
   void check_password_conflicts();
-  void check_host_socket_conflicts();
   void check_result_format();
   void check_file_execute_conflicts();
   void check_ssh_conflicts();

@@ -190,7 +190,10 @@ void Shell_options::Storage::set_uri(const std::string &uri) {
     connection_data.clear_schema();
     connection_data.clear_port();
     connection_data.clear_socket();
-    connection_data.override_with(shcore::get_connection_options(uri, true));
+    // don't set defaults to the parsed URI because we don't want to override
+    // options like user, pass and scheme that were specified before the URI
+    // with defaults
+    connection_data.override_with(shcore::get_connection_options(uri, false));
   }
 }
 
@@ -369,11 +372,13 @@ Shell_options::Shell_options(
         [this](const std::string&, const char* value) {
           storage.connection_data.clear_port();
           storage.connection_data.clear_pipe();
+          if (value) {
 #ifdef _WIN32
-          storage.connection_data.set_pipe(value ? value : "");
+            storage.connection_data.set_pipe(value);
 #else
-          storage.connection_data.set_socket(value ? value : "");
+            storage.connection_data.set_socket(value);
 #endif
+          }
         }
       )
     (cmdline("-u", "--user=<name>"),
@@ -913,6 +918,9 @@ Shell_options::Shell_options(
     } else {
       // if we didn't get any password in the cmdline, restore the ones we got
       // from my.cnf (if any)
+      if (mycnf_connection_data.has_password())
+        storage.connection_data.set_password(
+            mycnf_connection_data.get_password());
       if (mycnf_connection_data.has_mfa_passwords())
         storage.connection_data.set_mfa_passwords(
             mycnf_connection_data.get_mfa_passwords());
@@ -926,7 +934,6 @@ Shell_options::Shell_options(
       storage.connection_data.set_scheme("mysql");
 
     check_password_conflicts();
-    check_host_socket_conflicts();
     check_ssh_conflicts();
     if (!flags.is_set(Option_flags::CONNECTION_ONLY)) {
       check_file_execute_conflicts();
@@ -1347,32 +1354,6 @@ void Shell_options::check_password_conflicts() {
         "Conflicting options: --no-password cannot be used if password is "
         "provided.";
     throw std::runtime_error(error);
-  }
-}
-
-#ifdef _WIN32
-#define SOCKET_NAME "named pipe"
-#else  // !_WIN32
-#define SOCKET_NAME "socket"
-#endif  // !_WIN32
-
-void Shell_options::check_host_socket_conflicts() {
-  if (storage.connection_data.has_socket()) {
-    if ((storage.connection_data.has_host() &&
-         storage.connection_data.get_host() != "localhost"
-#ifdef _WIN32
-         && storage.connection_data.get_host() != "."
-#endif  // _WIN32
-         )) {
-      auto error = "Conflicting options: " SOCKET_NAME
-                   " cannot be used if host is "
-#ifdef _WIN32
-                   "neither '.' nor 'localhost'.";
-#else   // !_WIN32
-                   "not 'localhost'.";
-#endif  // !_WIN32
-      throw std::runtime_error(error);
-    }
   }
 }
 

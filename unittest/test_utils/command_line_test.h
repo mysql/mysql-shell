@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2023, Oracle and/or its affiliates. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -36,10 +36,12 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
     check_string_expectation(__FILE__, __LINE__, e, _output, true); \
   } while (0)
 
-#define MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(e)                          \
-  do {                                                                   \
-    SCOPED_TRACE("...in stdout check\n");                                \
-    check_string_list_expectation(__FILE__, __LINE__, e, _output, true); \
+#define MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(...)                          \
+  do {                                                                     \
+    SCOPED_TRACE("...in stdout check\n");                                  \
+    check_string_list_expectation(__FILE__, __LINE__,                      \
+                                  std::vector<std::string>({__VA_ARGS__}), \
+                                  _output, true);                          \
   } while (0)
 
 #define MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(e)                         \

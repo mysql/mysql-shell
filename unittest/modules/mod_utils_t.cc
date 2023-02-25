@@ -163,11 +163,7 @@ TEST(modules_mod_utils, get_connection_data_conflicting_port_socket) {
               error);
   }
 
-  EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
-                    std::invalid_argument,
-                    "Unable to set a " SOCKET_NAME
-                    " connection to '/some/socket/path', a tcp connection to "
-                    "'localhost:3310' is already defined.");
+  EXPECT_NO_THROW(mysqlsh::get_connection_options(shcore::Value(map)));
 }
 
 #undef SOCKET_NAME
