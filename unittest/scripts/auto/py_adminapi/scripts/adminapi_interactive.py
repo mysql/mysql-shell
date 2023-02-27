@@ -350,6 +350,14 @@ c.rescan()
 #@<OUT> Verify the final cluster status after rescan
 c.status()
 
+#@<> Check if calling an API with the cluster disconnected doesn't crash (BUG#35046432)
+c.disconnect()
+EXPECT_THROWS(lambda: c.add_instance({'host': hostname, 'port': __mysql_sandbox_port2, 'user': 'myAdmin', 'password': 'myPwd'}, {'exitStateAction': 'READ_ONLY'}), "The cluster object is disconnected. Please use dba.get_cluster() to obtain a fresh cluster handle.")
+
+# get the cluster handle back
+shell.connect({'host': hostname, 'port': __mysql_sandbox_port1, 'user': 'myAdmin', 'password': 'myPwd'})
+c = dba.get_cluster()
+
 # Dissolve cluster
 #
 # 1. Completely dissolve the cluster using Cluster.dissolve({force: true})

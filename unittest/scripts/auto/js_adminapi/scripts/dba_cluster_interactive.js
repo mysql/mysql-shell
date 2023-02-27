@@ -203,25 +203,26 @@ EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"]["z3rd_sandbox"]["mode"]
 // Regression for BUG#27837231: useless 'force' parameter for dissolve
 Cluster.dissolve();
 
-//@ Cluster: no operations can be done on an offline cluster
-Cluster.name;
-Cluster.addInstance();
-Cluster.checkInstanceState();
-Cluster.describe();
-Cluster.dissolve();
-Cluster.forceQuorumUsingPartitionOf();
-Cluster.getName();
-Cluster.rejoinInstance();
-Cluster.removeInstance();
-Cluster.rescan();
-Cluster.status();
-Cluster.listRouters();
-Cluster.removeRouterInstance();
+//@<> Cluster: no operations can be done on an offline cluster
+EXPECT_EQ("devCluster", Cluster.name);
+EXPECT_EQ("devCluster", Cluster.getName());
 
-//@ Cluster: disconnect() is ok on an offline cluster
-Cluster.disconnect();
+EXPECT_THROWS(function (){ Cluster.addInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function (){ Cluster.checkInstanceState(); }, "Invalid number of arguments, expected 1 but got 0");
+EXPECT_THROWS(function (){ Cluster.describe(); }, "Can't call function 'describe' on an offline Cluster");
+EXPECT_THROWS(function (){ Cluster.dissolve(); }, "Can't call function 'dissolve' on an offline Cluster");
+EXPECT_THROWS(function (){ Cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function (){ Cluster.rejoinInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function (){ Cluster.removeInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function (){ Cluster.rescan(); }, "Can't call function 'rescan' on an offline Cluster");
+EXPECT_THROWS(function (){ Cluster.status(); }, "Can't call function 'status' on an offline Cluster");
+EXPECT_THROWS(function (){ Cluster.listRouters(); }, "Can't call function 'listRouters' on an offline Cluster");
+EXPECT_THROWS(function (){ Cluster.removeRouterInstance(); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle");
 
-// Close session
+//@<> Cluster: disconnect() is ok on an offline cluster
+EXPECT_NO_THROWS(function (){ Cluster.disconnect(); });
+
+//<> Close session
 session.close();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
