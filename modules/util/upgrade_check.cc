@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1841,6 +1841,48 @@ namespace {
 bool UNUSED_VARIABLE(register_get_index_too_large_check) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::get_index_too_large_check),
+        Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_empty_dot_table_syntax_check() {
+  using namespace std::string_literals;
+
+  // regex: match any thats start with a blank space,
+  //        followed by a dot, followed by a string
+  //        of unicode characters, range 0001-007F (ANSI)
+  //        plus 0080-FFFF for supported extended chars,
+  //        this should include special chars ,'"_$;
+  auto regex = "[[:blank:]]\\\\.[\\\\x0001-\\\\xFFFF]+"s;
+
+  return std::make_unique<Sql_upgrade_check>(
+      "mysqlEmptyDotTableSyntaxCheck",
+      "Check for deprecated '.<table>' syntax used in routines.",
+      std::vector<std::string>{
+          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' routine body contains "
+          "deprecated identifiers.' FROM information_schema.routines WHERE "
+          "ROUTINE_SCHEMA NOT IN ('sys', 'performance_schema', 'mysql', "
+          "'information_schema') AND ROUTINE_DEFINITION REGEXP '" +
+              regex + "';",
+          "SELECT EVENT_SCHEMA, EVENT_NAME, ' event body contains deprecated "
+          "identifiers.' FROM information_schema.events WHERE EVENT_SCHEMA NOT "
+          "IN ('sys', 'performance_schema', 'mysql', 'information_schema') AND "
+          "EVENT_DEFINITION REGEXP '" +
+              regex + "';",
+          "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, ' trigger body contains "
+          "deprecated identifiers.' FROM information_schema.triggers WHERE "
+          "TRIGGER_SCHEMA NOT IN ('sys', 'performance_schema', 'mysql', "
+          "'information_schema') AND ACTION_STATEMENT REGEXP '" +
+              regex + "';"},
+      Upgrade_issue::ERROR,
+      "The following routines contain identifiers in deprecated identifier "
+      "syntax (\".<table>\"), and should be corrected before upgrade:\n");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_empty_dot_table_syntax_check) =
+    Upgrade_check::register_check(
+        std::bind(&Sql_upgrade_check::get_empty_dot_table_syntax_check),
         Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
 }
 

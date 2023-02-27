@@ -418,7 +418,16 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 # Error: The following indexes ware made too large for their format in an older version of MySQL
 # (older than 5.7.34). Normally those indexes within tables with compact or redundant row formats
 # shouldn't be larger than 767 bytes. To fix this problem those indexes should be dropped before
-# upgrading or those tables will be inaccessible. 
+# upgrading or those tables will be inaccessible.
 
 * mysqlIndexTooLargeCheck.docLink
+
+* mysqlEmptyDotTableSyntaxCheck.title
+# Check for deprecated '.<table>' syntax used in routines.
+
+* mysqlEmptyDotTableSyntaxCheck.description
+# Error: The following routines contain identifiers in deprecated identifier syntax (".<table>"),
+# and should be corrected before upgrade:\n
+
+* mysqlEmptyDotTableSyntaxCheck.docLink
 
