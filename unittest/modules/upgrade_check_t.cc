@@ -1594,4 +1594,80 @@ TEST_F(MySQL_upgrade_check_test, too_large_index_check) {
   ASSERT_NO_THROW(session->execute("DROP SCHEMA IF EXISTS index_test;"));
 }
 
+TEST_F(MySQL_upgrade_check_test, empty_dot_table_syntax_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(5, 7, 40));
+
+  PrepareTestDatabase("dot_table_test");
+
+  ASSERT_NO_THROW(session->execute("CREATE TABLE `dot_table` (`id` int);"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `uni_table_\u1234\u0090\u4000` (`id` int);"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `\u0020\u0170_uni_\u5033_table` (`id` int);"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE correct_procedure()\nBEGIN\ndelete FROM "
+      "dot_table;\nselect * from dot_table where 1=1;\nEND;"));
+
+  ASSERT_NO_THROW(
+      session->execute("CREATE EVENT correct_event ON SCHEDULE EVERY 1 HOUR DO "
+                       "DELETE FROM dot_table;"));
+
+  ASSERT_NO_THROW(
+      session->execute("create TRIGGER correct_trigger BEFORE INSERT ON "
+                       "dot_table FOR EACH ROW delete from dot_table;"));
+
+  const auto check = Sql_upgrade_check::get_empty_dot_table_syntax_check();
+  EXPECT_NO_ISSUES(check.get());
+
+  ASSERT_NO_THROW(session->execute("set GLOBAL SQL_MODE=ANSI_QUOTES;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE incorrect_procedure()\nBEGIN\ndelete FROM "
+      ".dot_table;\nselect * from .dot_table where 1=1;\nEND;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE incorrect_procedure2()\nBEGIN\ndelete FROM "
+      ".dot_table;\nselect * from .\"dot_table\" where 1=1;\nEND;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE incorrect_procedure3()\nBEGIN\ndelete FROM "
+      ".dot_table;\nselect * from .$dot_table$ where 1=1;\nEND;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE incorrect_uni_procedure()\nBEGIN\ndelete FROM "
+      ".`uni_table_\u1234\u0090\u4000`;\nEND;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE PROCEDURE incorrect_uni_procedure2()\nBEGIN\ndelete FROM "
+      ".`\u0020\u0170_uni_\u5033_table`;\nEND;"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE EVENT incorrect_event ON SCHEDULE EVERY 1 HOUR DO "
+      "DELETE FROM .dot_table;"));
+
+  ASSERT_NO_THROW(
+      session->execute("create TRIGGER incorrect_trigger BEFORE INSERT ON "
+                       "dot_table FOR EACH ROW delete from .dot_table;"));
+
+  EXPECT_ISSUES(check.get(), 7);
+
+  EXPECT_EQ("dot_table_test", issues[0].schema);
+  EXPECT_EQ("incorrect_procedure", issues[0].table);
+  EXPECT_EQ("dot_table_test", issues[1].schema);
+  EXPECT_EQ("incorrect_procedure2", issues[1].table);
+  EXPECT_EQ("dot_table_test", issues[2].schema);
+  EXPECT_EQ("incorrect_procedure3", issues[2].table);
+  EXPECT_EQ("dot_table_test", issues[3].schema);
+  EXPECT_EQ("incorrect_uni_procedure", issues[3].table);
+  EXPECT_EQ("dot_table_test", issues[4].schema);
+  EXPECT_EQ("incorrect_uni_procedure2", issues[4].table);
+  EXPECT_EQ("dot_table_test", issues[5].schema);
+  EXPECT_EQ("incorrect_event", issues[5].table);
+  EXPECT_EQ("dot_table_test", issues[6].schema);
+  EXPECT_EQ("incorrect_trigger", issues[6].table);
+
+  ASSERT_NO_THROW(session->execute("DROP SCHEMA IF EXISTS dot_table_test;"));
+}
+
 }  // namespace mysqlsh
