@@ -471,7 +471,11 @@ int local_infile_init(void **buffer, const char * /* filename */,
                       void *userdata) noexcept {
   assert(userdata);
   File_info *file_info = static_cast<File_info *>(userdata);
-  file_info->bytes = 0;
+  file_info->compressed_file =
+      dynamic_cast<mysqlshdk::storage::Compressed_file *>(
+          file_info->filehandler.get());
+  file_info->data_bytes = 0;
+  file_info->file_bytes = 0;
   file_info->rate_limit = mysqlshdk::utils::Rate_limit(file_info->max_rate);
   *buffer = file_info;
 
@@ -484,6 +488,7 @@ int local_infile_read(void *userdata, char *buffer,
   File_info *file_info = static_cast<File_info *>(userdata);
 
   ssize_t bytes = 0;
+  size_t file_bytes = 0;
 
   try {
     auto len = static_cast<size_t>(length);
@@ -500,6 +505,12 @@ int local_infile_read(void *userdata, char *buffer,
       bytes = file_info->buffer.read(buffer, len);
       if (bytes < 0) return bytes;
       assert(static_cast<size_t>(bytes) <= len);
+
+      if (file_info->compressed_file) {
+        file_bytes = file_info->compressed_file->latest_io_size();
+      } else {
+        file_bytes = bytes;
+      }
     }
 
     if (file_info->range_read) {
@@ -510,8 +521,11 @@ int local_infile_read(void *userdata, char *buffer,
     return -1;
   }
 
-  *(file_info->prog_bytes) += bytes;
-  file_info->bytes += bytes;
+  *(file_info->prog_data_bytes) += bytes;
+  file_info->data_bytes += bytes;
+
+  *(file_info->prog_file_bytes) += file_bytes;
+  file_info->file_bytes += file_bytes;
 
   if (file_info->rate_limit.enabled()) {
     file_info->rate_limit.throttle(bytes);
@@ -549,13 +563,15 @@ int local_infile_error(void *userdata, char *error_msg,
 
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
-    std::atomic<size_t> *prog_sent_bytes, volatile bool *interrupt,
+    std::atomic<size_t> *prog_sent_bytes, std::atomic<size_t> *prog_file_bytes,
+    volatile bool *interrupt,
     shcore::Synchronized_queue<File_import_info> *range_queue,
     std::vector<std::exception_ptr> *thread_exception, Stats *stats,
     const std::string &query_comment)
     : m_opt(options),
       m_thread_id(thread_id),
       m_prog_sent_bytes(prog_sent_bytes),
+      m_prog_file_bytes(prog_file_bytes),
       m_interrupt(*interrupt),
       m_range_queue(range_queue),
       m_thread_exception(*thread_exception),
@@ -594,7 +610,8 @@ void Load_data_worker::execute(
   try {
     File_info fi;
     fi.worker_id = m_thread_id;
-    fi.prog_bytes = m_prog_sent_bytes;
+    fi.prog_data_bytes = m_prog_sent_bytes;
+    fi.prog_file_bytes = m_prog_file_bytes;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
     uint64_t max_trx_size = 0;
@@ -734,6 +751,11 @@ void Load_data_worker::execute(
 
     uint64_t subchunk = 0;
     while (true) {
+      if (!fi.continuation) {
+        // new file, reset the counter
+        subchunk = 0;
+      }
+
       ++subchunk;
       mysqlsh::import_table::File_import_info r;
 
@@ -764,19 +786,7 @@ void Load_data_worker::execute(
               break;
             }
 
-            fi.filename = r.file_path;
-            if (r.file_handler) {
-              fi.filehandler.reset(r.file_handler);
-            } else {
-              // todo(kg): reuse open file handler (change in local infile init
-              // callback needed).
-              //
-              // This is a case when chunker chunks single raw file. IF current
-              // handler points to the same file THEN reuse it ELSE
-              // create_file_handler
-              // Same when current thread keep open connection to OCI.
-              fi.filehandler = m_opt.create_file_handle(r.file_path);
-            }
+            fi.filehandler = m_opt.create_file_handle(r.file_path);
             fi.range_read = r.range_read;
 
             if (r.range_read) {
@@ -807,7 +817,6 @@ void Load_data_worker::execute(
           }
         } else {
           if (file != nullptr) {
-            fi.filename = file->full_path().real();
             fi.filehandler = std::move(file);
             file.reset(nullptr);
             fi.buffer = Transaction_buffer(m_opt.dialect(),
@@ -846,8 +855,13 @@ void Load_data_worker::execute(
         fi.buffer.before_query();
         load_result = query(m_query_comment + full_query);
         fi.buffer.flush_done(&fi.continuation);
-        m_stats.total_bytes += fi.bytes;
-        ++m_stats.total_files_processed;
+        m_stats.total_data_bytes += fi.data_bytes;
+        m_stats.total_file_bytes += fi.file_bytes;
+
+        if (!fi.continuation) {
+          // increase the counter only when there are no more subchunks
+          ++m_stats.total_files_processed;
+        }
       } catch (const mysqlshdk::db::Error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
         const auto error_msg = format_error_message(e.format(), full_query);

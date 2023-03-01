@@ -37,6 +37,7 @@
 #include "modules/util/import_table/import_table_options.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
@@ -130,14 +131,16 @@ struct File_info {
   mysqlshdk::utils::Rate_limit rate_limit{};  //< Rate limiter
   int64_t max_rate = 0;    //< Max rate value for rate limiter
   int64_t worker_id = -1;  //< Thread worker id
-  std::string filename;    //< Import data filename path
   std::unique_ptr<mysqlshdk::storage::IFile> filehandler = nullptr;
+  mysqlshdk::storage::Compressed_file *compressed_file = nullptr;
   size_t bytes_left = 0;    //< Bytes left to read from file
   bool range_read = false;  //< Reading whole file vs chunk range
 
-  size_t bytes = 0;  //< bytes send to MySQL server
+  size_t data_bytes = 0;  //< bytes send to MySQL server
+  size_t file_bytes = 0;  //< bytes read from the file
   std::atomic<size_t>
-      *prog_bytes;  //< Pointer cumulative bytes send to MySQL Server
+      *prog_data_bytes;  //< Cumulative bytes send to MySQL Server
+  std::atomic<size_t> *prog_file_bytes;  //< Cumulative bytes read from the file
   volatile bool *user_interrupt = nullptr;  //< Pointer to user interrupt flag
 
   // data for transaction size limiter
@@ -161,6 +164,7 @@ class Load_data_worker final {
   Load_data_worker() = delete;
   Load_data_worker(const Import_table_options &opt, int64_t thread_id,
                    std::atomic<size_t> *prog_sent_bytes,
+                   std::atomic<size_t> *prog_file_bytes,
                    volatile bool *interrupt,
                    shcore::Synchronized_queue<File_import_info> *range_queue,
                    std::vector<std::exception_ptr> *thread_exception,
@@ -182,6 +186,7 @@ class Load_data_worker final {
   const Import_table_options &m_opt;
   int64_t m_thread_id;
   std::atomic<size_t> *m_prog_sent_bytes;
+  std::atomic<size_t> *m_prog_file_bytes;
   volatile bool &m_interrupt;
   shcore::Synchronized_queue<File_import_info> *m_range_queue;
   std::vector<std::exception_ptr> &m_thread_exception;

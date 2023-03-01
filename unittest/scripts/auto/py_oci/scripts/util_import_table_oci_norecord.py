@@ -44,7 +44,7 @@ for f in os.listdir(chunked_dir):
 
 #@<> Import from bucket root dir
 util.import_table('lorem_a*', {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("6 file(s) (14.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("6 files (14.75 KB) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 600  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Single file
@@ -54,12 +54,12 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 100  Deleted:
 
 #@<> Multiple files
 util.import_table([raw_files[0], "parts/" + raw_files[1]], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("2 file(s) (4.88 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("2 files (4.88 KB) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 200  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Empty wildcard expansion
 util.import_table(['lorem_xxx*', 'lorem_yyy.*'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Empty wildcard expansion and non-existing file
@@ -67,22 +67,22 @@ EXPECT_THROWS(lambda: util.import_table(['lorem_xxx*', 'lorem_yyy.tsv.zst'], {'s
     "Util.import_table: File lorem_yyy.tsv.zst does not exist."
 )
 EXPECT_STDOUT_CONTAINS("ERROR: File lorem_yyy.tsv.zst does not exist.")
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Wildcard on multiple compressed files
 util.import_table(['*.gz', '*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("11 file(s) (27.41 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("11 files (27.41 KB uncompressed, 13.79 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 1100  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Import from bucket subdirectory
 util.import_table(['parts/*.gz', 'parts/*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("11 file(s) (27.41 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("11 files (27.41 KB uncompressed, 13.79 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 1100  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Expand wildcard to empty file list in bucket subdirectory
 util.import_table(['parts/xyz*.gz', 'parts/abc*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> single file non-existing file bucket directory

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,8 +66,23 @@ class Compressed_file : public IFile {
   bool is_compressed() const override { return true; }
   bool is_local() const override;
 
+  /**
+   * Provides the number of compressed bytes read/written by the most recent IO
+   * operation.
+   */
+  size_t latest_io_size() const;
+
+ protected:
+  void start_io();
+
+  void update_io(size_t bytes);
+
+  void finish_io();
+
  private:
   std::unique_ptr<IFile> m_file;
+  size_t m_io_size = 0;
+  bool m_io_finished = false;
 };
 
 Compression to_compression(const std::string &c);

@@ -683,8 +683,9 @@ void Dump_loader::Worker::Load_chunk_task::load(
     }
   }
 
+  std::atomic<size_t> num_file_bytes_loaded{0};
   import_table::Load_data_worker op(
-      import_options, id(), &loader->m_num_bytes_loaded,
+      import_options, id(), &loader->m_num_bytes_loaded, &num_file_bytes_loaded,
       &loader->m_worker_hard_interrupt, nullptr, &loader->m_thread_exceptions,
       &stats, query_comment());
 
@@ -837,7 +838,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
   if (loader->m_thread_exceptions[id()])
     std::rethrow_exception(loader->m_thread_exceptions[id()]);
 
-  bytes_loaded = m_bytes_to_skip + stats.total_bytes;
+  bytes_loaded = m_bytes_to_skip + stats.total_data_bytes;
   rows_loaded = stats.total_records;
   loader->m_num_raw_bytes_loaded += raw_bytes_loaded;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -247,9 +247,6 @@ class File_handler final {
 
 struct File_import_info {
   std::string file_path;
-  mysqlshdk::storage::IFile *file_handler = nullptr;
-  std::optional<size_t> file_size;
-  std::optional<size_t> content_size;
   bool range_read = false;
   std::pair<size_t, size_t> range{0, 0};
   bool is_guard = true;
