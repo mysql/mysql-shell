@@ -171,10 +171,6 @@ class Cluster_impl final : public Base_cluster_impl,
 
   const std::string get_view_change_uuid() const;
 
-  const std::string get_communication_stack() const;
-
-  int64_t get_transaction_size_limit() const;
-
   Cluster_type get_type() const override {
     return Cluster_type::GROUP_REPLICATION;
   }

@@ -23,6 +23,9 @@
 ?{}
         "groupViewId": "[[*]]",
         "name": "default",
+?{VER(>=8.0.31)}
+        "paxosSingleLeader": "[[*]]",
+?{}
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
         "status": "OK_NO_TOLERANCE",
@@ -280,6 +283,12 @@ ${*}
                 "option": "communicationStack",
                 "value": "XCOM",
                 "variable": "group_replication_communication_stack"
+?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": [[*]]
 ?{}
             }
         ],

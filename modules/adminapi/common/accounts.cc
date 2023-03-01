@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -130,10 +131,8 @@ const std::vector<Privilege_versions> k_admin_global_privileges{
     {"SYSTEM_VARIABLES_ADMIN", Version(8, 0, 0), Version()},
     {"PERSIST_RO_VARIABLES_ADMIN", Version(8, 0, 0), Version()},
     {"REPLICATION_APPLIER", Version(8, 0, 18), Version()},
-    {"EXECUTE", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
-     Version()},
-    {"CLONE_ADMIN", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
-     Version()},
+    {"EXECUTE", k_mysql_clone_plugin_initial_version, Version()},
+    {"CLONE_ADMIN", k_mysql_clone_plugin_initial_version, Version()},
     {"REPLICATION_SLAVE_ADMIN", Version(8, 0, 0), Version()},
     {"GROUP_REPLICATION_ADMIN", Version(8, 0, 0), Version()},
     {"ROLE_ADMIN", Version(8, 0, 0), Version()},

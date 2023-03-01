@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,9 +37,6 @@ constexpr const char k_mysql_clone_plugin_name[] = "clone";
 
 // # of seconds to wait until server finished restarting during recovery
 constexpr const int k_server_recovery_restart_timeout = 60;
-
-// The 1st version where the remote clone plugin became available
-const mysqlshdk::utils::Version k_mysql_clone_plugin_initial_version("8.0.17");
 
 /**
  * Check if the Clone  plugin is installed, and if not try to

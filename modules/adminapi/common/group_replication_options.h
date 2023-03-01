@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,6 +75,7 @@ struct Group_replication_options {
   void set_consistency(const std::string &option, const std::string &value);
   void set_communication_stack(const std::string &value);
   void set_transaction_size_limit(int64_t value);
+  void set_paxos_single_leader(bool value);
 
   Unpack_target target;
 
@@ -94,6 +95,7 @@ struct Group_replication_options {
   std::optional<bool> manual_start_on_boot;
   std::optional<std::string> communication_stack;
   std::optional<int64_t> transaction_size_limit;
+  std::optional<bool> paxos_single_leader;
 
   std::string ip_allowlist_option_name;
 };

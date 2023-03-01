@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -123,6 +123,7 @@ file(GLOB api_module_SOURCES
       "adminapi/common/setup_account.cc"
       "adminapi/common/base_cluster_impl.cc"
       "adminapi/common/undo.cc"
+      "adminapi/common/server_features.cc"
       "adminapi/dba/check_instance.cc"
       "adminapi/dba/configure_async_instance.cc"
       "adminapi/dba/configure_local_instance.cc"

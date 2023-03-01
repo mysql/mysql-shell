@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 #include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
@@ -123,7 +124,7 @@ TEST_F(Dba_cluster_test, bug28219398) {
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'localhost' /*)*/");
 
-  if (m_cluster->impl()->get_communication_stack() ==
+  if (get_communication_stack(*m_cluster->impl()->get_cluster_server()) ==
       mysqlsh::dba::kCommunicationStackMySQL) {
     md_session->query("GRANT GROUP_REPLICATION_STREAM ON *.* to /*(*/ '" +
                       replication_user + "'@'localhost' /*)*/");
@@ -136,7 +137,7 @@ TEST_F(Dba_cluster_test, bug28219398) {
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'%' /*)*/");
 
-  if (m_cluster->impl()->get_communication_stack() ==
+  if (get_communication_stack(*m_cluster->impl()->get_cluster_server()) ==
       mysqlsh::dba::kCommunicationStackMySQL) {
     md_session->query("GRANT GROUP_REPLICATION_STREAM ON *.* to /*(*/ '" +
                       replication_user + "'@'%' /*)*/");
@@ -159,7 +160,7 @@ TEST_F(Dba_cluster_test, bug28219398) {
 
       // If using 'MySQL' comm stack, the account must exist in the target
       // instance too
-      if (m_cluster->impl()->get_communication_stack() ==
+      if (get_communication_stack(*m_cluster->impl()->get_cluster_server()) ==
           mysqlsh::dba::kCommunicationStackMySQL) {
         auto target_instance = std::make_unique<mysqlsh::dba::Instance>(
             create_session(_mysql_sandbox_ports[2]));

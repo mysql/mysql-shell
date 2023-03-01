@@ -181,6 +181,8 @@ DESCRIPTION
         the Cluster: XCom (legacy) or MySQL.
       - transactionSizeLimit: integer value to configure the maximum
         transaction size in bytes which the Cluster accepts
+      - paxosSingleLeader: boolean value used to enable/disable the Group
+        Communication engine to operate with a single consensus leader.
 
       The recoveryMethod option supports the following values:
 
@@ -393,6 +395,16 @@ DESCRIPTION
       accepts
 
       All members added or rejoined to the Cluster will use the same value.
+
+      The value for paxosSingleLeader is used to enable or disable the Group
+      Communication engine to operate with a single consensus leader when the
+      Cluster is in single-primary more. When enabled, the Cluster uses a
+      single leader to drive consensus which improves performance and
+      resilience in single-primary mode, particularly when some of the
+      Cluster's members are unreachable.
+
+      The option is available on MySQL 8.0.31 or newer and the default value is
+      'OFF'.
 
 //@<OUT> RemoveCluster
 NAME

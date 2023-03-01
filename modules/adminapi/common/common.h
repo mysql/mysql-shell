@@ -272,6 +272,7 @@ inline constexpr const char kSwitchCommunicationStack[] =
 inline constexpr const char kTransactionSizeLimit[] = "transactionSizeLimit";
 inline constexpr const char kGrTransactionSizeLimit[] =
     "group_replication_transaction_size_limit";
+inline constexpr const char kPaxosSingleLeader[] = "paxosSingleLeader";
 
 inline constexpr const int k_group_replication_members_limit = 9;
 
@@ -316,9 +317,6 @@ inline const std::map<std::string, Option_availability>
         {kTransactionSizeLimit, {kGrTransactionSizeLimit, {}, {}}},
         {kIpAllowlist,
          {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}}};
-
-inline const mysqlshdk::utils::Version
-    k_mysql_communication_stack_initial_version("8.0.27");
 
 struct Instance_definition {
   int host_id;

@@ -50,6 +50,12 @@
                 "value": "XCOM",
                 "variable": "group_replication_communication_stack"
 ?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
+?{}
             }
         ],
         "tags": {
@@ -511,6 +517,12 @@
                 "option": "communicationStack",
                 "value": "XCOM",
                 "variable": "group_replication_communication_stack"
+?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
 ?{}
             }
         ],

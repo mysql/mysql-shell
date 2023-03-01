@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba_utils.h"
@@ -146,6 +147,14 @@ void Create_cluster::validate_create_cluster_options() {
         kCommunicationStack, kCommunicationStackMySQL));
   }
 
+  if (m_options.adopt_from_gr.value_or(false) &&
+      m_options.gr_options.paxos_single_leader.has_value()) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Cannot use the '%s' option if '%s' is set "
+                           "to true.",
+                           kPaxosSingleLeader, kAdoptFromGR));
+  }
+
   // Set multi-primary to false by default.
   if (!m_options.multi_primary) m_options.multi_primary = false;
 
@@ -239,8 +248,7 @@ void Create_cluster::prepare() {
   // the one in use by the unmanaged GR group must be kept
   if (!m_options.gr_options.communication_stack.has_value() &&
       !m_options.adopt_from_gr.has_value() &&
-      m_target_instance->get_version() >=
-          k_mysql_communication_stack_initial_version) {
+      supports_mysql_communication_stack(m_target_instance->get_version())) {
     m_options.gr_options.communication_stack = kCommunicationStackMySQL;
 
     // Verify if the allowlist is used when the communication stack is MySQL by
@@ -466,6 +474,11 @@ void Create_cluster::log_used_gr_options() {
         "Using Group Replication transaction size limit: %s",
         std::to_string(*m_options.gr_options.transaction_size_limit).c_str());
   }
+
+  if (m_options.gr_options.paxos_single_leader.has_value()) {
+    log_info("Using Group Replication Paxos Single Leader: %s",
+             m_options.gr_options.paxos_single_leader.value() ? "ON" : "OFF");
+  }
 }
 
 void Create_cluster::prepare_metadata_schema() {
@@ -515,17 +528,10 @@ void Create_cluster::create_recovery_account(
 
     auto target_version = m_target_instance->get_version();
 
-    bool clone_available_on_target =
-        target_version >=
-        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
-
-    bool mysql_communication_stack_available_on_target =
-        target_version >= k_mysql_communication_stack_initial_version;
-
     repl_account = mysqlshdk::gr::create_recovery_user(
         repl_account.user, *primary, {repl_account_host}, {},
-        clone_available_on_target, false,
-        mysql_communication_stack_available_on_target);
+        supports_mysql_clone(target_version), false,
+        supports_mysql_communication_stack(target_version));
   }
 
   if (out_username) {
@@ -981,8 +987,7 @@ shcore::Value Create_cluster::execute() {
             *m_options.clone_options.disable_clone);
       } else {
         // Install the plugin if the target instance is >= 8.0.17
-        if (m_target_instance->get_version() >=
-            mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+        if (supports_mysql_clone(m_target_instance->get_version())) {
           // Try to install the plugin, if it fails or it's disabled, then
           // disable the clone usage on the cluster but proceed
           try {

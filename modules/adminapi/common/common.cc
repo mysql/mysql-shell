@@ -34,6 +34,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
@@ -2186,8 +2187,7 @@ void check_comm_stack_support(
     Group_replication_options *gr_options,
     const std::string &communication_stack) {
   if (communication_stack == kCommunicationStackMySQL &&
-      target_instance->get_version() <
-          k_mysql_communication_stack_initial_version) {
+      !supports_mysql_communication_stack(target_instance->get_version())) {
     auto console = mysqlsh::current_console();
     console->print_error("Cannot join instance '" + target_instance->descr() +
                          "' to Cluster: The Group Replication protocol stack "
@@ -2202,8 +2202,7 @@ void check_comm_stack_support(
 
   // Set the communication stack protocol to be used only if the target
   // instance supports it
-  if (target_instance->get_version() >=
-      k_mysql_communication_stack_initial_version) {
+  if (supports_mysql_communication_stack(target_instance->get_version())) {
     gr_options->communication_stack = communication_stack;
   }
 }

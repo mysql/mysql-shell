@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 #include "modules/adminapi/dba/api_options.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -296,7 +297,7 @@ void Reboot_cluster_options::check_option_values(
   // The switchCommunicationStack option must be allowed only if the target
   // server version is >= 8.0.27
   if (switch_communication_stack &&
-      (version < k_mysql_communication_stack_initial_version)) {
+      !supports_mysql_communication_stack(version)) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Option '%s' not supported on target server version: '%s'",
         kSwitchCommunicationStack, version.get_full().c_str()));

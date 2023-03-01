@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -348,10 +349,31 @@ void validate_communication_stack_supported(
     const mysqlshdk::utils::Version &version) {
   // The communicationStack option must be allowed only if the target
   // server version is >= 8.0.27
-  if (version < k_mysql_communication_stack_initial_version) {
+  if (!supports_mysql_communication_stack(version)) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Option '%s' not supported on target server version: '%s'",
         kCommunicationStack, version.get_full().c_str()));
+  }
+}
+
+/**
+ * Validate if setting paxosSingleLeader is supported on the target instance
+ *
+ * @param version version of the target instance
+ * @throw RuntimeError if the value is not supported on the target instance
+ */
+void validate_paxos_single_leader_supported(
+    const mysqlshdk::utils::Version &version) {
+  // The paxosSingleLeader option must be allowed only if the target
+  // server version is >= 8.0.31
+  // The option handling relies on the column
+  // `WRITE_CONSENSUS_SINGLE_LEADER_CAPABLE` of
+  // `performance_schema.replication_group_communication_information` that was
+  // added in 8.0.31
+  if (!supports_paxos_single_leader(version)) {
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kPaxosSingleLeader, version.get_full().c_str()));
   }
 }
 
@@ -362,6 +384,11 @@ void Group_replication_options::check_option_values(
   // Validate communicationStack
   if (communication_stack.has_value()) {
     validate_communication_stack_supported(version);
+  }
+
+  // Validate paxosSingleLeader
+  if (paxos_single_leader.has_value()) {
+    validate_paxos_single_leader_supported(version);
   }
 
   // Validate ipWhitelist and ipAllowlist
@@ -590,6 +617,10 @@ void Group_replication_options::set_transaction_size_limit(int64_t value) {
   transaction_size_limit = value;
 }
 
+void Group_replication_options::set_paxos_single_leader(bool value) {
+  paxos_single_leader = value;
+}
+
 const shcore::Option_pack_def<Rejoin_group_replication_options>
     &Rejoin_group_replication_options::options() {
   static const auto opts =
@@ -615,7 +646,9 @@ const shcore::Option_pack_def<Reboot_group_replication_options>
           .optional(kIpAllowlist,
                     &Reboot_group_replication_options::set_ip_allowlist)
           .optional(kLocalAddress,
-                    &Reboot_group_replication_options::set_local_address);
+                    &Reboot_group_replication_options::set_local_address)
+          .optional(kPaxosSingleLeader,
+                    &Reboot_group_replication_options::set_paxos_single_leader);
   // TODO(miguel): add support for changing the sslMode
 
   return opts;
@@ -703,7 +736,9 @@ const shcore::Option_pack_def<Cluster_set_group_replication_options>
                     &Group_replication_options::set_auto_rejoin_tries)
           .optional(kCommunicationStack,
                     &Group_replication_options::set_communication_stack, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE);
+                    shcore::Option_extract_mode::CASE_INSENSITIVE)
+          .optional(kPaxosSingleLeader,
+                    &Group_replication_options::set_paxos_single_leader);
 
   return opts;
 }
@@ -731,7 +766,9 @@ const shcore::Option_pack_def<Create_group_replication_options>
                     "", shcore::Option_extract_mode::CASE_INSENSITIVE)
           .optional(kTransactionSizeLimit,
                     &Group_replication_options::set_transaction_size_limit, "",
-                    shcore::Option_extract_mode::EXACT);
+                    shcore::Option_extract_mode::EXACT)
+          .optional(kPaxosSingleLeader,
+                    &Create_group_replication_options::set_paxos_single_leader);
 
   return opts;
 }

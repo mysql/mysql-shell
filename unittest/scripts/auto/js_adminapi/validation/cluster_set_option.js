@@ -129,6 +129,12 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 "value": "XCOM",
                 "variable": "group_replication_communication_stack"
 ?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
+?{}
 ?{VER(<8.0.27)}
 ?{}
             }
@@ -459,6 +465,12 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 "option": "communicationStack",
                 "value": "XCOM",
                 "variable": "group_replication_communication_stack"
+?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
 ?{}
 ?{VER(<8.0.27)}
 ?{}

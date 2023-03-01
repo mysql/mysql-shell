@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <string>
 #include <utility>
 
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -1696,6 +1697,10 @@ void Shell_script_tester::set_defaults() {
   } else {
     def_var("__default_gr_expel_timeout", "0");
     def_var("__default_gr_auto_rejoin_tries", "0");
+  }
+
+  if (mysqlsh::dba::supports_paxos_single_leader(_target_server_version)) {
+    def_var("__default_gr_paxos_single_leader", "'OFF'");
   }
 
   def_var("__user_config_path",

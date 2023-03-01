@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/set_option.h"
 #include "adminapi/common/common.h"
+#include "adminapi/common/server_features.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -136,9 +137,7 @@ void Set_option::check_disable_clone_support() {
         !is_option_supported(
             mysqlshdk::utils::Version(member.version), m_option,
             {{kDisableClone,
-              {"",
-               mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
-               {}}}})) {
+              {"", k_mysql_clone_plugin_initial_version, {}}}})) {
       bad_count++;
     }
   }

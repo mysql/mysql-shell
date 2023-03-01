@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,9 +31,9 @@
 #include <tuple>
 #include <utility>
 
-#include "adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
@@ -44,6 +44,7 @@
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/star_global_topology_manager.h"
 #include "modules/adminapi/common/validations.h"
@@ -2057,8 +2058,7 @@ void Replica_set_impl::ensure_compatible_donor(
   }
 
   // Check if the instance support clone (the recipient was already checked)
-  if (target->get_version() <
-      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+  if (!supports_mysql_clone(target->get_version())) {
     throw shcore::Exception(
         "Instance " + target_address + " does not support MySQL Clone.",
         SHERR_DBA_CLONE_NO_SUPPORT);

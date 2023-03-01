@@ -25,6 +25,7 @@
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/validations.h"
 
 namespace mysqlsh::dba::cluster {
@@ -120,7 +121,8 @@ void Rejoin_instance::resolve_local_address(
 
   // During a reboot from complete outage the command does not change the
   // communication stack unless set via switchCommunicationStack
-  auto communication_stack = m_cluster_impl->get_communication_stack();
+  auto communication_stack =
+      get_communication_stack(*m_cluster_impl->get_cluster_server());
 
   gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
       user_gr_options.local_address.value_or("").empty()
@@ -227,7 +229,7 @@ void Rejoin_instance::do_run() {
 
     // Validate the options used
     cluster_topology_executor_ops::validate_add_rejoin_options(
-        m_options.gr_options, m_cluster_impl->get_communication_stack());
+        m_options.gr_options, get_communication_stack(*m_primary_instance));
 
     m_is_autorejoining =
         cluster_topology_executor_ops::is_member_auto_rejoining(
@@ -239,7 +241,7 @@ void Rejoin_instance::do_run() {
 
     // Verify whether the instance supports the communication stack in use in
     // the Cluster and set it in the options handler
-    m_comm_stack = m_cluster_impl->get_communication_stack();
+    m_comm_stack = get_communication_stack(*m_primary_instance);
 
     cluster_topology_executor_ops::check_comm_stack_support(
         m_target_instance, &m_options.gr_options, m_comm_stack);
@@ -266,7 +268,16 @@ void Rejoin_instance::do_run() {
 
     // Set the transaction size limit, to ensure no older values are used
     m_options.gr_options.transaction_size_limit =
-        m_cluster_impl->get_transaction_size_limit();
+        get_transaction_size_limit(*m_primary_instance);
+
+    // Set the paxos_single_leader option
+    // Verify whether the primary supports it, meaning it's in use. Checking if
+    // the target supports it is not valid since the target might be 8.0 and
+    // the primary 5.7
+    if (supports_paxos_single_leader(m_primary_instance->get_version())) {
+      m_options.gr_options.paxos_single_leader =
+          get_paxos_single_leader_enabled(*m_primary_instance).value_or(false);
+    }
   }
 
   // Execute the rejoin

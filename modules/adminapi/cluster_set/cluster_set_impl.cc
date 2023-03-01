@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/undo.h"
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/replica_set/replica_set_status.h"
@@ -1315,7 +1316,7 @@ void Cluster_set_impl::remove_cluster(
 
         console->print_info("* Dissolving the Cluster...");
 
-        auto comm_stack = target_cluster->get_communication_stack();
+        auto comm_stack = get_communication_stack(*target_cluster_primary);
         // First the secondaries
         for (const auto &member : cluster_reachable_members) {
           if (member->get_uuid() != target_cluster_primary->get_uuid()) {

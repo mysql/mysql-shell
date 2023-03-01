@@ -118,6 +118,10 @@ OPTIONS
             The Group Replication protocol stack to be used in the Cluster:
             XCom (legacy) or MySQL.
 
+--paxosSingleLeader=<bool>
+            Boolean value used to enable/disable the Group Communication engine
+            to operate with a single consensus leader.
+
 --recoveryMethod=<str>
             Preferred method for state recovery/provisioning. May be auto,
             clone or incremental. Default is auto.

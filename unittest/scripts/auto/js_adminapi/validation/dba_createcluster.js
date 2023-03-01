@@ -48,6 +48,9 @@ group_replication_group_seeds =
 ?{VER(>=8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 ?{}
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
@@ -73,6 +76,9 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 ?{}
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{}
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -134,6 +140,9 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
 group_replication_member_weight = 75
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -158,6 +167,9 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 ?{}
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{}
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -378,6 +390,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 "option": "communicationStack",
                 "value": "MYSQL",
                 "variable": "group_replication_communication_stack"
+?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
 ?{}
             }
         ],
@@ -652,6 +670,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 "option": "communicationStack",
                 "value": "MYSQL",
                 "variable": "group_replication_communication_stack"
+?{}
+?{VER(>=8.0.31)}
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
 ?{}
             }
         ],

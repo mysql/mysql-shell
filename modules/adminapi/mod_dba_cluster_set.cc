@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -279,6 +279,7 @@ Default is %. It must be possible for any member of the Cluster to connect to
 any other member using accounts with this hostname value.
 ${CLUSTER_OPT_COMM_STACK}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
+${CLUSTER_OPT_PAXOS_SINGLE_LEADER}
 
 The recoveryMethod option supports the following values:
 
@@ -340,6 +341,8 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 ${CLUSTER_OPT_COMM_STACK_EXTRA}
 
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
+
+${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
 )*");
 /**
  * $(CLUSTERSET_CREATEREPLICACLUSTER_BRIEF)

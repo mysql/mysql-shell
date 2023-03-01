@@ -30,6 +30,7 @@
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -1624,7 +1625,19 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     //   different communication stack.
     if (group_instance) {
       (*ret)[kCommunicationStack] =
-          shcore::Value(m_cluster.get_communication_stack());
+          shcore::Value(get_communication_stack(*group_instance));
+    }
+
+    // Add the value of paxosSingleLeader, when supported
+    if (group_instance &&
+        supports_paxos_single_leader(group_instance->get_version())) {
+      auto value = get_paxos_single_leader_enabled(*group_instance);
+
+      if (value.has_value()) {
+        std::string_view paxos_single_leader = *value == true ? "ON" : "OFF";
+
+        (*ret)[kPaxosSingleLeader] = shcore::Value(paxos_single_leader);
+      }
     }
   }
 
@@ -1681,40 +1694,50 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  {
-    auto issues = cluster_diagnostics(m_cluster, member_info, protocol_version);
+  auto issues = cluster_diagnostics(m_cluster, member_info, protocol_version);
 
-    // Get the Cluster's transaction size_limit stored in the Metadata if the
-    // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
-    // should be the value of the primary member
-    shcore::Value value;
-    bool is_replica_cluster =
-        m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster();
+  // Get the Cluster's transaction size_limit stored in the Metadata if the
+  // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
+  // should be the value of the primary member
+  shcore::Value value;
+  bool is_replica_cluster =
+      m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster();
 
-    if (group_instance) {
-      m_cluster_transaction_size_limit =
-          m_cluster.get_cluster_server()
-              ->get_sysvar_int(kGrTransactionSizeLimit)
-              .value_or(0);
-    }
-
-    if (!is_replica_cluster) {
-      if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
-              m_cluster.get_id(), k_cluster_attribute_transaction_size_limit,
-              &value)) {
-        issues->push_back(
-            shcore::Value("WARNING: Cluster's transaction size limit is not "
-                          "registered in the metadata. Use "
-                          "cluster.rescan() to update the metadata."));
-
-      } else {
-        m_cluster_transaction_size_limit = value.as_int();
-      }
-    }
-
-    if (issues && !issues->empty())
-      (*ret)["clusterErrors"] = shcore::Value(issues);
+  if (group_instance) {
+    m_cluster_transaction_size_limit =
+        m_cluster.get_cluster_server()
+            ->get_sysvar_int(kGrTransactionSizeLimit)
+            .value_or(0);
   }
+
+  if (!is_replica_cluster) {
+    if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
+            m_cluster.get_id(), k_cluster_attribute_transaction_size_limit,
+            &value)) {
+      issues->push_back(
+          shcore::Value("WARNING: Cluster's transaction size limit is not "
+                        "registered in the metadata. Use "
+                        "cluster.rescan() to update the metadata."));
+
+    } else {
+      m_cluster_transaction_size_limit = value.as_int();
+    }
+  }
+
+  // If the cluster is operating in multi-primary mode and paxosSingleLeader
+  // is enabled, add a NOTE informing the Cluster won't use a single
+  // consensus leader in that case
+  if (group_instance && !single_primary &&
+      supports_paxos_single_leader(group_instance->get_version()) &&
+      get_paxos_single_leader_enabled(*group_instance).value_or(false)) {
+    issues->push_back(
+        shcore::Value("NOTE: The Cluster is configured to use a Single "
+                      "Consensus Leader, however, this setting is ineffective "
+                      "since the Cluster is operating in multi-primary mode."));
+  }
+
+  if (issues && !issues->empty())
+    (*ret)["clusterErrors"] = shcore::Value(issues);
 
   (*ret)["topology"] = shcore::Value(get_topology(member_info));
 

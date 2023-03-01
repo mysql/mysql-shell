@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -87,9 +88,7 @@ bool Check_instance::check_schema_compatibility() {
 }
 
 void Check_instance::check_clone_plugin_status() {
-  if (m_target_instance->get_version() <
-      mysqlshdk::mysql::k_mysql_clone_plugin_initial_version)
-    return;
+  if (!supports_mysql_clone(m_target_instance->get_version())) return;
 
   log_debug("Checking if instance '%s' has the clone plugin installed",
             m_target_instance->descr().c_str());

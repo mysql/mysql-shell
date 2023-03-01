@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,7 @@
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysql/clone.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -87,9 +88,10 @@ Create_replica_cluster::prepare_create_cluster_options() {
       m_options.gr_options.auto_rejoin_tries;
   options->gr_options.manual_start_on_boot =
       m_options.gr_options.manual_start_on_boot;
-
   options->gr_options.communication_stack =
       m_options.gr_options.communication_stack;
+  options->gr_options.paxos_single_leader =
+      m_options.gr_options.paxos_single_leader;
 
   Create_cluster_clone_options no_clone_options;
 
@@ -455,8 +457,8 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
   if (!m_options.dry_run) {
     m_cluster_set->get_metadata_storage()->update_cluster_attribute(
         cluster->get_id(), k_cluster_attribute_transaction_size_limit,
-        shcore::Value(m_cluster_set->get_primary_cluster()
-                          ->get_transaction_size_limit()));
+        shcore::Value(get_transaction_size_limit(
+            *m_cluster_set->get_primary_cluster()->get_cluster_server())));
   }
 
   return cluster;
@@ -829,7 +831,8 @@ shcore::Value Create_replica_cluster::execute() {
     // created with the binary log disabled otherwise an errant transaction
     // would be created in the Replica Cluster
     if (!m_options.dry_run &&
-        cluster->get_communication_stack() == kCommunicationStackMySQL) {
+        get_communication_stack(*cluster->get_cluster_server()) ==
+            kCommunicationStackMySQL) {
       std::string repl_account_user;
 
       recreate_recovery_account(cluster, &repl_account_user,
