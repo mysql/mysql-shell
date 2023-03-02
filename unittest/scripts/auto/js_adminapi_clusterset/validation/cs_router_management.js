@@ -613,7 +613,7 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
             "roPort": null,
             "roXPort": null,
             "routerErrors": [
-                "WARNING: Router needs to be re-bootstraped."
+                "WARNING: Router must be bootstrapped again for the ClusterSet to be recognized."
             ],
             "rwPort": null,
             "rwXPort": null,
@@ -626,7 +626,7 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
             "roPort": "mysqlro.sock",
             "roXPort": "mysqlxro.sock",
             "routerErrors": [
-                "WARNING: Router needs to be re-bootstraped."
+                "WARNING: Router must be bootstrapped again for the ClusterSet to be recognized."
             ],
             "rwPort": "mysql.sock",
             "rwXPort": "mysqlx.sock",

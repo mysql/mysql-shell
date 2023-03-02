@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,7 +160,8 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
       routers_needing_rebootstrap.push_back(router_identifier);
 
       router_errors->push_back(
-          shcore::Value("WARNING: Router needs to be re-bootstraped."));
+          shcore::Value("WARNING: Router must be bootstrapped again for the "
+                        "ClusterSet to be recognized."));
     }
 
     if (router_errors && !router_errors->empty()) {
@@ -178,8 +179,9 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
         "The following Routers were bootstrapped before the ClusterSet was "
         "created: [" +
         shcore::str_join(routers_needing_rebootstrap, ", ") +
-        "]. Please re-bootstrap the Routers to ensure the optimal "
-        "configurations are set.");
+        "]. Please re-bootstrap the Routers to ensure the ClusterSet is "
+        "recognized and the configurations are updated. Otherwise, Routers "
+        "will operate as if the Clusters were standalone.");
   }
 
   return shcore::Value(router_list);
