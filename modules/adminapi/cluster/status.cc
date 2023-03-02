@@ -1106,8 +1106,40 @@ void check_comm_protocol_upgrade_possible(
   }
 }
 
-shcore::Array_t group_diagnostics(
-    const Cluster_impl *cluster,
+void check_view_change_uuid_md(shcore::Array_t issues,
+                               const Cluster_impl &cluster) {
+  auto group_instance = cluster.get_cluster_server();
+
+  // If there's primary we can't check anything, exit
+  if (!group_instance) return;
+
+  // Check if group_replication_view_change_uuid is set on the cluster and if
+  // so, if it matches the value stored in the Metadata
+  auto view_change_uuid = cluster.get_cluster_server()->get_sysvar_string(
+      "group_replication_view_change_uuid", "");
+
+  // Not in use, exit
+  if (view_change_uuid.empty() || view_change_uuid == "AUTOMATIC") return;
+
+  auto md_view_change_uuid = cluster.get_view_change_uuid();
+
+  if (md_view_change_uuid.empty()) {
+    issues->push_back(shcore::Value(
+        "WARNING: The Cluster's group_replication_view_change_uuid is not "
+        "stored in the Metadata. Please use <Cluster>.rescan() to update the "
+        "metadata."));
+  } else {
+    if (md_view_change_uuid != view_change_uuid) {
+      issues->push_back(shcore::Value(
+          "WARNING: The Cluster's group_replication_view_change_uuid value "
+          "in use does not match the value stored in the Metadata. Please "
+          "use <Cluster>.rescan() to update the metadata."));
+    }
+  }
+}
+
+shcore::Array_t cluster_diagnostics(
+    const Cluster_impl &cluster,
     const std::vector<mysqlshdk::gr::Member> &member_info,
     const mysqlshdk::utils::Version &protocol_version) {
   shcore::Array_t issues = shcore::make_array();
@@ -1115,7 +1147,10 @@ shcore::Array_t group_diagnostics(
   if (protocol_version && !member_info.empty())
     check_comm_protocol_upgrade_possible(issues, member_info, protocol_version);
 
-  switch (cluster->cluster_availability()) {
+  // Verify Metadata consistency regarding group_replication_view_change_uuid
+  check_view_change_uuid_md(issues, cluster);
+
+  switch (cluster.cluster_availability()) {
     case Cluster_availability::NO_QUORUM:
       issues->push_back(
           shcore::Value("ERROR: Could not find ONLINE members forming a "
@@ -1137,7 +1172,7 @@ shcore::Array_t group_diagnostics(
       break;
   }
 
-  if (cluster->is_fenced_from_writes()) {
+  if (cluster.is_fenced_from_writes()) {
     issues->push_back(
         shcore::Value("WARNING: Cluster is fenced from Write traffic. Use "
                       "cluster.unfenceWrites() to unfence the Cluster."));
@@ -1647,7 +1682,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   }
 
   {
-    auto issues = group_diagnostics(&m_cluster, member_info, protocol_version);
+    auto issues = cluster_diagnostics(m_cluster, member_info, protocol_version);
 
     // Get the Cluster's transaction size_limit stored in the Metadata if the
     // Cluster is standalone or a Primary. Otherwise, it's a Replica so it

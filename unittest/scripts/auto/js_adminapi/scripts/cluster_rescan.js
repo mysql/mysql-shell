@@ -958,6 +958,42 @@ if (__version_num >= 80027) {
     EXPECT_EQ(undefined, s["defaultReplicaSet"]["clusterErrors"]);
 }
 
+// BUG#35000998 results in failures during switchovers/failovers in ClusterSet.
+// The bug is caused by a mismatch of the value in use by the Replica Cluster
+// for `group_replication_view_change_uuid` and the value stored in the
+// Metadata.
+// Shell must detect it in .status() and allow users to fix it using .rescan().
+
+//@<> BUG#35000998 ensure group_replication_view_change_uuid stored in the metadata matches the current cluster's value {VER(>=8.0.27)}
+
+// Change the runtime value of view_change_uuid
+session3 = mysql.getSession(__sandbox_uri3);
+session.runSql("set persist_only group_replication_view_change_uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';")
+session3.runSql("set persist_only group_replication_view_change_uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';")
+
+session3.runSql("STOP group_replication");
+session.runSql("STOP group_replication");
+
+// Reboot the cluster so the new value gets used
+EXPECT_NO_THROWS(function() { c = dba.rebootClusterFromCompleteOutage(); });
+
+// Verify the warning is added to .status()
+s = c.status();
+EXPECT_EQ(["WARNING: The Cluster's group_replication_view_change_uuid value in use does not match the value stored in the Metadata. Please use <Cluster>.rescan() to update the metadata."], s["defaultReplicaSet"]["clusterErrors"]);
+
+// Call .rescan() to updated the Metadata
+EXPECT_NO_THROWS(function() { c.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
+
+// Validate the warning is gone from status
+s = c.status();
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["clusterErrors"]);
+
+// Validate the metadada update
+s_ext = c.status({extended:1});
+EXPECT_EQ("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", s_ext["defaultReplicaSet"]["groupViewChangeUuid"]);
+
 //@ Finalize.
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

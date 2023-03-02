@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -203,7 +203,7 @@ class Rescan : public Command_interface {
    * schema.
    */
   void ensure_view_change_uuid_set_stored_metadata(
-      const std::string &view_change_uuid = "");
+      const std::string &view_change_uuid = "", bool needs_restart = false);
 
   /**
    * Ensures group_replication_transaction_size_limit is stored in the Metadata

@@ -13,6 +13,9 @@ ${*}
     "clusterName": "sample",
     "defaultReplicaSet": {
         "clusterErrors": [
+?{VER(>=8.0.27)}
+            "WARNING: The Cluster's group_replication_view_change_uuid is not stored in the Metadata. Please use <Cluster>.rescan() to update the metadata.",
+?{}
             "WARNING: Cluster's transaction size limit is not registered in the metadata. Use cluster.rescan() to update the metadata."
         ],
         "name": "default",
