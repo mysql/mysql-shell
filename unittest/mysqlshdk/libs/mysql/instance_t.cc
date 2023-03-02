@@ -1112,7 +1112,7 @@ TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
   options.user_exists = false;
   // Simulate 5.7 version is used (not relevant here, 5.7 used to avoid
   // executing additional queries to update the ALL privileges list).
-  options.is_8_0 = false;
+  options.version = mysqlshdk::utils::Version(5, 7, 28);
 
   testing::user_privileges::setup(options, &session);
 
@@ -1142,7 +1142,7 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
   options.user = "test_user";
   options.host = "test_host";
   // Simulate 8.0.0 version is always used.
-  options.is_8_0 = true;
+  options.version = mysqlshdk::utils::Version(8, 0, 0);
 
   options.grants = {
       "GRANT USAGE ON *.* TO u@h",

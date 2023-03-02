@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -116,6 +117,16 @@ class User_privileges {
   // Map with user privileges information:
   // {`schema`.`table` -> {privileges}}
   using Privileges = std::unordered_map<std::string, std::set<std::string>>;
+  // {schema -> {privileges}}
+  using Wildcard_privileges = std::multimap<std::string, std::set<std::string>,
+                                            shcore::SQL_wild_compare>;
+
+  struct All_privileges {
+    // database-level privileges which contain wildcard characters
+    Wildcard_privileges wildcard;
+    // all remaining privileges
+    Privileges regular;
+  };
 
   /**
    * Checks if the account exists in the database.
@@ -171,6 +182,13 @@ class User_privileges {
   void read_user_roles(const mysqlshdk::mysql::IInstance &instance);
 
   /**
+   * Read the value of partial_revokes system variable.
+   *
+   * @param instance The Instance object used to query the database.
+   */
+  void read_partial_revokes(const mysqlshdk::mysql::IInstance &instance);
+
+  /**
    * Gathers all privileges which are available at the given privilege level.
    *
    * Revokes are not taken into account.
@@ -181,9 +199,9 @@ class User_privileges {
    *
    * @returns all privileges at the given privilege level
    */
-  std::set<std::string> get_privileges_at_level(const Privileges &privileges,
-                                                const std::string &schema,
-                                                const std::string &table) const;
+  std::set<std::string> get_privileges_at_level(
+      const All_privileges &privileges, const std::string &schema,
+      const std::string &table) const;
 
   /**
    * Gets the list of privileges missing on the given user account of a
@@ -192,8 +210,8 @@ class User_privileges {
    * @param required_privileges The list of required privileges.
    * @param schema The schema to check.
    * @param table The table to check.
-   * @param only_grantable Boolean value to indicate whether to check only
-   * grantable privileges.
+   * @param are_grantable Boolean value to indicate whether the required are
+   * grantable.
    *
    * @return A set of privileges missing from the given list of required
    * privileges. This set is empty if user has all the required privileges.
@@ -201,7 +219,18 @@ class User_privileges {
   std::set<std::string> get_missing_privileges(
       const std::set<std::string> &required_privileges,
       const std::string &schema, const std::string &table,
-      bool only_grantable) const;
+      bool *are_grantable) const;
+
+  /**
+   * Checks if the given privilege level uses a wildcard comparison.
+   *
+   * @param schema schema name or *
+   * @param table table name or *
+   *
+   * @returns true if wildcard comparison should be used.
+   */
+  bool is_wildcard_privilege_level(const std::string &schema,
+                                   const std::string &table) const;
 
   // user name
   std::string m_user;
@@ -216,10 +245,10 @@ class User_privileges {
   bool m_user_exists = false;
 
   // all privileges where account has GRANT OPTION
-  Privileges m_grantable_privileges;
+  All_privileges m_grantable_privileges;
 
   // privileges without the GRANT OPTION
-  Privileges m_privileges;
+  All_privileges m_privileges;
 
   // revoked privileges
   Privileges m_revoked_privileges;
@@ -229,6 +258,9 @@ class User_privileges {
 
   // Set of ALL privileges (NOTE: different depending on the server version).
   std::set<std::string> m_all_privileges;
+
+  // Is partial_revokes system variable enabled?
+  bool m_partial_revokes = false;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(User_privileges_test, parse_grants);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,8 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
+
+#include <stdarg.h>
 
 #include <algorithm>
 #include <array>
@@ -622,4 +624,194 @@ sqlstring &sqlstring::operator<<(const char *v) {
 
   return *this;
 }
+
+namespace {
+
+/**
+ * Character constant for the escape character in a wildcard pattern
+ * (SQL style).
+ */
+constexpr auto k_wild_escape = '\\';
+
+/**
+ * Character constant for wildcard representing any one character
+ * (SQL style).
+ */
+constexpr auto k_wild_one = '_';
+
+/**
+ * Character constant for wildcard representing zero or more
+ * characters (SQL style).
+ */
+constexpr auto k_wild_many = '%';
+
+}  // namespace
+
+bool has_sql_wildcard(std::string_view s) {
+  static constexpr char k_wildcards[] = {k_wild_one, k_wild_many, '\0'};
+  return std::string_view::npos != s.find_first_of(k_wildcards);
+}
+
+bool has_unescaped_sql_wildcard(std::string_view s) {
+  const auto length = s.length();
+
+  for (auto i = decltype(length){0}; i < length; ++i) {
+    const auto c = s[i];
+
+    if (k_wild_escape == c) {
+      // escaped character, skip it
+      ++i;
+    } else {
+      if (k_wild_one == c || k_wild_many == c) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+namespace {
+
+// copied from server, mysys/mf_wcomp.cc
+int wild_compare_full(const char *str, int strlen, const char *wildstr,
+                      int wildlen, bool str_is_pattern, char w_prefix,
+                      char w_one, char w_many) {
+  const char *strend = str + strlen;
+  const char *wildend = wildstr + wildlen;
+  char cmp;
+
+  while (wildstr < wildend) {
+    /*
+      Loop through expression string (str) and pattern string (wildstr) byte by
+      byte until they are different, or we find a wildcard char (w_many or
+      w_one) in pattern string.
+    */
+    while (wildstr < wildend && *wildstr != w_many && *wildstr != w_one) {
+      if (*wildstr == w_prefix && wildstr + 1 < wildend) {
+        wildstr++;
+        /*
+          If there is a escape char in pattern string, and expression string can
+          be considered as pattern, there should be a escape char in input
+          string too.
+        */
+        if (str_is_pattern && str < strend && *str++ != w_prefix) return 1;
+      }
+      if (str == strend || *wildstr++ != *str++) return 1;
+    }
+    if (wildstr == wildend) return str < strend;
+    /*
+      Skip one char if wildcard is w_one. If expression string can be
+      considered as pattern, any char in expression string except of w_many can
+      be skipped.
+    */
+    if (*wildstr++ == w_one) {
+      if (str == strend || (str_is_pattern && *str == w_many))
+        return 1; /* One char; skip */
+      if (*str++ == w_prefix && str_is_pattern) str++;
+    } else { /* Found '*' */
+      /*
+        If wildcard char is w_many, then we skip any wildcard char following
+        it.
+      */
+      while (str_is_pattern && str < strend && *str == w_many) str++;
+      for (; wildstr < wildend && (*wildstr == w_many || *wildstr == w_one);
+           wildstr++) {
+        if (*wildstr == w_many) {
+          while (str_is_pattern && str < strend && *str == w_many) str++;
+        } else {
+          if (str_is_pattern && str + 1 < strend && *str == w_prefix)
+            str += 2;
+          else if (str == strend)
+            return 1;
+        }
+      }
+      if (wildstr == wildend) return 0; /* '*' as last char: OK */
+      if ((cmp = *wildstr) == w_prefix && wildstr + 1 < wildend &&
+          !str_is_pattern)
+        cmp = wildstr[1];
+      // cmp is the character following w_many.
+      for (;; str++) {
+        /*
+          Skip until we find a character in the expression string that is
+          equal to cmp. For the character not equal to cmp, we consider they are
+          all matched by w_many.
+        */
+        while (str < strend && *str != cmp) str++;
+        if (str == strend) return 1;
+        // Recursively call ourselves until we find a match.
+        if (wild_compare_full(str, strend - str, wildstr, wildend - wildstr,
+                              str_is_pattern, w_prefix, w_one, w_many) == 0)
+          return 0;
+      }
+      /* We will never come here */
+    }
+  }
+  return str < strend;
+} /* wild_compare */
+
+}  // namespace
+
+bool match_sql_wild(std::string_view str, std::string_view pattern) {
+  return 0 == wild_compare_full(str.data(), str.length(), pattern.data(),
+                                pattern.length(), false, k_wild_escape,
+                                k_wild_one, k_wild_many);
+}
+
+namespace {
+
+#ifdef _WIN32
+typedef unsigned int uint;
+typedef unsigned long ulong;
+#endif
+
+// copied from server, sql/auth/sql_auth_cache.cc
+ulong get_sort(uint count, ...) {
+  va_list args;
+  va_start(args, count);
+  ulong sort = 0;
+
+  /* Should not use this function with more than 4 arguments for compare. */
+  assert(count <= 4);
+
+  while (count--) {
+    char *start, *str = va_arg(args, char *);
+    uint chars = 0;
+    uint wild_pos = 0;
+
+    /*
+      wild_pos
+        0                            if string is empty
+        1                            if string is a single multi-wildcard
+                                     character('%')
+        first wildcard position + 1  if string containing wildcards and
+                                     non-wildcard characters
+    */
+
+    if ((start = str)) {
+      for (; *str; str++) {
+        if (*str == k_wild_escape && str[1]) {
+          str++;
+        } else if (*str == k_wild_many || *str == k_wild_one) {
+          wild_pos = (uint)(str - start) + 1;
+          if (!(wild_pos == 1 && *str == k_wild_many && *(++str) == '\0'))
+            wild_pos++;
+          break;
+        }
+        chars = 128;  // Marker that chars existed
+      }
+    }
+    sort = (sort << 8) + (wild_pos ? std::min(wild_pos, 127U) : chars);
+  }
+  va_end(args);
+  return sort;
+}
+
+}  // namespace
+
+bool SQL_wild_compare::operator()(const std::string &a,
+                                  const std::string &b) const {
+  return get_sort(1, a.c_str()) > get_sort(1, b.c_str());
+}
+
 }  // namespace shcore

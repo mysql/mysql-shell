@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,7 @@ constexpr auto k_strip_restricted_grants = "strip_restricted_grants";
 constexpr auto k_strip_tablespaces = "strip_tablespaces";
 constexpr auto k_skip_invalid_accounts = "skip_invalid_accounts";
 constexpr auto k_strip_invalid_grants = "strip_invalid_grants";
+constexpr auto k_ignore_wildcard_grants = "ignore_wildcard_grants";
 }  // namespace
 
 Compatibility_option to_compatibility_option(const std::string &c) {
@@ -53,6 +54,8 @@ Compatibility_option to_compatibility_option(const std::string &c) {
     return Compatibility_option::SKIP_INVALID_ACCOUNTS;
   if (c == k_strip_invalid_grants)
     return Compatibility_option::STRIP_INVALID_GRANTS;
+  if (c == k_ignore_wildcard_grants)
+    return Compatibility_option::IGNORE_WILDCARD_GRANTS;
 
   throw std::invalid_argument("Unknown compatibility option: " + c);
 }
@@ -100,6 +103,9 @@ std::string to_string(Compatibility_option c) {
 
     case Compatibility_option::STRIP_INVALID_GRANTS:
       return k_strip_invalid_grants;
+
+    case Compatibility_option::IGNORE_WILDCARD_GRANTS:
+      return k_ignore_wildcard_grants;
   }
 
   throw std::logic_error("Shouldn't happen, but compiler complains");

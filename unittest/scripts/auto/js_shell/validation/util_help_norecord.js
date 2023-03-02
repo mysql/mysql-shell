@@ -195,8 +195,8 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
-        "strip_restricted_grants", "strip_tablespaces".
+        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -458,6 +458,10 @@ DESCRIPTION
       Primary Keys. Dumps created with this value cannot be used in MySQL
       Database Service instance with High Availability. Mutually exclusive with
       the create_invisible_pks value.
+
+      ignore_wildcard_grants - Ignore errors from grants on schemas with
+      wildcards, which are interpreted differently in systems where
+      partial_revokes system variable is enabled.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL Database
@@ -763,8 +767,8 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
-        "strip_restricted_grants", "strip_tablespaces".
+        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -1005,6 +1009,10 @@ DESCRIPTION
       Primary Keys. Dumps created with this value cannot be used in MySQL
       Database Service instance with High Availability. Mutually exclusive with
       the create_invisible_pks value.
+
+      ignore_wildcard_grants - Ignore errors from grants on schemas with
+      wildcards, which are interpreted differently in systems where
+      partial_revokes system variable is enabled.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL Database
@@ -1309,8 +1317,8 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
-        "strip_restricted_grants", "strip_tablespaces".
+        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - excludeTriggers: list of strings (default: empty) - List of triggers to
@@ -1546,6 +1554,10 @@ DESCRIPTION
       Primary Keys. Dumps created with this value cannot be used in MySQL
       Database Service instance with High Availability. Mutually exclusive with
       the create_invisible_pks value.
+
+      ignore_wildcard_grants - Ignore errors from grants on schemas with
+      wildcards, which are interpreted differently in systems where
+      partial_revokes system variable is enabled.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL Database
@@ -2683,8 +2695,16 @@ DESCRIPTION
         specified users from the dump. Each user is in the format of
         'user_name'[@'host']. If the host is not specified, all the accounts
         with the given user name are excluded.
+      - handleGrantErrors: "abort", "drop_account", "ignore" (default: abort) -
+        Specifies action to be performed in case of errors related to the
+        GRANT/REVOKE statements, "abort": throws an error and aborts the load,
+        "drop_account": deletes the problematic account and continues,
+        "ignore": ignores the error and continues loading the account.
       - ignoreExistingObjects: bool (default false) - Load the dump even if it
-        contains objects that already exist in the target database.
+        contains user accounts or DDL objects that already exist in the target
+        database. If this option is set to false, any existing object results
+        in an error. Setting it to true ignores existing objects, but the
+        CREATE statements are still going to be executed.
       - ignoreVersion: bool (default false) - Load the dump even if the major
         version number of the server where it was created is different from
         where it will be loaded.
@@ -2714,10 +2734,9 @@ DESCRIPTION
         included.
       - loadData: bool (default: true) - Loads table data from the dump.
       - loadDdl: bool (default: true) - Executes DDL/SQL scripts in the dump.
-      - loadIndexes: bool (default: true) - use together with
-        ‘deferTableIndexes’ to control whether secondary indexes should be
-        recreated at the end of the load. Useful when loading DDL and data
-        separately.
+      - loadIndexes: bool (default: true) - use together with deferTableIndexes
+        to control whether secondary indexes should be recreated at the end of
+        the load. Useful when loading DDL and data separately.
       - loadUsers: bool (default: false) - Executes SQL scripts for user
         accounts, roles and grants contained in the dump. Note: statements for
         the current user will be skipped.

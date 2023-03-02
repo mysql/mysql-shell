@@ -1911,6 +1911,24 @@ void Dump_loader::show_summary() {
             load_seconds)
             .c_str()));
   }
+
+  if (m_options.load_users()) {
+    std::string msg =
+        std::to_string(m_loaded_accounts) + " accounts were loaded";
+
+    if (m_ignored_grant_errors) {
+      msg += ", " + std::to_string(m_ignored_grant_errors) +
+             " GRANT statement errors were ignored";
+    }
+
+    if (m_dropped_accounts) {
+      msg += ", " + std::to_string(m_dropped_accounts) +
+             " accounts were dropped due to GRANT statement errors";
+    }
+
+    console->print_info(msg);
+  }
+
   if (m_num_errors > 0) {
     console->print_info(shcore::str_format(
         "%zi errors and %zi warnings messages were reported during the load.",
@@ -2132,6 +2150,19 @@ void Dump_loader::check_server_version() {
 
   if (should_create_pks() && target_server < Version(8, 0, 24)) {
     THROW_ERROR0(SHERR_LOAD_INVISIBLE_PKS_UNSUPPORTED_SERVER_VERSION);
+  }
+
+  if (m_options.load_users() &&
+      m_dump->partial_revokes() != m_options.partial_revokes()) {
+    const auto status = [](bool b) { return b ? "enabled" : "disabled"; };
+
+    console->print_warning(shcore::str_format(
+        "The dump was created on an instance where the 'partial_revokes' "
+        "system variable was %s, however the target instance has it %s. GRANT "
+        "statements on object names with wildcard characters (%% or _) will "
+        "behave differently.",
+        status(m_dump->partial_revokes()),
+        status(m_options.partial_revokes())));
   }
 }
 
@@ -3384,51 +3415,95 @@ Dump_loader::Task_ptr Dump_loader::analyze_table(
                                                       histograms);
 }
 
-void Dump_loader::load_users() const {
-  if (m_options.load_users()) {
-    std::string script = m_dump->users_script();
+void Dump_loader::load_users() {
+  if (!m_options.load_users()) {
+    return;
+  }
 
-    current_console()->print_status("Executing user accounts SQL...");
+  const auto script = m_dump->users_script();
+  const auto console = current_console();
 
-    std::function<bool(const std::string &, const std::string &)>
-        strip_revoked_privilege;
+  console->print_status("Executing user accounts SQL...");
 
-    if (m_options.is_mds()) {
-      strip_revoked_privilege = filter_user_script_for_mds();
+  std::function<bool(const std::string &, const std::string &)>
+      strip_revoked_privilege;
+
+  if (m_options.is_mds()) {
+    strip_revoked_privilege = filter_user_script_for_mds();
+  }
+
+  const auto statements = dump::Schema_dumper::preprocess_users_script(
+      script,
+      [this](const std::string &account) {
+        return m_options.filters().users().is_included(account);
+      },
+      strip_revoked_privilege);
+
+  std::unordered_set<std::string> all_accounts;
+  std::unordered_set<std::string> ignored_accounts;
+  std::string new_stmt;
+
+  if (m_options.dry_run()) {
+    return;
+  }
+
+  for (const auto &group : statements) {
+    all_accounts.emplace(group.account);
+
+    if (ignored_accounts.count(group.account) > 0) {
+      continue;
     }
 
-    script = dump::Schema_dumper::preprocess_users_script(
-        script,
-        [this](const std::string &account) {
-          return m_options.filters().users().is_included(account);
-        },
-        [this](const compatibility::Privilege_level_info &priv) {
-          using Level = compatibility::Privilege_level_info::Level;
+    for (std::string_view stmt : group.statements) {
+      // repeated to stop executing statements if one of the grants fails
+      if (ignored_accounts.count(group.account) > 0) {
+        continue;
+      }
 
-          switch (priv.level) {
-            case Level::GLOBAL:
-              return true;
+      if (m_default_sql_transforms(stmt, &new_stmt)) {
+        stmt = new_stmt;
+      }
 
-            case Level::SCHEMA:
-              return m_dump->include_schema(priv.schema);
+      if (stmt.empty()) {
+        continue;
+      }
 
-            case Level::TABLE:
-              return m_dump->include_table(priv.schema, priv.object);
+      try {
+        execute_statement(m_session, stmt, "While executing user accounts SQL");
+      } catch (const mysqlshdk::db::Error &e) {
+        if (dump::Schema_dumper::User_statements::Type::GRANT != group.type) {
+          throw;
+        }
 
-            case Level::ROUTINE:
-              // BUG#34764157 routine names are case insensitive, MySQL 5.7
-              // has lower-case names of routines in grant statements
-              return m_dump->include_routine_ci(priv.schema, priv.object);
+        switch (m_options.on_grant_errors()) {
+          case Load_dump_options::Handle_grant_errors::ABORT:
+            throw;
+
+          case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT: {
+            console->print_note(
+                "Due to the above error the account " + group.account +
+                " was dropped, the load operation will continue.");
+            ignored_accounts.emplace(group.account);
+
+            const auto drop = "DROP USER IF EXISTS " + group.account;
+            execute_statement(m_session, drop,
+                              "While dropping the account " + group.account);
+            ++m_dropped_accounts;
+            break;
           }
 
-          throw std::logic_error("Should not happen");
-        },
-        strip_revoked_privilege);
-
-    if (!m_options.dry_run())
-      execute_script(m_session, script, "While executing user accounts SQL",
-                     m_default_sql_transforms);
+          case Load_dump_options::Handle_grant_errors::IGNORE:
+            console->print_note(
+                "The above error was ignored, the load operation will "
+                "continue.");
+            ++m_ignored_grant_errors;
+            break;
+        }
+      }
+    }
   }
+
+  m_loaded_accounts = all_accounts.size() - ignored_accounts.size();
 }
 
 }  // namespace mysqlsh

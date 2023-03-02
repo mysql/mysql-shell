@@ -491,7 +491,7 @@ class Dump_loader {
       const std::string &schema, const std::string &table,
       const std::vector<Dump_reader::Histogram> &histograms) const;
 
-  void load_users() const;
+  void load_users();
 
  private:
 #ifdef FRIEND_TEST
@@ -612,6 +612,10 @@ class Dump_loader {
   dump::Progress_thread::Stage *m_load_data_stage = nullptr;
   dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
   dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
+
+  std::size_t m_loaded_accounts = 0;
+  std::size_t m_dropped_accounts = 0;
+  std::size_t m_ignored_grant_errors = 0;
 };
 
 }  // namespace mysqlsh

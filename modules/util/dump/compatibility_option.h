@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,8 @@ enum class Compatibility_option {
   STRIP_RESTRICTED_GRANTS,
   STRIP_TABLESPACES,
   SKIP_INVALID_ACCOUNTS,
-  STRIP_INVALID_GRANTS
+  STRIP_INVALID_GRANTS,
+  IGNORE_WILDCARD_GRANTS,
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
@@ -52,7 +53,7 @@ std::string to_string(Compatibility_option c);
 
 using Compatibility_options =
     mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::SKIP_INVALID_ACCOUNTS>;
+                               Compatibility_option::IGNORE_WILDCARD_GRANTS>;
 
 }  // namespace dump
 }  // namespace mysqlsh

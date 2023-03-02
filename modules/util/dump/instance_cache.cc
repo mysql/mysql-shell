@@ -585,7 +585,12 @@ void Instance_cache_builder::fetch_server_metadata() {
 
   m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
-  m_cache.gtid_executed = Schema_dumper{m_session}.gtid_executed();
+  Schema_dumper dumper{m_session};
+  m_cache.gtid_executed = dumper.gtid_executed();
+
+  if (m_cache.server_version.version >= mysqlshdk::utils::Version(8, 0, 16)) {
+    m_cache.partial_revokes = dumper.partial_revokes();
+  }
 }
 
 void Instance_cache_builder::fetch_ndbinfo() {

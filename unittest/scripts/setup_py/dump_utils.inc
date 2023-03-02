@@ -235,18 +235,27 @@ def get_test_user_name(name):
 def get_test_user_account(name):
     return f"'{get_test_user_name(name)}'@'{__host}'"
 
+def get_user_account_for_output(name):
+    return name if __version_num < 80000 else name.replace("'", "`")
+
 def test_user_uri(port):
     return f"mysql://{get_test_user_name(test_user)}:{test_user_pwd}@{__host}:{port}"
 
 class Compatibility_issue:
-    def __init__(self, error, fixed):
+    def __init__(self, error, fixed, warning=None):
         self.__error_msg = "ERROR: " + error if error else ""
+        self.__warning_msg = "WARNING: " + warning if warning else ""
         self.__fixed_msg = "NOTE: " + fixed if fixed else ""
     def error(self):
         if self.__error_msg:
             return self.__error_msg
         else:
             raise Exception("No error message")
+    def warning(self):
+        if self.__warning_msg:
+            return self.__warning_msg
+        else:
+            raise Exception("No warning message")
     def fixed(self):
         if self.__fixed_msg:
             return self.__fixed_msg
@@ -334,6 +343,15 @@ def too_many_columns(schema, table, columns):
     error = f"Table `{schema}`.`{table}` has {columns} columns, while the limit for the InnoDB engine is 1017 columns (this issue needs to be fixed manually)"
     fixed = ""
     return Compatibility_issue(error, fixed)
+
+def ignore_wildcard_grants(user, grant):
+    error = f"User {user} has a wildcard grant statement at the database level ({grant})"
+    fixed = error + ", this is ignored"
+    return Compatibility_issue(error, fixed)
+
+def grant_on_excluded_object(user, grant):
+    warning = f"User {user} has a grant statement on an object which is not included in the dump ({grant})"
+    return Compatibility_issue(None, None, warning)
 
 def urlencode_object_name(s):
     ret = ""

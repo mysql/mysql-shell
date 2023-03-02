@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -797,7 +797,7 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
         options.host = "%";
         // Simulate version is always < 8.0.0 (5.7.0) to skip reading roles
         // data.
-        options.is_8_0 = false;
+        options.version = Version(5, 7, 28);
 
         options.grants = {
             "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, "

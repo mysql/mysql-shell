@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -141,6 +141,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("maxBytesPerTransaction",
                     &Load_dump_options::set_max_bytes_per_transaction)
           .optional("sessionInitSql", &Load_dump_options::m_session_init_sql)
+          .optional("handleGrantErrors",
+                    &Load_dump_options::set_handle_grant_errors)
           .include(&Load_dump_options::m_oci_bucket_options)
           .include(&Load_dump_options::m_s3_bucket_options)
           .include(&Load_dump_options::m_blob_storage_options)
@@ -294,6 +296,11 @@ void Load_dump_options::set_session(
             "@@innodb_ddl_threads)")
             ->fetch_one_or_throw()
             ->get_uint(0);
+  }
+
+  if (m_target_server_version >= Version(8, 0, 16)) {
+    m_partial_revokes =
+        instance.get_sysvar_bool("partial_revokes").value_or(false);
   }
 }
 
@@ -500,6 +507,20 @@ bool Load_dump_options::include_object(
 bool Load_dump_options::sql_generate_invisible_primary_key() const {
   assert(auto_create_pks_supported());
   return *m_sql_generate_invisible_primary_key;
+}
+
+void Load_dump_options::set_handle_grant_errors(const std::string &action) {
+  if ("abort" == action) {
+    m_handle_grant_errors = Handle_grant_errors::ABORT;
+  } else if ("drop_account" == action) {
+    m_handle_grant_errors = Handle_grant_errors::DROP_ACCOUNT;
+  } else if ("ignore" == action) {
+    m_handle_grant_errors = Handle_grant_errors::IGNORE;
+  } else {
+    throw std::invalid_argument(
+        "The value of the 'handleGrantErrors' option must be set to one of: "
+        "'abort', 'drop_account', 'ignore'.");
+  }
 }
 
 }  // namespace mysqlsh

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -709,11 +709,14 @@ TEST_F(Schema_dumper_test, dump_grants) {
 
   EXPECT_THAT(out, HasSubstr("'second'"));
 
-  auto filtered =
+  const auto filtered =
       Schema_dumper::preprocess_users_script(out, [](const std::string &user) {
         return !shcore::str_beginswith(user, "'second'");
       });
-  EXPECT_THAT(filtered, Not(HasSubstr("'second'")));
+
+  for (const auto &f : filtered) {
+    EXPECT_THAT(f.account, Not(HasSubstr("'second'")));
+  }
 
   // cleanup
   session->execute("DROP USER 'first'@'localhost';");
@@ -1704,96 +1707,6 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
       }
     }
   }
-}
-
-TEST_F(Schema_dumper_test, include_grant) {
-  // BUG#33406711
-  // setup
-  Filtering_options filters;
-  filters.schemas().include("s");
-  filters.tables().include("s", "t");
-  filters.tables().include("s", "v");
-  filters.routines().include("s", "f");
-  filters.routines().include("s", "p");
-
-  Schema_dumper sd(session);
-  const auto include_grant = [&](const std::string &grant) {
-    return sd.include_grant(grant, filters);
-  };
-
-  // only GRANT/REVOKE statements are supported
-  EXPECT_THROW_LIKE(include_grant("CREATE USER"), std::runtime_error,
-                    "Expected GRANT or REVOKE statement");
-
-  // GRANT/REVOKE role statements are always included
-  EXPECT_TRUE(include_grant("GRANT role to `user`@`host`"));
-  EXPECT_TRUE(include_grant("REVOKE role FROM 'user'@'host'"));
-
-  // GRANT/REVOKE PROXY statements are always included
-  EXPECT_TRUE(include_grant("grant PROXY ON admin@host TO 'user'@host"));
-  EXPECT_TRUE(include_grant("REVOKE PROxY on admin@host FROM user@host"));
-
-  // global GRANT/REVOKE statements are always included
-  EXPECT_TRUE(include_grant("GRANT SELECT ON *.*"));
-  EXPECT_TRUE(include_grant("GRANT ALTER ON *.*"));
-  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON *.*"));
-  EXPECT_TRUE(include_grant("GRANT EXECUTE ON *.*"));
-
-  // global statements on system schemas are always included
-  for (const std::string schema : {
-           "information_schema",
-           "mysql",
-           "ndbinfo",
-           "performance_schema",
-           "sys",
-       }) {
-    EXPECT_TRUE(include_grant("GRANT ALTER ON " + schema + ".*"));
-    EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON " + schema + ".*"));
-    EXPECT_TRUE(include_grant("GRANT EXECUTE ON " + schema + ".*"));
-    EXPECT_TRUE(include_grant("REVOKE SELECT ON " + schema + ".table"));
-    EXPECT_TRUE(include_grant("GRANT SELECT ON TABLE " + schema + ".table"));
-    EXPECT_TRUE(include_grant("REVOKE EXECUTE ON " + schema + ".function"));
-    EXPECT_TRUE(
-        include_grant("GRANT ALTER ROUTINE ON " + schema + ".function"));
-    EXPECT_TRUE(
-        include_grant("REVOKE EXECUTE ON FUNCTION " + schema + ".function"));
-    EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE " + schema +
-                              ".procedure"));
-  }
-
-  // statements on schema which is not in the cache are excluded
-  EXPECT_FALSE(include_grant("GRANT ALTER ON x.*"));
-  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON x.*"));
-  EXPECT_FALSE(include_grant("GRANT EXECUTE ON x.*"));
-  EXPECT_FALSE(include_grant("REVOKE SELECT ON x.table"));
-  EXPECT_FALSE(include_grant("GRANT SELECT ON TABLE x.table"));
-  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON x.function"));
-  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON x.function"));
-  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON FUNCTION x.function"));
-  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE x.procedure"));
-
-  // statements on objects which are in the cache are included
-  EXPECT_TRUE(include_grant("GRANT ALTER ON s.*"));
-  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON s.*"));
-  EXPECT_TRUE(include_grant("GRANT EXECUTE ON s.*"));
-  EXPECT_TRUE(include_grant("REVOKE SELECT ON s.t"));
-  EXPECT_TRUE(include_grant("GRANT SELECT ON TABLE s.t"));
-  EXPECT_TRUE(include_grant("REVOKE EXECUTE ON s.f"));
-  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON s.f"));
-  EXPECT_TRUE(include_grant("REVOKE EXECUTE ON FUNCTION s.f"));
-  // BUG#34764157 - routine names are case insensitive, can appear in grant
-  // statements in all lower-case
-  EXPECT_TRUE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.P"));
-  // BUG#34764157 - grants on included views should also be included
-  EXPECT_TRUE(include_grant("GRANT SELECT ON s.v"));
-
-  // statements on objects which are not in the cache are excluded
-  EXPECT_FALSE(include_grant("REVOKE SELECT ON s.f"));
-  EXPECT_FALSE(include_grant("GRANT SELECT ON TABLE s.p"));
-  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON s.t"));
-  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON s.t"));
-  EXPECT_FALSE(include_grant("REVOKE EXECUTE ON FUNCTION s.t"));
-  EXPECT_FALSE(include_grant("GRANT ALTER ROUTINE ON PROCEDURE s.t"));
 }
 
 }  // namespace dump

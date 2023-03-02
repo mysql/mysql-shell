@@ -51,6 +51,7 @@
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
@@ -93,13 +94,19 @@ FI_DEFINE(dumper, [](const mysqlshdk::utils::FI::Args &args) {
 });
 
 enum class Issue_status {
-  NONE,
   FIXED,
   FIXED_CREATE_PKS,
   FIXED_IGNORE_PKS,
+  WARNING,
   ERROR,
-  PK_ERROR,
+  ERROR_MISSING_PKS,
+  ERROR_HAS_INVALID_GRANTS,
+  ERROR_HAS_WILDCARD_GRANTS,
 };
+
+using Issue_status_set =
+    mysqlshdk::utils::Enum_set<Issue_status,
+                               Issue_status::ERROR_HAS_WILDCARD_GRANTS>;
 
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
@@ -130,28 +137,28 @@ void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
   file->close();
 }
 
-Issue_status show_issues(const std::vector<Schema_dumper::Issue> &issues) {
+Issue_status_set show_issues(const std::vector<Schema_dumper::Issue> &issues) {
   const auto console = current_console();
-  Issue_status status = Issue_status::NONE;
-  const auto set_status = [&status](Issue_status s) {
-    status = std::max(status, s);
-  };
+  Issue_status_set status;
 
   for (const auto &issue : issues) {
     if (issue.status <= Schema_dumper::Issue::Status::FIXED) {
+      status.set(Issue_status::FIXED);
+
       if (issue.status ==
           Schema_dumper::Issue::Status::FIXED_BY_CREATE_INVISIBLE_PKS) {
-        set_status(Issue_status::FIXED_CREATE_PKS);
+        status.set(Issue_status::FIXED_CREATE_PKS);
       } else if (issue.status ==
                  Schema_dumper::Issue::Status::FIXED_BY_IGNORE_MISSING_PKS) {
-        set_status(Issue_status::FIXED_IGNORE_PKS);
-      } else {
-        set_status(Issue_status::FIXED);
+        status.set(Issue_status::FIXED_IGNORE_PKS);
       }
 
       console->print_note(issue.description);
+    } else if (issue.status == Schema_dumper::Issue::Status::WARNING) {
+      status.set(Issue_status::WARNING);
+      console->print_warning(issue.description);
     } else {
-      set_status(Issue_status::ERROR);
+      status.set(Issue_status::ERROR);
 
       std::string hint;
 
@@ -159,8 +166,16 @@ Issue_status show_issues(const std::vector<Schema_dumper::Issue> &issues) {
         hint = "this issue needs to be fixed manually";
       } else if (Schema_dumper::Issue::Status::USE_CREATE_OR_IGNORE_PKS ==
                  issue.status) {
-        set_status(Issue_status::PK_ERROR);
+        status.set(Issue_status::ERROR_MISSING_PKS);
+      } else if (Schema_dumper::Issue::Status::FIX_WILDCARD_GRANTS ==
+                 issue.status) {
+        status.set(Issue_status::ERROR_HAS_WILDCARD_GRANTS);
       } else {
+        if (Schema_dumper::Issue::Status::USE_STRIP_INVALID_GRANTS ==
+            issue.status) {
+          status.set(Issue_status::ERROR_HAS_INVALID_GRANTS);
+        }
+
         hint = "fix this with '" +
                to_string(to_compatibility_option(issue.status)) +
                "' compatibility option";
@@ -2547,7 +2562,7 @@ void Dumper::validate_mds() const {
 
   const auto console = current_console();
   const auto version = m_options.mds_compatibility()->get_base();
-  Issue_status status = Issue_status::NONE;
+  Issue_status_set status;
 
   console->print_info(
       "Checking for compatibility with MySQL Database Service " + version);
@@ -2561,7 +2576,7 @@ void Dumper::validate_mds() const {
       console->print_info("Checking for potential upgrade issues.");
 
       if (check_for_upgrade_errors()) {
-        status = Issue_status::ERROR;
+        status.set(Issue_status::ERROR);
       }
     }
   }
@@ -2577,7 +2592,7 @@ void Dumper::validate_mds() const {
   shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
 
   const auto issues = [&status](const auto &memory) {
-    status = std::max(status, show_issues(memory->issues()));
+    status.set(show_issues(memory->issues()));
   };
 
   const auto dumper = schema_dumper(session());
@@ -2613,12 +2628,10 @@ void Dumper::validate_mds() const {
     }
   }
 
-  switch (status) {
-    case Issue_status::PK_ERROR:
-      console->print_info();
-      console->print_error(
-          "One or more tables without Primary Keys were found.");
-      console->print_info(R"(
+  if (status.is_set(Issue_status::ERROR_MISSING_PKS)) {
+    console->print_info();
+    console->print_error("One or more tables without Primary Keys were found.");
+    console->print_info(R"(
        MySQL Database Service High Availability (MDS HA) requires Primary Keys to be present in all tables.
        To continue with the dump you must do one of the following:
 
@@ -2635,48 +2648,65 @@ void Dumper::validate_mds() const {
          This will disable this check and the dump will be produced normally, Primary Keys will not be added automatically.
          It will not be possible to load the dump in an HA enabled MDS instance.
 )");
-      // fallthrough
+  }
 
-    case Issue_status::ERROR:
-      console->print_info(
-          "Compatibility issues with MySQL Database Service " + version +
-          " were found. Please use the 'compatibility' option to apply "
-          "compatibility adaptations to the dumped DDL.");
-      THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
+  if (status.is_set(Issue_status::ERROR_HAS_WILDCARD_GRANTS)) {
+    console->print_info();
+    console->print_error(
+        "One or more accounts with database level grants containing wildcard "
+        "characters were found.");
+    console->print_info(R"(
+      Loading these grants into an MDS instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
+      To continue with the dump you must do one of the following:
 
-    case Issue_status::FIXED:
-    case Issue_status::FIXED_CREATE_PKS:
-    case Issue_status::FIXED_IGNORE_PKS:
-      if (Issue_status::FIXED != status) {
-        console->print_info();
-        console->print_note(
-            "One or more tables without Primary Keys were found.");
-      }
+      * Use the "excludeUsers" dump option to exclude problematic accounts.
 
-      if (Issue_status::FIXED_CREATE_PKS == status) {
-        console->print_info(R"(
+      * Set the "users" dump option to false in order to disable user dumping.
+
+      * Add the "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
+
+      For more information on the interaction between wildcard database level grants and partial_revokes system variable please refer to: https://dev.mysql.com/doc/refman/en/grant.html
+    )");
+  }
+
+  if (status.is_set(Issue_status::ERROR)) {
+    console->print_info(
+        "Compatibility issues with MySQL Database Service " + version +
+        " were found. Please use the 'compatibility' option to apply "
+        "compatibility adaptations to the dumped DDL.");
+    THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
+  }
+
+  if (status.matches_any(Issue_status_set{Issue_status::FIXED_CREATE_PKS,
+                                          Issue_status::FIXED_IGNORE_PKS})) {
+    console->print_info();
+    console->print_note("One or more tables without Primary Keys were found.");
+  }
+
+  if (status.is_set(Issue_status::FIXED_CREATE_PKS)) {
+    console->print_info(R"(
       Missing Primary Keys will be created automatically when this dump is loaded.
       This will make it possible to enable High Availability in MySQL Database Service instance without application impact.
       However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
 )");
-      }
+  }
 
-      if (Issue_status::FIXED_IGNORE_PKS == status) {
-        console->print_info(R"(
+  if (status.is_set(Issue_status::FIXED_IGNORE_PKS)) {
+    console->print_info(R"(
       This issue is ignored.
       This dump cannot be loaded into an MySQL Database Service instance with High Availability.
 )");
-      }
+  }
 
-      console->print_info("Compatibility issues with MySQL Database Service " +
-                          version +
-                          " were found and repaired. Please review the changes "
-                          "made before loading them.");
-      break;
+  if (status.is_set(Issue_status::FIXED)) {
+    console->print_info("Compatibility issues with MySQL Database Service " +
+                        version +
+                        " were found and repaired. Please review the changes "
+                        "made before loading them.");
+  }
 
-    case Issue_status::NONE:
-      console->print_info("Compatibility checks finished.");
-      break;
+  if (status.empty()) {
+    console->print_info("Compatibility checks finished.");
   }
 }
 
@@ -2852,7 +2882,11 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
                        const std::string &file) const {
   if (!m_options.mds_compatibility().has_value()) {
     // if MDS is on, changes done by compatibility options were printed earlier
-    if (show_issues(in_memory.issues()) >= Issue_status::ERROR) {
+    const auto status = show_issues(in_memory.issues());
+
+    if (status.is_set(Issue_status::ERROR_HAS_INVALID_GRANTS)) {
+      THROW_ERROR0(SHERR_DUMP_INVALID_GRANT_STATEMENT);
+    } else if (status.is_set(Issue_status::ERROR)) {
       THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
     }
   }
@@ -3289,6 +3323,8 @@ void Dumper::write_dump_started_metadata() const {
   if (m_options.mds_compatibility().has_value()) {
     doc.AddMember(StringRef("mdsCompatibility"), true, a);
   }
+
+  doc.AddMember(StringRef("partialRevokes"), m_cache.partial_revokes, a);
 
   {
     // list of compatibility options
