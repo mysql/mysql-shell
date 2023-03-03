@@ -25,6 +25,7 @@
 #include <string_view>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/dba/api_options.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -413,7 +414,7 @@ void Reboot_cluster_options::check_option_values(
   // The switchCommunicationStack option must be allowed only if the target
   // server version is >= 8.0.27
   if (switch_communication_stack &&
-      (version < k_mysql_communication_stack_initial_version)) {
+      !supports_mysql_communication_stack(version)) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Option '%s' not supported on target server version: '%s'",
         kSwitchCommunicationStack, version.get_full().c_str()));

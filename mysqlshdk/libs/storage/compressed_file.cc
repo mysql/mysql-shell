@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/storage/compressed_file.h"
 
+#include <cassert>
 #include <utility>
 
 #include "mysqlshdk/libs/storage/compression/gz_file.h"
@@ -76,6 +77,22 @@ void Compressed_file::remove() { m_file->remove(); }
 std::string Compressed_file::filename() const { return m_file->filename(); }
 
 bool Compressed_file::is_local() const { return m_file->is_local(); }
+
+size_t Compressed_file::latest_io_size() const {
+  return m_io_finished ? m_io_size : 0;
+}
+
+void Compressed_file::start_io() {
+  m_io_size = 0;
+  m_io_finished = false;
+}
+
+void Compressed_file::update_io(size_t bytes) {
+  assert(!m_io_finished);
+  m_io_size += bytes;
+}
+
+void Compressed_file::finish_io() { m_io_finished = true; }
 
 Compression to_compression(const std::string &c) {
 #define X(value, name, ext) \

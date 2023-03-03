@@ -1050,7 +1050,7 @@ Group_member_recovery_status detect_recovery_status(
   bool recovery = false;
 
   try {
-    if (instance.get_version() >= mysql::k_mysql_clone_plugin_initial_version) {
+    if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 17)) {
       auto result = instance.queryf(
           "SELECT"
           " (SELECT count(*)"

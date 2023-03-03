@@ -45,6 +45,7 @@
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/check_instance.h"
@@ -313,6 +314,11 @@ REGISTER_HELP(
     "transaction size in bytes which the Cluster accepts");
 
 REGISTER_HELP(
+    CLUSTER_OPT_PAXOS_SINGLE_LEADER,
+    "@li paxosSingleLeader: boolean value used to enable/disable the Group "
+    "Communication engine to operate with a single consensus leader.");
+
+REGISTER_HELP(
     OPT_INTERACTIVE,
     "@li interactive: boolean value used to disable/enable the wizards in the "
     "command execution, i.e. prompts and confirmations will be provided or not "
@@ -516,6 +522,18 @@ The transactionSizeLimit option accepts positive integer values and, if set to
 zero, there is no limit to the size of transactions the Cluster accepts
 
 All members added or rejoined to the Cluster will use the same value.)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA, R"*(
+The value for paxosSingleLeader is used to enable or disable the Group
+Communication engine to operate with a single consensus leader when the
+Cluster is in single-primary more. When enabled, the Cluster uses a single
+leader to drive consensus which improves performance and resilience in
+single-primary mode, particularly when some of the Cluster's members are
+unreachable.
+
+The option is available on MySQL 8.0.31 or newer and the default value is
+'OFF'.
+)*");
 
 // TODO create a dedicated topic for InnoDB clusters and replicasets,
 // with a quick tutorial for both, in addition to more deep technical info
@@ -1322,6 +1340,7 @@ disabled. Deprecated.
 writable instances. Deprecated.
 ${CLUSTER_OPT_COMM_STACK}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
+${CLUSTER_OPT_PAXOS_SINGLE_LEADER}
 
 An InnoDB cluster may be setup in two ways:
 
@@ -1403,6 +1422,8 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 ${CLUSTER_OPT_COMM_STACK_EXTRA}
 
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
+
+${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
 
 @attention The clearReadOnly option will be removed in a future release.
 
@@ -2779,6 +2800,7 @@ executed, but no changes are actually made. An exception will be thrown when fin
 @li localAddress: string value with the Group Replication local address to be used instead of the automatically generated one when using the 'XCOM' protocol stack.
 @li timeout: integer value with the maximum number of seconds to wait for pending transactions to be applied in each instance of the cluster (default
 value is retrieved from the 'dba.gtidWaitTimeout' shell option).
+${CLUSTER_OPT_PAXOS_SINGLE_LEADER}
 
 The value for switchCommunicationStack is used to choose which Group
 Replication communication stack must be used in the Cluster after the reboot is complete. It's used to set the value of the Group Replication system variable
@@ -2804,6 +2826,11 @@ the value is set to AUTOMATIC, allowing addresses from the instance
 private network to be automatically set for the allowlist.
 
 ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
+
+${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
+
+The option is used to switch the value of paxosSingleLeader previously in
+use by the Cluster, to either enable or disable it.
 
 @attention The clearReadOnly option will be removed in a future release.
 
@@ -2861,8 +2888,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     auto target_instance_version = target_instance->get_version();
     std::string comm_stack = kCommunicationStackXCom;
 
-    if (target_instance_version >=
-        k_mysql_communication_stack_initial_version) {
+    if (supports_mysql_communication_stack(target_instance_version)) {
       comm_stack =
           target_instance
               ->get_persisted_value("group_replication_communication_stack")

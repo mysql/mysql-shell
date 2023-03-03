@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,7 +47,7 @@ Import_table::Import_table(const Import_table_options &options)
       m_interrupt(nullptr),
       m_progress_thread("Import table", options.show_progress()) {
   m_thread_exception.resize(options.threads_size(), nullptr);
-  m_total_bytes = m_opt.file_size();
+  m_total_file_size = m_opt.file_size();
 }
 
 Import_table::~Import_table() {
@@ -86,8 +86,10 @@ void Import_table::progress_setup() {
   dump::Progress_thread::Throughput_config config;
 
   config.space_before_item = false;
-  config.current = [this]() -> uint64_t { return m_prog_sent_bytes; };
-  config.total = [this]() { return m_total_bytes; };
+  config.current = [this]() -> uint64_t {
+    return m_has_compressed_files ? m_prog_file_bytes : m_prog_sent_bytes;
+  };
+  config.total = [this]() { return m_total_file_size; };
 
   m_progress_thread.start_stage("Parallel load data", std::move(config));
 }
@@ -97,8 +99,9 @@ void Import_table::progress_shutdown() { m_progress_thread.finish(); }
 void Import_table::spawn_workers() {
   const int64_t num_workers = m_opt.threads_size();
   for (int64_t i = 0; i < num_workers; i++) {
-    Load_data_worker worker(m_opt, i, &m_prog_sent_bytes, m_interrupt,
-                            &m_range_queue, &m_thread_exception, &m_stats);
+    Load_data_worker worker(m_opt, i, &m_prog_sent_bytes, &m_prog_file_bytes,
+                            m_interrupt, &m_range_queue, &m_thread_exception,
+                            &m_stats);
     std::thread t = mysqlsh::spawn_scoped_thread(&Load_data_worker::operator(),
                                                  std::move(worker));
     m_threads.emplace_back(std::move(t));
@@ -118,15 +121,12 @@ void Import_table::chunk_file() {
 }
 
 void Import_table::build_queue() {
-  m_total_bytes = 0;
+  m_total_file_size = 0;
   for (const auto &glob_item : m_opt.filelist_from_user()) {
-    const auto &storage_config = m_opt.storage_config();
     if (glob_item.find('*') != std::string::npos ||
         glob_item.find('?') != std::string::npos) {
-      auto glob_fh = mysqlshdk::storage::make_file(glob_item, storage_config);
-      auto glob_full_path = glob_fh->full_path();
-      auto dir = mysqlshdk::storage::make_directory(
-          glob_fh->parent()->full_path().real(), storage_config);
+      const auto dir = m_opt.create_file_handle(glob_item)->parent();
+
       if (!dir->exists()) {
         std::string errmsg{"Directory " + dir->full_path().masked() +
                            " does not exist."};
@@ -139,21 +139,20 @@ void Import_table::build_queue() {
           dir->filter_files_sorted(shcore::path::basename(glob_item));
 
       for (const auto &file_info : list_files) {
-        auto fh = m_opt.create_file_handle(dir->file(file_info.name()));
+        const auto fh = m_opt.create_file_handle(dir->file(file_info.name()));
+
         File_import_info task;
         task.file_path = fh->full_path().real();
-        task.file_size = file_info.size();
-        // todo(kg): impl. content size method. Extract content size information
-        // from .gz and .zst headers
-        // task.content_size = fh->content_size();
-        task.file_handler = fh.release();
         task.range_read = false;
         task.is_guard = false;
-        m_total_bytes += task.file_size.value_or(0);
+
+        m_total_file_size += file_info.size();
+        m_has_compressed_files |= fh->is_compressed();
         m_range_queue.push(std::move(task));
       }
     } else {
-      auto glob_fh = mysqlshdk::storage::make_file(glob_item, storage_config);
+      const auto glob_fh = m_opt.create_file_handle(glob_item);
+
       if (!glob_fh->exists()) {
         std::string errmsg{"File " + glob_fh->full_path().masked() +
                            " does not exist."};
@@ -161,14 +160,14 @@ void Import_table::build_queue() {
         noncritical_errors.emplace_back(std::move(errmsg));
         continue;
       }
+
       File_import_info task;
       task.file_path = glob_item;
-      task.file_size = glob_fh->file_size();
-      // task.content_size = fh.size();
       task.range_read = false;
       task.is_guard = false;
 
-      m_total_bytes += task.file_size.value_or(0);
+      m_total_file_size += glob_fh->file_size();
+      m_has_compressed_files |= glob_fh->is_compressed();
       m_range_queue.push(std::move(task));
     }
   }
@@ -182,9 +181,7 @@ void Import_table::import() {
   if (m_opt.is_multifile()) {
     build_queue();
   } else {
-    const std::string &path = m_opt.filelist_from_user()[0];
-    const auto extension = std::get<1>(shcore::path::split_extension(path));
-    if (extension == ".gz" || extension == ".zst") {
+    if (m_opt.is_compressed(m_opt.filelist_from_user()[0])) {
       // cannot chunk compressed files
       build_queue();
     } else {
@@ -202,18 +199,40 @@ std::string Import_table::import_summary() const {
   using mysqlshdk::utils::format_throughput_bytes;
 
   const auto seconds = m_progress_thread.duration().seconds();
+  bool plural = false;
+  std::string msg;
 
   if (m_opt.is_multifile()) {
-    return std::string{std::to_string(m_stats.total_files_processed) +
-                       " file(s) (" + format_bytes(m_stats.total_bytes) +
-                       ") was imported in " + format_seconds(seconds) + " at " +
-                       format_throughput_bytes(m_stats.total_bytes, seconds)};
+    plural = m_stats.total_files_processed != 1;
+
+    msg += std::to_string(m_stats.total_files_processed) + " file";
+
+    if (plural) {
+      msg += 's';
+    }
+  } else {
+    msg += "File '" + m_opt.full_path().masked() + "'";
   }
-  const auto filesize = m_opt.file_size();
-  return std::string{"File '" + m_opt.full_path().masked() + "' (" +
-                     format_bytes(filesize) + ") was imported in " +
-                     format_seconds(seconds) + " at " +
-                     format_throughput_bytes(filesize, seconds)};
+
+  msg += " (" + format_bytes(m_stats.total_data_bytes);
+
+  if (m_has_compressed_files) {
+    msg += " uncompressed, " + format_bytes(m_stats.total_file_bytes) +
+           " compressed";
+  }
+
+  msg += ") ";
+  msg += (plural ? "were" : "was");
+  msg += " imported in " + format_seconds(seconds) + " at " +
+         format_throughput_bytes(m_stats.total_data_bytes, seconds);
+
+  if (m_has_compressed_files) {
+    msg += " uncompressed, " +
+           format_throughput_bytes(m_stats.total_file_bytes, seconds) +
+           " compressed";
+  }
+
+  return msg;
 }
 
 std::string Import_table::rows_affected_info() {

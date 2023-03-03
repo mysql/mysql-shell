@@ -37,6 +37,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba_utils.h"
@@ -60,8 +61,7 @@ bool check_comm_stack_defaults_to_mysql(
     const mysqlsh::dba::Instance &instance) {
   return !options.gr_options.communication_stack.has_value() &&
          !options.adopt_from_gr.has_value() &&
-         (instance.get_version() >=
-          k_mysql_communication_stack_initial_version);
+         supports_mysql_communication_stack(instance.get_version());
 }
 }  // namespace
 
@@ -160,6 +160,14 @@ void Create_cluster::validate_create_cluster_options() {
         "Cannot use '%s' when setting the '%s' option to '%s'",
         m_options.gr_options.ip_allowlist_option_name.c_str(),
         kCommunicationStack, kCommunicationStackMySQL));
+  }
+
+  if (m_options.adopt_from_gr.value_or(false) &&
+      m_options.gr_options.paxos_single_leader.has_value()) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Cannot use the '%s' option if '%s' is set "
+                           "to true.",
+                           kPaxosSingleLeader, kAdoptFromGR));
   }
 
   // Set multi-primary to false by default.
@@ -508,6 +516,11 @@ void Create_cluster::log_used_gr_options() {
         "Using Group Replication transaction size limit: %s",
         std::to_string(*m_options.gr_options.transaction_size_limit).c_str());
   }
+
+  if (m_options.gr_options.paxos_single_leader.has_value()) {
+    log_info("Using Group Replication Paxos Single Leader: %s",
+             m_options.gr_options.paxos_single_leader.value() ? "ON" : "OFF");
+  }
 }
 
 void Create_cluster::prepare_metadata_schema() {
@@ -554,12 +567,10 @@ void Create_cluster::create_recovery_account(
     hosts.push_back(repl_account_host);
 
     mysqlshdk::gr::Create_recovery_user_options user_options;
-    user_options.clone_supported =
-        target_version >=
-        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version;
+    user_options.clone_supported = supports_mysql_clone(target_version);
     user_options.auto_failover = false;
     user_options.mysql_comm_stack_supported =
-        target_version >= k_mysql_communication_stack_initial_version;
+        supports_mysql_communication_stack(target_version);
 
     switch (m_options.member_auth_options.member_auth_type) {
       case Replication_auth_type::PASSWORD:
@@ -1089,8 +1100,7 @@ shcore::Value Create_cluster::execute() {
             *m_options.clone_options.disable_clone);
       } else {
         // Install the plugin if the target instance is >= 8.0.17
-        if (m_target_instance->get_version() >=
-            mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+        if (supports_mysql_clone(m_target_instance->get_version())) {
           // Try to install the plugin, if it fails or it's disabled, then
           // disable the clone usage on the cluster but proceed
           try {

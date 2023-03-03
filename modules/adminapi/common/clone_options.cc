@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <vector>
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -62,9 +63,7 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
       if (!is_option_supported(
               version, option,
               {{kDisableClone,
-                {"",
-                 mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
-                 {}}}})) {
+                {"", k_mysql_clone_plugin_initial_version, {}}}})) {
         throw shcore::Exception::runtime_error(shcore::str_format(
             "Option '%s' not supported on target server version: '%s'",
             option.c_str(), version.get_full().c_str()));
@@ -73,7 +72,7 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
     case Clone_options::JOIN_CLUSTER:
     case Clone_options::CREATE_REPLICA_CLUSTER:
     case Clone_options::JOIN_REPLICASET:
-      if (version < mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+      if (!supports_mysql_clone(version)) {
         if (cluster) {
           throw shcore::Exception::runtime_error(shcore::str_format(
               "Option '%s' not supported on target cluster. One or more "

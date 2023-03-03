@@ -58,6 +58,7 @@
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba_utils.h"
@@ -284,8 +285,7 @@ void Cluster_impl::validate_rejoin_gtid_consistency(
         "recommended to investigate this further and ensure that the data "
         "can be removed prior to rejoining the instance to the cluster.");
 
-    if (target_instance.get_version() >=
-        mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+    if (supports_mysql_clone(target_instance.get_version())) {
       console->print_info();
       console->print_info(
           "Discarding these extra GTID events can either be done manually "
@@ -336,7 +336,8 @@ void Cluster_impl::adopt_from_gr() {
     // Store the communicationStack in the Metadata as a Cluster capability
     // TODO(miguel): build and add the list of allowed operations
     get_metadata_storage()->update_cluster_capability(
-        get_id(), kCommunicationStack, get_communication_stack(),
+        get_id(), kCommunicationStack,
+        get_communication_stack(*get_cluster_server()),
         std::set<std::string>());
   }
 }
@@ -2673,21 +2674,6 @@ const std::string Cluster_impl::get_view_change_uuid() const {
   return "";
 }
 
-const std::string Cluster_impl::get_communication_stack() const {
-  // Get the communication stack in used. The default value must be XCOM if the
-  // sysvar doesn't exist (< 8.0.27)
-  return get_cluster_server()
-      ->get_sysvar_string("group_replication_communication_stack")
-      .value_or(kCommunicationStackXCom);
-}
-
-int64_t Cluster_impl::get_transaction_size_limit() const {
-  // Get it from the primary member
-  return get_cluster_server()
-      ->get_sysvar_int(kGrTransactionSizeLimit)
-      .value_or(0);
-}
-
 shcore::Value Cluster_impl::check_instance_state(
     const Connection_options &instance_def) {
   check_preconditions("checkInstanceState");
@@ -2880,11 +2866,9 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
   // SQL query because BACKUP_ADMIN is not supported
   // Do the same for MySQL commStack, being the grant GROUP_REPLICATION_STREAM
   mysqlshdk::utils::Version lowest_version = get_lowest_instance_version();
-  bool clone_available_all_members =
-      (lowest_version >=
-       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version);
+  bool clone_available_all_members = supports_mysql_clone(lowest_version);
   bool mysql_comm_stack_available_all_members =
-      (lowest_version >= k_mysql_communication_stack_initial_version);
+      supports_mysql_communication_stack(lowest_version);
 
   auto target_version = target->get_version();
 
@@ -2893,13 +2877,11 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
 
   mysqlshdk::gr::Create_recovery_user_options user_options;
   user_options.clone_supported =
-      clone_available_all_members &&
-      (target_version >=
-       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version);
+      clone_available_all_members && supports_mysql_clone(target_version);
   user_options.auto_failover = false;
   user_options.mysql_comm_stack_supported =
       mysql_comm_stack_available_all_members &&
-      (target_version >= k_mysql_communication_stack_initial_version);
+      supports_mysql_communication_stack(target_version);
 
   // setup password, cert issuer and/or subject
   auto auth_type = query_cluster_auth_type();
@@ -3627,8 +3609,7 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) const {
           ipool->connect_unchecked_endpoint(instance_address));
 
       // Handle the plugin setup only if the target instance supports it
-      if (instance->get_version() >=
-          mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
+      if (supports_mysql_clone(instance->get_version())) {
         if (!enable_clone) {
           // Uninstall the clone plugin
           log_info("Uninstalling the clone plugin on instance '%s'.",

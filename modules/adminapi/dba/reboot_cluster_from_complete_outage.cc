@@ -29,6 +29,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
@@ -576,8 +577,7 @@ void Reboot_cluster_from_complete_outage::resolve_local_address(
   } else {
     // The default value for communicationStack must be 'mysql' if the target
     // instance is running 8.0.27+
-    if (m_target_instance->get_version() >=
-        k_mysql_communication_stack_initial_version) {
+    if (supports_mysql_communication_stack(m_target_instance->get_version())) {
       communication_stack = kCommunicationStackMySQL;
     } else {
       communication_stack = kCommunicationStackXCom;
@@ -900,14 +900,28 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
         transaction_size_limit = value.as_int();
       } else {
         // Use what's set in the instance
-        transaction_size_limit =
-            m_cluster->impl()->get_transaction_size_limit();
+        transaction_size_limit = get_transaction_size_limit(
+            *m_cluster->impl()->get_cluster_server());
       }
 
       log_info("Using Group Replication transaction size limit: %" PRId64,
                transaction_size_limit);
 
       m_options.gr_options.transaction_size_limit = transaction_size_limit;
+    }
+
+    // Get the persisted value of paxosSingleLeader to use it
+    if (!m_options.gr_options.paxos_single_leader.has_value() &&
+        m_target_instance->is_set_persist_supported()) {
+      std::string paxos_single_leader =
+          m_target_instance
+              ->get_persisted_value("group_replication_paxos_single_leader")
+              .value_or("");
+
+      if (!paxos_single_leader.empty()) {
+        m_options.gr_options.paxos_single_leader =
+            shcore::str_caseeq(paxos_single_leader, "on") ? true : false;
+      }
     }
 
     log_info("Starting cluster with '%s' using account %s",

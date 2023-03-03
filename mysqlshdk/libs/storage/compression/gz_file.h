@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -129,6 +129,8 @@ ssize_t Gz_file::do_write(void *buffer, size_t length, int flag) {
   Bytef buff[CHUNK];
   m_stream.next_in = static_cast<Bytef *>(buffer);
   m_stream.avail_in = length;
+  start_io();
+
   do {
     m_stream.next_out = buff;
     m_stream.avail_out = CHUNK;
@@ -144,10 +146,16 @@ ssize_t Gz_file::do_write(void *buffer, size_t length, int flag) {
     if (write_bytes != have || write_bytes < 0) {
       throw std::runtime_error("deflate: cannot write");
     }
+
+    update_io(have);
+
     if (ret == Z_STREAM_END || ret == Z_BUF_ERROR) {
       break;
     }
   } while (m_stream.avail_out == 0);
+
+  finish_io();
+
   return length;
 }
 

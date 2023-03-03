@@ -134,7 +134,7 @@ EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate
 EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '3' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '4' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '5' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities_header.csv") + "' (250.57 KB) was imported in ");
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities_header.csv") + "' (250.53 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
 
 

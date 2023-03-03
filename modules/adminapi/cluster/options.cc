@@ -24,6 +24,7 @@
 #include "modules/adminapi/cluster/options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 
@@ -148,14 +149,35 @@ shcore::Array_t Options::collect_global_options() {
   // If the Cluster doesn't support communication stack don't add it to the
   // globalOptions, otherwise, we might pass a misleading message that the
   // communicationStack is an option when in fact it's not in that case
-  if (group_instance->get_version() >=
-      k_mysql_communication_stack_initial_version) {
+  if (supports_mysql_communication_stack(group_instance->get_version())) {
     shcore::Dictionary_t option = shcore::make_dict();
     (*option)["option"] = shcore::Value(kCommunicationStack);
     (*option)["variable"] =
         shcore::Value("group_replication_communication_stack");
-    (*option)["value"] = shcore::Value(m_cluster.get_communication_stack());
-    array->push_back(shcore::Value(std::move(option)));
+    (*option)["value"] =
+        shcore::Value(get_communication_stack(*m_cluster.get_cluster_server()));
+    array->push_back(shcore::Value(option));
+  }
+
+  // Get paxosSingleLeader
+  //
+  // If the Cluster doesn't support paxosSingleLeader don't add it to the
+  // globalOptions, otherwise, we might pass a misleading message that the
+  // paxosSingleLeader is an option when in fact it's not in that case
+  if (supports_paxos_single_leader(group_instance->get_version())) {
+    shcore::Dictionary_t option = shcore::make_dict();
+    (*option)["option"] = shcore::Value(kPaxosSingleLeader);
+    // Do not add the variable 'group_replication_paxos_single_leader' because
+    // that's not enough to know whether the Cluster has it enabled and
+    // effective or not. That information is available on
+    // performance_schema.replication_group_communication_information.
+    // WRITE_CONSENSUS_SINGLE_LEADER_CAPABLE
+    std::string_view paxos_single_leader =
+        get_paxos_single_leader_enabled(*m_cluster.get_cluster_server()) == true
+            ? "ON"
+            : "OFF";
+    (*option)["value"] = shcore::Value(paxos_single_leader);
+    array->push_back(shcore::Value(option));
   }
 
   return array;

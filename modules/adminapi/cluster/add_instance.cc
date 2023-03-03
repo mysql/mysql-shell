@@ -27,6 +27,7 @@
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -63,7 +64,8 @@ void Add_instance::resolve_local_address(
     Group_replication_options *gr_options,
     const Group_replication_options &user_gr_options) {
   auto hostname = m_target_instance->get_canonical_hostname();
-  auto communication_stack = m_cluster_impl->get_communication_stack();
+  auto communication_stack =
+      get_communication_stack(*m_cluster_impl->get_cluster_server());
 
   gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
       user_gr_options.local_address.value_or("").empty()
@@ -463,7 +465,7 @@ void Add_instance::prepare() {
 
   // Validate the options used
   cluster_topology_executor_ops::validate_add_rejoin_options(
-      m_options.gr_options, m_cluster_impl->get_communication_stack());
+      m_options.gr_options, get_communication_stack(*m_primary_instance));
 
   // Make sure there isn't some leftover auto-rejoin active
   cluster_topology_executor_ops::is_member_auto_rejoining(m_target_instance);
@@ -490,7 +492,7 @@ void Add_instance::prepare() {
 
   // Verify whether the instance supports the communication stack in use in
   // the Cluster and set it in the options handler
-  m_comm_stack = m_cluster_impl->get_communication_stack();
+  m_comm_stack = get_communication_stack(*m_primary_instance);
 
   cluster_topology_executor_ops::check_comm_stack_support(
       m_target_instance, &m_options.gr_options, m_comm_stack);
@@ -543,7 +545,16 @@ void Add_instance::prepare() {
   }
   // Set the transaction size limit
   m_options.gr_options.transaction_size_limit =
-      m_cluster_impl->get_transaction_size_limit();
+      get_transaction_size_limit(*m_primary_instance);
+
+  // Set the paxos_single_leader option
+  // Verify whether the primary supports it, meaning it's in use. Checking if
+  // the target supports it is not valid since the target might be 8.0 and the
+  // primary 5.7
+  if (supports_paxos_single_leader(m_primary_instance->get_version())) {
+    m_options.gr_options.paxos_single_leader =
+        get_paxos_single_leader_enabled(*m_primary_instance).value_or(false);
+  }
 }
 
 void Add_instance::do_run() {

@@ -38,9 +38,6 @@ constexpr const char k_mysql_clone_plugin_name[] = "clone";
 // # of seconds to wait until server finished restarting during recovery
 constexpr const int k_server_recovery_restart_timeout = 60;
 
-// The 1st version where the remote clone plugin became available
-const mysqlshdk::utils::Version k_mysql_clone_plugin_initial_version("8.0.17");
-
 /**
  * Check if the Clone  plugin is installed, and if not try to
  * install it. The option file with the instance configuration is updated

@@ -401,3 +401,78 @@ session.close()
 
 #@<> Throw if session is closed
 EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "table": target_table }), "A classic protocol session is required to perform this operation.")
+
+#@<> BUG#35018278 skipRows=X should be applied even if a compressed file or multiple files are loaded
+# setup
+test_schema = "bug_35018278"
+test_table = "t"
+test_table_qualified = quote_identifier(test_schema, test_table)
+test_rows = 10
+output_dir = os.path.join(__tmp_dir, test_schema)
+testutil.mkdir(output_dir, True)
+
+shell.connect(uri)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+session.run_sql(f"CREATE TABLE {test_table_qualified} (k INT PRIMARY KEY, v TEXT)")
+
+for i in range(test_rows):
+    session.run_sql(f"INSERT INTO {test_table_qualified} VALUES ({i}, REPEAT('a', 10000))")
+
+for compression, extension in { "none": "", "zstd": ".zst" }.items():
+    util.export_table(test_table_qualified, os.path.join(output_dir, f"1.tsv{extension}"), { "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "compression": compression, "where": f"k < {test_rows / 2}", "showProgress": False })
+    util.export_table(test_table_qualified, os.path.join(output_dir, f"2.tsv{extension}"), { "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "compression": compression, "where": f"k >= {test_rows / 2}", "showProgress": False })
+
+#@<> BUG#35018278 - tests
+for extension in [ "", ".zst" ]:
+    for files in [ [ "1.tsv", "2.tsv" ], [ "*.tsv" ] ]:
+        for skip in range(int(test_rows / 2) + 2):
+            context = f"skip: {skip}"
+            session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+            for f in files:
+                EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(output_dir, f"{f}{extension}"), { "skipRows": skip, "schema": test_schema, "table": test_table, "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "showProgress": False }), f"file: {f}{extension}, {context}")
+            EXPECT_EQ(max(test_rows - 2 * skip, 0), session.run_sql(f"SELECT COUNT(*) FROM {test_table_qualified}").fetch_one()[0], f"files: {files}, extension: {extension}, {context}")
+
+#@<> BUG#35018278 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+testutil.rmdir(output_dir, True)
+
+#@<> BUG#33970577 - output issues
+# setup
+test_schema = "bug_33970577"
+test_table = "t"
+test_table_qualified = quote_identifier(test_schema, test_table)
+test_rows = 400
+output_dir = os.path.join(__tmp_dir, test_schema)
+testutil.mkdir(output_dir, True)
+
+shell.connect(uri)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+session.run_sql(f"CREATE TABLE {test_table_qualified} (k INT PRIMARY KEY, v TEXT)")
+
+for i in range(test_rows):
+    session.run_sql(f"INSERT INTO {test_table_qualified} VALUES ({i}, '{random_string(1000)}')")
+
+util.export_table(test_table_qualified, os.path.join(output_dir, "1.tsv.zst"), { "compression": "zstd", "where": f"k < {test_rows / 2}", "showProgress": False })
+util.export_table(test_table_qualified, os.path.join(output_dir, "2.tsv.gz"), { "compression": "gzip", "where": f"k >= {test_rows / 2}", "showProgress": False })
+
+#@<> BUG#33970577 - progress goes over 100% if a compressed file is imported; multiple threads are reported, even though just one file is imported
+session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+rc = testutil.call_mysqlsh([uri, "--", "util", "import-table", os.path.join(output_dir, "1.tsv.zst").replace("\\", "/"), "--bytes-per-chunk", "131072", "--schema", test_schema, "--table", test_table, "--show-progress"])
+EXPECT_EQ(0, rc)
+EXPECT_STDOUT_CONTAINS("using 1 thread")
+EXPECT_STDOUT_CONTAINS("100%")
+EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {int(test_rows / 2)}  Deleted: 0  Skipped: 0  Warnings: 0")
+
+#@<> BUG#33970577 - if files are subchunked, wrong number of files is reported, wrong subchunk ordinal number is reported
+session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(output_dir, "*.tsv.*"), { "threads": 1, "maxBytesPerTransaction": "4096", "schema": test_schema, "table": test_table, "showProgress": False }), "import should not fail")
+EXPECT_STDOUT_CONTAINS("1.tsv.zst: Records: 4  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 50 sub-chunks")
+EXPECT_STDOUT_CONTAINS("2.tsv.gz: Records: 4  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 50 sub-chunks")
+EXPECT_STDOUT_MATCHES(re.compile(r"2 files \(.* uncompressed, .* compressed\) were imported in .* sec at .*/s uncompressed, .*/s compressed"))
+EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {test_rows}  Deleted: 0  Skipped: 0  Warnings: 0")
+
+#@<> BUG#33970577 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+testutil.rmdir(output_dir, True)

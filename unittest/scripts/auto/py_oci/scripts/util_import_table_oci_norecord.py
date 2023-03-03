@@ -2,6 +2,8 @@
 
 #@<> INCLUDE oci_utils.inc
 
+#@<> INCLUDE dump_utils.inc
+
 #@<> Setup
 import os
 
@@ -42,7 +44,7 @@ for f in os.listdir(chunked_dir):
 
 #@<> Import from bucket root dir
 util.import_table('lorem_a*', {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("6 file(s) (14.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("6 files (14.75 KB) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 600  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Single file
@@ -52,12 +54,12 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 100  Deleted:
 
 #@<> Multiple files
 util.import_table([raw_files[0], "parts/" + raw_files[1]], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("2 file(s) (4.88 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("2 files (4.88 KB) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 200  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Empty wildcard expansion
 util.import_table(['lorem_xxx*', 'lorem_yyy.*'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Empty wildcard expansion and non-existing file
@@ -65,22 +67,22 @@ EXPECT_THROWS(lambda: util.import_table(['lorem_xxx*', 'lorem_yyy.tsv.zst'], {'s
     "Util.import_table: File lorem_yyy.tsv.zst does not exist."
 )
 EXPECT_STDOUT_CONTAINS("ERROR: File lorem_yyy.tsv.zst does not exist.")
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Wildcard on multiple compressed files
 util.import_table(['*.gz', '*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("11 file(s) (27.41 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("11 files (27.41 KB uncompressed, 13.79 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 1100  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Import from bucket subdirectory
 util.import_table(['parts/*.gz', 'parts/*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("11 file(s) (27.41 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("11 files (27.41 KB uncompressed, 13.79 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 1100  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Expand wildcard to empty file list in bucket subdirectory
 util.import_table(['parts/xyz*.gz', 'parts/abc*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> single file non-existing file bucket directory
@@ -110,6 +112,40 @@ rc = testutil.call_mysqlsh([__sandbox_uri1, '--schema=' + TARGET_SCHEMA, '--', '
 EXPECT_EQ(0, rc)
 EXPECT_STDOUT_CONTAINS("File '{0}' (209.75 KB) was imported in ".format(SOURCE_FILE))
 EXPECT_STDOUT_CONTAINS('Total rows affected in {0}.cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0'.format(TARGET_SCHEMA))
+
+#@<> BUG#35018278 skipRows=X should be applied even if a compressed file or multiple files are loaded
+# setup
+test_schema = "bug_35018278"
+test_table = "t"
+test_table_qualified = quote_identifier(test_schema, test_table)
+test_rows = 10
+output_dir = test_schema
+# create the directory
+put_object(OS_NAMESPACE, OS_BUCKET_NAME, f"{output_dir}/tmp", "")
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+session.run_sql(f"CREATE TABLE {test_table_qualified} (k INT PRIMARY KEY, v TEXT)")
+
+for i in range(test_rows):
+    session.run_sql(f"INSERT INTO {test_table_qualified} VALUES ({i}, REPEAT('a', 10000))")
+
+for compression, extension in { "none": "", "zstd": ".zst" }.items():
+    util.export_table(test_table_qualified, f"{output_dir}/1.tsv{extension}", { "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "compression": compression, "where": f"k < {test_rows / 2}", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE })
+    util.export_table(test_table_qualified, f"{output_dir}/2.tsv{extension}", { "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "compression": compression, "where": f"k >= {test_rows / 2}", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE })
+
+#@<> BUG#35018278 - tests
+for extension in [ "", ".zst" ]:
+    for files in [ [ "1.tsv", "2.tsv" ], [ "*.tsv" ] ]:
+        for skip in range(int(test_rows / 2) + 2):
+            context = f"skip: {skip}"
+            session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+            for f in files:
+                EXPECT_NO_THROWS(lambda: util.import_table(f"{output_dir}/{f}{extension}", { "skipRows": skip, "schema": test_schema, "table": test_table, "fieldsEnclosedBy": "'", "linesTerminatedBy": "a", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE }), f"file: {f}{extension}, {context}")
+            EXPECT_EQ(max(test_rows - 2 * skip, 0), session.run_sql(f"SELECT COUNT(*) FROM {test_table_qualified}").fetch_one()[0], f"files: {files}, extension: {extension}, {context}")
+
+#@<> BUG#35018278 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 
 #@<> Cleanup
 delete_bucket(OS_BUCKET_NAME)

@@ -697,6 +697,8 @@ void Rescan::ensure_view_change_uuid_set() {
   auto view_change_uuid = cluster_instance->get_sysvar_string(
       "group_replication_view_change_uuid", "");
 
+  bool skip_md_mismatch_check = false;
+
   // If not set (AUTOMATIC), generate a new value and set it on all members
   if (view_change_uuid == "AUTOMATIC") {
     // Check if the variable was persisted so it needs a restart
@@ -710,6 +712,8 @@ void Rescan::ensure_view_change_uuid_set() {
       console->print_note(
           "The Cluster's group_replication_view_change_uuid is set but not "
           "yet effective");
+
+      skip_md_mismatch_check = true;
     } else {
       console->print_note(
           "The Cluster's group_replication_view_change_uuid is not set");
@@ -735,11 +739,12 @@ void Rescan::ensure_view_change_uuid_set() {
         "be effective");
   }
 
-  ensure_view_change_uuid_set_stored_metadata(view_change_uuid);
+  ensure_view_change_uuid_set_stored_metadata(view_change_uuid,
+                                              skip_md_mismatch_check);
 }
 
 void Rescan::ensure_view_change_uuid_set_stored_metadata(
-    const std::string &view_change_uuid) {
+    const std::string &view_change_uuid, bool skip_md_mismatch_check) {
   auto console = mysqlsh::current_console();
 
   // Check if view_change_uuid is stored in the Metadata
@@ -757,6 +762,24 @@ void Rescan::ensure_view_change_uuid_set_stored_metadata(
       m_cluster->get_metadata_storage()->update_cluster_attribute(
           m_cluster->get_id(), "group_replication_view_change_uuid",
           shcore::Value(view_change_uuid));
+    }
+  } else if (!skip_md_mismatch_check) {
+    // Ensure that the value of group_replication_view_change_uuid set on the
+    // cluster matches the value stored in the Metadata. Do not check when the
+    // Cluster was just updated with a new value for view_change_uuid and needs
+    // to be restarted
+    auto view_change_uuid_cluster =
+        m_cluster->get_cluster_server()->get_sysvar_string(
+            "group_replication_view_change_uuid", "");
+
+    if (view_change_uuid_cluster != m_cluster->get_view_change_uuid()) {
+      console->print_info(
+          "Updating group_replication_view_change_uuid in the Cluster's "
+          "metadata...");
+
+      m_cluster->get_metadata_storage()->update_cluster_attribute(
+          m_cluster->get_id(), "group_replication_view_change_uuid",
+          shcore::Value(view_change_uuid_cluster));
     }
   }
 }
@@ -963,7 +986,9 @@ shcore::Value Rescan::execute() {
   m_cluster->ensure_metadata_has_server_id(*m_cluster->get_cluster_server());
 
   // Check if group_replication_view_change_uuid is set on the Cluster and all
-  // of its members when running MySQL >= 8.0.27
+  // of its members when running MySQL >= 8.0.27. Also verify the Metadata
+  // consistency regarding group_replication_view_change_uuid when already in
+  // use
   if (m_is_view_change_uuid_supported) {
     auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
         "group_replication_view_change_uuid", "");

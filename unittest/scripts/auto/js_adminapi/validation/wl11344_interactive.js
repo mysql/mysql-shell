@@ -7,6 +7,9 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -43,6 +46,9 @@ group_replication_ip_whitelist = AUTOMATIC
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 group_replication_member_weight = 50
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -125,6 +131,9 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -179,6 +188,9 @@ group_replication_exit_state_action = READ_ONLY
 ?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
@@ -216,6 +228,9 @@ group_replication_ip_whitelist = AUTOMATIC
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 group_replication_member_weight = 50
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
@@ -264,6 +279,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -433,6 +451,9 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -460,6 +481,9 @@ group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{}
 group_replication_local_address = localhost:<<<__local_address_2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -488,6 +512,9 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -515,6 +542,9 @@ group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -545,6 +575,9 @@ group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -588,6 +621,9 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
@@ -609,6 +645,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
@@ -702,6 +741,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -728,6 +770,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -750,6 +795,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -770,6 +818,9 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -885,6 +936,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -905,6 +959,9 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -933,6 +990,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -964,6 +1024,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -987,6 +1050,9 @@ group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
 group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -1007,6 +1073,9 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
@@ -1088,6 +1157,9 @@ group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
+?{VER(>=8.0.31)}
+group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
+?{}
 group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON

@@ -2333,9 +2333,9 @@ DESCRIPTION
         limit to 2 kilobytes per second.
       - showProgress: bool (default: true if stdout is a tty, false otherwise)
         - Enable or disable import progress information.
-      - skipRows: int (default: 0) - Skip first n rows of the data in the file.
-        You can use this option to skip an initial header line containing
-        column names.
+      - skipRows: int (default: 0) - Skip first N physical lines from each of
+        the imported files. You can use this option to skip an initial header
+        line containing column names.
       - dialect: enum (default: "default") - Setup fields and lines options
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy,

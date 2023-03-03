@@ -748,9 +748,9 @@ M - for Megabytes (n * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000
 bytes), maxRate="2k" - limit to 2 kilobytes per second.
 @li <b>showProgress</b>: bool (default: true if stdout is a tty, false
 otherwise) - Enable or disable import progress information.
-@li <b>skipRows</b>: int (default: 0) - Skip first n rows of the data in the
-file. You can use this option to skip an initial header line containing column
-names.
+@li <b>skipRows</b>: int (default: 0) - Skip first N physical lines from each of
+the imported files. You can use this option to skip an initial header line
+containing column names.
 @li <b>dialect</b>: enum (default: "default") - Setup fields and lines options
 that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,

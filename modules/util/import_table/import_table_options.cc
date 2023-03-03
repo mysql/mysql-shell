@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -209,13 +209,20 @@ bool Import_table_option_pack::is_multifile() const {
     if (has_wildcard(m_filelist_from_user[0])) {
       return true;
     }
-    // const auto &extension = std::get<1>(shcore::path::split_extension(path));
-    // if (extension == ".gz" || extension == ".zst") {
-    //   return true;
-    // }
+
     return false;
   }
   return true;
+}
+
+bool Import_table_option_pack::is_compressed(const std::string &path) const {
+  using mysqlshdk::storage::Compression;
+  using mysqlshdk::storage::get_extension;
+
+  const auto extension = std::get<1>(shcore::path::split_extension(path));
+
+  return extension == get_extension(Compression::GZIP) ||
+         extension == get_extension(Compression::ZSTD);
 }
 
 Import_table_options::Import_table_options(
@@ -309,12 +316,18 @@ size_t Import_table_option_pack::calc_thread_size() {
   int64_t threads_size = std::max(static_cast<int64_t>(1), m_threads_size);
 
   if (!is_multifile()) {
-    // We do not need to spawn more threads than file chunks
-    const size_t calculated_threads = (m_file_size / bytes_per_chunk()) + 1;
-    if (calculated_threads <
-        static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
-      threads_size =
-          std::min(threads_size, static_cast<int64_t>(calculated_threads));
+    if (is_compressed(m_filelist_from_user[0])) {
+      // a single compressed file cannot be chunked, we're going to use a single
+      // thread
+      threads_size = 1;
+    } else {
+      // We do not need to spawn more threads than file chunks
+      const size_t calculated_threads = (m_file_size / bytes_per_chunk()) + 1;
+      if (calculated_threads <
+          static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+        threads_size =
+            std::min(threads_size, static_cast<int64_t>(calculated_threads));
+      }
     }
   }
   return threads_size;

@@ -494,6 +494,8 @@ DESCRIPTION
         the Cluster: XCom (legacy) or MySQL.
       - transactionSizeLimit: integer value to configure the maximum
         transaction size in bytes which the Cluster accepts
+      - paxosSingleLeader: boolean value used to enable/disable the Group
+        Communication engine to operate with a single consensus leader.
 
       An InnoDB cluster may be setup in two ways:
 
@@ -739,6 +741,16 @@ DESCRIPTION
       accepts
 
       All members added or rejoined to the Cluster will use the same value.
+
+      The value for paxosSingleLeader is used to enable or disable the Group
+      Communication engine to operate with a single consensus leader when the
+      Cluster is in single-primary more. When enabled, the Cluster uses a
+      single leader to drive consensus which improves performance and
+      resilience in single-primary mode, particularly when some of the
+      Cluster's members are unreachable.
+
+      The option is available on MySQL 8.0.31 or newer and the default value is
+      'OFF'.
 
       ATTENTION: The clearReadOnly option will be removed in a future release.
 
@@ -1136,6 +1148,8 @@ DESCRIPTION
         pending transactions to be applied in each instance of the cluster
         (default value is retrieved from the 'dba.gtidWaitTimeout' shell
         option).
+      - paxosSingleLeader: boolean value used to enable/disable the Group
+        Communication engine to operate with a single consensus leader.
 
       The value for switchCommunicationStack is used to choose which Group
       Replication communication stack must be used in the Cluster after the
@@ -1174,6 +1188,19 @@ DESCRIPTION
       stack is 'XCOM'. In case the automatically determined  default port value
       is invalid (> 65535) then an error is thrown.
 
+      The value for paxosSingleLeader is used to enable or disable the Group
+      Communication engine to operate with a single consensus leader when the
+      Cluster is in single-primary more. When enabled, the Cluster uses a
+      single leader to drive consensus which improves performance and
+      resilience in single-primary mode, particularly when some of the
+      Cluster's members are unreachable.
+
+      The option is available on MySQL 8.0.31 or newer and the default value is
+      'OFF'.
+
+      The option is used to switch the value of paxosSingleLeader previously in
+      use by the Cluster, to either enable or disable it.
+
       ATTENTION: The clearReadOnly option will be removed in a future release.
 
       ATTENTION: The user option will be removed in a future release.
@@ -1195,7 +1222,7 @@ DESCRIPTION
 
       NOTE: The user and password options are no longer used, the connection
             data is taken from the active shell session.
-      
+
       NOTE: The clearReadOnly option is no longer used, super_read_only is
             automatically cleared.
 

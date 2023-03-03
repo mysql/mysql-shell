@@ -313,6 +313,10 @@ OPTIONS
             Integer value to configure the maximum transaction size in bytes
             which the Cluster accepts
 
+--paxosSingleLeader=<bool>
+            Boolean value used to enable/disable the Group Communication engine
+            to operate with a single consensus leader.
+
 --disableClone=<bool>
             Boolean value used to disable the clone usage on the cluster.
 

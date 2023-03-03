@@ -242,6 +242,9 @@ const extended_1_status_templ_8026 = {
     "metadataVersion": ""
 };
 
+var extended_1_status_templ_8031 = extended_1_status_templ_8026;
+extended_1_status_templ_8031["defaultReplicaSet"]["paxosSingleLeader"] = "";
+
 const extended_1_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -405,6 +408,9 @@ const extended_2_status_templ_8026 = {
     "groupInformationSourceMember": "",
     "metadataVersion": ""
 };
+
+var extended_2_status_templ_8031 = extended_2_status_templ_8026;
+extended_2_status_templ_8031["defaultReplicaSet"]["paxosSingleLeader"] = "";
 
 const extended_2_status_templ_57 = {
     "clusterName": "",
@@ -620,6 +626,9 @@ const full_status_templ_8023 = {
 var full_status_templ_8026 = full_status_templ_8023;
 full_status_templ_8026["defaultReplicaSet"]["groupViewChangeUuid"] = "";
 
+var full_status_templ_8031 = full_status_templ_8023;
+full_status_templ_8031["defaultReplicaSet"]["paxosSingleLeader"] = "";
+
 const full_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -815,6 +824,9 @@ json_check(stat, extended_1_status_templ_8023);
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0.26)}
 json_check(stat, extended_1_status_templ_8026);
 
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0.31 {VER(>=8.0.31)}
+json_check(stat, extended_1_status_templ_8031);
+
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 5.7 {VER(<8.0)}
 json_check(stat, extended_1_status_templ_57);
 
@@ -837,6 +849,9 @@ json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
 
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0.26)}
 json_check(stat, extended_2_status_templ_8026, [], ["replicationLag"]);
+
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0.31 {VER(>=8.0.31)}
+json_check(stat, extended_2_status_templ_8031, [], ["replicationLag"]);
 
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 5.7 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -868,6 +883,9 @@ json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
 
 //@<> 8.0 execution 2 {VER(>=8.0.26)}
 json_check(stat, extended_2_status_templ_8026, [], ["replicationLag"]);
+
+//@<> 8.0.31 execution 2 {VER(>=8.0.31)}
+json_check(stat, extended_2_status_templ_8031, [], ["replicationLag"]);
 
 //@<> 5.7 execution 2 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -971,6 +989,11 @@ json_check(stat, extended_2_status_templ_8023, [], allowed_unexpected);
 var stat = cluster.status({extended:2});
 var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
 json_check(stat, extended_2_status_templ_8026, [], allowed_unexpected);
+
+//@<> F7- Check that recovery stats are there 8.0.31 - extended 2 {VER(>=8.0.31)}
+var stat = cluster.status({extended:2});
+var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
+json_check(stat, extended_2_status_templ_8031, [], allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 - extended 3 {VER(>=8.0)}
 var stat = cluster.status({extended:3});

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,7 +47,10 @@ struct Stats {
   std::atomic<size_t> total_deleted{0};
   std::atomic<size_t> total_skipped{0};
   std::atomic<size_t> total_warnings{0};
-  std::atomic<size_t> total_bytes{0};
+  // total number of uncompressed bytes processed
+  std::atomic<size_t> total_data_bytes{0};
+  // total number of physical bytes processed
+  std::atomic<size_t> total_file_bytes{0};
   std::atomic<size_t> total_files_processed{0};
 
   std::string to_string() const {
@@ -88,7 +91,9 @@ class Import_table final {
   void progress_shutdown();
 
   std::atomic<size_t> m_prog_sent_bytes{0};
-  size_t m_total_bytes = 0;
+  std::atomic<size_t> m_prog_file_bytes{0};
+  size_t m_total_file_size = 0;
+  bool m_has_compressed_files = false;
 
   shcore::Synchronized_queue<File_import_info> m_range_queue;
 

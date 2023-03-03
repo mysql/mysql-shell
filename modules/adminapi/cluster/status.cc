@@ -30,6 +30,7 @@
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -1201,8 +1202,40 @@ void check_comm_protocol_upgrade_possible(
   }
 }
 
-shcore::Array_t group_diagnostics(
-    const Cluster_impl *cluster,
+void check_view_change_uuid_md(shcore::Array_t issues,
+                               const Cluster_impl &cluster) {
+  auto group_instance = cluster.get_cluster_server();
+
+  // If there's primary we can't check anything, exit
+  if (!group_instance) return;
+
+  // Check if group_replication_view_change_uuid is set on the cluster and if
+  // so, if it matches the value stored in the Metadata
+  auto view_change_uuid = cluster.get_cluster_server()->get_sysvar_string(
+      "group_replication_view_change_uuid", "");
+
+  // Not in use, exit
+  if (view_change_uuid.empty() || view_change_uuid == "AUTOMATIC") return;
+
+  auto md_view_change_uuid = cluster.get_view_change_uuid();
+
+  if (md_view_change_uuid.empty()) {
+    issues->push_back(shcore::Value(
+        "WARNING: The Cluster's group_replication_view_change_uuid is not "
+        "stored in the Metadata. Please use <Cluster>.rescan() to update the "
+        "metadata."));
+  } else {
+    if (md_view_change_uuid != view_change_uuid) {
+      issues->push_back(shcore::Value(
+          "WARNING: The Cluster's group_replication_view_change_uuid value "
+          "in use does not match the value stored in the Metadata. Please "
+          "use <Cluster>.rescan() to update the metadata."));
+    }
+  }
+}
+
+shcore::Array_t cluster_diagnostics(
+    const Cluster_impl &cluster,
     const std::vector<mysqlshdk::gr::Member> &member_info,
     const mysqlshdk::utils::Version &protocol_version) {
   shcore::Array_t issues = shcore::make_array();
@@ -1210,7 +1243,10 @@ shcore::Array_t group_diagnostics(
   if (protocol_version && !member_info.empty())
     check_comm_protocol_upgrade_possible(issues, member_info, protocol_version);
 
-  switch (cluster->cluster_availability()) {
+  // Verify Metadata consistency regarding group_replication_view_change_uuid
+  check_view_change_uuid_md(issues, cluster);
+
+  switch (cluster.cluster_availability()) {
     case Cluster_availability::NO_QUORUM:
       issues->push_back(
           shcore::Value("ERROR: Could not find ONLINE members forming a "
@@ -1232,7 +1268,7 @@ shcore::Array_t group_diagnostics(
       break;
   }
 
-  if (cluster->is_fenced_from_writes()) {
+  if (cluster.is_fenced_from_writes()) {
     issues->push_back(
         shcore::Value("WARNING: Cluster is fenced from Write traffic. Use "
                       "cluster.unfenceWrites() to unfence the Cluster."));
@@ -1684,7 +1720,19 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     //   different communication stack.
     if (group_instance) {
       (*ret)[kCommunicationStack] =
-          shcore::Value(m_cluster.get_communication_stack());
+          shcore::Value(get_communication_stack(*group_instance));
+    }
+
+    // Add the value of paxosSingleLeader, when supported
+    if (group_instance &&
+        supports_paxos_single_leader(group_instance->get_version())) {
+      auto value = get_paxos_single_leader_enabled(*group_instance);
+
+      if (value.has_value()) {
+        std::string_view paxos_single_leader = *value == true ? "ON" : "OFF";
+
+        (*ret)[kPaxosSingleLeader] = shcore::Value(paxos_single_leader);
+      }
     }
   }
 
@@ -1743,40 +1791,50 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  {
-    auto issues = group_diagnostics(&m_cluster, member_info, protocol_version);
+  auto issues = cluster_diagnostics(m_cluster, member_info, protocol_version);
 
-    // Get the Cluster's transaction size_limit stored in the Metadata if the
-    // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
-    // should be the value of the primary member
-    shcore::Value value;
-    bool is_replica_cluster =
-        m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster();
+  // Get the Cluster's transaction size_limit stored in the Metadata if the
+  // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
+  // should be the value of the primary member
+  shcore::Value value;
+  bool is_replica_cluster =
+      m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster();
 
-    if (group_instance) {
-      m_cluster_transaction_size_limit =
-          m_cluster.get_cluster_server()
-              ->get_sysvar_int(kGrTransactionSizeLimit)
-              .value_or(0);
-    }
-
-    if (!is_replica_cluster) {
-      if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
-              m_cluster.get_id(), k_cluster_attribute_transaction_size_limit,
-              &value)) {
-        issues->push_back(
-            shcore::Value("WARNING: Cluster's transaction size limit is not "
-                          "registered in the metadata. Use "
-                          "cluster.rescan() to update the metadata."));
-
-      } else {
-        m_cluster_transaction_size_limit = value.as_int();
-      }
-    }
-
-    if (issues && !issues->empty())
-      (*ret)["clusterErrors"] = shcore::Value(issues);
+  if (group_instance) {
+    m_cluster_transaction_size_limit =
+        m_cluster.get_cluster_server()
+            ->get_sysvar_int(kGrTransactionSizeLimit)
+            .value_or(0);
   }
+
+  if (!is_replica_cluster) {
+    if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
+            m_cluster.get_id(), k_cluster_attribute_transaction_size_limit,
+            &value)) {
+      issues->push_back(
+          shcore::Value("WARNING: Cluster's transaction size limit is not "
+                        "registered in the metadata. Use "
+                        "cluster.rescan() to update the metadata."));
+
+    } else {
+      m_cluster_transaction_size_limit = value.as_int();
+    }
+  }
+
+  // If the cluster is operating in multi-primary mode and paxosSingleLeader
+  // is enabled, add a NOTE informing the Cluster won't use a single
+  // consensus leader in that case
+  if (group_instance && !single_primary &&
+      supports_paxos_single_leader(group_instance->get_version()) &&
+      get_paxos_single_leader_enabled(*group_instance).value_or(false)) {
+    issues->push_back(
+        shcore::Value("NOTE: The Cluster is configured to use a Single "
+                      "Consensus Leader, however, this setting is ineffective "
+                      "since the Cluster is operating in multi-primary mode."));
+  }
+
+  if (issues && !issues->empty())
+    (*ret)["clusterErrors"] = shcore::Value(issues);
 
   (*ret)["topology"] = shcore::Value(get_topology(member_info));
 

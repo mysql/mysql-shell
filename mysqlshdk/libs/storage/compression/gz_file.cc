@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,6 +49,8 @@ ssize_t Gz_file::read(void *buffer, size_t length) {
   m_stream.avail_out = length;
   int result = Z_STREAM_END;
 
+  start_io();
+
   while (m_stream.avail_out) {
     const auto input_buf = peek(CHUNK);
     if (input_buf.length == 0) {
@@ -79,13 +81,16 @@ ssize_t Gz_file::read(void *buffer, size_t length) {
     const auto consume_bytes = avail - m_stream.avail_in;
     if (consume_bytes > 0) {
       consume(consume_bytes);
+      update_io(consume_bytes);
     }
     if (result == Z_STREAM_END || result == Z_BUF_ERROR) {
       break;
     }
   }
-  const auto have = length - m_stream.avail_out;
-  return have;
+
+  finish_io();
+
+  return length - m_stream.avail_out;
 }
 
 ssize_t Gz_file::write(const void *buffer, size_t length) {

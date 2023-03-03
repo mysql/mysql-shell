@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -39,8 +40,7 @@ bool uninstall_clone_plugin(const mysqlshdk::mysql::IInstance &instance,
 
 bool is_clone_available(const mysqlshdk::mysql::IInstance &instance) {
   // Check if clone is supported
-  if (instance.get_version() < k_mysql_clone_plugin_initial_version)
-    return false;
+  if (!mysqlsh::dba::supports_mysql_clone(instance.get_version())) return false;
 
   log_debug("Checking if instance '%s' has the clone plugin installed",
             instance.descr().c_str());

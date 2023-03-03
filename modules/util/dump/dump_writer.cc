@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -208,7 +208,6 @@ Dump_write_result Dump_writer::write_buffer(const char *context,
   }
 
   if (result.data_bytes() > 0) {
-    const auto size = m_compressed ? m_compressed->file()->tell() : 0;
     const auto bytes_written =
         m_output->write(buffer()->data(), result.data_bytes());
 
@@ -217,7 +216,7 @@ Dump_write_result Dump_writer::write_buffer(const char *context,
                   m_output->full_path().masked().c_str());
     }
 
-    result.write_bytes(m_compressed ? m_compressed->file()->tell() - size
+    result.write_bytes(m_compressed ? m_compressed->latest_io_size()
                                     : bytes_written);
   }
 

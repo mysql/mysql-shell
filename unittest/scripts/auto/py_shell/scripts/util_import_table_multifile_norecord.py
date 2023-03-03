@@ -71,35 +71,35 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Reco
 rc = testutil.call_mysqlsh([uri, '--', 'util', 'import-table', chunked_dir + os.path.sep + 'lorem_aa*', '--schema=' + target_schema, '--table=lorem'])
 EXPECT_EQ(0, rc)
 EXPECT_STDOUT_CONTAINS("lorem_aaa.tsv: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("1 file(s) (2.49 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("1 file (2.49 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Wildcard to single file
 util.import_table(chunked_dir + os.path.sep + 'lorem_aa*', {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
 EXPECT_STDOUT_CONTAINS("lorem_aaa.tsv: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("1 file(s) (2.49 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("1 file (2.49 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Wildcard to single file - array arg
 util.import_table([chunked_dir + os.path.sep + 'lorem_aa*'], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
 EXPECT_STDOUT_CONTAINS("lorem_aaa.tsv: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("1 file(s) (2.49 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("1 file (2.49 KB) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Expand wildcard to 0 files - cli
 rc = testutil.call_mysqlsh([uri, '--', 'util', 'import-table', chunked_dir + os.path.sep + 'lorem_xx*', '--schema=' + target_schema, '--table=lorem'])
 EXPECT_EQ(0, rc)
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Expand wildcard to 0 files
 util.import_table(chunked_dir + os.path.sep + 'lorem_xx*', {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Expand wildcard to 0 files - array arg
 util.import_table([chunked_dir + os.path.sep + 'lorem_xx*'], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Import single non-existing file
@@ -113,7 +113,7 @@ EXPECT_THROWS(lambda: util.import_table([chunked_dir + os.path.sep + 'lorem_xxx_
 )
 EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(chunked_dir + os.path.sep + 'lorem_xxx_xxx.tsv') + " does not exist.")
 EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(os.path.abspath(os.path.curdir), "lorem_xxx_ccc.tsv")) + " does not exist.")
-EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
+EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Wildcard files from non-existing directory
@@ -138,20 +138,20 @@ EXPECT_STDOUT_CONTAINS("ERROR: File " + filename_for_output(os.path.join(chunked
 util.import_table([os.path.join(chunked_dir, 'lorem_a*.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
 for name in [f for f in raw_files if f.startswith("lorem_a") and f.endswith(".tsv")]:
     EXPECT_STDOUT_CONTAINS(name + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("6 file(s) (14.75 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("6 files (14.75 KB) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 600  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Select multiple files with multiple wildcards from directory
 util.import_table([os.path.join(chunked_dir, 'lorem_a*.tsv'), os.path.join(chunked_dir, 'lorem_b*.tsv.gz'), os.path.join(chunked_dir, 'lorem_c*.tsv.zst')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
 for name in [f for f in dircontent if (f.startswith("lorem_a") and f.endswith(".tsv")) or (f.startswith("lorem_b") and f.endswith(".tsv.gz")) or (f.startswith("lorem_c") and f.endswith(".tsv.zst"))]:
     EXPECT_STDOUT_CONTAINS(name + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("17 file(s) (42.16 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("17 files (42.16 KB uncompressed, 28.54 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 1700  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Single compressed file
 util.import_table([os.path.join(chunked_dir, zst_files[0])], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True})
 EXPECT_STDOUT_CONTAINS(zst_files[0] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(os.path.join(chunked_dir, zst_files[0])) + "' (1.26 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(os.path.join(chunked_dir, zst_files[0])) + "' (2.49 KB uncompressed, 1.26 KB compressed) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Multiple compressed files
@@ -159,7 +159,7 @@ util.import_table([os.path.join(chunked_dir, zst_files[0]), os.path.join(chunked
 EXPECT_STDOUT_CONTAINS(zst_files[0] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 EXPECT_STDOUT_CONTAINS(zst_files[1] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 EXPECT_STDOUT_CONTAINS(gz_files[0] + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
-EXPECT_STDOUT_CONTAINS("3 file(s) (7.48 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("3 files (7.48 KB uncompressed, 3.77 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 300  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Mixed file list input
@@ -173,7 +173,7 @@ EXPECT_STDOUT_CONTAINS(gz_files[0] + ": Records: 100  Deleted: 0  Skipped: 0  Wa
 for name in [f for f in dircontent if f.startswith("lorem_a") or f.startswith("lorem_b")]:
     EXPECT_STDOUT_CONTAINS(name + ": Records: 100  Deleted: 0  Skipped: 0  Warnings: 0")
 
-EXPECT_STDOUT_CONTAINS("19 file(s) (47.15 KB) was imported in ")
+EXPECT_STDOUT_CONTAINS("19 files (47.15 KB uncompressed, 37.20 KB compressed) were imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Records: 1900  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Multifile import does not support byterPerChunk option

@@ -296,7 +296,7 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes = JS
 
 //@<> clusterset.listRouters() warning re-bootstrap
 cs.listRouters();
-EXPECT_OUTPUT_CONTAINS("WARNING: The following Routers were bootstrapped before the ClusterSet was created: [routerhost2::system, routerhost2::another]. Please re-bootstrap the Routers to ensure the optimal configurations are set.");
+EXPECT_OUTPUT_CONTAINS("WARNING: The following Routers were bootstrapped before the ClusterSet was created: [routerhost2::system, routerhost2::another]. Please re-bootstrap the Routers to ensure the ClusterSet is recognized and the configurations are updated. Otherwise, Routers will operate as if the Clusters were standalone.");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

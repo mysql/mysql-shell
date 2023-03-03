@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,6 +72,8 @@ ssize_t Zstd_file::read(void *buffer, size_t length) {
 }
 
 ssize_t Zstd_file::do_read(ZSTD_outBuffer *obuf) {
+  start_io();
+
   while (obuf->pos < obuf->size) {
     const auto input_buf = peek(m_decompress_read_size);
     if (input_buf.length == 0) {
@@ -90,8 +92,11 @@ ssize_t Zstd_file::do_read(ZSTD_outBuffer *obuf) {
                                ZSTD_getErrorName(status));
     if (ibuf.pos > 0) {
       consume(ibuf.pos);
+      update_io(ibuf.pos);
     }
   }
+
+  finish_io();
 
   m_offset += obuf->pos;
 
@@ -100,6 +105,8 @@ ssize_t Zstd_file::do_read(ZSTD_outBuffer *obuf) {
 }
 
 ssize_t Zstd_file::do_read_mmap(ZSTD_outBuffer *obuf) {
+  start_io();
+
   while (obuf->pos < obuf->size) {
     auto *mfile = dynamic_cast<backend::File *>(file());
 
@@ -116,8 +123,11 @@ ssize_t Zstd_file::do_read_mmap(ZSTD_outBuffer *obuf) {
                                ZSTD_getErrorName(status));
     if (ibuf.pos > 0) {
       mfile->mmap_did_read(ibuf.pos);
+      update_io(ibuf.pos);
     }
   }
+
+  finish_io();
 
   m_offset += obuf->pos;
 
@@ -164,6 +174,8 @@ ssize_t Zstd_file::do_write(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
   obuf.pos = 0;
   bool done;
 
+  start_io();
+
   size_t status;
   do {
     status = ZSTD_compressStream2(m_cctx, &obuf, ibuf, op);
@@ -178,11 +190,15 @@ ssize_t Zstd_file::do_write(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
       if (r < 0)
         throw std::runtime_error("zstd.write: error writing compressed data");
 
+      update_io(obuf.pos);
+
       obuf.pos = 0;
     }
     // make sure the whole input buffer is consumed
     done = (op == ZSTD_e_end) ? (status == 0) : ibuf->pos == ibuf->size;
   } while (!done);
+
+  finish_io();
 
   return ibuf->size;
 }
@@ -201,6 +217,8 @@ ssize_t Zstd_file::do_write_mmap(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
 
   bool done;
 
+  start_io();
+
   size_t status;
   do {
     status = ZSTD_compressStream2(m_cctx, &obuf, ibuf, op);
@@ -208,12 +226,15 @@ ssize_t Zstd_file::do_write_mmap(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
       throw std::runtime_error(std::string("zstd.write: ") +
                                ZSTD_getErrorName(status));
     } else {
+      update_io(obuf.pos);
       obuf.dst = mfile->mmap_did_write(obuf.pos, &obuf.size);
       obuf.pos = 0;
     }
     // make sure the whole input buffer is consumed
     done = (op == ZSTD_e_end) ? (status == 0) : ibuf->pos == ibuf->size;
   } while (!done);
+
+  finish_io();
 
   return ibuf->size;
 }

@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
@@ -255,6 +256,17 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
   if (gr_opts.transaction_size_limit.has_value()) {
     config->set(mysqlsh::dba::kGrTransactionSizeLimit,
                 gr_opts.transaction_size_limit, "transactionSizeLimit");
+  }
+
+  // Set GR paxos single leader (if provided or reset to default to ensure it's
+  // persisted)
+  if (gr_opts.paxos_single_leader.has_value()) {
+    config->set("group_replication_paxos_single_leader",
+                gr_opts.paxos_single_leader, "paxosSingleLeader");
+  } else if (mysqlsh::dba::supports_paxos_single_leader(
+                 instance.get_version())) {
+    instance.set_sysvar_default("group_replication_paxos_single_leader",
+                                mysqlshdk::mysql::Var_qualifier::PERSIST);
   }
 }
 
@@ -767,6 +779,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - Enable GR start on boot;
   // - communication stack (if provided).
   // - transactionSizeLimit (if provided)
+  // - paxos single leader (if provided or reset to default)
   set_gr_options(instance, gr_opts, requires_certificates, config,
                  single_primary_mode);
 
