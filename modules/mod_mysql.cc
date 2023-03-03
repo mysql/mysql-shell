@@ -324,6 +324,7 @@ std::shared_ptr<shcore::Object_bridge> Mysql::get_session(
     const mysqlshdk::db::Connection_options &co_, const char *password) {
   auto co = co_;
   set_password_from_string(&co, password);
+  co.set_scheme("mysql");
 
   return ClassicSession::create(co);
 }

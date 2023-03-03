@@ -511,6 +511,10 @@ int Connection_options::get_target_port() const {
   return port;
 }
 
+void Connection_options::set_transport_type(Transport_type type) {
+  m_transport_type = type;
+}
+
 Transport_type Connection_options::get_transport_type() const {
   if (!m_transport_type.has_value())
     throw std::invalid_argument("Transport Type is undefined.");
@@ -641,9 +645,33 @@ void Connection_options::set_default_data() {
     set_user(shcore::get_system_user());
   }
 
+  bool has_transp = has_transport_type();
   if (!has_host() &&
-      (!has_transport_type() || get_transport_type() == mysqlshdk::db::Tcp))
+      (!has_transp || get_transport_type() == mysqlshdk::db::Tcp)) {
     set_host("localhost");
+  }
+#ifdef _WIN32
+  if (!has_transp) {
+    // Windows always uses TCP by default
+    m_transport_type = mysqlshdk::db::Tcp;
+  }
+#else
+  if (!has_transp) {
+    // xproto connections connect via TCP by default
+    if (!has_scheme() || get_scheme() == "mysqlx") {
+      if (has_port() || !has_socket())
+        m_transport_type = mysqlshdk::db::Tcp;
+      else
+        m_transport_type = mysqlshdk::db::Socket;
+    } else {
+      // classic connections connect via socket by default
+      if (has_port())
+        m_transport_type = mysqlshdk::db::Tcp;
+      else
+        m_transport_type = mysqlshdk::db::Socket;
+    }
+  }
+#endif
 
 #ifdef _WIN32
   if (!has_pipe() && has_host() && get_host() == ".") {

@@ -731,4 +731,66 @@ TEST_F(Command_line_test, empty_socket) {
   }
 }
 
+TEST_F(Command_line_test, default_is_xproto_via_tcp) {
+  mysqlshdk::db::Connection_options options;
+  options.set_host(_host);
+  options.set_port(std::stoi(_mysql_port));
+  options.set_user(_user);
+  options.set_password(_pwd);
+
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(options);
+  session->execute("drop user if exists testuser1@'%'");
+  session->execute("create user testuser1@'%' identified by 'pass1'");
+
+  // connection to localhost with all defaults is xprotocol through TCP/IP
+  {
+    execute({_mysqlsh, "-utestuser1", "-ppass1", "--js", "-e",
+             "print(shell.status())", NULL},
+            nullptr, nullptr,
+            {"MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=", "MYSQLX_SOCKET="});
+    // either succeeds connecting to xport or fails because server is in a
+    // different port
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("localhost via TCP/IP",
+                                         "Can't connect to MySQL server on");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("X protocol",
+                                         "Can't connect to MySQL server on");
+  }
+  {
+    execute({_mysqlsh, "-utestuser1", "-hlocalhost", "-ppass1", "--js", "-e",
+             "print(shell.status())", NULL},
+            nullptr, nullptr,
+            {"MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=", "MYSQLX_SOCKET="});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("localhost via TCP/IP",
+                                         "Can't connect to MySQL server on");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("X protocol",
+                                         "Can't connect to MySQL server on");
+  }
+
+#ifndef _WIN32
+  // -S forces socket connections - test should either succeed and connect via
+  // socket or fail because of socket not found
+  {
+    execute({_mysqlsh, "-utestuser1", "-ppass1", "-S", "--js", "-e",
+             "print(shell.status())", NULL},
+            nullptr, nullptr,
+            {"MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=", "MYSQLX_SOCKET="});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+        "UNIX socket", "Can't connect to local MySQL server through socket");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+        "X protocol", "Can't connect to local MySQL server through socket");
+  }
+  {
+    execute({_mysqlsh, "-utestuser1", "-hlocalhost", "-ppass1", "-S", "--js",
+             "-e", "print(shell.status())", NULL},
+            nullptr, nullptr, {"MYSQL_UNIX_PORT=", "MYSQLX_SOCKET="});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+        "UNIX socket", "Can't connect to local MySQL server through socket");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
+        "X protocol", "Can't connect to local MySQL server through socket");
+  }
+#endif
+  session->execute("drop user if exists testuser1@'%'");
+}
+
 }  // namespace tests
