@@ -50,10 +50,30 @@ EXPECT_THROWS(function() {
     dba.rebootClusterFromCompleteOutage();
 }, `The instance '${hostname}:${__mysql_sandbox_port3}' doesn't belong to the Cluster. Use option 'force' to ignore this check.`);
 
+// to test if reboot doesn't persist the variable (BUG#34778797)
+session.runSql("SET GLOBAL offline_mode = 1");
+var session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("SET GLOBAL offline_mode = 1");
+
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster", {force: true}); });
 EXPECT_OUTPUT_CONTAINS(`WARNING: The instance '${hostname}:${__mysql_sandbox_port3}' doesn't belong to the Cluster and will be ignored.`);
 
-//reset cluster
+//make sure that "offline_mode" is disabled (BUG#34778797)
+EXPECT_OUTPUT_CONTAINS(`Disabling 'offline_mode' on '${hostname}:${__mysql_sandbox_port2}'`);
+
+//@<> make sure that "offline_mode" isn't persisted (BUG#34778797) {VER(<8.0.11)}
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port1, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
+EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port2, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
+session2.close();
+
+//@<> make sure that "offline_mode" isn't persisted (BUG#34778797) {VER(>=8.0.11)}
+EXPECT_EQ(0, session.runSql("SELECT count(*) FROM performance_schema.persisted_variables WHERE (variable_name = 'offline_mode')").fetchOne()[0], `Variable 'offline_mode' is persisted in '${__sandbox_uri1}'`);
+EXPECT_EQ(0, session2.runSql("SELECT count(*) FROM performance_schema.persisted_variables WHERE (variable_name = 'offline_mode')").fetchOne()[0], `Variable 'offline_mode' is persisted in '${__sandbox_uri2}'`);
+session2.close();
+
+//@<> reset cluster
 
 cluster.removeInstance(__sandbox_uri3, {force: true});
 

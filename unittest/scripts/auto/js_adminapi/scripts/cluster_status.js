@@ -512,8 +512,25 @@ set_sysvar(session, "offline_mode", 1);
 status = cluster.status();
 status
 EXPECT_EQ(status["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["mode"], "n/a")
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["instanceErrors"], ["WARNING: Instance has offline_mode enabled."])
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["instanceErrors"], ["WARNING: Instance has 'offline_mode' enabled."])
 set_sysvar(session, "offline_mode", 0);
+
+//@<> Check if instance has offline_mode persisted (BUG#34778797) {VER(>=8.0.11)}
+shell.connect(__sandbox_uri2);
+session.runSql("SET PERSIST_ONLY offline_mode = 1");
+status = cluster.status();
+status
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"], ["WARNING: Instance has 'offline_mode' enabled and persisted. In the event that this instance becomes a primary, Shell or other members will be prevented from connecting to it disrupting the Cluster's normal functioning."]);
+
+session.runSql("SET PERSIST_ONLY offline_mode = 0");
+status = cluster.status();
+status
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+
+session.runSql("RESET PERSIST IF EXISTS offline_mode;");
+status = cluster.status();
+status
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
 
 //@<> Remove two instances of the cluster and add back one of them with a different label
 cluster.removeInstance(__sandbox_uri2);

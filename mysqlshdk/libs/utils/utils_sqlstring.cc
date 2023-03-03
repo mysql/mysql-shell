@@ -29,6 +29,7 @@
 #include <array>
 #include <string_view>
 
+#include "include/mysh_config.h"
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -760,7 +761,7 @@ bool match_sql_wild(std::string_view str, std::string_view pattern) {
 
 namespace {
 
-#ifdef _WIN32
+#ifndef HAVE_ULONG
 typedef unsigned int uint;
 typedef unsigned long ulong;
 #endif

@@ -1551,9 +1551,19 @@ shcore::Dictionary_t Status::get_topology(
           super_read_only, minfo, self_state, parallel_applier_options,
           *m_cluster_transaction_size_limit);
 
-      if (offline_mode.value_or(false))
+      if (offline_mode.value_or(false)) {
         issues->push_back(
-            shcore::Value("WARNING: Instance has offline_mode enabled."));
+            shcore::Value("WARNING: Instance has 'offline_mode' enabled."));
+      } else if (instance && instance->is_set_persist_supported()) {
+        auto value = instance->get_persisted_value("offline_mode");
+        if (value.has_value() && shcore::str_caseeq(*value, "ON")) {
+          issues->push_back(shcore::Value(
+              "WARNING: Instance has 'offline_mode' enabled and persisted. In "
+              "the event that this instance becomes a primary, Shell or other "
+              "members will be prevented from connecting to it disrupting the "
+              "Cluster's normal functioning."));
+        }
+      }
 
       if (instance) {
         auto ret_val = validate_instance_recovery_user(

@@ -737,10 +737,12 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // persisted (except in 5.7).
   config->set("super_read_only", std::optional<bool>(true));
 
-  // Check if offline_mode is enabled to disable it
+  // Check if offline_mode is enabled to disable it (note: this variable should
+  // not be persisted)
   if (instance.get_sysvar_bool("offline_mode", false)) {
-    log_info("Disabling offline_mode on '%s'", instance.descr().c_str());
-    config->set("offline_mode", std::optional<bool>(false));
+    mysqlsh::current_console()->print_note(shcore::str_format(
+        "Disabling 'offline_mode' on '%s'", instance.descr().c_str()));
+    instance.set_sysvar("offline_mode", false);
   }
 
   std::optional<bool> single_primary_mode;
@@ -809,10 +811,12 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
   // instance is never in the metadata unless sro=1 is persisted
   config->set("super_read_only", std::optional<bool>(true));
 
-  // Check if offline_mode is enabled to disable it
+  // Check if offline_mode is enabled to disable it (note: this variable should
+  // not be persisted)
   if (instance.get_sysvar_bool("offline_mode", false)) {
-    log_info("Disabling offline_mode on '%s'", instance.descr().c_str());
-    config->set("offline_mode", std::optional<bool>(false));
+    mysqlsh::current_console()->print_note(shcore::str_format(
+        "Disabling 'offline_mode' on '%s'", instance.descr().c_str()));
+    instance.set_sysvar("offline_mode", false);
   }
 
   std::string gr_group_name, gr_view_change_uuid;

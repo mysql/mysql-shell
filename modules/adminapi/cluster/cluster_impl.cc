@@ -2059,7 +2059,7 @@ void Cluster_impl::unfence_writes() {
                      [&console](const std::shared_ptr<Instance> &instance,
                                 const mysqlshdk::gr::Member &) {
                        if (instance->get_sysvar_bool("offline_mode", false)) {
-                         console->print_info("* Disabling offline_mode on '" +
+                         console->print_info("* Disabling 'offline_mode' on '" +
                                              instance->descr() + "'...");
                          instance->set_sysvar("offline_mode", false);
                        }
