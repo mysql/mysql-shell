@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2009, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -259,3 +259,19 @@ CHECK_FUNCTION_EXISTS (getpwuid_r HAVE_GETPWUID_R)
 CHECK_FUNCTION_EXISTS (getlogin_r HAVE_GETLOGIN_R)
 CHECK_FUNCTION_EXISTS (memset_s HAVE_MEMSET_S)
 CHECK_FUNCTION_EXISTS (explicit_bzero HAVE_EXPLICIT_BZERO)
+
+#
+# Tests for datatypes
+#
+
+INCLUDE (CheckTypeSize)
+
+# If finds the size of a type, set SIZEOF_<type> and HAVE_<type>
+FUNCTION(MY_CHECK_TYPE_SIZE type defbase)
+  CHECK_TYPE_SIZE("${type}" SIZEOF_${defbase})
+  IF(SIZEOF_${defbase})
+    SET(HAVE_${defbase} 1 PARENT_SCOPE)
+  ENDIF()
+ENDFUNCTION()
+
+MY_CHECK_TYPE_SIZE(ulong ULONG)

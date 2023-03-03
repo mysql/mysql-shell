@@ -1,4 +1,4 @@
-/* Copyright (c) 2009, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2009, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -35,5 +35,7 @@
 #cmakedefine HAVE_GETLOGIN_R 1
 #cmakedefine HAVE_MEMSET_S 1
 #cmakedefine HAVE_EXPLICIT_BZERO 1
+
+#cmakedefine HAVE_ULONG 1
 
 #endif
