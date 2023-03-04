@@ -83,6 +83,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   const std::string &get_password() const override;
 
+  void set_transport_type(Transport_type type);
   Transport_type get_transport_type() const;
   const std::string &get_compression() const {
     return m_extra_options.get_value(kCompression);
