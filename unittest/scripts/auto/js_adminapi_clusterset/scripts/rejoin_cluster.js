@@ -211,9 +211,15 @@ cs.status();
 
 testutil.stopGroup([__mysql_sandbox_port4,__mysql_sandbox_port6]);
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Could not connect to a PRIMARY member of cluster 'cluster2'");
+EXPECT_THROWS(function() {
+    cs.rejoinCluster("cluster2", {dryRun:1});
+}, "The Cluster 'cluster2' is reachable but OFFLINE.");
+EXPECT_OUTPUT_CONTAINS("The Cluster 'cluster2' is reachable but OFFLINE. Use the dba.rebootClusterFromCompleteOutage() command to restore it.");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Could not connect to a PRIMARY member of cluster 'cluster2'");
+EXPECT_THROWS(function() {
+    cs.rejoinCluster("cluster2");
+}, "The Cluster 'cluster2' is reachable but OFFLINE.");
+EXPECT_OUTPUT_CONTAINS("The Cluster 'cluster2' is reachable but OFFLINE. Use the dba.rebootClusterFromCompleteOutage() command to restore it.");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_INVALIDATED_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], c1, c2);
@@ -231,6 +237,37 @@ testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 c2.rejoinInstance(__sandbox_uri5);
 c2.rejoinInstance(__sandbox_uri6);
 testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port4);
+
+//@<> Try to rejoin an unreachable replica and check the exception / error message (BUG#34535236)
+shell.connect(__sandbox_uri4);
+
+testutil.killSandbox(__mysql_sandbox_port5);
+testutil.waitMemberState(__mysql_sandbox_port5, "UNREACHABLE");
+testutil.killSandbox(__mysql_sandbox_port6);
+testutil.waitMemberState(__mysql_sandbox_port6, "UNREACHABLE");
+
+shell.connect(__sandbox_uri1);
+
+testutil.killSandbox(__mysql_sandbox_port4);
+
+cs = dba.getClusterSet();
+
+EXPECT_THROWS(function() {
+    cs.rejoinCluster("cluster2");
+}, "Could not connect to a PRIMARY member of cluster 'cluster2'");
+EXPECT_OUTPUT_CONTAINS("Could not reach cluster 'cluster2'");
+
+testutil.startSandbox(__mysql_sandbox_port4);
+testutil.startSandbox(__mysql_sandbox_port5);
+testutil.startSandbox(__mysql_sandbox_port6);
+
+shell.connect(__sandbox_uri4);
+
+c2 = dba.rebootClusterFromCompleteOutage();
+
+session4 = mysql.getSession(__sandbox_uri4);
+session5 = mysql.getSession(__sandbox_uri5);
+session6 = mysql.getSession(__sandbox_uri6);
 
 //@<> rejoin no_quorum (should fail)
 c2.status();

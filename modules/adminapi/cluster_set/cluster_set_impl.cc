@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/cluster_set/cluster_set_impl.h"
+
 #include <algorithm>
 #include <list>
 #include <utility>
@@ -28,7 +30,6 @@
 
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster/create_cluster_set.h"
-#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/cluster_set/create_replica_cluster.h"
 #include "modules/adminapi/cluster_set/status.h"
 #include "modules/adminapi/common/async_topology.h"
@@ -235,7 +236,7 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster,
         undo->add_snapshot_for_drop_user(*primary, repl_user, repl_user_host);
 
       primary->drop_user(repl_user, repl_user_host.c_str(), true);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
       current_console()->print_warning(shcore::str_format(
           "Error dropping replication account '%s'@'%s' for cluster '%s'",
           repl_user.c_str(), repl_user_host.c_str(),
@@ -530,16 +531,15 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster_object(
     return std::make_shared<Cluster_impl>(
         shared_from_this(), cluster_md.cluster, group_server, md, availability);
   } catch (const shcore::Exception &e) {
-    if (allow_unavailable) {
-      current_console()->print_warning(
-          "Could not connect to any member of cluster '" +
-          cluster_md.cluster.cluster_name + "': " + e.format());
+    if (!allow_unavailable) throw;
 
-      return std::make_shared<Cluster_impl>(shared_from_this(),
-                                            cluster_md.cluster, nullptr, md,
-                                            Cluster_availability::UNREACHABLE);
-    }
-    throw;
+    current_console()->print_warning(shcore::str_format(
+        "Could not connect to any member of cluster '%s': %s",
+        cluster_md.cluster.cluster_name.c_str(), e.format().c_str()));
+
+    return std::make_shared<Cluster_impl>(shared_from_this(),
+                                          cluster_md.cluster, nullptr, md,
+                                          Cluster_availability::UNREACHABLE);
   }
 }
 
@@ -2922,8 +2922,26 @@ void Cluster_set_impl::rejoin_cluster(
   try {
     rejoining_cluster = get_cluster(cluster_name, allow_unavailable, true);
   } catch (const shcore::Exception &e) {
-    console->print_error("Could not reach cluster '" + cluster_name +
-                         "': " + e.format());
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_PRIMARY) {
+      if (rejoining_cluster = get_cluster(cluster_name, true, true);
+          rejoining_cluster->cluster_availability() ==
+          Cluster_availability::OFFLINE) {
+        console->print_error(shcore::str_format(
+            "The Cluster '%s' is reachable but OFFLINE. Use the "
+            "dba.<<<rebootClusterFromCompleteOutage>>>() command to restore "
+            "it.",
+            cluster_name.c_str()));
+
+        throw shcore::Exception(
+            shcore::str_format("The Cluster '%s' is reachable but OFFLINE.",
+                               cluster_name.c_str()),
+            SHERR_DBA_CLUSTER_OFFLINE);
+      }
+    }
+
+    console->print_error(shcore::str_format("Could not reach cluster '%s': %s",
+                                            cluster_name.c_str(),
+                                            e.format().c_str()));
     throw;
   }
 
