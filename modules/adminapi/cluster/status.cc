@@ -1648,12 +1648,13 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     (*ret)["ssl"] = shcore::Value(ssl_mode);
   }
 
-  bool single_primary;
-  std::string view_id;
-  bool has_quorum;
+  bool single_primary = true;
   std::vector<mysqlshdk::gr::Member> member_info;
 
   if (group_instance && gr_running) {
+    bool has_quorum = true;
+    std::string view_id;
+
     member_info = mysqlshdk::gr::get_members(*group_instance, &single_primary,
                                              &has_quorum, &view_id);
 
@@ -1727,7 +1728,10 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   // If the cluster is operating in multi-primary mode and paxosSingleLeader
   // is enabled, add a NOTE informing the Cluster won't use a single
   // consensus leader in that case
-  if (group_instance && !single_primary &&
+  bool is_active_multi_primary =
+      group_instance && gr_running && !single_primary;
+
+  if (is_active_multi_primary &&
       supports_paxos_single_leader(group_instance->get_version()) &&
       get_paxos_single_leader_enabled(*group_instance).value_or(false)) {
     issues->push_back(
