@@ -55,10 +55,6 @@ const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
 
 constexpr auto k_minimum_max_bytes_per_transaction = 4096;
 
-bool is_mds(const Version &version) {
-  return shcore::str_endswith(version.get_extra(), "cloud");
-}
-
 std::shared_ptr<mysqlshdk::oci::IPAR_config> par_config(
     const std::string &url) {
   mysqlshdk::oci::PAR_structure par;
@@ -135,7 +131,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                     {{"append", Update_gtid_set::APPEND},
                      {"replace", Update_gtid_set::REPLACE},
                      {"off", Update_gtid_set::OFF}})
-          .optional("showMetadata", &Load_dump_options::m_show_metadata)
+          .optional("showMetadata", &Load_dump_options::set_show_metadata)
           .optional("createInvisiblePKs",
                     &Load_dump_options::m_create_invisible_pks)
           .optional("maxBytesPerTransaction",
@@ -195,10 +191,8 @@ void Load_dump_options::set_progress_file(const std::string &value) {
 }
 
 void Load_dump_options::set_session(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const std::string &current_schema) {
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   m_base_session = session;
-  m_current_schema = current_schema;
 
   m_target = get_classic_connection_options(m_base_session);
 
@@ -227,7 +221,7 @@ void Load_dump_options::set_session(
   m_target_server_version =
       Version(query("SELECT @@version")->fetch_one()->get_string(0));
 
-  m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
+  m_is_mds = m_target_server_version.is_mds();
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
 
   m_sql_generate_invisible_primary_key =
@@ -322,7 +316,7 @@ void Load_dump_options::validate() {
             "file.");
       }
 
-      m_storage_config = std::move(config);
+      set_storage_config(std::move(config));
     }
   }
 
@@ -344,7 +338,8 @@ void Load_dump_options::validate() {
   }
 }
 
-std::string Load_dump_options::target_import_info() const {
+std::string Load_dump_options::target_import_info(
+    const char *operation, const std::string &extra) const {
   std::string action;
 
   std::vector<std::string> what_to_load;
@@ -367,14 +362,14 @@ std::string Load_dump_options::target_import_info() const {
 
   if (what_to_load.size() == 3) {
     action = shcore::str_format(
-        "Loading %s, %s and %s from %s", what_to_load[0].c_str(),
+        "%s %s, %s and %s from %s", operation, what_to_load[0].c_str(),
         what_to_load[1].c_str(), what_to_load[2].c_str(), where.c_str());
   } else if (what_to_load.size() == 2) {
-    action =
-        shcore::str_format("Loading %s and %s from %s", what_to_load[0].c_str(),
-                           what_to_load[1].c_str(), where.c_str());
+    action = shcore::str_format("%s %s and %s from %s", operation,
+                                what_to_load[0].c_str(),
+                                what_to_load[1].c_str(), where.c_str());
   } else if (!what_to_load.empty()) {
-    action = shcore::str_format("Loading %s only from %s",
+    action = shcore::str_format("%s %s only from %s", operation,
                                 what_to_load[0].c_str(), where.c_str());
   } else {
     if (m_analyze_tables == Analyze_table_mode::HISTOGRAM)
@@ -389,15 +384,17 @@ std::string Load_dump_options::target_import_info() const {
     }
   }
 
-  std::string detail;
+  std::string detail = extra;
 
-  if (threads_count() == 1)
-    detail = " using 1 thread.";
-  else
-    detail = shcore::str_format(" using %s threads.",
-                                std::to_string(threads_count()).c_str());
+  if (detail.empty()) {
+    detail = " using " + std::to_string(threads_count()) + " thread";
 
-  return action + detail;
+    if (threads_count() != 1) {
+      detail += 's';
+    }
+  }
+
+  return action + detail + '.';
 }
 
 void Load_dump_options::on_unpacked_options() {
@@ -406,11 +403,11 @@ void Load_dump_options::on_unpacked_options() {
   m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
 
   if (m_oci_bucket_options) {
-    m_storage_config = m_oci_bucket_options.config();
+    set_storage_config(m_oci_bucket_options.config());
   }
 
   if (m_s3_bucket_options) {
-    m_storage_config = m_s3_bucket_options.config();
+    set_storage_config(m_s3_bucket_options.config());
   }
 
   if (m_blob_storage_options) {
@@ -521,6 +518,11 @@ void Load_dump_options::set_handle_grant_errors(const std::string &action) {
         "The value of the 'handleGrantErrors' option must be set to one of: "
         "'abort', 'drop_account', 'ignore'.");
   }
+}
+
+void Load_dump_options::set_storage_config(
+    std::shared_ptr<mysqlshdk::storage::Config> storage_config) {
+  m_storage_config = std::move(storage_config);
 }
 
 }  // namespace mysqlsh

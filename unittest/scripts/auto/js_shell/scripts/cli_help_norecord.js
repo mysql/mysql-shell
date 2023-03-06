@@ -141,6 +141,15 @@ callMysqlsh(["--", "shell", "options", "unsetPersist", "-h"])
 //@ CLI util check-for-server-upgrade --help
 callMysqlsh(["--sql", "--", "util", "check-for-server-upgrade", "--help"])
 
+//@ CLI util copy-instance --help
+callMysqlsh(["--", "util", "copy-instance", "--help"])
+
+//@ CLI util copy-schemas --help
+callMysqlsh(["--", "util", "copy-schemas", "--help"])
+
+//@ CLI util copy-tables --help
+callMysqlsh(["--", "util", "copy-tables", "--help"])
+
 //@ CLI util dump-instance --help
 callMysqlsh(["--", "util", "dump-instance", "--help"])
 

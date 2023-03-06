@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,13 @@ set(library_SRC
   backend/oci_par_directory.cc
   backend/oci_par_directory_config.cc
   backend/memory_file.cc
+  backend/in_memory/allocated_file.cc
+  backend/in_memory/allocator.cc
+  backend/in_memory/synchronized_file.cc
+  backend/in_memory/virtual_config.cc
+  backend/in_memory/virtual_directory.cc
+  backend/in_memory/virtual_file.cc
+  backend/in_memory/virtual_fs.cc
   compression/gz_file.cc
   compression/zstd_file.cc
 )

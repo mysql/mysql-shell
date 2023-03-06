@@ -319,8 +319,8 @@ EXPECT_THROWS(lambda:TEST_LOAD("dump-toobig", trx_size_limit, 4098), "Error load
 EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: MySQL Error 1197 (HY000): Multi-statement transaction required more than 'max_binlog_cache_size' bytes of storage")
 
 # WL14577 - information should be printed before loading a row which is too big, and after failure, if a sub-chunk contained oversized row
-EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: \[Worker\d+\] testdb@data0.tsv.zst: Attempting to load a row longer than maxBytesPerTransaction\."))
-EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: \[Worker\d+\] testdb@data0.tsv.zst: This error has been reported for a sub-chunk which has at least one row longer than maxBytesPerTransaction \(16384 bytes\)\."))
+EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: \[Worker\d+\]: testdb@data0.tsv.zst: Attempting to load a row longer than maxBytesPerTransaction\."))
+EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: \[Worker\d+\]: testdb@data0.tsv.zst: This error has been reported for a sub-chunk which has at least one row longer than maxBytesPerTransaction \(16384 bytes\)\."))
 
 wipeout_server(session)
 testutil.rmfile(__tmp_dir+"/ldtest/dump-toobig/load-progress*")
@@ -470,7 +470,7 @@ EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Delete
 EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data2.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
 
 # WL14577-TSFR_3_1 - row longer than maxBytesPerTransaction, the whole file is subchunked
-EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: \[Worker\d+\] testdb@data3.tsv.zst: Attempting to load a row longer than maxBytesPerTransaction."))
+EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: \[Worker\d+\]: testdb@data3.tsv.zst: Attempting to load a row longer than maxBytesPerTransaction."))
 EXPECT_SHELL_LOG_CONTAINS("testdb@data3.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - flushed sub-chunk 1")
 EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data3.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
 

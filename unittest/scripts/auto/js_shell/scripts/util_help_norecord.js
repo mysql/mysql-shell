@@ -10,6 +10,38 @@ util.help('checkForServerUpgrade');
 //@ util checkForServerUpgrade help, \? [USE:util checkForServerUpgrade help]
 \? checkForServerUpgrade
 
+//@ util copyInstance help
+// WL15298_TSFR_1_1
+// WL15298_TSFR_4_4_1
+// WL15298_TSFR_5_1_1
+util.help('copyInstance');
+
+//@ util copyInstance help, \? [USE:util copyInstance help]
+// WL15298_TSFR_1_1
+// WL15298_TSFR_4_4_1
+// WL15298_TSFR_5_1_1
+\? copyInstance
+
+//@ util copySchemas help
+// WL15298_TSFR_2_1
+// WL15298_TSFR_4_4_1
+// WL15298_TSFR_5_1_1
+util.help('copySchemas');
+
+//@ util copySchemas help, \? [USE:util copySchemas help]
+// WL15298_TSFR_2_1
+// WL15298_TSFR_4_4_1
+// WL15298_TSFR_5_1_1
+\? copySchemas
+
+//@ util copyTables help
+// WL15298_TSFR_4_4_1
+util.help('copyTables');
+
+//@ util copyTables help, \? [USE:util copyTables help]
+// WL15298_TSFR_4_4_1
+\? copyTables
+
 // WL13807-TSFR_1_1
 //@ util dumpInstance help
 util.help('dumpInstance');

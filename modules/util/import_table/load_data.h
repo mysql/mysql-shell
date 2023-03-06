@@ -53,6 +53,7 @@ struct Transaction_options {
       nullptr;  //< offsets which point to end of a row
   std::function<void()> transaction_started;
   std::function<void(uint64_t)> transaction_finished;
+  bool fast_sub_chunking = false;
 };
 
 class Transaction_buffer {
@@ -83,6 +84,8 @@ class Transaction_buffer {
   }
 
  private:
+  int fast_sub_chunking(char *buffer, unsigned int length);
+
   int consume(char *buffer, unsigned int length);
 
   int64_t trx_bytes_left() const { return m_options.max_trx_size - m_trx_size; }

@@ -94,7 +94,13 @@ void Import_table::progress_setup() {
   m_progress_thread.start_stage("Parallel load data", std::move(config));
 }
 
-void Import_table::progress_shutdown() { m_progress_thread.finish(); }
+void Import_table::progress_shutdown() {
+  if (m_interrupt && *m_interrupt) {
+    m_progress_thread.terminate();
+  } else {
+    m_progress_thread.finish();
+  }
+}
 
 void Import_table::spawn_workers() {
   const int64_t num_workers = m_opt.threads_size();
@@ -176,6 +182,7 @@ void Import_table::build_queue() {
 
 void Import_table::import() {
   progress_setup();
+  shcore::on_leave_scope cleanup_progress([this]() { progress_shutdown(); });
   spawn_workers();
 
   if (m_opt.is_multifile()) {
@@ -190,7 +197,6 @@ void Import_table::import() {
   }
 
   join_workers();
-  progress_shutdown();
 }
 
 std::string Import_table::import_summary() const {

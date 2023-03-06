@@ -348,10 +348,6 @@ void Http_directory::create() {
   throw std::logic_error("Http_directory::create() - not implemented");
 }
 
-void Http_directory::close() {
-  // NO-OP
-}
-
 Masked_string Http_directory::full_path() const { return m_url; }
 
 std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(

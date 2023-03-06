@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,6 +180,7 @@ struct SHCORE_PUBLIC Style {
 
 inline std::string strip_colors(const std::string &text) {
   std::string s;
+  s.reserve(text.length());
   size_t p = 0;
   auto pos = text.find("\033[");
   while (pos != std::string::npos) {

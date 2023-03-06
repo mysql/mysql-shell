@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -210,10 +210,12 @@ class Progress_thread final {
 
     void terminate();
 
+    void toggle_visibility(bool show);
+
     // information about the stage
     Duration m_duration;
     std::string m_description;
-    bool m_show_progress;
+    std::atomic<bool> m_show_progress;
 
     // display-related variables
     std::mutex m_finished_mutex;
@@ -398,6 +400,21 @@ class Progress_thread final {
    */
   const Stage *current_stage() const { return m_current_stage; }
 
+  /**
+   * Shows the progress if it was hidden.
+   */
+  void show();
+
+  /**
+   * Hides the progress if it was shown.
+   */
+  void hide();
+
+  /**
+   * Whether the progress is visible.
+   */
+  bool visible() const { return m_show_progress; }
+
  private:
   template <class T, class... Args>
   Stage *start_stage(const std::string &description, Args &&... args);
@@ -412,9 +429,11 @@ class Progress_thread final {
 
   void kill_thread();
 
+  void toggle_visibility(bool show);
+
   // configuration
   std::string m_description;
-  bool m_show_progress = false;
+  std::atomic<bool> m_show_progress = false;
   bool m_json_output = false;
 
   // console

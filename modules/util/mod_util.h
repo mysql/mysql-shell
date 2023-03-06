@@ -29,6 +29,9 @@
 #include <vector>
 
 #include "modules/mod_extensible_object.h"
+#include "modules/util/copy/copy_instance_options.h"
+#include "modules/util/copy/copy_schemas_options.h"
+#include "modules/util/copy/copy_tables_options.h"
 #include "modules/util/dump/dump_instance_options.h"
 #include "modules/util/dump/dump_schemas_options.h"
 #include "modules/util/dump/dump_tables_options.h"
@@ -147,6 +150,38 @@ class SHCORE_PUBLIC Util : public Extensible_object {
   void dump_instance(
       const std::string &directory,
       const shcore::Option_pack_ref<dump::Dump_instance_options> &options);
+
+#if DOXYGEN_JS
+  Undefined copyInstance(ConnectionData connectionData, Dictionary options);
+#elif DOXYGEN_PY
+  None copy_instance(ConnectionData connectionData, dict options);
+#endif
+  void copy_instance(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const shcore::Option_pack_ref<copy::Copy_instance_options> &options = {});
+
+#if DOXYGEN_JS
+  Undefined copySchemas(List schemas, ConnectionData connectionData,
+                        Dictionary options);
+#elif DOXYGEN_PY
+  None copy_schemas(list schemas, ConnectionData connectionData, dict options);
+#endif
+  void copy_schemas(
+      const std::vector<std::string> &schemas,
+      const mysqlshdk::db::Connection_options &connection_options,
+      const shcore::Option_pack_ref<copy::Copy_schemas_options> &options = {});
+
+#if DOXYGEN_JS
+  Undefined copyTables(String schema, List tables,
+                       ConnectionData connectionData, Dictionary options);
+#elif DOXYGEN_PY
+  None copy_tables(str schema, list tables, ConnectionData connectionData,
+                   dict options);
+#endif
+  void copy_tables(
+      const std::string &schema, const std::vector<std::string> &tables,
+      const mysqlshdk::db::Connection_options &connection_options,
+      const shcore::Option_pack_ref<copy::Copy_tables_options> &options = {});
 
  private:
   shcore::IShell_core &_shell_core;

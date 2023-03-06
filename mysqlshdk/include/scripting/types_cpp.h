@@ -32,7 +32,10 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -184,6 +187,15 @@ struct Parameter final {
   bool cmd_line_enabled;
 
   bool is_deprecated;
+
+  bool operator==(const Parameter &r) const {
+    return name == r.name && m_type == r.m_type && flag == r.flag &&
+           short_name == r.short_name &&
+           cmd_line_enabled == r.cmd_line_enabled &&
+           is_deprecated == r.is_deprecated;
+  }
+
+  bool operator!=(const Parameter &r) const { return !operator==(r); }
 
   void validate(const Value &data, Parameter_context *context) const;
 
@@ -612,6 +624,8 @@ class Option_pack_def : public IOption_pack_def {
       T::options().unpack(unpacker, &((*instance).*var));
     });
 
+    ignore(T::options().ignored());
+
     return *this;
   }
 
@@ -646,7 +660,50 @@ class Option_pack_def : public IOption_pack_def {
         [](const Option_pack_def<C> *, shcore::Option_unpacker *unpacker,
            C *instance) { T::options().unpack(unpacker, instance); });
 
+    ignore(T::options().ignored());
+
     return *this;
+  }
+
+  /**
+   * Ignores given options. Options in this list are treated as unknown.
+   *
+   * @params options Options to be ignored
+   */
+  Option_pack_def<C> &ignore(
+      const std::unordered_set<std::string_view> &ignored_options) {
+    if (!ignored_options.empty()) {
+      m_ignored.insert(ignored_options.begin(), ignored_options.end());
+
+      m_option_md.erase(std::remove_if(m_option_md.begin(), m_option_md.end(),
+                                       [this](const auto &param) {
+                                         return is_ignored(param->name);
+                                       }),
+                        m_option_md.end());
+    }
+
+    return *this;
+  }
+
+  /**
+   * Ignores all options from the given option pack type.
+   */
+  template <typename T>
+  Option_pack_def<C> &ignore() {
+    const auto &options = T::options().options();
+    std::unordered_set<std::string_view> ignored;
+
+    for (const auto &o : options) {
+      ignored.emplace(o->name);
+    }
+
+    ignore(ignored);
+
+    return *this;
+  }
+
+  const std::unordered_set<std::string_view> &ignored() const {
+    return m_ignored;
   }
 
   /**
@@ -694,6 +751,7 @@ class Option_pack_def : public IOption_pack_def {
 
     Option_unpacker unpacker;
     unpacker.set_options(options);
+    unpacker.set_ignored(m_ignored);
 
     unpack(&unpacker, instance);
 
@@ -718,8 +776,9 @@ class Option_pack_def : public IOption_pack_def {
  private:
   template <typename T>
   void add_options() {
-    auto options = T::options().options();
-    m_option_md.insert(m_option_md.end(), options.begin(), options.end());
+    for (const auto &o : T::options().options()) {
+      add_option(o);
+    }
   }
 
   template <typename T>
@@ -741,15 +800,36 @@ class Option_pack_def : public IOption_pack_def {
   template <typename T>
   void add_option(const std::string &name, const std::string &sname,
                   Option_scope scope, shcore::Param_flag flag) {
-    m_option_md.push_back(std::make_shared<shcore::Parameter>(
-        name, shcore::Type_info<T>::vtype(), flag, sname,
-        scope != Option_scope::CLI_DISABLED,
-        scope == Option_scope::DEPRECATED));
+    if (is_ignored(name)) {
+      return;
+    }
 
-    auto validator = Type_info<T>::validator();
-    if (validator) {
+    const auto option = std::make_shared<shcore::Parameter>(
+        name, shcore::Type_info<T>::vtype(), flag, sname,
+        scope != Option_scope::CLI_DISABLED, scope == Option_scope::DEPRECATED);
+    if (auto validator = Type_info<T>::validator()) {
       validator->set_enabled(false);
-      m_option_md.back()->set_validator(std::move(validator));
+      option->set_validator(std::move(validator));
+    }
+
+    add_option(option);
+  }
+
+  void add_option(const std::shared_ptr<shcore::Parameter> &option) {
+    if (is_ignored(option->name)) {
+      return;
+    }
+
+    if (const auto o = m_all_options.find(option->name);
+        o != m_all_options.end()) {
+      if (*option != *m_option_md[o->second]) {
+        throw std::logic_error(
+            "Trying to overwrite an option which already exists: " +
+            option->name);
+      }
+    } else {
+      m_all_options.emplace(option->name, m_option_md.size());
+      m_option_md.emplace_back(option);
     }
   }
 
@@ -797,6 +877,10 @@ class Option_pack_def : public IOption_pack_def {
     }
   }
 
+  bool is_ignored(std::string_view option) const {
+    return m_ignored.count(option) > 0;
+  }
+
   std::vector<std::function<void(const Option_pack_def<C> *,
                                  shcore::Option_unpacker *, C *)>>
       m_unpack_callbacks;
@@ -804,6 +888,8 @@ class Option_pack_def : public IOption_pack_def {
   std::function<void(C *, const shcore::Dictionary_t &)> m_start_callback;
   std::function<void(C *)> m_done_callback;
   std::function<void(C *, const char *)> m_log_callback;
+  std::unordered_set<std::string_view> m_ignored;
+  std::unordered_map<std::string_view, std::size_t> m_all_options;
 };
 
 /**

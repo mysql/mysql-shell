@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -339,17 +339,24 @@ void Progress_thread::Stage::terminate() {
   finish(false);
 }
 
+void Progress_thread::Stage::toggle_visibility(bool show) {
+  m_show_progress = show;
+}
+
 Progress_thread::Progress_thread(const std::string &description,
                                  bool show_progress)
     : m_description(description), m_show_progress(show_progress) {
   m_json_output = "off" != mysqlsh::current_shell_options()->get().wrap_json;
 
-  if (m_show_progress) {
-    if (m_json_output) {
-      m_progress = std::make_unique<mysqlshdk::textui::Json_progress>();
-    } else {
-      m_progress = std::make_unique<mysqlshdk::textui::Text_progress>();
-    }
+  if (m_json_output) {
+    m_progress = std::make_unique<mysqlshdk::textui::Json_progress>();
+  } else {
+    m_progress = std::make_unique<mysqlshdk::textui::Text_progress>();
+  }
+
+  if (!m_show_progress) {
+    std::lock_guard lock{m_progress_mutex};
+    m_progress->hide(true);
   }
 
   m_console =
@@ -417,7 +424,14 @@ void Progress_thread::finish() {
   rethrow();
 }
 
-void Progress_thread::terminate() { emergency_shutdown(); }
+void Progress_thread::terminate() {
+  m_total_duration.finish();
+  kill_thread();
+}
+
+void Progress_thread::show() { toggle_visibility(true); }
+
+void Progress_thread::hide() { toggle_visibility(false); }
 
 template <class T, class... Args>
 Progress_thread::Stage *Progress_thread::start_stage(
@@ -474,6 +488,21 @@ void Progress_thread::rethrow() {
 void Progress_thread::kill_thread() {
   emergency_shutdown();
   wait_for_thread();
+}
+
+void Progress_thread::toggle_visibility(bool show) {
+  auto expected = !show;
+
+  if (m_show_progress.compare_exchange_strong(expected, show)) {
+    {
+      std::lock_guard lock{m_progress_mutex};
+      m_progress->hide(!show);
+    }
+
+    for (const auto &stage : m_stages) {
+      stage->toggle_visibility(show);
+    }
+  }
 }
 
 }  // namespace dump

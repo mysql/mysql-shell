@@ -69,6 +69,12 @@ class Dumper {
 
   void run();
 
+  void interrupt();
+
+  void abort();
+
+  Progress_thread *progress() { return &m_progress_thread; }
+
  protected:
   static inline std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -216,6 +222,8 @@ class Dumper {
 
   void initialize_dump();
 
+  void finalize_dump();
+
   void create_output_directory();
 
   void close_output_directory();
@@ -279,7 +287,7 @@ class Dumper {
 
   void push_table_chunking_task(Table_task &&task);
 
-  bool should_dump_data(const Table_task &table);
+  bool should_dump_data(const Table_task &table) const;
 
   std::unique_ptr<Dump_writer_controller> table_dump_controller(
       const std::string &filename) const;
@@ -316,7 +324,7 @@ class Dumper {
                                       const std::size_t idx,
                                       const bool last_chunk) const;
 
-  void initialize_progress();
+  void initialize_throughput_progress();
 
   void update_progress(const Dump_write_result &progress);
 

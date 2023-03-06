@@ -38,14 +38,19 @@ using off64_t = off_t;
 #endif
 
 #include <mysql.h>
+
 #include <algorithm>
+#include <cinttypes>
 #include <memory>
 #include <utility>
+
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/rest/error.h"
+#include "mysqlshdk/libs/storage/backend/in_memory/synchronized_file.h"
+#include "mysqlshdk/libs/storage/backend/in_memory/virtual_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -195,6 +200,10 @@ int Transaction_buffer::read(char *buffer, unsigned int length) {
   if (m_options.max_trx_size == 0) {
     // regular read if truncation is not enabled
     return m_file->read(buffer, length);
+  }
+
+  if (m_options.fast_sub_chunking) {
+    return fast_sub_chunking(buffer, length);
   }
 
   const auto read_more = [this](unsigned int count) -> int64_t {
@@ -465,6 +474,74 @@ uint64_t Transaction_buffer::adjust_line_offset(uint64_t offset) {
   return offset;
 }
 
+int Transaction_buffer::fast_sub_chunking(char *buffer, unsigned int length) {
+  if (!m_data.empty()) {
+    // if data is stored locally, then a row didn't fit into an empty buffer,
+    // consume it first
+    return consume(buffer, length);
+  }
+
+  if (trx_bytes_left() <= 0) {
+    // the row we had stored was longer than the transaction size, or we read
+    // exactly that many bytes
+    return 0;
+  }
+
+  auto bytes =
+      m_file->read(buffer, std::min<uint64_t>(length, trx_bytes_left()));
+
+  if (0 == bytes) {
+    m_eof = true;
+    return bytes;
+  }
+
+  if (bytes < 0) {
+    // it was not possible to fit a single row into the buffer
+    if (m_trx_size) {
+      // we have some data in transaction, finish it, we'll see if this row fits
+      // into an empty buffer
+      return 0;
+    } else {
+      // row doesn't fit into an empty buffer, store it locally
+      const auto virtual_file =
+          dynamic_cast<mysqlshdk::storage::in_memory::Virtual_file *>(m_file);
+      assert(virtual_file);
+
+      if (!virtual_file) {
+        throw std::logic_error(
+            "Fast sub-chunking is only possible with virtual FS");
+      }
+
+      const auto handle =
+          dynamic_cast<mysqlshdk::storage::in_memory::Synchronized_file *>(
+              virtual_file->file());
+      assert(handle);
+
+      if (!handle) {
+        throw std::logic_error(
+            "Fast sub-chunking is only possible with synchronized I/O");
+      }
+
+      const auto row_length = handle->pending_write_size();
+
+      m_data.resize(row_length);
+      bytes = m_file->read(m_data.data(), row_length);
+
+      // this read should succeed
+      assert(static_cast<std::size_t>(bytes) == row_length);
+
+      if (bytes <= 0) {
+        return bytes;
+      }
+
+      return consume(buffer, length);
+    }
+  }
+
+  m_trx_size += bytes;
+  return bytes;
+}
+
 // ------
 
 int local_infile_init(void **buffer, const char * /* filename */,
@@ -607,6 +684,9 @@ void Load_data_worker::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     std::unique_ptr<mysqlshdk::storage::IFile> file,
     const Transaction_options &options) {
+  const auto worker_name =
+      shcore::str_format("[Worker%03" PRId64 "]: ", m_thread_id);
+
   try {
     File_info fi;
     fi.worker_id = m_thread_id;
@@ -745,10 +825,6 @@ void Load_data_worker::execute(
       query_columns.pop_back();  // strip the last ,
     }
 
-    char worker_name[64];
-    snprintf(worker_name, sizeof(worker_name), "[Worker%03u] ",
-             static_cast<unsigned int>(m_thread_id));
-
     uint64_t subchunk = 0;
     while (true) {
       if (!fi.continuation) {
@@ -762,8 +838,9 @@ void Load_data_worker::execute(
       const auto format_error_message = [&worker_name, &fi, &r](
                                             const std::string &error,
                                             const std::string &extra = {}) {
-        const auto task = fi.filehandler ? fi.filehandler->filename() : "";
-        auto msg = worker_name + task + ": " + error;
+        const auto task =
+            fi.filehandler ? fi.filehandler->filename() + ": " : "";
+        auto msg = worker_name + task + error;
 
         if (fi.range_read) {
           msg += " @ file bytes range [" + std::to_string(r.range.first) +
@@ -839,7 +916,7 @@ void Load_data_worker::execute(
           query_prefix + query_body + query_ignore_lines + query_columns;
 
 #ifndef NDEBUG
-      log_debug("%s %s %i", worker_name, full_query.c_str(),
+      log_debug("%s %s %i", worker_name.c_str(), full_query.c_str(),
                 m_range_queue != nullptr);
 #endif
 
@@ -975,6 +1052,11 @@ void Load_data_worker::execute(
       }
 
       if (!m_range_queue && !fi.continuation) break;
+    }
+  } catch (const std::exception &e) {
+    if (!m_thread_exception[m_thread_id]) {
+      mysqlsh::current_console()->print_error(worker_name + e.what());
+      m_thread_exception[m_thread_id] = std::current_exception();
     }
   } catch (...) {
     m_thread_exception[m_thread_id] = std::current_exception();

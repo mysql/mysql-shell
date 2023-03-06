@@ -579,7 +579,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         test_dump1_files, test_dump1_files_size);
 
     Load_dump_options options;
-    options.set_session(make_mock_main_session(), "");
+    options.set_session(make_mock_main_session());
 
     Load_dump_options::options().unpack(
         shcore::make_dict("threads", num_threads, "showProgress", false,
@@ -677,7 +677,7 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
       .then({"Variable_name", "Value"})
       .add_row({"partial_revokes", "OFF"});
 
-  options.set_session(mock_main_session, "");
+  options.set_session(mock_main_session);
 
   Dump_loader loader(options);
 

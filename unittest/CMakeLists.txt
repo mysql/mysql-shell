@@ -57,6 +57,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/mysql/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/rest/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/storage/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/storage/in_memory/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/utils/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/aws/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/oci/*.cc"

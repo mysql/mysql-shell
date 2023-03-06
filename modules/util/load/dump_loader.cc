@@ -42,6 +42,7 @@
 #include "modules/util/load/load_errors.h"
 #include "modules/util/load/load_progress_log.h"
 #include "mysqlshdk/include/scripting/naming_style.h"
+#include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -277,12 +278,18 @@ class Index_file {
     m_idx_file->open(mysqlshdk::storage::Mode::READ);
     m_idx_file->seek(m_file_size - k_entry_size);
     m_idx_file->read(&m_data_size, k_entry_size);
-    m_idx_file->seek(0);
     m_idx_file->close();
 
     m_data_size = mysqlshdk::utils::network_to_host(m_data_size);
 
     m_metadata_loaded = true;
+
+    if (1 == m_entries) {
+      // there's only one entry: the data size, we can initialize the offsets
+      // right away
+      m_offsets.emplace_back(m_data_size);
+      m_offsets_loaded = true;
+    }
   }
 
   void load_offsets() {
@@ -741,34 +748,38 @@ void Dump_loader::Worker::Load_chunk_task::load(
     options.max_trx_size =
         max_bytes_per_transaction.value_or(loader->m_dump->bytes_per_chunk());
 
-    uint64_t max_chunk_size = options.max_trx_size;
-
-    // if maxBytesPerTransaction is not given, only files bigger than
-    // k_chunk_size_overshoot_tolerance * bytesPerChunk are affected
-    if (!max_bytes_per_transaction.has_value()) {
-      max_chunk_size *= k_chunk_size_overshoot_tolerance;
-    }
-
     Index_file idx_file{m_file.get()};
 
-    if (options.max_trx_size > 0) {
-      bool valid = false;
-      auto chunk_file_size =
-          loader->m_dump->chunk_size(m_file->filename(), &valid);
+    if (loader->m_options.fast_sub_chunking()) {
+      options.fast_sub_chunking = true;
+    } else {
+      uint64_t max_chunk_size = options.max_trx_size;
 
-      if (!valid) {
-        // @.done.json not there yet, use the idx file directly
-        chunk_file_size = idx_file.data_size();
+      // if maxBytesPerTransaction is not given, only files bigger than
+      // k_chunk_size_overshoot_tolerance * bytesPerChunk are affected
+      if (!max_bytes_per_transaction.has_value()) {
+        max_chunk_size *= k_chunk_size_overshoot_tolerance;
       }
 
-      if (chunk_file_size < max_chunk_size) {
-        // chunk is small enough, so don't sub-chunk
-        options.max_trx_size = 0;
-      } else {
-        // data will not fit into a single transaction and needs to be divided
-        // load the row offsets from the IDX file
-        options.offsets = &idx_file.offsets();
-        if (options.offsets->empty()) options.offsets = nullptr;
+      if (options.max_trx_size > 0) {
+        bool valid = false;
+        auto chunk_file_size =
+            loader->m_dump->chunk_size(m_file->filename(), &valid);
+
+        if (!valid) {
+          // @.done.json not there yet, use the idx file directly
+          chunk_file_size = idx_file.data_size();
+        }
+
+        if (chunk_file_size < max_chunk_size) {
+          // chunk is small enough, so don't sub-chunk
+          options.max_trx_size = 0;
+        } else {
+          // data will not fit into a single transaction and needs to be divided
+          // load the row offsets from the IDX file
+          options.offsets = &idx_file.offsets();
+          if (options.offsets->empty()) options.offsets = nullptr;
+        }
       }
     }
 
@@ -1473,6 +1484,7 @@ bool Dump_loader::handle_table_data() {
   std::unique_ptr<mysqlshdk::storage::IFile> data_file;
 
   bool scheduled = false;
+  bool scanned = false;
   bool chunked = false;
   size_t index = 0;
   size_t total = 0;
@@ -1539,7 +1551,13 @@ bool Dump_loader::handle_table_data() {
       }
     } else {
       scheduled = false;
-      break;
+
+      if (m_dump->status() != Dump_reader::Status::COMPLETE && !scanned) {
+        scan_for_more_data(false);
+        scanned = true;
+      } else {
+        break;
+      }
     }
   } while (!scheduled);
 
@@ -1843,27 +1861,38 @@ void Dump_loader::interrupt() {
         "Press ^C again to abort current tasks and rollback active "
         "transactions (slow).");
   } else {
-    m_worker_hard_interrupt = true;
-    current_console()->print_info(
-        "^C -- Aborting active transactions. This may take a while...");
+    hard_interrupt();
   }
+}
+
+void Dump_loader::hard_interrupt() {
+  abort();
+  current_console()->print_info(
+      "^C -- Aborting active transactions. This may take a while...");
+}
+
+void Dump_loader::abort() {
+  m_worker_interrupt = true;
+  m_worker_hard_interrupt = true;
 }
 
 void Dump_loader::run() {
   try {
     m_progress_thread.start();
+    shcore::on_leave_scope cleanup_progress([this]() {
+      if (m_worker_interrupt) {
+        m_progress_thread.terminate();
+      } else {
+        m_progress_thread.finish();
+      }
+    });
 
     open_dump();
 
     spawn_workers();
 
     {
-      shcore::on_leave_scope cleanup([this]() {
-        join_workers();
-
-        m_progress_thread.finish();
-      });
-
+      shcore::on_leave_scope cleanup_workers([this]() { join_workers(); });
       execute_tasks();
     }
   } catch (...) {
@@ -1874,7 +1903,7 @@ void Dump_loader::run() {
 
   if (m_worker_interrupt && !m_abort) {
     // If interrupted by the user and not by a fatal error
-    throw std::runtime_error("Aborted");
+    throw shcore::cancelled("Aborted");
   }
 
   for (const auto &e : m_thread_exceptions) {
@@ -2016,7 +2045,7 @@ void Dump_loader::open_dump(
 
   m_dump->validate_options();
 
-  m_dump->show_metadata();
+  show_metadata();
 
   // Pick charset
   if (m_character_set.empty()) {
@@ -2804,7 +2833,7 @@ void Dump_loader::execute_tasks() {
 
   // the 1st potentially slow operation, as many errors should be detected
   // before this as possible
-  m_dump->rescan(&m_progress_thread);
+  wait_for_metadata();
 
   handle_schema_option();
 
@@ -2815,10 +2844,6 @@ void Dump_loader::execute_tasks() {
   size_t num_idle_workers = 0;
 
   do {
-    if (m_dump->status() != Dump_reader::Status::COMPLETE) {
-      wait_for_more_data();
-    }
-
     if (!m_init_done) {
       // process dump metadata first
       on_dump_begin();
@@ -2850,6 +2875,10 @@ void Dump_loader::execute_tasks() {
       }
     }
 
+    if (m_dump->status() != Dump_reader::Status::COMPLETE) {
+      scan_for_more_data();
+    }
+
     m_total_tables_with_data = m_dump->tables_with_data();
 
     // handle events from workers and schedule more chunks when a worker
@@ -2874,60 +2903,99 @@ void Dump_loader::execute_tasks() {
   log_debug("Import done");
 }
 
-bool Dump_loader::wait_for_more_data() {
+void Dump_loader::wait_for_metadata() {
   const auto start_time = std::chrono::steady_clock::now();
+  const auto console = current_console();
   bool waited = false;
-  auto console = current_console();
-  bool was_ready = m_dump->ready();
+
+  // we need to have the whole metadata before we proceed with the load
+
+  while (!m_dump->ready() && !m_worker_interrupt) {
+    log_debug("Scanning for metadata");
+
+    m_dump->rescan(&m_progress_thread);
+
+    if (m_dump->ready()) {
+      log_debug("Dump metadata available");
+      return;
+    }
+
+    if (!waited) {
+      console->print_status("Waiting for metadata to become available...");
+      waited = true;
+    }
+
+    wait_for_dump(start_time);
+  }
+}
+
+bool Dump_loader::scan_for_more_data(bool wait) {
+  const auto start_time = std::chrono::steady_clock::now();
+  const auto console = current_console();
+  bool waited = false;
 
   // if there are still idle workers, check if there's more that was dumped
   while (m_dump->status() != Dump_reader::Status::COMPLETE &&
          !m_worker_interrupt) {
+    log_debug("Scanning for more data");
+
     m_dump->rescan();
 
+    if (m_dump->data_available()) {
+      log_debug("Dump data available");
+      return true;
+    }
+
+    if (!wait) {
+      break;
+    }
+
     if (m_dump->status() == Dump_reader::Status::DUMPING) {
-      if (m_dump->data_available() || (!was_ready && m_dump->ready())) {
-        log_debug("Dump data available");
-        return true;
-      }
-
-      if (m_options.dump_wait_timeout_ms() > 0) {
-        const auto current_time = std::chrono::steady_clock::now();
-        const auto time_diff = std::chrono::duration_cast<std::chrono::seconds>(
-                                   current_time - start_time)
-                                   .count();
-        if (static_cast<uint64_t>(time_diff * 1000) >=
-            m_options.dump_wait_timeout_ms()) {
-          console->print_warning(
-              "Timeout while waiting for dump to finish. Imported data "
-              "may be incomplete.");
-
-          THROW_ERROR0(SHERR_LOAD_DUMP_WAIT_TIMEOUT);
-        }
-      } else {
-        // Dump isn't complete yet, but we're not waiting for it
-        break;
-      }
-
       if (!waited) {
         console->print_status("Waiting for more data to become available...");
+        waited = true;
       }
-      waited = true;
-      if (m_options.dump_wait_timeout_ms() < 1000) {
-        shcore::sleep_ms(m_options.dump_wait_timeout_ms());
-      } else {
-        // wait for at most 5s at a time and try again
-        for (uint64_t j = 0;
-             j < std::min<uint64_t>(5000, m_options.dump_wait_timeout_ms()) &&
-             !m_worker_interrupt;
-             j += 1000) {
-          shcore::sleep_ms(1000);
-        }
-      }
+
+      wait_for_dump(start_time);
     }
   }
 
+  log_debug("Scan did not find more data");
+
   return false;
+}
+
+void Dump_loader::wait_for_dump(
+    std::chrono::steady_clock::time_point start_time) {
+  if (m_options.dump_wait_timeout_ms() > 0) {
+    const auto current_time = std::chrono::steady_clock::now();
+    const auto time_diff =
+        std::chrono::duration_cast<std::chrono::milliseconds>(current_time -
+                                                              start_time)
+            .count();
+    if (static_cast<uint64_t>(time_diff) >= m_options.dump_wait_timeout_ms()) {
+      current_console()->print_warning(
+          "Timeout while waiting for dump to finish. Imported data may be "
+          "incomplete.");
+
+      THROW_ERROR0(SHERR_LOAD_DUMP_WAIT_TIMEOUT);
+    }
+  } else {
+    // Dump isn't complete yet, but we're not waiting for it
+    return;
+  }
+
+  if (m_options.dump_wait_timeout_ms() < 1000) {
+    shcore::sleep_ms(m_options.dump_wait_timeout_ms());
+  } else {
+    // wait for at most 5s at a time and try again
+    for (uint64_t j = 0;
+         j < std::min<uint64_t>(5000, m_options.dump_wait_timeout_ms()) &&
+         !m_worker_interrupt;
+         j += 1000) {
+      shcore::sleep_ms(1000);
+    }
+  }
 }
 
 void Dump_loader::spawn_workers() {
@@ -3232,9 +3300,14 @@ void Dump_loader::setup_load_data_progress() {
     std::string label;
 
     if (m_dump->status() != Dump_reader::Status::COMPLETE) {
-      label += "Dump still in progress, " +
-               mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
-               " ready (compr.) - ";
+      label += "Dump still in progress";
+
+      if (m_dump->dump_size()) {
+        label += ", " + mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
+                 " ready";
+      }
+
+      label += " - ";
     }
 
     const auto threads_loading = m_num_threads_loading.load();
@@ -3449,7 +3522,9 @@ void Dump_loader::load_users() {
   }
 
   for (const auto &group : statements) {
-    all_accounts.emplace(group.account);
+    if (!group.account.empty()) {
+      all_accounts.emplace(group.account);
+    }
 
     if (ignored_accounts.count(group.account) > 0) {
       continue;
@@ -3505,6 +3580,12 @@ void Dump_loader::load_users() {
   }
 
   m_loaded_accounts = all_accounts.size() - ignored_accounts.size();
+}
+
+void Dump_loader::show_metadata(bool force) const {
+  if (force || m_options.show_metadata()) {
+    m_dump->show_metadata();
+  }
 }
 
 }  // namespace mysqlsh

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,6 +49,12 @@
 namespace mysqlsh {
 namespace dump {
 
+enum class Dry_run {
+  DISABLED,
+  WRITE_EMPTY_DATA_FILES,
+  DONT_WRITE_ANY_FILES,
+};
+
 class Dump_options {
  public:
   Dump_options();
@@ -66,12 +72,25 @@ class Dump_options {
   void validate() const;
 
   // setters
+  void set_output_url(const std::string &url) { m_output_url = url; }
+
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+  void set_compression(mysqlshdk::storage::Compression compression) {
+    m_compression = compression;
+  }
+
+  void set_storage_config(
+      std::shared_ptr<mysqlshdk::storage::Config> storage_config);
+
+  void set_dry_run_mode(Dry_run dry_run) { m_dry_run_mode = dry_run; }
+
+  void disable_index_files() { m_write_index_files = false; }
+
+  void dont_rename_data_files() { m_rename_data_files = false; }
 
   // getters
   const std::string &output_url() const { return m_output_url; }
-
-  void set_output_url(const std::string &url) { m_output_url = url; }
 
   const shcore::Dictionary_t &original_options() const { return m_options; }
 
@@ -115,6 +134,14 @@ class Dump_options {
   const std::string &where(const std::string &schema,
                            const std::string &table) const;
 
+  Dry_run dry_run_mode() const { return m_dry_run_mode; }
+
+  bool is_dry_run() const { return Dry_run::DISABLED != m_dry_run_mode; }
+
+  bool write_index_files() const { return m_write_index_files; }
+
+  bool rename_data_files() const { return m_rename_data_files; }
+
   virtual bool split() const = 0;
 
   virtual uint64_t bytes_per_chunk() const = 0;
@@ -128,8 +155,6 @@ class Dump_options {
   virtual bool dump_ddl() const = 0;
 
   virtual bool dump_data() const = 0;
-
-  virtual bool is_dry_run() const = 0;
 
   virtual bool consistent_dump() const = 0;
 
@@ -150,10 +175,6 @@ class Dump_options {
   virtual bool par_manifest() const = 0;
 
  protected:
-  void set_compression(mysqlshdk::storage::Compression compression) {
-    m_compression = compression;
-  }
-
   void set_mds_compatibility(
       const std::optional<mysqlshdk::utils::Version> &mds) {
     m_mds = mds;
@@ -192,8 +213,6 @@ class Dump_options {
 
  protected:
   void on_start_unpack(const shcore::Dictionary_t &options);
-  void set_storage_config(
-      const std::shared_ptr<mysqlshdk::storage::Config> &storage_config);
 
   // This function should be implemented when the validation process requires
   // data NOT coming on the user options, i.e. a session
@@ -236,6 +255,12 @@ class Dump_options {
 
   import_table::Dialect m_dialect;
   import_table::Dialect m_dialect_unpacker;
+
+  Dry_run m_dry_run_mode = Dry_run::DISABLED;
+
+  bool m_write_index_files = true;
+
+  bool m_rename_data_files = true;
 
   // schema -> table -> condition
   std::unordered_map<std::string, std::unordered_map<std::string, std::string>>

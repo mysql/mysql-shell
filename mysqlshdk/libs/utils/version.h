@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,6 +81,11 @@ class Version {
    * Returns the numeric version: MMmmpp, where M - major, m - minor, p - patch.
    */
   uint32_t numeric() const;
+
+  /**
+   * Returns true if this is an MDS server.
+   */
+  bool is_mds() const;
 
   bool operator<(const Version &other) const;
   bool operator<=(const Version &other) const;

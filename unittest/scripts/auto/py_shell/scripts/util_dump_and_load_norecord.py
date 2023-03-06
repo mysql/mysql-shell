@@ -377,7 +377,7 @@ EXPECT_STDOUT_CONTAINS(f"""
 ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: The above error was ignored, the load operation will continue.
 """)
-EXPECT_STDOUT_CONTAINS("7 accounts were loaded, 1 GRANT statement errors were ignored")
+EXPECT_STDOUT_CONTAINS("6 accounts were loaded, 1 GRANT statement errors were ignored")
 
 # privileges for schema1.table1 are not included
 expected_accounts[tested_user_key]["grants"] = [grant for grant in expected_accounts[tested_user_key]["grants"] if "table1" not in grant]
@@ -393,7 +393,7 @@ EXPECT_STDOUT_CONTAINS(f"""
 ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: Due to the above error the account 'user_34952027'@'localhost' was dropped, the load operation will continue.
 """)
-EXPECT_STDOUT_CONTAINS("6 accounts were loaded, 1 accounts were dropped due to GRANT statement errors")
+EXPECT_STDOUT_CONTAINS("5 accounts were loaded, 1 accounts were dropped due to GRANT statement errors")
 # ensure that no more grant statements are executed
 EXPECT_STDOUT_NOT_CONTAINS("You are not allowed to create a user with GRANT")
 
@@ -961,7 +961,7 @@ def EXPECT_DUMP_AND_LOAD_PARTITIONED(dump, tables = all_tables):
     for table in tables:
         for partition in partition_names[table]:
             # loader should mention the partition as a separate entity
-            EXPECT_SHELL_LOG_MATCHES(re.compile(f"\\[Worker00\\d\\] {encode_partition_basename(schema_name, table, partition)}.*tsv.zst: Records: \\d+  Deleted: 0  Skipped: 0  Warnings: 0"))
+            EXPECT_SHELL_LOG_MATCHES(re.compile(f"\\[Worker00\\d\\]: {encode_partition_basename(schema_name, table, partition)}.*tsv.zst: Records: \\d+  Deleted: 0  Skipped: 0  Warnings: 0"))
     # verify consistency
     for table in tables:
         EXPECT_EQ(checksums[table], compute_checksum(schema_name, table))

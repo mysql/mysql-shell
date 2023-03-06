@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -196,15 +196,17 @@ off64_t File::seek(off64_t offset) {
   assert(is_open());
 
 #if defined(_WIN32)
-  return _fseeki64(m_file, offset, SEEK_SET);
+  _fseeki64(m_file, offset, SEEK_SET);
 #else
   if (m_mmap_ptr) {
     assert(offset < static_cast<off64_t>(m_mmap_used));
     m_mmap_offset = offset;
     return offset;
   }
-  return fseeko(m_file, offset, SEEK_SET);
+  fseeko(m_file, offset, SEEK_SET);
 #endif
+
+  return tell();
 }
 
 off64_t File::tell() const {
@@ -250,7 +252,7 @@ bool File::flush() {
 #endif
     return true;
   }
-  return fflush(m_file);
+  return 0 == fflush(m_file);
 }
 
 bool File::exists() const { return shcore::is_file(full_path().real()); }

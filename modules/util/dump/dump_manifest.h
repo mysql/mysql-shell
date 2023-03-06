@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -164,7 +164,7 @@ class Dump_manifest_writer
       const std::string &name,
       const mysqlshdk::storage::File_options &options = {}) const override;
 
-  void close() override;
+  void close();
 
   bool is_local() const override { return false; }
 
@@ -181,8 +181,6 @@ class Dump_manifest_reader : public mysqlshdk::storage::IDirectory {
                        const std::shared_ptr<Manifest_reader> &reader = {});
 
   ~Dump_manifest_reader() override = default;
-
-  void close() override {}
 
   bool is_local() const override { return false; }
 

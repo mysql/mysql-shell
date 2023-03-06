@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,8 +61,6 @@ class Ddl_dumper_options : public Dump_options {
 
   bool dump_data() const override { return !m_ddl_only; }
 
-  bool is_dry_run() const override { return m_dry_run; }
-
   bool consistent_dump() const override { return m_consistent_dump; }
 
   bool skip_consistency_checks() const override {
@@ -79,6 +77,8 @@ class Ddl_dumper_options : public Dump_options {
     return m_dump_manifest_options.par_manifest();
   }
 
+  void enable_mds_compatibility_checks();
+
  protected:
   Ddl_dumper_options();
 
@@ -91,6 +91,7 @@ class Ddl_dumper_options : public Dump_options {
   void set_bytes_per_chunk(const std::string &value);
   void set_ocimds(bool value);
   void set_compatibility_options(const std::vector<std::string> &options);
+  void set_dry_run(bool dry_run);
 
   Dump_manifest_options m_dump_manifest_options;
   // this should be in the Dump_options class, but storing it at the same level
@@ -106,7 +107,6 @@ class Ddl_dumper_options : public Dump_options {
   bool m_timezone_utc = true;
   bool m_ddl_only = false;
   bool m_data_only = false;
-  bool m_dry_run = false;
   bool m_consistent_dump = true;
   bool m_skip_consistency_checks = false;
 };

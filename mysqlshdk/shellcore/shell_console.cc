@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,14 @@ std::string json_obj(
   shcore::JSON_dumper dumper(options.wrap_json == "json", options.binary_limit);
   dumper.start_object();
   dumper.append_string(key);
-  dumper.append_string(value);
+
+  if (options.gui_mode) {
+    // if shell is running in GUI mode we want to send the color codes, in order
+    // to improve text rendering
+    dumper.append_string(value);
+  } else {
+    dumper.append_string(mysqlshdk::textui::strip_colors(value));
+  }
 
   // Inserts the additional entries into the object
   for (const auto &entry : additional) {
@@ -323,7 +330,7 @@ void Shell_console::print_diag(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed()) {
     shcore::Log_reentrant_protector lock;
-    log_debug("%s", ftext.c_str());
+    log_debug("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 
@@ -337,7 +344,7 @@ void Shell_console::print_error(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed()) {
     shcore::Log_reentrant_protector lock;
-    log_error("%s", ftext.c_str());
+    log_error("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 
@@ -351,7 +358,7 @@ void Shell_console::print_warning(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed()) {
     shcore::Log_reentrant_protector lock;
-    log_warning("%s", ftext.c_str());
+    log_warning("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 
@@ -365,7 +372,7 @@ void Shell_console::print_note(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed()) {
     shcore::Log_reentrant_protector lock;
-    log_info("%s", text.c_str());
+    log_info("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 
@@ -378,7 +385,7 @@ void Shell_console::print_info(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed() && !text.empty()) {
     shcore::Log_reentrant_protector lock;
-    log_debug("%s", ftext.c_str());
+    log_debug("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 
@@ -391,7 +398,7 @@ void Shell_console::print_status(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed() && !text.empty()) {
     shcore::Log_reentrant_protector lock;
-    log_debug("%s", ftext.c_str());
+    log_debug("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 
@@ -404,7 +411,7 @@ void Shell_console::print_para(const std::string &text) const {
   }
   if (shcore::current_logger()->log_allowed() && !text.empty()) {
     shcore::Log_reentrant_protector lock;
-    log_debug2("%s", ftext.c_str());
+    log_debug2("%s", mysqlshdk::textui::strip_colors(ftext).c_str());
   }
 }
 

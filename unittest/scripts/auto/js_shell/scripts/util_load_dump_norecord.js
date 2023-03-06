@@ -440,10 +440,10 @@ EXPECT_SHELL_LOG_CONTAINS("[Worker001] Executing DDL script for `")
 EXPECT_SHELL_LOG_CONTAINS("[Worker002] Executing DDL script for `")
 EXPECT_SHELL_LOG_CONTAINS("[Worker003] Executing DDL script for `")
 
-EXPECT_SHELL_LOG_CONTAINS("[Worker000] sakila@")
-EXPECT_SHELL_LOG_CONTAINS("[Worker001] sakila@")
-EXPECT_SHELL_LOG_CONTAINS("[Worker002] sakila@")
-EXPECT_SHELL_LOG_CONTAINS("[Worker003] sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker000]: sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker001]: sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker002]: sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker003]: sakila@")
 
 // schema and view DDL should not be executed in workers
 EXPECT_SHELL_LOG_NOT_CONTAINS("] Executing DDL script for schema")

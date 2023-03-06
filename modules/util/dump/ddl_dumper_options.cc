@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,7 +68,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("tzUtc", &Ddl_dumper_options::m_timezone_utc)
           .optional("ddlOnly", &Ddl_dumper_options::m_ddl_only)
           .optional("dataOnly", &Ddl_dumper_options::m_data_only)
-          .optional("dryRun", &Ddl_dumper_options::m_dry_run)
+          .optional("dryRun", &Ddl_dumper_options::set_dry_run)
           .optional("consistent", &Ddl_dumper_options::m_consistent_dump)
           .optional("skipConsistencyChecks",
                     &Ddl_dumper_options::m_skip_consistency_checks)
@@ -90,7 +90,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
 
 void Ddl_dumper_options::set_ocimds(bool value) {
   if (value) {
-    set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+    enable_mds_compatibility_checks();
   }
 }
 
@@ -162,6 +162,14 @@ void Ddl_dumper_options::set_bytes_per_chunk(const std::string &value) {
   }
 
   m_bytes_per_chunk = expand_to_bytes(value);
+}
+
+void Ddl_dumper_options::enable_mds_compatibility_checks() {
+  set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+}
+
+void Ddl_dumper_options::set_dry_run(bool dry_run) {
+  set_dry_run_mode(dry_run ? Dry_run::DONT_WRITE_ANY_FILES : Dry_run::DISABLED);
 }
 
 }  // namespace dump

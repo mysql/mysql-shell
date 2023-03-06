@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ class IDirectory {
     File_info(std::string name, std::size_t size = 0);
 
     /**
-     * Size if fetched on first usage.
+     * Size is fetched on first usage.
      */
     File_info(std::string name, std::function<std::size_t()> &&get_size);
 
@@ -106,8 +106,6 @@ class IDirectory {
   virtual bool exists() const = 0;
 
   virtual void create() = 0;
-
-  virtual void close() = 0;
 
   virtual Masked_string full_path() const = 0;
 

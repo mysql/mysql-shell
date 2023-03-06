@@ -25,6 +25,7 @@
 #define MODULES_UTIL_LOAD_DUMP_LOADER_H_
 
 #include <atomic>
+#include <chrono>
 #include <list>
 #include <memory>
 #include <queue>
@@ -47,6 +48,7 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/priority_queue.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
@@ -66,7 +68,15 @@ class Dump_loader {
 
   void interrupt();
 
+  void hard_interrupt();
+
+  void abort();
+
   void run();
+
+  void show_metadata(bool force = false) const;
+
+  dump::Progress_thread *progress() { return &m_progress_thread; }
 
  private:
   class Worker {
@@ -289,23 +299,8 @@ class Dump_loader {
     }
   };
 
-  class Priority_queue
-      : public std::priority_queue<Task_ptr, std::vector<Task_ptr>,
-                                   Task_comparator> {
-   public:
-    using priority_queue::priority_queue;
-
-    Task_ptr pop_top() {
-      if (c.empty()) {
-        throw std::runtime_error("Trying to pop from an empty queue.");
-      }
-
-      std::pop_heap(c.begin(), c.end(), comp);
-      Task_ptr task = std::move(c.back());
-      c.pop_back();
-      return task;
-    }
-  };
+  using Queue =
+      shcore::Priority_queue<Task_ptr, std::vector<Task_ptr>, Task_comparator>;
 
   struct Worker_event {
     enum Event {
@@ -337,7 +332,9 @@ class Dump_loader {
   void execute_table_ddl_tasks();
   void execute_view_ddl_tasks();
 
-  bool wait_for_more_data();
+  void wait_for_metadata();
+  bool scan_for_more_data(bool wait = true);
+  void wait_for_dump(std::chrono::steady_clock::time_point start_time);
 
   std::shared_ptr<mysqlshdk::db::mysql::Session> create_session();
 
@@ -555,7 +552,7 @@ class Dump_loader {
 
   std::vector<std::thread> m_worker_threads;
   std::list<Worker> m_workers;
-  Priority_queue m_pending_tasks;
+  Queue m_pending_tasks;
   uint64_t m_current_weight = 0;
 
   std::mutex m_tables_being_loaded_mutex;

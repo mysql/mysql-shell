@@ -11,6 +11,7 @@ import re
 import string
 import sys
 import inspect
+import json
 
 
 mysqlshrec = "mysqlshrec"
@@ -274,6 +275,39 @@ def EXPECT_DELTA(expected, allowed_delta, actual, note=""):
         note = __caller_context()
     EXPECT_BETWEEN(expected - allowed_delta, expected +
                    allowed_delta, actual, note)
+
+
+def EXPECT_JSON_EQ(expected, actual, note = ""):
+    def json_to_string(o):
+        return json.dumps(o, indent = 2)
+    def compare_values(expected, actual, path):
+        if type(expected) != type(actual):
+            print(" =>", path, "mismatched values. Expected:\n", expected, "\nActual:\n", actual, "\n")
+            return 1
+        elif isinstance(expected, dict):
+            return compare_objects(expected, actual, path)
+        else:
+            jexpected = json_to_string(expected)
+            jactual = json_to_string(actual)
+            if jexpected != jactual:
+                print(" =>", path, "mismatched values. Expected:\n", jexpected, "\nActual:\n", jactual, "\n")
+                return 1
+        return 0
+    def compare_objects(expected, actual, path):
+        ndiffs = 0
+        for k in expected.keys():
+            if k not in actual:
+                ndiffs += 1
+                print(" =>", path + "." + k, "expected but missing from result")
+            else:
+                ndiffs += compare_values(expected[k], actual[k], path + "." + k)
+        for k in actual.keys():
+            if k not in expected:
+                ndiffs += 1
+                print(" =>", path + "." + k, "unexpected but found in result")
+        return ndiffs
+    if compare_values(expected, actual, "$") > 0:
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Tested values don't match as expected.</red> {note}\n\t<yellow>Actual:</yellow> {json_to_string(actual)}\n\t<yellow>Expected:</yellow> {json_to_string(expected)}")
 
 
 def EXPECT_TRUE(value, note=""):

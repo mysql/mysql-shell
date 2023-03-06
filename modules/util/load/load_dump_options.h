@@ -112,8 +112,7 @@ class Load_dump_options {
 
   void on_log_options(const char *msg) const;
 
-  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session,
-                   const std::string &current_schema);
+  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   std::shared_ptr<mysqlshdk::db::ISession> base_session() const {
     return m_base_session;
@@ -121,7 +120,8 @@ class Load_dump_options {
 
   const Connection_options &connection_options() const { return m_target; }
 
-  std::string target_import_info() const;
+  std::string target_import_info(const char *operation = "Loading",
+                                 const std::string &extra = {}) const;
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> create_dump_handle() const;
 
@@ -132,6 +132,8 @@ class Load_dump_options {
     return m_progress_file;
   }
 
+  void set_progress_file(const std::string &file);
+
   const std::string &default_progress_file() const {
     return m_default_progress_file;
   }
@@ -140,7 +142,12 @@ class Load_dump_options {
     return m_storage_config;
   }
 
+  void set_storage_config(
+      std::shared_ptr<mysqlshdk::storage::Config> storage_config);
+
   bool show_progress() const { return m_show_progress; }
+
+  void set_show_progress(bool show) { m_show_progress = show; }
 
   uint64_t threads_count() const { return m_threads_count; }
 
@@ -148,15 +155,31 @@ class Load_dump_options {
     return m_background_threads_count.value_or(def);
   }
 
+  void set_background_threads_count(uint64_t count) {
+    m_background_threads_count = count;
+  }
+
   uint64_t threads_per_add_index() const { return m_threads_per_add_index; }
 
   uint64_t dump_wait_timeout_ms() const { return m_wait_dump_timeout_ms; }
 
+  void set_dump_wait_timeout_ms(uint64_t timeout_ms) {
+    m_wait_dump_timeout_ms = timeout_ms;
+  }
+
   const std::string &character_set() const { return m_character_set; }
 
   bool load_data() const { return m_load_data; }
+
+  void set_load_data(bool load) { m_load_data = load; }
+
   bool load_ddl() const { return m_load_ddl; }
+
+  void set_load_ddl(bool load) { m_load_ddl = load; }
+
   bool load_users() const { return m_load_users; }
+
+  void set_load_users(bool load) { m_load_users = load; }
 
   bool dry_run() const { return m_dry_run; }
 
@@ -190,8 +213,6 @@ class Load_dump_options {
 
   const std::string &target_schema() const { return m_target_schema; }
 
-  const std::string &current_schema() const { return m_current_schema; }
-
   const mysqlshdk::utils::Version &target_server_version() const {
     return m_target_server_version;
   }
@@ -201,6 +222,8 @@ class Load_dump_options {
   void set_url(const std::string &url) { m_url = url; }
 
   bool show_metadata() const { return m_show_metadata; }
+
+  void set_show_metadata(bool show) { m_show_metadata = show; }
 
   bool should_create_pks(bool default_value) const {
     return m_create_invisible_pks.value_or(default_value);
@@ -226,12 +249,14 @@ class Load_dump_options {
 
   bool partial_revokes() const { return m_partial_revokes; }
 
+  bool fast_sub_chunking() const { return m_use_fast_sub_chunking; }
+
+  void enable_fast_sub_chunking() { m_use_fast_sub_chunking = true; }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
 
   void set_max_bytes_per_transaction(const std::string &value);
-
-  void set_progress_file(const std::string &file);
 
   void set_handle_grant_errors(const std::string &action);
 
@@ -281,7 +306,6 @@ class Load_dump_options {
   bool m_load_indexes = true;
   Update_gtid_set m_update_gtid_set = Update_gtid_set::OFF;
   std::string m_target_schema;
-  std::string m_current_schema;
 
   mysqlshdk::utils::Version m_target_server_version;
   bool m_is_mds = false;
@@ -302,6 +326,8 @@ class Load_dump_options {
 
   // whether partial revokes are enabled
   bool m_partial_revokes = false;
+
+  bool m_use_fast_sub_chunking = false;
 };
 
 }  // namespace mysqlsh

@@ -296,16 +296,7 @@ class Dump_reader {
     // number of chunks which were loaded
     size_t chunks_loaded = 0;
 
-    void consume_chunk() {
-      ++chunks_consumed;
-
-      // skip zero-sized chunks
-      while (has_data_available() &&
-             0 == available_chunks[chunks_consumed]->size()) {
-        ++chunks_consumed;
-        ++chunks_loaded;
-      }
-    }
+    void consume_chunk() { ++chunks_consumed; }
 
     bool has_data_available() const {
       return chunks_consumed < available_chunks.size() &&

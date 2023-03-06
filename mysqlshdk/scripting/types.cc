@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2325,7 +2325,7 @@ void Option_unpacker::set_options(const Dictionary_t &options) {
 }
 
 Value Option_unpacker::get_required(const char *name, Value_type type) {
-  if (!m_options) {
+  if (!m_options || is_ignored(name)) {
     m_missing.insert(name);
     return Value();
   }
@@ -2348,7 +2348,7 @@ Value Option_unpacker::get_required(const char *name, Value_type type) {
 
 Value Option_unpacker::get_optional(const char *name, Value_type type,
                                     bool case_insensitive) {
-  if (!m_options) {
+  if (!m_options || is_ignored(name)) {
     return Value();
   }
   auto opt = m_options->find(name);
@@ -2378,7 +2378,7 @@ Value Option_unpacker::get_optional(const char *name, Value_type type,
 
 Value Option_unpacker::get_optional_exact(const char *name, Value_type type,
                                           bool case_insensitive) {
-  if (!m_options) {
+  if (!m_options || is_ignored(name)) {
     return Value();
   }
   auto opt = m_options->find(name);

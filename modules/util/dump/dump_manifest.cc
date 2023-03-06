@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -509,13 +509,7 @@ Dump_manifest_writer::Dump_manifest_writer(
   }
 }
 
-Dump_manifest_writer::~Dump_manifest_writer() {
-  try {
-    m_writer->finalize();
-  } catch (const std::runtime_error &error) {
-    log_error("%s", error.what());
-  }
-}
+Dump_manifest_writer::~Dump_manifest_writer() { close(); }
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest_writer::file(
     const std::string &name, const mysqlshdk::storage::File_options &) const {

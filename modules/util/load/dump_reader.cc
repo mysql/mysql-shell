@@ -474,7 +474,7 @@ Dump_reader::Candidate Dump_reader::schedule_chunk_proportionally(
                    total_bytes_available);
     }
   } else {
-    assert(0);
+    // it's possible that all files loaded so far are empty, return any table
     return tables_in_progress.front();
   }
 
@@ -725,15 +725,11 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
 
   for (const auto &table : info->tables) {
     table.second->schema = schema;
+    table.second->options->set("schema", shcore::Value(schema));
   }
 
   for (auto &view : info->views) {
     view.schema = schema;
-  }
-
-  for (const auto &table : m_tables_with_data) {
-    table->owner->schema = schema;
-    table->owner->options->set("schema", shcore::Value(schema));
   }
 }
 
@@ -1208,7 +1204,12 @@ void Dump_reader::Schema_info::rescan_data(const Files &files,
 }
 
 bool Dump_reader::Dump_info::ready() const {
-  return sql && post_sql && has_users == !!users_sql && md_done;
+  // we're not checking for the @.sql, @.post.sql and @.users.sql here, because
+  // presence of these files depends on the dataOnly dump option (which is not
+  // recorded in the metadata), but these files are written at the beginning of
+  // the dump, so if md_done is true, then for sure these were already written
+  // by the dumper
+  return md_done;
 }
 
 void Dump_reader::Dump_info::rescan(mysqlshdk::storage::IDirectory *dir,
@@ -1370,18 +1371,15 @@ Dump_reader::create_progress_file_handle() const {
 }
 
 void Dump_reader::show_metadata() const {
-  if (m_options.show_metadata()) {
-    const auto metadata = shcore::make_dict(
-        "Dump_metadata",
-        shcore::make_dict("Binlog_file", binlog_file(), "Binlog_position",
-                          binlog_position(), "Executed_GTID_set",
-                          gtid_executed()));
+  const auto metadata = shcore::make_dict(
+      "Dump_metadata", shcore::make_dict("Binlog_file", binlog_file(),
+                                         "Binlog_position", binlog_position(),
+                                         "Executed_GTID_set", gtid_executed()));
 
-    const auto console = current_console();
+  const auto console = current_console();
 
-    console->println();
-    console->println(shcore::Value(metadata).yaml());
-  }
+  console->println();
+  console->println(shcore::Value(metadata).yaml());
 }
 
 bool Dump_reader::should_create_pks() const {

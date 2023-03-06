@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -27,43 +27,44 @@ ENDIF()
 
 set(utils_SOURCE
     array_result.cc
-    bignum.cc
-    utils_mysql_parsing.cc
-    utils_net.cc
-    utils_file.cc
-    utils_path.cc
-    utils_process.cc
-    utils_json.cc
-    utils_general.cc
-    utils_sqlstring.cc
-    strformat.cc
-    utils_string.cc
-    utils_uuid.cc
-    utils_stacktrace.cc
-    utils_lexing.cc
-    utils_buffered_input.cc
-    utils_translate.cc
-    utils_time.cc
-    document_parser.cc
-    trandom.cc
-    nullable_options.cc
     base_tokenizer.cc
-    logger.cc
-    process_launcher.cc
+    bignum.cc
     debug.cc
+    document_parser.cc
+    dtoa.cc
+    log_sql.cc
+    logger.cc
+    nullable_options.cc
     options.cc
-    uuid_gen.cc
-    version.cc
+    process_launcher.cc
     profiling.cc
     rate_limit.cc
     ssl_keygen.cc
-    utils_encoding.cc
-    dtoa.cc
+    strformat.cc
     syslog.cc
-    log_sql.cc
     syslog_level.cc
-    threads.cc
     thread_pool.cc
+    threads.cc
+    trandom.cc
+    utils_buffered_input.cc
+    utils_encoding.cc
+    utils_file.cc
+    utils_general.cc
+    utils_json.cc
+    utils_lexing.cc
+    utils_mysql_parsing.cc
+    utils_net.cc
+    utils_os.cc
+    utils_path.cc
+    utils_process.cc
+    utils_sqlstring.cc
+    utils_stacktrace.cc
+    utils_string.cc
+    utils_time.cc
+    utils_translate.cc
+    utils_uuid.cc
+    uuid_gen.cc
+    version.cc
 )
 
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)

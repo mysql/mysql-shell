@@ -29,6 +29,7 @@
 #include <vector>
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "modules/util/copy/copy_operation.h"
 #include "modules/util/dump/dump_instance.h"
 #include "modules/util/dump/dump_instance_options.h"
 #include "modules/util/dump/dump_schemas.h"
@@ -83,6 +84,14 @@ Util::Util(shcore::IShell_core *owner)
   expose("exportTable", &Util::export_table, "table", "outputUrl", "?options")
       ->cli();
   expose("loadDump", &Util::load_dump, "url", "?options")->cli();
+  expose("copyInstance", &Util::copy_instance, "connectionData", "?options")
+      ->cli();
+  expose("copySchemas", &Util::copy_schemas, "schemas", "connectionData",
+         "?options")
+      ->cli();
+  expose("copyTables", &Util::copy_tables, "schema", "tables", "connectionData",
+         "?options")
+      ->cli();
 }
 
 REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
@@ -1285,7 +1294,7 @@ void Util::load_dump(
 
   Load_dump_options opt = *options;
   opt.set_url(url);
-  opt.set_session(session->get_core_session(), session->get_current_schema());
+  opt.set_session(session->get_core_session());
   opt.validate();
 
   Dump_loader loader(opt);
@@ -1482,7 +1491,8 @@ names used to limit the data export to just the specified partitions.
 @li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
 
 @li <b>consistent</b>: bool (default: true) - Enable or disable consistent data
-dumps.
+dumps. When enabled, produces a transactionally consistent dump at a specific
+point in time.
 @li <b>skipConsistencyChecks</b>: bool (default: false) - Skips additional
 consistency checks which are executed when running consistent dumps and i.e.
 backup lock cannot not be acquired.
@@ -1795,7 +1805,14 @@ void Util::export_table(
   opts.set_output_url(file);
   opts.set_session(session->get_core_session());
 
-  Export_table{opts}.run();
+  Export_table dumper{opts};
+
+  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
+    dumper.interrupt();
+    return false;
+  });
+
+  dumper.run();
 }
 
 REGISTER_HELP_FUNCTION(dumpTables, util);
@@ -1908,7 +1925,14 @@ void Util::dump_tables(
   opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
 
-  Dump_tables{opts}.run();
+  Dump_tables dumper{opts};
+
+  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
+    dumper.interrupt();
+    return false;
+  });
+
+  dumper.run();
 }
 
 REGISTER_HELP_FUNCTION(dumpSchemas, util);
@@ -1989,7 +2013,14 @@ void Util::dump_schemas(
   opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
 
-  Dump_schemas{opts}.run();
+  Dump_schemas dumper{opts};
+
+  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
+    dumper.interrupt();
+    return false;
+  });
+
+  dumper.run();
 }
 
 REGISTER_HELP_FUNCTION(dumpInstance, util);
@@ -2090,7 +2121,312 @@ void Util::dump_instance(
   opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
 
-  Dump_instance{opts}.run();
+  Dump_instance dumper{opts};
+
+  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
+    dumper.interrupt();
+    return false;
+  });
+
+  dumper.run();
+}
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_COPY_COMMON_DESCRIPTION, R"*(
+Runs simultaneous dump and load operations, while storing the dump artifacts in
+memory.
+
+If target is a MySQL Database Service instance, automatically checks for
+compatibility with MDS.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_COPY_SCHEMAS_COMMON_OPTIONS, R"*(
+@li <b>excludeTables</b>: list of strings (default: empty) - List of tables or
+views to be excluded from the copy in the format of <b>schema</b>.<b>table</b>.
+@li <b>includeTables</b>: list of strings (default: empty) - List of tables or
+views to be included in the copy in the format of <b>schema</b>.<b>table</b>.
+
+@li <b>events</b>: bool (default: true) - Include events from each copied
+schema.
+@li <b>excludeEvents</b>: list of strings (default: empty) - List of events
+to be excluded from the copy in the format of <b>schema</b>.<b>event</b>.
+@li <b>includeEvents</b>: list of strings (default: empty) - List of events
+to be included in the copy in the format of <b>schema</b>.<b>event</b>.
+
+@li <b>routines</b>: bool (default: true) - Include functions and stored
+procedures for each copied schema.
+@li <b>excludeRoutines</b>: list of strings (default: empty) - List of routines
+to be excluded from the copy in the format of <b>schema</b>.<b>routine</b>.
+@li <b>includeRoutines</b>: list of strings (default: empty) - List of routines
+to be included in the copy in the format of <b>schema</b>.<b>routine</b>.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_COPY_COMMON_OPTIONS, R"*(
+@li <b>triggers</b>: bool (default: true) - Include triggers for each copied
+table.
+@li <b>excludeTriggers</b>: list of strings (default: empty) - List of triggers
+to be excluded from the copy in the format of <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or
+<b>schema</b>.<b>table</b>.<b>trigger</b> (the individual trigger).
+@li <b>includeTriggers</b>: list of strings (default: empty) - List of triggers
+to be included in the copy in the format of <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or
+<b>schema</b>.<b>table</b>.<b>trigger</b> (the individual trigger).
+
+@li <b>where</b>: dictionary (default: not set) - A key-value pair of a table
+name in the format of <b>schema.table</b> and a valid SQL condition expression
+used to filter the data being copied.
+@li <b>partitions</b>: dictionary (default: not set) - A key-value pair of a
+table name in the format of <b>schema.table</b> and a list of valid partition
+names used to limit the data copy to just the specified partitions.
+
+@li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
+Database Service compatibility modifications when copying the DDL. Supported
+values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+"ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+"strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+
+@li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
+
+@li <b>consistent</b>: bool (default: true) - Enable or disable consistent data
+copies. When enabled, produces a transactionally consistent copy at a specific
+point in time.
+@li <b>skipConsistencyChecks</b>: bool (default: false) - Skips additional
+consistency checks which are executed when running consistent copies and i.e.
+backup lock cannot not be acquired.
+@li <b>ddlOnly</b>: bool (default: false) - Only copy Data Definition Language
+(DDL) from the database.
+@li <b>dataOnly</b>: bool (default: false) - Only copy data from the database.
+@li <b>dryRun</b>: bool (default: false) - Simulates a copy and prints
+everything that would be performed, without actually doing so.
+
+@li <b>chunking</b>: bool (default: true) - Enable chunking of the tables.
+@li <b>bytesPerChunk</b>: string (default: "64M") - Sets average estimated
+number of bytes to be copied in each chunk, enables <b>chunking</b>.
+
+@li <b>threads</b>: int (default: 4) - Use N threads to read the data from
+the source server and additional N threads to write the data to the target
+server.
+
+@li <b>maxRate</b>: string (default: "0") - Limit data read throughput to
+maximum rate, measured in bytes per second per thread. Use maxRate="0" to set no
+limit.
+@li <b>showProgress</b>: bool (default: true if stdout is a TTY device, false
+otherwise) - Enable or disable copy progress information.
+@li <b>defaultCharacterSet</b>: string (default: "utf8mb4") - Character set used
+for the copy.
+
+@li <b>analyzeTables</b>: "off", "on", "histogram" (default: off) - If 'on',
+executes ANALYZE TABLE for all tables, once copied. If set to 'histogram', only
+tables that have histogram information stored in the copy will be analyzed.
+@li <b>deferTableIndexes</b>: "off", "fulltext", "all" (default: fulltext) -
+If "all", creation of "all" indexes except PRIMARY is deferred until after
+table data is copied, which in many cases can reduce load times. If "fulltext",
+only full-text indexes will be deferred.
+@li <b>handleGrantErrors</b>: "abort", "drop_account", "ignore" (default: abort)
+- Specifies action to be performed in case of errors related to the GRANT/REVOKE
+statements, "abort": throws an error and aborts the copy, "drop_account":
+deletes the problematic account and continues, "ignore": ignores the error and
+continues copying the account.
+@li <b>ignoreExistingObjects</b>: bool (default false) - Load the copy even if
+it contains objects that already exist in the target database.
+@li <b>ignoreVersion</b>: bool (default false) - Load the copy even if the major
+version number of the server where it was created is different from where it
+will be loaded.
+@li <b>loadIndexes</b>: bool (default: true) - use together with
+<b>deferTableIndexes</b> to control whether secondary indexes should be
+recreated at the end of the copy.
+@li <b>maxBytesPerTransaction</b>: string (default: the value of
+<b>bytesPerChunk</b>) - Specifies the maximum number of bytes that can be copied
+per single LOAD DATA statement. Supports unit suffixes: k (kilobytes), M
+(Megabytes), G (Gigabytes). Minimum value: 4096.
+@li <b>schema</b>: string (default not set) - Copy the data into the given
+schema. This option can only be used when copying just one schema.
+@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
+list of SQL statements in each session about to copy data.
+@li <b>skipBinlog</b>: bool (default: false) - Disables the binary log
+for the MySQL sessions used by the loader (set sql_log_bin=0).
+@li <b>updateGtidSet</b>: "off", "replace", "append" (default: off) - if set to
+a value other than 'off' updates GTID_PURGED by either replacing its contents
+or appending to it the gtid set present in the copy.
+)*");
+
+REGISTER_HELP_FUNCTION(copyInstance, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_COPYINSTANCE, R"*(
+Copies a source instance to the target instance. Requires an open global Shell
+session to the source instance, if there is none, an exception is raised.
+
+@param connectionData Specifies the connection information required to establish
+a connection to the target instance.
+@param options Optional dictionary with the copy options.
+
+${TOPIC_UTIL_COPY_COMMON_DESCRIPTION}
+
+<b>The following options are supported:</b>
+@li <b>excludeSchemas</b>: list of strings (default: empty) - List of schemas to
+be excluded from the copy.
+@li <b>includeSchemas</b>: list of strings (default: empty) - List of schemas to
+be included in the copy.
+
+${TOPIC_UTIL_COPY_SCHEMAS_COMMON_OPTIONS}
+@li <b>users</b>: bool (default: true) - Include users, roles and grants in the
+copy.
+@li <b>excludeUsers</b>: list of strings (default not set) - Skip copying the
+specified users. Each user is in the format of 'user_name'[@'host']. If the host
+is not specified, all the accounts with the given user name are excluded.
+@li <b>includeUsers</b>: list of strings (default not set) - Copy only the
+specified users. Each user is in the format of 'user_name'[@'host']. If the host
+is not specified, all the accounts with the given user name are included. By
+default, all users are included.
+
+${TOPIC_UTIL_COPY_COMMON_OPTIONS}
+
+For discussion of all options see: <<<dumpInstance>>>() and <<<loadDump>>>().
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_COPYINSTANCE_BRIEF)
+ *
+ * $(UTIL_COPYINSTANCE)
+ */
+#if DOXYGEN_JS
+Undefined Util::copyInstance(ConnectionData connectionData, Dictionary options);
+#elif DOXYGEN_PY
+None Util::copy_instance(ConnectionData connectionData, dict options);
+#endif
+void Util::copy_instance(
+    const mysqlshdk::db::Connection_options &connection_options,
+    const shcore::Option_pack_ref<copy::Copy_instance_options> &options) {
+  const auto session = _shell_core.get_dev_session();
+
+  if (!session || !session->is_open()) {
+    throw std::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.copyInstance()"};
+
+  auto copy_options = *options;
+  copy_options.dump_options()->set_session(session->get_core_session());
+
+  copy::copy<mysqlsh::dump::Dump_instance>(connection_options, &copy_options);
+}
+
+REGISTER_HELP_FUNCTION(copySchemas, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_COPYSCHEMAS, R"*(
+Copies schemas from the source instance to the target instance. Requires an open
+global Shell session to the source instance, if there is none, an exception is
+raised.
+
+@param schemas List of strings with names of schemas to be copied.
+@param connectionData Specifies the connection information required to establish
+a connection to the target instance.
+@param options Optional dictionary with the copy options.
+
+${TOPIC_UTIL_COPY_COMMON_DESCRIPTION}
+
+<b>The following options are supported:</b>
+${TOPIC_UTIL_COPY_SCHEMAS_COMMON_OPTIONS}
+
+${TOPIC_UTIL_COPY_COMMON_OPTIONS}
+
+For discussion of all options see: <<<dumpSchemas>>>() and <<<loadDump>>>().
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_COPYSCHEMAS_BRIEF)
+ *
+ * $(UTIL_COPYSCHEMAS)
+ */
+#if DOXYGEN_JS
+Undefined Util::copySchemas(List schemas, ConnectionData connectionData,
+                            Dictionary options);
+#elif DOXYGEN_PY
+None Util::copy_schemas(list schemas, ConnectionData connectionData,
+                        dict options);
+#endif
+void Util::copy_schemas(
+    const std::vector<std::string> &schemas,
+    const mysqlshdk::db::Connection_options &connection_options,
+    const shcore::Option_pack_ref<copy::Copy_schemas_options> &options) {
+  const auto session = _shell_core.get_dev_session();
+
+  if (!session || !session->is_open()) {
+    throw std::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.copySchemas()"};
+
+  auto copy_options = *options;
+  copy_options.dump_options()->set_schemas(schemas);
+  copy_options.dump_options()->set_session(session->get_core_session());
+
+  copy::copy<mysqlsh::dump::Dump_schemas>(connection_options, &copy_options);
+}
+
+REGISTER_HELP_FUNCTION(copyTables, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_COPYTABLES, R"*(
+Copies tables and views from schema in the source instance to the target
+instance. Requires an open global Shell session to the source instance, if there
+is none, an exception is raised.
+
+@param schema Name of the schema that contains tables and views to be copied.
+@param tables List of strings with names of tables and views to be copied.
+@param connectionData Specifies the connection information required to establish
+a connection to the target instance.
+@param options Optional dictionary with the copy options.
+
+${TOPIC_UTIL_COPY_COMMON_DESCRIPTION}
+
+<b>The following options are supported:</b>
+@li <b>all</b>: bool (default: false) - Copy all views and tables from the
+specified schema, requires the <b>tables</b> argument to be an empty list.
+
+${TOPIC_UTIL_COPY_COMMON_OPTIONS}
+
+For discussion of all options see: <<<dumpTables>>>() and <<<loadDump>>>().
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_COPYTABLES_BRIEF)
+ *
+ * $(UTIL_COPYTABLES)
+ */
+#if DOXYGEN_JS
+Undefined Util::copyTables(String schema, List tables,
+                           ConnectionData connectionData, Dictionary options);
+#elif DOXYGEN_PY
+None Util::copy_tables(str schema, list tables, ConnectionData connectionData,
+                       dict options);
+#endif
+void Util::copy_tables(
+    const std::string &schema, const std::vector<std::string> &tables,
+    const mysqlshdk::db::Connection_options &connection_options,
+    const shcore::Option_pack_ref<copy::Copy_tables_options> &options) {
+  const auto session = _shell_core.get_dev_session();
+
+  if (!session || !session->is_open()) {
+    throw std::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.copyTables()"};
+
+  auto copy_options = *options;
+  copy_options.dump_options()->set_schema(schema);
+  copy_options.dump_options()->set_tables(tables);
+  copy_options.dump_options()->set_session(session->get_core_session());
+
+  copy::copy<mysqlsh::dump::Dump_tables>(connection_options, &copy_options);
 }
 
 }  // namespace mysqlsh

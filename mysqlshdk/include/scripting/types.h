@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -879,12 +879,21 @@ class Option_unpacker {
 
   void set_options(const shcore::Dictionary_t &options);
 
+  void set_ignored(std::unordered_set<std::string_view> ignored) {
+    m_ignored = std::move(ignored);
+  }
+
+  bool is_ignored(std::string_view option) const {
+    return m_ignored.count(option) > 0;
+  }
+
   const shcore::Dictionary_t &options() const { return m_options; }
 
  protected:
   Dictionary_t m_options;
   std::set<std::string> m_unknown;
   std::set<std::string> m_missing;
+  std::unordered_set<std::string_view> m_ignored;
 
   template <typename T, typename S>
   void extract_value(const char *name, S *out_value, const Value &value) {

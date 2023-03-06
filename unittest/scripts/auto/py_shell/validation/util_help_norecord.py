@@ -16,6 +16,21 @@ FUNCTIONS
             Performs series of tests on specified MySQL server to check if the
             upgrade process will succeed.
 
+      copy_instance(connectionData[, options])
+            Copies a source instance to the target instance. Requires an open
+            global Shell session to the source instance, if there is none, an
+            exception is raised.
+
+      copy_schemas(schemas, connectionData[, options])
+            Copies schemas from the source instance to the target instance.
+            Requires an open global Shell session to the source instance, if
+            there is none, an exception is raised.
+
+      copy_tables(schema, tables, connectionData[, options])
+            Copies tables and views from schema in the source instance to the
+            target instance. Requires an open global Shell session to the
+            source instance, if there is none, an exception is raised.
+
       dump_instance(outputUrl[, options])
             Dumps the whole database to files in the output directory.
 
@@ -157,6 +172,374 @@ DESCRIPTION
 
       For additional information on connection data use \? connection.
 
+#@<OUT> util copy_instance help
+NAME
+      copy_instance - Copies a source instance to the target instance. Requires
+                      an open global Shell session to the source instance, if
+                      there is none, an exception is raised.
+
+SYNTAX
+      util.copy_instance(connectionData[, options])
+
+WHERE
+      connectionData: Specifies the connection information required to
+                      establish a connection to the target instance.
+      options: Dictionary with the copy options.
+
+DESCRIPTION
+      Runs simultaneous dump and load operations, while storing the dump
+      artifacts in memory.
+
+      If target is a MySQL Database Service instance, automatically checks for
+      compatibility with MDS.
+
+      The following options are supported:
+
+      - excludeSchemas: list of strings (default: empty) - List of schemas to
+        be excluded from the copy.
+      - includeSchemas: list of strings (default: empty) - List of schemas to
+        be included in the copy.
+      - excludeTables: list of strings (default: empty) - List of tables or
+        views to be excluded from the copy in the format of schema.table.
+      - includeTables: list of strings (default: empty) - List of tables or
+        views to be included in the copy in the format of schema.table.
+      - events: bool (default: true) - Include events from each copied schema.
+      - excludeEvents: list of strings (default: empty) - List of events to be
+        excluded from the copy in the format of schema.event.
+      - includeEvents: list of strings (default: empty) - List of events to be
+        included in the copy in the format of schema.event.
+      - routines: bool (default: true) - Include functions and stored
+        procedures for each copied schema.
+      - excludeRoutines: list of strings (default: empty) - List of routines to
+        be excluded from the copy in the format of schema.routine.
+      - includeRoutines: list of strings (default: empty) - List of routines to
+        be included in the copy in the format of schema.routine.
+      - users: bool (default: true) - Include users, roles and grants in the
+        copy.
+      - excludeUsers: list of strings (default not set) - Skip copying the
+        specified users. Each user is in the format of 'user_name'[@'host']. If
+        the host is not specified, all the accounts with the given user name
+        are excluded.
+      - includeUsers: list of strings (default not set) - Copy only the
+        specified users. Each user is in the format of 'user_name'[@'host']. If
+        the host is not specified, all the accounts with the given user name
+        are included. By default, all users are included.
+      - triggers: bool (default: true) - Include triggers for each copied
+        table.
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the copy in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the copy in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being copied.
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data copy to just the specified partitions.
+      - compatibility: list of strings (default: empty) - Apply MySQL Database
+        Service compatibility modifications when copying the DDL. Supported
+        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+      - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
+      - consistent: bool (default: true) - Enable or disable consistent data
+        copies. When enabled, produces a transactionally consistent copy at a
+        specific point in time.
+      - skipConsistencyChecks: bool (default: false) - Skips additional
+        consistency checks which are executed when running consistent copies
+        and i.e. backup lock cannot not be acquired.
+      - ddlOnly: bool (default: false) - Only copy Data Definition Language
+        (DDL) from the database.
+      - dataOnly: bool (default: false) - Only copy data from the database.
+      - dryRun: bool (default: false) - Simulates a copy and prints everything
+        that would be performed, without actually doing so.
+      - chunking: bool (default: true) - Enable chunking of the tables.
+      - bytesPerChunk: string (default: "64M") - Sets average estimated number
+        of bytes to be copied in each chunk, enables chunking.
+      - threads: int (default: 4) - Use N threads to read the data from the
+        source server and additional N threads to write the data to the target
+        server.
+      - maxRate: string (default: "0") - Limit data read throughput to maximum
+        rate, measured in bytes per second per thread. Use maxRate="0" to set
+        no limit.
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable copy progress information.
+      - defaultCharacterSet: string (default: "utf8mb4") - Character set used
+        for the copy.
+      - analyzeTables: "off", "on", "histogram" (default: off) - If 'on',
+        executes ANALYZE TABLE for all tables, once copied. If set to
+        'histogram', only tables that have histogram information stored in the
+        copy will be analyzed.
+      - deferTableIndexes: "off", "fulltext", "all" (default: fulltext) - If
+        "all", creation of "all" indexes except PRIMARY is deferred until after
+        table data is copied, which in many cases can reduce load times. If
+        "fulltext", only full-text indexes will be deferred.
+      - handleGrantErrors: "abort", "drop_account", "ignore" (default: abort) -
+        Specifies action to be performed in case of errors related to the
+        GRANT/REVOKE statements, "abort": throws an error and aborts the copy,
+        "drop_account": deletes the problematic account and continues,
+        "ignore": ignores the error and continues copying the account.
+      - ignoreExistingObjects: bool (default false) - Load the copy even if it
+        contains objects that already exist in the target database.
+      - ignoreVersion: bool (default false) - Load the copy even if the major
+        version number of the server where it was created is different from
+        where it will be loaded.
+      - loadIndexes: bool (default: true) - use together with deferTableIndexes
+        to control whether secondary indexes should be recreated at the end of
+        the copy.
+      - maxBytesPerTransaction: string (default: the value of bytesPerChunk) -
+        Specifies the maximum number of bytes that can be copied per single
+        LOAD DATA statement. Supports unit suffixes: k (kilobytes), M
+        (Megabytes), G (Gigabytes). Minimum value: 4096.
+      - schema: string (default not set) - Copy the data into the given schema.
+        This option can only be used when copying just one schema.
+      - sessionInitSql: list of strings (default: []) - execute the given list
+        of SQL statements in each session about to copy data.
+      - skipBinlog: bool (default: false) - Disables the binary log for the
+        MySQL sessions used by the loader (set sql_log_bin=0).
+      - updateGtidSet: "off", "replace", "append" (default: off) - if set to a
+        value other than 'off' updates GTID_PURGED by either replacing its
+        contents or appending to it the gtid set present in the copy.
+
+      For discussion of all options see: dump_instance() and load_dump().
+
+#@<OUT> util copy_schemas help
+NAME
+      copy_schemas - Copies schemas from the source instance to the target
+                     instance. Requires an open global Shell session to the
+                     source instance, if there is none, an exception is raised.
+
+SYNTAX
+      util.copy_schemas(schemas, connectionData[, options])
+
+WHERE
+      schemas: List of strings with names of schemas to be copied.
+      connectionData: Specifies the connection information required to
+                      establish a connection to the target instance.
+      options: Dictionary with the copy options.
+
+DESCRIPTION
+      Runs simultaneous dump and load operations, while storing the dump
+      artifacts in memory.
+
+      If target is a MySQL Database Service instance, automatically checks for
+      compatibility with MDS.
+
+      The following options are supported:
+
+      - excludeTables: list of strings (default: empty) - List of tables or
+        views to be excluded from the copy in the format of schema.table.
+      - includeTables: list of strings (default: empty) - List of tables or
+        views to be included in the copy in the format of schema.table.
+      - events: bool (default: true) - Include events from each copied schema.
+      - excludeEvents: list of strings (default: empty) - List of events to be
+        excluded from the copy in the format of schema.event.
+      - includeEvents: list of strings (default: empty) - List of events to be
+        included in the copy in the format of schema.event.
+      - routines: bool (default: true) - Include functions and stored
+        procedures for each copied schema.
+      - excludeRoutines: list of strings (default: empty) - List of routines to
+        be excluded from the copy in the format of schema.routine.
+      - includeRoutines: list of strings (default: empty) - List of routines to
+        be included in the copy in the format of schema.routine.
+      - triggers: bool (default: true) - Include triggers for each copied
+        table.
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the copy in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the copy in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being copied.
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data copy to just the specified partitions.
+      - compatibility: list of strings (default: empty) - Apply MySQL Database
+        Service compatibility modifications when copying the DDL. Supported
+        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+      - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
+      - consistent: bool (default: true) - Enable or disable consistent data
+        copies. When enabled, produces a transactionally consistent copy at a
+        specific point in time.
+      - skipConsistencyChecks: bool (default: false) - Skips additional
+        consistency checks which are executed when running consistent copies
+        and i.e. backup lock cannot not be acquired.
+      - ddlOnly: bool (default: false) - Only copy Data Definition Language
+        (DDL) from the database.
+      - dataOnly: bool (default: false) - Only copy data from the database.
+      - dryRun: bool (default: false) - Simulates a copy and prints everything
+        that would be performed, without actually doing so.
+      - chunking: bool (default: true) - Enable chunking of the tables.
+      - bytesPerChunk: string (default: "64M") - Sets average estimated number
+        of bytes to be copied in each chunk, enables chunking.
+      - threads: int (default: 4) - Use N threads to read the data from the
+        source server and additional N threads to write the data to the target
+        server.
+      - maxRate: string (default: "0") - Limit data read throughput to maximum
+        rate, measured in bytes per second per thread. Use maxRate="0" to set
+        no limit.
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable copy progress information.
+      - defaultCharacterSet: string (default: "utf8mb4") - Character set used
+        for the copy.
+      - analyzeTables: "off", "on", "histogram" (default: off) - If 'on',
+        executes ANALYZE TABLE for all tables, once copied. If set to
+        'histogram', only tables that have histogram information stored in the
+        copy will be analyzed.
+      - deferTableIndexes: "off", "fulltext", "all" (default: fulltext) - If
+        "all", creation of "all" indexes except PRIMARY is deferred until after
+        table data is copied, which in many cases can reduce load times. If
+        "fulltext", only full-text indexes will be deferred.
+      - handleGrantErrors: "abort", "drop_account", "ignore" (default: abort) -
+        Specifies action to be performed in case of errors related to the
+        GRANT/REVOKE statements, "abort": throws an error and aborts the copy,
+        "drop_account": deletes the problematic account and continues,
+        "ignore": ignores the error and continues copying the account.
+      - ignoreExistingObjects: bool (default false) - Load the copy even if it
+        contains objects that already exist in the target database.
+      - ignoreVersion: bool (default false) - Load the copy even if the major
+        version number of the server where it was created is different from
+        where it will be loaded.
+      - loadIndexes: bool (default: true) - use together with deferTableIndexes
+        to control whether secondary indexes should be recreated at the end of
+        the copy.
+      - maxBytesPerTransaction: string (default: the value of bytesPerChunk) -
+        Specifies the maximum number of bytes that can be copied per single
+        LOAD DATA statement. Supports unit suffixes: k (kilobytes), M
+        (Megabytes), G (Gigabytes). Minimum value: 4096.
+      - schema: string (default not set) - Copy the data into the given schema.
+        This option can only be used when copying just one schema.
+      - sessionInitSql: list of strings (default: []) - execute the given list
+        of SQL statements in each session about to copy data.
+      - skipBinlog: bool (default: false) - Disables the binary log for the
+        MySQL sessions used by the loader (set sql_log_bin=0).
+      - updateGtidSet: "off", "replace", "append" (default: off) - if set to a
+        value other than 'off' updates GTID_PURGED by either replacing its
+        contents or appending to it the gtid set present in the copy.
+
+      For discussion of all options see: dump_schemas() and load_dump().
+
+#@<OUT> util copy_tables help
+NAME
+      copy_tables - Copies tables and views from schema in the source instance
+                    to the target instance. Requires an open global Shell
+                    session to the source instance, if there is none, an
+                    exception is raised.
+
+SYNTAX
+      util.copy_tables(schema, tables, connectionData[, options])
+
+WHERE
+      schema: Name of the schema that contains tables and views to be copied.
+      tables: List of strings with names of tables and views to be copied.
+      connectionData: Specifies the connection information required to
+                      establish a connection to the target instance.
+      options: Dictionary with the copy options.
+
+DESCRIPTION
+      Runs simultaneous dump and load operations, while storing the dump
+      artifacts in memory.
+
+      If target is a MySQL Database Service instance, automatically checks for
+      compatibility with MDS.
+
+      The following options are supported:
+
+      - all: bool (default: false) - Copy all views and tables from the
+        specified schema, requires the tables argument to be an empty list.
+      - triggers: bool (default: true) - Include triggers for each copied
+        table.
+      - excludeTriggers: list of strings (default: empty) - List of triggers to
+        be excluded from the copy in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - includeTriggers: list of strings (default: empty) - List of triggers to
+        be included in the copy in the format of schema.table (all triggers
+        from the specified table) or schema.table.trigger (the individual
+        trigger).
+      - where: dictionary (default: not set) - A key-value pair of a table name
+        in the format of schema.table and a valid SQL condition expression used
+        to filter the data being copied.
+      - partitions: dictionary (default: not set) - A key-value pair of a table
+        name in the format of schema.table and a list of valid partition names
+        used to limit the data copy to just the specified partitions.
+      - compatibility: list of strings (default: empty) - Apply MySQL Database
+        Service compatibility modifications when copying the DDL. Supported
+        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+      - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
+      - consistent: bool (default: true) - Enable or disable consistent data
+        copies. When enabled, produces a transactionally consistent copy at a
+        specific point in time.
+      - skipConsistencyChecks: bool (default: false) - Skips additional
+        consistency checks which are executed when running consistent copies
+        and i.e. backup lock cannot not be acquired.
+      - ddlOnly: bool (default: false) - Only copy Data Definition Language
+        (DDL) from the database.
+      - dataOnly: bool (default: false) - Only copy data from the database.
+      - dryRun: bool (default: false) - Simulates a copy and prints everything
+        that would be performed, without actually doing so.
+      - chunking: bool (default: true) - Enable chunking of the tables.
+      - bytesPerChunk: string (default: "64M") - Sets average estimated number
+        of bytes to be copied in each chunk, enables chunking.
+      - threads: int (default: 4) - Use N threads to read the data from the
+        source server and additional N threads to write the data to the target
+        server.
+      - maxRate: string (default: "0") - Limit data read throughput to maximum
+        rate, measured in bytes per second per thread. Use maxRate="0" to set
+        no limit.
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable copy progress information.
+      - defaultCharacterSet: string (default: "utf8mb4") - Character set used
+        for the copy.
+      - analyzeTables: "off", "on", "histogram" (default: off) - If 'on',
+        executes ANALYZE TABLE for all tables, once copied. If set to
+        'histogram', only tables that have histogram information stored in the
+        copy will be analyzed.
+      - deferTableIndexes: "off", "fulltext", "all" (default: fulltext) - If
+        "all", creation of "all" indexes except PRIMARY is deferred until after
+        table data is copied, which in many cases can reduce load times. If
+        "fulltext", only full-text indexes will be deferred.
+      - handleGrantErrors: "abort", "drop_account", "ignore" (default: abort) -
+        Specifies action to be performed in case of errors related to the
+        GRANT/REVOKE statements, "abort": throws an error and aborts the copy,
+        "drop_account": deletes the problematic account and continues,
+        "ignore": ignores the error and continues copying the account.
+      - ignoreExistingObjects: bool (default false) - Load the copy even if it
+        contains objects that already exist in the target database.
+      - ignoreVersion: bool (default false) - Load the copy even if the major
+        version number of the server where it was created is different from
+        where it will be loaded.
+      - loadIndexes: bool (default: true) - use together with deferTableIndexes
+        to control whether secondary indexes should be recreated at the end of
+        the copy.
+      - maxBytesPerTransaction: string (default: the value of bytesPerChunk) -
+        Specifies the maximum number of bytes that can be copied per single
+        LOAD DATA statement. Supports unit suffixes: k (kilobytes), M
+        (Megabytes), G (Gigabytes). Minimum value: 4096.
+      - schema: string (default not set) - Copy the data into the given schema.
+        This option can only be used when copying just one schema.
+      - sessionInitSql: list of strings (default: []) - execute the given list
+        of SQL statements in each session about to copy data.
+      - skipBinlog: bool (default: false) - Disables the binary log for the
+        MySQL sessions used by the loader (set sql_log_bin=0).
+      - updateGtidSet: "off", "replace", "append" (default: off) - if set to a
+        value other than 'off' updates GTID_PURGED by either replacing its
+        contents or appending to it the gtid set present in the copy.
+
+      For discussion of all options see: dump_tables() and load_dump().
+
 #@<OUT> util dump_instance help
 NAME
       dump_instance - Dumps the whole database to files in the output
@@ -237,7 +620,8 @@ DESCRIPTION
         used to limit the data export to just the specified partitions.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
-        dumps.
+        dumps. When enabled, produces a transactionally consistent dump at a
+        specific point in time.
       - skipConsistencyChecks: bool (default: false) - Skips additional
         consistency checks which are executed when running consistent dumps and
         i.e. backup lock cannot not be acquired.
@@ -799,7 +1183,8 @@ DESCRIPTION
         used to limit the data export to just the specified partitions.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
-        dumps.
+        dumps. When enabled, produces a transactionally consistent dump at a
+        specific point in time.
       - skipConsistencyChecks: bool (default: false) - Skips additional
         consistency checks which are executed when running consistent dumps and
         i.e. backup lock cannot not be acquired.
@@ -1338,7 +1723,8 @@ DESCRIPTION
         used to limit the data export to just the specified partitions.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
-        dumps.
+        dumps. When enabled, produces a transactionally consistent dump at a
+        specific point in time.
       - skipConsistencyChecks: bool (default: false) - Skips additional
         consistency checks which are executed when running consistent dumps and
         i.e. backup lock cannot not be acquired.

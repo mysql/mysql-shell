@@ -2387,7 +2387,7 @@ with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as jso
 
 #@<> BUG#32528110 shell could crash if exception is thrown from the main thread and one of the worker threads is slow to start {not __dbug_off}
 testutil.set_trap("mysql", ["sql == SELECT @@GLOBAL.HOSTNAME;"], { "code": 7777, "msg": "Internal error.", "state": "HY000" })
-testutil.set_trap("dumper", ["op == WORKER_START", "id == 0"], { "msg": "sleep=1000" })
+testutil.set_trap("dumper", ["op == WORKER_SLEEP_AT_START", "id == 0"], { "sleep": 1000 })
 
 EXPECT_FAIL("DBError: MySQL Error (7777)", "Internal error.", test_output_absolute, { "showProgress": False })
 

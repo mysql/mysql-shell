@@ -88,8 +88,8 @@ void Dump_options::set_string_option(const std::string &option,
 }
 
 void Dump_options::set_storage_config(
-    const std::shared_ptr<mysqlshdk::storage::Config> &storage_config) {
-  m_storage_config = storage_config;
+    std::shared_ptr<mysqlshdk::storage::Config> storage_config) {
+  m_storage_config = std::move(storage_config);
 }
 
 void Dump_options::on_log_options(const char *msg) const {
