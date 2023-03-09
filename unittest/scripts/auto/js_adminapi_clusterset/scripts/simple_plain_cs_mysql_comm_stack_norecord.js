@@ -373,7 +373,11 @@ CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
 
 //@<> createReplicaCluster() - clone recovery
 var allowlist = "127.0.0.1," + hostname_ip;
-EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "communicationStack": "XCOM", ipAllowlist: allowlist}); });
+if (__os_type != 'windows') {
+    EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "communicationStack": "XCOM", ipAllowlist: allowlist}); });
+} else {
+    EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "communicationStack": "XCOM", ipAllowlist: allowlist, localAddress: "127.0.0.1"}); });
+}
 session4 = mysql.getSession(__sandbox_uri4);
 
 //@<> validate replica cluster - clone recovery

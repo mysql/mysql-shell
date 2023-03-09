@@ -23,22 +23,48 @@ if (__version_num < 80027) {
   cluster = dba.createCluster('test', {communicationStack: "xcom"});
 }
 
-//@ Create cluster errors using localAddress option
-// FR1-TS-1-5 (GR issues an error if the hostname or IP address is invalid)
-
-// Free "busy" port before continuing with the test (otherwise it will fail).
+// Free "busy" port
 testutil.destroySandbox(__busy_port);
 
-var c = dba.createCluster('test', {localAddress: "1a"});
+//@<> Create cluster errors using localAddress option
+// FR1-TS-1-5 (GR issues an error if the hostname or IP address is invalid)
+
+if (__version_num >= 80027) {
+    EXPECT_THROWS(function(){
+        var c = dba.createCluster('test', {localAddress: "1a"})
+    }, "Server address configuration error");
+}
+else {
+    EXPECT_THROWS(function(){
+        var c = dba.createCluster('test', {localAddress: "1a"});
+    }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+
+    EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "1a" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+    if (__os_type != 'windows') {
+        EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+    }
+    EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
+}
+
 // FR1-TS-1-6
-var c = dba.createCluster('test', {localAddress: ":"});
+EXPECT_THROWS(function(){
+    var c = dba.createCluster('test', {localAddress: ":"});
+}, "Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'.");
+
 // FR1-TS-1-7
-var c = dba.createCluster('test', {localAddress: ""});
+EXPECT_THROWS(function(){
+    var c = dba.createCluster('test', {localAddress: ""});
+}, "Invalid value for localAddress, string value cannot be empty.");
+
 // FR1-TS-1-8
 if (__version_num >= 80027) {
-  var c = dba.createCluster('test', {communicationStack: "XCOM", localAddress: ":123456"});
+    EXPECT_THROWS(function(){
+        var c = dba.createCluster('test', {communicationStack: "XCOM", localAddress: ":123456"});
+    }, "Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535.");
 } else {
-  var c = dba.createCluster('test', {localAddress: ":123456"});
+    EXPECT_THROWS(function(){
+        var c = dba.createCluster('test', {localAddress: ":123456"});
+    }, "Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535.");
 }
 
 //@ Create cluster errors using localAddress option on busy port {!__replaying && !__recording}
@@ -181,17 +207,34 @@ if (__version_num < 80027) {
   c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true, communicationStack: "xcom"});
 }
 
-//@ Add instance errors using localAddress option
+//@<> Add instance errors using localAddress option
+// FR1-TS-2-5 (GR issues an error if the hostname or IP address is invalid)
 add_instance_options['port'] = __mysql_sandbox_port2;
 add_instance_options['user'] = 'root';
-// FR1-TS-2-5 (GR issues an error if the hostname or IP address is invalid)
-c.addInstance(add_instance_options, {localAddress: "1a"});
+EXPECT_THROWS(function(){
+    c.addInstance(add_instance_options, {localAddress: "1a"});
+}, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+
+EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "1a" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+if (__os_type != 'windows') {
+    EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+}
+EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
+
 // FR1-TS-2-6
-c.addInstance(add_instance_options, {localAddress: ":"});
+EXPECT_THROWS(function(){
+    c.addInstance(add_instance_options, {localAddress: ":"});
+}, "Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'.");
+
 // FR1-TS-2-7
-c.addInstance(add_instance_options, {localAddress: ""});
+EXPECT_THROWS(function(){
+    c.addInstance(add_instance_options, {localAddress: ""});
+}, "Invalid value for localAddress, string value cannot be empty.");
+
 // FR1-TS-2-8
-c.addInstance(add_instance_options, {localAddress: ":123456"});
+EXPECT_THROWS(function(){
+    c.addInstance(add_instance_options, {localAddress: ":123456"});
+}, "Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535.");
 
 //@ Add instance errors using localAddress option on busy port {!__replaying && !__recording}
 // Note: Since report_host is now used (instead of localhost) internally

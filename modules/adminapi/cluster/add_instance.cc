@@ -188,22 +188,17 @@ void Add_instance::check_and_resolve_instance_configuration() {
       &m_options.gr_options.expel_timeout);
 
   // Compute group_seeds using local_address from each active cluster member
-  {
-    auto group_seeds = [](const std::map<std::string, std::string> &seeds,
-                          const std::string &skip_uuid = "") {
-      std::string ret;
-      for (const auto &i : seeds) {
-        if (i.first != skip_uuid) {
+  m_options.gr_options.group_seeds = std::invoke(
+      [](const std::map<std::string, std::string> &seeds) {
+        std::string ret;
+        for (const auto &[uuid, endpoint] : seeds) {
+          if (uuid.empty()) continue;
           if (!ret.empty()) ret.append(",");
-          ret.append(i.second);
+          ret.append(endpoint);
         }
-      }
-      return ret;
-    };
-
-    m_options.gr_options.group_seeds =
-        group_seeds(m_cluster_impl->get_cluster_group_seeds());
-  }
+        return ret;
+      },
+      m_cluster_impl->get_cluster_group_seeds());
 
   // Resolve and validate GR local address.
   // NOTE: Must be done only after getting the report_host used by GR and for
@@ -505,44 +500,74 @@ void Add_instance::prepare() {
   // Check for various instance specific configuration issues
   check_and_resolve_instance_configuration();
 
-  // recovery auth checks
+  // localAddress
+  {
+    // reaching this point, localAddress must have been resolved / generated
+    assert(m_options.gr_options.local_address.has_value());
 
-  auto auth_type = m_cluster_impl->query_cluster_auth_type();
-
-  // check if member auth request mode is supported
-  validate_instance_member_auth_type(*m_target_instance, false,
-                                     m_options.gr_options.ssl_mode,
-                                     "memberSslMode", auth_type);
-
-  // check if certSubject was correctly supplied
-  validate_instance_member_auth_options("cluster", false, auth_type,
-                                        m_options.cert_subject);
-
-  // Validate localAddress
-  if (m_options.gr_options.local_address.has_value()) {
+    // Validate localAddress
     validate_local_address_option(
         *m_options.gr_options.local_address,
         m_options.gr_options.communication_stack.value_or(""),
         m_target_instance->get_canonical_port());
+
+    // validate that, when ipAllowlist (or ipWhitelist) isn't specified, that
+    // the local_address (generated or user-specified) is part of the range of
+    // addresses that are part of the automatic IP Whitelist Group Replication
+    // sets (see
+    // https://dev.mysql.com/doc/refman/8.0/en/group-replication-ip-address-permissions.html)
+    if (shcore::str_caseeq(m_comm_stack, kCommunicationStackXCom)) {
+      // check if the instance runs on Windows (in which case the node tries
+      // to connect to itself), otherwise, we only validate the localAddress
+      // if the ipAllowList was generated automatically
+      auto is_windows = shcore::str_casestr(
+          m_target_instance->get_version_compile_os().c_str(), "WIN");
+      if (is_windows ||
+          shcore::str_caseeq(
+              m_options.gr_options.ip_allowlist.value_or("AUTOMATIC"),
+              "AUTOMATIC")) {
+        assert(m_options.gr_options.local_address.has_value());
+        cluster_topology_executor_ops::
+            validate_local_address_allowed_ip_compatibility(
+                *m_options.gr_options.local_address, false, is_windows);
+      }
+    }
   }
 
-  // Check connectivity and SSL
-  if (current_shell_options()->get().dba_connectivity_checks) {
-    current_console()->print_info(
-        "* Checking connectivity and SSL configuration...");
+  // recovery auth checks
+  {
+    auto auth_type = m_cluster_impl->query_cluster_auth_type();
 
-    std::string cert_issuer = m_cluster_impl->query_cluster_auth_cert_issuer();
-    mysqlshdk::mysql::Set_variable disable_sro(*m_target_instance,
-                                               "super_read_only", false, true);
-    test_peer_connection(
-        *m_target_instance, m_options.gr_options.local_address.value_or(""),
-        m_options.cert_subject, *m_primary_instance,
-        m_primary_instance->get_sysvar_string("group_replication_local_address")
-            .value_or(""),
-        m_cluster_impl->query_cluster_instance_auth_cert_subject(
-            m_primary_instance->get_uuid()),
-        m_options.gr_options.ssl_mode, auth_type, cert_issuer, m_comm_stack);
+    // check if member auth request mode is supported
+    validate_instance_member_auth_type(*m_target_instance, false,
+                                       m_options.gr_options.ssl_mode,
+                                       "memberSslMode", auth_type);
+
+    // check if certSubject was correctly supplied
+    validate_instance_member_auth_options("cluster", false, auth_type,
+                                          m_options.cert_subject);
+
+    // Check connectivity and SSL
+    if (current_shell_options()->get().dba_connectivity_checks) {
+      current_console()->print_info(
+          "* Checking connectivity and SSL configuration...");
+
+      std::string cert_issuer =
+          m_cluster_impl->query_cluster_auth_cert_issuer();
+      mysqlshdk::mysql::Set_variable disable_sro(
+          *m_target_instance, "super_read_only", false, true);
+      test_peer_connection(
+          *m_target_instance, m_options.gr_options.local_address.value_or(""),
+          m_options.cert_subject, *m_primary_instance,
+          m_primary_instance
+              ->get_sysvar_string("group_replication_local_address")
+              .value_or(""),
+          m_cluster_impl->query_cluster_instance_auth_cert_subject(
+              m_primary_instance->get_uuid()),
+          m_options.gr_options.ssl_mode, auth_type, cert_issuer, m_comm_stack);
+    }
   }
+
   // Set the transaction size limit
   m_options.gr_options.transaction_size_limit =
       get_transaction_size_limit(*m_primary_instance);

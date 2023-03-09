@@ -136,9 +136,6 @@ Number of accounts for '<<<recovery_user_2>>>': 1
 //@<OUT> BUG#25503159: number of recovery users before executing addInstance().
 Number of recovery user before addInstance(): 1
 
-//@<ERR> BUG#25503159: add instance fail (using an invalid localaddress).
-Cluster.addInstance: Server address configuration error (RuntimeError)
-
 //@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
 |WARNING: Clone process appears to have finished and tried to restart the MySQL server, but it has not yet started back up.|
 |Please make sure the MySQL server at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is restarted and call <Cluster>.rescan() to complete the process. To increase the timeout, change shell.options["dba.restartWaitTimeout"].|

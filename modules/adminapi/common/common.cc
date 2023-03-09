@@ -2397,7 +2397,7 @@ void check_comm_stack_support(
     auto console = mysqlsh::current_console();
     console->print_error("Cannot join instance '" + target_instance->descr() +
                          "' to Cluster: The Group Replication protocol stack "
-                         "in used by the Cluster ('" +
+                         "in use by the Cluster ('" +
                          kCommunicationStackMySQL +
                          "') is not supported in the instance");
 
@@ -2501,34 +2501,36 @@ void validate_local_address_ip_compatibility(
 
   // Validate that the localAddress values of the cluster members are
   // compatible with the target instance we are adding
-  auto local_address_list = shcore::str_split(group_seeds, ",");
-  std::vector<std::string> unsupported_addresses;
-  for (const auto &raw_local_addr : local_address_list) {
-    std::string local_addr = shcore::str_strip(raw_local_addr);
-    if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
-            local_addr, target_instance->get_version())) {
-      unsupported_addresses.push_back(local_addr);
+  {
+    auto local_address_list = shcore::str_split(group_seeds, ",");
+    std::vector<std::string> unsupported_addresses;
+    for (const auto &raw_local_addr : local_address_list) {
+      std::string local_addr = shcore::str_strip(raw_local_addr);
+      if (!mysqlshdk::gr::is_endpoint_supported_by_gr(
+              local_addr, target_instance->get_version())) {
+        unsupported_addresses.push_back(local_addr);
+      }
     }
-  }
-  if (!unsupported_addresses.empty()) {
-    std::string value_str =
-        (unsupported_addresses.size() == 1) ? "value" : "values";
 
-    auto console = mysqlsh::current_console();
-    console->print_error(
-        "Cannot join instance '" + target_instance->descr() +
-        "' to cluster: unsupported localAddress value on the cluster.");
-    throw shcore::Exception::runtime_error(shcore::str_format(
-        "Instance does not support the following localAddress %s of the "
-        "cluster: '%s'. IPv6 "
-        "addresses/hostnames are only supported by Group "
-        "Replication from MySQL version >= 8.0.14 and the target instance "
-        "version is %s.",
-        value_str.c_str(),
-        shcore::str_join(unsupported_addresses.cbegin(),
-                         unsupported_addresses.cend(), ", ")
-            .c_str(),
-        target_instance->get_version().get_base().c_str()));
+    if (!unsupported_addresses.empty()) {
+      std::string value_str =
+          (unsupported_addresses.size() == 1) ? "value" : "values";
+
+      auto console = mysqlsh::current_console();
+      console->print_error(
+          "Cannot join instance '" + target_instance->descr() +
+          "' to cluster: unsupported localAddress value on the cluster.");
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "Instance does not support the following localAddress %s of the "
+          "cluster: '%s'. IPv6 addresses/hostnames are only supported by Group "
+          "Replication from MySQL version >= 8.0.14 and the target instance "
+          "version is %s.",
+          value_str.c_str(),
+          shcore::str_join(unsupported_addresses.cbegin(),
+                           unsupported_addresses.cend(), ", ")
+              .c_str(),
+          target_instance->get_version().get_base().c_str()));
+    }
   }
 
   // validate that the value of the localAddress is supported by all
@@ -2540,13 +2542,144 @@ void validate_local_address_ip_compatibility(
         "Cannot join instance '" + target_instance->descr() +
         "' to cluster: localAddress value not supported by the cluster.");
     throw shcore::Exception::argument_error(shcore::str_format(
-        "Cannot use value '%s' for option localAddress because it has "
-        "an IPv6 address which is only supported by Group Replication "
-        "from MySQL version >= 8.0.14 but the cluster "
-        "contains at least one member with version %s.",
+        "Cannot use value '%s' for option localAddress because it has an IPv6 "
+        "address which is only supported by Group Replication from MySQL "
+        "version >= 8.0.14 but the cluster contains at least one member with "
+        "version %s.",
         local_address.c_str(), lowest_cluster_version.get_base().c_str()));
   }
 }
+
+void validate_local_address_allowed_ip_compatibility(
+    const std::string &local_address, bool create_cluster,
+    bool silentSuggestion) {
+  /*
+   * These are the addresses defined automatically, which means that, if the
+   * local address matches any of them, it's valid:
+   *
+   * IPv4 (as defined in RFC 1918)
+   *  10/8 prefix       (10.0.0.0 - 10.255.255.255) - Class A
+   *  172.16/12 prefix  (172.16.0.0 - 172.31.255.255) - Class B
+   *  192.168/16 prefix (192.168.0.0 - 192.168.255.255) - Class C
+   *
+   * IPv6 (as defined in RFC 4193 and RFC 5156)
+   *  fc00:/7 prefix    - unique-local addresses
+   *  fe80::/10 prefix  - link-local unicast addresses
+   *
+   * 127.0.0.1 - localhost for IPv4
+   * ::1       - localhost for IPv6
+   */
+
+  auto host = local_address;
+  try {
+    host = std::get<0>(mysqlshdk::utils::split_host_and_port(local_address));
+  } catch (const std::invalid_argument &error) {
+    log_info("Unable to extract host: %s", local_address.c_str());
+  }
+
+  bool address_is_ipv6{false};
+  auto address = host;
+  try {
+    address = mysqlshdk::utils::Net::resolve_hostname_ipv4(host);
+
+  } catch (const mysqlshdk::utils::net_error &) {
+    try {
+      address = mysqlshdk::utils::Net::resolve_hostname_ipv6(host);
+      address_is_ipv6 = true;
+    } catch (const mysqlshdk::utils::net_error &) {
+      log_info("Unable to resolve address: %s", host.c_str());
+    }
+  }
+
+  std::string_view address_range;
+  auto is_valid = std::invoke(
+      [&address_range](const std::string &target_address, bool is_ipv6) {
+        // IPv4 private networks
+        if (mysqlshdk::utils::check_ipv4_is_in_range(target_address.c_str(),
+                                                     "10.0.0.0", 8)
+                .value_or(false)) {
+          address_range =
+              "in the IPv4 10.0.0.0 - 10.255.255.255 (Class A) range";
+          return true;
+        }
+        if (mysqlshdk::utils::check_ipv4_is_in_range(target_address.c_str(),
+                                                     "172.16.0.0", 12)
+                .value_or(false)) {
+          address_range =
+              "in the IPv4 172.16.0.0 - 172.31.255.255 (Class B) range";
+          return true;
+        }
+        if (mysqlshdk::utils::check_ipv4_is_in_range(target_address.c_str(),
+                                                     "192.168.0.0", 16)
+                .value_or(false)) {
+          address_range =
+              "in the IPv4 192.168.0.0 - 192.168.255.255 (Class C) range";
+          return true;
+        }
+
+        // IPv6 private networks
+        if (mysqlshdk::utils::check_ipv6_is_in_range(target_address.c_str(),
+                                                     "fc00:", 7)
+                .value_or(false)) {
+          address_range = "in the IPv6 fc00:/7 (unique local) range";
+          return true;
+        }
+        if (mysqlshdk::utils::check_ipv6_is_in_range(target_address.c_str(),
+                                                     "fe80::", 10)
+                .value_or(false)) {
+          address_range = "in the IPv6 fe80::/10 (link-local unicast) range";
+          return true;
+        }
+
+        // localhost
+        if (mysqlshdk::utils::Net::is_loopback(target_address)) {
+          address_range = is_ipv6 ? "an IPv6 localhost" : "an IPv4 localhost";
+          return true;
+        }
+
+        return false;
+      },
+      address, address_is_ipv6);
+
+  if (is_valid) {
+    assert(!address_range.empty());
+    current_console()->print_note(shcore::str_format(
+        "The '%s' \"%s\" is %.*s, which is compatible with "
+        "the Group Replication automatically generated list of IPs.\nSee "
+        "https://dev.mysql.com/doc/refman/en/"
+        "group-replication-ip-address-permissions.html for more details.",
+        kLocalAddress, host.c_str(), static_cast<int>(address_range.length()),
+        address_range.data()));
+
+    if (create_cluster)
+      current_console()->print_note(
+          "When adding more instances to the Cluster, be aware that the subnet "
+          "masks dictate whether the instance's address is automatically added "
+          "to the allowlist or not. Please specify the 'ipAllowlist' "
+          "accordingly if needed.");
+
+    return;
+  }
+
+  auto suggestion = silentSuggestion
+                        ? ""
+                        : "In this scenario, it's necessary to explicitly use "
+                          "the 'ipAllowlist' option to manually specify the "
+                          "list of allowed IPs.\n";
+
+  current_console()->print_error(shcore::str_format(
+      "The '%s' \"%s\" isn't compatible with the Group Replication "
+      "automatically generated list of allowed IPs.\n%sSee "
+      "https://dev.mysql.com/doc/refman/en/"
+      "group-replication-ip-address-permissions.html for more details.",
+      kLocalAddress, host.c_str(), suggestion));
+
+  throw std::runtime_error(
+      shcore::str_format("The '%s' isn't compatible with the Group Replication "
+                         "automatically generated list of allowed IPs.",
+                         kLocalAddress));
+}
+
 }  // namespace cluster_topology_executor_ops
 
 }  // namespace dba

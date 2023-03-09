@@ -86,6 +86,9 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+NOTE: The 'localAddress' "${hostname}" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
+See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
+NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
 * Checking connectivity and SSL configuration...
 
 WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
@@ -108,6 +111,9 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+NOTE: The 'localAddress' "${hostname}" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
+See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
+NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
 * Checking connectivity and SSL configuration...
 
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
@@ -167,18 +173,28 @@ c.dissolve();
 //@<> check error log dumping on create if supported {VER(>=8.0.22)}
 
 // force GR start to fail by passing an invalid localAddress
-EXPECT_THROWS(function(){dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0"})}, "Group Replication failed to start:");
+EXPECT_THROWS(function(){
+    dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1"});
+}, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
 
-EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
-EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
+EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "0.0.0.0" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+if (__os_type != 'windows') {
+    EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+}
+EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
 
 //@<> check error log dumping on add if supported {VER(>=8.0.22)}
 var c = dba.createCluster("test", {communicationStack: "XCOM"});
 
-EXPECT_THROWS(function(){c.addInstance(__sandbox_uri2, {localAddress:"0.0.0.0", recoveryMethod:"incremental"})}, "Group Replication failed to start:");
+EXPECT_THROWS(function(){
+    c.addInstance(__sandbox_uri2, {localAddress:"0.0.0.0:1", recoveryMethod:"incremental"});
+}, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
 
-EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
-EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
+EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "0.0.0.0" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+if (__os_type != 'windows') {
+    EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+}
+EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
 
 //@<> WL#12011: Finalization.
 c.disconnect();
@@ -737,7 +753,17 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 // Force a failure of the create_cluster function after the replication-user was created
 //@<> BUG#29308037: Create cluster using an invalid localAddress
 shell.connect(__sandbox_uri2);
-EXPECT_THROWS(function() {dba.createCluster('test', {localAddress: '1a', clearReadOnly: true})}, "Server address configuration error");
+if (__version_num < 80027) {
+    EXPECT_THROWS(function() {
+        dba.createCluster('test', {localAddress: '1a', clearReadOnly: true});
+    }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+}
+else {
+    EXPECT_THROWS(function() {
+        dba.createCluster('test', {localAddress: '1a', clearReadOnly: true});
+    }, "Server address configuration error");
+}
+
 
 //@<OUT> BUG#29308037: Confirm that all replication users where removed
 print(get_query_single_result(session, number_of_rpl_users_query) + "\n");
@@ -818,6 +844,9 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port1}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_gr_port1}'. Use the localAddress option to override.
 
+NOTE: The 'localAddress' "${hostname}" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
+See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
+NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
 * Checking connectivity and SSL configuration...
 
 WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.

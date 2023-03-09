@@ -105,8 +105,14 @@ function END_CHECK_NO_ZOMBIES(cs) {
 //@<> create Primary Cluster
 shell.connect(__sandbox_uri1);
 
+var os_version = session.runSql('select @@version_compile_os').fetchOne()[0];
+
 var cluster;
-EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {"ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+if ((os_version == "Win32") || (os_version == "Win64")) {
+    EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {localAddress:"127.0.0.1", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+} else {
+    EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {"ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+}
 
 //@<> createClusterSet
 BEGIN_CHECK_NO_ZOMBIES();
@@ -203,9 +209,10 @@ BEGIN_CHECK_NO_ZOMBIES();
 
 clusterset = dba.getClusterSet();
 
-EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+if (__os_type != 'windows') {
+    EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
 
-EXPECT_STDOUT_CONTAINS_MULTILINE(`
+    EXPECT_STDOUT_CONTAINS_MULTILINE(`
 Setting up replica 'replicacluster' of cluster 'cluster' at instance '${hostname}:${__mysql_sandbox_port4}'.
 
 A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port4}'.
@@ -252,6 +259,53 @@ Cluster "memberAuthType" is set to 'PASSWORD' (inherited from the ClusterSet).
 Replica Cluster 'replicacluster' successfully created on ClusterSet 'clusterset'.
 `);
 
+} else {
+    EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip, "localAddress": "127.0.0.1", "communicationStack": "XCOM"}); });
+
+    EXPECT_STDOUT_CONTAINS_MULTILINE(`
+Setting up replica 'replicacluster' of cluster 'cluster' at instance '${hostname}:${__mysql_sandbox_port4}'.
+
+A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port4}'.
+
+Disabling super_read_only mode on instance '${hostname}:${__mysql_sandbox_port4}'.
+Validating instance configuration at localhost:${__mysql_sandbox_port4}...
+
+This instance reports its own address as ${hostname}:${__mysql_sandbox_port4}
+
+Instance configuration is suitable.
+NOTE: The 'localAddress' "127.0.0.1" is an IPv4 localhost, which is compatible with the Group Replication automatically generated list of IPs.
+See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
+NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
+
+* Checking transaction state of the instance...
+
+NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
+
+Incremental state recovery selected through the recoveryMethod option
+
+Creating InnoDB Cluster 'replicacluster' on '${hostname}:${__mysql_sandbox_port4}'...
+
+Adding Seed Instance...
+Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
+At least 3 instances are needed for the cluster to be able to withstand up to
+one server failure.
+
+* Configuring ClusterSet managed replication channel...
+** Changing replication source of ${hostname}:${__mysql_sandbox_port4} to ${hostname}:${__mysql_sandbox_port1}
+
+* Waiting for instance '${hostname}:${__mysql_sandbox_port4}' to synchronize with PRIMARY Cluster...
+
+
+* Updating topology
+
+* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
+
+
+
+Replica Cluster 'replicacluster' successfully created on ClusterSet 'clusterset'.
+`);
+}
+
 //@<> validate replica cluster - incremental recovery
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster, undefined, __secure_password);
 
@@ -279,8 +333,14 @@ shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
 //@<> addInstance on primary cluster
-EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
-EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+if (__os_type != 'windows') {
+    EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+    EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+} else {
+    EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental", localAddress:"127.0.0.1", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+    EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", localAddress:"127.0.0.1", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+}
+
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 
 //@<> rejoinInstance on a primary cluster
@@ -319,7 +379,12 @@ EXPECT_NO_THROWS(function() { cluster.removeInstance(__sandbox_uri3); });
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster)
 
 //@<> addInstance on replica cluster
-EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+if (__os_type != 'windows') {
+    EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+} else {
+    EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", localAddress:"127.0.0.1", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+}
+
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
 //@<> rejoinInstance on a replica cluster
@@ -385,7 +450,12 @@ The Cluster 'replicacluster' was removed from the ClusterSet.
 CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster", __secure_password);
 
 //@<> createReplicaCluster() - clone recovery
-EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+if (__os_type != 'windows') {
+    EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
+} else {
+    EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip, "localAddress": "127.0.0.1", "communicationStack": "XCOM"}); });
+}
+
 session4 = mysql.getSession(__sandbox_uri4);
 
 //@<> validate replica cluster - clone recovery
