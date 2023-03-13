@@ -4,6 +4,9 @@ The following operations are available at 'cluster':
    add-instance
       Adds an Instance to the cluster.
 
+   add-replica-instance
+      Adds a Read Replica Instance to the Cluster.
+
    check-instance-state
       Verifies the instance gtid state in relation to the cluster.
 
@@ -46,6 +49,9 @@ The following operations are available at 'cluster':
 
    reset-recovery-accounts-password
       Reset the password of the recovery accounts of the cluster.
+
+   routing-options
+      Lists the Cluster Routers configuration options.
 
    set-instance-option
       Changes the value of an option in a Cluster member.
@@ -253,6 +259,22 @@ OPTIONS
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
 
+--recoveryMethod=<str>
+            Preferred method of state recovery. May be auto, clone or
+            incremental. Default is auto.
+
+--cloneDonor=<str>
+            The Cluster member to be used as donor when performing clone-based
+            recovery.
+
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+            recovery process to finish and its verbosity level.
+
+--dryRun=<bool>
+            Boolean if true, all validations and steps for rejoining the
+            instance are executed, but no changes are actually made.
+
 --password=<str>
             The instance connection password
 
@@ -261,6 +283,12 @@ OPTIONS
             execution, i.e. prompts and confirmations will be provided or not
             according to the value set. The default value is equal to MySQL
             Shell wizard mode.
+
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY after it's provisioned and the replication channel is
+            established. If reached, the operation is rolled-back. Default is 0
+            (no timeout).
 
 //@<OUT> CLI cluster remove-instance --help
 NAME
@@ -281,6 +309,11 @@ OPTIONS
             from metadata) in case it cannot be reached. By default, set to
             false.
 
+--dryRun=<bool>
+            Boolean if true, all validations and steps for removing the
+            instance are executed, but no changes are actually made. An
+            exception will be thrown when finished.
+
 --password=<str>
             The instance connection password
 
@@ -289,6 +322,11 @@ OPTIONS
             execution, i.e. prompts and confirmations will be provided or not
             according to the value set. The default value is equal to MySQL
             Shell wizard mode.
+
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY. If reached, the operation is rolled-back. Default is 0
+            (no timeout).
 
 //@<OUT> CLI cluster remove-router-metadata --help
 NAME
@@ -553,3 +591,62 @@ SYNTAX
 
 RETURNS
       Nothing
+
+//@<OUT> CLI cluster add-replica-instance --help
+NAME
+      add-replica-instance - Adds a Read Replica Instance to the Cluster.
+
+SYNTAX
+      cluster add-replica-instance <instance> [<options>]
+
+WHERE
+      instance: host:port of the target instance to be added as a Read Replica.
+
+RETURNS
+      nothing
+
+OPTIONS
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY after it's provisioned and the replication channel is
+            established. If reached, the operation is rolled-back. Default is 0
+            (no timeout).
+
+--dryRun=<bool>
+            Boolean if true, all validations and steps for creating a Read
+            Replica Instance are executed, but no changes are actually made. An
+            exception will be thrown when finished.
+
+--label=<str>
+            An identifier for the Read Replica Instance being added, used in
+            the output of status() and describe().
+
+--replicationSources[:<type>]=<value>
+            The list of sources for the Read Replica Instance. By default, the
+            list is automatically managed by Group Replication and the primary
+            member is used as source.
+
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+
+--recoveryMethod=<str>
+            Preferred method for state recovery/provisioning. May be auto,
+            clone or incremental. Default is auto.
+
+--cloneDonor=<str>
+            The Cluster member to be used as donor when performing clone-based
+            recovery.
+
+//@<OUT> CLI cluster routing-options --help
+NAME
+      routing-options - Lists the Cluster Routers configuration options.
+
+SYNTAX
+      cluster routing-options [<router>]
+
+WHERE
+      router: Identifier of the router instance to query for the options.
+
+RETURNS
+      A JSON object describing the configuration options of all router
+      instances of the Cluster and its global options or just the given Router.

@@ -1117,6 +1117,8 @@ if (comm_stack == "XCOM") {
 
     testutil.startSandbox(__mysql_sandbox_port2);
 
+    testutil.dbugSet("+d,sigint_wait_recovery");
+
     cluster.rejoinInstance(__sandbox_uri2);
 
     EXPECT_EQ(1045, testutil.waitForReplConnectionError(__mysql_sandbox_port2));
@@ -1139,6 +1141,7 @@ if (comm_stack == "MYSQL") {
     testutil.startSandbox(__mysql_sandbox_port2);
 
     testutil.dbugSet("+d,fail_recovery_mysql_stack");
+    testutil.dbugSet("+d,sigint_wait_recovery");
 
     cluster.rejoinInstance(__sandbox_uri2);
 

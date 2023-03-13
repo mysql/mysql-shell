@@ -25,6 +25,7 @@
 
 #include <vector>
 
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
@@ -57,19 +58,31 @@ void Topology_configuration_command::ensure_server_version() {
 }
 
 void Topology_configuration_command::ensure_target_instance_belongs_to_cluster(
-    const std::string &instance_address, const std::string &metadata_address) {
+    const std::string &target_uuid, const std::string &target_address) {
   auto console = mysqlsh::current_console();
 
   // Check if the instance belongs to the Cluster
   log_debug("Checking if the instance belongs to the cluster.");
 
-  bool is_instance_on_md =
-      m_cluster->contains_instance_with_address(metadata_address);
+  Instance_metadata rr_md;
 
-  if (!is_instance_on_md) {
-    std::string err_msg = "The instance '" + instance_address +
-                          "' does not belong to the cluster: '" +
+  try {
+    rr_md =
+        m_cluster->get_metadata_storage()->get_instance_by_uuid(target_uuid);
+  } catch (const shcore::Exception &err) {
+    if (err.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+
+    std::string err_msg = "The instance '" + target_address +
+                          "' does not belong to the Cluster: '" +
                           m_cluster->get_name() + "'.";
+    throw shcore::Exception::runtime_error(err_msg);
+  }
+
+  // It belongs to the MD, check now if it is a Read-Replica
+  if (rr_md.instance_type == Instance_type::READ_REPLICA) {
+    std::string err_msg =
+        "Unable to set '" + target_address +
+        "' as the primary instance of the Cluster: instance is a Read-Replica.";
     throw shcore::Exception::runtime_error(err_msg);
   }
 }
@@ -221,8 +234,8 @@ void Topology_configuration_command::print_cluster_members_role_changes() {
 void Topology_configuration_command::prepare() {
   // Verify if the instance of the current cluster session has a version
   // >= 8.0.13
-  // We can throw immediately and avoid the further checks such as the check to
-  // verify if any of the cluster members has a version < 8.0.13
+  // We can throw immediately and avoid the further checks such as the check
+  // to verify if any of the cluster members has a version < 8.0.13
   ensure_server_version();
 
   // Verify user privileges to execute operation;

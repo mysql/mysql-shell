@@ -30,36 +30,38 @@
 
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
-namespace mysqlsh {
-namespace dba {
-namespace cluster {
+namespace mysqlsh::dba::cluster {
 
-struct Add_instance_options : public Password_interactive_options {
+struct Add_instance_options : public Password_interactive_options,
+                              Wait_recovery_option {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
-  void set_wait_recovery(int value);
   void set_cert_subject(const std::string &value);
 
   Join_group_replication_options gr_options;
   Join_cluster_clone_options clone_options;
   std::optional<std::string> label;
   std::string cert_subject;
-  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
 };
 
-struct Rejoin_instance_options : public Password_interactive_options {
+struct Rejoin_instance_options : public Password_interactive_options,
+                                 Timeout_option,
+                                 Recovery_progress_option {
   static const shcore::Option_pack_def<Rejoin_instance_options> &options();
-
   Rejoin_group_replication_options gr_options;
+  Join_read_replica_clone_options clone_options;
+  bool dry_run = false;
 };
 
-struct Remove_instance_options : public Password_interactive_options {
+struct Remove_instance_options : public Password_interactive_options,
+                                 Timeout_option {
   static const shcore::Option_pack_def<Remove_instance_options> &options();
 
   bool get_force(bool default_value = false) const noexcept {
@@ -67,6 +69,7 @@ struct Remove_instance_options : public Password_interactive_options {
   }
 
   std::optional<bool> force;
+  bool dry_run = false;
 };
 
 struct Status_options {
@@ -103,7 +106,27 @@ struct Set_primary_instance_options {
   std::optional<uint32_t> running_transactions_timeout;
 };
 
-}  // namespace cluster
-}  // namespace dba
-}  // namespace mysqlsh
+// Read-Replicas
+
+enum class Source_type { PRIMARY, SECONDARY, CUSTOM };
+
+struct Replication_sources {
+  std::set<Managed_async_channel_source,
+           std::greater<Managed_async_channel_source>>
+      replication_sources;
+  std::optional<Source_type> source_type;
+};
+
+struct Add_replica_instance_options : public Timeout_option,
+                                      Recovery_progress_option {
+  static const shcore::Option_pack_def<Add_replica_instance_options> &options();
+  void set_replication_sources(const shcore::Value &value);
+
+  bool dry_run = false;
+  std::optional<std::string> label;
+  Replication_sources replication_sources_option;
+  Join_read_replica_clone_options clone_options;
+};
+
+}  // namespace mysqlsh::dba::cluster
 #endif  // MODULES_ADMINAPI_CLUSTER_API_OPTIONS_H_

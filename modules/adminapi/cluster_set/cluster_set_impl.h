@@ -144,7 +144,8 @@ class Cluster_set_impl : public Base_cluster_impl,
       Cluster_impl *cluster, bool dry_run);
 
   Member_recovery_method validate_instance_recovery(
-      Member_op_action op_action, mysqlshdk::mysql::IInstance *target_instance,
+      Member_op_action op_action,
+      const mysqlshdk::mysql::IInstance &target_instance,
       Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
       bool interactive);
 

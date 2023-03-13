@@ -110,7 +110,7 @@ Replication was disabled but user data was left intact.
 }
 
 // ensure all accounts are dropped
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session);
 
 //@<> Create single-primary cluster
 var single = dba.createCluster('single', {clearReadOnly: true, gtidSetIsComplete: true});
@@ -149,7 +149,7 @@ session.runSql("SELECT group_replication_disable_member_action('mysql_disable_su
 // Regression for BUG#27837231: useless 'force' parameter for dissolve
 EXPECT_NO_THROWS(function() { single.dissolve(); });
 
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session);
 
 //@<> Cluster.dissolve already dissolved
 EXPECT_THROWS(function() { single.dissolve(); }, "Can't call function 'dissolve' on an offline Cluster");
@@ -157,15 +157,13 @@ EXPECT_THROWS(function() { single.dissolve(); }, "Can't call function 'dissolve'
 //@<> Verify cluster data removed from metadata on all instances
 // WL11889 FR8_01: cluster data removed from metadata on all online instances.
 // Regression for BUG#27833605: dissolve() leaving metadata behind.
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session);
 
-shell.connect(__sandbox_uri2);
-CHECK_DISSOLVED_CLUSTER(session);
-session.close();
+var session2 = mysql.getSession(__sandbox_uri2);
+CHECK_DISSOLVED_CLUSTER(session, session2);
 
-shell.connect(__sandbox_uri3);
-CHECK_DISSOLVED_CLUSTER(session);
-session.close();
+var session3 = mysql.getSession(__sandbox_uri3);
+CHECK_DISSOLVED_CLUSTER(session, session3);
 
 shell.connect(__sandbox_uri1);
 
@@ -205,15 +203,13 @@ EXPECT_NO_THROWS(function() { multi.dissolve(); });
 //@<> Verify cluster data removed from metadata on all instances (multi)
 // WL11889 FR8_01: cluster data removed from metadata on all online instances.
 // Regression for BUG#27833605: dissolve() leaving metadata behind.
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session);
 
-session.close();
-shell.connect(__sandbox_uri2);
-CHECK_DISSOLVED_CLUSTER(session);
+var session2 = mysql.getSession(__sandbox_uri2);
+CHECK_DISSOLVED_CLUSTER(session, session2);
 
-session.close();
-shell.connect(__sandbox_uri3);
-CHECK_DISSOLVED_CLUSTER(session);
+var session3 = mysql.getSession(__sandbox_uri3);
+CHECK_DISSOLVED_CLUSTER(session, session3);
 
 //@<> Disable group_replication_enforce_update_everywhere_checks for 5.7 {VER(<8.0.0)}
 // NOTE: Disable of enforce_update_everywhere_checks must be done manually for
@@ -274,7 +270,7 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3
 //@<> Success dissolving cluster 2
 // WL11889 FR6_01: force: true to dissovle cluster with unreachable instances.
 EXPECT_NO_THROWS(function() { single2.dissolve({force: true}); });
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session);
 
 // start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);

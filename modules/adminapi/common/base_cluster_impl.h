@@ -184,8 +184,9 @@ class Base_cluster_impl {
     return query_cluster_instance_auth_cert_subject(instance.get_uuid());
   }
 
-  void set_routing_option(const std::string &router, const std::string &option,
-                          const shcore::Value &value);
+  virtual void set_routing_option(const std::string &router,
+                                  const std::string &option,
+                                  const shcore::Value &value);
   virtual shcore::Dictionary_t routing_options(const std::string &router);
   /**
    * Get the tags for a specific Cluster/ReplicaSet
@@ -219,6 +220,10 @@ class Base_cluster_impl {
                          const std::string &channel_name, int timeout,
                          bool only_received = false) const;
 
+  void sync_transactions(const mysqlshdk::mysql::IInstance &target_instance,
+                         Instance_type instance_type, int timeout,
+                         bool only_received = false) const;
+
   /**
    * Connect to the given instance specification given, while validating its
    * syntax.
@@ -242,6 +247,25 @@ class Base_cluster_impl {
 
   virtual std::vector<Instance_metadata> get_instances_from_metadata()
       const = 0;
+
+  void create_clone_recovery_user_nobinlog(
+      mysqlshdk::mysql::IInstance *target_instance,
+      const mysqlshdk::mysql::Auth_options &donor_account,
+      const std::string &account_host, const std::string &account_cert_issuer,
+      const std::string &account_cert_subject, bool dry_run);
+
+  void handle_clone_provisioning(
+      const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
+      const std::shared_ptr<mysqlsh::dba::Instance> &donor,
+      const Async_replication_options &ar_options,
+      const std::string &repl_account_host, const std::string &cert_issuer,
+      const std::string &cert_subject,
+      const Recovery_progress_style &progress_style, int sync_timeout,
+      bool dry_run);
+
+  void ensure_compatible_clone_donor(
+      const std::string &donor_def,
+      const std::shared_ptr<mysqlsh::dba::Instance> &recipient);
 
  protected:
   Cluster_id m_id;

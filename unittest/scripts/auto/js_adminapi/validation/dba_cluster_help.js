@@ -21,6 +21,9 @@ FUNCTIONS
       addInstance(instance[, options])
             Adds an Instance to the cluster.
 
+      addReplicaInstance(instance[, options])
+            Adds a Read Replica Instance to the Cluster.
+
       checkInstanceState(instance)
             Verifies the instance gtid state in relation to the cluster.
 
@@ -76,6 +79,9 @@ FUNCTIONS
       resetRecoveryAccountsPassword(options)
             Reset the password of the recovery accounts of the cluster.
 
+      routingOptions([router])
+            Lists the Cluster Routers configuration options.
+
       setInstanceOption(instance, option, value)
             Changes the value of an option in a Cluster member.
 
@@ -84,6 +90,10 @@ FUNCTIONS
 
       setPrimaryInstance(instance[, options])
             Elects a specific cluster member as the new primary.
+
+      setRoutingOption([router], option, value)
+            Changes the value of either a global Cluster Routing option or of a
+            single Router instance.
 
       setupAdminAccount(user, options)
             Create or upgrade an InnoDB Cluster admin account.
@@ -549,6 +559,10 @@ DESCRIPTION
       The options dictionary may contain the following attributes:
 
       - password: the instance connection password
+      - recoveryMethod: Preferred method of state recovery. May be auto, clone
+        or incremental. Default is auto.
+      - recoveryProgress: Integer value to indicate the recovery process
+        verbosity level. recovery process to finish and its verbosity level.
       - memberSslMode: SSL mode used on the instance
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
@@ -560,9 +574,45 @@ DESCRIPTION
         group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
+      - dryRun: boolean if true, all validations and steps for rejoining the
+        instance are executed, but no changes are actually made.
+      - cloneDonor: The Cluster member to be used as donor when performing
+        clone-based recovery.
+      - timeout: maximum number of seconds to wait for the instance to sync up
+        with the PRIMARY after it's provisioned and the replication channel is
+        established. If reached, the operation is rolled-back. Default is 0 (no
+        timeout).
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
+
+      The recoveryMethod option supports the following values:
+
+      - incremental: uses distributed state recovery, which applies missing
+        transactions copied from another cluster member. Clone will be
+        disabled.
+      - clone: clone: uses built-in MySQL clone support, which completely
+        replaces the state of the target instance with a full snapshot of
+        another cluster member before distributed recovery starts. Requires
+        MySQL 8.0.17 or newer.
+      - auto: let Group Replication choose whether or not a full snapshot has
+        to be taken, based on what the target server supports and the
+        group_replication_clone_threshold sysvar. This is the default value. A
+        prompt will be shown if not possible to safely determine a safe way
+        forward. If interaction is disabled, the operation will be canceled
+        instead.
+
+      If recoveryMethod is not specified 'auto' will be used by default.
+
+      The recoveryProgress option supports the following values:
+
+      - 0: do not show any progress information.
+      - 1: show detailed static progress information.
+      - 2: show detailed dynamic progress information using progress bars.
+
+      By default, if the standard output on which the Shell is running refers
+      to a terminal, the recoveryProgress option has the value of 2. Otherwise,
+      it has the value of 1.
 
       The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
@@ -624,6 +674,12 @@ DESCRIPTION
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode.
+      - dryRun: boolean if true, all validations and steps for removing the
+        instance are executed, but no changes are actually made. An exception
+        will be thrown when finished.
+      - timeout: maximum number of seconds to wait for the instance to sync up
+        with the PRIMARY. If reached, the operation is rolled-back. Default is
+        0 (no timeout).
 
       The password may be contained in the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -670,6 +726,7 @@ DESCRIPTION
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
       - label a string identifier of the instance.
+      - replicationSources: The list of sources for a Read Replica Instance.
 
       The exitStateAction option supports the following values:
 
@@ -739,6 +796,21 @@ DESCRIPTION
       NOTE: '_hidden' and '_disconnect_existing_sessions_when_hidden' can be
             useful to shut down the instance and perform maintenance on it
             without disrupting incoming application traffic.
+
+      The replicationSources is a comma separated list of instances (host:port)
+      to act as sources of the replication channel, i.e. to provide source
+      failover of the channel. The first member of the list is configured with
+      the highest priority among all members so when the channel activates it
+      will be chosen for the first connection attempt. By default, the source
+      list is automatically managed by Group Replication according to the
+      current group membership and the primary member of the Cluster is the
+      current source for the replication channel, this is the same as setting
+      to "primary". Alternatively, it's possible to set to "secondary" to
+      instruct Group Replication to automatically manage the list but use a
+      secondary member of the Cluster as source.
+
+      For the change to be effective, the Read-Replica must be reconfigured
+      after using Cluster.rejoinInstance().
 
 //@<OUT> SetOption
 NAME
@@ -1424,3 +1496,143 @@ DESCRIPTION
       ATTENTION: This function does not unfence Clusters that have been fenced
                  to ALL traffic. Those Cluster are completely shut down and can
                  only be restored using dba.rebootClusterFromCompleteOutage().
+
+//@<OUT> addReplicaInstance
+NAME
+      addReplicaInstance - Adds a Read Replica Instance to the Cluster.
+
+SYNTAX
+      <Cluster>.addReplicaInstance(instance[, options])
+
+WHERE
+      instance: host:port of the target instance to be added as a Read Replica.
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      nothing
+
+DESCRIPTION
+      This function adds an Instance acting as Read-Replica of an InnoDB
+      Cluster.
+
+      Pre-requisites
+
+      The following is a list of requirements to create a REPLICA cluster:
+
+      - The target instance must be a standalone instance.
+      - The target instance and Cluster must running MySQL 8.0.23 or newer.
+      - Unmanaged replication channels are not allowed.
+      - The target instance server_id and server_uuid must be unique in the
+        topology, including among OFFLINE or unreachable members
+
+      Options
+
+      The options dictionary may contain the following values:
+
+      - dryRun: boolean if true, all validations and steps for creating a Read
+        Replica Instance are executed, but no changes are actually made. An
+        exception will be thrown when finished.
+      - label: an identifier for the Read Replica Instance being added, used in
+        the output of status() and describe().
+      - replicationSources: The list of sources for the Read Replica Instance.
+        By default, the list is automatically managed by Group Replication and
+        the primary member is used as source.
+      - recoveryMethod: Preferred method for state recovery/provisioning. May
+        be auto, clone or incremental. Default is auto.
+      - recoveryProgress: Integer value to indicate the recovery process
+        verbosity level.
+      - timeout: maximum number of seconds to wait for the instance to sync up
+        with the PRIMARY after it's provisioned and the replication channel is
+        established. If reached, the operation is rolled-back. Default is 0 (no
+        timeout).
+      - cloneDonor: The Cluster member to be used as donor when performing
+        clone-based recovery.
+
+      The replicationSources is a comma separated list of instances (host:port)
+      to act as sources of the replication channel, i.e. to provide source
+      failover of the channel. The first member of the list is configured with
+      the highest priority among all members so when the channel activates it
+      will be chosen for the first connection attempt. By default, the source
+      list is automatically managed by Group Replication according to the
+      current group membership and the primary member of the Cluster is the
+      current source for the replication channel, this is the same as setting
+      to "primary". Alternatively, it's possible to set to "secondary" to
+      instruct Group Replication to automatically manage the list too but use a
+      secondary member of the Cluster as source.
+
+      The recoveryMethod option supports the following values:
+
+      - incremental: waits until the new instance has applied missing
+        transactions from the source.
+      - clone: uses MySQL clone to provision the instance, which completely
+        replaces the state of the target instance with a full snapshot of the
+        instance's source.
+      - auto: compares the transaction set of the instance with that of the
+        source to determine if incremental recovery is safe to be automatically
+        chosen as the most appropriate recovery method. A prompt will be shown
+        if not possible to safely determine a safe way forward. If interaction
+        is disabled, the operation will be canceled instead.
+
+      If recoveryMethod is not specified 'auto' will be used by default.
+
+      The recoveryProgress option supports the following values:
+
+      - 0: do not show any progress information.
+      - 1: show detailed static progress information.
+      - 2: show detailed dynamic progress information using progress bars.
+
+      By default, if the standard output on which the Shell is running refers
+      to a terminal, the recoveryProgress option has the value of 2. Otherwise,
+      it has the value of 1.
+
+//@<OUT> routingOptions
+NAME
+      routingOptions - Lists the Cluster Routers configuration options.
+
+SYNTAX
+      <Cluster>.routingOptions([router])
+
+WHERE
+      router: Identifier of the router instance to query for the options.
+
+RETURNS
+      A JSON object describing the configuration options of all router
+      instances of the Cluster and its global options or just the given Router.
+
+DESCRIPTION
+      This function lists the Router configuration options of all Routers of
+      the Cluster or the target Router.
+
+//@<OUT> setRoutingOption
+NAME
+      setRoutingOption - Changes the value of either a global Cluster Routing
+                         option or of a single Router instance.
+
+SYNTAX
+      <Cluster>.setRoutingOption([router], option, value)
+
+WHERE
+      router: Identifier of the target router instance (e.g.
+              192.168.45.70::system).
+      option: The Router option to be changed.
+      value: The value that the option shall get (or null to unset).
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      The accepted options are:
+
+      - tags: Associates an arbitrary JSON object with custom key/value pairs
+        with the Cluster metadata.
+      - read_only_targets: Routing policy to define Router's usage of Read Only
+        instance. Default is 'secondaries'.
+
+      The read_only_targets option supports the following values:
+
+      - all: All Read Replicas of the target Cluster should be used along the
+        other SECONDARY Cluster members for R/O traffic.
+      - read_replicas: Only Read Replicas of the target Cluster should be used
+        for R/O traffic.
+      - secondaries: Only Secondary members of the target Cluster should be
+        used for R/O traffic (default).

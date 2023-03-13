@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,6 +59,18 @@ std::string to_string(Cluster_type type) {
 
     case Cluster_type::REPLICATED_CLUSTER:
       return "REPLICATED-CLUSTER";
+  }
+  throw std::logic_error("internal error");
+}
+
+std::string to_string(Replica_type type) {
+  switch (type) {
+    case Replica_type::NONE:
+      return "NONE";
+    case Replica_type::GROUP_MEMBER:
+      return "GROUP-MEMBER";
+    case Replica_type::READ_REPLICA:
+      return "READ-REPLICA";
   }
   throw std::logic_error("internal error");
 }

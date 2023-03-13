@@ -22,6 +22,8 @@
  */
 
 #include "modules/adminapi/cluster/describe.h"
+#include "adminapi/cluster/api_options.h"
+#include "adminapi/common/common.h"
 #include "modules/adminapi/common/sql.h"
 
 namespace mysqlsh {
@@ -38,26 +40,50 @@ void Describe::prepare() {
   m_cluster.sanity_check();
 
   // Get the current members list
-  m_instances = m_cluster.get_instances();
+  m_instances = m_cluster.get_all_instances();
 }
 
 void Describe::feed_metadata_info(shcore::Dictionary_t dict,
                                   const Instance_metadata &info) {
   (*dict)["address"] = shcore::Value(info.endpoint);
-  (*dict)["role"] = shcore::Value("HA");
   (*dict)["label"] = shcore::Value(info.label);
 
   if (info.hidden_from_router) {
     (*dict)["hiddenFromRouter"] = shcore::Value::True();
   }
+
+  if (info.instance_type == Instance_type::READ_REPLICA) {
+    (*dict)["role"] = shcore::Value("READ_REPLICA");
+
+    // Get the replicationSources
+    shcore::Array_t source_list = shcore::make_array();
+
+    Replication_sources replication_sources =
+        m_cluster.get_read_replica_replication_sources(info.uuid);
+
+    if (replication_sources.source_type == Source_type::PRIMARY) {
+      source_list->push_back(
+          shcore::Value(shcore::str_upper(kReplicationSourcesAutoPrimary)));
+    } else if (replication_sources.source_type == Source_type::SECONDARY) {
+      source_list->push_back(
+          shcore::Value(shcore::str_upper(kReplicationSourcesAutoSecondary)));
+    } else {
+      for (const auto &source : replication_sources.replication_sources) {
+        source_list->push_back(shcore::Value(source.to_string()));
+      }
+    }
+
+    (*dict)["replicationSources"] = shcore::Value(source_list);
+
+  } else {
+    (*dict)["role"] = shcore::Value("HA");
+  }
 }
 
 shcore::Array_t Describe::get_topology() {
-  std::vector<Instance_metadata> instance_defs = m_cluster.get_instances({});
-
   shcore::Array_t instances_list = shcore::make_array();
 
-  for (const auto &instance_def : instance_defs) {
+  for (const auto &instance_def : m_instances) {
     shcore::Dictionary_t member = shcore::make_dict();
     feed_metadata_info(member, instance_def);
 
@@ -68,14 +94,10 @@ shcore::Array_t Describe::get_topology() {
 }
 
 shcore::Dictionary_t Describe::collect_replicaset_description() {
-  shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
   // Set Cluster name and topologyMode
   (*ret)["name"] = shcore::Value("default");
-
-  // Get and set the topology mode from the Metadata
-  auto group_instance = m_cluster.get_cluster_server();
 
   (*ret)["topologyMode"] = shcore::Value(m_cluster.get_topology_type());
 
@@ -86,8 +108,6 @@ shcore::Dictionary_t Describe::collect_replicaset_description() {
 }
 
 shcore::Value Describe::get_default_replicaset_description() {
-  shcore::Dictionary_t dict = shcore::make_dict();
-
   // Get the Default Cluster description
   shcore::Dictionary_t replicaset_dict;
 
@@ -132,18 +152,9 @@ shcore::Value Describe::execute() {
   (*dict)["clusterName"] = shcore::Value(m_cluster.get_name());
 
   // Get the default replicaSet description
-  (*dict)["defaultReplicaSet"] =
-      shcore::Value(get_default_replicaset_description());
-
-  // Iterate all replicasets and get the description for each one
-  // NOTE: to be done only when multiple replicasets are supported
+  (*dict)["defaultReplicaSet"] = get_default_replicaset_description();
 
   return shcore::Value(dict);
-}
-
-void Describe::rollback() {
-  // Do nothing right now, but it might be used in the future when
-  // transactional command execution feature will be available.
 }
 
 void Describe::finish() {

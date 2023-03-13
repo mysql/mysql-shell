@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,11 +42,12 @@ enum class Member_recovery_method { AUTO, INCREMENTAL, CLONE };
 
 struct Clone_options {
   enum Unpack_target {
-    NONE,                   // none
-    CREATE_CLUSTER,         // only disableClone
-    JOIN_CLUSTER,           // all but disableClone
-    JOIN_REPLICASET,        // ReplicaSet only options
-    CREATE_REPLICA_CLUSTER  // same as JOIN_CLUSTER
+    NONE,                    // none
+    CREATE_CLUSTER,          // only disableClone
+    JOIN_CLUSTER,            // all but disableClone
+    JOIN_REPLICASET,         // ReplicaSet only options
+    CREATE_REPLICA_CLUSTER,  // same as JOIN_CLUSTER
+    JOIN_READ_REPLICA        // Only recoveryMethod
   };
 
   Clone_options() : target(NONE) {}
@@ -60,6 +61,7 @@ struct Clone_options {
   }
 
   void check_option_values(const mysqlshdk::utils::Version &version,
+                           bool clone_donor_allowed = true,
                            const Cluster_impl *cluster = nullptr);
 
   void set_clone_donor(const std::string &value);
@@ -120,6 +122,17 @@ struct Create_cluster_clone_options : public Clone_options {
     gtid_set_is_complete = options.gtid_set_is_complete;
 
     return *this;
+  }
+};
+
+struct Join_read_replica_clone_options : public Join_cluster_clone_options {
+  Join_read_replica_clone_options()
+      : Join_cluster_clone_options(Unpack_target::JOIN_READ_REPLICA) {}
+  static const shcore::Option_pack_def<Join_read_replica_clone_options>
+      &options();
+
+  void set_clone_donor(const std::string &value) {
+    Clone_options::set_clone_donor(value);
   }
 };
 

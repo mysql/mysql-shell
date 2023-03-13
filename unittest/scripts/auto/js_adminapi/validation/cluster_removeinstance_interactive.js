@@ -394,7 +394,7 @@ false
 //@<OUT> Remove unreachable instance (interactive: false, force: false) - error
 WARNING: MySQL Error 20[[*]]
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and cannot be safely removed from the cluster.
-To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
+To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false, force: false) - error
 Cluster.removeInstance: [[*]] (MySQL Error 20[[*]])
@@ -496,7 +496,7 @@ true
 //@<OUT> Remove unreachable instance (interactive: true, force: false) - error
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.
-To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
+To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: true, force: false) - error
 Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
@@ -504,9 +504,9 @@ Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_descr
 //@<OUT> Remove unreachable instance (interactive: true, answer NO) - error
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.
-To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
+To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.
 
-Do you want to continue anyway (only the instance metadata will be removed)? [y/N]: ERROR: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])
+Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 
 //@<ERR> Remove unreachable instance (interactive: true, answer NO) - error
 Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
@@ -514,7 +514,7 @@ Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_descr
 //@<OUT> Remove unreachable instance (interactive: true, answer YES) - success
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.
-To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.
+To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.
 
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 The instance will be removed from the InnoDB Cluster.
@@ -561,7 +561,7 @@ The instance will be removed from the InnoDB Cluster.
 
 //@<OUT> Remove instance with replication error - error {VER(>=8.0.23)}
 ERROR: Coordinator error in replication channel 'group_replication_applier': [[*]]
-ERROR: The instance 'localhost:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
+ERROR: The instance 'localhost:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the option 'timeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
 //@<OUT> Remove instance with replication error - error {VER(<8.0.23)}
 ERROR: Applier error in replication channel 'group_replication_applier': [[*]]

@@ -336,5 +336,50 @@ void change_replication_credentials(
   }
 }
 
+std::string to_string(Read_replica_status status) {
+  switch (status) {
+    case Read_replica_status::ONLINE:
+      return "ONLINE";
+    case Read_replica_status::CONNECTING:
+      return "CONNECTING";
+    case Read_replica_status::OFFLINE:
+      return "OFFLINE";
+    case Read_replica_status::ERROR:
+      return "ERROR";
+    case Read_replica_status::UNREACHABLE:
+      return "UNREACHABLE";
+  }
+  throw std::logic_error("internal error");
+}
+
+Read_replica_status get_read_replica_status(
+    const mysqlshdk::mysql::IInstance &read_replica_instance) {
+  if (mysqlshdk::mysql::Replication_channel channel;
+      mysqlshdk::mysql::get_channel_status(
+          read_replica_instance,
+          mysqlsh::dba::k_read_replica_async_channel_name, &channel)) {
+    switch (channel.status()) {
+      case mysqlshdk::mysql::Replication_channel::ON:
+        return Read_replica_status::ONLINE;
+        break;
+      case mysqlshdk::mysql::Replication_channel::CONNECTING:
+        return Read_replica_status::CONNECTING;
+        break;
+      case mysqlshdk::mysql::Replication_channel::OFF:
+      case mysqlshdk::mysql::Replication_channel::APPLIER_OFF:
+      case mysqlshdk::mysql::Replication_channel::RECEIVER_OFF:
+        return Read_replica_status::OFFLINE;
+        break;
+      case mysqlshdk::mysql::Replication_channel::CONNECTION_ERROR:
+      case mysqlshdk::mysql::Replication_channel::APPLIER_ERROR:
+        return Read_replica_status::ERROR;
+        break;
+    }
+  }
+
+  // The channel does not exist
+  return Read_replica_status::OFFLINE;
+}
+
 }  // namespace mysql
 }  // namespace mysqlshdk

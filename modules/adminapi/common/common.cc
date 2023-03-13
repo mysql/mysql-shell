@@ -34,6 +34,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
@@ -93,6 +94,35 @@ void validate_gr_session(
 }
 
 }  // namespace
+
+namespace TargetType {
+std::string to_string(Type type) {
+  switch (type) {
+    case Type::AsyncReplicaSet:
+      return "InnoDB ReplicaSet";
+    case Type::GroupReplication:
+      return "unmanaged Group Replication";
+    case Type::InnoDBCluster:
+      return "InnoDB Cluster";
+    case Type::InnoDBClusterSet:
+      return "InnoDB ClusterSet";
+    case Type::InnoDBClusterSetOffline:
+      return "InnoDB ClusterSet offline";
+    case Type::AsyncReplication:
+      return "unmanaged Asynchronous Replication";
+    case Type::Standalone:
+      return "standalone";
+    case Type::StandaloneInMetadata:
+      return "standalone in Metadata";
+    case Type::StandaloneWithMetadata:
+      return "standalone with Metadata";
+    case Type::Unknown:
+      return "unknown";
+    default:
+      throw std::logic_error("Unexpected TargetType");
+  }
+}
+}  // namespace TargetType
 
 std::string to_string(Cluster_ssl_mode ssl_mode) {
   switch (ssl_mode) {
@@ -1023,6 +1053,10 @@ Instance_rejoinability validate_instance_rejoinable(
 
   if (imd.cluster_id != cluster_id) return Instance_rejoinability::NOT_MEMBER;
 
+  if (imd.instance_type == Instance_type::READ_REPLICA) {
+    return Instance_rejoinability::READ_REPLICA;
+  }
+
   auto state = mysqlshdk::gr::get_member_state(instance);
   if (state == mysqlshdk::gr::Member_state::ONLINE)
     return Instance_rejoinability::ONLINE;
@@ -1030,6 +1064,39 @@ Instance_rejoinability validate_instance_rejoinable(
     return Instance_rejoinability::RECOVERING;
   else
     return Instance_rejoinability::REJOINABLE;
+}
+
+/**
+ * Checks whether the target instance is standalone or not
+ *
+ * @param  instance    Instance to check
+ * @param  target_type Variable containing the TargetType of the instance
+ *
+ * @return             True if the instance is standalone, False otherwise
+ */
+bool validate_instance_standalone(const Instance &instance,
+                                  TargetType::Type *target_type) {
+  const auto md_storage =
+      std::make_shared<mysqlsh::dba::MetadataStorage>(instance);
+
+  auto type = mysqlsh::dba::get_instance_type(*md_storage, instance);
+
+  if (type == TargetType::Unknown) {
+    assert(!"Unexpected state for instance");
+    throw std::logic_error("Unexpected state in " + instance.descr());
+  }
+
+  if (target_type) {
+    *target_type = type;
+  }
+
+  if (type == TargetType::Standalone ||
+      type == TargetType::StandaloneWithMetadata ||
+      type == TargetType::AsyncReplication) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -2144,13 +2211,15 @@ void handle_deprecated_option(const std::string &deprecated_name,
 TargetType::Type get_instance_type(
     const MetadataStorage &metadata,
     const mysqlshdk::mysql::IInstance &target_instance) {
-  Cluster_type cluster_type;
+  Cluster_type cluster_type = Cluster_type::NONE;
+  Replica_type replica_type = Replica_type::NONE;
   bool has_metadata = false;
   bool gr_active;
 
   try {
     mysqlshdk::utils::Version md_version;
-    has_metadata = metadata.check_metadata(&md_version, &cluster_type);
+    has_metadata =
+        metadata.check_metadata(&md_version, &cluster_type, &replica_type);
 
     gr_active = mysqlshdk::gr::is_active_member(target_instance);
   } catch (const shcore::Error &error) {
@@ -2174,13 +2243,21 @@ TargetType::Type get_instance_type(
   }
 
   if (has_metadata) {
+    // Check if it is a Read-Replica
+    if (replica_type == Replica_type::READ_REPLICA) {
+      std::cout << "read replica \n";
+      return TargetType::InnoDBCluster;
+    }
+
     if (cluster_type == Cluster_type::GROUP_REPLICATION && gr_active)
       return TargetType::InnoDBCluster;
 
     if (cluster_type == Cluster_type::GROUP_REPLICATION && !gr_active) {
       // InnoDB cluster but with GR stopped
-      if (metadata.check_cluster_set(&target_instance))
+      if (metadata.check_cluster_set(&target_instance)) {
         return TargetType::InnoDBClusterSetOffline;
+      }
+
       return TargetType::StandaloneInMetadata;
     }
 
@@ -2346,6 +2423,30 @@ mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
       break;
   }
   return ssl_options;
+}
+
+void validate_replication_sources_option(const shcore::Value &value) {
+  if (value.type == shcore::Value_type::Array) {
+    auto array = value.as_array();
+    if (array->empty()) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "The list for '%s' option cannot be empty.", kReplicationSources));
+    }
+  } else if (value.type == shcore::Value_type::String) {
+    auto string = value.as_string();
+
+    if (!shcore::str_caseeq(string, kReplicationSourcesAutoPrimary) &&
+        !shcore::str_caseeq(string, kReplicationSourcesAutoSecondary)) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Option '%s' only accepts 'primary' or 'secondary' as a valid "
+          "string value, otherwise a list of instances is expected.",
+          kReplicationSources));
+    }
+  } else {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "The '%s' option must be a string or a list of strings.",
+        kReplicationSources));
+  }
 }
 
 namespace cluster_topology_executor_ops {
@@ -2547,6 +2648,35 @@ void validate_local_address_ip_compatibility(
         local_address.c_str(), lowest_cluster_version.get_base().c_str()));
   }
 }
+
+void validate_read_replica_version(
+    mysqlshdk::utils::Version target_instance_version,
+    mysqlshdk::utils::Version lowest_cluster_version) {
+  if (target_instance_version < Precondition_checker::k_min_rr_version) {
+    mysqlsh::current_console()->print_info(
+        "The target instance is running MySQL version " +
+        target_instance_version.get_full() + ", but " +
+        Precondition_checker::k_min_rr_version.get_full() +
+        " is the minimum required for InnoDB Cluster Read Replicas.");
+    throw shcore::Exception("Unsupported MySQL version",
+                            SHERR_DBA_BADARG_VERSION_NOT_SUPPORTED);
+  }
+
+  // Check if the Cluster's minimum version is >= 8.0.23
+  if (lowest_cluster_version < Precondition_checker::k_min_rr_version) {
+    mysqlsh::current_console()->print_info(
+        "Detected a member in the target Cluster running MySQL server "
+        "version '" +
+        lowest_cluster_version.get_full() +
+        "' which is older than the minimum required for InnoDB Cluster Read "
+        "Replicas: '" +
+        Precondition_checker::k_min_rr_version.get_full() + "'");
+
+    throw shcore::Exception("Unsupported MySQL version",
+                            SHERR_DBA_BADARG_VERSION_NOT_SUPPORTED);
+  }
+}
+
 }  // namespace cluster_topology_executor_ops
 
 }  // namespace dba

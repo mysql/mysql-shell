@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,6 +80,102 @@ const shcore::Option_pack_def<Password_interactive_options>
           .include<Interactive_option>();
 
   return opts;
+}
+
+const shcore::Option_pack_def<Wait_recovery_option>
+    &Wait_recovery_option::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Wait_recovery_option>().optional(
+          kWaitRecovery, &Wait_recovery_option::set_wait_recovery);
+
+  return opts;
+}
+
+const shcore::Option_pack_def<Recovery_progress_option>
+    &Recovery_progress_option::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Recovery_progress_option>().optional(
+          kRecoveryProgress, &Recovery_progress_option::set_recovery_progress);
+
+  return opts;
+}
+
+Recovery_progress_style Wait_recovery_option::get_wait_recovery() {
+  if (!m_wait_recovery.has_value()) {
+    m_wait_recovery = isatty(STDOUT_FILENO)
+                          ? Recovery_progress_style::PROGRESSBAR
+                          : Recovery_progress_style::TEXTUAL;
+  }
+
+  return *m_wait_recovery;
+}
+
+Recovery_progress_style Recovery_progress_option::get_recovery_progress() {
+  if (!m_recovery_progress.has_value()) {
+    m_recovery_progress = isatty(STDOUT_FILENO)
+                              ? Recovery_progress_style::PROGRESSBAR
+                              : Recovery_progress_style::TEXTUAL;
+  }
+
+  return *m_recovery_progress;
+}
+
+namespace {
+void validate_wait_recovery(int value) {
+  // Validate waitRecovery option UInteger [0, 3]
+  if (value < 0 || value > 3) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
+                           "integer in the range [0, 3].",
+                           value, kWaitRecovery));
+  }
+}
+
+void validate_recovery_progress(int value) {
+  // Validate recoveryProgress option UInteger [0, 3]
+  if (value < 0 || value > 2) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
+                           "integer in the range [0, 2].",
+                           value, kRecoveryProgress));
+  }
+}
+}  // namespace
+
+void Wait_recovery_option::set_wait_recovery(int value) {
+  // Validate waitRecovery option UInteger [0, 3]
+  validate_wait_recovery(value);
+
+  switch (value) {
+    case 0:
+      m_wait_recovery = Recovery_progress_style::NOWAIT;
+      break;
+    case 1:
+      m_wait_recovery = Recovery_progress_style::NOINFO;
+      break;
+    case 2:
+      m_wait_recovery = Recovery_progress_style::TEXTUAL;
+      break;
+    default:
+      m_wait_recovery = Recovery_progress_style::PROGRESSBAR;
+  }
+}
+
+void Recovery_progress_option::set_recovery_progress(int value) {
+  // Validate recoveryProgress option UInteger [0, 2]
+  validate_recovery_progress(value);
+
+  switch (value) {
+    case 0:
+      m_recovery_progress = Recovery_progress_style::NOINFO;
+      break;
+    case 1:
+      m_recovery_progress = Recovery_progress_style::TEXTUAL;
+      break;
+    default:
+      m_recovery_progress = Recovery_progress_style::PROGRESSBAR;
+      break;
+  }
 }
 
 void Password_interactive_options::set_password(const std::string &option,

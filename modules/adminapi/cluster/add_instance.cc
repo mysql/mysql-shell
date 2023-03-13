@@ -21,9 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/common/cluster_topology_executor.h"
+#include "modules/adminapi/cluster/add_instance.h"
+#include <functional>
+#include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/provision.h"
@@ -36,10 +39,6 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh::dba::cluster {
-
-namespace {
-constexpr std::chrono::seconds k_recovery_start_timeout{30};
-}
 
 void Add_instance::check_cluster_members_limit() const {
   const std::vector<Instance_metadata> all_instances =
@@ -61,18 +60,22 @@ void Add_instance::check_cluster_members_limit() const {
 }
 
 void Add_instance::resolve_local_address(
-    Group_replication_options *gr_options,
+    checks::Check_type check_type, Group_replication_options *gr_options,
     const Group_replication_options &user_gr_options) {
   auto hostname = m_target_instance->get_canonical_hostname();
   auto communication_stack =
       get_communication_stack(*m_cluster_impl->get_cluster_server());
+
+  bool check_if_busy =
+      check_type == checks::Check_type::REJOIN ? false : !m_already_member;
+  bool quiet = (check_type == checks::Check_type::REJOIN);
 
   gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
       user_gr_options.local_address.value_or("").empty()
           ? gr_options->local_address
           : user_gr_options.local_address,
       communication_stack, hostname, *m_target_instance->get_sysvar_int("port"),
-      !m_already_member, false);
+      check_if_busy, quiet);
 
   // Validate that the local_address value we want to use as well as the
   // local address values in use on the cluster are compatible with the
@@ -83,214 +86,51 @@ void Add_instance::resolve_local_address(
       m_cluster_impl->get_lowest_instance_version());
 }
 
-Member_recovery_method Add_instance::check_recovery_method(
-    bool clone_disabled) {
-  // Check GTID consistency and whether clone is needed
-  auto check_recoverable = [this](mysqlshdk::mysql::IInstance *target) {
-    // Check if the GTIDs were purged from the whole cluster
-    bool recoverable = false;
+void Add_instance::check_and_resolve_instance_configuration(
+    checks::Check_type check_type, bool is_switching_comm_stack) {
+  Group_replication_options user_options(m_gr_opts);
 
-    m_cluster_impl->execute_in_members(
-        {mysqlshdk::gr::Member_state::ONLINE}, target->get_connection_options(),
-        {},
-        [&recoverable, &target](const std::shared_ptr<Instance> &instance,
-                                const mysqlshdk::gr::Member &) {
-          // Get the gtid state in regards to the cluster_session
-          mysqlshdk::mysql::Replica_gtid_state state =
-              mysqlshdk::mysql::check_replica_gtid_state(*instance, *target,
-                                                         nullptr, nullptr);
-
-          if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-            recoverable = true;
-            // stop searching as soon as we find a possible donor
-            return false;
-          }
-          return true;
-        });
-
-    return recoverable;
-  };
-
-  std::shared_ptr<Instance> donor_instance =
-      m_cluster_impl->get_cluster_server();
-
-  auto recovery_method = mysqlsh::dba::validate_instance_recovery(
-      Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
-      donor_instance.get(), m_target_instance.get(), check_recoverable,
-      *m_options.clone_options.recovery_method,
-      m_cluster_impl->get_gtid_set_is_complete(), m_options.interactive(),
-      clone_disabled);
-
-  // If recovery method was selected as clone, check that there is at least one
-  // ONLINE cluster instance not using IPV6, otherwise throw an error
-  if (recovery_method == Member_recovery_method::CLONE) {
-    bool found_ipv4 = false;
-    std::string full_msg;
-    // get online members
-    const auto online_instances =
-        m_cluster_impl->get_instances({mysqlshdk::gr::Member_state::ONLINE});
-    // check if at least one of them is not IPv6, otherwise throw an error
-    for (const auto &instance : online_instances) {
-      if (!mysqlshdk::utils::Net::is_ipv6(
-              mysqlshdk::utils::split_host_and_port(instance.endpoint).first)) {
-        found_ipv4 = true;
-        break;
-      } else {
-        std::string msg = "Instance '" + instance.endpoint +
-                          "' is not a suitable clone donor: Instance "
-                          "hostname/report_host is an IPv6 address, which is "
-                          "not supported for cloning.";
-        log_info("%s", msg.c_str());
-        full_msg += msg + "\n";
-      }
-    }
-    if (!found_ipv4) {
-      auto console = current_console();
-      console->print_error(
-          "None of the ONLINE members in the cluster are compatible to be used "
-          "as clone donors for " +
-          m_target_instance->descr());
-      console->print_info(full_msg);
-      throw shcore::Exception("The Cluster has no compatible clone donors.",
-                              SHERR_DBA_CLONE_NO_DONORS);
-    }
-  }
-
-  return recovery_method;
-}
-
-void Add_instance::check_and_resolve_instance_configuration() {
-  Group_replication_options user_options(m_options.gr_options);
-
-  bool using_clone_recovery =
-      !m_options.clone_options.recovery_method
-          ? false
-          : m_options.clone_options.recovery_method.get_safe() ==
-                Member_recovery_method::CLONE;
+  bool using_clone_recovery = !m_clone_opts.recovery_method
+                                  ? false
+                                  : m_clone_opts.recovery_method.get_safe() ==
+                                        Member_recovery_method::CLONE;
 
   // Check instance version compatibility with cluster.
   m_cluster_impl->check_instance_configuration(
-      m_target_instance, using_clone_recovery, checks::Check_type::JOIN,
-      m_already_member);
+      m_target_instance, using_clone_recovery, check_type, m_already_member);
 
   // Resolve the SSL Mode to use to configure the instance.
   if (m_primary_instance) {
     resolve_instance_ssl_mode_option(*m_target_instance, *m_primary_instance,
-                                     &m_options.gr_options.ssl_mode);
+                                     &m_gr_opts.ssl_mode);
     log_info("SSL mode used to configure the instance: '%s'",
-             to_string(m_options.gr_options.ssl_mode).c_str());
+             to_string(m_gr_opts.ssl_mode).c_str());
+  }
+
+  if (check_type == checks::Check_type::REJOIN) {
+    // Read actual GR configurations to preserve them when rejoining the
+    // instance.
+    m_gr_opts.read_option_values(*m_target_instance, is_switching_comm_stack);
   }
 
   // If this is not seed instance, then we should try to read the
   // failoverConsistency and expelTimeout values from a a cluster member.
-  m_cluster_impl->query_group_wide_option_values(
-      m_target_instance.get(), &m_options.gr_options.consistency,
-      &m_options.gr_options.expel_timeout);
+  m_cluster_impl->query_group_wide_option_values(m_target_instance.get(),
+                                                 &m_gr_opts.consistency,
+                                                 &m_gr_opts.expel_timeout);
 
   // Compute group_seeds using local_address from each active cluster member
-  {
-    auto group_seeds = [](const std::map<std::string, std::string> &seeds,
-                          const std::string &skip_uuid = "") {
-      std::string ret;
-      for (const auto &i : seeds) {
-        if (i.first != skip_uuid) {
-          if (!ret.empty()) ret.append(",");
-          ret.append(i.second);
-        }
-      }
-      return ret;
-    };
-
-    m_options.gr_options.group_seeds =
-        group_seeds(m_cluster_impl->get_cluster_group_seeds());
+  if (check_type == checks::Check_type::JOIN) {
+    m_gr_opts.group_seeds = m_cluster_impl->get_cluster_group_seeds_list();
+  } else {
+    m_gr_opts.group_seeds = m_cluster_impl->get_cluster_group_seeds_list(
+        m_target_instance->get_uuid());
   }
 
   // Resolve and validate GR local address.
   // NOTE: Must be done only after getting the report_host used by GR and for
   //       the metadata;
-  resolve_local_address(&m_options.gr_options, user_options);
-}
-
-void Add_instance::handle_clone_plugin_state(bool enable_clone) const {
-  // First, handle the target instance
-  if (enable_clone) {
-    log_info("Installing the clone plugin on instance '%s'.",
-             m_target_instance->get_canonical_address().c_str());
-    mysqlshdk::mysql::install_clone_plugin(*m_target_instance, nullptr);
-  } else {
-    log_info("Uninstalling the clone plugin on instance '%s'.",
-             m_target_instance->get_canonical_address().c_str());
-    mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
-  }
-
-  // Then, handle the cluster members
-  m_cluster_impl->setup_clone_plugin(enable_clone);
-}
-
-bool Add_instance::create_replication_user() {
-  // Creates the replication user ONLY if not already given.
-  // NOTE: User always created at the seed instance.
-  if (m_options.gr_options.recovery_credentials &&
-      !m_options.gr_options.recovery_credentials->user.empty())
-    return false;
-
-  std::tie(m_options.gr_options.recovery_credentials, m_account_host) =
-      m_cluster_impl->create_replication_user(m_target_instance.get(),
-                                              m_options.cert_subject);
-
-  return true;
-}
-
-void Add_instance::clean_replication_user() {
-  if (m_options.gr_options.recovery_credentials &&
-      !m_options.gr_options.recovery_credentials->user.empty()) {
-    log_debug("Dropping recovery user '%s'@'%s' at instance '%s'.",
-              m_options.gr_options.recovery_credentials->user.c_str(),
-              m_account_host.c_str(), m_primary_instance->descr().c_str());
-    m_primary_instance->drop_user(
-        m_options.gr_options.recovery_credentials->user, m_account_host, true);
-  }
-}
-
-void Add_instance::wait_recovery(const std::string &join_begin_time,
-                                 Recovery_progress_style progress_style) const {
-  auto console = current_console();
-  try {
-    auto post_clone_auth = m_target_instance->get_connection_options();
-    post_clone_auth.set_login_options_from(
-        m_cluster_impl->get_cluster_server()->get_connection_options());
-
-    monitor_gr_recovery_status(
-        m_target_instance->get_connection_options(), post_clone_auth,
-        join_begin_time, progress_style, k_recovery_start_timeout.count(),
-        current_shell_options()->get().dba_restart_wait_timeout);
-  } catch (const shcore::Exception &e) {
-    // If the recovery itself failed we abort, but monitoring errors can be
-    // ignored.
-    if (e.code() == SHERR_DBA_CLONE_RECOVERY_FAILED ||
-        e.code() == SHERR_DBA_DISTRIBUTED_RECOVERY_FAILED) {
-      console->print_error("Recovery error in added instance: " + e.format());
-      throw;
-    } else {
-      console->print_warning(
-          "Error while waiting for recovery of the added instance: " +
-          e.format());
-    }
-  } catch (const restart_timeout &) {
-    console->print_warning(
-        "Clone process appears to have finished and tried to restart the "
-        "MySQL server, but it has not yet started back up.");
-
-    console->print_info();
-    console->print_info(
-        "Please make sure the MySQL server at '" + m_target_instance->descr() +
-        "' is restarted and call <Cluster>.rescan() to complete the process. "
-        "To increase the timeout, change "
-        "shell.options[\"dba.restartWaitTimeout\"].");
-
-    throw shcore::Exception("Timeout waiting for server to restart",
-                            SHERR_DBA_SERVER_RESTART_TIMEOUT);
-  }
+  resolve_local_address(check_type, &m_gr_opts, user_options);
 }
 
 void Add_instance::refresh_target_connections() const {
@@ -341,8 +181,8 @@ void Add_instance::store_local_replication_account() const {
             m_cluster_impl->get_metadata_storage()
                 ->update_instance_repl_account(
                     instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-                    m_options.gr_options.recovery_credentials->user,
-                    m_account_host);
+                    Replica_type::GROUP_MEMBER,
+                    m_gr_opts.recovery_credentials->user, m_account_host);
           } catch (const std::exception &e) {
             log_info(
                 "Failed updating Metadata of '%s' to include the recovery "
@@ -358,7 +198,8 @@ void Add_instance::store_local_replication_account() const {
 
   m_cluster_impl->get_metadata_storage()->update_instance_repl_account(
       m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-      m_options.gr_options.recovery_credentials->user, m_account_host);
+      Replica_type::GROUP_MEMBER, m_gr_opts.recovery_credentials->user,
+      m_account_host);
 }
 
 void Add_instance::store_cloned_replication_account() const {
@@ -411,13 +252,14 @@ void Add_instance::store_cloned_replication_account() const {
   std::string recovery_user, recovery_user_host;
   std::tie(recovery_user, recovery_user_host) =
       m_cluster_impl->get_metadata_storage()->get_instance_repl_account(
-          md_inst->get_uuid(), Cluster_type::GROUP_REPLICATION);
+          md_inst->get_uuid(), Cluster_type::GROUP_REPLICATION,
+          Replica_type::GROUP_MEMBER);
 
   // Insert the "donor" recovery account into the MD of the target instance
   log_debug("Adding donor recovery account to metadata");
   m_cluster_impl->get_metadata_storage()->update_instance_repl_account(
       m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-      recovery_user, recovery_user_host);
+      Replica_type::GROUP_MEMBER, recovery_user, recovery_user_host);
 }
 
 void Add_instance::restore_group_replication_account() const {
@@ -427,21 +269,27 @@ void Add_instance::restore_group_replication_account() const {
   log_debug("Re-issuing the CHANGE %s command", source_term.c_str());
 
   mysqlshdk::mysql::Replication_credentials_options options;
-  options.password =
-      m_options.gr_options.recovery_credentials->password.value_or("");
+  options.password = m_gr_opts.recovery_credentials->password.value_or("");
 
   mysqlshdk::mysql::change_replication_credentials(
       *m_target_instance, mysqlshdk::gr::k_gr_recovery_channel,
-      m_options.gr_options.recovery_credentials->user, options);
+      m_gr_opts.recovery_credentials->user, options);
 
   // Update the recovery account to the right one
   log_debug("Adding recovery account to metadata");
   m_cluster_impl->get_metadata_storage()->update_instance_repl_account(
       m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-      m_options.gr_options.recovery_credentials->user, m_account_host);
+      Replica_type::GROUP_MEMBER, m_gr_opts.recovery_credentials->user,
+      m_account_host);
 }
 
-void Add_instance::prepare() {
+void Add_instance::prepare(checks::Check_type check_type,
+                           bool *is_switching_comm_stack) {
+  assert(check_type == checks::Check_type::JOIN ||
+         check_type == checks::Check_type::REJOIN);
+
+  bool add_instance = check_type == checks::Check_type::JOIN ? true : false;
+
   // Validations and variables initialization
   m_primary_instance = m_cluster_impl->get_cluster_server();
 
@@ -451,43 +299,47 @@ void Add_instance::prepare() {
   // members and those local_address values are already validated on the
   // validate_local_address_ip_compatibility method, so we only need to
   // validate the group_seeds value provided by the user.
-  m_options.gr_options.check_option_values(
-      m_target_instance->get_version(),
-      m_target_instance->get_canonical_port());
+  m_gr_opts.check_option_values(m_target_instance->get_version(),
+                                m_target_instance->get_canonical_port());
 
-  m_options.gr_options.manual_start_on_boot =
+  m_gr_opts.manual_start_on_boot =
       m_cluster_impl->get_manual_start_on_boot_option();
 
   // Validate the Clone options.
-  m_options.clone_options.check_option_values(m_target_instance->get_version());
+  m_clone_opts.check_option_values(m_target_instance->get_version(), false);
 
-  check_cluster_members_limit();
+  if (add_instance) {
+    check_cluster_members_limit();
+  }
 
   // Validate the options used
   cluster_topology_executor_ops::validate_add_rejoin_options(
-      m_options.gr_options, get_communication_stack(*m_primary_instance));
+      m_gr_opts, get_communication_stack(*m_primary_instance));
 
   // Make sure there isn't some leftover auto-rejoin active
-  cluster_topology_executor_ops::is_member_auto_rejoining(m_target_instance);
+  m_is_autorejoining = cluster_topology_executor_ops::is_member_auto_rejoining(
+      m_target_instance);
 
   // Make sure the target instance does not already belong to a cluster.
   // Unless it's our cluster, in that case we keep adding it since it
   // may be a retry.
-  try {
-    mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-        m_target_instance, m_primary_instance, m_cluster_impl->get_id());
-  } catch (const shcore::Exception &exp) {
-    m_already_member =
-        (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
-        (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+  if (add_instance) {
+    try {
+      mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
+          m_target_instance, m_primary_instance, m_cluster_impl->get_id());
+    } catch (const shcore::Exception &exp) {
+      m_already_member =
+          (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
+          (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
 
-    if (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
-      throw shcore::Exception::runtime_error(
-          "The instance '" + m_target_instance->descr() +
-          "' is already part of this InnoDB Cluster");
+      if (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
+        throw shcore::Exception::runtime_error(
+            "The instance '" + m_target_instance->descr() +
+            "' is already part of this InnoDB Cluster");
+      }
+
+      if (!m_already_member) throw;
     }
-
-    if (!m_already_member) throw;
   }
 
   // Verify whether the instance supports the communication stack in use in
@@ -495,36 +347,84 @@ void Add_instance::prepare() {
   m_comm_stack = get_communication_stack(*m_primary_instance);
 
   cluster_topology_executor_ops::check_comm_stack_support(
-      m_target_instance, &m_options.gr_options, m_comm_stack);
+      m_target_instance, &m_gr_opts, m_comm_stack);
 
-  // Pick recovery method and check if it's actually usable
-  // Done last to not request interaction before validatiopns
-  m_options.clone_options.recovery_method =
-      check_recovery_method(m_cluster_impl->get_disable_clone_option());
+  // Check if the Cluster's communication stack has switched
+  if (!add_instance) {
+    if (is_switching_comm_stack && !*is_switching_comm_stack) {
+      std::string persisted_comm_stack =
+          m_target_instance
+              ->get_sysvar_string("group_replication_communication_stack")
+              .value_or(kCommunicationStackXCom);
 
-  // Check for various instance specific configuration issues
-  check_and_resolve_instance_configuration();
+      if (persisted_comm_stack != m_comm_stack) {
+        *is_switching_comm_stack = true;
+      }
+    }
 
-  // Validate localAddress
-  if (m_options.gr_options.local_address.has_value()) {
-    validate_local_address_option(
-        *m_options.gr_options.local_address,
-        m_options.gr_options.communication_stack.value_or(""),
-        m_target_instance->get_canonical_port());
+    // get the cert subject to use (we're in a rejoin, so it should be there,
+    // but check it anyway)
+    m_auth_cert_subject =
+        m_cluster_impl->query_cluster_instance_auth_cert_subject(
+            *m_target_instance);
+
+    switch (auto auth_type = m_cluster_impl->query_cluster_auth_type();
+            auth_type) {
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        if (m_auth_cert_subject.empty()) {
+          current_console()->print_error(shcore::str_format(
+              "The cluster's SSL mode is set to '%s' but the instance being "
+              "rejoined doesn't have a valid 'certSubject' option. Please stop "
+              "GR on that instance and then add it back using "
+              "Cluster.<<<addInstance>>>() with the appropriate authentication "
+              "options.",
+              to_string(auth_type).c_str()));
+
+          throw shcore::Exception(
+              shcore::str_format(
+                  "The cluster's SSL mode is set to '%s' but the 'certSubject' "
+                  "option for the instance isn't valid.",
+                  to_string(auth_type).c_str()),
+              SHERR_DBA_MISSING_CERT_OPTION);
+        }
+        break;
+      default:
+        break;
+    }
   }
 
-  // recovery auth checks
-  {
+  // Pick recovery method and check if it's actually usable
+  // Done last to not request interaction before validations
+  m_clone_opts.recovery_method = m_cluster_impl->check_recovery_method(
+      *m_target_instance,
+      add_instance ? Member_op_action::ADD_INSTANCE
+                   : Member_op_action::REJOIN_INSTANCE,
+      *m_clone_opts.recovery_method, m_options.interactive());
+
+  // Check for various instance specific configuration issues
+  check_and_resolve_instance_configuration(
+      check_type, is_switching_comm_stack && *is_switching_comm_stack);
+
+  if (add_instance) {
+    // Validate localAddress
+    validate_local_address_option(*m_gr_opts.local_address,
+                                  m_gr_opts.communication_stack.value_or(""),
+                                  m_target_instance->get_canonical_port());
+
+    // recovery auth checks
     auto auth_type = m_cluster_impl->query_cluster_auth_type();
+
+    m_auth_cert_subject = m_options.cert_subject;
 
     // check if member auth request mode is supported
     validate_instance_member_auth_type(*m_target_instance, false,
-                                       m_options.gr_options.ssl_mode,
-                                       "memberSslMode", auth_type);
+                                       m_gr_opts.ssl_mode, "memberSslMode",
+                                       auth_type);
 
     // check if certSubject was correctly supplied
     validate_instance_member_auth_options("cluster", false, auth_type,
-                                          m_options.cert_subject);
+                                          m_auth_cert_subject);
 
     // Check connectivity and SSL
     if (current_shell_options()->get().dba_connectivity_checks) {
@@ -536,19 +436,21 @@ void Add_instance::prepare() {
       mysqlshdk::mysql::Set_variable disable_sro(
           *m_target_instance, "super_read_only", false, true);
       test_peer_connection(
-          *m_target_instance, m_options.gr_options.local_address.value_or(""),
+          *m_target_instance, m_gr_opts.local_address.value_or(""),
           m_options.cert_subject, *m_primary_instance,
           m_primary_instance
               ->get_sysvar_string("group_replication_local_address")
               .value_or(""),
           m_cluster_impl->query_cluster_instance_auth_cert_subject(
               m_primary_instance->get_uuid()),
-          m_options.gr_options.ssl_mode, auth_type, cert_issuer, m_comm_stack);
+          m_gr_opts.ssl_mode, auth_type, cert_issuer, m_comm_stack);
+
+      current_console()->print_info();
     }
   }
 
   // Set the transaction size limit
-  m_options.gr_options.transaction_size_limit =
+  m_gr_opts.transaction_size_limit =
       get_transaction_size_limit(*m_primary_instance);
 
   // Set the paxos_single_leader option
@@ -556,14 +458,14 @@ void Add_instance::prepare() {
   // the target supports it is not valid since the target might be 8.0 and the
   // primary 5.7
   if (supports_paxos_single_leader(m_primary_instance->get_version())) {
-    m_options.gr_options.paxos_single_leader =
+    m_gr_opts.paxos_single_leader =
         get_paxos_single_leader_enabled(*m_primary_instance).value_or(false);
   }
 }
 
 void Add_instance::do_run() {
   // Validations and variables initialization
-  prepare();
+  prepare(checks::Check_type::JOIN);
 
   /**
    * Execute the add_instance command.
@@ -599,7 +501,7 @@ void Add_instance::do_run() {
       m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
   // Common informative logging
-  cluster_topology_executor_ops::log_used_gr_options(m_options.gr_options);
+  cluster_topology_executor_ops::log_used_gr_options(m_gr_opts);
 
   console->print_info("Adding instance to the cluster...");
   console->print_info();
@@ -625,41 +527,33 @@ void Add_instance::do_run() {
           m_cluster_impl->get_id());
 
   // Clone handling
+  bool clone_supported =
+      mysqlshdk::mysql::is_clone_available(*m_target_instance);
   int64_t restore_clone_threshold = 0;
   bool restore_recovery_accounts = false;
-  if (mysqlshdk::mysql::is_clone_available(*m_target_instance)) {
-    // Clone must be uninstalled only when disableClone is enabled on the
-    // Cluster
-    bool clone_disabled = m_cluster_impl->get_disable_clone_option();
-    bool enable_clone = !clone_disabled;
 
-    // Force clone if requested
-    if (*m_options.clone_options.recovery_method ==
-        Member_recovery_method::CLONE) {
-      restore_clone_threshold =
-          mysqlshdk::mysql::force_clone(*m_target_instance);
-
-      // RESET MASTER to clear GTID_EXECUTED in case it's diverged, otherwise
-      // clone is not executed and GR rejects the instance
-      m_target_instance->query("RESET MASTER");
-    }
-
-    // Make sure the Clone plugin is installed or uninstalled depending on the
-    // value of disableClone
-    //
-    // NOTE: If the clone usage is not disabled on the cluster (disableClone),
-    // we must ensure the clone plugin is installed on all members. Otherwise,
-    // if the cluster was creating an Older shell (<8.0.17) or if the cluster
-    // was set up using the Incremental recovery only and the primary is
-    // removed (or a failover happened) the instances won't have the clone
-    // plugin installed and GR's recovery using clone will fail.
-    //
-    // See BUG#29954085 and BUG#29960838
-    handle_clone_plugin_state(enable_clone);
+  if (clone_supported) {
+    restore_clone_threshold = m_cluster_impl->prepare_clone_recovery(
+        *m_target_instance,
+        *m_clone_opts.recovery_method == Member_recovery_method::CLONE);
   }
 
   // Handle the replication user creation.
-  bool owns_repl_user = create_replication_user();
+  auto owns_repl_user = std::invoke([this](void) {
+    // Creates the replication user ONLY if not already given.
+    // NOTE: User always created at the seed instance.
+    if (m_gr_opts.recovery_credentials &&
+        !m_gr_opts.recovery_credentials->user.empty()) {
+      return false;
+    }
+
+    std::tie(m_gr_opts.recovery_credentials, m_account_host) =
+        m_cluster_impl->create_replication_user(
+            m_target_instance.get(), m_auth_cert_subject,
+            Replication_account_type::GROUP_REPLICATION);
+
+    return true;
+  });
 
   // enable skip_slave_start if the cluster belongs to a ClusterSet, and
   // configure the managed replication channel if the cluster is a replica.
@@ -667,49 +561,57 @@ void Add_instance::do_run() {
     m_cluster_impl->configure_cluster_set_member(m_target_instance);
   }
 
-  const auto post_failure_actions =
-      [this](bool owns_rpl_user, bool drop_rpl_user,
-             int64_t restore_clone_thrsh, bool restore_rec_accounts) {
-        assert(restore_clone_thrsh >= -1);
+  const auto post_failure_actions = [this](bool owns_rpl_user,
+                                           bool drop_rpl_user,
+                                           int64_t restore_clone_thrsh,
+                                           bool restore_rec_accounts) {
+    assert(restore_clone_thrsh >= -1);
 
-        if (owns_rpl_user && drop_rpl_user) {
-          clean_replication_user();
+    bool credentials_exist = m_gr_opts.recovery_credentials &&
+                             !m_gr_opts.recovery_credentials->user.empty();
+
+    if (owns_rpl_user && drop_rpl_user && credentials_exist) {
+      log_debug("Dropping recovery user '%s'@'%s' at instance '%s'.",
+                m_gr_opts.recovery_credentials->user.c_str(),
+                m_account_host.c_str(), m_primary_instance->descr().c_str());
+      m_primary_instance->drop_user(m_gr_opts.recovery_credentials->user,
+                                    m_account_host, true);
+    }
+
+    if (restore_rec_accounts) {
+      m_cluster_impl->restore_recovery_account_all_members();
+    }
+
+    // Check if group_replication_clone_threshold must be restored.
+    // This would only be needed if the clone failed and the server didn't
+    // restart.
+    if (restore_clone_thrsh != 0) {
+      try {
+        // TODO(miguel): 'start group_replication' returns before reading
+        // the threshold value so we can have a race condition. We should
+        // wait until the instance is 'RECOVERING'
+        log_debug(
+            "Restoring value of group_replication_clone_threshold to: %s.",
+            std::to_string(restore_clone_thrsh).c_str());
+
+        // If -1 we must restore it's default, otherwise we restore the
+        // initial value
+        if (restore_clone_thrsh == -1) {
+          m_target_instance->set_sysvar_default(
+              "group_replication_clone_threshold");
+        } else {
+          m_target_instance->set_sysvar("group_replication_clone_threshold",
+                                        restore_clone_thrsh);
         }
-
-        if (restore_rec_accounts) {
-          m_cluster_impl->restore_recovery_account_all_members();
-        }
-
-        // Check if group_replication_clone_threshold must be restored.
-        // This would only be needed if the clone failed and the server didn't
-        // restart.
-        if (restore_clone_thrsh != 0) {
-          try {
-            // TODO(miguel): 'start group_replication' returns before reading
-            // the threshold value so we can have a race condition. We should
-            // wait until the instance is 'RECOVERING'
-            log_debug(
-                "Restoring value of group_replication_clone_threshold to: %s.",
-                std::to_string(restore_clone_thrsh).c_str());
-
-            // If -1 we must restore it's default, otherwise we restore the
-            // initial value
-            if (restore_clone_thrsh == -1) {
-              m_target_instance->set_sysvar_default(
-                  "group_replication_clone_threshold");
-            } else {
-              m_target_instance->set_sysvar("group_replication_clone_threshold",
-                                            restore_clone_thrsh);
-            }
-          } catch (const shcore::Error &e) {
-            log_info(
-                "Could not restore value of group_replication_clone_threshold: "
-                "%s. "
-                "Not a fatal error.",
-                e.what());
-          }
-        }
-      };
+      } catch (const shcore::Error &e) {
+        log_info(
+            "Could not restore value of group_replication_clone_threshold: "
+            "%s. "
+            "Not a fatal error.",
+            e.what());
+      }
+    }
+  };
 
   try {
     // we need a point in time as close as possible, but still earlier than
@@ -759,7 +661,7 @@ void Add_instance::do_run() {
           // instance, using the recovery user of the new instance will fail
           // (because the certificate only exists on the new instance server).
           m_cluster_impl->create_local_replication_user(
-              m_target_instance, m_options.cert_subject, m_options.gr_options,
+              m_target_instance, m_options.cert_subject, m_gr_opts,
               !recovery_certificates);
 
           // if recovery accounts need certificates, we much ensure that the
@@ -792,20 +694,20 @@ void Add_instance::do_run() {
           // the new instance configured properly) and then revert everything
           // back
           m_cluster_impl->create_local_replication_user(
-              m_target_instance, m_options.cert_subject, m_options.gr_options,
-              true);
+              m_target_instance, m_options.cert_subject, m_gr_opts, true);
 
           restore_recovery_accounts = true;
         }
 
         // Join the instance to the Group Replication group.
         mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance,
-                                   m_options.gr_options, recovery_certificates,
+                                   m_gr_opts, recovery_certificates,
                                    cluster_member_count, cfg.get());
       }
 
       // Wait until recovery done. Will throw an exception if recovery fails.
-      wait_recovery(join_begin_time, m_progress_style);
+      m_cluster_impl->wait_instance_recovery(
+          *m_target_instance, join_begin_time, m_options.get_wait_recovery());
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -832,6 +734,7 @@ void Add_instance::do_run() {
     // If the instance is not on the Metadata, we must add it.
     if (!is_instance_on_md) {
       m_cluster_impl->add_metadata_for_instance(*m_target_instance,
+                                                Instance_type::GROUP_MEMBER,
                                                 m_options.label.value_or(""));
       m_cluster_impl->get_metadata_storage()->update_instance_attribute(
           m_target_instance->get_uuid(), k_instance_attribute_join_time,
@@ -844,7 +747,7 @@ void Add_instance::do_run() {
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
         if (m_comm_stack == kCommunicationStackMySQL &&
-            m_progress_style == Recovery_progress_style::NOWAIT) {
+            m_options.get_wait_recovery() == Recovery_progress_style::NOWAIT) {
           store_local_replication_account();
         } else {
           store_cloned_replication_account();
@@ -853,7 +756,7 @@ void Add_instance::do_run() {
     }
 
     // Update group_seeds and auto_increment in other members
-    m_cluster_impl->update_group_peers(*m_target_instance, m_options.gr_options,
+    m_cluster_impl->update_group_peers(*m_target_instance, m_gr_opts,
                                        cluster_member_count,
                                        address_in_metadata);
 
@@ -862,7 +765,8 @@ void Add_instance::do_run() {
     // NOTE: if waitRecover is zero we cannot do it since distributed recovery
     // may be running and the change master command will fail as the slave io
     // thread is running
-    if (owns_repl_user && m_progress_style != Recovery_progress_style::NOWAIT) {
+    if (owns_repl_user &&
+        m_options.get_wait_recovery() != Recovery_progress_style::NOWAIT) {
       restore_group_replication_account();
     }
 
@@ -913,7 +817,7 @@ void Add_instance::do_run() {
       auto restore_accounts =
           (m_comm_stack == kCommunicationStackMySQL) &&
           !recovery_certificates &&
-          (m_progress_style != Recovery_progress_style::NOWAIT);
+          (m_options.get_wait_recovery() != Recovery_progress_style::NOWAIT);
       restore_accounts |= (m_comm_stack != kCommunicationStackMySQL) &&
                           recovery_certificates &&
                           (restore_clone_threshold > 0);

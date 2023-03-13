@@ -51,6 +51,14 @@ cluster.setPrimaryInstance(1234)
 cluster.setPrimaryInstance({})
 cluster.setPrimaryInstance("localhost:3355")
 
+//@<> setPrimaryInstance should not accept a Read-Replica {VER(>=8.0.23)}
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
+EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); });
+
+EXPECT_THROWS_TYPE(function() { cluster.setPrimaryInstance(__endpoint4); }, "Unable to set '" + __endpoint4 + "' as the primary instance of the Cluster: instance is a Read-Replica.", "RuntimeError");
+
+testutil.destroySandbox(__mysql_sandbox_port4);
+
 // F6 - To execute a group configuration function all cluster members must be ONLINE.
 //@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
 testutil.killSandbox(__mysql_sandbox_port3);

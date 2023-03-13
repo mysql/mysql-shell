@@ -457,7 +457,7 @@ void Rescan::add_instance_to_metadata(
         m_cluster->get_cluster_server()->get_connection_options());
   }
 
-  m_cluster->add_metadata_for_instance(cnx_opts);
+  m_cluster->add_metadata_for_instance(cnx_opts, Instance_type::GROUP_MEMBER);
 
   console->print_info(
       "The instance '" +
@@ -917,7 +917,8 @@ void Rescan::ensure_recovery_accounts_match() {
             log_info("Updating recovery account in metadata");
             m_cluster->get_metadata_storage()->update_instance_repl_account(
                 instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-                recovery_user_generated, recovery_user_hosts.front());
+                Replica_type::GROUP_MEMBER, recovery_user_generated,
+                recovery_user_hosts.front());
           }
         }
         return true;

@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_COMMON_COMMON_H_
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <locale>
 #include <map>
@@ -84,6 +85,8 @@ enum Type {
   AsyncReplication = 1 << 8,
   Unknown = 1 << 9
 };
+
+std::string to_string(Type type);
 }  // namespace TargetType
 
 namespace ManagedInstance {
@@ -181,6 +184,14 @@ inline constexpr const char k_default_domain_name[] = "mydb";
 inline constexpr const char *k_replicaset_channel_name = "";
 inline constexpr const char *k_clusterset_async_channel_name =
     "clusterset_replication";
+inline constexpr const char *k_read_replica_async_channel_name =
+    "read_replica_replication";
+
+inline constexpr int k_read_replica_master_connect_retry = 3;
+inline constexpr int k_read_replica_master_retry_count = 10;
+inline constexpr uint64_t k_read_replica_max_weight = 100;
+inline constexpr uint64_t k_read_replica_higher_weight = 80;
+inline constexpr uint64_t k_read_replica_lower_weight = 60;
 
 // TODO(alfredo) - all server configuration constants and general functions
 // should be moved to repl_config.h
@@ -252,7 +263,7 @@ inline constexpr const char kAddInstances[] = "addInstances";
 inline constexpr const char kRemoveInstances[] = "removeInstances";
 inline constexpr const char kRejoinInstances[] = "rejoinInstances";
 inline constexpr const char kWaitRecovery[] = "waitRecovery";
-inline constexpr const char kRecoveryVerbosity[] = "recoveryProgress";
+inline constexpr const char kRecoveryProgress[] = "recoveryProgress";
 inline constexpr const char kLabel[] = "label";
 inline constexpr const char kExtended[] = "extended";
 inline constexpr const char kQueryMembers[] = "queryMembers";
@@ -275,14 +286,17 @@ inline constexpr const char kSwitchCommunicationStack[] =
 inline constexpr const char kTransactionSizeLimit[] = "transactionSizeLimit";
 inline constexpr const char kGrTransactionSizeLimit[] =
     "group_replication_transaction_size_limit";
-constexpr const char kRequireCertIssuer[] = "requireCertIssuer";
-constexpr const char kRequireCertSubject[] = "requireCertSubject";
-constexpr const char kPasswordExpiration[] = "passwordExpiration";
-constexpr const char kMemberAuthType[] = "memberAuthType";
-constexpr const char kCertIssuer[] = "certIssuer";
-constexpr const char kCertSubject[] = "certSubject";
-constexpr const char kReplicationSslMode[] = "replicationSslMode";
+inline constexpr const char kRequireCertIssuer[] = "requireCertIssuer";
+inline constexpr const char kRequireCertSubject[] = "requireCertSubject";
+inline constexpr const char kPasswordExpiration[] = "passwordExpiration";
+inline constexpr const char kMemberAuthType[] = "memberAuthType";
+inline constexpr const char kCertIssuer[] = "certIssuer";
+inline constexpr const char kCertSubject[] = "certSubject";
+inline constexpr const char kReplicationSslMode[] = "replicationSslMode";
 inline constexpr const char kPaxosSingleLeader[] = "paxosSingleLeader";
+inline constexpr const char kReplicationSources[] = "replicationSources";
+inline constexpr const char kReplicationSourcesAutoPrimary[] = "primary";
+inline constexpr const char kReplicationSourcesAutoSecondary[] = "secondary";
 
 inline constexpr const int k_group_replication_members_limit = 9;
 
@@ -504,13 +518,17 @@ enum class Instance_rejoinability {
   REJOINABLE,
   NOT_MEMBER,
   ONLINE,
-  RECOVERING
+  RECOVERING,
+  READ_REPLICA
 };
 
 Instance_rejoinability validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id,
     bool *out_uuid_mistmatch = nullptr);
+
+bool validate_instance_standalone(const Instance &instance,
+                                  TargetType::Type *target_type = nullptr);
 
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);
@@ -755,6 +773,8 @@ mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
     const mysqlshdk::mysql::IInstance &instance, Cluster_ssl_mode ssl_mode,
     Replication_auth_type auth_type);
 
+void validate_replication_sources_option(const shcore::Value &value);
+
 namespace cluster_topology_executor_ops {
 /**
  * Validate the options used in addInstance() and rejoinInstance()
@@ -795,6 +815,10 @@ void log_used_gr_options(const Group_replication_options &gr_options);
 void validate_local_address_ip_compatibility(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const std::string &local_address, const std::string &group_seeds,
+    mysqlshdk::utils::Version lowest_cluster_version);
+
+void validate_read_replica_version(
+    mysqlshdk::utils::Version target_instance_version,
     mysqlshdk::utils::Version lowest_cluster_version);
 }  // namespace cluster_topology_executor_ops
 

@@ -9,7 +9,12 @@
 function validate_fenced_all_traffic(uris) {
   for (var uri of uris) {
     var session = mysql.getSession(uri);
-    EXPECT_EQ("OFFLINE", session.runSql("select member_state from performance_schema.replication_group_members").fetchOne()[0], uri+".group_replication_stopped");
+    var gr_status = session.runSql("select member_state from performance_schema.replication_group_members").fetchOne();
+
+    if (gr_status != null) {
+      EXPECT_EQ("OFFLINE", gr_status[0], uri+".group_replication_stopped");
+    }
+
     EXPECT_EQ(1, session.runSql("select @@super_read_only").fetchOne()[0], uri+".super_read_only");
     EXPECT_EQ(1, session.runSql("select @@offline_mode").fetchOne()[0], uri+".offline_mode");
     session.close();
@@ -94,6 +99,7 @@ shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {gtidSetIsComplete:1}); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3); });
+EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); });
 
 //@<> unfenceWrites() - Standalone Cluster (must fail)
 EXPECT_THROWS_TYPE(function(){ cluster.unfenceWrites(); }, "This function is not available through a session to an instance that belongs to an InnoDB Cluster that is not a member of an InnoDB ClusterSet", "MYSQLSH");
@@ -113,12 +119,14 @@ The Cluster 'cluster' will be fenced from all traffic
 * Stopping Group Replication on '${__endpoint2}'...
 * Enabling offline_mode on '${__endpoint3}'...
 * Stopping Group Replication on '${__endpoint3}'...
+* Enabling offline_mode on '${__endpoint4}'...
+* Stopping replication on '${__endpoint4}'...
 * Stopping Group Replication on the primary '${__endpoint1}'...
 
 Cluster successfully fenced from all traffic
 `);
 
-validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3]);
+validate_fenced_all_traffic([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3, __sandbox_uri4]);
 
 //@<> rebootClusterFromCompleteOutage() on a standalone fenced cluster from all traffic
 shell.connect(__sandbox_uri1);
@@ -126,6 +134,9 @@ shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri4); });
+EXPECT_NO_THROWS(function() { cluster.removeInstance(__sandbox_uri4); });
 
 //@<> createClusterSet()
 EXPECT_NO_THROWS(function() { cs = cluster.createClusterSet("testCS"); });

@@ -106,6 +106,7 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
 
 * Checking connectivity and SSL configuration...
+
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -132,6 +133,7 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>'. Use the localAddress option to override.
 
 * Checking connectivity and SSL configuration...
+
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -272,6 +274,7 @@ Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>'. Use the localAddress option to override.
 
 * Checking connectivity and SSL configuration...
+
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -302,6 +305,12 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(>=8.0.11)}
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
+The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental state recovery may be safely used if you are sure all updates ever executed in the cluster were done with GTIDs enabled, there are no purged transactions and the new instance contains the same GTID set as the cluster or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.
+
+Incremental state recovery was selected because it seems to be safely usable.
+
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -314,9 +323,8 @@ Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devC
 ?{VER(>=8.0.27)}
 Re-creating recovery account...
 NOTE: User '<<<repl_user>>>'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with a new password.
-
-* Waiting for the Cluster to synchronize with the PRIMARY Cluster...
-
+Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'
 
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
@@ -325,6 +333,12 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoi
 <<<(__version_num<80000)?"WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell":"
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here."\>>>
+
+The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
+
+The incremental state recovery may be safely used if you are sure all updates ever executed in the cluster were done with GTIDs enabled, there are no purged transactions and the new instance contains the same GTID set as the cluster or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.
+
+Incremental state recovery was selected because it seems to be safely usable.
 
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
 NOTE: Instance detected as a sandbox.
@@ -335,6 +349,9 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3
 Instance configuration is suitable.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
+
+Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.

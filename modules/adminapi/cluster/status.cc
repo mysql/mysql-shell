@@ -25,17 +25,24 @@
 
 #include <algorithm>
 
+#include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/options.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -122,8 +129,13 @@ void Status::connect_to_members() {
 
   for (const auto &inst : m_instances) {
     try {
-      m_member_sessions[inst.endpoint] =
-          ipool->connect_unchecked_endpoint(inst.endpoint);
+      if (inst.instance_type == Instance_type::READ_REPLICA) {
+        m_read_replica_sessions[inst.endpoint] =
+            ipool->connect_unchecked_endpoint(inst.endpoint);
+      } else {
+        m_member_sessions[inst.endpoint] =
+            ipool->connect_unchecked_endpoint(inst.endpoint);
+      }
     } catch (const shcore::Error &e) {
       m_member_connect_errors[inst.endpoint] = e.format();
     }
@@ -142,8 +154,13 @@ shcore::Dictionary_t Status::check_group_status(
   int quorum_size = 0;
   // count inconsistencies in the group vs metadata
   int missing_from_group = 0;
+  int cluster_instance_count = 0;
 
   for (const auto &inst : m_instances) {
+    if (inst.instance_type != Instance_type::GROUP_MEMBER) continue;
+
+    cluster_instance_count++;
+
     if (std::find_if(members.begin(), members.end(),
                      [&inst](const mysqlshdk::gr::Member &member) {
                        return member.uuid == inst.uuid;
@@ -212,12 +229,12 @@ shcore::Dictionary_t Status::check_group_status(
     }
   }
 
-  if (static_cast<int>(m_instances.size()) > online_count) {
-    if (m_instances.size() - online_count == 1) {
+  if (cluster_instance_count > online_count) {
+    if (cluster_instance_count - online_count == 1) {
       desc_status.append(" 1 member is not active.");
     } else {
       desc_status.append(" " +
-                         std::to_string(m_instances.size() - online_count) +
+                         std::to_string(cluster_instance_count - online_count) +
                          " members are not active.");
     }
   }
@@ -675,8 +692,9 @@ void Status::feed_member_info(shcore::Dictionary_t dict,
                               std::optional<bool> super_read_only,
                               const std::vector<std::string> &fence_sysvars,
                               mysqlshdk::gr::Member_state self_state,
-                              bool is_auto_rejoin_running) {
-  (*dict)["readReplicas"] = shcore::Value(shcore::make_dict());
+                              bool is_auto_rejoin_running,
+                              const shcore::Dictionary_t read_replicas) {
+  (*dict)["readReplicas"] = shcore::Value(read_replicas);
 
   if (m_extended.value_or(0) >= 1) {
     // Set fenceSysVars array.
@@ -983,7 +1001,8 @@ void check_auth_type_instance_ssl(shcore::Array_t issues,
   {
     auto instance_repl_account =
         cluster.get_metadata_storage()->get_instance_repl_account(
-            instance.get_uuid(), Cluster_type::GROUP_REPLICATION);
+            instance.get_uuid(), Cluster_type::GROUP_REPLICATION,
+            Replica_type::GROUP_MEMBER);
 
     if (std::get<0>(instance_repl_account).empty()) {
       // if this happens, a warning is already shown to the user in
@@ -1345,6 +1364,7 @@ shcore::Dictionary_t Status::get_topology(
   };
 
   std::vector<Instance_metadata_info> instances;
+  std::vector<Read_replica_info> read_replicas;
 
   // add placeholders for unmanaged members
   for (const auto &m : member_info) {
@@ -1410,12 +1430,32 @@ shcore::Dictionary_t Status::get_topology(
   for (const auto &i : m_instances) {
     bool found = false;
     for (const auto &m : member_info) {
-      if (m.uuid == i.uuid ||
-          mysqlshdk::utils::are_endpoints_equal(
-              i.endpoint,
-              mysqlshdk::utils::make_host_and_port(m.host, m.port))) {
+      if (i.instance_type == Instance_type::READ_REPLICA) {
+        Read_replica_info read_replica = {};
+
+        read_replica.md = i;
+
+        Replication_sources replication_sources =
+            m_cluster->get_read_replica_replication_sources(i.uuid);
+
+        if (replication_sources.source_type != Source_type::CUSTOM) {
+          read_replica.managed_channel_info.automatic_sources = true;
+        } else {
+          read_replica.managed_channel_info.sources.swap(
+              replication_sources.replication_sources);
+        }
+
+        read_replicas.emplace_back(read_replica);
         found = true;
         break;
+      } else {
+        if (m.uuid == i.uuid ||
+            mysqlshdk::utils::are_endpoints_equal(
+                i.endpoint,
+                mysqlshdk::utils::make_host_and_port(m.host, m.port))) {
+          found = true;
+          break;
+        }
       }
     }
     if (!found) {
@@ -1447,6 +1487,11 @@ shcore::Dictionary_t Status::get_topology(
   auto mismatched_recovery_accounts =
       m_cluster->get_mismatched_recovery_accounts();
 
+  // Flag to mark the primary instance was already feeded with rogue
+  // read-replicas info. Used to avoid all members being fed with the same
+  // read-replica when in multi-primary mode
+  bool already_feeded_primary = false;
+
   for (const auto &inst : instances) {
     shcore::Dictionary_t member = shcore::make_dict();
     mysqlshdk::gr::Member minfo(get_member(inst.actual_server_uuid));
@@ -1469,7 +1514,8 @@ shcore::Dictionary_t Status::get_topology(
       // Get the current parallel-applier options
       parallel_applier_options = Parallel_applier_options(*instance);
 
-      // Get super_read_only value of each instance to set the mode accurately.
+      // Get super_read_only value of each instance to set the mode
+      // accurately.
       super_read_only = instance->get_sysvar_bool("super_read_only");
 
       // Get offline_mode value of each instance to set the mode accurately.
@@ -1571,8 +1617,16 @@ shcore::Dictionary_t Status::get_topology(
           shcore::Value(m_member_connect_errors[inst.md.endpoint]);
     }
     feed_metadata_info(member, inst.md);
-    feed_member_info(member, minfo, offline_mode, super_read_only,
-                     fence_sysvars, self_state, auto_rejoin);
+
+    bool is_primary = minfo.role == Member_role::PRIMARY;
+
+    feed_member_info(
+        member, minfo, offline_mode, super_read_only, fence_sysvars, self_state,
+        auto_rejoin,
+        get_read_replicas_info(inst, read_replicas,
+                               is_primary && !already_feeded_primary));
+
+    if (is_primary) already_feeded_primary = true;
 
     {
       shcore::Array_t issues = instance_diagnostics(
@@ -1865,15 +1919,389 @@ shcore::Array_t Status::validate_recovery_accounts_unused(
   return issues;
 }
 
+shcore::Array_t Status::read_replica_diagnostics(
+    Instance *instance, const Read_replica_info &rr_info,
+    bool is_primary) const {
+  using mysqlshdk::mysql::Replication_channel;
+
+  shcore::Array_t instance_errors = shcore::make_array();
+
+  auto append_error = [&instance_errors](const std::string &msg) {
+    if (!instance_errors) {
+      instance_errors = shcore::make_array();
+    }
+    instance_errors->push_back(shcore::Value(msg));
+  };
+
+  if (!instance) {
+    append_error(
+        "ERROR: Could not connect to the Read-Replica: The instance is "
+        "unreachable.");
+
+    return instance_errors;
+  }
+
+  // Check if super_read_only is disabled
+  if (!instance->is_read_only(true)) {
+    append_error(
+        "WARNING: Instance is a Read-Replica but super_read_only option is "
+        "OFF. Use Cluster.rejoinInstance() to fix it.");
+  }
+
+  // Check if the read-replica doesn't have any configured
+  // replicationSources
+  Replication_sources replication_sources =
+      m_cluster->get_read_replica_replication_sources(instance->get_uuid());
+
+  if (!replication_sources.source_type.has_value() ||
+      (*replication_sources.source_type == Source_type::CUSTOM &&
+       replication_sources.replication_sources.empty())) {
+    append_error(
+        "WARNING: Read Replica's replicationSources is empty. Use "
+        "Cluster.setInstanceOption() with the option "
+        "'replicationSources' to update the instance's sources.");
+  }
+
+  // Check if the channel is missing
+  if (rr_info.managed_channel_info.channel_name.empty()) {
+    append_error(
+        "WARNING: Read Replica's replication channel is missing. Use "
+        "Cluster.rejoinInstance() to restore it.");
+
+    return instance_errors;
+  }
+
+  if (!rr_info.managed_channel_info.automatic_failover) {
+    append_error(
+        "WARNING: Read Replica's replication channel is misconfigured: "
+        "automatic failover is disabled. Use Cluster.rejoinInstance() to "
+        "fix it.");
+  }
+
+  // Check if the read-replica doesn't have any active sources
+  if (rr_info.managed_channel_info.sources.empty()) {
+    append_error(
+        "WARNING: Read Replica has no active sources. Use "
+        "Cluster.rejoinInstance() to fix it.");
+  }
+
+  // Check if the read-replica active sources match the replicationSources
+  bool sources_mismatch = false;
+
+  if (replication_sources.source_type == Source_type::CUSTOM) {
+    if (replication_sources.replication_sources !=
+        rr_info.managed_channel_info.sources) {
+      sources_mismatch = true;
+    }
+  } else {
+    sources_mismatch =
+        (replication_sources.source_type == Source_type::PRIMARY &&
+         !is_primary);
+  }
+
+  if (sources_mismatch) {
+    append_error(
+        "WARNING: Read Replica's replication channel is misconfigured: the "
+        "current sources don't match the configured ones. Use "
+        "Cluster.rejoinInstance() to fix it.");
+  }
+
+  // Check the replication channel status
+  if (mysqlshdk::mysql::Replication_channel channel;
+      mysqlshdk::mysql::get_channel_status(
+          *instance, mysqlsh::dba::k_read_replica_async_channel_name,
+          &channel)) {
+    switch (channel.status()) {
+      case mysqlshdk::mysql::Replication_channel::OFF:
+      case mysqlshdk::mysql::Replication_channel::APPLIER_OFF:
+      case mysqlshdk::mysql::Replication_channel::RECEIVER_OFF: {
+        append_error(
+            "WARNING: Read Replica's replication channel is stopped. Use "
+            "Cluster.rejoinInstance() to restore it.");
+        break;
+      }
+      case mysqlshdk::mysql::Replication_channel::CONNECTION_ERROR: {
+        append_error(
+            "WARNING: Read Replica's replication channel stopped with a "
+            "connection error: '" +
+            channel.receiver.last_error.message +
+            "'. Use Cluster.rejoinInstance() to restore it.");
+        break;
+      }
+      case mysqlshdk::mysql::Replication_channel::APPLIER_ERROR: {
+        std::string applier_error_msg;
+
+        for (const auto &applier : channel.appliers) {
+          if (applier.state == Replication_channel::Applier::OFF &&
+              applier.last_error.code != 0) {
+            applier_error_msg = applier.last_error.message;
+            break;
+          }
+        }
+
+        append_error(
+            "WARNING: Read Replica's replication channel stopped with an "
+            "error: '" +
+            applier_error_msg +
+            "'. Use Cluster.rejoinInstance() to restore it.");
+        break;
+      }
+      case mysqlshdk::mysql::Replication_channel::ON:
+      case mysqlshdk::mysql::Replication_channel::CONNECTING:
+        break;
+    }
+  }
+
+  return instance_errors;
+}
+
+shcore::Dictionary_t Status::feed_read_replica_info(const Read_replica_info &rr,
+                                                    bool is_primary) {
+  shcore::Dictionary_t rr_dict = shcore::make_dict();
+
+  rr_dict->set("address", shcore::Value(rr.md.endpoint));
+
+  // Get the replication channel status
+  auto &rr_instance = m_read_replica_sessions[rr.md.endpoint];
+
+  std::string status;
+  if (!rr_instance) {
+    status = to_string(mysqlshdk::mysql::Read_replica_status::UNREACHABLE);
+  } else {
+    status = to_string(mysqlshdk::mysql::get_read_replica_status(*rr_instance));
+  }
+
+  rr_dict->set("status", shcore::Value(status));
+
+  if (rr_instance) {
+    rr_dict->set("version",
+                 shcore::Value(rr_instance->get_version().get_full()));
+  }
+
+  rr_dict->set("role", shcore::Value("READ_REPLICA"));
+
+  if (m_extended.value_or(0) >= 1) {
+    shcore::Array_t source_list = shcore::make_array();
+
+    // Check whether the channel was configured to follow the
+    // primary/secondary or a list of sources
+    bool automatic_sources = rr.managed_channel_info.automatic_sources;
+
+    if (automatic_sources && m_extended.value_or(0) < 2) {
+      shcore::Value source_attribute;
+      if (m_cluster->get_metadata_storage()->query_instance_attribute(
+              rr.md.uuid, k_instance_attribute_read_replica_replication_sources,
+              &source_attribute)) {
+        if (source_attribute.type == shcore::String) {
+          source_list->push_back(shcore::Value(source_attribute.as_string()));
+        }
+      }
+    } else {
+      for (const auto &source : rr.managed_channel_info.sources) {
+        if (m_extended.value_or(0) >= 2) {
+          shcore::Dictionary_t source_list_extended = shcore::make_dict();
+          (*source_list_extended)["address"] =
+              shcore::Value(source.to_string());
+          (*source_list_extended)["weight"] = shcore::Value(source.weight);
+
+          source_list->push_back(shcore::Value(source_list_extended));
+        } else {
+          source_list->push_back(shcore::Value(source.to_string()));
+        }
+      }
+    }
+
+    rr_dict->set("replicationSources", shcore::Value(source_list));
+
+    // SSL info
+    if (rr_instance) {
+      auto instance_repl_account =
+          m_cluster->get_metadata_storage()->get_instance_repl_account(
+              rr_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+              Replica_type::READ_REPLICA);
+
+      std::string ssl_cipher, ssl_version;
+      mysqlshdk::mysql::iterate_thread_variables(
+          *(m_cluster->get_metadata_storage()->get_md_server()),
+          "Binlog Dump GTID", instance_repl_account.first, "Ssl%",
+          [&ssl_cipher, &ssl_version](const std::string &var_name,
+                                      const std::string &var_value) {
+            if (var_name == "Ssl_cipher") {
+              ssl_cipher = std::move(var_value);
+            } else if (var_name == "Ssl_version") {
+              ssl_version = std::move(var_value);
+            }
+
+            return (ssl_cipher.empty() || ssl_version.empty());
+          });
+
+      if (!(ssl_cipher.empty() && ssl_version.empty())) {
+        if (ssl_cipher.empty()) {
+          rr_dict->set("replicationSsl", shcore::Value(std::move(ssl_version)));
+        } else if (ssl_version.empty()) {
+          rr_dict->set("replicationSsl", shcore::Value(std::move(ssl_cipher)));
+        } else {
+          rr_dict->set("replicationSsl",
+                       shcore::Value(shcore::str_format(
+                           "%s %s", ssl_cipher.c_str(), ssl_version.c_str())));
+        }
+      }
+
+      mysqlshdk::mysql::Replication_channel_master_info master_info;
+      mysqlshdk::mysql::Replication_channel_relay_log_info relay_info;
+
+      if (mysqlshdk::mysql::get_channel_info(*rr_instance,
+                                             k_read_replica_async_channel_name,
+                                             &master_info, &relay_info)) {
+        auto channel_stats_map =
+            channel_status(&rr.repl_channel_info, &master_info, &relay_info, "",
+                           m_extended.value_or(0), false, true);
+
+        auto store_dict = [&](std::initializer_list<std::string> keys) {
+          for (const auto &key : keys) {
+            if (channel_stats_map->has_key(key)) {
+              rr_dict->set(key, channel_stats_map->at(key));
+            }
+          }
+        };
+
+        store_dict({"applierStatus", "applierThreadState",
+                    "applierWorkerThreads", "receiverStatus",
+                    "receiverThreadState", "replicationLag"});
+
+        if (m_extended.value_or(0) >= 2) {
+          store_dict({"applierQueuedTransactionSetSize",
+                      "applierQueuedTransactionSet",
+                      "receiverTimeSinceLastMessage", "coordinatorState",
+                      "coordinatorThreadState"});
+        }
+
+        if (m_extended.value_or(0) == 3) {
+          store_dict({"options"});
+        }
+      } else {
+        log_info("Failed to obtain information from replication channel '%s'",
+                 k_read_replica_async_channel_name);
+      }
+    }
+  }
+
+  // Run the diagnostics
+  shcore::Array_t instance_errors = nullptr;
+  instance_errors = read_replica_diagnostics(rr_instance.get(), rr, is_primary);
+
+  if (!instance_errors->empty()) {
+    rr_dict->set("instanceErrors", shcore::Value(instance_errors));
+  }
+
+  return rr_dict;
+}
+
+shcore::Dictionary_t Status::get_read_replicas_info(
+    const Instance_metadata_info &instance_md,
+    const std::vector<Read_replica_info> &read_replicas, bool is_primary) {
+  shcore::Dictionary_t dict = shcore::make_dict();
+
+  std::vector<Read_replica_info> member_read_replicas, rogue_read_replicas;
+
+  // if there are no read-replicas for this member and it's not the primary
+  // (to place rogue read-replicas under it) return right away
+  if (!is_primary && read_replicas.empty()) {
+    return dict;
+  }
+
+  // Get the list of read-replicas for this member
+  for (auto rr_info : read_replicas) {
+    auto &rr_session = m_read_replica_sessions[rr_info.md.endpoint];
+
+    if (rr_session) {
+      if (!rr_info.managed_channel_info.automatic_sources &&
+          rr_info.managed_channel_info.sources.empty()) {
+        rogue_read_replicas.push_back(rr_info);
+        continue;
+      }
+
+      // Get the current source member
+      mysqlshdk::mysql::Replication_channel channel = {};
+
+      if (mysqlshdk::mysql::get_channel_status(
+              *rr_session, k_read_replica_async_channel_name,
+              &rr_info.repl_channel_info)) {
+        rr_info.current_source_server_uuid =
+            std::move(rr_info.repl_channel_info.source_uuid);
+
+        Managed_async_channel channel_config = {};
+        channel_config.channel_name = k_read_replica_async_channel_name;
+
+        if (!get_managed_connection_failover_configuration(*rr_session,
+                                                           &channel_config)) {
+          log_info(
+              "Failed to get the information for the Read-Replica managed "
+              "replication channel at '%s'",
+              rr_info.md.endpoint.c_str());
+          rogue_read_replicas.push_back(rr_info);
+          continue;
+        }
+
+        rr_info.managed_channel_info = std::move(channel_config);
+
+      } else {
+        // Instance is a rogue
+        rogue_read_replicas.push_back(rr_info);
+        continue;
+      }
+
+      // If the current source is empty, the instance is a rogue
+      // The reason why the source is empty might be because the replica was in
+      // error state and the channel was then stopped
+      if (rr_info.current_source_server_uuid.empty()) {
+        rogue_read_replicas.push_back(rr_info);
+        continue;
+      }
+
+      if (rr_info.current_source_server_uuid ==
+          instance_md.actual_server_uuid) {
+        member_read_replicas.push_back(rr_info);
+        continue;
+      }
+    } else {
+      rogue_read_replicas.push_back(rr_info);
+      continue;
+    }
+  }
+
+  // If this is the primary member, place rogue read-replicas under it
+  if (is_primary) {
+    for (auto const &rr : rogue_read_replicas) {
+      shcore::Dictionary_t rr_dict = feed_read_replica_info(rr, is_primary);
+
+      (*dict)[rr.md.label] = shcore::Value(rr_dict);
+    }
+  }
+
+  // If there are no other read-replicas for this member, return right away
+  if (member_read_replicas.empty()) {
+    return dict;
+  }
+
+  for (auto const &rr : member_read_replicas) {
+    shcore::Dictionary_t rr_dict = feed_read_replica_info(rr, is_primary);
+
+    (*dict)[rr.md.label] = shcore::Value(rr_dict);
+  }
+
+  return dict;
+}
+
 void Status::prepare() {
   // Sanity check: Verify if the topology type changed and issue an error if
   // needed.
   if (m_cluster->get_cluster_server()) m_cluster->sanity_check();
 
-  m_instances = m_cluster->get_instances();
+  m_instances = m_cluster->get_all_instances();
 
-  // Always connect to members to be able to get an accurate mode, based on
-  // their super_ready_only value.
+  // Always connect to members to be able to get an accurate mode, based
+  // on their super_ready_only value.
   connect_to_members();
 }
 
@@ -1909,8 +2337,8 @@ shcore::Value Status::get_default_replicaset_status() {
 
     if (show_warning) {
       std::string warning =
-          "The cluster description may be inaccurate as it was generated from "
-          "an instance in ";
+          "The cluster description may be inaccurate as it was generated "
+          "from an instance in ";
       warning.append(ManagedInstance::describe(
           static_cast<ManagedInstance::State>(state.source_state)));
       warning.append(" state");
@@ -1952,8 +2380,8 @@ shcore::Value Status::execute() {
       (*dict)["clusterSetReplicationStatus"] =
           shcore::Value(to_string(ch_status));
     } else {
-      // If it's a Primary, add the status in case is suspicious (not Missing or
-      // Stopped)
+      // If it's a Primary, add the status in case is suspicious (not Missing
+      // or Stopped)
       if (ch_status != Cluster_channel_status::MISSING &&
           ch_status != Cluster_channel_status::STOPPED) {
         (*dict)["clusterSetReplicationStatus"] =

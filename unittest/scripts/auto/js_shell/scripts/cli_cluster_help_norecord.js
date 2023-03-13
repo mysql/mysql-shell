@@ -71,3 +71,9 @@ callMysqlsh(["--", "cluster", "fence-writes", "--help"])
 
 //@ CLI cluster unfence-writes --help
 callMysqlsh(["--", "cluster", "unfence-writes", "--help"])
+
+//@ CLI cluster add-replica-instance --help
+callMysqlsh(["--", "cluster", "add-replica-instance", "--help"])
+
+//@ CLI cluster routing-options --help
+callMysqlsh(["--", "cluster", "routing-options", "--help"])

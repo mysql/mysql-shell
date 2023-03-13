@@ -51,6 +51,7 @@ class Precondition_checker {
   static const mysqlshdk::utils::Version k_min_gr_version;
   static const mysqlshdk::utils::Version k_min_ar_version;
   static const mysqlshdk::utils::Version k_min_cs_version;
+  static const mysqlshdk::utils::Version k_min_rr_version;
 
   static constexpr Cluster_global_status_mask kClusterGlobalStateAnyOk{
       Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,

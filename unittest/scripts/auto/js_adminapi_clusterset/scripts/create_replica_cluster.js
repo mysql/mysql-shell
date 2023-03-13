@@ -93,8 +93,8 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3
 shell.connect(__sandbox_uri3);
 cluster = dba.rebootClusterFromCompleteOutage();
 session3.runSql("drop schema mysql_innodb_cluster_metadata");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri3, "myReplicaCluster")}, `Target instance already part of a Group Replication group`, "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3}' is already part of a Group Replication group. A new Replica Cluster must be created on a standalone instance.`);
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri3, "myReplicaCluster")}, `Target instance already part of an unmanaged Group Replication`, "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3}' is already part of an unmanaged Group Replication. A new Replica Cluster must be created on a standalone instance.`);
 
 // target has a replicaset
 reset_instance(session3);
@@ -158,7 +158,7 @@ var server_id = session3.runSql("SELECT @@server_id").fetchOne()[0];
 session4.runSql("SET PERSIST server_id="+server_id);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster")}, "Invalid server_id.", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance '${hostname}:${__mysql_sandbox_port4}' has a 'server_id' already being used by a member of the ClusterSet.`);
+EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance '${hostname}:${__mysql_sandbox_port4}' has a 'server_id' already being used by instance '${hostname}:${__mysql_sandbox_port3}'.`);
 
 // Restore server_id
 session4.runSql("SET PERSIST server_id="+original_server_id);
@@ -171,7 +171,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port4, "server_uuid", server_uuid);
 testutil.startSandbox(__mysql_sandbox_port4);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster")}, "Invalid server_uuid.", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance '${hostname}:${__mysql_sandbox_port4}' has a 'server_uuid' already being used by a member of the ClusterSet.`);
+EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance '${hostname}:${__mysql_sandbox_port4}' has a 'server_uuid' already being used by instance '${hostname}:${__mysql_sandbox_port3}'`);
 
 // Restore server_uuid
 testutil.stopSandbox(__mysql_sandbox_port4);

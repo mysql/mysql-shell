@@ -31,7 +31,9 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/command_interface.h"
+#include "mysql/instance.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -46,6 +48,13 @@ typedef std::map<std::string, std::pair<mysqlshdk::db::Row_by_name,
 struct Instance_metadata_info {
   Instance_metadata md;
   std::string actual_server_uuid;
+};
+
+struct Read_replica_info {
+  Instance_metadata md;
+  std::string current_source_server_uuid;
+  Managed_async_channel managed_channel_info;
+  mysqlshdk::mysql::Replication_channel repl_channel_info;
 };
 
 class Status : public Command_interface {
@@ -101,7 +110,7 @@ class Status : public Command_interface {
   std::unordered_map<std::string, std::shared_ptr<Instance>,
                      std::hash<std::string>,
                      mysqlshdk::utils::Endpoint_comparer>
-      m_member_sessions;
+      m_member_sessions, m_read_replica_sessions;
   std::unordered_map<std::string, std::string, std::hash<std::string>,
                      mysqlshdk::utils::Endpoint_comparer>
       m_member_connect_errors;
@@ -155,7 +164,8 @@ class Status : public Command_interface {
                         std::optional<bool> super_read_only,
                         const std::vector<std::string> &fence_sysvars,
                         mysqlshdk::gr::Member_state self_state,
-                        bool is_auto_rejoin_running);
+                        bool is_auto_rejoin_running,
+                        const shcore::Dictionary_t read_replicas);
 
   void feed_member_stats(shcore::Dictionary_t dict,
                          const mysqlshdk::db::Row_by_name &stats);
@@ -168,6 +178,17 @@ class Status : public Command_interface {
   shcore::Array_t validate_recovery_accounts_unused(
       const std::unordered_map<uint32_t, std::string>
           &mismatched_recovery_accounts) const;
+
+  shcore::Array_t read_replica_diagnostics(Instance *instance,
+                                           const Read_replica_info &rr_info,
+                                           bool is_primary) const;
+
+  shcore::Dictionary_t feed_read_replica_info(const Read_replica_info &rr,
+                                              bool is_primary);
+
+  shcore::Dictionary_t get_read_replicas_info(
+      const Instance_metadata_info &instance_md,
+      const std::vector<Read_replica_info> &read_replicas, bool is_primary);
 };
 
 }  // namespace cluster

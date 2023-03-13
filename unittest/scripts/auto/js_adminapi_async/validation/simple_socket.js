@@ -165,7 +165,7 @@ You are connected to a member of replicaset 'myrs'.
 |Adding instance to the replicaset...|
 |This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>|
 |127.0.0.1:<<<__mysql_sandbox_port2>>>: Instance configuration is suitable.|
-|NOTE: The target instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.|
+|NOTE: The target instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty).|
 |** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port2>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>|
 |The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
 

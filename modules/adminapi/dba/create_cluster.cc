@@ -28,6 +28,7 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/cluster/cluster_impl.h"
 #include "adminapi/common/cluster_types.h"
 #include "adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/common.h"
@@ -547,7 +548,8 @@ void Create_cluster::create_recovery_account(
   if (cluster) {
     std::tie(repl_account, repl_account_host) =
         cluster->create_replication_user(
-            target, m_options.member_auth_options.cert_subject);
+            target, m_options.member_auth_options.cert_subject,
+            Replication_account_type::GROUP_REPLICATION);
   } else {
     repl_account_host = m_options.replication_allowed_host.empty()
                             ? "%"
@@ -655,8 +657,8 @@ void Create_cluster::store_recovery_account_metadata(
 
   // Insert the recovery account on the Metadata Schema.
   cluster.get_metadata_storage()->update_instance_repl_account(
-      target->get_uuid(), Cluster_type::GROUP_REPLICATION, repl_account.user,
-      repl_account_host);
+      target->get_uuid(), Cluster_type::GROUP_REPLICATION,
+      Replica_type::GROUP_MEMBER, repl_account.user, repl_account_host);
 }
 
 void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
@@ -1016,10 +1018,11 @@ shcore::Value Create_cluster::execute() {
     }
 
     // Set and store the default Routing Options
-    for (const auto &i : k_default_cluster_router_options)
+    for (const auto &i : k_default_cluster_router_options) {
       metadata->set_global_routing_option(Cluster_type::GROUP_REPLICATION,
                                           cluster_impl->get_id(), i.first,
                                           i.second);
+    }
 
     // Insert instance into the metadata.
     if (m_options.get_adopt_from_gr()) {
@@ -1052,7 +1055,8 @@ shcore::Value Create_cluster::execute() {
       // If the instance is not in the Metadata, we must add it.
       if (!is_instance_on_md) {
         cluster_impl->add_metadata_for_instance(
-            m_target_instance->get_connection_options());
+            m_target_instance->get_connection_options(),
+            Instance_type::GROUP_MEMBER);
       }
 
       // update recovery auth attributes

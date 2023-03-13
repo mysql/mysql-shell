@@ -60,8 +60,8 @@ void Switch_to_single_primary_mode::prepare() {
 
     m_target_uuid = target_instance->get_uuid();
 
-    ensure_target_instance_belongs_to_cluster(
-        target_instance_address, target_instance->get_canonical_address());
+    ensure_target_instance_belongs_to_cluster(m_target_uuid,
+                                              target_instance_address);
   }
 }
 

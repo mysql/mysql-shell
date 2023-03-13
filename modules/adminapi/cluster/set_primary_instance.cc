@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,8 +103,8 @@ void Set_primary_instance::prepare() {
               target_instance_address.c_str(), e.format().c_str());
   }
 
-  ensure_target_instance_belongs_to_cluster(target_instance_address,
-                                            address_in_md);
+  ensure_target_instance_belongs_to_cluster(m_target_uuid,
+                                            target_instance_address);
 
   Topology_configuration_command::prepare();
 }
@@ -142,7 +142,7 @@ shcore::Value Set_primary_instance::execute() {
 
     // Stop the channel, ensuring all transactions in queue are applied first to
     // ensure no transaction loss
-    stop_channel(m_cluster->get_cluster_server().get(),
+    stop_channel(*m_cluster->get_cluster_server(),
                  k_clusterset_async_channel_name, true, false);
   }
 

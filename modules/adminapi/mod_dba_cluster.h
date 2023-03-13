@@ -64,6 +64,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
   String getName();
   Dictionary listRouters(Dictionary options);
+  Undefined setRoutingOption(String option, String value);
+  Undefined setRoutingOption(String router, String option, String value);
+  Dictionary routingOptions(String router);
   Dictionary rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan(Dictionary options);
@@ -82,6 +85,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined fenceAllTraffic();
   Undefined fenceWrites();
   Undefined unfenceWrites();
+  Undefined addReplicaInstance(InstanceDef instance, Dictionary options);
+  Undefined removeReadReplica(InstanceDef instance, Dictionary options);
+  Undefined rejoinReadReplica(InstanceDef instance, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -94,6 +100,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None force_quorum_using_partition_of(InstanceDef instance, str password);
   str get_name();
   dict list_routers(dict options);
+  None set_routing_option(str option, str value);
+  None set_routing_option(str router, str option, str value);
+  dict routing_options(str router);
   dict rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
   None rescan(dict options);
@@ -111,6 +120,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None fence_all_traffic();
   None fence_writes();
   None unfence_writes();
+  None add_read_replica(InstanceDef instance, dict options);
+  None remove_read_replica(InstanceDef instance, dict options);
+  None rejoin_read_replica(InstanceDef instance, dict options);
 #endif
 
   explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);
@@ -173,6 +185,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void fence_all_traffic();
   void fence_writes();
   void unfence_writes();
+
+  // Read-Replicas
+  void add_replica_instance(
+      const std::string &instance_def,
+      const shcore::Option_pack_ref<cluster::Add_replica_instance_options>
+          &options = {});
 
   // ClusterSet
   shcore::Value create_cluster_set(

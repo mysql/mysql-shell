@@ -349,6 +349,43 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING),UNREACHABLE");
 EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri1, "tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");
 EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");
 
+//@<> setInstanceOption() must only accept setting the tags `_hidden` or `_disconnect_existing_sessions_when_hidden`, the options `label` or `readReplicaReplicationSources`, and no other option if the target instance is a Read Replica //@ {VER(>=8.0.23)}
+cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+cluster.removeInstance(__endpoint2)
+cluster.addReplicaInstance(__endpoint2);
+
+EXPECT_THROWS_TYPE(function() { cluster.setInstanceOption(__sandbox_uri2,"exitStateAction", "ABORT_SERVER")}, "The instance '" + __sandbox2 + "' does not support this operation.", "RuntimeError");
+EXPECT_OUTPUT_CONTAINS(`The option 'exitStateAction' is not supported for Read-Replicas.`);
+
+EXPECT_THROWS_TYPE(function() { cluster.setInstanceOption(__sandbox_uri2,"memberWeight", 10)}, "The instance '" + __sandbox2 + "' does not support this operation.", "RuntimeError");
+EXPECT_OUTPUT_CONTAINS(`The option 'memberWeight' is not supported for Read-Replicas.`);
+
+EXPECT_THROWS_TYPE(function() { cluster.setInstanceOption(__sandbox_uri2,"autoRejoinTries", 1)}, "The instance '" + __sandbox2 + "' does not support this operation.", "RuntimeError");
+EXPECT_OUTPUT_CONTAINS(`The option 'autoRejoinTries' is not supported for Read-Replicas.`);
+
+EXPECT_THROWS_TYPE(function() { cluster.setInstanceOption(__sandbox_uri2,"ipAllowlist", "127.0.0.1")}, "The instance '" + __sandbox2 + "' does not support this operation.", "RuntimeError");
+EXPECT_OUTPUT_CONTAINS(`The option 'ipAllowlist' is not supported for Read-Replicas.`);
+
+EXPECT_NO_THROWS(function() {cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", false); });
+
+EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint2)));
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint2)["_hidden"] === false);
+
+EXPECT_NO_THROWS(function() {cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", true); });
+
+EXPECT_ARRAY_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint2)));
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint2)["_disconnect_existing_sessions_when_hidden"] === true);
+
+EXPECT_NO_THROWS(function() {cluster.setInstanceOption(__sandbox_uri2, "label", "newLabel"); });
+
+var status = cluster.status();
+var read_replica = status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"]["newLabel"];
+EXPECT_EQ("READ_REPLICA", read_replica["role"]);
+
+EXPECT_NO_THROWS(function() {cluster.setInstanceOption(__sandbox_uri2, "replicationSources", "secondary"); });
+
 //@<>Finalization
 cluster.disconnect();
 session.close();

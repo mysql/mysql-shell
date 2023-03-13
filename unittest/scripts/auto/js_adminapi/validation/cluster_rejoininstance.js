@@ -50,29 +50,43 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 ||Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
 
 //@ Rejoin instance fails if the target instance contains errant transactions (BUG#29953812) {VER(>=8.0.17)}
-|ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it contains transactions that do not originate from the cluster, which must be discarded before it can join the cluster.|
+|WARNING: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it contains transactions that do not originate from the cluster, which must be discarded before it can join the cluster.|
 ||
 |<<<hostname>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
-|Having extra GTID events is not expected, and it is recommended to investigate|
+|WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of <<<hostname>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
-|Discarding these extra GTID events can either be done manually or by completely|
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' contains errant transactions that did not originate from the cluster. (RuntimeError)
+|Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.|
+||
+|ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|
+||Instance provisioning required (MYSQLSH 51153)
 
 //@ Rejoin instance fails if the target instance contains errant transactions 5.7 (BUG#29953812) {VER(<8.0.17)}
-|ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|
+|WARNING: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|
 ||
 |<<<hostname>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
-|Having extra GTID events is not expected, and it is recommended to investigate|
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' contains errant transactions that did not originate from the cluster. (RuntimeError)
+|WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of <<<hostname>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
+||
+|Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.|
+|ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+||Instance provisioning required (MYSQLSH 51153)
 
-//@ Rejoin instance fails if the target instance has an empty gtid-set (BUG#29953812)
-|ERROR: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has an empty GTID set so it cannot|
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has an empty GTID set. (RuntimeError)
+//@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812) {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it is missing transactions that were purged from all cluster members.|
+|NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
+|The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
+||
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 
-//@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812)
-|ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it is missing transactions that were purged from all cluster members.|
-||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is missing transactions that were purged from all cluster members. (RuntimeError)
+//@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812) {VER(<8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it is missing transactions that were purged from all cluster members.|
+|NOTE: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
+|The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
+||
+|ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+||Cluster.rejoinInstance: Instance provisioning required (MYSQLSH 51153)

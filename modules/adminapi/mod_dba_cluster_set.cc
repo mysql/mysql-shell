@@ -322,25 +322,15 @@ Cluster ClusterSet::create_replica_cluster(InstanceDef instance,
 #endif
 shcore::Value ClusterSet::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
-    const shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
-        &options) {
+    shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
+        options) {
   assert_valid("createReplicaCluster");
-
-  // Init progress_style
-  Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
-
-  if (options->recovery_verbosity == 0) {
-    progress_style = Recovery_progress_style::NOINFO;
-  } else if (options->recovery_verbosity == 1) {
-    progress_style = Recovery_progress_style::TEXTUAL;
-  } else if (options->recovery_verbosity == 2) {
-    progress_style = Recovery_progress_style::PROGRESSBAR;
-  }
 
   return execute_with_pool(
       [&]() {
         return impl()->create_replica_cluster(instance_def, cluster_name,
-                                              progress_style, *options);
+                                              options->get_recovery_progress(),
+                                              *options);
       },
       false);
 }
@@ -864,6 +854,8 @@ value is 0.
 Disabled by default.
 @li tags: Associates an arbitrary JSON object with custom key/value pairs with
 the ClusterSet metadata.
+@li read_replicas_policy: Routing policy to define Router's usage of Read
+Replicas. Default is 'append'.
 
 The target_cluster option supports the following values:
 
@@ -900,7 +892,17 @@ When enabled, forces the RW port of Routers targeting a specific Cluster
 (target_cluster != 'primary') to always route to the PRIMARY of that Cluster,
 even when it is in a REPLICA cluster and thus, read-only. By default, the
 option is false and Router blocks connections to the RW port in this
-scenario.)*");
+scenario.
+
+The read_only_targets option supports the following values:
+
+@li all: All Read Replicas of the target Cluster should be used along the
+other SECONDARY Cluster members for R/O traffic.
+@li read_replicas: Only Read Replicas of the target Cluster should be used for
+R/O traffic.
+@li secondaries: Only Secondary members of the target Cluster should be used
+for R/O traffic (default).
+)*");
 
 #if DOXYGEN_JS
 Undefined ClusterSet::setRoutingOption(String option, String value) {}

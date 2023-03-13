@@ -120,6 +120,10 @@ void Cluster::init() {
       ->cli();
   expose("removeRouterMetadata", &Cluster::remove_router_metadata, "router")
       ->cli();
+  expose("routingOptions", &Cluster::routing_options, "?router")->cli();
+  expose("setRoutingOption", &Cluster::set_routing_option, "option", "value");
+  expose("setRoutingOption", &Cluster::set_routing_option, "router", "option",
+         "value");
 
   expose("createClusterSet", &Cluster::create_cluster_set, "domainName",
          "?options")
@@ -133,6 +137,9 @@ void Cluster::init() {
   expose("setupAdminAccount", &Cluster::setup_admin_account, "user", "?options")
       ->cli();
   expose("setupRouterAccount", &Cluster::setup_router_account, "user",
+         "?options")
+      ->cli();
+  expose("addReplicaInstance", &Cluster::add_replica_instance, "instance",
          "?options")
       ->cli();
 }
@@ -333,14 +340,52 @@ ${TOPIC_CONNECTION_MORE_INFO}
 The options dictionary may contain the following attributes:
 
 @li password: the instance connection password
+@li recoveryMethod: Preferred method of state recovery. May be auto, clone or
+incremental. Default is auto.
+@li recoveryProgress: Integer value to indicate the recovery process verbosity
+level.
+recovery process to finish and its verbosity level.
 @li memberSslMode: SSL mode used on the instance
 ${OPT_INTERACTIVE}
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 ${CLUSTER_OPT_LOCAL_ADDRESS}
+@li dryRun: boolean if true, all validations and steps for rejoining the
+instance are executed, but no changes are actually made.
+${CLUSTER_OPT_CLONE_DONOR}
+@li timeout: maximum number of seconds to wait for the instance to sync up
+with the PRIMARY after it's provisioned and the replication channel is
+established. If reached, the operation is rolled-back. Default is 0 (no
+timeout).
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
+
+The recoveryMethod option supports the following values:
+
+@li incremental: uses distributed state recovery, which applies missing
+transactions copied from another cluster member. Clone will be disabled.
+@li clone: clone: uses built-in MySQL clone support, which completely replaces
+the state of the target instance with a full snapshot of another cluster member
+before distributed recovery starts. Requires MySQL 8.0.17 or newer.
+@li auto: let Group Replication choose whether or not a full snapshot has to be
+taken, based on what the target server supports and the
+group_replication_clone_threshold sysvar.
+This is the default value. A prompt will be shown if not possible to safely
+determine a safe way forward. If interaction is disabled, the operation will be
+canceled instead.
+
+If recoveryMethod is not specified 'auto' will be used by default.
+
+The recoveryProgress option supports the following values:
+
+@li 0: do not show any progress information.
+@li 1: show detailed static progress information.
+@li 2: show detailed dynamic progress information using progress bars.
+
+By default, if the standard output on which the Shell is running refers to a
+terminal, the recoveryProgress option has the value of 2. Otherwise, it has the
+value of 1.
 
 ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
@@ -407,6 +452,12 @@ The options dictionary may contain the following attributes:
 @li force: boolean, indicating if the instance must be removed (even if only
 from metadata) in case it cannot be reached. By default, set to false.
 ${OPT_INTERACTIVE}
+@li dryRun: boolean if true, all validations and steps for removing the
+instance are executed, but no changes are actually made. An exception will be
+thrown when finished.
+@li timeout: maximum number of seconds to wait for the instance to sync up
+with the PRIMARY. If reached, the operation is rolled-back. Default is 0 (no
+timeout).
 
 The password may be contained in the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -1123,6 +1174,7 @@ ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 @li label a string identifier of the instance.
+@li replicationSources: The list of sources for a Read Replica Instance.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
@@ -1137,6 +1189,20 @@ ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 ${NAMESPACE_TAG_DETAIL_CLUSTER}
 
 ${NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA}
+
+The replicationSources is a comma separated list of instances (host:port) to
+act as sources of the replication channel, i.e. to provide source failover of
+the channel. The first member of the list is configured with the highest
+priority among all members so when the channel activates it will be chosen for
+the first connection attempt. By default, the source list is automatically
+managed by Group Replication according to the current group membership and the
+primary member of the Cluster is the current source for the replication
+channel, this is the same as setting to "primary". Alternatively, it's
+possible to set to "secondary" to instruct Group Replication to automatically
+manage the list but use a secondary member of the Cluster as source.
+
+For the change to be effective, the Read-Replica must be reconfigured after
+using Cluster.<<<rejoinInstance>>>().
 )*");
 
 /**
@@ -1175,6 +1241,77 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTER_LISTROUTERS, LISTROUTERS_HELP_TEXT);
 String Cluster::listRouters(Dictionary options) {}
 #elif DOXYGEN_PY
 str Cluster::list_routers(dict options) {}
+#endif
+
+REGISTER_HELP_FUNCTION(setRoutingOption, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETROUTINGOPTION, R"*(
+Changes the value of either a global Cluster Routing option or of a single
+Router instance.
+
+@param router optional identifier of the target router instance (e.g.
+192.168.45.70@::system).
+@param option The Router option to be changed.
+@param value The value that the option shall get (or null to unset).
+
+@returns Nothing.
+
+The accepted options are:
+
+@li tags: Associates an arbitrary JSON object with custom key/value pairs with
+the Cluster metadata.
+@li read_only_targets: Routing policy to define Router's usage of Read Only
+instance. Default is 'secondaries'.
+
+The read_only_targets option supports the following values:
+
+@li all: All Read Replicas of the target Cluster should be used along the
+other SECONDARY Cluster members for R/O traffic.
+@li read_replicas: Only Read Replicas of the target Cluster should be used for
+R/O traffic.
+@li secondaries: Only Secondary members of the target Cluster should be used
+for R/O traffic (default).
+)*");
+
+#if DOXYGEN_JS
+Undefined Cluster::setRoutingOption(String option, String value) {}
+#elif DOXYGEN_PY
+None Cluster::set_routing_option(str option, str value) {}
+#endif
+
+/**
+ * $(CLUSTER_SETROUTINGOPTION_BRIEF)
+ *
+ * $(CLUSTER_SETROUTINGOPTION)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::setRoutingOption(String router, String option,
+                                    String value) {}
+#elif DOXYGEN_PY
+None Cluster::set_routing_option(str router, str option, str value) {}
+#endif
+
+REGISTER_HELP_FUNCTION(routingOptions, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ROUTINGOPTIONS, R"*(
+Lists the Cluster Routers configuration options.
+
+@param router Optional identifier of the router instance to query for the options.
+
+@returns A JSON object describing the configuration options of all router
+instances of the Cluster and its global options or just the given Router.
+
+This function lists the Router configuration options of all Routers of the
+Cluster or the target Router.
+)*");
+
+/**
+ * $(CLUSTER_ROUTINGOPTIONS_BRIEF)
+ *
+ * $(CLUSTER_ROUTINGOPTIONS)
+ */
+#if DOXYGEN_JS
+Dictionary Cluster::routingOptions(String router) {}
+#elif DOXYGEN_PY
+dict Cluster::routing_options(str router) {}
 #endif
 
 REGISTER_HELP_FUNCTION(removeRouterMetadata, Cluster);
@@ -1474,6 +1611,109 @@ std::shared_ptr<ClusterSet> Cluster::get_cluster_set() {
       Instance_pool::Auth_options(impl()->default_admin_credentials()));
 
   return impl()->get_cluster_set();
+}
+
+// Read-Replicas
+
+REGISTER_HELP_FUNCTION(addReplicaInstance, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ADDREPLICAINSTANCE, R"*(
+Adds a Read Replica Instance to the Cluster.
+
+@param instance host:port of the target instance to be added as a Read Replica.
+@param options optional Dictionary with additional parameters described below.
+
+@returns nothing
+
+This function adds an Instance acting as Read-Replica of an InnoDB Cluster.
+
+<b>Pre-requisites</b>
+
+The following is a list of requirements to create a REPLICA cluster:
+
+@li The target instance must be a standalone instance.
+@li The target instance and Cluster must running MySQL 8.0.23 or newer.
+@li Unmanaged replication channels are not allowed.
+@li The target instance server_id and server_uuid must be unique in the
+topology, including among OFFLINE or unreachable members
+
+<b>Options</b>
+
+The options dictionary may contain the following values:
+
+@li dryRun: boolean if true, all validations and steps for creating a
+Read Replica Instance are executed, but no changes are actually made. An
+exception will be thrown when finished.
+@li label: an identifier for the Read Replica Instance being added, used in
+the output of status() and describe().
+@li replicationSources: The list of sources for the Read Replica Instance. By
+default, the list is automatically managed by Group Replication and the
+primary member is used as source.
+@li recoveryMethod: Preferred method for state recovery/provisioning. May be
+auto, clone or incremental. Default is auto.
+@li recoveryProgress: Integer value to indicate the recovery process verbosity
+level.
+@li timeout: maximum number of seconds to wait for the instance to sync up
+with the PRIMARY after it's provisioned and the replication channel is
+established. If reached, the operation is rolled-back. Default is 0 (no
+timeout).
+${CLUSTER_OPT_CLONE_DONOR}
+
+The replicationSources is a comma separated list of instances (host:port) to
+act as sources of the replication channel, i.e. to provide source failover of
+the channel. The first member of the list is configured with the highest
+priority among all members so when the channel activates it will be chosen for
+the first connection attempt. By default, the source list is automatically
+managed by Group Replication according to the current group membership and the
+primary member of the Cluster is the current source for the replication
+channel, this is the same as setting to "primary". Alternatively, it's
+possible to set to "secondary" to instruct Group Replication to automatically
+manage the list too but use a secondary member of the Cluster as source.
+
+The recoveryMethod option supports the following values:
+
+@li incremental: waits until the new instance has applied missing transactions
+from the source.
+@li clone: uses MySQL clone to provision the instance, which completely
+replaces the state of the target instance with a full snapshot of the
+instance's source.
+@li auto: compares the transaction set of the instance with that of the
+source to determine if incremental recovery is safe to be automatically
+chosen as the most appropriate recovery method.
+A prompt will be shown if not possible to safely determine a safe way forward.
+If interaction is disabled, the operation will be canceled instead.
+
+If recoveryMethod is not specified 'auto' will be used by default.
+
+The recoveryProgress option supports the following values:
+
+@li 0: do not show any progress information.
+@li 1: show detailed static progress information.
+@li 2: show detailed dynamic progress information using progress bars.
+
+By default, if the standard output on which the Shell is running refers to a
+terminal, the recoveryProgress option has the value of 2. Otherwise, it has the
+value of 1.
+)*");
+
+/**
+ * $(CLUSTER_ADDREPLICAINSTANCE_BRIEF)
+ *
+ * $(CLUSTER_ADDREPLICAINSTANCE)
+ */
+#if DOXYGEN_JS
+Undefined addReplicaInstance(InstanceDef instance, Dictionary options) {}
+#elif DOXYGEN_PY
+None add_replica_instance(InstanceDef instance, dict options);
+#endif
+void Cluster::add_replica_instance(
+    const std::string &instance_def,
+    const shcore::Option_pack_ref<cluster::Add_replica_instance_options>
+        &options) {
+  assert_valid("addReplicaInstance");
+
+  return execute_with_pool(
+      [&]() { return impl()->add_replica_instance(instance_def, *options); },
+      false);
 }
 
 }  // namespace dba

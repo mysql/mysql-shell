@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,7 +49,8 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
     const mysqlshdk::mysql::IInstance &instance);
 
 Instance_metadata query_instance_info(
-    const mysqlshdk::mysql::IInstance &instance, bool ignore_gr_endpoint);
+    const mysqlshdk::mysql::IInstance &instance, bool ignore_gr_endpoint,
+    Instance_type instance_type = Instance_type::GROUP_MEMBER);
 
 }  // namespace dba
 }  // namespace mysqlsh

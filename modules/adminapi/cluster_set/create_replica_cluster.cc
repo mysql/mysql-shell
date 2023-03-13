@@ -113,337 +113,6 @@ Create_replica_cluster::prepare_create_cluster_options() {
   return options;
 }
 
-void Create_replica_cluster::ensure_compatible_clone_donor(
-    const std::string &instance_def) {
-  /*
-   * A donor is compatible if:
-   *
-   *   - It's an ONLINE member of the Primary Cluster
-   *   - It has the same version of the recipient
-   *   - It has the same operating system as the recipient
-   */
-
-  const auto target =
-      Scoped_instance(m_cluster_set->connect_target_instance(instance_def));
-
-  // Check if the target belongs to the PRIMARY Cluster (MD)
-  std::string target_address = target->get_canonical_address();
-  try {
-    m_cluster_set->get_metadata_storage()->get_instance_by_address(
-        target_address);
-  } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-      throw shcore::Exception("Instance " + target_address +
-                                  " does not belong to the Primary Cluster",
-                              SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
-    }
-    throw;
-  }
-
-  auto target_status = mysqlshdk::gr::get_member_state(*target);
-
-  if (target_status != mysqlshdk::gr::Member_state::ONLINE) {
-    throw shcore::Exception(
-        "Instance " + target_address +
-            " is not an ONLINE member of the Primary Cluster.",
-        SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
-  }
-
-  // Check if the instance has the same version of the recipient
-  if (target->get_version() != m_target_instance->get_version()) {
-    throw shcore::Exception("Instance " + target_address +
-                                " cannot be a donor because it has a different "
-                                "version than the recipient.",
-                            SHERR_DBA_CLONE_DIFF_VERSION);
-  }
-
-  // Check if the instance has the same OS the recipient
-  if (target->get_version_compile_os() !=
-      m_target_instance->get_version_compile_os()) {
-    throw shcore::Exception("Instance " + target_address +
-                                " cannot be a donor because it has a different "
-                                "Operating System than the recipient.",
-                            SHERR_DBA_CLONE_DIFF_OS);
-  }
-
-  // Check if the instance is running on the same platform of the recipient
-  if (target->get_version_compile_machine() !=
-      m_target_instance->get_version_compile_machine()) {
-    throw shcore::Exception(
-        "Instance " + target_address +
-            " cannot be a donor because it is running on a different "
-            "platform than the recipient.",
-        SHERR_DBA_CLONE_DIFF_PLATFORM);
-  }
-}
-
-void Create_replica_cluster::handle_clone(
-    const Async_replication_options &ar_options,
-    const std::string &repl_account_host, bool dry_run) {
-  // TODO(alfredo) merge this with the handle_clone in Cluster addinst?
-  auto console = current_console();
-  /*
-   * Clone handling:
-   *
-   * 1.  Pick a valid donor (unless cloneDonor is set). By default, the donor
-   *     must be an ONLINE SECONDARY member. If not available, then must be the
-   *     PRIMARY.
-   * 2.  Install the Clone plugin on the donor and recipient (if not installed
-   *     already)
-   * 3.  Set the donor to the selected donor: SET GLOBAL clone_valid_donor_list
-   *     = "donor_host:donor_port";
-   * 4.  Create or update a recovery account with the required
-   *     privileges for replicaSets management + clone usage (BACKUP_ADMIN)
-   * 5.  Ensure the donor's recovery account has the clone usage required
-   *     privileges: BACKUP_ADMIN
-   * 6.  Grant the CLONE_ADMIN privilege to the recovery account
-   *     at the recipient
-   * 7.  Create the SQL clone command based on the above
-   * 8.  Execute the clone command
-   */
-
-  // Ensure the cloneDonor is valid
-  std::string donor;
-  if (m_options.clone_options.clone_donor.has_value()) {
-    donor = *m_options.clone_options.clone_donor;
-    ensure_compatible_clone_donor(donor);
-  } else {
-    // Pick the primary instance of the primary cluster as donor
-    donor = m_primary_instance->get_canonical_address();
-  }
-
-  // Install the clone plugin on the recipient and donor
-  // If cloneDonor was set, establish a connection to it. Otherwise, the primary
-  // instance will be used as donor
-  // auto donor_instance = m_primary_instance;
-  const auto donor_instance =
-      Scoped_instance(m_cluster_set->connect_target_instance(donor));
-
-  log_info("Installing the clone plugin on donor '%s'%s.",
-           donor_instance->get_canonical_address().c_str(),
-           dry_run ? " (dryRun)" : "");
-
-  if (!dry_run) {
-    mysqlshdk::mysql::install_clone_plugin(*donor_instance, nullptr);
-  }
-
-  log_info("Installing the clone plugin on recipient '%s'%s.",
-           m_target_instance->get_canonical_address().c_str(),
-           dry_run ? " (dryRun)" : "");
-
-  if (!dry_run) {
-    mysqlshdk::mysql::install_clone_plugin(*m_target_instance, nullptr);
-  }
-
-  // Set the donor to the selected donor on the recipient
-  if (!dry_run) {
-    m_target_instance->set_sysvar("clone_valid_donor_list", donor);
-  }
-
-  // Create or update a recovery account with the required privileges for
-  // replicaSets management + clone usage (BACKUP_ADMIN) on the recipient
-
-  // Check if super_read_only is enabled. If so it must be disabled to create
-  // the account
-  if (!dry_run &&
-      m_target_instance->get_sysvar_bool("super_read_only", false)) {
-    m_target_instance->set_sysvar("super_read_only", false);
-  }
-
-  // Clone requires a user in both donor and recipient:
-  //
-  // On the donor, the clone user requires the BACKUP_ADMIN privilege for
-  // accessing and transferring data from the donor, and for blocking DDL
-  // during the cloning operation.
-  //
-  // On the recipient, the clone user requires the CLONE_ADMIN privilege for
-  // replacing recipient data, blocking DDL during the cloning operation, and
-  // automatically restarting the server. The CLONE_ADMIN privilege includes
-  // BACKUP_ADMIN and SHUTDOWN privileges implicitly.
-  //
-  // For that reason, we create a user in the recipient with the same username
-  // and password as the replication user created in the donor.
-  create_clone_recovery_user_nobinlog(
-      m_target_instance.get(), *ar_options.repl_credentials, repl_account_host,
-      m_cluster_set->query_clusterset_auth_cert_issuer(),
-      m_options.cert_subject, m_options.dry_run);
-
-  if (!dry_run) {
-    // Ensure the donor's recovery account has the clone usage required
-    // privileges: BACKUP_ADMIN
-    m_primary_instance->executef("GRANT BACKUP_ADMIN ON *.* TO ?@?",
-                                 ar_options.repl_credentials->user,
-                                 repl_account_host);
-
-    // If the donor instance is processing transactions, it may have the
-    // clone-user handling (create + grant) still in the backlog waiting to be
-    // applied. For that reason, we must wait for it to be in sync with the
-    // primary before starting the clone itself (BUG#30628746)
-    std::string primary_address = m_primary_instance->get_canonical_address();
-
-    std::string donor_address = donor_instance->get_canonical_address();
-
-    if (!mysqlshdk::utils::are_endpoints_equal(primary_address,
-                                               donor_address)) {
-      console->print_info(
-          "* Waiting for the donor to synchronize with PRIMARY...");
-      if (!dry_run) {
-        try {
-          // Sync the donor with the primary
-          m_cluster_set->sync_transactions(*donor_instance, "",
-                                           m_options.timeout);
-        } catch (const shcore::Exception &e) {
-          if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
-            console->print_error(
-                "The donor instance failed to synchronize its transaction set "
-                "with the PRIMARY. You may increase or disable the transaction "
-                "sync timeout with the option 'timeout'");
-          }
-          throw;
-        } catch (const cancel_sync &) {
-          // Throw it up
-          throw;
-        }
-      }
-      console->print_info();
-    }
-
-    // Create a new connection to the recipient and run clone asynchronously
-    std::string instance_def =
-        m_target_instance->get_connection_options().uri_endpoint();
-
-    const auto recipient_clone =
-        Scoped_instance(m_cluster_set->connect_target_instance(instance_def));
-
-    mysqlshdk::db::Connection_options clone_donor_opts(donor);
-
-    // we need a point in time as close as possible, but still earlier than
-    // when recovery starts to monitor the recovery phase. The timestamp
-    // resolution is timestamp(3) irrespective of platform
-    std::string begin_time =
-        m_target_instance->queryf_one_string(0, "", "SELECT NOW(3)");
-
-    std::exception_ptr error_ptr;
-
-    auto clone_thread = spawn_scoped_thread([&recipient_clone, clone_donor_opts,
-                                             ar_options, &error_ptr] {
-      mysqlsh::thread_init();
-
-      bool enabled_ssl{false};
-      switch (ar_options.auth_type) {
-        case Replication_auth_type::CERT_ISSUER:
-        case Replication_auth_type::CERT_SUBJECT:
-        case Replication_auth_type::CERT_ISSUER_PASSWORD:
-        case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-          enabled_ssl = true;
-          break;
-        default:
-          break;
-      }
-
-      try {
-        mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
-                                   *ar_options.repl_credentials, enabled_ssl);
-      } catch (const shcore::Error &err) {
-        // Clone canceled
-        if (err.code() == ER_QUERY_INTERRUPTED) {
-          log_info("Clone canceled: %s", err.format().c_str());
-        } else {
-          log_info("Error cloning from instance '%s': %s",
-                   clone_donor_opts.uri_endpoint().c_str(),
-                   err.format().c_str());
-          error_ptr = std::current_exception();
-        }
-      } catch (const std::exception &err) {
-        log_info("Error cloning from instance '%s': %s",
-                 clone_donor_opts.uri_endpoint().c_str(), err.what());
-        error_ptr = std::current_exception();
-      }
-
-      mysqlsh::thread_end();
-    });
-
-    shcore::Scoped_callback join([&clone_thread, error_ptr]() {
-      if (clone_thread.joinable()) clone_thread.join();
-    });
-
-    try {
-      auto post_clone_auth = m_target_instance->get_connection_options();
-      post_clone_auth.set_login_options_from(
-          donor_instance->get_connection_options());
-
-      monitor_standalone_clone_instance(
-          m_target_instance->get_connection_options(), post_clone_auth,
-          begin_time, m_progress_style, k_clone_start_timeout,
-          current_shell_options()->get().dba_restart_wait_timeout);
-
-      // When clone is used, the target instance will restart and all
-      // connections are closed so we need to test if the connection to the
-      // target instance and MD are closed and re-open if necessary
-      m_target_instance->reconnect_if_needed("Target");
-
-      m_cluster_set->get_metadata_storage()
-          ->get_md_server()
-          ->reconnect_if_needed("Metadata");
-
-      // Remove the BACKUP_ADMIN grant from the recovery account
-      m_primary_instance->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
-                                   ar_options.repl_credentials->user,
-                                   repl_account_host);
-    } catch (const stop_monitoring &) {
-      console->print_info();
-      console->print_note("Recovery process canceled. Reverting changes...");
-
-      // Cancel the clone query
-      mysqlshdk::mysql::cancel_clone(*m_target_instance);
-
-      log_info("Clone canceled.");
-
-      log_debug("Waiting for clone thread...");
-      // wait for the clone thread to finish
-      clone_thread.join();
-      log_debug("Clone thread joined");
-
-      // When clone is canceled, the target instance will restart and all
-      // connections are closed so we need to wait for the server to start-up
-      // and re-establish the session. Also we need to test if the connection
-      // to the target instance and MD are closed and re-open if necessary
-      *m_target_instance = *wait_server_startup(
-          m_target_instance->get_connection_options(),
-          mysqlshdk::mysql::k_server_recovery_restart_timeout,
-          Recovery_progress_style::NOWAIT);
-
-      m_target_instance->reconnect_if_needed("Target");
-
-      // Remove the BACKUP_ADMIN grant from the recovery account
-      m_primary_instance->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?",
-                                   ar_options.repl_credentials->user);
-
-      cleanup_clone_recovery(m_target_instance.get(),
-                             *ar_options.repl_credentials, repl_account_host);
-
-      // Thrown the exception cancel_sync up
-      throw cancel_sync();
-    } catch (const restart_timeout &) {
-      console->print_warning(
-          "Clone process appears to have finished and tried to restart the "
-          "MySQL server, but it has not yet started back up.");
-
-      console->print_info();
-      console->print_info(
-          "Please make sure the MySQL server at '" +
-          m_target_instance->descr() +
-          "' is properly restarted. The operation will be reverted, but you may"
-          " retry adding the instance after restarting it. ");
-
-      throw shcore::Exception("Timeout waiting for server to restart",
-                              SHERR_DBA_SERVER_RESTART_TIMEOUT);
-    } catch (const shcore::Error &e) {
-      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-    }
-  }
-}
-
 std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
     const mysqlshdk::mysql::Auth_options &repl_credentials,
     const std::string &repl_account_host) {
@@ -583,41 +252,17 @@ void Create_replica_cluster::prepare() {
   // Check if the instance already belongs to an InnoDB Cluster, either ONLINE
   // or OFFLINE
   {
-    std::string managed_type;
-    auto md_storage = std::make_unique<MetadataStorage>(m_target_instance);
-    auto state = get_cluster_check_info(*md_storage, nullptr, true);
+    TargetType::Type instance_type;
 
-    switch (state.source_type) {
-      case TargetType::AsyncReplicaSet:
-        managed_type = "an InnoDB ReplicaSet";
-        break;
-      case TargetType::Standalone:
-      case TargetType::StandaloneWithMetadata:
-      case TargetType::AsyncReplication:
-        break;
-      case TargetType::StandaloneInMetadata:
-      case TargetType::InnoDBCluster:
-      case TargetType::InnoDBClusterSet:
-      case TargetType::InnoDBClusterSetOffline:
-        managed_type = "an InnoDB Cluster";
-        break;
-      case TargetType::GroupReplication:
-        managed_type = "a Group Replication group";
-        break;
-      case TargetType::Unknown:
-        assert(0);
-        throw std::logic_error("Unexpected state in " +
-                               m_target_instance->descr());
-    }
-
-    if (!managed_type.empty()) {
-      console->print_error(
+    if (!validate_instance_standalone(*m_target_instance, &instance_type)) {
+      mysqlsh::current_console()->print_error(
           "The instance '" + m_target_instance->descr() +
-          "' is already part of " + managed_type +
+          "' is already part of an " + to_string(instance_type) +
           ". A new Replica Cluster must be created on a standalone instance.");
 
-      throw shcore::Exception("Target instance already part of " + managed_type,
-                              SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+      throw shcore::Exception(
+          "Target instance already part of an " + to_string(instance_type),
+          SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
     }
   }
 
@@ -690,36 +335,7 @@ void Create_replica_cluster::prepare() {
 
   // Check if the instance `server_id` and `server_uuid` are unique in the
   // ClusterSet, including among OFFLINE or unreachable members.
-  std::string target_instance_uuid = m_target_instance->get_uuid();
-  int64_t target_instance_id = m_target_instance->get_id();
-
-  for (const auto &cluster : clusters) {
-    auto cluster_members =
-        m_cluster_set->get_metadata_storage()->get_all_instances(
-            cluster.cluster.cluster_id);
-
-    for (const auto &member : cluster_members) {
-      if (member.uuid == target_instance_uuid) {
-        console->print_error(
-            "The target instance '" +
-            m_target_instance->get_canonical_address() +
-            "' has a 'server_uuid' already being used by a member "
-            "of the ClusterSet.");
-        throw shcore::Exception("Invalid server_uuid.",
-                                SHERR_DBA_INVALID_SERVER_UUID);
-      }
-
-      if (member.server_id == target_instance_id) {
-        console->print_error(
-            "The target instance '" +
-            m_target_instance->get_canonical_address() +
-            "' has a 'server_id' already being used by a member "
-            "of the ClusterSet.");
-        throw shcore::Exception("Invalid server_id.",
-                                SHERR_DBA_INVALID_SERVER_ID);
-      }
-    }
-  }
+  m_cluster_set->get_primary_cluster()->validate_server_ids(*m_target_instance);
 
   // Validate the clone options
   m_options.clone_options.check_option_values(m_target_instance->get_version());
@@ -729,7 +345,7 @@ void Create_replica_cluster::prepare() {
 
   m_options.clone_options.recovery_method =
       m_cluster_set->validate_instance_recovery(
-          Member_op_action::ADD_INSTANCE, m_target_instance.get(),
+          Member_op_action::ADD_INSTANCE, *m_target_instance,
           m_options.clone_options.recovery_method.get_safe(),
           m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete(),
           m_options.interactive());
@@ -812,22 +428,28 @@ shcore::Value Create_replica_cluster::execute() {
     }
 
     // Handle clone provisioning
-    if (m_options.clone_options.recovery_method ==
+    if (*m_options.clone_options.recovery_method ==
         Member_recovery_method::CLONE) {
-      try {
-        // Do and monitor the clone
-        handle_clone(ar_options, repl_account_host, m_options.dry_run);
-
-        // When clone is used, the target instance will restart and all
-        // connections are closed so we need to test if the connection to the
-        // target instance and MD are closed and re-open if necessary
-        m_target_instance->reconnect_if_needed("Target");
-      } catch (const cancel_sync &) {
-        // Throw a real exception to be formatted in the outer catch.
-        // cancel_sync is an empty std::exception
-        throw shcore::Exception("Clone based recovery canceled.",
-                                SHERR_DBA_CLONE_CANCELED);
+      // Ensure cloneDonor is valid and pick a valid donor if the option is not
+      // used. By default, the donor must be the PRIMARY member of the PRIMARY
+      // Cluster.
+      std::string donor;
+      if (m_options.clone_options.clone_donor.has_value()) {
+        donor = *m_options.clone_options.clone_donor;
+        m_cluster_set->ensure_compatible_clone_donor(donor, m_target_instance);
+      } else {
+        // Pick the primary instance of the primary cluster as donor
+        donor = m_primary_instance->get_canonical_address();
       }
+
+      const auto donor_instance =
+          Scoped_instance(m_cluster_set->connect_target_instance(donor));
+
+      m_cluster_set->handle_clone_provisioning(
+          m_target_instance, donor_instance, ar_options, repl_account_host,
+          m_cluster_set->query_clusterset_auth_cert_issuer(),
+          m_options.cert_subject, m_progress_style, m_options.timeout,
+          m_options.dry_run);
     }
 
     // Set debug trap to test reversion of replication user creation

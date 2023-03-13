@@ -37,6 +37,17 @@
 namespace mysqlshdk {
 namespace mysql {
 
+enum class Read_replica_status {
+  ONLINE,      // Replication channel up and running.
+  CONNECTING,  // Replication channel up and connecting.
+  OFFLINE,     // Replication channel stopped gracefully.
+  ERROR,       // Replication channel stopped due to a replication error
+               // (e.g. conflicting GTID-set)
+  UNREACHABLE  // Shell cannot connect to the Read-Replica
+};
+
+std::string to_string(Read_replica_status status);
+
 void change_master(
     const mysqlshdk::mysql::IInstance &instance, const std::string &master_host,
     int master_port, const std::string &channel_name,
@@ -89,6 +100,9 @@ struct Replication_credentials_options {
 void change_replication_credentials(
     const mysqlshdk::mysql::IInstance &instance, std::string_view channel,
     std::string_view user, const Replication_credentials_options &options);
+
+Read_replica_status get_read_replica_status(
+    const mysqlshdk::mysql::IInstance &read_replica_instance);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

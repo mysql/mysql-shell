@@ -524,6 +524,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.listRouters",
       "Cluster.setPrimaryInstance",
       "Cluster.options",
+      "Cluster.routingOptions",
       "Cluster.status",
       "Cluster.dissolve",
       "Dba.getCluster",
@@ -533,6 +534,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
 
   std::set<std::string> cset_sometimes_allowed_expected = {
       "Cluster.addInstance",
+      "Cluster.addReplicaInstance",
       "Cluster.rejoinInstance",
       "Cluster.removeInstance",
       "Cluster.removeRouterMetadata",
@@ -540,6 +542,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.resetRecoveryAccountsPassword",
       "Cluster.setInstanceOption",
       "Cluster.setOption",
+      "Cluster.setRoutingOption",
       "Cluster.setupAdminAccount",
       "Cluster.setupRouterAccount"};
 

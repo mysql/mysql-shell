@@ -34,7 +34,7 @@ var create_cluster_adopt_sql = [
 ];
 
 var add_instance_sql = [
-    "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
+    "select cluster_type, instance_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "show GLOBAL variables where `variable_name` in ('group_replication_ssl_mode')",
     "show GLOBAL variables where `variable_name` in ('server_id')",
     "CREATE USER IF NOT EXISTS '*'@'%' IDENTIFIED BY **** PASSWORD EXPIRE NEVER",
@@ -70,7 +70,7 @@ var describe_sql = [
 ];
 
 var set_option_sql = [
-    "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
+    "select cluster_type, instance_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "UPDATE mysql_innodb_cluster_metadata.clusters"
 ];
 
@@ -113,7 +113,7 @@ var switch_single_primary_sql = [
 ];
 
 var force_quorum_sql = [
-    "select cluster_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
+    "select cluster_type, instance_type from `mysql_innodb_cluster_metadata`.v2_this_instance",
     "SET GLOBAL `group_replication_force_members` = '*'",
     "SET GLOBAL `group_replication_force_members` = ''"
 ];

@@ -72,6 +72,7 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
     case Clone_options::JOIN_CLUSTER:
     case Clone_options::CREATE_REPLICA_CLUSTER:
     case Clone_options::JOIN_REPLICASET:
+    case Clone_options::JOIN_READ_REPLICA:
       if (!supports_mysql_clone(version)) {
         if (cluster) {
           throw shcore::Exception::runtime_error(shcore::str_format(
@@ -95,11 +96,18 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
 // ----
 
 void Clone_options::check_option_values(
-    const mysqlshdk::utils::Version &version, const Cluster_impl *cluster) {
+    const mysqlshdk::utils::Version &version, bool clone_donor_allowed,
+    const Cluster_impl *cluster) {
   if (disable_clone.has_value()) {
     // Validate if the disableClone option is supported on the target
     validate_clone_supported(version, kDisableClone, target);
   } else if (recovery_method == Member_recovery_method::CLONE) {
+    // Validate if cloneDonor is supported in this operation
+    if (clone_donor.has_value() && !clone_donor_allowed) {
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("Option '%s' not supported", kCloneDonor));
+    }
+
     // Validate if the recoveryMethod option is supported on the target
     validate_clone_supported(version, std::string(kRecoveryMethod) + "=clone",
                              target);
@@ -225,6 +233,16 @@ const shcore::Option_pack_def<Create_replica_cluster_clone_options>
           .optional(kCloneDonor,
                     &Create_replica_cluster_clone_options::set_clone_donor);
 
+  return opts;
+}
+
+const shcore::Option_pack_def<Join_read_replica_clone_options>
+    &Join_read_replica_clone_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Join_read_replica_clone_options>()
+          .include<Join_cluster_clone_options>()
+          .optional(kCloneDonor,
+                    &Join_read_replica_clone_options::set_clone_donor);
   return opts;
 }
 

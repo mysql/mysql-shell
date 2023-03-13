@@ -1,7 +1,7 @@
 //@<OUT> Upgrades the metadata, interactive options simulating unregister (no upgrade performed)
 Metadata Schema Upgrade
 
-The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.2.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -84,7 +84,7 @@ Please select an option: The metadata upgrade has been aborted.
 //@<OUT> Upgrades the metadata, interactive options simulating upgrade (no upgrade performed)
 Metadata Schema Upgrade
 
-The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
+The topology you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.2.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 

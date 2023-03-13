@@ -10,9 +10,14 @@
 // it can bootstrap a new group, changing the value of
 // 'group_replication_group_name' and leading to a failure on forceQuorum
 
+//@<> INCLUDE read_replicas_utils.inc
+
 //@<> Initialization
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3], {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 var cluster = scene.cluster;
+
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
 
 //@<> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
 // Regression for BUG#27508698: forceQuorumUsingPartitionOf() on cluster with quorum should be forbidden
@@ -166,10 +171,31 @@ shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_grou
 
 // --- END --- BUG#30739252 : race condition in forcequorum
 
+//@<> forceQuorumUsingPartitionOf() must first stop replication on all reachable ONLINE Read-Replicas of the Cluster and when quorum is restored, restart it. {VER(>=8.0.23)}
+EXPECT_NO_THROWS(function() { c.rejoinInstance(__sandbox_uri3); });
+
+// Add a Read-Replica with defaults
+EXPECT_NO_THROWS(function() { c.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone"}); });
+
+testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
+
+// Add a Read-Replica with replicationSources: __endpoint2, __endpoint1
+EXPECT_NO_THROWS(function() { c.addReplicaInstance(__sandbox_uri5, {replicationSources: [__endpoint2, __endpoint3], recoveryMethod: "clone"}); });
+
+testutil.waitReplicationChannelState(__mysql_sandbox_port5, "read_replica_replication", "ON");
+
+// Force quorum loss
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
+testutil.startSandbox(__mysql_sandbox_port3);
+
+EXPECT_NO_THROWS(function() { c.forceQuorumUsingPartitionOf(__sandbox_uri2); });
+
+CHECK_READ_REPLICA(__sandbox_uri4, c, "primary", __endpoint2);
+CHECK_READ_REPLICA(__sandbox_uri5, c, [__endpoint2, __endpoint3], [__endpoint2]);
+
 //@<> Finalization
 //  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
-session.close();
-cluster.disconnect();
-testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.destroySandbox(__mysql_sandbox_port2);
-testutil.destroySandbox(__mysql_sandbox_port3);
+scene.destroy();
+testutil.destroySandbox(__mysql_sandbox_port4);
+testutil.destroySandbox(__mysql_sandbox_port5);

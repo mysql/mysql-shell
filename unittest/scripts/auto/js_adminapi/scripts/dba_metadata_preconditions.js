@@ -368,6 +368,10 @@ for (index in tests) {
         function () {
             print_debug("Cluster.resetRecoveryAccountsPassword()");
             cluster.resetRecoveryAccountsPassword()
+        },
+        function () {
+            print_debug("Cluster.addReplicaInstance()");
+            cluster.addReplicaInstance(__sandbox_uri2);
         }
     ]
 

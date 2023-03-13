@@ -52,6 +52,10 @@ shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user
 //@<> Create cluster adopting from GR
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true});
 
+// Verify read_only_targets is set to secondary as default in the metadata
+routing_options = cluster.routingOptions();
+EXPECT_EQ("secondaries", routing_options["global"]["read_only_targets"]);
+
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 
 // Fix for BUG#28054500 expects that mysql_innodb_cluster_r* accounts are auto-deleted

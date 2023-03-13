@@ -35,6 +35,22 @@ session.close();
 shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
+//@<> dryRun test
+EXPECT_NO_THROWS(function() { c.rejoinInstance(__sandbox_uri2, {dryRun: 1}); });
+
+EXPECT_OUTPUT_CONTAINS(`The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '${__endpoint2}' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
+`);
+EXPECT_OUTPUT_CONTAINS(`The incremental state recovery may be safely used if you are sure all updates ever executed in the cluster were done with GTIDs enabled, there are no purged transactions and the new instance contains the same GTID set as the cluster or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.`);
+EXPECT_OUTPUT_CONTAINS(`Incremental state recovery was selected because it seems to be safely usable.`);
+EXPECT_OUTPUT_CONTAINS(`Validating instance configuration at localhost:${__mysql_sandbox_port2}...`);
+EXPECT_OUTPUT_CONTAINS(`Instance configuration is suitable.`);
+EXPECT_OUTPUT_CONTAINS(`Rejoining instance '${__endpoint2}' to cluster 'test'...`);
+EXPECT_OUTPUT_CONTAINS(`The instance '${__endpoint2}' was successfully rejoined to the cluster.`);
+EXPECT_OUTPUT_CONTAINS(`dryRun finished.`);
+
+// Confirm the rejoin didn't happen
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+
 // BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
 //
 // dba.checkInstance() reports that a target instance which is running the Slave
@@ -76,7 +92,7 @@ session.runSql("STOP SLAVE");
 c.rejoinInstance(__sandbox_uri2);
 
 // BUG#32197197: clean-up
-session.runSql("RESET SLAVE ALL");
+session.runSql("RESET SLAVE ALL FOR CHANNEL ''");
 
 // Tests for deprecation of ipWhitelist in favor of ipAllowlist
 
@@ -347,12 +363,13 @@ cluster.rejoinInstance(__sandbox_uri2);
 //@ Rejoin instance fails if the target instance contains errant transactions 5.7 (BUG#29953812) {VER(<8.0.17)}
 cluster.rejoinInstance(__sandbox_uri2);
 
-//@ Rejoin instance fails if the target instance has an empty gtid-set (BUG#29953812)
+//@<> Rejoin instance with an empty gtid-set - auto incremental since gtidSetIsComplete was used when creating the cluster
 session2.runSql("RESET MASTER");
 
-cluster.rejoinInstance(__sandbox_uri2);
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2); });
 
 //@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812)
+session2.runSql("stop group_replication;")
 session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 session2.runSql("RESET MASTER");

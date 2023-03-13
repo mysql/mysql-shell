@@ -3,42 +3,47 @@
 {
     "clusters": {
         "cluster1": {
-            "clusterRole": "PRIMARY", 
+            "clusterRole": "PRIMARY",
             "topology": [
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-                }, 
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                    "role": "HA"
+                },
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                    "role": "HA"
                 }
             ]
-        }, 
+        },
         "cluster2": {
-            "clusterRole": "REPLICA", 
+            "clusterRole": "REPLICA",
             "topology": [
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>"
-                }, 
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>",
+                    "role": "HA"
+                },
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>"
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>",
+                    "role": "HA"
                 }
             ]
-        }, 
+        },
         "cluster3": {
-            "clusterRole": "REPLICA", 
+            "clusterRole": "REPLICA",
             "topology": [
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>"
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>",
+                    "role": "HA"
                 }
             ]
         }
-    }, 
-    "domainName": "cs", 
+    },
+    "domainName": "cs",
     "primaryCluster": "cluster1"
 }
 
@@ -46,41 +51,46 @@
 {
     "clusters": {
         "cluster1": {
-            "clusterRole": "PRIMARY", 
+            "clusterRole": "PRIMARY",
             "topology": [
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-                }, 
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                    "role": "HA"
+                },
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                    "role": "HA"
                 }
             ]
-        }, 
+        },
         "cluster2": {
-            "clusterRole": "REPLICA", 
+            "clusterRole": "REPLICA",
             "topology": [
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>"
-                }, 
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>",
+                    "role": "HA"
+                },
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>"
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port5>>>",
+                    "role": "HA"
                 }
             ]
-        }, 
+        },
         "cluster3": {
-            "clusterRole": "REPLICA", 
+            "clusterRole": "REPLICA",
             "topology": [
                 {
-                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>", 
-                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>"
+                    "address": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>",
+                    "label": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>",
+                    "role": "HA"
                 }
             ]
         }
-    }, 
-    "domainName": "cs", 
+    },
+    "domainName": "cs",
     "primaryCluster": "cluster1"
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,19 +75,37 @@ class Sql_undo : public Undo_tracker::Undo_entry {
 Undo_tracker::Undo_entry &Undo_tracker::add(
     const std::string &note, mysqlshdk::mysql::Sql_undo_list sql_undo,
     const std::function<std::shared_ptr<Instance>()> &get_instance) {
+  m_entries.emplace_front(
+      note, std::make_unique<Sql_undo>(std::move(sql_undo), get_instance));
+
+  return *m_entries.front().second;
+}
+
+Undo_tracker::Undo_entry &Undo_tracker::add_back(
+    const std::string &note, mysqlshdk::mysql::Sql_undo_list sql_undo,
+    const std::function<std::shared_ptr<Instance>()> &get_instance) {
   m_entries.emplace_back(
       note, std::make_unique<Sql_undo>(std::move(sql_undo), get_instance));
+
   return *m_entries.back().second;
 }
 
 Undo_tracker::Undo_entry &Undo_tracker::add(const std::string &note,
                                             const std::function<void()> &f) {
+  m_entries.emplace_front(note, std::make_unique<Function_undo>(f));
+
+  return *m_entries.front().second;
+}
+
+Undo_tracker::Undo_entry &Undo_tracker::add_back(
+    const std::string &note, const std::function<void()> &f) {
   m_entries.emplace_back(note, std::make_unique<Function_undo>(f));
+
   return *m_entries.back().second;
 }
 
 void Undo_tracker::execute() {
-  for (auto i = m_entries.rbegin(); i != m_entries.rend(); ++i) {
+  for (auto i = m_entries.begin(); i != m_entries.end(); ++i) {
     if (!(*i).first.empty()) log_info("Revert: %s", (*i).first.c_str());
     if (!(*i).second->call())
       log_info("Revert: %s (was cancelled)", (*i).first.c_str());

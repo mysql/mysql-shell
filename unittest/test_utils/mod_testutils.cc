@@ -268,6 +268,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("waitMemberState", &Testutils::wait_member_state, "port", "states",
          "?direct");
+  expose("waitReadReplicaState", &Testutils::wait_read_replica_state, "port",
+         "states", "?direct");
   expose("waitMemberTransactions", &Testutils::wait_member_transactions,
          "dest_port", "?source_port");
   expose("waitForReplConnectionError",
@@ -2570,6 +2572,112 @@ std::string Testutils::wait_member_state(int member_port,
   throw std::runtime_error(
       "Timeout while waiting for cluster member to become one of " + states +
       ": seems to be stuck as " + current_state);
+}
+
+///@{
+/**
+ * Waits until a cluster read-replica reaches one of the specified states.
+ * @param port The port of the instance to be polled listens for MySQL
+ * connections.
+ * @param states An array containing the states that would cause the poll cycle
+ * to finish.
+ * @param direct If true, opens a direct session to the read-replica to be
+ * observed.
+ * @returns The state of the member.
+ *
+ * This function is to be used with the members of a cluster.
+ *
+ * It will start a polling cycle verifying the member state, the cycle will end
+ * when one of the expected states is reached or if the timeout of
+ * k_wait_member_timeout seconds occurs.
+ */
+#if DOXYGEN_JS
+String Testutils::waitReadReplicaState(Integer port, String[] states);
+#elif DOXYGEN_PY
+str Testutils::wait_read_replica_state(int port, str[] states);
+#endif
+///@}
+std::string Testutils::wait_read_replica_state(int rr_port,
+                                               const std::string &states) {
+  if (states.empty()) {
+    throw std::invalid_argument(
+        "states argument for wait_read_replica_state() can't be empty");
+  }
+
+  std::string current_state, auto_failover;
+  int last_error_num;
+  int curtime = 0;
+  std::shared_ptr<mysqlshdk::db::ISession> session =
+      connect_to_sandbox(rr_port);
+
+  while (curtime < k_wait_member_timeout) {
+    // Get the replication channel status
+    auto result = session->query(
+        "SELECT c.source_connection_auto_failover, s.service_state, "
+        "s.last_error_number FROM "
+        "performance_schema.replication_connection_status s JOIN "
+        "performance_schema.replication_connection_configuration c ON "
+        "s.channel_name = c.channel_name WHERE "
+        "s.channel_name='read_replica_replication'");
+
+    current_state = "OFFLINE";
+    auto_failover = "0";
+
+    if (auto row = result->fetch_one()) {
+      auto_failover = row->get_string(0);
+      current_state = row->get_string(1);
+      last_error_num = row->get_int(2);
+
+      if (current_state == "ON") {
+        current_state = "ONLINE";
+      } else if (current_state == "OFF" && last_error_num != 0) {
+        current_state = "ERROR";
+      }
+    }
+
+    if (auto_failover == "1" &&
+        states.find(current_state) != std::string::npos) {
+      session->close();
+
+      return current_state;
+    }
+
+    if (mysqlshdk::db::replay::g_replay_mode ==
+        mysqlshdk::db::replay::Mode::Replay) {
+      shcore::sleep_ms(1);
+    } else {
+      shcore::sleep_ms(1000);
+    }
+    curtime++;
+  }
+
+  // Print some debugging info
+  auto result = session->query(
+      "SELECT c.host, c.port, c.user, c.source_connection_auto_failover, "
+      "s.service_state, s.source_uuid, s.last_error_number FROM "
+      "performance_schema.replication_connection_status s JOIN "
+      "performance_schema.replication_connection_configuration c ON "
+      "s.channel_name = c.channel_name WHERE "
+      "s.channel_name='read_replica_replication'");
+
+  std::cout << "replication_connection status and configuration as seen from "
+               "the monitoring session: "
+            << session->get_connection_options().as_uri(
+                   mysqlshdk::db::uri::formats::only_transport())
+            << "\n";
+  while (auto row = result->fetch_one()) {
+    std::cout << row->get_as_string(0) << "\t" << row->get_as_string(1) << "\t"
+              << row->get_as_string(2) << "\t" << row->get_as_string(3) << "\n"
+              << row->get_as_string(4) << "\n"
+              << row->get_as_string(5) << "\n"
+              << row->get_as_string(6) << "\n";
+  }
+
+  session->close();
+
+  throw std::runtime_error(
+      "Timeout while waiting for read-replica to become one of '" + states +
+      "': seems to be stuck as " + current_state);
 }
 
 ///@{

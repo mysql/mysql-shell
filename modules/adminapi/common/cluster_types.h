@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,12 +56,16 @@ std::string to_string(Cluster_set_global_status type);
 
 enum class Cluster_type {
   NONE,
-  GROUP_REPLICATION,  // InnoDB Cluster
-  ASYNC_REPLICATION,  // InnoDB ReplicaSet
-  REPLICATED_CLUSTER  // InnoDB ClusterSet
+  GROUP_REPLICATION,   // InnoDB Cluster
+  ASYNC_REPLICATION,   // InnoDB ReplicaSet
+  REPLICATED_CLUSTER,  // InnoDB ClusterSet
 };
 
 std::string to_string(Cluster_type type);
+
+enum class Replica_type { NONE, GROUP_MEMBER, READ_REPLICA };
+
+std::string to_string(Replica_type type);
 
 enum class Cluster_availability {
   ONLINE,             // Cluster has quorum

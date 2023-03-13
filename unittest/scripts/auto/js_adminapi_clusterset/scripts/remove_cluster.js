@@ -14,6 +14,8 @@
 var scene = new ClusterScenario([__mysql_sandbox_port1]);
 var session = scene.session
 var cluster = scene.cluster
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
@@ -74,6 +76,22 @@ EXPECT_OUTPUT_CONTAINS("ERROR: The following Routers are using the Cluster 'repl
 session1.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET options = json_set(options, '$.target_cluster', 'primary') WHERE cluster_id = ?", [__cluster_id]);
 
 CHECK_GTID_CONSISTENT(session1, session4);
+
+// Read Replicas must be treated equally as Cluster members, i.e. their replication accounts must be dropped and replication stopped and if a Read Replica is unreachable, the command only proceeds if the force option is used.
+
+// Add 2 read-replicas to the Cluster
+EXPECT_NO_THROWS(function() { replicacluster.addReplicaInstance(__sandbox_uri2); });
+EXPECT_NO_THROWS(function() { replicacluster.addReplicaInstance(__sandbox_uri3, {replicationSources: [__endpoint4, __endpoint6]}); });
+
+// Make read-replica 2 unreachable
+testutil.killSandbox(__mysql_sandbox_port2);
+
+EXPECT_THROWS_TYPE(function() { clusterset.removeCluster("replicacluster"); }, "Unreachable Read-Replicas detected", "MYSQLSH");
+
+EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster has unreachable Read-Replicas so the command cannot remove them. Please bring the instances back ONLINE and try to remove the Cluster again. If the instances are permanently not reachable, then you can choose to proceed with the operation and only remove the instances from the Cluster Metadata by using the 'force' option.");
+
+// Bring read-replica 2 back online
+testutil.startSandbox(__mysql_sandbox_port2);
 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {timeout: 0}); });
 EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
@@ -240,7 +258,7 @@ session4.runSql("SELECT group_replication_disable_member_action('mysql_start_fai
 session4.runSql("SELECT group_replication_disable_member_action('mysql_disable_super_read_only_if_primary', 'AFTER_PRIMARY_ELECTION')");
 
 c.dissolve();
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session4);
 
 reset_instance(session4);
 
@@ -267,7 +285,7 @@ EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have be
 // (Bug#33166307)
 rc.dissolve();
 // Dissolve the Cluster and verify all accounts and metadata are dropped (BUG#33239404)
-CHECK_DISSOLVED_CLUSTER(session);
+CHECK_DISSOLVED_CLUSTER(session, session4);
 
 reset_instance(session4);
 
@@ -410,6 +428,8 @@ clusterset.removeCluster("replicacluster");
 
 //@<> Cleanup
 scene.destroy();
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);
 testutil.destroySandbox(__mysql_sandbox_port6);

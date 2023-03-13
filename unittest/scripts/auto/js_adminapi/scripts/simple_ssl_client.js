@@ -41,6 +41,17 @@ testutil.sslCreateCert("server", "myca", "/CN=MySandboxServer1", __mysql_sandbox
 testutil.sslCreateCert("server", "myca", "/CN=MySandboxServer2", __mysql_sandbox_port2);
 testutil.sslCreateCert("server", "myca", "/CN=MySandboxServer3", __mysql_sandbox_port3);
 
+testutil.changeSandboxConf(__mysql_sandbox_port1, "require_secure_transport", "1");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "require_secure_transport", "1");
+
+testutil.changeSandboxConf(__mysql_sandbox_port1, "ssl_ca", ca1_path);
+testutil.changeSandboxConf(__mysql_sandbox_port1, "ssl_cert", client1_cert);
+testutil.changeSandboxConf(__mysql_sandbox_port1, "ssl_key", client1_cert.replace("-cert.pem", "-key.pem"));
+
+testutil.changeSandboxConf(__mysql_sandbox_port2, "ssl_ca", ca1_path);
+testutil.changeSandboxConf(__mysql_sandbox_port2, "ssl_cert", client1_cert);
+testutil.changeSandboxConf(__mysql_sandbox_port2, "ssl_key", client1_cert.replace("-cert.pem", "-key.pem"));
+
 testutil.restartSandbox(__mysql_sandbox_port1);
 testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port3);
@@ -61,6 +72,12 @@ session3 = mysql.getSession(ssl_sandbox_uri3);
 //@ createCluster
 shell.connect(ssl_sandbox_uri1);
 var cluster = dba.createCluster("clus", { gtidSetIsComplete: 1 });
+
+//@<> add a Read-Replica {VER(>=8.0.23)}
+EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__endpoint2); });
+
+// Clean-up
+EXPECT_NO_THROWS(function() { cluster.removeInstance(__endpoint2); });
 
 //@<> create accounts for certificate authentication
 cluster.setupAdminAccount("user1", {requireCertIssuer:"/CN=Test_CA", requireCertSubject:"/CN=user1@%", password:""});

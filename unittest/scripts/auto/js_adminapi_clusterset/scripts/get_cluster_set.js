@@ -12,14 +12,22 @@ var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
 
 cs = cluster.createClusterSet("domain");
 
 rc = cs.createReplicaCluster(__sandbox_uri3, "replica");
 rc.addInstance(__sandbox_uri4);
+rc.addReplicaInstance(__sandbox_uri6);
 
 //@<> dba.getClusterSet() from a secondary member of the primary cluster
 shell.connect(__sandbox_uri2);
+
+EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
+EXPECT_NE(clusterset, null);
+
+//@<> dba.getClusterSet() from a a read-replica
+shell.connect(__sandbox_uri6);
 
 EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
 EXPECT_NE(clusterset, null);
@@ -275,3 +283,4 @@ scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);
+testutil.destroySandbox(__mysql_sandbox_port6);

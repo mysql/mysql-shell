@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,7 +98,8 @@ class Dissolve : public Command_interface {
   const bool m_interactive;
   mysqlshdk::utils::nullable<bool> m_force;
   Cluster_impl *m_cluster = nullptr;
-  std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_available_instances;
+  std::vector<std::pair<std::shared_ptr<mysqlsh::dba::Instance>, Instance_type>>
+      m_available_instances;
   std::vector<std::string> m_skipped_instances;
   std::vector<std::string> m_sync_error_instances;
   bool m_supports_member_actions = false;
@@ -138,8 +139,10 @@ class Dissolve : public Command_interface {
    *
    * @param instance_address String with the address <host>:<port> of the
    *                         instance to check.
+   * @param instance_type The Instance_type of the target instance
    */
-  void ensure_instance_reachable(const std::string &instance_address);
+  std::shared_ptr<Instance> ensure_instance_reachable(
+      const std::string &instance_address, const Instance_type instance_type);
 
   /**
    * Validate if the given instance is able to catch up with current cluster
@@ -172,22 +175,6 @@ class Dissolve : public Command_interface {
    */
   void handle_unavailable_instances(const std::string &instance_address,
                                     const std::string &instance_state);
-
-  /**
-   * Auxiliary function to remove an instance.
-   *
-   * This function avoids duplication of code, since the primary need to be
-   * remove last in single primary mode. In more detail, this function includes
-   * the removal of the instance from the cluster and removal all replication
-   * users (including all associated exception and force option handling).
-   *
-   * @param instance_address string with the adress of the instance to be
-   *        removed from the cluster.
-   * @param instance_index index of the instance to remove in the internal list
-   *        of available instances.
-   */
-  void remove_instance(const std::string &instance_address,
-                       const std::size_t instance_index);
 };
 
 }  // namespace cluster

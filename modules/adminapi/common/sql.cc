@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -263,7 +263,8 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
 }
 
 Instance_metadata query_instance_info(
-    const mysqlshdk::mysql::IInstance &instance, bool validate_gr_endpoint) {
+    const mysqlshdk::mysql::IInstance &instance, bool validate_gr_endpoint,
+    Instance_type instance_type) {
   int xport = -1;
   std::string local_gr_address;
 
@@ -279,29 +280,31 @@ Instance_metadata query_instance_info(
         instance.descr().c_str());
   }
 
-  // Get the local GR host data.
-  try {
-    local_gr_address =
-        instance.get_sysvar_string("group_replication_local_address")
-            .value_or("");
+  if (instance_type == Instance_type::GROUP_MEMBER) {
+    // Get the local GR host data.
+    try {
+      local_gr_address =
+          instance.get_sysvar_string("group_replication_local_address")
+              .value_or("");
 
-    if (validate_gr_endpoint && local_gr_address.empty())
-      throw shcore::Exception::error_with_code(
-          "", "group_replication_local_address is empty",
-          SHERR_DBA_EMPTY_LOCAL_ADDRESS);
+      if (validate_gr_endpoint && local_gr_address.empty())
+        throw shcore::Exception::error_with_code(
+            "", "group_replication_local_address is empty",
+            SHERR_DBA_EMPTY_LOCAL_ADDRESS);
 
-    // Set debug trap to simulate exception / not be able to read string
-    DBUG_EXECUTE_IF("dba_instance_query_gr_local_address", {
-      throw shcore::Exception::error_with_code(
-          "", "group_replication_local_address is empty",
-          SHERR_DBA_EMPTY_LOCAL_ADDRESS);
-    });
+      // Set debug trap to simulate exception / not be able to read string
+      DBUG_EXECUTE_IF("dba_instance_query_gr_local_address", {
+        throw shcore::Exception::error_with_code(
+            "", "group_replication_local_address is empty",
+            SHERR_DBA_EMPTY_LOCAL_ADDRESS);
+      });
 
-  } catch (const std::exception &e) {
-    log_error(
-        "Unable to read Group Replication local address on instance '%s': %s",
-        instance.descr().c_str(), e.what());
-    throw;
+    } catch (const std::exception &e) {
+      log_error(
+          "Unable to read Group Replication local address on instance '%s': %s",
+          instance.descr().c_str(), e.what());
+      throw;
+    }
   }
 
   Instance_metadata instance_def;
@@ -312,12 +315,31 @@ Instance_metadata query_instance_info(
     instance_def.xendpoint = mysqlshdk::utils::make_host_and_port(
         instance.get_canonical_hostname(), xport);
 
-  instance_def.grendpoint = local_gr_address;
+  if (instance_type == Instance_type::GROUP_MEMBER) {
+    instance_def.grendpoint = local_gr_address;
+  }
+
   instance_def.uuid = instance.get_uuid();
   instance_def.server_id = instance.get_server_id();
 
   // default label
   instance_def.label = instance_def.endpoint;
+
+  // Set Instance type
+  switch (instance_type) {
+    case Instance_type::ASYNC_MEMBER:
+      instance_def.instance_type = Instance_type::ASYNC_MEMBER;
+      break;
+    case Instance_type::GROUP_MEMBER:
+      instance_def.instance_type = Instance_type::GROUP_MEMBER;
+      break;
+    case Instance_type::READ_REPLICA:
+      instance_def.instance_type = Instance_type::READ_REPLICA;
+      break;
+    default:
+      instance_def.instance_type = Instance_type::NONE;
+      break;
+  }
 
   return instance_def;
 }

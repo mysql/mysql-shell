@@ -53,6 +53,7 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 
 cluster = scene.cluster;
 scene.session.close();
@@ -152,12 +153,28 @@ cluster_lock_check(function() {
     cluster.addInstance(__sandbox_uri3, {ipAllowlist: allowlist});
 });
 
+//@<> exclusive lock on cluster.addReplicaInstance() {VER(>=8.0.23)}
+cluster_lock_check(function() {
+    cluster.addReplicaInstance(__sandbox_uri4);
+});
+cluster_lock_check(function() {
+    cluster.addReplicaInstance(__sandbox_uri4);
+});
+
 //@<> exclusive lock on cluster.removeInstance()
 cluster_lock_check(function() {
     cluster.removeInstance(__sandbox_uri3);
 });
 cluster_lock_check(function() {
     cluster.removeInstance(__sandbox_uri3);
+});
+
+//@<> exclusive lock on cluster.removeInstance() - Read Replica {VER(>=8.0.23)}
+cluster_lock_check(function() {
+    cluster.removeInstance(__sandbox_uri4);
+});
+cluster_lock_check(function() {
+    cluster.removeInstance(__sandbox_uri4);
 });
 
 //@<> exclusive lock on cluster.dissolve()
@@ -249,10 +266,16 @@ testutil.releaseLocks(session, lock_cluster);
 
 var session1 = mysql.getSession(__sandbox_uri1);
 var session3 = mysql.getSession(__sandbox_uri3);
+var session4 = mysql.getSession(__sandbox_uri4);
 
 //@<> exclusive instance lock on cluster.addInstance()
 instance_lock_check(session3, __mysql_sandbox_port3, function() {
     cluster.addInstance(__sandbox_uri3, {ipAllowlist: allowlist});
+});
+
+//@<> exclusive instance lock on cluster.addReplicaInstance() {VER(>=8.0.23)}
+instance_lock_check(session4, __mysql_sandbox_port4, function() {
+    cluster.addReplicaInstance(__sandbox_uri4);
 });
 
 //@<> exclusive instance lock on cluster.removeInstance()
@@ -441,3 +464,4 @@ session2.close();
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
+testutil.destroySandbox(__mysql_sandbox_port4);

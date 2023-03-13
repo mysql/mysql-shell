@@ -215,6 +215,33 @@ cluster.help("unfenceWrites")
 //@ unfenceWrites, \help [USE:unfenceWrites]
 \help cluster.unfenceWrites
 
+//@ addReplicaInstance
+cluster.help("addReplicaInstance")
+
+//@ addReplicaInstance, \? [USE:addReplicaInstance]
+\? cluster.addReplicaInstance
+
+//@ addReplicaInstance, \help [USE:addReplicaInstance]
+\help cluster.addReplicaInstance
+
+//@ routingOptions
+cluster.help("routingOptions")
+
+//@ routingOptions, \? [USE:routingOptions]
+\? cluster.routingOptions
+
+//@ routingOptions, \help [USE:routingOptions]
+\help cluster.routingOptions
+
+//@ setRoutingOption
+cluster.help("setRoutingOption")
+
+//@ setRoutingOption, \? [USE:setRoutingOption]
+\? cluster.setRoutingOption
+
+//@ setRoutingOption, \help [USE:setRoutingOption]
+\help cluster.setRoutingOption
+
 //@<> Finalization
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

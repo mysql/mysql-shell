@@ -34,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+#include "mysql/instance.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -46,10 +47,12 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -73,6 +76,12 @@ inline constexpr std::string_view k_instance_attribute_server_id{"server_id"};
 inline constexpr std::string_view k_instance_attribute_cert_subject{
     "opt_certSubject"};
 
+constexpr const char *k_cluster_read_replica_user_name =
+    "mysql_innodb_replica_";
+
+constexpr const char *k_instance_attribute_read_replica_replication_sources =
+    "replicationSources";
+
 class MetadataStorage;
 struct Cluster_metadata;
 
@@ -85,6 +94,8 @@ class ClusterSet;
 namespace checks {
 enum class Check_type;
 }
+
+enum class Replication_account_type { GROUP_REPLICATION, READ_REPLICA };
 
 class Cluster_impl final : public Base_cluster_impl,
                            public std::enable_shared_from_this<Cluster_impl>,
@@ -121,7 +132,12 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value options(const bool all);
   shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
+
   shcore::Dictionary_t routing_options(const std::string &router) override;
+  void set_routing_option(const std::string &option,
+                          const shcore::Value &value);
+  void set_routing_option(const std::string &router, const std::string &option,
+                          const shcore::Value &value) override;
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
   void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
@@ -147,15 +163,23 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void check_cluster_online();
 
+  void add_replica_instance(
+      const Connection_options &instance_def,
+      const cluster::Add_replica_instance_options &options);
+
   // Class functions
   void sanity_check() const;
 
   void add_metadata_for_instance(
       const mysqlshdk::db::Connection_options &instance_definition,
-      const std::string &label = "") const;
+      Instance_type instance_type, const std::string &label = "",
+      Transaction_undo *undo = nullptr, bool dry_run = false) const;
 
   void add_metadata_for_instance(const mysqlshdk::mysql::IInstance &instance,
-                                 const std::string &label = "") const;
+                                 Instance_type instance_type,
+                                 const std::string &label = "",
+                                 Transaction_undo *undo = nullptr,
+                                 bool dry_run = false) const;
 
   void remove_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_def);
@@ -196,9 +220,40 @@ class Cluster_impl final : public Base_cluster_impl,
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   create_replication_user(mysqlshdk::mysql::IInstance *target,
                           std::string_view auth_cert_subject,
+                          Replication_account_type account_type,
                           bool only_on_target = false,
                           mysqlshdk::mysql::Auth_options creds = {},
-                          bool print_recreate_node = true) const;
+                          bool print_recreate_node = true,
+                          bool dry_run = false) const;
+
+  std::pair<Async_replication_options, std::string>
+  create_read_replica_replication_user(mysqlshdk::mysql::IInstance *target,
+                                       std::string_view auth_cert_subject,
+                                       int sync_timeout,
+                                       bool dry_run = false) const;
+
+  void drop_read_replica_replication_user(
+      Instance *target, bool dry_run = false,
+      mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
+
+  void setup_read_replica_connection_failover(
+      const Instance &replica, const Instance &source,
+      cluster::Replication_sources replication_sources, bool rejoin,
+      bool dry_run);
+
+  void setup_read_replica(Instance *replica,
+                          const Async_replication_options &ar_options,
+                          cluster::Replication_sources replication_sources,
+                          bool rejoin, bool dry_run);
+
+  void validate_replication_sources(
+      const std::set<Managed_async_channel_source,
+                     std::greater<Managed_async_channel_source>> &sources,
+      const std::string &target_instance_address,
+      std::vector<std::string> *out_sources_canonical_address = nullptr) const;
+
+  cluster::Replication_sources get_read_replica_replication_sources(
+      const std::string &replica_uuid) const;
 
   /**
    * Reset the password of the recovery_account or the target instance's
@@ -225,12 +280,12 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   std::pair<std::string, std::string> recreate_replication_user(
       const std::shared_ptr<Instance> &target,
-      std::string_view auth_cert_subject) const;
+      std::string_view auth_cert_subject, bool dry_run = false) const;
 
   bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
                              const std::string &endpoint = "",
                              const std::string &server_uuid = "",
-                             const uint32_t server_id = 0,
+                             const uint32_t server_id = 0, bool dry_run = false,
                              mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
 
   void drop_replication_users(mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
@@ -373,12 +428,26 @@ class Cluster_impl final : public Base_cluster_impl,
           &condition = nullptr,
       bool ignore_network_conn_errors = true) const;
 
+  void execute_in_read_replicas(
+      const std::vector<mysqlshdk::mysql::Read_replica_status> &states,
+      const mysqlshdk::db::Connection_options &cnx_opt,
+      const std::vector<std::string> &ignore_instances_vector,
+      const std::function<bool(const Instance &instance)> &functor,
+      bool ignore_network_conn_errors = true) const;
+
   void execute_in_members(
       const std::function<bool(const std::shared_ptr<Instance> &instance,
                                const Instance_md_and_gr_member &info)>
           &on_connect,
       const std::function<bool(const shcore::Error &error,
                                const Instance_md_and_gr_member &info)>
+          &on_connect_error = {}) const;
+
+  void execute_in_read_replicas(
+      const std::function<bool(const std::shared_ptr<Instance> &instance)>
+          &on_connect,
+      const std::function<bool(const shcore::Error &error,
+                               const Instance_metadata &info)>
           &on_connect_error = {}) const;
 
   /**
@@ -406,6 +475,9 @@ class Cluster_impl final : public Base_cluster_impl,
 
   std::map<std::string, std::string> get_cluster_group_seeds() const;
 
+  std::string get_cluster_group_seeds_list(
+      std::string_view skip_uuid = "") const;
+
   /**
    * Get ONLINE and RECOVERING instances from the cluster.
    *
@@ -425,6 +497,10 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   std::vector<Instance_metadata> get_instances(
       const std::vector<mysqlshdk::gr::Member_state> &states = {}) const;
+
+  std::vector<Instance_metadata> get_replica_instances() const;
+
+  std::vector<Instance_metadata> get_all_instances() const;
 
   std::vector<Instance_metadata> get_instances_from_metadata() const override;
 
@@ -461,9 +537,7 @@ class Cluster_impl final : public Base_cluster_impl,
   std::shared_ptr<mysqlsh::dba::Instance> get_online_instance(
       const std::string &exclude_uuid = "") const;
 
-  void validate_server_uuid(const mysqlshdk::mysql::IInstance &instance) const;
-
-  void validate_server_id(
+  void validate_server_ids(
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
   /**
@@ -492,25 +566,13 @@ class Cluster_impl final : public Base_cluster_impl,
    * other members through a primary instance.
    *
    * @param local_gr_address string with the local GR address (XCom) to remove.
+   * @param dry_run boolean value to indicate if the command should do a dry
+   * run
    */
-  void update_group_members_for_removed_member(const std::string &server_uuid);
+  void update_group_members_for_removed_member(const std::string &server_uuid,
+                                               bool dry_run = false);
 
   void adopt_from_gr();
-
-  /**
-   * Validate the GTID consistency in regard to the cluster for an instance
-   * rejoining
-   *
-   * This function checks if the target instance has errant transactions, or if
-   * the binary logs have been purged from all cluster members to block the
-   * rejoin. It also checks if the GTID set is empty which, for an instance that
-   * is registered as a cluster member should not happen, to block its rejoin
-   * too.
-   *
-   * @param target_instance Target instance rejoining the cluster
-   */
-  void validate_rejoin_gtid_consistency(
-      const mysqlshdk::mysql::IInstance &target_instance) const;
 
   /**
    * Enables super_read_only in the whole Cluster
@@ -535,6 +597,12 @@ class Cluster_impl final : public Base_cluster_impl,
   const Cluster_set_member_metadata &get_clusterset_metadata() const;
 
   bool is_cluster_set_member(const std::string &cs_id = "") const;
+  bool is_read_replica(
+      const mysqlshdk::mysql::IInstance &target_instance) const;
+  bool is_instance_cluster_member(
+      const mysqlshdk::mysql::IInstance &target_instance) const;
+  bool is_instance_cluster_set_member(
+      const mysqlshdk::mysql::IInstance &target_instance) const;
   bool is_invalidated() const;
   bool is_primary_cluster() const;
 
@@ -600,7 +668,7 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       std::string_view auth_cert_subject,
       const Group_replication_options &gr_options,
-      bool propagate_credentials_donors);
+      bool propagate_credentials_donors, bool dry_run = false);
 
   /**
    * Create all accounts present in the current members of the cluster to the
@@ -622,6 +690,20 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       bool using_clone_recovery, checks::Check_type checks_type,
       bool already_member) const;
+
+  void wait_instance_recovery(
+      const mysqlshdk::mysql::IInstance &target_instance,
+      const std::string &join_begin_time,
+      Recovery_progress_style progress_style) const;
+
+  int64_t prepare_clone_recovery(
+      const mysqlshdk::mysql::IInstance &target_instance,
+      bool force_clone = false) const;
+
+  Member_recovery_method check_recovery_method(
+      const mysqlshdk::mysql::IInstance &target_instance,
+      Member_op_action op_action,
+      Member_recovery_method selected_recovery_method, bool interactive) const;
 
  protected:
   void _set_option(const std::string &option,

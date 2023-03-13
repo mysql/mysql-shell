@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/dba_utils.h"
+#include "adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -145,8 +146,9 @@ std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
 
   const auto &instance_uuid = instance->get_uuid();
   Cluster_type type = Cluster_type::NONE;
+  Replica_type replica_type = Replica_type::NONE;
 
-  if (!md.check_instance_type(instance_uuid, version, &type) ||
+  if (!md.check_instance_type(instance_uuid, version, &type, &replica_type) ||
       Cluster_type::NONE == type) {
     throw shcore::Exception::runtime_error(
         "Could not determine whether the instance is an InnoDB cluster or "
@@ -161,10 +163,20 @@ std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
   // instance is (MISSING) (we've already verified above if belongs to a
   // Cluster) so we must use another member from the Cluster
   if (type == Cluster_type::GROUP_REPLICATION) {
-    if (mysqlshdk::gr::get_member_state(*instance) ==
-        mysqlshdk::gr::Member_state::OFFLINE) {
+    // If the instance is a Read-Replica evaluate that first to avoid getting
+    // the GR member state and immediately get all instances from the MD which
+    // are group members to find the required role
+    if (replica_type == Replica_type::READ_REPLICA ||
+        (replica_type == Replica_type::GROUP_MEMBER &&
+         mysqlshdk::gr::get_member_state(*instance) ==
+             mysqlshdk::gr::Member_state::OFFLINE)) {
+      // Get the Cluster_id
+      Cluster_metadata cluster_md;
+      md.get_cluster_for_server_uuid(instance->get_uuid(), &cluster_md);
+
       // Get all instances of the Cluster, as registered in the Metadata
-      std::vector<Instance_metadata> cluster_members = md.get_all_instances();
+      std::vector<Instance_metadata> cluster_members =
+          md.get_all_instances(cluster_md.cluster_id);
 
       for (const auto &member : cluster_members) {
         // Same as the original instance, skip it

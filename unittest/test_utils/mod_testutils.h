@@ -79,6 +79,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined importData(String uri, String path, String defaultSchema,
                        String importCharset);
   String waitMemberState(Integer port, String[] states);
+  String waitReadReplicaState(Integer port, String[] states);
   Boolean waitMemberTransactions(Integer destPort, Integer sourcePort = 0);
   Undefined waitForDelayedGRStart(Integer port, String rootpass,
                                   Integer timeout = 60);
@@ -143,6 +144,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None dump_data(str uri, str path, list schemaList);
   None import_data(str uri, str path, str defaultSchema, str defaultCharset);
   str wait_member_state(int port, str[] states);
+  str wait_read_replica_state(int port, str[] states);
   bool wait_member_transactions(int destPort, int sourcePort = 0);
   None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
   int wait_for_repl_connection_error(
@@ -295,6 +297,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::string wait_member_state(int member_port, const std::string &states,
                                 bool direct_connection);
+
+  std::string wait_read_replica_state(int rr_port, const std::string &states);
 
   bool wait_member_transactions(int dest_port, int source_port);
 

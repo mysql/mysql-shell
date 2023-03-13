@@ -54,7 +54,10 @@ validateMembers(Cluster, [
   'createClusterSet',
   'fenceAllTraffic',
   'fenceWrites',
-  'unfenceWrites'
+  'unfenceWrites',
+  'addReplicaInstance',
+  'routingOptions',
+  'setRoutingOption'
 ])
 
 //@ Cluster: addInstance errors

@@ -337,7 +337,8 @@
 
 //@ instance has more GTIDs (should work with clone) {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-|Waiting for clone process of the new member to complete. Press ^C to abort the operation.|
+|Monitoring Clone based state recovery of the new member. Press ^C to abort the operation.|
+|Clone based state recovery is now in progress.|
 |* Waiting for clone to finish...|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
@@ -349,7 +350,8 @@
 
 //@ master has purged GTIDs (should work with clone) {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-|Waiting for clone process of the new member to complete. Press ^C to abort the operation.|
+|Monitoring Clone based state recovery of the new member. Press ^C to abort the operation.|
+|Clone based state recovery is now in progress.|
 |* Waiting for clone to finish...|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
@@ -389,11 +391,11 @@
 ||Instance <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> does not belong to the replicaset (MYSQLSH 51310)
 
 //@ cloneDonor valid {VER(>=8.0.17)}
-|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<__sandbox1>>>|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
 //@ cloneDonor valid 2 {VER(>=8.0.17)}
-|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<__sandbox2>>>|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
 //@ BUG#30628746: wait for timeout {VER(>=8.0.17)}

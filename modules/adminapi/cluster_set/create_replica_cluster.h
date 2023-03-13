@@ -65,11 +65,6 @@ class Create_replica_cluster : public Command_interface {
   shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options>
   prepare_create_cluster_options();
 
-  void ensure_compatible_clone_donor(const std::string &instance_def);
-
-  void handle_clone(const Async_replication_options &ar_options,
-                    const std::string &repl_account_host, bool dry_run);
-
   std::shared_ptr<Cluster_impl> create_cluster_object(
       const mysqlshdk::mysql::Auth_options &repl_credentials,
       const std::string &repl_account_host);

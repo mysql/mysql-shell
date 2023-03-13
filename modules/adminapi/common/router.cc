@@ -44,10 +44,14 @@ const std::map<std::string, shcore::Value> k_default_clusterset_router_options =
       shcore::Value(k_router_option_target_cluster_primary)},
      {k_router_option_stats_updates_frequency, shcore::Value(0)},
      {k_router_option_use_replica_primary_as_rw, shcore::Value::False()},
-     {k_router_option_tags, shcore::Value(shcore::make_dict())}};
+     {k_router_option_tags, shcore::Value(shcore::make_dict())},
+     {k_router_option_read_only_targets,
+      shcore::Value(k_default_router_option_read_only_targets)}};
 
 const std::map<std::string, shcore::Value> k_default_cluster_router_options = {
-    {k_router_option_tags, shcore::Value(shcore::make_dict())}};
+    {k_router_option_tags, shcore::Value(shcore::make_dict())},
+    {k_router_option_read_only_targets,
+     shcore::Value(k_default_router_option_read_only_targets)}};
 
 const std::map<std::string, shcore::Value> k_default_replicaset_router_options =
     {{k_router_option_tags, shcore::Value(shcore::make_dict())}};
@@ -270,7 +274,7 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
           (value.get_string() !=
                k_router_option_invalidated_cluster_routing_policy_accept_ro &&
            value.get_string() !=
-               k_router_option_invalidated_cluster_routing_policy_drop_all))
+               k_router_option_invalidated_cluster_routing_policy_drop_all)) {
         throw shcore::Exception::argument_error(
             std::string("Invalid value for routing option '") +
             k_router_option_invalidated_cluster_routing_policy +
@@ -278,6 +282,7 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
             k_router_option_invalidated_cluster_routing_policy_accept_ro +
             "', '" +
             k_router_option_invalidated_cluster_routing_policy_drop_all + "'");
+      }
     } else if (name == k_router_option_target_cluster) {
       bool ok = false;
       if (value.get_type() == shcore::Value_type::String) {
@@ -323,8 +328,23 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
             k_router_option_use_replica_primary_as_rw +
             "', value is expected to be a boolean.");
       }
+    } else if (name == k_router_option_read_only_targets) {
+      if (value.get_type() != shcore::Value_type::String ||
+          (value.get_string() != k_router_option_read_only_targets_all &&
+           value.get_string() !=
+               k_router_option_read_only_targets_read_replicas &&
+           value.get_string() !=
+               k_router_option_read_only_targets_secondaries)) {
+        throw shcore::Exception::argument_error(
+            std::string("Invalid value for routing option '") +
+            k_router_option_read_only_targets + "', accepted values: '" +
+            k_router_option_read_only_targets_all + "', '" +
+            k_router_option_read_only_targets_read_replicas + "', '" +
+            k_router_option_read_only_targets_secondaries + "'");
+      }
     }
   }
+
   return fixed_value;
 }
 

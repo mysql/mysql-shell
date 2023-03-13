@@ -169,7 +169,7 @@ check_open_sessions(session2, expected_pids2);
 cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
 
 //@<> setPrimaryInstance {VER(>=8.0.0)}
-CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(get_uri(__mysql_sandbox_port2))}' does not belong to the cluster: 'mycluster'.`, cluster.setPrimaryInstance, get_uri(__mysql_sandbox_port2));
+CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(get_uri(__mysql_sandbox_port2))}' does not belong to the Cluster: 'mycluster'.`, cluster.setPrimaryInstance, get_uri(__mysql_sandbox_port2));
 
 cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port2));
 

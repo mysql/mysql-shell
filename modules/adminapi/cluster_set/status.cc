@@ -34,34 +34,6 @@ namespace dba {
 namespace clusterset {
 namespace {
 
-shcore::Dictionary_t filter_cluster_status(shcore::Dictionary_t cluster) {
-  const auto topology = cluster->get_map("topology");
-  if (topology) {
-    for (const auto &m : *topology) {
-      auto member = m.second.as_map();
-
-      if (member->has_key("readReplicas")) member->erase("readReplicas");
-      if (member->has_key("role")) member->erase("role");
-    }
-  }
-
-  return cluster;
-}
-
-shcore::Dictionary_t filter_cluster_describe(shcore::Dictionary_t cluster) {
-  const auto topology = cluster->get_array("topology");
-  if (topology) {
-    for (const auto &m : *topology) {
-      auto member = m.as_map();
-
-      if (member->has_key("readReplicas")) member->erase("readReplicas");
-      if (member->has_key("role")) member->erase("role");
-    }
-  }
-
-  return cluster;
-}
-
 shcore::Array_t cluster_diagnostics(
     Cluster_impl *primary_cluster, Cluster_impl *cluster,
     const mysqlshdk::mysql::Replication_channel &channel,
@@ -132,7 +104,6 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
   shcore::Dictionary_t status =
       cluster->cluster_status((extended > 1 ? 1 : 0)).as_map();
   shcore::Dictionary_t status_map = status->get_map("defaultReplicaSet");
-  status_map = filter_cluster_status(status_map);
 
   shcore::Array_t cluster_errors = nullptr;
   if (status_map->has_key("clusterErrors")) {
@@ -496,7 +467,7 @@ shcore::Dictionary_t cluster_set_describe(Cluster_set_impl *cluster_set) {
     shcore::Dictionary_t description = cluster->cluster_describe().as_map();
 
     shcore::Dictionary_t description_map =
-        filter_cluster_describe(description->get_map("defaultReplicaSet"));
+        description->get_map("defaultReplicaSet");
 
     auto descr = shcore::make_dict(
         "clusterRole",

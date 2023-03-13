@@ -223,17 +223,10 @@ class Replica_set_impl : public Base_cluster_impl {
   void revert_topology_changes(mysqlshdk::mysql::IInstance *target_server,
                                bool remove_user, bool dry_run);
 
-  void handle_clone(const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
-                    const Clone_options &clone_options,
-                    const Async_replication_options &ar_options,
-                    const std::string &repl_account_host,
-                    const std::string &repl_account_cert_subject,
-                    const Recovery_progress_style &progress_style,
-                    int sync_timeout, bool dry_run);
-
   Member_recovery_method validate_instance_recovery(
-      Member_op_action op_action, mysqlshdk::mysql::IInstance *donor_instance,
-      mysqlshdk::mysql::IInstance *target_instance,
+      Member_op_action op_action,
+      const mysqlshdk::mysql::IInstance &donor_instance,
+      const mysqlshdk::mysql::IInstance &target_instance,
       Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
       bool interactive);
 

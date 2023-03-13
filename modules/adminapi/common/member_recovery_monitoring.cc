@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -419,14 +419,25 @@ void monitor_standalone_clone_instance(
   auto console = current_console();
 
   console->print_info(
-      "Waiting for clone process of the new member to complete. "
-      "Press ^C to abort the operation.");
+      "Monitoring Clone based state recovery of the new member. Press ^C to "
+      "abort the operation.");
 
   log_info("Waiting for clone process to start at %s...",
            instance_def.uri_endpoint().c_str());
 
   Scoped_instance instance(
       wait_clone_start(instance_def, begin_time, startup_timeout_sec));
+
+  console->print_info(mysqlshdk::textui::bold(
+      "Clone based state recovery is now in progress."));
+  console->print_info();
+  console->print_note(mysqlshdk::textui::format_markup_text(
+      {"A server restart is expected to happen as part of the clone "
+       "process. If the server does not support the RESTART command or "
+       "does not come back after a while, you may need to manually start "
+       "it back."},
+      80));
+  console->print_info();
 
   monitor_clone_recovery(instance.get(), post_clone_coptions, begin_time,
                          progress_style, restart_timeout_sec, false);
@@ -654,6 +665,12 @@ void monitor_gr_recovery_status(
   try {
     log_info("Waiting for GR recovery to start for %s...",
              instance_def.uri_endpoint().c_str());
+
+    DBUG_EXECUTE_IF(
+        "sigint_wait_recovery",
+        {  // Simulate a SIGINT (ctrl-c) to exit the recovery monitoring
+          throw stop_monitoring();
+        });
 
     for (int attempt = 0; attempt < 2; ++attempt) {
       try {

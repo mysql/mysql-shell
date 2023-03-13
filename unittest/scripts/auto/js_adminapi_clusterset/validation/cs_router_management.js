@@ -3,6 +3,7 @@
     "domainName": "clusterset",
     "global": {
         "invalidated_cluster_policy": "drop_all",
+        "read_only_targets": "secondaries",
         "stats_updates_frequency": 0,
         "tags": {},
         "target_cluster": "primary",

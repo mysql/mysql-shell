@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,14 @@ class Undo_tracker {
       const std::function<std::shared_ptr<Instance>()> &get_instance);
   Undo_entry &add(const std::string &note, const std::function<void()> &f);
 
+  Undo_entry &add_back(
+      const std::string &note, mysqlshdk::mysql::Sql_undo_list sql_undo,
+      const std::function<std::shared_ptr<Instance>()> &get_instance);
+  Undo_entry &add_back(const std::string &note, const std::function<void()> &f);
+
   void execute();
+
+  bool empty() { return m_entries.empty(); };
 
  private:
   std::list<std::pair<std::string, std::unique_ptr<Undo_entry>>> m_entries;

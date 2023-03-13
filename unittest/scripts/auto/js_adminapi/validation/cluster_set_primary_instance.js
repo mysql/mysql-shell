@@ -8,7 +8,7 @@ Cluster.setPrimaryInstance: Operation not supported on target server version: '<
 ||Argument #1: Invalid URI: empty. (ArgumentError)
 ||Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
-||The instance 'localhost:3355' does not belong to the cluster: 'cluster'. (RuntimeError)
+||The instance 'localhost:3355' does not belong to the Cluster: 'cluster'. (RuntimeError)
 
 //@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
 ||This operation requires all the cluster members to be ONLINE (RuntimeError)

@@ -21,12 +21,18 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/cluster/remove_instance.h"
+#include <algorithm>
+#include "adminapi/common/common.h"
+#include "adminapi/common/metadata_storage.h"
+#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/async_topology.h"
-#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/validations.h"
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -84,8 +90,11 @@ Instance_metadata Remove_instance::remove_instance_metadata() const {
 
   log_debug("Removing instance %s from metadata",
             m_address_in_metadata.c_str());
-  m_cluster_impl->get_metadata_storage()->remove_instance(
-      m_address_in_metadata);
+
+  if (!m_options.dry_run) {
+    m_cluster_impl->get_metadata_storage()->remove_instance(
+        m_address_in_metadata);
+  }
 
   return instance_def;
 }
@@ -93,11 +102,13 @@ Instance_metadata Remove_instance::remove_instance_metadata() const {
 void Remove_instance::undo_remove_instance_metadata(
     const Instance_metadata &instance_def) const {
   log_debug("Reverting instance removal from metadata");
-  m_cluster_impl->get_metadata_storage()->insert_instance(instance_def);
+  if (!m_options.dry_run) {
+    m_cluster_impl->get_metadata_storage()->insert_instance(instance_def);
+  }
 
   // Recreate the recovery account previously removed too
-  m_cluster_impl->recreate_replication_user(m_target_instance,
-                                            instance_def.cert_subject);
+  m_cluster_impl->recreate_replication_user(
+      m_target_instance, instance_def.cert_subject, m_options.dry_run);
 }
 
 bool Remove_instance::prompt_to_force_remove() const {
@@ -222,153 +233,248 @@ void Remove_instance::cleanup_leftover_recovery_account() const {
   }
 }
 
+void Remove_instance::update_read_replicas_source_for_removed_target(
+    const std::string &address) const {
+  // TODO(rr): add a getter for read-replicas only
+  auto all_instances =
+      m_cluster_impl->get_metadata_storage()->get_all_instances(
+          m_cluster_impl->get_id(), true);
+
+  for (const auto &instance : all_instances) {
+    if (instance.instance_type != Instance_type::READ_REPLICA) continue;
+
+    Replication_sources replication_sources =
+        m_cluster_impl->get_read_replica_replication_sources(instance.uuid);
+
+    // If the replicationSources is either "primary" or "secondary", there's
+    // nothing to update
+    if (replication_sources.source_type != Source_type::CUSTOM) {
+      continue;
+    }
+
+    Managed_async_channel_source managed_src_address(address);
+
+    if (std::find(replication_sources.replication_sources.begin(),
+                  replication_sources.replication_sources.end(),
+                  managed_src_address) ==
+        replication_sources.replication_sources.end()) {
+      continue;
+    }
+
+    // Update the replicationSources of the Cluster member
+    shcore::Array_t source_list_array = shcore::make_array();
+
+    for (const auto &source : replication_sources.replication_sources) {
+      // Skip the address
+      if (source.to_string() == address) continue;
+
+      source_list_array->push_back(shcore::Value(source.to_string()));
+    }
+
+    // split host from port
+    mysqlshdk::db::Connection_options conn_opt =
+        shcore::get_connection_options(address, false);
+
+    // Get a session to the read-replica
+    std::shared_ptr<Instance> read_replica;
+    try {
+      read_replica =
+          m_cluster_impl->get_session_to_cluster_instance(instance.address);
+
+      current_console()->print_info(
+          "* Removing source '" + conn_opt.get_host() + ":" +
+          std::to_string(conn_opt.get_port()) +
+          "' from the replicationSources of '" + instance.address + "'");
+
+      if (!m_options.dry_run) {
+        delete_source_connection_failover(
+            *read_replica, conn_opt.get_host(), conn_opt.get_port(),
+            k_read_replica_async_channel_name, "", m_options.dry_run);
+
+        m_cluster_impl->get_metadata_storage()->update_instance_attribute(
+            instance.uuid,
+            k_instance_attribute_read_replica_replication_sources,
+            shcore::Value(source_list_array));
+      }
+    } catch (const std::exception &err) {
+      log_warning("Unable to update the sources of Read Replica '%s': %s",
+                  instance.endpoint.c_str(), err.what());
+
+      current_console()->print_warning(
+          "Unable to update the sources of Read Replica '" + instance.endpoint +
+          "': instance is unreachable. Use Cluster.setInstanceOption() "
+          "with the option 'replicationSources' to update the instance's "
+          "sources.");
+    }
+
+    // If the new replicas_source list is empty, the replication channel must
+    // be stopped and the user warned that the instance's sources must be
+    // updated and then the instance rejoined back
+    if (source_list_array->empty()) {
+      remove_channel(*read_replica, k_read_replica_async_channel_name,
+                     m_options.dry_run);
+
+      current_console()->print_warning(
+          "The Read Replica '" + instance.endpoint +
+          "' doesn't have any available replication sources. Use "
+          "Cluster.<<<setInstanceOption>>>() "
+          "with the option 'replicationSources' to update the instance's "
+          "sources and rejoin it back to the Cluster using "
+          "Cluster.<<<rejoinInstance>>>()");
+    }
+  }
+}
+
 void Remove_instance::prepare() {
   auto console = mysqlsh::current_console();
 
   const auto force = m_options.get_force();
 
-  // Use default port if not provided in the connection options.
-  if (!m_target_cnx_opts.has_port()) {
-    m_target_cnx_opts.set_port(mysqlshdk::db::k_default_mysql_port);
-    m_target_address =
-        m_target_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
-  }
+  if (!m_target_instance) {
+    // Use default port if not provided in the connection options.
+    if (!m_target_cnx_opts.has_port()) {
+      m_target_cnx_opts.set_port(mysqlshdk::db::k_default_mysql_port);
+      m_target_address = m_target_cnx_opts.as_uri(
+          mysqlshdk::db::uri::formats::only_transport());
+    }
 
-  // Get instance login information from the cluster session if missing.
-  if (!m_target_cnx_opts.has_user() || !m_target_cnx_opts.has_password()) {
-    std::shared_ptr<Instance> cluster_instance =
-        m_cluster_impl->get_cluster_server();
-    Connection_options cluster_cnx_opt =
-        cluster_instance->get_connection_options();
+    // Get instance login information from the cluster session if missing.
+    if (!m_target_cnx_opts.has_user() || !m_target_cnx_opts.has_password()) {
+      std::shared_ptr<Instance> cluster_instance =
+          m_cluster_impl->get_cluster_server();
+      Connection_options cluster_cnx_opt =
+          cluster_instance->get_connection_options();
 
-    if (!m_target_cnx_opts.has_user() && cluster_cnx_opt.has_user())
-      m_target_cnx_opts.set_user(cluster_cnx_opt.get_user());
+      if (!m_target_cnx_opts.has_user() && cluster_cnx_opt.has_user())
+        m_target_cnx_opts.set_user(cluster_cnx_opt.get_user());
 
-    if (!m_target_cnx_opts.has_password() && cluster_cnx_opt.has_password())
-      m_target_cnx_opts.set_password(cluster_cnx_opt.get_password());
-  }
+      if (!m_target_cnx_opts.has_password() && cluster_cnx_opt.has_password())
+        m_target_cnx_opts.set_password(cluster_cnx_opt.get_password());
+    }
 
-  // Make sure the target instance is not set if an connection error occurs.
-  m_target_instance.reset();
+    // Make sure the target instance is not set if an connection error occurs.
+    m_target_instance.reset();
 
-  // Try to establish a connection to the target instance, although it might
-  // fail if the instance is down.
-  // NOTE: Connection required to perform some last validations if the target
-  //       instance is available.
-  log_debug("Connecting to instance '%s'", m_target_address.c_str());
-  try {
-    m_target_instance = Instance::connect(m_target_cnx_opts);
-    log_debug("Successfully connected to instance");
+    // Try to establish a connection to the target instance, although it might
+    // fail if the instance is down.
+    // NOTE: Connection required to perform some last validations if the target
+    //       instance is available.
+    log_debug("Connecting to instance '%s'", m_target_address.c_str());
+    try {
+      m_target_instance = Instance::connect(m_target_cnx_opts);
+      log_debug("Successfully connected to instance");
 
-    // If we can connect directly to the instance, the following cases are
-    // possible:
-    // a - the instance does not belong to the cluster
-    // b - the instance belongs to the cluster and the given address matches
-    // what's in the MD
-    // c - the instance belongs to the cluster, the given address does NOT
-    // match what's in the MD, but report_host does d - the instance belongs
-    // to the cluster, the given address does NOT match what's in the MD and
-    // neither does report_host
+      // If we can connect directly to the instance, the following cases are
+      // possible:
+      // a - the instance does not belong to the cluster
+      // b - the instance belongs to the cluster and the given address matches
+      // what's in the MD
+      // c - the instance belongs to the cluster, the given address does NOT
+      // match what's in the MD, but report_host does d - the instance belongs
+      // to the cluster, the given address does NOT match what's in the MD and
+      // neither does report_host
 
-    // - a should report the error about it not belonging to the cluster
-    // - b should succeed
-    // - c should succeed
-    // - d shouldn't happen, but is possible. we error out and require the
-    // user to pass exactly what's in the MD as the target address, so that it
-    // can be removed
-  } catch (const shcore::Exception &err) {
-    log_warning("Failed to connect to %s: %s",
-                m_target_cnx_opts.uri_endpoint().c_str(), err.what());
+      // - a should report the error about it not belonging to the cluster
+      // - b should succeed
+      // - c should succeed
+      // - d shouldn't happen, but is possible. we error out and require the
+      // user to pass exactly what's in the MD as the target address, so that it
+      // can be removed
+    } catch (const shcore::Exception &err) {
+      log_warning("Failed to connect to %s: %s",
+                  m_target_cnx_opts.uri_endpoint().c_str(), err.what());
 
-    // if the error is a server side error, then it means are able to connect
-    // to it, so we just bubble it up to the user (unless force:1)
-    if (!mysqlshdk::db::is_mysql_client_error(err.code()) && !force) {
+      // if the error is a server side error, then it means are able to connect
+      // to it, so we just bubble it up to the user (unless force:1)
+      if (!mysqlshdk::db::is_mysql_client_error(err.code()) && !force) {
+        try {
+          throw;
+        }
+        CATCH_REPORT_AND_THROW_CONNECTION_ERROR(
+            m_target_cnx_opts.uri_endpoint())
+      }
+
+      // We can't connect directly to the instance. At this point, the
+      // following cases are possible:
+      // a - the instance is bogus and doesn't belong to the cluster
+      // b - the instance is part of the cluster, but the given address is not
+      // what's in the MD
+      // c - the instance is part of the cluster and the given address matches
+      // what's in the MD
+      //
+      // interactive:false, force:false:
+      // - a should fail with a connection error; because we can't assume
+      // report_host isn't in the MD either
+      // - b should fail with a connection error; same as above
+      // - c should fail with a connection error and suggest using force; we
+      // know the instance is valid, but we can't do a safe cleanup, so we need
+      // force
+      //
+      // interactive:true, force:false:
+      // - a should fail with a connection error; because we can't assume
+      // report_host isn't in the MD and we don't know what to do on force
+      // - b should fail with a connection error; same as above
+      // - c should fail if force is not given, otherwise prompt whether to
+      // force removing the instance although it's not safe
+      //
+      // interactive:any, force:true:
+      // - a should fail with instance doesn't belong to cluster; if forced,
+      // then the given address MUST match what's in the MD
+      // - b should fail with instance doesn't belong to cluster; same as above
+      // - c should succeed
+
+      if (force) {
+        console->print_note(err.format());
+      } else {
+        console->print_warning(err.format());
+      }
+
       try {
+        Instance_metadata md;
+        validate_metadata_for_address(&md);
+        m_instance_uuid = md.uuid;
+        m_instance_id = md.server_id;
+        m_address_in_metadata = m_target_address;
+      } catch (const std::exception &e) {
+        log_warning("Couldn't get metadata for %s: %s",
+                    m_target_address.c_str(), e.what());
+
+        // If the instance is not in the MD and we can't connect to it either,
+        // then there's nothing wen can do with it, force or no force.
+        console->print_error(
+            "The instance " + m_target_address +
+            " is not reachable and does not belong to the "
+            "cluster either. Please ensure the member is "
+            "either connectable or remove it through the exact "
+            "address as shown in the cluster status output.");
         throw;
       }
-      CATCH_REPORT_AND_THROW_CONNECTION_ERROR(m_target_cnx_opts.uri_endpoint())
-    }
 
-    // We can't connect directly to the instance. At this point, the
-    // following cases are possible:
-    // a - the instance is bogus and doesn't belong to the cluster
-    // b - the instance is part of the cluster, but the given address is not
-    // what's in the MD
-    // c - the instance is part of the cluster and the given address matches
-    // what's in the MD
-    //
-    // interactive:false, force:false:
-    // - a should fail with a connection error; because we can't assume
-    // report_host isn't in the MD either
-    // - b should fail with a connection error; same as above
-    // - c should fail with a connection error and suggest using force; we
-    // know the instance is valid, but we can't do a safe cleanup, so we need
-    // force
-    //
-    // interactive:true, force:false:
-    // - a should fail with a connection error; because we can't assume
-    // report_host isn't in the MD and we don't know what to do on force
-    // - b should fail with a connection error; same as above
-    // - c should fail if force is not given, otherwise prompt whether to
-    // force removing the instance although it's not safe
-    //
-    // interactive:any, force:true:
-    // - a should fail with instance doesn't belong to cluster; if forced,
-    // then the given address MUST match what's in the MD
-    // - b should fail with instance doesn't belong to cluster; same as above
-    // - c should succeed
+      if (!force) {
+        // the address is valid, but we can only remove if force:true
+        console->print_error("The instance '" + m_target_address +
+                             "' is not reachable and cannot be safely removed "
+                             "from the cluster.");
+        console->print_info(
+            "To safely remove the instance from the Cluster, make sure the "
+            "instance is back ONLINE and try again. If you are sure the "
+            "instance is permanently unable to rejoin the Cluster and no "
+            "longer connectable, use the 'force' option to remove it from the "
+            "metadata.");
 
-    if (force) {
-      console->print_note(err.format());
-    } else {
-      console->print_warning(err.format());
-    }
-
-    try {
-      Instance_metadata md;
-      validate_metadata_for_address(&md);
-      m_instance_uuid = md.uuid;
-      m_instance_id = md.server_id;
-      m_address_in_metadata = m_target_address;
-    } catch (const std::exception &e) {
-      log_warning("Couldn't get metadata for %s: %s", m_target_address.c_str(),
-                  e.what());
-
-      // If the instance is not in the MD and we can't connect to it either,
-      // then there's nothing wen can do with it, force or no force.
-      console->print_error("The instance " + m_target_address +
-                           " is not reachable and does not belong to the "
-                           "cluster either. Please ensure the member is "
-                           "either connectable or remove it through the exact "
-                           "address as shown in the cluster status output.");
-      throw;
-    }
-
-    if (!force) {
-      // the address is valid, but we can only remove if force:true
-      console->print_error("The instance '" + m_target_address +
-                           "' is not reachable and cannot be safely removed "
-                           "from the cluster.");
-      console->print_info(
-          "To safely remove the instance from the cluster, make sure the "
-          "instance is back ONLINE and try again. If you are sure the "
-          "instance "
-          "is permanently unable to rejoin the group and no longer "
-          "connectable, use the 'force' option to remove it from the "
-          "metadata.");
-
-      if (!m_options.interactive() || m_options.force ||
-          !prompt_to_force_remove())
-        throw;
-    } else {
-      // if we're here, we can't connect to the instance but we'll force
-      // remove it
-      console->print_note(
-          "The instance '" + m_target_address +
-          "' is not reachable and it will only be removed from the metadata. "
-          "Please take any necessary actions to ensure the instance "
-          "will not rejoin the cluster if brought back online.");
-      console->print_info();
+        if (!m_options.interactive() || m_options.force ||
+            !prompt_to_force_remove())
+          throw;
+      } else {
+        // if we're here, we can't connect to the instance but we'll force
+        // remove it
+        console->print_note(
+            "The instance '" + m_target_address +
+            "' is not reachable and it will only be removed from the metadata. "
+            "Please take any necessary actions to ensure the instance "
+            "will not rejoin the cluster if brought back online.");
+        console->print_info();
+      }
     }
   }
 
@@ -382,6 +488,12 @@ void Remove_instance::prepare() {
       m_instance_uuid = md.uuid;
       m_instance_id = md.server_id;
       m_address_in_metadata = m_target_address;
+
+      // It shouldn't be a Read-Replica
+      if (md.instance_type == Instance_type::READ_REPLICA) {
+        throw std::logic_error("Unexpected instance_type: READ_REPLICA");
+      }
+
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
@@ -400,6 +512,11 @@ void Remove_instance::prepare() {
         m_instance_uuid = md.uuid;
         m_instance_id = md.server_id;
         m_address_in_metadata = md.address;
+
+        // It shouldn't be a Read-Replica
+        if (md.instance_type == Instance_type::READ_REPLICA) {
+          throw std::logic_error("Unexpected instance_type: READ_REPLICA");
+        }
 
         log_debug(
             "Given instance address '%s' was not in metadata, but found a "
@@ -474,12 +591,12 @@ void Remove_instance::prepare() {
 }
 
 void Remove_instance::do_run() {
-  // Validations and variables initialization
-  prepare();
-
   // Execute the remove_instance command
   mysqlshdk::mysql::Lock_scoped i_lock;
   auto console = mysqlsh::current_console();
+
+  // Validations and variables initialization
+  prepare();
 
   // put an exclusive lock on the target instance
   if (m_target_instance) {
@@ -496,7 +613,11 @@ void Remove_instance::do_run() {
       !m_cluster_impl->is_primary_cluster()) {
     auto cs = m_cluster_impl->get_cluster_set_object();
 
-    cs->reconcile_view_change_gtids(m_cluster_impl->get_cluster_server().get());
+    console->print_info("* Reconciling internally generated GTIDs...");
+    if (!m_options.dry_run) {
+      cs->reconcile_view_change_gtids(
+          m_cluster_impl->get_cluster_server().get());
+    }
   }
 
   // Remove recovery user being used by the target instance from the
@@ -506,7 +627,7 @@ void Remove_instance::do_run() {
   // we need account info stored there.
   m_cluster_impl->drop_replication_user(m_target_instance.get(),
                                         m_target_address, m_instance_uuid,
-                                        m_instance_id);
+                                        m_instance_id, m_options.dry_run);
 
   // JOB: Remove instance from the MD (metadata).
   // NOTE: This operation MUST be performed before leave-cluster to ensure
@@ -526,9 +647,9 @@ void Remove_instance::do_run() {
         console->print_info("* Waiting for instance '" +
                             m_target_instance->descr() +
                             "' to synchronize with the primary...");
-        m_cluster_impl->sync_transactions(
-            *m_target_instance, mysqlshdk::gr::k_gr_applier_channel,
-            current_shell_options()->get().dba_gtid_wait_timeout);
+        m_cluster_impl->sync_transactions(*m_target_instance,
+                                          mysqlshdk::gr::k_gr_applier_channel,
+                                          m_options.timeout);
       } catch (const std::exception &err) {
         // Skip error if force=true, otherwise revert instance remove from MD
         // and issue error.
@@ -547,23 +668,19 @@ void Remove_instance::do_run() {
                 "transactions because auto-rejoin is in progress. It's "
                 "possible to use 'force' option to force the removal of it, "
                 "but that can leave the instance in an inconsistent state "
-                "and "
-                "lead to errors if you want to reuse it later. It's "
+                "and lead to errors if you want to reuse it later. It's "
                 "recommended to wait for the auto-rejoin process to "
-                "terminate "
-                "and retry the remove operation.");
+                "terminate and retry the remove operation.");
           else
             console->print_error(
                 "The instance '" + m_target_address +
                 "' was unable to catch up with cluster transactions. There "
                 "might be too many transactions to apply or some replication "
                 "error. In the former case, you can retry the operation "
-                "(using "
-                "a higher timeout value by setting the global shell option "
-                "'dba.gtidWaitTimeout'). In the later case, analyze and fix "
-                "any replication error. You can also choose to skip this "
-                "error "
-                "using the 'force: true' option, but it might leave the "
+                "(using a higher timeout value by setting the option "
+                "'timeout'). In the later case, analyze and fix any "
+                "replication error. You can also choose to skip this "
+                "error using the 'force: true' option, but it might leave the "
                 "instance in an inconsistent state and lead to errors if you "
                 "want to reuse it.");
           throw;
@@ -599,10 +716,15 @@ void Remove_instance::do_run() {
 
       if (!m_cluster_impl->is_primary_cluster()) {
         // Reset the clusterset replication channel
-        remove_channel(m_target_instance.get(), k_clusterset_async_channel_name,
-                       false);
+        remove_channel(*m_target_instance, k_clusterset_async_channel_name,
+                       m_options.dry_run);
       }
     }
+
+    // Check if there are read replicas using the target instance as source to
+    // remove it from the replicationSources
+    update_read_replicas_source_for_removed_target(
+        m_target_instance->get_canonical_address());
 
     // JOB: Remove the instance from the cluster (Stop GR)
     // NOTE: We always try (best effort) to execute leave_cluster(), but
@@ -611,8 +733,10 @@ void Remove_instance::do_run() {
     try {
       // Stop Group Replication and reset (persist) GR variables.
       // Also, reset ClusterSet member actions
-      mysqlsh::dba::leave_cluster(*m_target_instance,
-                                  m_cluster_impl->is_cluster_set_member());
+      if (!m_options.dry_run) {
+        mysqlsh::dba::leave_cluster(*m_target_instance,
+                                    m_cluster_impl->is_cluster_set_member());
+      }
 
       log_info("Instance '%s' has left the group.", m_target_address.c_str());
     } catch (const std::exception &err) {
@@ -620,7 +744,7 @@ void Remove_instance::do_run() {
           shcore::str_format("Instance '%s' failed to leave the cluster: %s",
                              m_target_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
-      if (!m_options.force.value_or(false)) {
+      if (!m_options.force.value_or(false) && !m_options.dry_run) {
         // REVERT JOB: Remove instance from the MD (metadata).
         // If the removal of the instance from the cluster failed
         // We must add it back to the MD if force is not used
@@ -648,14 +772,15 @@ void Remove_instance::do_run() {
       // Update the cluster members (group_seed variable) and remove the
       // replication user from the instance being removed from the primary
       // instance.
-      m_cluster_impl->update_group_members_for_removed_member(m_instance_uuid);
+      m_cluster_impl->update_group_members_for_removed_member(
+          m_instance_uuid, m_options.dry_run);
     } catch (const std::exception &err) {
       console->print_error(
           shcore::str_format("Could not update remaining cluster members "
                              "after removing '%s': %s",
                              m_target_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
-      if (!m_options.force.value_or(false)) {
+      if (!m_options.force.value_or(false) && !m_options.dry_run) {
         // REVERT JOB: Remove instance from the MD (metadata).
         // If the removal of the instance from the cluster failed
         // We must add it back to the MD if force is not used
@@ -694,15 +819,15 @@ void Remove_instance::do_run() {
   // Release the lock
   i_lock.invoke();
 
-  // Close the instance session at the end if available.
-  if (m_target_instance) {
-    m_target_instance->close_session();
-  }
-
   console->print_info();
   console->print_info("The instance '" + m_target_address +
                       "' was successfully removed from the cluster.");
   console->print_info();
+
+  if (m_options.dry_run) {
+    console->print_info("dryRun finished.");
+    console->print_info();
+  }
 }
 
 }  // namespace mysqlsh::dba::cluster

@@ -151,7 +151,7 @@ EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata
 //@<> removeInstance() while the instance is down - no force and correct address (should fail)
 EXPECT_THROWS(function(){ c.removeInstance(hostname+":"+__mysql_sandbox_port2); }, `Can't connect to MySQL server on '${libmysql_host_description(hostname, __mysql_sandbox_port2)}'`);
 EXPECT_OUTPUT_CONTAINS("ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.");
-EXPECT_OUTPUT_CONTAINS("To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.");
+EXPECT_OUTPUT_CONTAINS("To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.");
 
 EXPECT_EQ(2, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances").fetchOne()[0]);
 

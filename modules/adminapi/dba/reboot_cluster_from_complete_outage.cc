@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <string_view>
 
+#include "modules/adminapi/cluster/rejoin_instance.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -32,6 +33,7 @@
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
+#include "modules/adminapi/dba/reboot_cluster_from_complete_outage.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -43,60 +45,6 @@ namespace mysqlsh {
 namespace dba {
 
 namespace {
-
-/*
- * Retrieves info regarding the clusters ClusterSet (if any)
- */
-Cluster_set_info retrieve_cs_info(Cluster_impl *cluster) {
-  Cluster_set_info cs_info;
-  cs_info.is_member = cluster->is_cluster_set_member();
-  cs_info.is_primary = cs_info.is_member && cluster->is_primary_cluster();
-  cs_info.is_primary_invalidated = false;
-  cs_info.removed_from_set = false;
-  cs_info.primary_status = Cluster_global_status::UNKNOWN;
-
-  if (!cs_info.is_member) return cs_info;
-
-  auto cs = cluster->get_cluster_set_object();
-
-  {
-    if (!cs_info.is_primary) cs->connect_primary();
-    auto pc = cs->get_primary_cluster();
-
-    if (cs_info.is_primary)
-      cs_info.is_primary_invalidated = pc->get_id() != cluster->get_id();
-    else {
-      cs_info.primary_status = cs->get_cluster_global_status(pc.get());
-    }
-  }
-
-  try {
-    auto target_cluster = cs->get_cluster(cluster->get_name(), true, true);
-
-    cs_info.removed_from_set = target_cluster->is_invalidated();
-    if (!cs_info.removed_from_set) {
-      target_cluster->check_and_get_cluster_set_for_cluster();
-
-      cs_info.removed_from_set =
-          target_cluster->is_cluster_set_remove_pending();
-    }
-  } catch (const shcore::Exception &e) {
-    if ((e.code() != SHERR_DBA_METADATA_MISSING) &&
-        (e.code() != SHERR_DBA_ASYNC_MEMBER_INVALIDATED))
-      throw;
-    cs_info.removed_from_set = true;
-  }
-
-  log_info(
-      "ClusterSet info: %smember, %sprimary, %sprimary_invalidated, %sremoved "
-      "from set, primary status: %s",
-      cs_info.is_member ? "" : "not ", cs_info.is_primary ? "" : "not ",
-      cs_info.is_primary_invalidated ? "" : "not ",
-      cs_info.removed_from_set ? "" : "not ",
-      to_string(cs_info.primary_status).c_str());
-
-  return cs_info;
-}
 
 /*
  * Make sure that all instances are offline (trying to disable GR in those that
@@ -254,7 +202,7 @@ void rejoin_instances(Cluster_impl *cluster_impl,
         log_info("State of clusterset replication channel: %d", status);
 
         if (status == mysqlshdk::mysql::Replication_channel::OFF)
-          mysqlsh::dba::remove_channel(instance.get(),
+          mysqlsh::dba::remove_channel(*instance,
                                        k_clusterset_async_channel_name, false);
       }
     }
@@ -309,6 +257,59 @@ void rejoin_instances(Cluster_impl *cluster_impl,
 }
 
 }  // namespace
+
+/*
+ * Retrieves info regarding the clusters ClusterSet (if any)
+ */
+void Reboot_cluster_from_complete_outage::retrieve_cs_info(
+    Cluster_impl *cluster) {
+  m_cs_info.is_member = cluster->is_cluster_set_member();
+  m_cs_info.is_primary = m_cs_info.is_member && cluster->is_primary_cluster();
+  m_cs_info.is_primary_invalidated = false;
+  m_cs_info.removed_from_set = false;
+  m_cs_info.primary_status = Cluster_global_status::UNKNOWN;
+  m_cs_info.is_init = true;
+
+  if (!m_cs_info.is_member) return;
+
+  auto cs = cluster->get_cluster_set_object();
+
+  {
+    if (!m_cs_info.is_primary) cs->connect_primary();
+    auto pc = cs->get_primary_cluster();
+
+    if (m_cs_info.is_primary)
+      m_cs_info.is_primary_invalidated = pc->get_id() != cluster->get_id();
+    else {
+      m_cs_info.primary_status = cs->get_cluster_global_status(pc.get());
+    }
+  }
+
+  try {
+    auto target_cluster = cs->get_cluster(cluster->get_name(), true, true);
+
+    m_cs_info.removed_from_set = target_cluster->is_invalidated();
+    if (!m_cs_info.removed_from_set) {
+      target_cluster->check_and_get_cluster_set_for_cluster();
+
+      m_cs_info.removed_from_set =
+          target_cluster->is_cluster_set_remove_pending();
+    }
+  } catch (const shcore::Exception &e) {
+    if ((e.code() != SHERR_DBA_METADATA_MISSING) &&
+        (e.code() != SHERR_DBA_ASYNC_MEMBER_INVALIDATED))
+      throw;
+    m_cs_info.removed_from_set = true;
+  }
+
+  log_info(
+      "ClusterSet info: %smember, %sprimary, %sprimary_invalidated, %sremoved "
+      "from set, primary status: %s",
+      m_cs_info.is_member ? "" : "not ", m_cs_info.is_primary ? "" : "not ",
+      m_cs_info.is_primary_invalidated ? "" : "not ",
+      m_cs_info.removed_from_set ? "" : "not ",
+      to_string(m_cs_info.primary_status).c_str());
+}
 
 std::vector<std::shared_ptr<Instance>>
 Reboot_cluster_from_complete_outage::retrieve_instances(
@@ -649,10 +650,9 @@ void Reboot_cluster_from_complete_outage::check_instance_configuration() {
 /*
  * Reboots the seed instance
  */
-void Reboot_cluster_from_complete_outage::reboot_seed(
-    const Cluster_set_info &cs_info) {
+void Reboot_cluster_from_complete_outage::reboot_seed() {
   // if the cluster isn't part of a set anymore
-  if (cs_info.removed_from_set) {
+  if (m_cs_info.removed_from_set) {
     // enable mysql_disable_super_read_only_if_primary if needed
     if (bool enabled;
         !mysqlshdk::gr::get_member_action_status(
@@ -669,7 +669,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
     }
 
     // remove replication channel
-    if (!cs_info.is_primary) {
+    if (!m_cs_info.is_primary) {
       if (mysqlshdk::mysql::Replication_channel channel;
           mysqlshdk::mysql::get_channel_status(
               *m_target_instance, k_clusterset_async_channel_name, &channel)) {
@@ -863,7 +863,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
       // Insert the recovery account on the Metadata Schema.
       m_cluster->impl()->get_metadata_storage()->update_instance_repl_account(
           m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-          repl_account.user, repl_account_host);
+          Replica_type::GROUP_MEMBER, repl_account.user, repl_account_host);
 
       // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
       // since reboot will re-use the values persisted in the instance.
@@ -983,7 +983,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   auto cluster_impl = m_cluster->impl();
   auto cluster_ret = m_cluster;
 
-  auto cs_info = retrieve_cs_info(cluster_impl.get());
+  retrieve_cs_info(cluster_impl.get());
   bool cluster_is_multi_primary = (cluster_impl->get_cluster_topology_type() ==
                                    mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
 
@@ -1063,7 +1063,9 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     if (!instances_online.empty())
       throw std::runtime_error("The Cluster is ONLINE");
 
-    if (!cs_info.is_primary_invalidated &&
+    assert(m_cs_info.is_init == true);
+
+    if (!m_cs_info.is_primary_invalidated &&
         (!instances_unreachable.empty() || !members_all_offline)) {
       std::vector<std::string> addresses;
       addresses.reserve(instances_online.size() + instances_unreachable.size());
@@ -1096,7 +1098,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     }
   }
 
-  if (m_options.switch_communication_stack && cs_info.is_primary_invalidated)
+  if (m_options.switch_communication_stack && m_cs_info.is_primary_invalidated)
     throw shcore::Exception::runtime_error(
         "Cannot switch the communication stack in an invalidated Cluster "
         "because its instances won't be removed or rejoined.");
@@ -1189,7 +1191,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   // The 'force' option is a no-op in this scenario (instances aren't rejoined
   // if the Cluster belongs to a ClusterSet and is INVALIDATED), however, it's
   // more correct to forbid it instead of ignoring it.
-  if (cs_info.is_primary_invalidated && m_options.get_force())
+  if (m_cs_info.is_primary_invalidated && m_options.get_force())
     throw std::runtime_error(shcore::str_format(
         "The 'force' option cannot be used in a Cluster that belongs to a "
         "ClusterSet and is PRIMARY INVALIDATED."));
@@ -1234,7 +1236,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
       instances.push_back(std::exchange(m_target_instance, best_instance_gtid));
       best_instance_gtid = nullptr;
 
-      reboot_seed(cs_info);
+      reboot_seed();
 
       // refresh metadata and cluster info
       std::shared_ptr<MetadataStorage> metadata;
@@ -1253,17 +1255,17 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
   } else if (!m_options.get_dry_run()) {
     // use the target instance as seed
-    reboot_seed(cs_info);
+    reboot_seed();
   }
 
   // don't rejoin the instances *if* cluster is in a cluster set and is
   // invalidated (former primary) or is a replica and the primary doesn't have
   // global status OK
-  if (cs_info.is_member &&
-      (cs_info.is_primary_invalidated ||
-       (!cs_info.is_primary &&
-        cs_info.primary_status != Cluster_global_status::OK))) {
-    auto msg = cs_info.is_primary_invalidated
+  if (m_cs_info.is_member &&
+      (m_cs_info.is_primary_invalidated ||
+       (!m_cs_info.is_primary &&
+        m_cs_info.primary_status != Cluster_global_status::OK))) {
+    auto msg = m_cs_info.is_primary_invalidated
                    ? "Skipping rejoining remaining instances because the "
                      "Cluster belongs to a ClusterSet and is INVALIDATED. "
                      "Please add or remove the instances after the Cluster is "
@@ -1278,7 +1280,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     // it's either a non ClusterSet instance or it is but it's not the
     // primary, so we just need to acquire the primary before rejoining the
     // instances
-    if (cs_info.is_member && !cluster_impl->is_cluster_set_remove_pending()) {
+    if (m_cs_info.is_member && !cluster_impl->is_cluster_set_remove_pending()) {
       std::shared_ptr<Cluster_set_impl> cs;
       try {
         cs = cluster_impl->check_and_get_cluster_set_for_cluster();
@@ -1296,7 +1298,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         // If the communication stack was changed and this is a replica
         // cluster, we must ensure here that 'grLocal' reflects the new value
         // for local address
-        if (!cs_info.is_primary &&
+        if (!m_cs_info.is_primary &&
             m_options.switch_communication_stack.has_value()) {
           cluster_impl->update_metadata_for_instance(*m_target_instance);
         }
@@ -1308,11 +1310,11 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   }
 
   // if the cluster is part of a set
-  if (cs_info.is_member) {
+  if (m_cs_info.is_member) {
     // if this is a primary, we don't want to rejoin, but we need to check if
     // the cluster was removed from the set, to mark it as pending removed,
     // otherwise, calling dissolve on the cluster object returned will fail
-    if (cs_info.is_primary) {
+    if (m_cs_info.is_primary) {
       try {
         // Get the clusterset object (which also checks for various clusterset
         // MD consistency scenarios)
@@ -1322,7 +1324,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         if (e.code() == SHERR_DBA_METADATA_MISSING)
           cluster_impl->set_cluster_set_remove_pending(true);
       }
-    } else if (!cs_info.removed_from_set) {
+    } else if (!m_cs_info.removed_from_set) {
       // this is a replica cluster, so try and rejoin the cluster set
       console->print_info("Rejoining Cluster into its original ClusterSet...");
       console->print_info();

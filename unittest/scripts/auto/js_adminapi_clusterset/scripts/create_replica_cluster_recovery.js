@@ -136,7 +136,7 @@ EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "
 
 EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluster' at instance '${__endpoint4}'.`);
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
-EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.`);
+EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty).`);
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
 
 //@<> createReplicaCluster: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
@@ -145,7 +145,6 @@ EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "
 
 EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluster' at instance '${__endpoint4}'.`);
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
-EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been pre-provisioned (GTID set is empty), but the clusterset was configured to assume that replication can completely recover the state of new instances.`);
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
 
 //@<> createReplicaCluster: recoveryMethod:incremental, subset GTIDs -> incr

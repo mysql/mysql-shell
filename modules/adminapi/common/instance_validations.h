@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,7 +72,7 @@ void ensure_instance_not_belong_to_metadata(
     const std::string &address_in_metadata,
     const mysqlsh::dba::Cluster_impl &cluster);
 
-enum class Check_type { CHECK, CREATE, BOOTSTRAP, JOIN, REJOIN };
+enum class Check_type { CHECK, CREATE, BOOTSTRAP, JOIN, REJOIN, READ_REPLICA };
 
 size_t check_illegal_async_channels(
     const mysqlshdk::mysql::IInstance &instance,

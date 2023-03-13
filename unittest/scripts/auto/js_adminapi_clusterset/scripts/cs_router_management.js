@@ -76,6 +76,10 @@ CHECK_SET_ROUTING_OPTION('use_replica_primary_as_rw', true, true);
 CHECK_SET_ROUTING_OPTION('tags', {}, {});
 CHECK_SET_ROUTING_OPTION('tags', { "a": 123 }, { "a": 123 });
 
+CHECK_SET_ROUTING_OPTION('read_only_targets', 'all', 'all');
+CHECK_SET_ROUTING_OPTION('read_only_targets', 'read_replicas', 'read_replicas');
+CHECK_SET_ROUTING_OPTION('read_only_targets', 'secondaries', 'secondaries');
+
 //@<> default values filled in when metadata is missing some option (e.g. upgrade)
 var full_options = clusterset.routingOptions();
 
@@ -108,9 +112,8 @@ clusterset.setRoutingOption("tags", {});
 EXPECT_JSON_EQ({}, clusterset.routingOptions()["global"]["tags"]);
 
 clusterset.setRoutingOption(cm_router, "tags", {"old":"oldvalue"});
-clusterset.setRoutingOption(cm_router, "tag:test_tag", 1234);
-clusterset.setRoutingOption(cm_router, "tag:bla", "test");
-EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
+clusterset.setRoutingOption(cm_router, "tags", {"test_tag":1234});
+EXPECT_JSON_EQ({"test_tag":1234}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
 clusterset.setRoutingOption(cm_router, "tags", {});
 EXPECT_JSON_EQ({}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
 
@@ -135,6 +138,10 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'invalidated_cl
   "Invalid value for routing option 'invalidated_cluster_policy', accepted values: 'accept_ro', 'drop_all'");
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', 1); },
   "Invalid value for routing option 'invalidated_cluster_policy', accepted values: 'accept_ro', 'drop_all'");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'read_only_targets', 1); },
+  "Invalid value for routing option 'read_only_targets', accepted values: 'all', 'read_replicas', 'secondaries'");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'read_only_targets', "slow_replicas"); },
+  "Invalid value for routing option 'read_only_targets', accepted values: 'all', 'read_replicas', 'secondaries'");
 
 // stats_updates_frequency
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'stats_updates_frequency', ''); },
@@ -173,11 +180,15 @@ options = clusterset.routingOptions();
 EXPECT_EQ("string", typeof options["global"]["target_cluster"]);
 EXPECT_EQ("string", typeof options["global"]["invalidated_cluster_policy"]);
 EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ("boolean", typeof options["global"]["use_replica_primary_as_rw"]);
+EXPECT_EQ("string", typeof options["global"]["read_only_targets"]);
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
 EXPECT_EQ("string", typeof options["target_cluster"]);
 EXPECT_EQ("string", typeof options["invalidated_cluster_policy"]);
 EXPECT_EQ("number", typeof options["stats_updates_frequency"]);
+EXPECT_EQ("boolean", typeof options["use_replica_primary_as_rw"]);
+EXPECT_EQ("string", typeof options["read_only_targets"]);
 
 
 //@<> clusterset.setRoutingOption invalid values

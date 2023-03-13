@@ -24,10 +24,13 @@
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 
 #include <algorithm>
+#include <exception>
 #include <list>
+#include <memory>
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/metadata_storage.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster/create_cluster_set.h"
 #include "modules/adminapi/cluster_set/create_replica_cluster.h"
@@ -851,26 +854,24 @@ std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
 }
 
 Member_recovery_method Cluster_set_impl::validate_instance_recovery(
-    Member_op_action op_action, mysqlshdk::mysql::IInstance *target_instance,
+    Member_op_action op_action,
+    const mysqlshdk::mysql::IInstance &target_instance,
     Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
     bool interactive) {
   auto donor_instance = get_primary_master();
-  auto check_recoverable = [donor_instance](
-                               mysqlshdk::mysql::IInstance *tgt_instance) {
-    // Get the gtid state in regards to the donor
-    mysqlshdk::mysql::Replica_gtid_state state = check_replica_group_gtid_state(
-        *donor_instance, *tgt_instance, nullptr, nullptr);
+  auto check_recoverable =
+      [donor_instance](const mysqlshdk::mysql::IInstance &tgt_instance) {
+        // Get the gtid state in regards to the donor
+        mysqlshdk::mysql::Replica_gtid_state state =
+            check_replica_group_gtid_state(*donor_instance, tgt_instance,
+                                           nullptr, nullptr);
 
-    if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-      return true;
-    } else {
-      return false;
-    }
-  };
+        return (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE);
+      };
 
   Member_recovery_method recovery_method =
       mysqlsh::dba::validate_instance_recovery(
-          Cluster_type::REPLICATED_CLUSTER, op_action, donor_instance.get(),
+          Cluster_type::REPLICATED_CLUSTER, op_action, *donor_instance,
           target_instance, check_recoverable, opt_recovery_method,
           gtid_set_is_complete, interactive);
 
@@ -1003,8 +1004,10 @@ void Cluster_set_impl::remove_cluster(
   Undo_tracker undo_tracker;
   Undo_tracker::Undo_entry *drop_cluster_undo = nullptr;
   Undo_tracker::Undo_entry *replication_user_undo = nullptr;
-  std::vector<Scoped_instance> cluster_reachable_members;
+  std::vector<Scoped_instance> cluster_reachable_members,
+      cluster_reachable_read_replicas;
   std::vector<std::pair<std::string, std::string>> cluster_unreachable_members;
+  bool cluster_has_unreachable_read_replicas = false;
 
   try {
     console->print_info("The Cluster '" + cluster_name +
@@ -1067,6 +1070,41 @@ void Cluster_set_impl::remove_cluster(
                                                    connection_error.format());
           return true;
         });
+
+    // Get the list of the reachable and unreachable read-replicas of the
+    // cluster
+    target_cluster->execute_in_read_replicas(
+        [&cluster_reachable_read_replicas](
+            const std::shared_ptr<Instance> &instance) {
+          cluster_reachable_read_replicas.emplace_back(
+              Scoped_instance(instance));
+          return true;
+        },
+        [&cluster_has_unreachable_read_replicas](const shcore::Error &,
+                                                 const Instance_metadata &) {
+          cluster_has_unreachable_read_replicas = true;
+          return true;
+        });
+
+    // Check if there are unreachable Read-Replicas
+    if (cluster_has_unreachable_read_replicas) {
+      if (!options.force) {
+        console->print_error(
+            "The Cluster has unreachable Read-Replicas so the command cannot "
+            "remove them. Please bring the instances back ONLINE and try to "
+            "remove the Cluster again. If the instances are permanently not "
+            "reachable, then you can choose to proceed with the operation and "
+            "only remove the instances from the Cluster Metadata by using the "
+            "'force' option.");
+
+        throw shcore::Exception("Unreachable Read-Replicas detected",
+                                SHERR_DBA_UNREACHABLE_INSTANCES);
+      } else {
+        console->print_note(
+            "The Cluster has unreachable Read-Replicas. Ignored because of "
+            "'force' option");
+      }
+    }
 
     // Sync transactions before making any changes
     console->print_info(
@@ -1216,7 +1254,7 @@ void Cluster_set_impl::remove_cluster(
       }
 
       // Remove the Cluster's Metadata and Cluster members' info from the
-      // Metadata and drop recovery accounts
+      // Metadata
       {
         auto drop_cluster_trx_undo = Transaction_undo::create();
         MetadataStorage::Transaction trx(metadata);
@@ -1252,6 +1290,28 @@ void Cluster_set_impl::remove_cluster(
                 "Transaction sync failed. Use the 'force' option to remove "
                 "anyway.");
             throw;
+          }
+        }
+
+        // Sync read-replicas
+        for (const auto &rr : cluster_reachable_read_replicas) {
+          try {
+            console->print_info("* Waiting for Read-Replica '" + rr->descr() +
+                                "' to synchronize with the Cluster...");
+            target_cluster->sync_transactions(*rr, Instance_type::READ_REPLICA,
+                                              options.timeout);
+          } catch (const shcore::Exception &e) {
+            if (options.force) {
+              console->print_warning(
+                  "Transaction sync failed but ignored because of 'force' "
+                  "option: " +
+                  e.format());
+            } else {
+              console->print_error(
+                  "Transaction sync failed. Use the 'force' option to remove "
+                  "anyway.");
+              throw;
+            }
           }
         }
       }
@@ -1398,7 +1458,31 @@ void Cluster_set_impl::remove_cluster(
           break;
       }
 
-      // First the secondaries
+      // Remove the read-replicas
+      for (const auto &rr : cluster_reachable_read_replicas) {
+        console->print_info("* Removing Read-Replica '" + rr->descr() +
+                            "' from the cluster...");
+
+        // Remove the async channel
+        remove_channel(*rr, k_read_replica_async_channel_name, false);
+
+        try {
+          log_info("Disabling automatic failover management at %s",
+                   rr->descr().c_str());
+
+          reset_managed_connection_failover(*rr, false);
+        } catch (const std::exception &e) {
+          log_error("Error disabling automatic failover at %s: %s",
+                    rr->descr().c_str(), e.what());
+          console->print_warning(
+              "An error occurred when trying to disable automatic failover on "
+              "Read-Replica at '" +
+              rr->descr() + "'");
+          console->print_info();
+        }
+      }
+
+      // Then the secondaries
       for (const auto &member : cluster_reachable_members) {
         if (member->get_uuid() == target_cluster_primary->get_uuid()) continue;
 
@@ -1572,8 +1656,8 @@ void Cluster_set_impl::update_replica_settings(Instance *instance,
       if (is_primary) {
         // Setup the new managed connection failover
         add_managed_connection_failover(*instance, *new_primary,
-                                        k_clusterset_async_channel_name, "",
-                                        dry_run);
+                                        k_clusterset_async_channel_name, "", 80,
+                                        60, dry_run);
       }
     } catch (...) {
       log_error("Error setting up connection failover at %s: %s",
@@ -1678,7 +1762,7 @@ void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
       [=](const std::shared_ptr<Instance> &instance,
           const mysqlshdk::gr::Member &) {
         try {
-          reset_channel(instance.get(), k_clusterset_async_channel_name, true,
+          reset_channel(*instance, k_clusterset_async_channel_name, true,
                         dry_run);
         } catch (const shcore::Exception &e) {
 #ifndef ER_REPLICA_CHANNEL_DOES_NOT_EXIST
@@ -1699,7 +1783,7 @@ void Cluster_set_impl::promote_to_primary(Cluster_impl *cluster,
   log_info("Promoting cluster %s (primary=%s)", cluster->get_name().c_str(),
            primary->descr().c_str());
 
-  stop_channel(primary.get(), k_clusterset_async_channel_name, true, dry_run);
+  stop_channel(*primary, k_clusterset_async_channel_name, true, dry_run);
 
   // Stop the channel but don't delete it yet, since we need to be able to
   // revert in case something goes wrong, without knowing the password of
@@ -1817,7 +1901,7 @@ void Cluster_set_impl::update_replica(
 
 void Cluster_set_impl::remove_replica(Instance *instance, bool dry_run) {
   // Stop and reset the replication channel configuration
-  remove_channel(instance, k_clusterset_async_channel_name, dry_run);
+  remove_channel(*instance, k_clusterset_async_channel_name, dry_run);
 
   remove_replica_settings(instance, dry_run);
 
@@ -1869,6 +1953,13 @@ void Cluster_set_impl::record_in_metadata(
   for (const auto &i : k_default_clusterset_router_options)
     metadata->set_global_routing_option(Cluster_type::REPLICATED_CLUSTER, csid,
                                         i.first, i.second);
+
+  // Migrate the Read Only Targets setting from Cluster to ClusterSet
+  log_info(
+      "Adopting as the ClusterSet's global Read Only Targets the Cluster's "
+      "current setting");
+  get_metadata_storage()->migrate_read_only_targets_to_clusterset(
+      seed_cluster_id, get_id());
 
   trx.commit();
 }

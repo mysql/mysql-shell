@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,18 +23,20 @@
 
 #include "modules/adminapi/cluster/set_instance_option.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "scripting/types.h"
 
-namespace mysqlsh {
-namespace dba {
-namespace cluster {
+namespace mysqlsh::dba::cluster {
 
 namespace {
 
@@ -51,7 +53,11 @@ const std::map<std::string, Option_availability> k_instance_supported_options{
       mysqlshdk::utils::Version("5.7.20")}},
     {kAutoRejoinTries,
      {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}},
-    {kIpAllowlist, {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}}};
+    {kIpAllowlist, {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}},
+    {kReplicationSources, {"", Precondition_checker::k_min_rr_version, {}}}};
+
+constexpr std::array<std::string_view, 2> k_read_replica_supported_options = {
+    kLabel, kReplicationSources};
 
 }  // namespace
 
@@ -76,6 +82,19 @@ Set_instance_option::Set_instance_option(
       m_instance_cnx_opts(instance_cnx_opts),
       m_option(option),
       m_value_int(value) {
+  m_target_instance_address =
+      m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
+  m_address_in_metadata = m_target_instance_address;
+}
+
+Set_instance_option::Set_instance_option(
+    const Cluster_impl &cluster,
+    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    const std::string &option, shcore::Value value)
+    : m_cluster(cluster),
+      m_instance_cnx_opts(instance_cnx_opts),
+      m_option(option),
+      m_value_value(value) {
   m_target_instance_address =
       m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
   m_address_in_metadata = m_target_instance_address;
@@ -115,6 +134,10 @@ void Set_instance_option::ensure_option_valid() {
           "Invalid value for 'ipAllowlist': Argument #3 is expected "
           "to be a string.");
     }
+
+    if (m_option == kReplicationSources) {
+      validate_replication_sources_option(*m_value_value);
+    }
   }
 }
 
@@ -148,20 +171,43 @@ void Set_instance_option::ensure_option_supported_target_member() {
   log_debug("Checking if member '%s' of the cluster supports the option '%s'",
             m_target_instance->descr().c_str(), m_option.c_str());
 
-  // Verify if the instance version is supported
-  bool is_supported = is_option_supported(
-      m_target_instance->get_version(), m_option, k_instance_supported_options);
+  // If the member is a Read-Replica, validate first if the option is supportes
+  if (m_cluster.is_read_replica(*m_target_instance)) {
+    if (std::find(k_read_replica_supported_options.begin(),
+                  k_read_replica_supported_options.end(),
+                  m_option) != k_read_replica_supported_options.end()) {
+      return;
+    }
 
-  if (is_supported) return;
+    mysqlsh::current_console()->print_error(
+        "The option '" + m_option + "' is not supported for Read-Replicas.");
+  } else {
+    // Verify if the instance version is supported
+    bool is_supported =
+        is_option_supported(m_target_instance->get_version(), m_option,
+                            k_instance_supported_options);
 
-  mysqlsh::current_console()->print_error(
-      "The instance '" + m_target_instance_address + "' has the version " +
-      m_target_instance->get_version().get_full() +
-      " which does not support the option '" + m_option + "'.");
+    if (is_supported) return;
+
+    mysqlsh::current_console()->print_error(
+        "The instance '" + m_target_instance_address + "' has the version " +
+        m_target_instance->get_version().get_full() +
+        " which does not support the option '" + m_option + "'.");
+  }
 
   throw shcore::Exception::runtime_error("The instance '" +
                                          m_target_instance_address +
                                          "' does not support this operation.");
+}
+
+void Set_instance_option::ensure_instance_is_read_replica() {
+  log_debug("Checking if the instance is a read-replica");
+
+  if (!m_cluster.is_read_replica(*m_target_instance)) {
+    std::string err_msg = "The instance '" + m_target_instance_address +
+                          "' is not a Read-Replica.";
+    throw shcore::Exception::runtime_error(err_msg);
+  }
 }
 
 void Set_instance_option::prepare() {
@@ -195,6 +241,51 @@ void Set_instance_option::prepare() {
   // Verify if the target instance belongs to the cluster
   ensure_instance_belong_to_cluster();
 
+  // Verify if the target instance is a Read-Replica
+  // and validate the replicationSources:
+  //  - All sources must be reachable
+  //  - All sources must be ONLINE Cluster members
+  if (m_option == kReplicationSources) {
+    ensure_instance_is_read_replica();
+
+    // If replicationSources is a list, validate the sources
+    if (m_value_value->type == shcore::Array) {
+      auto list =
+          m_value_value->to_string_container<std::vector<std::string>>();
+
+      std::set<Managed_async_channel_source,
+               std::greater<Managed_async_channel_source>>
+          managed_src_list;
+
+      // The source list is ordered by weight
+      int64_t source_weight = k_read_replica_max_weight;
+
+      for (const auto &src : list) {
+        Managed_async_channel_source managed_src_address(src);
+
+        // Add it if not in the list already. The one kept in the list is the
+        // one with the highest priority/weight
+        if (managed_src_list.find(managed_src_address) ==
+            managed_src_list.end()) {
+          Managed_async_channel_source managed_src(src, source_weight--);
+          managed_src_list.emplace(std::move(managed_src));
+        }
+      }
+
+      std::vector<std::string> updated_list;
+
+      m_cluster.validate_replication_sources(
+          managed_src_list, m_target_instance_address, &updated_list);
+
+      m_value_value = shcore::Value::new_array();
+      auto array = m_value_value->as_array();
+
+      for (const auto &source : updated_list) {
+        array->emplace_back(source);
+      }
+    }
+  }
+
   // Verify user privileges to execute operation;
   ensure_user_privileges(*m_target_instance);
 
@@ -227,15 +318,50 @@ shcore::Value Set_instance_option::execute() {
           ->get_instance_by_address(m_address_in_metadata)
           .label;
 
-  console->print_info(
-      "Setting the value of '" + m_option + "' to '" +
-      (!m_value_str.has_value() ? std::to_string(*m_value_int) : *m_value_str) +
-      "' in the instance: '" + m_target_instance_address + "' ...");
+  std::string value_to_print;
+
+  if (m_value_int.has_value()) {
+    value_to_print = std::to_string(*m_value_int);
+  } else if (m_value_str.has_value()) {
+    value_to_print = *m_value_str;
+  } else if (m_value_value.has_value()) {
+    if (m_value_value->type == shcore::String) {
+      value_to_print = m_value_value->as_string();
+    } else if (m_value_value->type == shcore::Array) {
+      auto list =
+          m_value_value->to_string_container<std::vector<std::string>>();
+
+      value_to_print = "[";
+
+      for (const auto &element : list) {
+        value_to_print += element;
+        value_to_print += ", ";
+      }
+
+      if (!list.empty()) {
+        value_to_print.erase(value_to_print.size() - 2);
+      }
+
+      value_to_print += "]";
+    }
+  }
+
+  console->print_info("Setting the value of '" + m_option + "' to '" +
+                      value_to_print + "' in the instance: '" +
+                      m_target_instance_address + "' ...");
   console->print_info();
 
   if (m_option == "label") {
     m_cluster.get_metadata_storage()->set_instance_label(
         m_cluster.get_id(), target_instance_label, *m_value_str);
+  } else if (m_option == kReplicationSources) {
+    m_cluster.get_metadata_storage()->update_instance_attribute(
+        m_target_instance->get_uuid(),
+        k_instance_attribute_read_replica_replication_sources, *m_value_value);
+
+    console->print_warning(
+        "To update the replication channel with the changes the Read-Replica "
+        "must be reconfigured using Cluster.<<<rejoinInstance>>>().");
   } else {
     // Update the option value in the target instance:
     std::string option_gr_variable =
@@ -251,15 +377,10 @@ shcore::Value Set_instance_option::execute() {
   }
 
   console->print_info("Successfully set the value of '" + m_option + "' to '" +
-                      ((!m_value_str.has_value()
-                            ? shcore::lexical_cast<std::string>(*m_value_int)
-                            : *m_value_str)) +
-                      "' in the cluster member: '" + m_target_instance_address +
-                      "'.");
+                      value_to_print + "' in the cluster member: '" +
+                      m_target_instance_address + "'.");
 
   return shcore::Value();
 }
 
-}  // namespace cluster
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba::cluster

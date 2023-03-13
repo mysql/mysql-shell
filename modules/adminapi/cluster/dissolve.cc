@@ -22,8 +22,10 @@
  */
 
 #include <mysql/group_replication.h>
+#include <utility>
 
 #include "modules/adminapi/cluster/dissolve.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
@@ -31,7 +33,10 @@
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/error.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -90,10 +95,14 @@ bool Dissolve::prompt_to_force_dissolve() const {
   return result;
 }
 
-void Dissolve::ensure_instance_reachable(const std::string &instance_address) {
+std::shared_ptr<Instance> Dissolve::ensure_instance_reachable(
+    const std::string &instance_address, const Instance_type instance_type) {
+  std::shared_ptr<Instance> ret_instance;
   try {
+    ret_instance = m_cluster->get_session_to_cluster_instance(instance_address);
+
     m_available_instances.emplace_back(
-        m_cluster->get_session_to_cluster_instance(instance_address));
+        std::make_pair(ret_instance, instance_type));
   } catch (const std::exception &err) {
     // instance not reachable
     auto console = mysqlsh::current_console();
@@ -128,6 +137,8 @@ void Dissolve::ensure_instance_reachable(const std::string &instance_address) {
       console->print_info();
     }
   }
+
+  return ret_instance;
 }
 
 void Dissolve::ensure_transactions_sync() {
@@ -136,15 +147,17 @@ void Dissolve::ensure_transactions_sync() {
   for (const auto &instance : m_available_instances) {
     try {
       auto console = mysqlsh::current_console();
-      console->print_info("* Waiting for instance '" + instance->descr() +
+      console->print_info("* Waiting for instance '" + instance.first->descr() +
                           "' to apply received transactions...");
+
       m_cluster->sync_transactions(
-          *instance, mysqlshdk::gr::k_gr_applier_channel,
+          *instance.first, instance.second,
           current_shell_options()->get().dba_gtid_wait_timeout, true);
     } catch (const std::exception &err) {
       std::string instance_address =
-          (*instance).get_connection_options().as_uri(
-              mysqlshdk::db::uri::formats::only_transport());
+          (*instance.first)
+              .get_connection_options()
+              .as_uri(mysqlshdk::db::uri::formats::only_transport());
 
       // Handle use of 'force' option.
       if (m_force.is_null() || *m_force == false) {
@@ -284,24 +297,53 @@ void Dissolve::prepare() {
   };
 
   // Get all cluster instances, including state information.
-  std::vector<Instance_metadata> instance_defs = m_cluster->get_instances();
+  std::vector<Instance_metadata> instance_defs = m_cluster->get_all_instances();
   // Check if instances can be dissolved. More specifically, verify if their
   // state is valid, if they are reachable (i.e., able to connect to them).
   // Also determine if instance removal can be skipped, according to 'force'
   // option and user prompts.
   for (const auto &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state;
-    bool is_primary;
-    std::tie(state, is_primary) = get_member_state(instance_def.uuid);
+    if (instance_def.instance_type != Instance_type::READ_REPLICA) {
+      mysqlshdk::gr::Member_state state;
+      bool is_primary;
+      std::tie(state, is_primary) = get_member_state(instance_def.uuid);
 
-    if (state == mysqlshdk::gr::Member_state::ONLINE ||
-        state == mysqlshdk::gr::Member_state::RECOVERING) {
-      // Verify if active instances are reachable.
-      ensure_instance_reachable(instance_def.endpoint);
+      if (state == mysqlshdk::gr::Member_state::ONLINE ||
+          state == mysqlshdk::gr::Member_state::RECOVERING) {
+        // Verify if active instances are reachable.
+        ensure_instance_reachable(instance_def.endpoint,
+                                  instance_def.instance_type);
+      } else {
+        // Handle not active instances, determining if they can be skipped.
+        handle_unavailable_instances(instance_def.endpoint,
+                                     mysqlshdk::gr::to_string(state));
+      }
     } else {
-      // Handle not active instances, determining if they can be skipped.
-      handle_unavailable_instances(instance_def.endpoint,
-                                   mysqlshdk::gr::to_string(state));
+      // Check Read-Replicas to check if reachable
+      try {
+        auto rr_instance = ensure_instance_reachable(
+            instance_def.endpoint, instance_def.instance_type);
+
+        // Get the status
+        if (rr_instance) {
+          auto status = mysqlshdk::mysql::get_read_replica_status(*rr_instance);
+
+          if (status != mysqlshdk::mysql::Read_replica_status::ONLINE) {
+            // Handle unreachable read-replica to determine if can be skipped
+            handle_unavailable_instances(instance_def.endpoint,
+                                         to_string(status));
+          }
+        }
+      } catch (const mysqlshdk::db::Error &e) {
+        log_info("Unable to connect to '%s'", instance_def.endpoint.c_str());
+
+        // Handle unreachable read-replica to determine if can be skipped
+        handle_unavailable_instances(
+            instance_def.endpoint,
+            to_string(mysqlshdk::mysql::Read_replica_status::UNREACHABLE));
+      } catch (const shcore::Error &) {
+        throw;
+      }
     }
   }
 
@@ -319,35 +361,6 @@ void Dissolve::prepare() {
   // Check if Cluster supports GR member actions to reset them if so
   m_supports_member_actions = m_cluster->get_lowest_instance_version() >=
                               Precondition_checker::k_min_cs_version;
-}
-
-void Dissolve::remove_instance(const std::string &instance_address,
-                               const std::size_t instance_index) {
-  try {
-    // Stop Group Replication and reset (persist) GR variables.
-    mysqlsh::dba::leave_cluster(*m_available_instances[instance_index],
-                                m_supports_member_actions);
-  } catch (const std::exception &err) {
-    auto console = mysqlsh::current_console();
-
-    // Skip error if force=true otherwise issue an error.
-    if (m_force.is_null() || *m_force == false) {
-      console->print_error("Unable to remove instance '" + instance_address +
-                           "' from the cluster.");
-      throw shcore::Exception::runtime_error(err.what());
-    } else {
-      m_skipped_instances.push_back(instance_address);
-      log_error("Instance '%s' failed to leave the cluster: %s",
-                instance_address.c_str(), err.what());
-      console->print_warning(
-          "An error occurred when trying to remove instance '" +
-          instance_address +
-          "' from the cluster. The instance might have been left active "
-          "and in an inconsistent state, requiring manual action to "
-          "fully dissolve the cluster.");
-      console->print_info();
-    }
-  }
 }
 
 shcore::Value Dissolve::execute() {
@@ -368,8 +381,8 @@ shcore::Value Dissolve::execute() {
 
   // Remove replication accounts used for recovery of GR and ClusterSet
   // replication accounts
-  // Note: This operation MUST be performed before leave-cluster to ensure that
-  // all changed are propagated to the online instances.
+  // Note: This operation MUST be performed before leave-cluster to ensure
+  // that all changed are propagated to the online instances.
   m_cluster->wipe_all_replication_users();
 
   // Drop the metadata schema
@@ -378,23 +391,23 @@ shcore::Value Dissolve::execute() {
   // We must stop GR on the online instances only, otherwise we'll
   // get connection failures to the (MISSING) instances
   // BUG#26001653.
-  for (std::size_t i = 0; i < m_available_instances.size(); i++) {
-    auto &instance = *m_available_instances[i];
+  for (const auto &instance : m_available_instances) {
+    auto instance_type = instance.second;
+    auto instance_ptr = instance.first;
 
-    std::string instance_address = instance.get_connection_options().as_uri(
-        mysqlshdk::db::uri::formats::only_transport());
+    std::string instance_address = instance_ptr->descr();
 
     // JOB: Sync transactions with the cluster.
     try {
       // Catch-up with all cluster transaction to ensure cluster metadata is
       // removed on the instance.
-      console->print_info("* Waiting for instance '" + instance.descr() +
+      console->print_info("* Waiting for instance '" + instance_address +
                           "' to apply received transactions...");
 
       // We only need to apply received transactions, since any transactions
       // certified by the group will have been received
       m_cluster->sync_transactions(
-          instance, mysqlshdk::gr::k_gr_applier_channel,
+          *instance_ptr, instance_type,
           current_shell_options()->get().dba_gtid_wait_timeout, true);
 
       // Remove instance from list of instance with sync error in case it
@@ -435,8 +448,63 @@ shcore::Value Dissolve::execute() {
       }
     }
 
-    // JOB: Remove the instance from the cluster (Stop GR)
-    remove_instance(instance_address, i);
+    // JOB: Remove the instance from the cluster
+    switch (instance_type) {
+      case Instance_type::NONE:
+      case Instance_type::GROUP_MEMBER: {
+        try {
+          // Stop Group Replication and reset (persist) GR variables.
+          mysqlsh::dba::leave_cluster(*instance_ptr, m_supports_member_actions);
+        } catch (const std::exception &err) {
+          // Skip error if force=true otherwise issue an error.
+          if (m_force.is_null() || *m_force == false) {
+            console->print_error("Unable to remove instance '" +
+                                 instance_address + "' from the cluster.");
+            throw shcore::Exception::runtime_error(err.what());
+          } else {
+            m_skipped_instances.push_back(instance_address);
+            log_error("Instance '%s' failed to leave the cluster: %s",
+                      instance_address.c_str(), err.what());
+            console->print_warning(
+                "An error occurred when trying to remove instance '" +
+                instance_address +
+                "' from the cluster. The instance might have been left active "
+                "and in an inconsistent state, requiring manual action to "
+                "fully dissolve the cluster.");
+            console->print_info();
+          }
+        }
+
+        break;
+      }
+      case Instance_type::READ_REPLICA: {
+        console->print_info("* Removing Read-Replica '" + instance_address +
+                            "' from the cluster...");
+
+        // Remove the async channel
+        remove_channel(*instance_ptr, k_read_replica_async_channel_name, false);
+
+        try {
+          log_info("Disabling automatic failover management at %s",
+                   instance_ptr->descr().c_str());
+
+          reset_managed_connection_failover(*instance_ptr, false);
+        } catch (...) {
+          log_error("Error disabling automatic failover at %s: %s",
+                    instance_address.c_str(),
+                    format_active_exception().c_str());
+          console->print_warning(
+              "An error occurred when trying to disable automatic failover on "
+              "Read-Replica at '" +
+              instance_address + "'");
+          console->print_info();
+        }
+
+        break;
+      }
+      case Instance_type::ASYNC_MEMBER:
+        break;
+    }
   }
 
   // Disconnect all internal sessions
@@ -507,7 +575,7 @@ void Dissolve::rollback() {
 void Dissolve::finish() {
   // Close all sessions to available instances.
   for (const auto &instance : m_available_instances) {
-    instance->close_session();
+    instance.first->close_session();
   }
 
   // Reset all auxiliary (temporary) data used for the operation execution.

@@ -62,7 +62,7 @@ This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_po
 
 * Checking transaction state of the instance...
 
-NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
+NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty).
 
 Incremental state recovery selected through the recoveryMethod option
 

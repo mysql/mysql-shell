@@ -892,9 +892,6 @@ EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, row.address);
 EXPECT_EQ(hostname_ip+":"+__mysql_sandbox_port3, row.instance_name);
 EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
 
-//@<> setPrimary is expected to throw b/c metadata doesn't match {VER(>=8.0.27)}
-EXPECT_THROWS(function(){c.setPrimaryInstance(__sandbox_uri3);}, `The instance 'localhost:${__mysql_sandbox_port3}' does not belong to the cluster: 'cluster'.`);
-
 //@<> rescan to repair metadata according to new report_host {VER(>=8.0.27)}
 
 // sb3 address should be fixed now

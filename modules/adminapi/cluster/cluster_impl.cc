@@ -23,6 +23,9 @@
 
 #include "modules/adminapi/cluster/cluster_impl.h"
 
+#include <cstdint>
+#include <exception>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -30,12 +33,22 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
+#include "adminapi/common/clone_options.h"
+#include "adminapi/common/instance_pool.h"
+#include "modules/adminapi/base_cluster.h"
+#include "modules/adminapi/cluster/add_instance.h"
+#include "modules/adminapi/cluster/add_replica_instance.h"
 #include "modules/adminapi/cluster/check_instance_state.h"
 #include "modules/adminapi/cluster/describe.h"
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/cluster/options.h"
+#include "modules/adminapi/cluster/rejoin_instance.h"
+#include "modules/adminapi/cluster/rejoin_replica_instance.h"
+#include "modules/adminapi/cluster/remove_instance.h"
+#include "modules/adminapi/cluster/remove_replica_instance.h"
 #include "modules/adminapi/cluster/rescan.h"
 #include "modules/adminapi/cluster/reset_recovery_accounts_password.h"
 #include "modules/adminapi/cluster/set_instance_option.h"
@@ -47,6 +60,7 @@
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
@@ -54,6 +68,7 @@
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
@@ -77,7 +92,9 @@
 #include "scripting/types.h"
 #include "shellcore/utils_help.h"
 #include "utils/debug.h"
+#include "utils/logger.h"
 #include "utils/utils_general.h"
+#include "utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -233,79 +250,6 @@ void Cluster_impl::verify_topology_type_change() const {
   }
 }
 
-void Cluster_impl::validate_rejoin_gtid_consistency(
-    const mysqlshdk::mysql::IInstance &target_instance) const {
-  auto console = mysqlsh::current_console();
-  std::string errant_gtid_set;
-
-  // Get the gtid state in regards to the cluster_session
-  mysqlshdk::mysql::Replica_gtid_state state =
-      mysqlshdk::mysql::check_replica_gtid_state(
-          *get_cluster_server(), target_instance, nullptr, &errant_gtid_set);
-
-  if (state == mysqlshdk::mysql::Replica_gtid_state::NEW) {
-    console->print_info();
-    console->print_error(
-        "The target instance '" + target_instance.descr() +
-        "' has an empty GTID set so it cannot be safely rejoined to the "
-        "cluster. Please remove it and add it back to the cluster.");
-    console->print_info();
-
-    throw shcore::Exception::runtime_error("The instance '" +
-                                           target_instance.descr() +
-                                           "' has an empty GTID set.");
-  } else if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-    console->print_info();
-    console->print_error("A GTID set check of the MySQL instance at '" +
-                         target_instance.descr() +
-                         "' determined that it is missing transactions that "
-                         "were purged from all cluster members.");
-    console->print_info();
-    throw shcore::Exception::runtime_error(
-        "The instance '" + target_instance.descr() +
-        "' is missing transactions that "
-        "were purged from all cluster members.");
-  } else if (state == mysqlshdk::mysql::Replica_gtid_state::DIVERGED) {
-    console->print_info();
-    console->print_error("A GTID set check of the MySQL instance at '" +
-                         target_instance.descr() +
-                         "' determined that it contains transactions that "
-                         "do not originate from the cluster, which must be "
-                         "discarded before it can join the cluster.");
-
-    console->print_info();
-    console->print_info(target_instance.descr() +
-                        " has the following errant GTIDs that do not exist "
-                        "in the cluster:\n" +
-                        errant_gtid_set);
-    console->print_info();
-
-    console->print_info(
-        "Having extra GTID events is not expected, and it is "
-        "recommended to investigate this further and ensure that the data "
-        "can be removed prior to rejoining the instance to the cluster.");
-
-    if (supports_mysql_clone(target_instance.get_version())) {
-      console->print_info();
-      console->print_info(
-          "Discarding these extra GTID events can either be done manually "
-          "or by completely overwriting the state of " +
-          target_instance.descr() +
-          " with a physical snapshot from an existing cluster member. To "
-          "achieve this remove the instance from the cluster and add it "
-          "back using <Cluster>.<<<addInstance>>>() and setting the "
-          "'recoveryMethod' option to 'clone'.");
-    }
-
-    console->print_info();
-
-    throw shcore::Exception::runtime_error(
-        "The instance '" + target_instance.descr() +
-        "' contains errant transactions that did not originate from the "
-        "cluster.");
-  }
-}
-
 void Cluster_impl::adopt_from_gr() {
   shcore::Value ret_val;
   auto console = mysqlsh::current_console();
@@ -331,7 +275,8 @@ void Cluster_impl::adopt_from_gr() {
 
     newly_discovered_instance.set_login_options_from(session_data);
 
-    add_metadata_for_instance(newly_discovered_instance);
+    add_metadata_for_instance(newly_discovered_instance,
+                              Instance_type::GROUP_MEMBER);
 
     // Store the communicationStack in the Metadata as a Cluster capability
     // TODO(miguel): build and add the list of allowed operations
@@ -406,8 +351,9 @@ void Cluster_impl::execute_in_members(
           target_coptions, current_shell_options()->get().wizards);
     } catch (const shcore::Error &e) {
       if (ignore_network_conn_errors && e.code() == CR_CONN_HOST_ERROR) {
-        log_error("Could not open connection to '%s': %s, but ignoring it.",
-                  instance_address.c_str(), e.what());
+        mysqlsh::current_console()->print_note(shcore::str_format(
+            "Could not open connection to '%s': %s, but ignoring it.",
+            instance_address.c_str(), e.what()));
         continue;
       } else {
         log_error("Could not open connection to '%s': %s",
@@ -420,6 +366,69 @@ void Cluster_impl::execute_in_members(
       throw;
     }
     bool continue_loop = functor(instance_session, instance_def.second);
+    if (!continue_loop) {
+      log_debug("Cluster iteration stopped because functor returned false.");
+      break;
+    }
+  }
+}
+
+void Cluster_impl::execute_in_read_replicas(
+    const std::vector<mysqlshdk::mysql::Read_replica_status> &states,
+    const mysqlshdk::db::Connection_options &cnx_opt,
+    const std::vector<std::string> &ignore_instances_vector,
+    const std::function<bool(const Instance &instance)> &functor,
+    bool ignore_network_conn_errors) const {
+  std::shared_ptr<Instance> instance_session;
+  auto instance_definitions = get_replica_instances();
+
+  for (auto &instance_def : instance_definitions) {
+    const std::string &instance_address = instance_def.endpoint;
+
+    // if instance is on the list of instances to be ignored, skip it
+    if (std::find_if(ignore_instances_vector.begin(),
+                     ignore_instances_vector.end(),
+                     mysqlshdk::utils::Endpoint_predicate{instance_address}) !=
+        ignore_instances_vector.end()) {
+      continue;
+    }
+
+    auto target_coptions =
+        shcore::get_connection_options(instance_address, false);
+
+    target_coptions.set_login_options_from(cnx_opt);
+    try {
+      log_debug(
+          "Opening a new session to instance '%s' while iterating "
+          "cluster members",
+          instance_address.c_str());
+      instance_session = Instance::connect(
+          target_coptions, current_shell_options()->get().wizards);
+
+      // if state list is given but it doesn't match, skip too
+      if (!states.empty() &&
+          std::find(states.begin(), states.end(),
+                    mysqlshdk::mysql::get_read_replica_status(
+                        *instance_session)) == states.end()) {
+        continue;
+      }
+    } catch (const shcore::Error &e) {
+      if (ignore_network_conn_errors && e.code() == CR_CONN_HOST_ERROR) {
+        mysqlsh::current_console()->print_note(shcore::str_format(
+            "Could not open connection to '%s': %s, but ignoring it.",
+            instance_address.c_str(), e.what()));
+        continue;
+      } else {
+        log_error("Could not open connection to '%s': %s",
+                  instance_address.c_str(), e.what());
+        throw;
+      }
+    } catch (const std::exception &e) {
+      log_error("Could not open connection to '%s': %s",
+                instance_address.c_str(), e.what());
+      throw;
+    }
+    bool continue_loop = functor(*instance_session);
     if (!continue_loop) {
       log_debug("Cluster iteration stopped because functor returned false.");
       break;
@@ -452,6 +461,36 @@ void Cluster_impl::execute_in_members(
       }
     }
     if (!on_connect(instance_session, i)) break;
+  }
+}
+
+void Cluster_impl::execute_in_read_replicas(
+    const std::function<bool(const std::shared_ptr<Instance> &instance)>
+        &on_connect,
+    const std::function<bool(const shcore::Error &error,
+                             const Instance_metadata &info)> &on_connect_error)
+    const {
+  assert(on_connect || on_connect_error);
+
+  auto instance_definitions = get_replica_instances();
+  auto ipool = current_ipool();
+
+  for (const auto &instance_def : instance_definitions) {
+    Scoped_instance instance_session;
+
+    try {
+      instance_session = Scoped_instance(
+          ipool->connect_unchecked_endpoint(instance_def.endpoint));
+    } catch (const shcore::Error &e) {
+      if (on_connect_error) {
+        if (!on_connect_error(e, instance_def)) break;
+        continue;
+      } else {
+        throw;
+      }
+    }
+
+    if (on_connect && !on_connect(instance_session)) break;
   }
 }
 
@@ -532,6 +571,19 @@ std::map<std::string, std::string> Cluster_impl::get_cluster_group_seeds()
   return group_seeds;
 }
 
+std::string Cluster_impl::get_cluster_group_seeds_list(
+    std::string_view skip_uuid) const {
+  // Compute group_seeds using local_address from each active cluster member
+  std::string ret;
+  for (const auto &i : get_cluster_group_seeds()) {
+    if (i.first != skip_uuid) {
+      if (!ret.empty()) ret.append(",");
+      ret.append(i.second);
+    }
+  }
+  return ret;
+}
+
 std::vector<Instance_metadata> Cluster_impl::get_instances(
     const std::vector<mysqlshdk::gr::Member_state> &states) const {
   std::vector<Instance_metadata> all_instances =
@@ -556,6 +608,26 @@ std::vector<Instance_metadata> Cluster_impl::get_instances(
     }
   }
   return res;
+}
+
+std::vector<Instance_metadata> Cluster_impl::get_replica_instances() const {
+  std::vector<Instance_metadata> all_instances =
+      get_metadata_storage()->get_all_instances(get_id(), true);
+
+  std::vector<Instance_metadata> res;
+  res.reserve(all_instances.size());
+
+  for (auto &i : all_instances) {
+    if (i.instance_type != Instance_type::READ_REPLICA) continue;
+
+    res.push_back(std::move(i));
+  }
+
+  return res;
+}
+
+std::vector<Instance_metadata> Cluster_impl::get_all_instances() const {
+  return get_metadata_storage()->get_all_instances(get_id(), true);
 }
 
 std::vector<Instance_metadata> Cluster_impl::get_instances_from_metadata()
@@ -628,7 +700,8 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
           auto it = endpoints.find(instance->get_uuid());
           if ((it != endpoints.end()) && (it->second != recovery_user)) {
             get_metadata_storage()->update_instance_repl_account(
-                gr_member.uuid, Cluster_type::GROUP_REPLICATION, recovery_user,
+                gr_member.uuid, Cluster_type::GROUP_REPLICATION,
+                Replica_type::GROUP_MEMBER, recovery_user,
                 get_replication_user_host());
           }
 
@@ -689,64 +762,48 @@ std::shared_ptr<mysqlsh::dba::Instance> Cluster_impl::get_online_instance(
 }
 
 /**
- * Check the instance server UUID of the specified instance.
+ * Check the instance server UUID and ID of the specified instance.
  *
- * The server UUID must be unique for all instances in a cluster. This function
- * checks if the server_uuid of the target instance is unique among all
- * members of the cluster.
+ * The server UUID and ID must be unique for all instances in a cluster. This
+ * function checks if the server_uuid and server_id of the target instance are
+ * unique among all members of the cluster.
  *
  * @param instance_session Session to the target instance to check its server
- *                         UUID.
+ *                         IDs.
  */
-void Cluster_impl::validate_server_uuid(
-    const mysqlshdk::mysql::IInstance &instance) const {
+void Cluster_impl::validate_server_ids(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
   // Get the server_uuid of the target instance.
-  std::string server_uuid = *instance.get_sysvar_string(
+  std::string server_uuid = *target_instance.get_sysvar_string(
       "server_uuid", mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
-  // Get connection option for the metadata.
-
-  std::shared_ptr<Instance> cluster_instance = get_cluster_server();
-  Connection_options cluster_cnx_opt =
-      cluster_instance->get_connection_options();
-
-  // Get list of instances in the metadata
-  std::vector<Instance_metadata> metadata_instances = get_instances();
-
-  // Get and compare the server UUID of all instances with the one of
-  // the target instance.
-  for (Instance_metadata &instance_def : metadata_instances) {
-    if (server_uuid == instance_def.uuid) {
-      // Raise an error if the server uuid is the same of a cluster member.
-      throw shcore::Exception::runtime_error(
-          "Cannot add an instance with the same server UUID (" + server_uuid +
-          ") of an active member of the cluster '" + instance_def.endpoint +
-          "'. Please change the server UUID of the instance to add, all "
-          "members must have a unique server UUID.");
-    }
-  }
-}
-
-void Cluster_impl::validate_server_id(
-    const mysqlshdk::mysql::IInstance &target_instance) const {
   // Get the server_id of the target instance.
   uint32_t server_id = target_instance.get_server_id();
 
-  // Get connection option for the metadata.
-  std::shared_ptr<Instance> cluster_instance = get_cluster_server();
-  Connection_options cluster_cnx_opt =
-      cluster_instance->get_connection_options();
+  // Get list of all instances in the metadata (includes instances from all
+  // Clusters when in a ClusterSet)
+  auto all_instances = get_metadata_storage()->get_all_instances("", true);
 
-  // Get list of instances in the metadata
-  std::vector<Instance_metadata> metadata_instances = get_instances();
-
-  // Get and compare the server_id of all instances with the one of
+  // Get and compare the ids on all instances with the ones of
   // the target instance.
-  for (const Instance_metadata &instance : metadata_instances) {
-    if (server_id != 0 && server_id == instance.server_id) {
-      throw std::runtime_error{"The server_id '" + std::to_string(server_id) +
-                               "' is already used by instance '" +
-                               instance.endpoint + "'."};
+  for (const auto &member : all_instances) {
+    if (server_uuid == member.uuid) {
+      mysqlsh::current_console()->print_error(
+          "The target instance '" + target_instance.get_canonical_address() +
+          "' has a 'server_uuid' already being used by instance '" +
+          member.endpoint + "'.");
+
+      throw shcore::Exception("Invalid server_uuid.",
+                              SHERR_DBA_INVALID_SERVER_UUID);
+    }
+
+    if (server_id == member.server_id) {
+      mysqlsh::current_console()->print_error(
+          "The target instance '" + target_instance.get_canonical_address() +
+          "' has a 'server_id' already being used by instance '" +
+          member.endpoint + "'.");
+      throw shcore::Exception("Invalid server_id.",
+                              SHERR_DBA_INVALID_SERVER_ID);
     }
   }
 }
@@ -1049,7 +1106,7 @@ void Cluster_impl::query_group_wide_option_values(
 }
 
 void Cluster_impl::update_group_members_for_removed_member(
-    const std::string &server_uuid) {
+    const std::string &server_uuid, bool dry_run) {
   // Get the Cluster Config Object
   auto cfg = create_config_object({}, true);
 
@@ -1057,14 +1114,14 @@ void Cluster_impl::update_group_members_for_removed_member(
   // their group_replication_group_seeds value by removing the
   // gr_local_address of the instance that was removed
   log_debug("Updating group_replication_group_seeds of cluster members");
-  {
-    auto group_seeds = get_cluster_group_seeds();
-    if (group_seeds.find(server_uuid) != group_seeds.end()) {
-      group_seeds.erase(server_uuid);
-    }
-    mysqlshdk::gr::update_group_seeds(cfg.get(), group_seeds);
+
+  auto group_seeds = get_cluster_group_seeds();
+  if (group_seeds.find(server_uuid) != group_seeds.end()) {
+    group_seeds.erase(server_uuid);
   }
-  cfg->apply();
+  mysqlshdk::gr::update_group_seeds(cfg.get(), group_seeds);
+
+  if (!dry_run) cfg->apply();
 
   // Update the auto-increment values
   {
@@ -1100,7 +1157,7 @@ void Cluster_impl::update_group_members_for_removed_member(
     // (otherwise is always 7), but since the member was already removed, the
     // condition must be >= 7 (to catch were be moved from 8 to 7)
     if ((topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) &&
-        (cluster_member_count >= 7)) {
+        (cluster_member_count >= 7) && !dry_run) {
       // Call update_auto_increment to do the job in all instances
       mysqlshdk::gr::update_auto_increment(
           cfg.get(), mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
@@ -1146,12 +1203,14 @@ void Cluster_impl::rejoin_instance(
   // put an exclusive lock on the target instance
   auto i_lock = target->get_lock_exclusive();
 
-  Cluster_topology_executor<cluster::Rejoin_instance>{this, target, options}
-      .run();
-
-  // Verification step to ensure the server_id is an attribute on all the
-  // instances of the cluster
-  ensure_metadata_has_server_id(target);
+  if (!is_read_replica(target)) {
+    Cluster_topology_executor<cluster::Rejoin_instance>{this, target, options}
+        .run();
+  } else {
+    Cluster_topology_executor<cluster::Rejoin_replica_instance>{this, target,
+                                                                options}
+        .run();
+  }
 }
 
 void Cluster_impl::remove_instance(
@@ -1162,9 +1221,37 @@ void Cluster_impl::remove_instance(
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
 
-  Cluster_topology_executor<cluster::Remove_instance>{this, instance_def,
-                                                      options}
-      .run();
+  bool read_replica = false;
+  Scoped_instance target_instance;
+
+  // If the instance is reachable, we can check right away if it is a
+  // read-replica to execute its Executor class (Remove_replica_instance).
+  // Otherwise, let Remove_instance handle it.
+  try {
+    target_instance = Scoped_instance(connect_target_instance(instance_def));
+
+    if (is_read_replica(target_instance)) read_replica = true;
+  } catch (const std::exception &e) {
+    mysqlsh::current_console()->print_warning(
+        shcore::str_format("Failed to connect to '%s': %s",
+                           instance_def.as_uri().c_str(), e.what()));
+  }
+
+  if (read_replica) {
+    return Cluster_topology_executor<cluster::Remove_replica_instance>{
+        this, target_instance, options}
+        .run();
+  }
+
+  if (target_instance) {
+    Cluster_topology_executor<cluster::Remove_instance>{this, target_instance,
+                                                        options}
+        .run();
+  } else {
+    Cluster_topology_executor<cluster::Remove_instance>{this, instance_def,
+                                                        options}
+        .run();
+  }
 }
 
 std::shared_ptr<Instance> connect_to_instance_for_metadata(
@@ -1206,28 +1293,37 @@ std::shared_ptr<Instance> connect_to_instance_for_metadata(
 
 void Cluster_impl::add_metadata_for_instance(
     const mysqlshdk::db::Connection_options &instance_definition,
-    const std::string &label) const {
+    Instance_type instance_type, const std::string &label,
+    Transaction_undo *undo, bool dry_run) const {
   log_debug("Adding instance to metadata");
 
   auto instance = connect_to_instance_for_metadata(instance_definition);
 
-  add_metadata_for_instance(*instance, label);
+  add_metadata_for_instance(*instance, instance_type, label, undo, dry_run);
 }
 
 void Cluster_impl::add_metadata_for_instance(
-    const mysqlshdk::mysql::IInstance &instance,
-    const std::string &label) const {
+    const mysqlshdk::mysql::IInstance &instance, Instance_type instance_type,
+    const std::string &label, Transaction_undo *undo, bool dry_run) const {
   try {
-    Instance_metadata instance_md(query_instance_info(instance, true));
+    Instance_metadata instance_md(
+        query_instance_info(instance, true, instance_type));
 
     if (!label.empty()) instance_md.label = label;
 
     instance_md.cluster_id = get_id();
 
     // Add the instance to the metadata.
-    get_metadata_storage()->insert_instance(instance_md);
+    if (!dry_run) {
+      get_metadata_storage()->insert_instance(instance_md, undo);
+    }
   } catch (const shcore::Exception &exp) {
-    check_gr_empty_local_address_exception(exp, instance);
+    log_error("Failed to add metadata for instance '%s'",
+              instance.descr().c_str());
+
+    if (instance_type == Instance_type::GROUP_MEMBER) {
+      check_gr_empty_local_address_exception(exp, instance);
+    }
     throw;
   }
 }
@@ -1321,7 +1417,8 @@ void Cluster_impl::update_replication_allowed_host(const std::string &host) {
 retry:
   for (const Instance_metadata &instance : get_instances()) {
     auto account = get_metadata_storage()->get_instance_repl_account(
-        instance.uuid, Cluster_type::GROUP_REPLICATION);
+        instance.uuid, Cluster_type::GROUP_REPLICATION,
+        Replica_type::GROUP_MEMBER);
 
     if (account.first.empty()) {
       if (!upgraded) {
@@ -1350,7 +1447,8 @@ retry:
       }
 
       get_metadata_storage()->update_instance_repl_account(
-          instance.uuid, Cluster_type::GROUP_REPLICATION, account.first, host);
+          instance.uuid, Cluster_type::GROUP_REPLICATION,
+          Replica_type::GROUP_MEMBER, account.first, host);
     } else {
       log_info("Skipping account recreation for %s: %s@%s == %s@%s",
                instance.endpoint.c_str(), account.first.c_str(),
@@ -1422,7 +1520,8 @@ void Cluster_impl::restore_recovery_account_all_members(
 
           auto [recovery_user, recovery_host] =
               get_metadata_storage()->get_instance_repl_account(
-                  instance->get_uuid(), Cluster_type::GROUP_REPLICATION);
+                  instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+                  Replica_type::GROUP_MEMBER);
 
           mysqlshdk::mysql::Replication_credentials_options options;
 
@@ -1500,7 +1599,7 @@ void Cluster_impl::create_local_replication_user(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     std::string_view auth_cert_subject,
     const Group_replication_options &gr_options,
-    bool propagate_credentials_donors) {
+    bool propagate_credentials_donors, bool dry_run) {
   // When using the 'MySQL' communication stack, the account must already
   // exist in the joining member since authentication is based on MySQL
   // credentials so the account must exist in both ends before GR
@@ -1509,17 +1608,18 @@ void Cluster_impl::create_local_replication_user(
   // transaction
   mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance.get());
 
-  if (target_instance->get_sysvar_bool("super_read_only", false)) {
+  if (target_instance->get_sysvar_bool("super_read_only", false) && !dry_run) {
     target_instance->set_sysvar("super_read_only", false);
   }
 
   mysqlshdk::mysql::Auth_options repl_account;
 
   std::tie(repl_account, std::ignore) =
-      create_replication_user(target_instance.get(), auth_cert_subject, true,
+      create_replication_user(target_instance.get(), auth_cert_subject,
+                              Replication_account_type::GROUP_REPLICATION, true,
                               gr_options.recovery_credentials.value_or(
                                   mysqlshdk::mysql::Auth_options{}),
-                              false);
+                              dry_run);
 
   // Change GR's recovery replication credentials in all possible
   // donors so they are able to connect to the joining member. GR will pick a
@@ -1527,7 +1627,7 @@ void Cluster_impl::create_local_replication_user(
   // connect and authenticate to the joining member.
   // NOTE: Instances in RECOVERING must be skipped since won't be used as donor
   // and the change source command would fail anyway
-  if (propagate_credentials_donors)
+  if (propagate_credentials_donors && !dry_run)
     change_recovery_credentials_all_members(repl_account);
 
   DBUG_EXECUTE_IF("fail_recovery_mysql_stack", {
@@ -1658,8 +1758,11 @@ void Cluster_impl::check_instance_configuration(
     bool using_clone_recovery, checks::Check_type checks_type,
     bool already_member) const {
   // Check instance version compatibility with cluster.
-  cluster_topology_executor_ops::ensure_instance_check_installed_schema_version(
-      target_instance, get_lowest_instance_version());
+  if (checks_type != checks::Check_type::READ_REPLICA) {
+    cluster_topology_executor_ops::
+        ensure_instance_check_installed_schema_version(
+            target_instance, get_lowest_instance_version());
+  }
 
   // Check instance configuration and state, like dba.checkInstance
   // But don't do it if it was already done by the caller
@@ -1689,30 +1792,24 @@ void Cluster_impl::check_instance_configuration(
   // replication
   // NOTE: Verify for all operations: addInstance(), rejoinInstance() and
   // rebootClusterFromCompleteOutage()
-  checks::validate_async_channels(
-      *target_instance,
-      is_cluster_set_member()
-          ? std::unordered_set<std::string>{k_clusterset_async_channel_name}
-          : std::unordered_set<std::string>{},
-      checks_type);
+  if (checks_type == checks::Check_type::READ_REPLICA) {
+    checks::validate_async_channels(
+        *target_instance, {k_read_replica_async_channel_name}, checks_type);
+  } else {
+    checks::validate_async_channels(
+        *target_instance,
+        is_cluster_set_member()
+            ? std::unordered_set<std::string>{k_clusterset_async_channel_name}
+            : std::unordered_set<std::string>{},
+        checks_type);
+  }
 
-  if (!already_member) {
-    // Check instance server UUID (must be unique among the cluster members).
-    validate_server_uuid(*target_instance);
-
-    // Ensure instance server ID is unique among the cluster members.
-    try {
-      validate_server_id(*target_instance);
-    } catch (const std::runtime_error &err) {
-      auto console = mysqlsh::current_console();
-      console->print_error(
-          "Cannot join instance '" + target_instance->descr() +
-          "' to the cluster because it has the same server ID "
-          "of a member of the cluster. Please change the server "
-          "ID of the instance to add: all members must have a "
-          "unique server ID.");
-      throw;
-    }
+  if ((checks_type == checks::Check_type::JOIN ||
+       checks_type == checks::Check_type::READ_REPLICA) &&
+      !already_member) {
+    // Check instance server UUID and ID (must be unique among the cluster
+    // members).
+    validate_server_ids(*target_instance);
   }
 }
 
@@ -1964,6 +2061,23 @@ void Cluster_impl::fence_all_traffic() {
                             instance->descr() + "'...");
         mysqlshdk::gr::stop_group_replication(*instance);
 
+        return true;
+      });
+
+  execute_in_read_replicas(
+      {mysqlshdk::mysql::Read_replica_status::CONNECTING,
+       mysqlshdk::mysql::Read_replica_status::ONLINE,
+       mysqlshdk::mysql::Read_replica_status::OFFLINE,
+       mysqlshdk::mysql::Read_replica_status::ERROR},
+      get_cluster_server()->get_connection_options(), {},
+      [&console](const Instance &instance) {
+        console->print_info("* Enabling offline_mode on '" + instance.descr() +
+                            "'...");
+        instance.set_sysvar("offline_mode", true);
+
+        console->print_info("* Stopping replication on '" + instance.descr() +
+                            "'...");
+        stop_channel(instance, k_read_replica_async_channel_name, true, false);
         return true;
       });
 
@@ -2411,31 +2525,36 @@ void Cluster_impl::force_quorum_using_partition_of(
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
 
-  std::vector<Instance_metadata> online_instances = get_active_instances();
+  std::vector<Instance_metadata> read_replicas = get_replica_instances();
 
-  if (online_instances.empty()) {
-    throw shcore::Exception::logic_error(
-        "No online instances are visible from the given one.");
-  }
+  {
+    std::vector<Instance_metadata> online_instances =
+        get_active_instances(false);
 
-  auto group_peers_print =
-      shcore::str_join(online_instances.begin(), online_instances.end(), ",",
-                       [](const auto &i) { return i.endpoint; });
+    if (online_instances.empty()) {
+      throw shcore::Exception::logic_error(
+          "No online instances are visible from the given one.");
+    }
 
-  // Remove the trailing comma of group_peers_print
-  if (group_peers_print.back() == ',') group_peers_print.pop_back();
+    if (interactive) {
+      const auto console = current_console();
 
-  if (interactive) {
-    const auto console = current_console();
+      auto group_peers_print =
+          shcore::str_join(online_instances.begin(), online_instances.end(),
+                           ",", [](const auto &i) { return i.endpoint; });
 
-    std::string message = "Restoring cluster '" + get_name() +
-                          "' from loss of quorum, by using the partition "
-                          "composed of [" +
-                          group_peers_print + "]\n";
-    console->print_info(message);
+      // Remove the trailing comma of group_peers_print
+      if (group_peers_print.back() == ',') group_peers_print.pop_back();
 
-    console->print_info("Restoring the InnoDB cluster ...");
-    console->print_info();
+      std::string message = "Restoring cluster '" + get_name() +
+                            "' from loss of quorum, by using the partition "
+                            "composed of [" +
+                            group_peers_print + "]\n";
+      console->print_info(message);
+
+      console->print_info("Restoring the InnoDB cluster ...");
+      console->print_info();
+    }
   }
 
   // TODO(miguel): test if there's already quorum and add a 'force' option to
@@ -2530,8 +2649,8 @@ void Cluster_impl::force_quorum_using_partition_of(
     std::shared_ptr<Instance> instance_session;
     try {
       log_info(
-          "Opening a new session to a group_peer instance to obtain the XCOM "
-          "address %s",
+          "Opening a new session to a group_peer instance to obtain "
+          "group_replication_local_address: %s",
           instance_host.c_str());
       instance_session = Instance::connect(
           target_coptions, current_shell_options()->get().wizards);
@@ -2569,6 +2688,42 @@ void Cluster_impl::force_quorum_using_partition_of(
         "No online instances are visible from the given one.");
   }
 
+  // Stop Replication on all ONLINE Read-Replicas
+  std::vector<
+      std::pair<std::shared_ptr<mysqlsh::dba::Instance>, Instance_metadata>>
+      online_read_replicas;
+
+  for (const auto &rr : read_replicas) {
+    std::shared_ptr<Instance> rr_instance;
+    try {
+      rr_instance = get_session_to_cluster_instance(rr.endpoint);
+    } catch (const std::exception &err) {
+      log_info("Unable to connect to '%s'", rr.endpoint.c_str());
+      continue;
+    }
+
+    if (!rr_instance) continue;
+
+    // Stop the channel
+    // NOTE: attempt to stop all replicas regardless of their state, i.e.
+    // ONLINE, CONNECTING, ERROR OR OFFLINE.
+    try {
+      stop_channel(*rr_instance, k_read_replica_async_channel_name, true,
+                   false);
+      log_info(
+          "Successfully stopped replication channel of Read-Replica at "
+          "'%s'",
+          rr.endpoint.c_str());
+    } catch (std::exception &e) {
+      mysqlsh::current_console()->print_warning(
+          shcore::str_format("Failed to stop replication channel on '%s': '%s'",
+                             rr.endpoint.c_str(), e.what()));
+    }
+
+    // Add to the list of online read_replicas
+    online_read_replicas.push_back(std::make_pair(std::move(rr_instance), rr));
+  }
+
   // Force the reconfiguration of the GR group
   {
     // Remove the trailing comma of group_peers
@@ -2596,6 +2751,20 @@ void Cluster_impl::force_quorum_using_partition_of(
   if (is_cluster_set_member() && !is_primary_cluster()) {
     auto cs = get_cluster_set_object();
     cs->ensure_replica_settings(this, false);
+  }
+
+  // Restart the replication channel of the Read-Replicas
+  for (const auto &rr : online_read_replicas) {
+    try {
+      start_channel(*rr.first, k_read_replica_async_channel_name, false);
+      log_info(
+          "Successfully restarted replication channel of Read-Replica at '%s'",
+          rr.second.endpoint.c_str());
+    } catch (std::exception &e) {
+      mysqlsh::current_console()->print_warning(shcore::str_format(
+          "Failed to restart replication channel on '%s': '%s'",
+          rr.second.endpoint.c_str(), e.what()));
+    }
   }
 
   if (interactive) {
@@ -2803,9 +2972,11 @@ mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
 std::pair<mysqlshdk::mysql::Auth_options, std::string>
 Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
                                       std::string_view auth_cert_subject,
+                                      Replication_account_type account_type,
                                       bool only_on_target,
                                       mysqlshdk::mysql::Auth_options creds,
-                                      bool print_recreate_note) const {
+                                      bool print_recreate_note,
+                                      bool dry_run) const {
   assert(target);
 
   auto primary = target;
@@ -2814,7 +2985,10 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
 
   if (creds.user.empty()) {
     creds.user = make_replication_user_name(
-        target->get_server_id(), mysqlshdk::gr::k_group_recovery_user_prefix);
+        target->get_server_id(),
+        account_type == Replication_account_type::READ_REPLICA
+            ? k_cluster_read_replica_user_name
+            : mysqlshdk::gr::k_group_recovery_user_prefix);
   }
 
   std::shared_ptr<mysqlshdk::mysql::IInstance> primary_master;
@@ -2823,10 +2997,10 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
     primary = primary_master.get();
   }
 
-  log_info("Creating recovery account '%s'@'%s' for instance '%s'",
+  log_info("Creating replication account '%s'@'%s' for instance '%s'",
            creds.user.c_str(), host.c_str(), target->descr().c_str());
 
-  // Get all hosts for the recovery account:
+  // Get all hosts for the account:
   //
   // There may be left-over accounts in the target instance that must be
   // cleared-out, especially because when using the MySQL Communication Stack a
@@ -2855,7 +3029,9 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
       log_debug("%s", note.c_str());
     }
 
-    primary->drop_user(creds.user, hostname);
+    if (!dry_run) {
+      primary->drop_user(creds.user, hostname);
+    }
   }
 
   // Check if clone is available on ALL cluster members, to avoid a failing
@@ -2874,10 +3050,15 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
   mysqlshdk::gr::Create_recovery_user_options user_options;
   user_options.clone_supported =
       clone_available_all_members && supports_mysql_clone(target_version);
-  user_options.auto_failover = false;
-  user_options.mysql_comm_stack_supported =
-      mysql_comm_stack_available_all_members &&
-      supports_mysql_communication_stack(target_version);
+
+  if (account_type == Replication_account_type::READ_REPLICA) {
+    user_options.auto_failover = true;
+  } else {
+    user_options.auto_failover = false;
+    user_options.mysql_comm_stack_supported =
+        mysql_comm_stack_available_all_members &&
+        supports_mysql_communication_stack(target_version);
+  }
 
   // setup password, cert issuer and/or subject
   auto auth_type = query_cluster_auth_type();
@@ -2909,9 +3090,443 @@ Cluster_impl::create_replication_user(mysqlshdk::mysql::IInstance *target,
       break;
   }
 
-  return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, hosts,
-                                              user_options),
-          host};
+  if (!dry_run) {
+    return {mysqlshdk::gr::create_recovery_user(creds.user, *primary, hosts,
+                                                user_options),
+            host};
+  } else {
+    mysqlshdk::mysql::Auth_options ret_creds;
+    ret_creds.password = user_options.password;
+    ret_creds.user = creds.user;
+
+    return {ret_creds, host};
+  }
+}
+
+std::pair<Async_replication_options, std::string>
+Cluster_impl::create_read_replica_replication_user(
+    mysqlshdk::mysql::IInstance *target, std::string_view auth_cert_subject,
+    int sync_timeout, bool dry_run) const {
+  assert(target);
+
+  Async_replication_options ar_options;
+
+  // Set CONNECTION_RETRY_INTERVAL and CONNECTION_RETRY_COUNT
+  ar_options.master_connect_retry = k_read_replica_master_connect_retry;
+  ar_options.master_retry_count = k_read_replica_master_retry_count;
+
+  // Enable SOURCE_CONNECTION_AUTO_FAILOVER
+  ar_options.auto_failover = true;
+
+  // Get the Cluster's SSL mode
+  ar_options.ssl_mode =
+      to_cluster_ssl_mode(get_cluster_server()->get_sysvar_string(
+          "group_replication_ssl_mode", ""));
+
+  // Create replication account
+  std::string repl_account_host;
+
+  std::tie(ar_options.repl_credentials, repl_account_host) =
+      create_replication_user(target, auth_cert_subject,
+                              Replication_account_type::READ_REPLICA, false, {},
+                              true, dry_run);
+
+  // If the Cluster belongs to a ClusterSet sync with the primary Cluster
+  // to ensure the replication account that was just re-created was already
+  // replicated to the targer Cluster, otherwise, the read-replica channel
+  // can fail to start with an authentication error
+  if (is_cluster_set_member() && !is_primary_cluster() && !dry_run) {
+    auto console = mysqlsh::current_console();
+    console->print_info();
+    console->print_info(
+        "* Waiting for the Cluster to synchronize with the PRIMARY "
+        "Cluster...");
+
+    try {
+      sync_transactions(*get_cluster_server(), k_clusterset_async_channel_name,
+                        sync_timeout);
+    } catch (const shcore::Exception &e) {
+      if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
+        console->print_warning(
+            "The Cluster failed to synchronize its transaction set "
+            "with the PRIMARY Cluster. You may increase or disable the "
+            "transaction sync timeout with the option 'timeout'");
+      }
+    }
+  }
+
+  return {ar_options, repl_account_host};
+}
+
+void Cluster_impl::drop_read_replica_replication_user(
+    Instance *target, bool dry_run, mysqlshdk::mysql::Sql_undo_list *undo) {
+  assert(m_primary_master);
+
+  std::string repl_user;
+  std::string repl_user_host;
+
+  std::string target_instance_uuid = target->get_uuid();
+
+  std::tie(repl_user, repl_user_host) =
+      get_metadata_storage()->get_read_replica_repl_account(
+          target_instance_uuid);
+
+  log_info(
+      "Dropping read-replica replication account '%s'@'%s' for instance '%s'",
+      repl_user.c_str(), repl_user_host.c_str(), target->descr().c_str());
+
+  if (!dry_run) {
+    try {
+      if (undo) {
+        undo->add_snapshot_for_drop_user(*get_primary_master(), repl_user,
+                                         repl_user_host);
+      }
+      m_primary_master->drop_user(repl_user, repl_user_host.c_str(), true);
+    } catch (const std::exception &e) {
+      mysqlsh::current_console()->print_warning(shcore::str_format(
+          "Error dropping read-replica replication account "
+          "'%s'@'%s' for instance '%s'",
+          repl_user.c_str(), repl_user_host.c_str(), target->descr().c_str()));
+    }
+
+    // Also update metadata
+    try {
+      get_metadata_storage()->update_read_replica_repl_account(
+          target_instance_uuid, "", "");
+    } catch (const std::exception &e) {
+      log_warning(
+          "Could not update read-replica replication account metadata for "
+          "instance '%s': %s",
+          target->descr().c_str(), e.what());
+    }
+  }
+}
+
+void Cluster_impl::setup_read_replica_connection_failover(
+    const Instance &replica, const Instance &source,
+    cluster::Replication_sources replication_sources, bool rejoin,
+    bool dry_run) {
+  try {
+    // Delete any previous managed connection failover configurations
+    delete_managed_connection_failover(
+        replica, k_read_replica_async_channel_name, dry_run);
+
+    // Setup the new managed connection failover if no replicationSources was
+    // given or it was set to "primary"
+    if (replication_sources.source_type == cluster::Source_type::PRIMARY) {
+      add_managed_connection_failover(
+          replica, source, k_read_replica_async_channel_name, "",
+          k_read_replica_higher_weight, k_read_replica_lower_weight, dry_run);
+    } else if (replication_sources.source_type ==
+               cluster::Source_type::SECONDARY) {
+      add_managed_connection_failover(
+          replica, source, k_read_replica_async_channel_name, "",
+          k_read_replica_lower_weight, k_read_replica_higher_weight, dry_run);
+    } else if (replication_sources.source_type ==
+               cluster::Source_type::CUSTOM) {
+      // Get the current configuration
+      Managed_async_channel channel_config;
+      if (rejoin &&
+          get_managed_connection_failover_configuration(replica,
+                                                        &channel_config) &&
+          !channel_config.sources.empty() &&
+          channel_config.managed_name.empty()) {
+        // Get all sources that do not belong to the configured ones in the
+        // Metadata
+        std::set<Managed_async_channel_source,
+                 std::greater<Managed_async_channel_source>>
+            sources_not_in_md;
+
+        std::set_difference(
+            channel_config.sources.begin(), channel_config.sources.end(),
+            replication_sources.replication_sources.begin(),
+            replication_sources.replication_sources.end(),
+            std::inserter(sources_not_in_md, sources_not_in_md.end()),
+            std::greater<Managed_async_channel_source>{});
+
+        // Clean-up the sources that don't belong to the MD. Those are the
+        // instances in channel_config.sources that don't belong to
+        // replication_sources.replication_sources
+        for (const auto &src : sources_not_in_md) {
+          log_info("Deleting replication source '%s' from '%s'",
+                   src.to_string().c_str(), replica.descr().c_str());
+          delete_source_connection_failover(replica, src.host, src.port,
+                                            k_read_replica_async_channel_name,
+                                            "", dry_run);
+        }
+
+        // Add unconfigured sources
+        for (const auto &src : replication_sources.replication_sources) {
+          // Check if the source is already configured, if so leave it.
+          if (std::find_if(
+                  channel_config.sources.begin(), channel_config.sources.end(),
+                  Managed_async_channel_source::Predicate_weight(src)) ==
+              channel_config.sources.end()) {
+            log_info("Adding replication source '%s' to '%s'",
+                     src.to_string().c_str(), replica.descr().c_str());
+            add_source_connection_failover(replica, src.host, src.port,
+                                           k_read_replica_async_channel_name,
+                                           "", src.weight, dry_run);
+          }
+        }
+      } else {
+        // Delete any previous managed connection failover configurations
+        delete_managed_connection_failover(
+            replica, k_read_replica_async_channel_name, dry_run);
+
+        // Add all sources
+        for (const auto &src : replication_sources.replication_sources) {
+          log_info("Adding replication source '%s' to '%s'",
+                   src.to_string().c_str(), replica.descr().c_str());
+          add_source_connection_failover(replica, src.host, src.port,
+                                         k_read_replica_async_channel_name, "",
+                                         src.weight, dry_run);
+        }
+      }
+    }
+  } catch (...) {
+    log_error("Error setting up connection failover at %s: %s",
+              replica.descr().c_str(), format_active_exception().c_str());
+    throw;
+  }
+}
+
+void Cluster_impl::setup_read_replica(
+    Instance *replica, const Async_replication_options &ar_options,
+    cluster::Replication_sources replication_sources, bool rejoin,
+    bool dry_run) {
+  log_info("Configuring '%s' as a Read-Replica of Cluster '%s'",
+           replica->descr().c_str(), get_name().c_str());
+
+  auto ipool = current_ipool();
+  Scoped_instance source;
+
+  if (rejoin &&
+      replication_sources.source_type != cluster::Source_type::CUSTOM) {
+    stop_channel(*replica, k_read_replica_async_channel_name, true, dry_run);
+    reset_managed_connection_failover(*replica, dry_run);
+  }
+
+  try {
+    if (replication_sources.source_type == cluster::Source_type::PRIMARY) {
+      // The source must be the primary
+      source = Scoped_instance(get_cluster_server());
+      source->retain();
+    } else if (replication_sources.source_type ==
+               cluster::Source_type::SECONDARY) {
+      // Get an online member to use as source, preferably a secondary
+      auto instances_md = get_active_instances();
+
+      for (const auto &instance : instances_md) {
+        // Skip the primary only if there are more than 1 ONLINE members,
+        // otherwise, the primary must be use
+        if (instances_md.size() > 1 &&
+            instance.uuid == get_cluster_server()->get_uuid()) {
+          continue;
+        }
+
+        try {
+          log_info(
+              "Establishing a session to the InnoDB Cluster member '%s'...",
+              instance.endpoint.c_str());
+
+          // Return the first valid (reachable) instance.
+          source = Scoped_instance(
+              ipool->connect_unchecked_endpoint(instance.endpoint));
+
+          break;
+        } catch (const std::exception &e) {
+          log_debug(
+              "Unable to establish a session to the Cluster member '%s': %s",
+              instance.endpoint.c_str(), e.what());
+        }
+      }
+
+      // Check if source is valid. It might not be if for some reaason we
+      // weren't able to connect to any of the online members
+      if (!source) {
+        mysqlsh::current_console()->print_error(
+            "Unable to connect to any Cluster member to be used as source.");
+        throw shcore::Exception(
+            "No reachable members available",
+            SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_ONLINE);
+      }
+    } else if (replication_sources.source_type ==
+                   cluster::Source_type::CUSTOM &&
+               !replication_sources.replication_sources.empty()) {
+      // The source must be the first member of the 'replicationSources'
+      auto first_element = *(replication_sources.replication_sources.begin());
+
+      std::string source_str = first_element.to_string();
+
+      // Try to connect to instance.
+      log_debug("Connecting to instance '%s'", source_str.c_str());
+
+      try {
+        source = Scoped_instance(ipool->connect_unchecked_endpoint(source_str));
+        log_debug("Successfully connected to instance");
+      } catch (const shcore::Error &err) {
+        mysqlsh::current_console()->print_error(
+            "Unable to use '" + source_str +
+            "' as a source, instance is unreachable: " + err.format());
+
+        throw shcore::Exception(
+            "Source is not reachable",
+            SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
+      }
+    }
+
+    async_change_primary(replica, source.get(),
+                         k_read_replica_async_channel_name, ar_options, true,
+                         dry_run);
+
+    log_info("Replication source of '%s' changed to '%s'",
+             replica->descr().c_str(), source->descr().c_str());
+  } catch (...) {
+    mysqlsh::current_console()->print_error(
+        "Error updating replication source for " + replica->descr() + ": " +
+        format_active_exception());
+
+    throw shcore::Exception(
+        "Could not update replication source of " + replica->descr(),
+        SHERR_DBA_READ_REPLICA_SETUP_ERROR);
+  }
+
+  log_info("Configuring the managed connection failover configurations for %s",
+           replica->descr().c_str());
+
+  setup_read_replica_connection_failover(*replica, *source, replication_sources,
+                                         rejoin, dry_run);
+}
+
+void Cluster_impl::validate_replication_sources(
+    const std::set<Managed_async_channel_source,
+                   std::greater<Managed_async_channel_source>> &sources,
+    const std::string &target_instance_address,
+    std::vector<std::string> *out_sources_canonical_address) const {
+  // Check if the replicationSources are reachable and ONLINE cluster members
+  for (const auto &source : sources) {
+    std::shared_ptr<Instance> source_instance;
+    std::string source_string = source.to_string();
+
+    try {
+      source_instance = get_session_to_cluster_instance(source_string);
+    } catch (const shcore::Exception &e) {
+      // We can't connect to the instance so it's not a valid source
+      mysqlsh::current_console()->print_error(
+          "Unable to rejoin Read-Replica '" + target_instance_address +
+          "' to the Cluster: Unable to use '" + source_string +
+          "' as source, instance is unreachable. Use "
+          "Cluster.setInstanceOption() with the option 'replicationSources' "
+          "to update the instance's sources.");
+
+      throw shcore::Exception(
+          "Source is not reachable",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
+    }
+
+    Instance_metadata instance_md;
+
+    try {
+      // Check if the address is in the Metadata
+
+      // Use the canonical address, since that's the one stored in the MD
+      auto source_canononical_address =
+          source_instance->get_canonical_address();
+
+      instance_md = get_metadata_storage()->get_instance_by_address(
+          source_canononical_address);
+
+      if (out_sources_canonical_address) {
+        out_sources_canonical_address->push_back(source_canononical_address);
+      }
+    } catch (const shcore::Exception &e) {
+      mysqlsh::current_console()->print_error(
+          "Unable to rejoin Read-Replica '" + target_instance_address +
+          "' to the Cluster: Unable to use '" + source_string +
+          "' as source, instance does not belong to the Cluster. Use "
+          "Cluster.setInstanceOption() with the option "
+          "'replicationSources' to update the instance's sources.");
+
+      throw shcore::Exception(
+          "Source does not belong to the Cluster",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_IN_MD);
+    }
+
+    // Check if the instance is a Read-Replica
+    if (instance_md.instance_type == Instance_type::READ_REPLICA) {
+      mysqlsh::current_console()->print_error(
+          "Unable to rejoin Read-Replica '" + target_instance_address +
+          "' to the Cluster: Unable to use '" + source_string +
+          "' which is a Read-Replica, as source. Use "
+          "Cluster.setInstanceOption() with the option "
+          "'replicationSources' to update the instance's sources.");
+
+      throw shcore::Exception(
+          "Invalid source type",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_CLUSTER_MEMBER);
+    }
+
+    auto state = mysqlshdk::gr::get_member_state(*source_instance);
+
+    if (state != mysqlshdk::gr::Member_state::ONLINE) {
+      mysqlsh::current_console()->print_error(
+          "Unable to rejoin Read-Replica '" + target_instance_address +
+          "' to the Cluster: Unable to use '" + source_string +
+          "' as source, instance's state is '" + to_string(state) +
+          "'. Use Cluster.setInstanceOption() with the option "
+          "'replicationSources' to update the instance's sources.");
+
+      throw shcore::Exception(
+          "Source is not ONLINE",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_ONLINE);
+    }
+  }
+}
+
+cluster::Replication_sources Cluster_impl::get_read_replica_replication_sources(
+    const std::string &replica_uuid) const {
+  cluster::Replication_sources replication_sources_opts;
+  replication_sources_opts.replication_sources =
+      std::set<Managed_async_channel_source,
+               std::greater<Managed_async_channel_source>>{};
+
+  if (shcore::Value source_attribute;
+      get_metadata_storage()->query_instance_attribute(
+          replica_uuid, k_instance_attribute_read_replica_replication_sources,
+          &source_attribute)) {
+    if (source_attribute.type == shcore::String) {
+      auto string = source_attribute.as_string();
+
+      if (shcore::str_caseeq(string, kReplicationSourcesAutoPrimary)) {
+        replication_sources_opts.source_type = cluster::Source_type::PRIMARY;
+      } else if (shcore::str_caseeq(string, kReplicationSourcesAutoSecondary)) {
+        replication_sources_opts.source_type = cluster::Source_type::SECONDARY;
+      } else {
+        // Should never happen, unless the Metadata is edited manually
+        throw shcore::Exception("Invalid metadata for Read-Replica found",
+                                SHERR_DBA_METADATA_INCONSISTENT);
+      }
+    } else if (source_attribute.type == shcore::Array) {
+      replication_sources_opts.source_type = cluster::Source_type::CUSTOM;
+
+      uint64_t src_weight = k_read_replica_max_weight;
+
+      for (const auto &v : *source_attribute.as_array()) {
+        std::string src_string = v.as_string();
+
+        replication_sources_opts.replication_sources.emplace(
+            Managed_async_channel_source(src_string, src_weight));
+
+        // When 100 read-replicas were added, the following ones will have the
+        // weight of 1. Group Replication's range of weights goes from 100 to 1
+        // but we should not limit the number of read-replicas
+        if (src_weight != 1) src_weight--;
+      }
+    }
+  }
+
+  return replication_sources_opts;
 }
 
 void Cluster_impl::reset_recovery_password(
@@ -2956,10 +3571,11 @@ void Cluster_impl::reset_recovery_password(
 }
 
 std::pair<std::string, std::string> Cluster_impl::recreate_replication_user(
-    const std::shared_ptr<Instance> &target,
-    std::string_view auth_cert_subject) const {
+    const std::shared_ptr<Instance> &target, std::string_view auth_cert_subject,
+    bool dry_run) const {
   auto [repl_account, repl_account_host] = create_replication_user(
-      target.get(), auth_cert_subject, false, {}, false);
+      target.get(), auth_cert_subject,
+      Replication_account_type::GROUP_REPLICATION, false, {}, false, dry_run);
 
   mysqlshdk::mysql::Replication_credentials_options options;
   options.password = repl_account.password.value_or("");
@@ -2974,7 +3590,7 @@ std::pair<std::string, std::string> Cluster_impl::recreate_replication_user(
 
 bool Cluster_impl::drop_replication_user(
     mysqlshdk::mysql::IInstance *target, const std::string &endpoint,
-    const std::string &server_uuid, const uint32_t server_id,
+    const std::string &server_uuid, const uint32_t server_id, bool dry_run,
     mysqlshdk::mysql::Sql_undo_list *undo) {
   // Either target is a valid pointer or endpoint & server_uuid are set
   assert(target || (!endpoint.empty() && !server_uuid.empty()));
@@ -3003,14 +3619,14 @@ bool Cluster_impl::drop_replication_user(
   }
 
   // Check if the recovery account created for the instance when it
-  // joined the cluster, is in use by any other member. If not, it is a leftover
-  // that must be dropped. This scenario happens when an instance is added to a
-  // cluster using clone as the recovery method but waitRecovery is zero or the
-  // user cancelled the monitoring of the recovery so the instance will use the
-  // seed's recovery account leaving its own account unused.
+  // joined the cluster, is in use by any other member. If not, it is a
+  // leftover that must be dropped. This scenario happens when an instance is
+  // added to a cluster using clone as the recovery method but waitRecovery is
+  // zero or the user cancelled the monitoring of the recovery so the instance
+  // will use the seed's recovery account leaving its own account unused.
   //
-  // TODO(anyone): BUG#30031815 requires that we skip if the primary instance is
-  // being removed. It causes a primary election and we cannot know which
+  // TODO(anyone): BUG#30031815 requires that we skip if the primary instance
+  // is being removed. It causes a primary election and we cannot know which
   // instance will be the primary to perform the cleanup
   if (!mysqlshdk::utils::are_endpoints_equal(
           target_endpoint, primary->get_canonical_address())) {
@@ -3036,16 +3652,18 @@ bool Cluster_impl::drop_replication_user(
       log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
                user.c_str(), host.c_str(), target_endpoint.c_str());
 
-      try {
-        if (undo) {
-          undo->add_snapshot_for_drop_user(*get_primary_master(), user, host);
+      if (!dry_run) {
+        try {
+          if (undo) {
+            undo->add_snapshot_for_drop_user(*get_primary_master(), user, host);
+          }
+          get_primary_master()->drop_user(user, host, true);
+        } catch (...) {
+          mysqlsh::current_console()->print_warning(shcore::str_format(
+              "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
+              user.c_str(), host.c_str(), target_endpoint.c_str(),
+              format_active_exception().c_str()));
         }
-        get_primary_master()->drop_user(user, host, true);
-      } catch (...) {
-        mysqlsh::current_console()->print_warning(shcore::str_format(
-            "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
-            user.c_str(), host.c_str(), target_endpoint.c_str(),
-            format_active_exception().c_str()));
       }
     } else {
       log_info(
@@ -3074,7 +3692,8 @@ bool Cluster_impl::drop_replication_user(
     // Get the user from the Metadata
     std::tie(recovery_user, recovery_user_host) =
         get_metadata_storage()->get_instance_repl_account(
-            target_server_uuid, Cluster_type::GROUP_REPLICATION);
+            target_server_uuid, Cluster_type::GROUP_REPLICATION,
+            Replica_type::GROUP_MEMBER);
 
     if (recovery_user.empty()) {
       log_warning("Could not obtain recovery account metadata for '%s'",
@@ -3088,20 +3707,22 @@ bool Cluster_impl::drop_replication_user(
   // Drop the recovery account
   if (!from_metadata) {
     log_info("Removing replication user '%s'", recovery_user.c_str());
-    try {
-      auto hosts =
-          mysqlshdk::mysql::get_all_hostnames_for_user(*primary, recovery_user);
+    if (!dry_run) {
+      try {
+        auto hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
+            *primary, recovery_user);
 
-      for (const auto &host : hosts) {
-        if (undo) {
-          undo->add_snapshot_for_drop_user(*primary, recovery_user, host);
+        for (const auto &host : hosts) {
+          if (undo) {
+            undo->add_snapshot_for_drop_user(*primary, recovery_user, host);
+          }
+          primary->drop_user(recovery_user, host, true);
         }
-        primary->drop_user(recovery_user, host, true);
+      } catch (const std::exception &e) {
+        console->print_warning("Error dropping recovery accounts for user " +
+                               recovery_user + ": " + e.what());
+        return false;
       }
-    } catch (const std::exception &e) {
-      console->print_warning("Error dropping recovery accounts for user " +
-                             recovery_user + ": " + e.what());
-      return false;
     }
   } else {
     /*
@@ -3129,31 +3750,34 @@ bool Cluster_impl::drop_replication_user(
                recovery_user.c_str(), recovery_user_host.c_str(),
                target_endpoint.c_str());
 
-      try {
-        if (undo) {
-          undo->add_snapshot_for_drop_user(*primary, recovery_user,
-                                           recovery_user_host);
+      if (!dry_run) {
+        try {
+          if (undo) {
+            undo->add_snapshot_for_drop_user(*primary, recovery_user,
+                                             recovery_user_host);
+          }
+          primary->drop_user(recovery_user, recovery_user_host, true);
+        } catch (...) {
+          console->print_warning(shcore::str_format(
+              "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
+              recovery_user.c_str(), recovery_user_host.c_str(),
+              target_endpoint.c_str(), format_active_exception().c_str()));
         }
-        primary->drop_user(recovery_user, recovery_user_host, true);
-      } catch (...) {
-        console->print_warning(shcore::str_format(
-            "Error dropping recovery account '%s'@'%s' for instance '%s': %s",
-            recovery_user.c_str(), recovery_user_host.c_str(),
-            target_endpoint.c_str(), format_active_exception().c_str()));
-      }
 
-      // Also update metadata
-      try {
-        std::unique_ptr<Transaction_undo> trx_undo = Transaction_undo::create();
+        // Also update metadata
+        try {
+          std::unique_ptr<Transaction_undo> trx_undo =
+              Transaction_undo::create();
 
-        get_metadata_storage()->update_instance_repl_account(
-            target_server_uuid, Cluster_type::GROUP_REPLICATION, "", "",
-            trx_undo.get());
+          get_metadata_storage()->update_instance_repl_account(
+              target_server_uuid, Cluster_type::GROUP_REPLICATION,
+              Replica_type::GROUP_MEMBER, "", "", trx_undo.get());
 
-        if (undo) undo->add(std::move(trx_undo));
-      } catch (const std::exception &e) {
-        log_warning("Could not update recovery account metadata for '%s': %s",
-                    target_endpoint.c_str(), e.what());
+          if (undo) undo->add(std::move(trx_undo));
+        } catch (const std::exception &e) {
+          log_warning("Could not update recovery account metadata for '%s': %s",
+                      target_endpoint.c_str(), e.what());
+        }
       }
     }
   }
@@ -3169,11 +3793,11 @@ void Cluster_impl::drop_replication_users(
       [this, undo](const std::shared_ptr<Instance> &instance,
                    const Instance_md_and_gr_member &info) {
         try {
-          drop_replication_user(instance.get(), "", "", 0, undo);
-        } catch (...) {
+          drop_replication_user(instance.get(), "", "", 0, false, undo);
+        } catch (const std::exception &e) {
           current_console()->print_warning("Could not drop internal user for " +
                                            info.first.endpoint + ": " +
-                                           format_active_exception());
+                                           e.what());
         }
         return true;
       },
@@ -3182,12 +3806,31 @@ void Cluster_impl::drop_replication_users(
         // drop user based on MD lookup (will not work if the instance is still
         // using legacy account management)
         if (!drop_replication_user(nullptr, info.first.endpoint,
-                                   info.first.uuid, info.first.server_id,
+                                   info.first.uuid, info.first.server_id, false,
                                    undo)) {
           current_console()->print_warning("Could not drop internal user for " +
                                            info.first.endpoint + ": " +
                                            connect_error.format());
         }
+        return true;
+      });
+
+  // Drop read-replicas accounts too
+  execute_in_read_replicas(
+      [this, undo](const std::shared_ptr<Instance> &instance) {
+        try {
+          drop_read_replica_replication_user(instance.get(), false, undo);
+        } catch (...) {
+          current_console()->print_warning("Could not drop internal user for " +
+                                           instance->descr() + ": " +
+                                           format_active_exception());
+        }
+        return true;
+      },
+      [](const shcore::Error &connect_error, const Instance_metadata &info) {
+        current_console()->print_warning("Could not drop internal user for " +
+                                         info.endpoint + ": " +
+                                         connect_error.format());
         return true;
       });
 }
@@ -3201,10 +3844,13 @@ void Cluster_impl::wipe_all_replication_users() {
   std::string rec_prefix =
       std::string(mysqlshdk::gr::k_group_recovery_user_prefix) + "%";
   std::string cs_prefix = std::string(k_cluster_set_async_user_name) + "%";
+  std::string read_replica_prefix =
+      std::string(k_cluster_read_replica_user_name) + "%";
 
   auto result = primary->queryf(
-      "SELECT user from mysql.user WHERE user LIKE ? OR user LIKE ?",
-      rec_prefix, cs_prefix);
+      "SELECT DISTINCT user from mysql.user WHERE user LIKE ? OR user LIKE ? "
+      "OR user LIKE ?",
+      rec_prefix, cs_prefix, read_replica_prefix);
   while (auto row = result->fetch_one()) {
     accounts_to_drop.push_back(row->get_string(0));
   }
@@ -3274,8 +3920,8 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     primary_url = find_primary_member_uri(m_cluster_server, false, nullptr);
 
     if (primary_url.empty()) {
-      // Might happen and it should be possible to check the Cluster's status in
-      // such situation
+      // Might happen and it should be possible to check the Cluster's status
+      // in such situation
       if (primary_required)
         current_console()->print_info("No PRIMARY member found for cluster '" +
                                       get_name() + "'");
@@ -3288,9 +3934,9 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
       auto new_primary = Instance::connect(copts);
 
-      // Check if GR is active or not. If not active or in error state, throw an
-      // exception and leave the attributes unchanged.
-      // This may happen when a failover is happening at the moment
+      // Check if GR is active or not. If not active or in error state, throw
+      // an exception and leave the attributes unchanged. This may happen when
+      // a failover is happening at the moment
       auto instance_state = mysqlshdk::gr::get_member_state(*new_primary);
 
       if (instance_state == mysqlshdk::gr::Member_state::OFFLINE ||
@@ -3371,10 +4017,9 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
         Instance::connect(m_primary_master->get_connection_options()));
 
     if (is_cluster_set_member()) {
-      // Update the Cluster's Cluster_set_member_metadata data according to the
-      // Correct Metadata
-      // Note: This also marks the cluster as invalidated. That info might be
-      // required later on
+      // Update the Cluster's Cluster_set_member_metadata data according to
+      // the Correct Metadata Note: This also marks the cluster as
+      // invalidated. That info might be required later on
       m_metadata_storage->get_cluster_set_member(get_id(), &m_cs_md);
     }
   }
@@ -3457,7 +4102,8 @@ Cluster_impl::get_replication_user(
   std::vector<std::string> recovery_user_hosts;
   std::tie(recovery_user, recovery_user_host) =
       get_metadata_storage()->get_instance_repl_account(
-          target_instance.get_uuid(), Cluster_type::GROUP_REPLICATION);
+          target_instance.get_uuid(), Cluster_type::GROUP_REPLICATION,
+          Replica_type::GROUP_MEMBER);
   if (recovery_user.empty()) {
     // Assuming the account was created by an older version of the shell,
     // which did not store account name in metadata
@@ -3681,6 +4327,175 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) const {
   return count;
 }
 
+namespace {
+constexpr std::chrono::seconds k_recovery_start_timeout{30};
+}
+
+void Cluster_impl::wait_instance_recovery(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::string &join_begin_time,
+    Recovery_progress_style progress_style) const {
+  auto console = current_console();
+  try {
+    auto post_clone_auth = target_instance.get_connection_options();
+    post_clone_auth.set_login_options_from(
+        get_cluster_server()->get_connection_options());
+
+    monitor_gr_recovery_status(
+        target_instance.get_connection_options(), post_clone_auth,
+        join_begin_time, progress_style, k_recovery_start_timeout.count(),
+        current_shell_options()->get().dba_restart_wait_timeout);
+  } catch (const shcore::Exception &e) {
+    // If the recovery itself failed we abort, but monitoring errors can be
+    // ignored.
+    if (e.code() == SHERR_DBA_CLONE_RECOVERY_FAILED ||
+        e.code() == SHERR_DBA_DISTRIBUTED_RECOVERY_FAILED) {
+      console->print_error("Recovery error in added instance: " + e.format());
+      throw;
+    } else {
+      console->print_warning(
+          "Error while waiting for recovery of the added instance: " +
+          e.format());
+    }
+  } catch (const restart_timeout &) {
+    console->print_warning(
+        "Clone process appears to have finished and tried to restart the "
+        "MySQL server, but it has not yet started back up.");
+
+    console->print_info();
+    console->print_info(
+        "Please make sure the MySQL server at '" + target_instance.descr() +
+        "' is restarted and call <Cluster>.rescan() to complete the process. "
+        "To increase the timeout, change "
+        "shell.options[\"dba.restartWaitTimeout\"].");
+
+    throw shcore::Exception("Timeout waiting for server to restart",
+                            SHERR_DBA_SERVER_RESTART_TIMEOUT);
+  }
+}
+
+int64_t Cluster_impl::prepare_clone_recovery(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    bool force_clone) const {
+  bool clone_disabled = get_disable_clone_option();
+
+  // Clone must be uninstalled only when disableClone is enabled on the
+  // Cluster
+  int64_t restore_clone_threshold = 0;
+
+  // Force clone if requested
+  if (force_clone) {
+    restore_clone_threshold = mysqlshdk::mysql::force_clone(target_instance);
+
+    // RESET MASTER to clear GTID_EXECUTED in case it's diverged, otherwise
+    // clone is not executed and GR rejects the instance
+    target_instance.query("RESET MASTER");
+  }
+
+  // Make sure the Clone plugin is installed or uninstalled depending on the
+  // value of disableClone
+  //
+  // NOTE: If the clone usage is not disabled on the cluster (disableClone),
+  // we must ensure the clone plugin is installed on all members. Otherwise,
+  // if the cluster was creating an Older shell (<8.0.17) or if the cluster
+  // was set up using the Incremental recovery only and the primary is
+  // removed (or a failover happened) the instances won't have the clone
+  // plugin installed and GR's recovery using clone will fail.
+  //
+  // See BUG#29954085 and BUG#29960838
+
+  // First, handle the target instance
+  if (!clone_disabled) {
+    log_info("Installing the clone plugin on instance '%s'.",
+             target_instance.get_canonical_address().c_str());
+    mysqlshdk::mysql::install_clone_plugin(target_instance, nullptr);
+  } else {
+    log_info("Uninstalling the clone plugin on instance '%s'.",
+             target_instance.get_canonical_address().c_str());
+    mysqlshdk::mysql::uninstall_clone_plugin(target_instance, nullptr);
+  }
+
+  // Then, handle the cluster members
+  setup_clone_plugin(!clone_disabled);
+
+  return restore_clone_threshold;
+}
+
+Member_recovery_method Cluster_impl::check_recovery_method(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    Member_op_action op_action, Member_recovery_method selected_recovery_method,
+    bool interactive) const {
+  // Check GTID consistency and whether clone is needed
+  auto check_recoverable = [this](const mysqlshdk::mysql::IInstance &target) {
+    // Check if the GTIDs were purged from the whole cluster
+    bool recoverable = false;
+
+    execute_in_members(
+        {mysqlshdk::gr::Member_state::ONLINE}, target.get_connection_options(),
+        {},
+        [&recoverable, &target](const std::shared_ptr<Instance> &instance,
+                                const mysqlshdk::gr::Member &) {
+          // Get the gtid state in regards to the cluster_session
+          mysqlshdk::mysql::Replica_gtid_state state =
+              mysqlshdk::mysql::check_replica_gtid_state(*instance, target,
+                                                         nullptr, nullptr);
+
+          if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+            recoverable = true;
+            // stop searching as soon as we find a possible donor
+            return false;
+          }
+          return true;
+        });
+
+    return recoverable;
+  };
+
+  std::shared_ptr<Instance> donor_instance = get_cluster_server();
+
+  auto recovery_method = mysqlsh::dba::validate_instance_recovery(
+      Cluster_type::GROUP_REPLICATION, op_action, *donor_instance,
+      target_instance, check_recoverable, selected_recovery_method,
+      get_gtid_set_is_complete(), interactive, get_disable_clone_option());
+
+  // If recovery method was selected as clone, check that there is at least one
+  // ONLINE cluster instance not using IPV6, otherwise throw an error
+  if (recovery_method == Member_recovery_method::CLONE) {
+    bool found_ipv4 = false;
+    std::string full_msg;
+    // get online members
+    const auto online_instances =
+        get_instances({mysqlshdk::gr::Member_state::ONLINE});
+    // check if at least one of them is not IPv6, otherwise throw an error
+    for (const auto &instance : online_instances) {
+      if (!mysqlshdk::utils::Net::is_ipv6(
+              mysqlshdk::utils::split_host_and_port(instance.endpoint).first)) {
+        found_ipv4 = true;
+        break;
+      } else {
+        std::string msg = "Instance '" + instance.endpoint +
+                          "' is not a suitable clone donor: Instance "
+                          "hostname/report_host is an IPv6 address, which is "
+                          "not supported for cloning.";
+        log_info("%s", msg.c_str());
+        full_msg += msg + "\n";
+      }
+    }
+    if (!found_ipv4) {
+      auto console = current_console();
+      console->print_error(
+          "None of the ONLINE members in the cluster are compatible to be used "
+          "as clone donors for " +
+          target_instance.descr());
+      console->print_info(full_msg);
+      throw shcore::Exception("The Cluster has no compatible clone donors.",
+                              SHERR_DBA_CLONE_NO_DONORS);
+    }
+  }
+
+  return recovery_method;
+}
+
 void Cluster_impl::_set_instance_option(const std::string &instance_def,
                                         const std::string &option,
                                         const shcore::Value &value) {
@@ -3696,17 +4511,23 @@ void Cluster_impl::_set_instance_option(const std::string &instance_def,
   // an argument of type string/int since the type int is convertible to
   // string, thus overloading becomes ambiguous. As soon as that limitation is
   // gone, this type checking shall go away too.
-  if (value.type == shcore::String) {
-    std::string value_str = value.as_string();
+  if (option == kReplicationSources) {
     op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
-        *this, instance_conn_opt, option, value_str);
-  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
-    int64_t value_int = value.as_int();
-    op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
-        *this, instance_conn_opt, option, value_int);
+        *this, instance_conn_opt, option, value);
   } else {
-    throw shcore::Exception::type_error(
-        "Argument #3 is expected to be a string or an integer");
+    if (value.type == shcore::String) {
+      std::string value_str = value.as_string();
+      op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
+          *this, instance_conn_opt, option, value_str);
+    } else if (value.type == shcore::Integer ||
+               value.type == shcore::UInteger) {
+      int64_t value_int = value.as_int();
+      op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
+          *this, instance_conn_opt, option, value_int);
+    } else {
+      throw shcore::Exception::type_error(
+          "Argument #3 is expected to be a string or an integer");
+    }
   }
 
   // Always execute finish when leaving "try catch".
@@ -3800,6 +4621,61 @@ bool Cluster_impl::is_cluster_set_member(const std::string &cs_id) const {
   return is_member;
 }
 
+bool Cluster_impl::is_read_replica(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  try {
+    if (get_metadata_storage()
+            ->get_instance_by_uuid(target_instance.get_uuid())
+            .instance_type == Instance_type::READ_REPLICA) {
+      return true;
+    }
+  } catch (const shcore::Exception &e) {
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) {
+      throw;
+    } else {
+      log_debug("Metadata for instance '%s' not found",
+                target_instance.descr().c_str());
+    }
+  }
+
+  return false;
+}
+
+bool Cluster_impl::is_instance_cluster_member(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  try {
+    get_metadata_storage()->get_instance_by_uuid(target_instance.get_uuid(),
+                                                 get_id());
+    return true;
+  } catch (const shcore::Exception &e) {
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) {
+      throw;
+    } else {
+      log_debug("Metadata for instance '%s' not found in the Cluster '%s'",
+                target_instance.descr().c_str(), get_name().c_str());
+    }
+  }
+
+  return false;
+}
+
+bool Cluster_impl::is_instance_cluster_set_member(
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  try {
+    get_metadata_storage()->get_instance_by_uuid(target_instance.get_uuid());
+    return true;
+  } catch (const shcore::Exception &e) {
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) {
+      throw;
+    } else {
+      log_debug("Metadata for instance '%s' not found in the Cluster '%s'",
+                target_instance.descr().c_str(), get_name().c_str());
+    }
+  }
+
+  return false;
+}
+
 void Cluster_impl::invalidate_cluster_set_metadata_cache() {
   m_cs_md.cluster_set_id.clear();
 }
@@ -3855,8 +4731,8 @@ mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
 
   // Try to acquire the specified lock.
   //
-  // NOTE: Only one lock per namespace is used because lock release is performed
-  // by namespace.
+  // NOTE: Only one lock per namespace is used because lock release is
+  // performed by namespace.
   try {
     log_debug("Acquiring %s lock ('%s', '%s') on '%s'.",
               mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
@@ -3918,6 +4794,49 @@ shcore::Dictionary_t Cluster_impl::routing_options(const std::string &router) {
   if (router.empty()) (*dict)["clusterName"] = shcore::Value(get_name());
 
   return dict;
+}
+
+void Cluster_impl::set_routing_option(const std::string &option,
+                                      const shcore::Value &value) {
+  set_routing_option("", option, value);
+}
+
+void Cluster_impl::set_routing_option(const std::string &router,
+                                      const std::string &option,
+                                      const shcore::Value &value) {
+  if (option == k_router_option_read_only_targets && is_cluster_set_member()) {
+    current_console()->print_error(
+        "Cluster '" + get_name() + "' is a member of ClusterSet '" +
+        get_cluster_set_object()->get_name() +
+        "', use <ClusterSet>.<<<setRoutingOption>>>() to change the option "
+        "'" +
+        k_router_option_read_only_targets + "'");
+    throw shcore::Exception::runtime_error(
+        "Option not available for ClusterSet members");
+  }
+
+  Base_cluster_impl::set_routing_option(router, option, value);
+}
+
+// Read-Replicas
+
+void Cluster_impl::add_replica_instance(
+    const Connection_options &instance_def,
+    const cluster::Add_replica_instance_options &options) {
+  // Preconditions check
+  check_preconditions("addReplicaInstance");
+
+  Scoped_instance target(connect_target_instance(instance_def, true, true));
+
+  // put an exclusive lock on the cluster
+  auto c_lock = get_lock_exclusive();
+
+  // put an exclusive lock on the target instance
+  auto i_lock = target->get_lock_exclusive();
+
+  Cluster_topology_executor<cluster::Add_replica_instance>{this, target,
+                                                           options}
+      .run();
 }
 
 }  // namespace dba

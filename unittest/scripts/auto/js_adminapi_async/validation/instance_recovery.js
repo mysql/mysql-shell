@@ -69,8 +69,7 @@
 |* Checking transaction state of the instance...|
 ||
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether replication can completely|
-|recover its state.|
+|empty).|
 ||
 |Incremental state recovery selected through the recoveryMethod option|
 
@@ -91,20 +90,12 @@
 ||
 |* Checking transaction state of the instance...|
 ||
-|NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
-|empty), but the replicaset was configured to assume that replication can|
-|completely recover the state of new instances.|
-||
 |Incremental state recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
 //@ rejoinInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr {VER(>= 8.0.0)}
 |* Validating instance...|
 |** Checking transaction state of the instance...|
-||
-|NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' has not been pre-provisioned (GTID set is|
-|empty), but the replicaset was configured to assume that replication can|
-|completely recover the state of new instances.|
 ||
 |Incremental state recovery selected through the recoveryMethod option|
 ||

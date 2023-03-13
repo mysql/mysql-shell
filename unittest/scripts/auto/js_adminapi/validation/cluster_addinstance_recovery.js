@@ -151,8 +151,7 @@
 
 //@# recoveryMethod:incremental, empty GTID -> incr
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty). The Shell is unable to decide whether incremental state|
-|recovery can correctly provision it.|
+|empty).|
 |Incremental state recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
@@ -161,10 +160,6 @@
 ||debug (LogicError)
 
 //@# recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
-|NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
-|empty), but the cluster was configured to assume that incremental|
-|state recovery can correctly provision it in this case.|
-||
 |Incremental state recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 

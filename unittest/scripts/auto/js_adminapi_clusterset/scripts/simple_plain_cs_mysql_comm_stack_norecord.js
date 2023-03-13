@@ -211,7 +211,7 @@ NOTE: Group Replication will communicate with other members using '${hostname}:$
 
 * Checking transaction state of the instance...
 
-NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
+NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty).
 
 Incremental state recovery selected through the recoveryMethod option
 

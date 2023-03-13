@@ -94,7 +94,10 @@ if (testutil.versionCheck(__version, "<", "8.0.11")){
 * Waiting for seed instance to become ONLINE...
 ${hostname}:${__mysql_sandbox_port1} was restored.`);
 
-  EXPECT_OUTPUT_CONTAINS_MULTILINE(`Rejoining instance '${hostname}:${__mysql_sandbox_port2}' to cluster 'test'...
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`Rejoining instance '${hostname}:${__mysql_sandbox_port2}' to cluster 'test'...
+
+Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+State recovery already finished for '${hostname}:${__mysql_sandbox_port2}'
 
 WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 The instance '${hostname}:${__mysql_sandbox_port2}' was successfully rejoined to the cluster.`);

@@ -97,10 +97,10 @@ Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' h
 ||
 
 //@<OUT> BUG#29809560: add instance fails because server_id is not unique.
-ERROR: Cannot join instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has the same server ID of a member of the cluster. Please change the server ID of the instance to add: all members must have a unique server ID.
+ERROR: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has a 'server_id' already being used by instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 //@<ERR> BUG#29809560: add instance fails because server_id is not unique.
-Cluster.addInstance: The server_id '666' is already used by instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. (RuntimeError)
+Cluster.addInstance: Invalid server_id. (MYSQLSH 51606)
 
 //@ BUG#29809560: clean-up.
 ||

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,9 +66,10 @@ enum class Member_op_action { ADD_INSTANCE, REJOIN_INSTANCE };
  */
 Member_recovery_method validate_instance_recovery(
     Cluster_type cluster_type, Member_op_action op_action,
-    mysqlshdk::mysql::IInstance *donor_instance,
-    mysqlshdk::mysql::IInstance *target_instance,
-    const std::function<bool(mysqlshdk::mysql::IInstance *)> &check_recoverable,
+    const mysqlshdk::mysql::IInstance &donor_instance,
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::function<bool(const mysqlshdk::mysql::IInstance &)>
+        &check_recoverable,
     Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
     bool interactive, bool clone_disabled = false);
 

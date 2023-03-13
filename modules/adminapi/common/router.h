@@ -34,37 +34,51 @@
 namespace mysqlsh {
 namespace dba {
 
-constexpr inline auto k_router_option_invalidated_cluster_routing_policy =
+inline constexpr auto k_router_option_invalidated_cluster_routing_policy =
     "invalidated_cluster_policy";
-constexpr inline auto
+inline constexpr auto
     k_router_option_invalidated_cluster_routing_policy_drop_all = "drop_all";
-constexpr inline auto
+inline constexpr auto
     k_router_option_invalidated_cluster_routing_policy_accept_ro = "accept_ro";
 
-constexpr inline auto k_router_option_target_cluster = "target_cluster";
-constexpr inline auto k_router_option_target_cluster_primary = "primary";
-constexpr inline auto k_router_option_stats_updates_frequency =
+inline constexpr auto k_router_option_target_cluster = "target_cluster";
+inline constexpr auto k_router_option_target_cluster_primary = "primary";
+inline constexpr auto k_router_option_stats_updates_frequency =
     "stats_updates_frequency";
-constexpr inline auto k_router_option_use_replica_primary_as_rw =
+inline constexpr auto k_router_option_use_replica_primary_as_rw =
     "use_replica_primary_as_rw";
-constexpr auto k_router_option_tags = "tags";
+inline constexpr auto k_router_option_tags = "tags";
 
-constexpr std::array<decltype(k_router_option_target_cluster), 5>
+inline constexpr auto k_router_option_read_only_targets = "read_only_targets";
+inline constexpr auto k_router_option_read_only_targets_all = "all";
+inline constexpr auto k_router_option_read_only_targets_read_replicas =
+    "read_replicas";
+inline constexpr auto k_router_option_read_only_targets_secondaries =
+    "secondaries";
+
+inline constexpr auto k_default_router_option_read_only_targets =
+    k_router_option_read_only_targets_secondaries;
+
+inline constexpr std::array<decltype(k_router_option_target_cluster), 6>
     k_clusterset_router_options = {
         k_router_option_invalidated_cluster_routing_policy,
-        k_router_option_target_cluster, k_router_option_stats_updates_frequency,
-        k_router_option_use_replica_primary_as_rw, k_router_option_tags};
+        k_router_option_target_cluster,
+        k_router_option_stats_updates_frequency,
+        k_router_option_use_replica_primary_as_rw,
+        k_router_option_tags,
+        k_router_option_read_only_targets};
 
 extern const std::map<std::string, shcore::Value>
     k_default_clusterset_router_options;
 
-constexpr std::array<decltype(k_router_option_target_cluster), 1>
-    k_cluster_router_options = {k_router_option_tags};
+inline constexpr std::array<decltype(k_router_option_target_cluster), 2>
+    k_cluster_router_options = {k_router_option_tags,
+                                k_router_option_read_only_targets};
 
 extern const std::map<std::string, shcore::Value>
     k_default_cluster_router_options;
 
-constexpr std::array<decltype(k_router_option_target_cluster), 1>
+inline constexpr std::array<decltype(k_router_option_target_cluster), 1>
     k_replicaset_router_options = {k_router_option_tags};
 
 extern const std::map<std::string, shcore::Value>

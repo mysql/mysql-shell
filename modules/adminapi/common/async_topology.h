@@ -32,9 +32,98 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
+
+struct Managed_async_channel_source {
+  std::string host;
+  int port = 0;
+  int weight = 0;
+
+  Managed_async_channel_source(const std::string &source_string, int wgt)
+      : weight(wgt) {
+    std::pair<std::string, int> src_pair =
+        mysqlshdk::utils::split_host_and_port(source_string);
+    host = std::move(src_pair.first);
+    port = src_pair.second;
+  }
+
+  explicit Managed_async_channel_source(const std::string &source_string) {
+    std::pair<std::string, int> src_pair =
+        mysqlshdk::utils::split_host_and_port(source_string);
+    host = std::move(src_pair.first);
+    port = src_pair.second;
+  }
+
+  Managed_async_channel_source() = default;
+
+  std::string to_string() const {
+    return shcore::str_format("%s:%d", host.c_str(), port);
+  }
+
+  struct Predicate_weight final {
+    const Managed_async_channel_source &lhs;
+    explicit constexpr Predicate_weight(
+        const Managed_async_channel_source &other)
+        : lhs(other) {}
+
+    bool operator()(const Managed_async_channel_source &rhs) const {
+      return lhs.host == rhs.host && lhs.port == rhs.port &&
+             lhs.weight == rhs.weight;
+    }
+  };
+
+  struct Predicate final {
+    const Managed_async_channel_source &lhs;
+    explicit constexpr Predicate(const Managed_async_channel_source &other)
+        : lhs(other) {}
+
+    bool operator()(const Managed_async_channel_source &rhs) const {
+      return lhs == rhs;
+    }
+  };
+
+  bool operator==(const Managed_async_channel_source &other) const {
+    return host == other.host && port == other.port;
+  }
+
+  bool operator<(const Managed_async_channel_source &other) const {
+    if (weight == other.weight) {
+      return to_string() < other.to_string();
+    }
+
+    return weight < other.weight;
+  }
+
+  bool operator>(const Managed_async_channel_source &other) const {
+    if (weight == other.weight) {
+      return to_string() > other.to_string();
+    }
+
+    return weight > other.weight;
+  }
+
+  bool operator!=(const Managed_async_channel_source &other) const {
+    return !operator==(other);
+  }
+};
+
+struct Managed_async_channel {
+  std::string channel_name;
+  std::string host;
+  int port = 0;
+  std::string network_namespace;
+  int primary_weight = 0;
+  int secondary_weight = 0;
+  std::string managed_name;
+  bool automatic_sources = false;
+  bool automatic_failover = false;
+  std::set<Managed_async_channel_source,
+           std::greater<Managed_async_channel_source>>
+      sources;
+};
 
 // AR topology change functions.
 // Assumes validations, metadata updates and account management are handled
@@ -159,37 +248,55 @@ void fence_instance(mysqlshdk::mysql::IInstance *instance);
 
 void unfence_instance(mysqlshdk::mysql::IInstance *instance, bool persist);
 
-void reset_channel(mysqlshdk::mysql::IInstance *instance,
+void reset_channel(const mysqlshdk::mysql::IInstance &instance,
                    const std::string &channel_name = "",
                    bool reset_credentials = false, bool dry_run = false);
 
 enum class Stop_channel_result { NOT_EXIST, NOT_RUNNING, STOPPED };
 
-Stop_channel_result stop_channel(mysqlshdk::mysql::IInstance *instance,
+Stop_channel_result stop_channel(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &channel_name, bool safe,
                                  bool dry_run);
 
-void start_channel(mysqlshdk::mysql::IInstance *instance,
+void start_channel(const mysqlshdk::mysql::IInstance &instance,
                    const std::string &channel_name = "", bool dry_run = false);
 
-void remove_channel(mysqlshdk::mysql::IInstance *instance,
+void remove_channel(const mysqlshdk::mysql::IInstance &instance,
                     const std::string &channel_name, bool dry_run);
 
 void add_managed_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance,
     const mysqlshdk::mysql::IInstance &source, const std::string &channel_name,
-    const std::string &network_namespace, bool dry_run = false,
-    int64_t primary_weight = 80, int64_t secondary_weight = 60);
+    const std::string &network_namespace, int64_t primary_weight = 80,
+    int64_t secondary_weight = 60, bool dry_run = false);
 
 void delete_managed_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &channel_name, bool dry_run = false);
 
-void create_clone_recovery_user_nobinlog(
-    mysqlshdk::mysql::IInstance *target_instance,
-    const mysqlshdk::mysql::Auth_options &donor_account,
-    const std::string &account_host, const std::string &account_cert_issuer,
-    const std::string &account_cert_subject, bool dry_run);
+void reset_managed_connection_failover(
+    const mysqlshdk::mysql::IInstance &target_instance, bool dry_run = false);
+
+void add_source_connection_failover(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const mysqlshdk::mysql::IInstance &source, const std::string &channel_name,
+    const std::string &network_namespace, int64_t weight = 80,
+    bool dry_run = false);
+
+void add_source_connection_failover(
+    const mysqlshdk::mysql::IInstance &target_instance, const std::string &host,
+    int port, const std::string &channel_name,
+    const std::string &network_namespace, int64_t weight = 80,
+    bool dry_run = false);
+
+void delete_source_connection_failover(
+    const mysqlshdk::mysql::IInstance &target_instance, const std::string &host,
+    int port, const std::string &channel_name,
+    const std::string &network_namespace, bool dry_run = false);
+
+bool get_managed_connection_failover_configuration(
+    const mysqlshdk::mysql::IInstance &instance,
+    Managed_async_channel *out_channel_info);
 
 void drop_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,

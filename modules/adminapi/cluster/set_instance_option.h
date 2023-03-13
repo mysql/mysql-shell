@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,11 +26,13 @@
 
 #include <optional>
 #include <string>
+#include <variant>
 
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/config/config.h"
+#include "scripting/types.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -46,6 +48,10 @@ class Set_instance_option final : public Command_interface {
       const Cluster_impl &cluster,
       const mysqlshdk::db::Connection_options &instance_cnx_opts,
       const std::string &option, int64_t value);
+  Set_instance_option(
+      const Cluster_impl &cluster,
+      const mysqlshdk::db::Connection_options &instance_cnx_opts,
+      const std::string &option, shcore::Value value);
 
   ~Set_instance_option() override;
 
@@ -102,11 +108,13 @@ class Set_instance_option final : public Command_interface {
   std::string m_option;
   std::optional<std::string> m_value_str;
   std::optional<int64_t> m_value_int;
+  std::optional<shcore::Value> m_value_value;
 
   void ensure_option_valid();
   void ensure_instance_belong_to_cluster();
   void ensure_target_member_reachable();
   void ensure_option_supported_target_member();
+  void ensure_instance_is_read_replica();
 };
 
 }  // namespace cluster

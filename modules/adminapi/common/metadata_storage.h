@@ -49,6 +49,11 @@ inline constexpr const char *kNotifyClusterSetPrimaryChanged =
 
 inline constexpr const char *kNotifyDataClusterSetId = "CLUSTER_SET_ID";
 
+enum class Instance_type { GROUP_MEMBER, ASYNC_MEMBER, READ_REPLICA, NONE };
+
+std::string to_string(const Instance_type instance_type);
+Instance_type to_instance_type(const std::string &instance_type);
+
 struct Instance_metadata {
   Cluster_id cluster_id;
   Instance_id id = 0;
@@ -62,11 +67,13 @@ struct Instance_metadata {
   uint32_t server_id = 0;
   bool hidden_from_router = false;
   std::string cert_subject;
+  Instance_type instance_type = Instance_type::NONE;
 
   shcore::Dictionary_t tags = nullptr;
 
   // GR clusters only
   std::string group_name;
+  Replica_type replica_type = Replica_type::GROUP_MEMBER;
 
   // Async clusters only
   Instance_id master_id = 0;
@@ -186,7 +193,8 @@ class MetadataStorage {
    */
   bool check_instance_type(const std::string &uuid,
                            const mysqlshdk::utils::Version &md_version,
-                           Cluster_type *out_type) const;
+                           Cluster_type *out_type,
+                           Replica_type *out_replica_type) const;
 
   bool check_all_members_online() const;
 
@@ -219,9 +227,11 @@ class MetadataStorage {
       Cluster_set_impl *cs, Cluster_id seed_cluster_id,
       shcore::Dictionary_t seed_attributes);
 
-  Instance_id insert_instance(const Instance_metadata &instance);
+  Instance_id insert_instance(const Instance_metadata &instance,
+                              Transaction_undo *undo = nullptr);
   void update_instance(const Instance_metadata &instance);
-  void remove_instance(const std::string &instance_address);
+  void remove_instance(const std::string &instance_address,
+                       Transaction_undo *undo = nullptr);
   void drop_cluster(const std::string &cluster_name,
                     Transaction_undo *undo = nullptr);
 
@@ -261,7 +271,8 @@ class MetadataStorage {
 
   void update_instance_attribute(std::string_view uuid,
                                  std::string_view attribute,
-                                 const shcore::Value &value);
+                                 const shcore::Value &value,
+                                 Transaction_undo *undo = nullptr);
 
   /**
    * Update the information on the metadata about a tag set on the instance with
@@ -303,6 +314,7 @@ class MetadataStorage {
    */
   void update_instance_repl_account(const std::string &instance_uuid,
                                     Cluster_type type,
+                                    Replica_type replica_type,
                                     const std::string &recovery_account_user,
                                     const std::string &recovery_account_host,
                                     Transaction_undo *undo = nullptr);
@@ -311,11 +323,13 @@ class MetadataStorage {
    * with the given uuid.
    * @param instance_uuid the uuid of the instance
    * @param type whether account is for ReplicaSet or Cluster
+   * @para replica_type GROUP_MEMBER or READ_REPLICA
    * @return a pair with the recovery account user name and recovery account
    * hostname
    */
   std::pair<std::string, std::string> get_instance_repl_account(
-      const std::string &instance_uuid, Cluster_type type);
+      const std::string &instance_uuid, Cluster_type type,
+      Replica_type replica_type);
 
   void update_cluster_repl_account(const Cluster_id &cluster_id,
                                    const std::string &repl_account_user,
@@ -324,6 +338,14 @@ class MetadataStorage {
 
   std::pair<std::string, std::string> get_cluster_repl_account(
       const Cluster_id &cluster_id) const;
+
+  std::pair<std::string, std::string> get_read_replica_repl_account(
+      const std::string &instance_uuid) const;
+
+  void update_read_replica_repl_account(const std::string &instance_uuid,
+                                        const std::string &repl_account_user,
+                                        const std::string &repl_account_host,
+                                        Transaction_undo *undo = nullptr);
 
   /**
    * Fetch from the metadata list of server uuids
@@ -396,12 +418,14 @@ class MetadataStorage {
                                     std::string *out_primary_id,
                                     uint64_t *out_view_id);
 
-  std::vector<Instance_metadata> get_all_instances(Cluster_id cluster_id = "");
+  std::vector<Instance_metadata> get_all_instances(
+      Cluster_id cluster_id = "", bool include_read_replicas = false);
 
-  Instance_metadata get_instance_by_uuid(const std::string &uuid) const;
+  Instance_metadata get_instance_by_uuid(
+      const std::string &uuid, const Cluster_id &cluster_id = "") const;
 
   Instance_metadata get_instance_by_address(
-      const std::string &instance_address);
+      const std::string &instance_address) const;
 
   std::vector<Instance_metadata> get_replica_set_instances(
       const Cluster_id &rs_id);
@@ -419,7 +443,7 @@ class MetadataStorage {
                                  const std::string &option,
                                  const shcore::Value &value);
 
-  void set_routing_option(const std::string &router,
+  void set_routing_option(Cluster_type type, const std::string &router,
                           const std::string &cluster_id,
                           const std::string &option,
                           const shcore::Value &value);
@@ -488,6 +512,16 @@ class MetadataStorage {
    */
   void migrate_routers_to_clusterset(const Cluster_id &cluster_id,
                                      const Cluster_set_id &cluster_set_id);
+
+  /**
+   * Migrates the Read Only Targets setting from a Cluster to a ClusterSet when
+   * it becomes a ClusterSet
+   *
+   * @param cluster_id The target Cluster ID
+   * @param cluster_set_id The target clusterSet ID to be set
+   */
+  void migrate_read_only_targets_to_clusterset(
+      const Cluster_id &cluster_id, const Cluster_set_id &cluster_set_id);
 
   /**
    * Gets all routers using a Cluster as Target Cluster
@@ -560,7 +594,8 @@ class MetadataStorage {
   }
 
   bool check_metadata(mysqlshdk::utils::Version *out_version = nullptr,
-                      Cluster_type *out_type = nullptr) const;
+                      Cluster_type *out_type = nullptr,
+                      Replica_type *out_replica_type = nullptr) const;
 
   bool check_cluster_set(
       const mysqlshdk::mysql::IInstance *target_instance = nullptr,
@@ -569,6 +604,8 @@ class MetadataStorage {
       Cluster_set_id *out_cluster_set_id = nullptr) const;
 
   bool supports_cluster_set() const;
+
+  bool supports_read_replicas() const;
 
   /**
    * Try to acquire an exclusive lock on the metadata.

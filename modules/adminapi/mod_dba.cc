@@ -52,6 +52,7 @@
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/dba/create_cluster.h"
+#include "modules/adminapi/dba/reboot_cluster_from_complete_outage.h"
 #include "modules/adminapi/dba/upgrade_metadata.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/mod_mysql_resultset.h"
@@ -317,6 +318,10 @@ REGISTER_HELP(
     CLUSTER_OPT_PAXOS_SINGLE_LEADER,
     "@li paxosSingleLeader: boolean value used to enable/disable the Group "
     "Communication engine to operate with a single consensus leader.");
+
+REGISTER_HELP(CLUSTER_OPT_CLONE_DONOR,
+              "@li cloneDonor: The Cluster member to be used as donor when "
+              "performing clone-based recovery.");
 
 REGISTER_HELP(
     OPT_INTERACTIVE,

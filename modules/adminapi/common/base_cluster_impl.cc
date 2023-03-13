@@ -30,10 +30,16 @@
 #include <string>
 #include <vector>
 
+#include "adminapi/cluster/cluster_impl.h"
+#include "adminapi/common/cluster_types.h"
+#include "adminapi/common/common.h"
 #include "modules/adminapi/common/accounts.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
+#include "modules/adminapi/common/instance_monitoring.h"
 #include "modules/adminapi/common/instance_pool.h"
+#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
@@ -49,10 +55,14 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "shellcore/utils_help.h"
 
 namespace mysqlsh {
 namespace dba {
+
+// # of seconds to wait until clone starts
+constexpr std::chrono::seconds k_clone_start_timeout{30};
 
 namespace {
 /**
@@ -186,6 +196,14 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &channel_name, int timeout, bool only_received) const {
+  DBUG_EXECUTE_IF("dba_sync_transactions_timeout", {
+    throw shcore::Exception(
+        "Timeout reached waiting for all received transactions "
+        "to be applied on instance '" +
+            target_instance.descr() + "' (debug)",
+        SHERR_DBA_GTID_SYNC_TIMEOUT);
+  });
+
   if (only_received) {
     std::string gtid_set =
         mysqlshdk::mysql::get_received_gtid_set(target_instance, channel_name);
@@ -218,6 +236,405 @@ void Base_cluster_impl::sync_transactions(
 
   current_console()->print_info();
   current_console()->print_info();
+}
+
+void Base_cluster_impl::sync_transactions(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    Instance_type instance_type, int timeout, bool only_received) const {
+  switch (instance_type) {
+    case Instance_type::GROUP_MEMBER: {
+      sync_transactions(target_instance, mysqlshdk::gr::k_gr_applier_channel,
+                        timeout, only_received);
+      break;
+    }
+    case Instance_type::ASYNC_MEMBER: {
+      sync_transactions(target_instance, k_replicaset_channel_name, timeout,
+                        only_received);
+      break;
+    }
+    case Instance_type::READ_REPLICA: {
+      sync_transactions(target_instance, k_read_replica_async_channel_name,
+                        timeout, only_received);
+      break;
+    }
+    case Instance_type::NONE:
+      break;
+  }
+}
+
+void Base_cluster_impl::create_clone_recovery_user_nobinlog(
+    mysqlshdk::mysql::IInstance *target_instance,
+    const mysqlshdk::mysql::Auth_options &donor_account,
+    const std::string &account_host, const std::string &account_cert_issuer,
+    const std::string &account_cert_subject, bool dry_run) {
+  log_info("Creating clone recovery user %s@%s at %s%s.",
+           donor_account.user.c_str(), account_host.c_str(),
+           target_instance->descr().c_str(), dry_run ? " (dryRun)" : "");
+
+  if (dry_run) return;
+
+  try {
+    mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
+
+    // Create recovery user for clone equal to the donor user
+
+    mysqlshdk::mysql::IInstance::Create_user_options options;
+    options.password = donor_account.password;
+    options.cert_issuer = account_cert_issuer;
+    options.cert_subject = account_cert_subject;
+    options.grants.push_back({"CLONE_ADMIN, EXECUTE", "*.*", false});
+    options.grants.push_back({"SELECT", "performance_schema.*", false});
+
+    mysqlshdk::mysql::create_user(*target_instance, donor_account.user,
+                                  {account_host}, options);
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+  }
+}
+
+void Base_cluster_impl::handle_clone_provisioning(
+    const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
+    const std::shared_ptr<mysqlsh::dba::Instance> &donor,
+    const Async_replication_options &ar_options,
+    const std::string &repl_account_host, const std::string &cert_issuer,
+    const std::string &cert_subject,
+    const Recovery_progress_style &progress_style, int sync_timeout,
+    bool dry_run) {
+  auto console = current_console();
+
+  // When clone is used, always stop the channels using automatic-failover
+  // first regardless of its status. This is required to avoid a blocking
+  // scenario on which the replication channel is attempting to connect to the
+  // source and failing while clone is trying to drop data. Clone is blocked
+  // until the channel gives up and stops.
+  {
+    try {
+      stop_channel(*recipient, k_read_replica_async_channel_name, true,
+                   dry_run);
+    } catch (std::exception &e) {
+      mysqlsh::current_console()->print_error(
+          shcore::str_format("Failed to stop replication channel '%s' on '%s', "
+                             "please retry the operation: '%s'",
+                             k_read_replica_async_channel_name,
+                             recipient->descr().c_str(), e.what()));
+      throw shcore::Exception("Failed to stop replication channel.",
+                              SHERR_DBA_FAILED_TO_STOP_CHANNEL);
+    }
+
+    try {
+      stop_channel(*recipient, k_clusterset_async_channel_name, true, dry_run);
+    } catch (std::exception &e) {
+      mysqlsh::current_console()->print_error(
+          shcore::str_format("Failed to stop replication channel '%s' on '%s', "
+                             "please retry the operation: '%s'",
+                             k_clusterset_async_channel_name,
+                             recipient->descr().c_str(), e.what()));
+      throw shcore::Exception("Failed to stop replication channel.",
+                              SHERR_DBA_FAILED_TO_STOP_CHANNEL);
+    }
+  }
+
+  /*
+   * Clone handling:
+   *
+   * 1.  Install the Clone plugin on the donor and source
+   * 2.  Set the donor to the source: SET GLOBAL clone_valid_donor_list
+   *     = "donor_host:donor_port";
+   * 3.  Create or update a recovery account with the required
+   *     privileges for replicaSets management + clone usage (BACKUP_ADMIN)
+   * 4.  Ensure the donor's recovery account has the clone usage required
+   *     privileges: BACKUP_ADMIN
+   * 5.  Grant the CLONE_ADMIN privilege to the recovery account
+   *     at the recipient
+   * 6.  Create the SQL clone command based on the above
+   * 7.  Execute the clone command
+   */
+
+  // Install the clone plugin on the recipient and source
+  log_info("Installing the clone plugin on source '%s'%s.",
+           donor.get()->get_canonical_address().c_str(),
+           dry_run ? " (dryRun)" : "");
+
+  if (!dry_run) {
+    mysqlshdk::mysql::install_clone_plugin(*donor, nullptr);
+  }
+
+  log_info("Installing the clone plugin on recipient '%s'%s.",
+           recipient->get_canonical_address().c_str(),
+           dry_run ? " (dryRun)" : "");
+
+  if (!dry_run) {
+    mysqlshdk::mysql::install_clone_plugin(*recipient, nullptr);
+  }
+
+  std::string source_address = donor->get_canonical_address();
+
+  // Set the donor to the selected donor on the recipient
+  log_debug("Setting clone_valid_donor_list to '%s', on recipient '%s'%s",
+            source_address.c_str(), recipient->get_canonical_address().c_str(),
+            dry_run ? " (dryRun)" : "");
+
+  // Create or update a recovery account with the required privileges for
+  // read-replica management + clone usage (BACKUP_ADMIN) on the recipient
+
+  if (!dry_run) {
+    recipient->set_sysvar("clone_valid_donor_list", source_address);
+
+    // Check if super_read_only is enabled. If so it must be disabled to create
+    // the account
+    if (recipient->get_sysvar_bool("super_read_only", false)) {
+      recipient->set_sysvar("super_read_only", false);
+    }
+  }
+
+  // Clone requires a user in both donor and recipient:
+  //
+  // On the donor, the clone user requires the BACKUP_ADMIN privilege for
+  // accessing and transferring data from the donor, and for blocking DDL
+  // during the cloning operation.
+  //
+  // On the recipient, the clone user requires the CLONE_ADMIN privilege for
+  // replacing recipient data, blocking DDL during the cloning operation, and
+  // automatically restarting the server. The CLONE_ADMIN privilege includes
+  // BACKUP_ADMIN and SHUTDOWN privileges implicitly.
+  //
+  // For that reason, we create a user in the recipient with the same username
+  // and password as the replication user created in the donor.
+  create_clone_recovery_user_nobinlog(
+      recipient.get(), *ar_options.repl_credentials, repl_account_host,
+      cert_issuer, cert_subject, dry_run);
+
+  if (!dry_run) {
+    // Ensure the donor's recovery account has the clone usage required
+    // privileges: BACKUP_ADMIN
+    get_primary_master()->executef("GRANT BACKUP_ADMIN ON *.* TO ?@?",
+                                   ar_options.repl_credentials->user,
+                                   repl_account_host);
+
+    // If the donor instance is processing transactions, it may have the
+    // clone-user handling (create + grant) still in the backlog waiting to be
+    // applied. For that reason, we must wait for it to be in sync with the
+    // primary before starting the clone itself
+    std::string primary_address = get_primary_master()->get_canonical_address();
+
+    if (!mysqlshdk::utils::are_endpoints_equal(primary_address,
+                                               source_address)) {
+      console->print_info(
+          "* Waiting for the donor to synchronize with PRIMARY...");
+
+      try {
+        // Sync the donor with the primary
+        sync_transactions(*donor,
+                          get_type() == Cluster_type::ASYNC_REPLICATION
+                              ? ""
+                              : mysqlshdk::gr::k_gr_applier_channel,
+                          sync_timeout);
+      } catch (const shcore::Exception &e) {
+        if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
+          console->print_error(
+              "The donor instance failed to synchronize its transaction set "
+              "with the PRIMARY.");
+        }
+        throw;
+      } catch (const cancel_sync &) {
+        // Throw it up
+        throw;
+      }
+      console->print_info();
+    }
+
+    // Create a new connection to the recipient and run clone asynchronously
+    std::string instance_def =
+        recipient->get_connection_options().uri_endpoint();
+    const auto recipient_clone =
+        Scoped_instance(connect_target_instance(instance_def));
+
+    mysqlshdk::db::Connection_options clone_donor_opts(source_address);
+
+    // we need a point in time as close as possible, but still earlier than
+    // when recovery starts to monitor the recovery phase. The timestamp
+    // resolution is timestamp(3) irrespective of platform
+    std::string begin_time =
+        recipient->queryf_one_string(0, "", "SELECT NOW(3)");
+
+    std::exception_ptr error_ptr;
+
+    auto clone_thread = spawn_scoped_thread([&recipient_clone, clone_donor_opts,
+                                             ar_options, &error_ptr] {
+      mysqlsh::thread_init();
+
+      bool enabled_ssl{false};
+      switch (ar_options.auth_type) {
+        case Replication_auth_type::CERT_ISSUER:
+        case Replication_auth_type::CERT_SUBJECT:
+        case Replication_auth_type::CERT_ISSUER_PASSWORD:
+        case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          enabled_ssl = true;
+          break;
+        default:
+          break;
+      }
+
+      try {
+        mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
+                                   *ar_options.repl_credentials, enabled_ssl);
+      } catch (const shcore::Error &err) {
+        // Clone canceled
+        if (err.code() == ER_QUERY_INTERRUPTED) {
+          log_info("Clone canceled: %s", err.format().c_str());
+        } else {
+          log_info("Error cloning from instance '%s': %s",
+                   clone_donor_opts.uri_endpoint().c_str(),
+                   err.format().c_str());
+          error_ptr = std::current_exception();
+        }
+      } catch (const std::exception &err) {
+        log_info("Error cloning from instance '%s': %s",
+                 clone_donor_opts.uri_endpoint().c_str(), err.what());
+        error_ptr = std::current_exception();
+      }
+
+      mysqlsh::thread_end();
+    });
+
+    shcore::Scoped_callback join([&clone_thread]() {
+      if (clone_thread.joinable()) {
+        clone_thread.join();
+      }
+    });
+
+    try {
+      auto post_clone_auth = recipient->get_connection_options();
+      post_clone_auth.set_login_options_from(donor->get_connection_options());
+
+      monitor_standalone_clone_instance(
+          recipient->get_connection_options(), post_clone_auth, begin_time,
+          progress_style, k_clone_start_timeout.count(),
+          current_shell_options()->get().dba_restart_wait_timeout);
+
+      // When clone is used, the target instance will restart and all
+      // connections are closed so we need to test if the connection to the
+      // target instance and MD are closed and re-open if necessary
+      recipient->reconnect_if_needed("Target");
+      m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");
+
+      // Remove the BACKUP_ADMIN grant from the recovery account
+      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
+                                     ar_options.repl_credentials->user,
+                                     repl_account_host);
+    } catch (const stop_monitoring &) {
+      console->print_info();
+      console->print_note("Recovery process canceled. Reverting changes...");
+
+      // Cancel the clone query
+      mysqlshdk::mysql::cancel_clone(*recipient);
+
+      log_info("Clone canceled.");
+
+      log_debug("Waiting for clone thread...");
+      // wait for the clone thread to finish
+      clone_thread.join();
+      log_debug("Clone thread joined");
+
+      // When clone is canceled, the target instance will restart and all
+      // connections are closed so we need to wait for the server to start-up
+      // and re-establish the session. Also we need to test if the connection
+      // to the target instance and MD are closed and re-open if necessary
+      *recipient = *wait_server_startup(
+          recipient->get_connection_options(),
+          mysqlshdk::mysql::k_server_recovery_restart_timeout,
+          Recovery_progress_style::NOWAIT);
+
+      recipient->reconnect_if_needed("Target");
+      m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");
+
+      // Remove the BACKUP_ADMIN grant from the recovery account
+      get_primary_master()->executef("REVOKE BACKUP_ADMIN ON *.* FROM ?@?",
+                                     ar_options.repl_credentials->user,
+                                     repl_account_host);
+      cleanup_clone_recovery(recipient.get(), *ar_options.repl_credentials,
+                             repl_account_host);
+
+      // Thrown the exception cancel_sync up
+      throw cancel_sync();
+    } catch (const restart_timeout &) {
+      console->print_warning(
+          "Clone process appears to have finished and tried to restart the "
+          "MySQL server, but it has not yet started back up.");
+
+      console->print_info();
+      console->print_info(
+          "Please make sure the MySQL server at '" + recipient->descr() +
+          "' is properly restarted. The operation will be reverted, but you may"
+          " retry adding the instance after restarting it. ");
+
+      throw shcore::Exception("Timeout waiting for server to restart",
+                              SHERR_DBA_SERVER_RESTART_TIMEOUT);
+    } catch (const shcore::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
+    }
+  }
+}
+
+void Base_cluster_impl::ensure_compatible_clone_donor(
+    const std::string &donor_def,
+    const std::shared_ptr<mysqlsh::dba::Instance> &recipient) {
+  /*
+   * A donor is compatible if:
+   *
+   *   - It's an ONLINE member of the Cluster
+   *   - It has the same version of the recipient
+   *   - It has the same operating system as the recipient
+   */
+
+  const auto target = Scoped_instance(connect_target_instance(donor_def));
+
+  // Check if the target belongs to the PRIMARY Cluster (MD)
+  std::string target_address = target->get_canonical_address();
+  try {
+    get_metadata_storage()->get_instance_by_address(target_address);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+      throw shcore::Exception("Instance " + target_address +
+                                  " does not belong to the Primary Cluster",
+                              SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
+    }
+    throw;
+  }
+
+  auto target_status = mysqlshdk::gr::get_member_state(*target);
+
+  if (target_status != mysqlshdk::gr::Member_state::ONLINE) {
+    throw shcore::Exception("Instance " + target_address +
+                                " is not an ONLINE member of the Cluster.",
+                            SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+  }
+
+  // Check if the instance has the same version of the recipient
+  if (target->get_version() != recipient->get_version()) {
+    throw shcore::Exception("Instance " + target_address +
+                                " cannot be a donor because it has a different "
+                                "version than the recipient.",
+                            SHERR_DBA_CLONE_DIFF_VERSION);
+  }
+
+  // Check if the instance has the same OS the recipient
+  if (target->get_version_compile_os() != recipient->get_version_compile_os()) {
+    throw shcore::Exception("Instance " + target_address +
+                                " cannot be a donor because it has a different "
+                                "Operating System than the recipient.",
+                            SHERR_DBA_CLONE_DIFF_OS);
+  }
+
+  // Check if the instance is running on the same platform of the recipient
+  if (target->get_version_compile_machine() !=
+      recipient->get_version_compile_machine()) {
+    throw shcore::Exception(
+        "Instance " + target_address +
+            " cannot be a donor because it is running on a different "
+            "platform than the recipient.",
+        SHERR_DBA_CLONE_DIFF_PLATFORM);
+  }
 }
 
 void Base_cluster_impl::set_target_server(
@@ -492,6 +909,7 @@ void Base_cluster_impl::set_instance_tag(const std::string &instance_def,
         "' does not belong to the " + api_class(get_type()) + ".";
     throw shcore::Exception::runtime_error(err_msg);
   }
+
   get_metadata_storage()->set_instance_tag(target_uuid, option, value);
 }
 
@@ -681,7 +1099,7 @@ shcore::Value Base_cluster_impl::get_cluster_tags() const {
 
   // Fill the cluster instance tags
   std::vector<Instance_metadata> instance_defs =
-      get_metadata_storage()->get_all_instances(get_id());
+      get_metadata_storage()->get_all_instances(get_id(), true);
 
   // get the list of tags each instance
   for (const auto &instance_def : instance_defs) {
@@ -725,8 +1143,8 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
                                                         opt, value_fixed);
       msg += ".";
     } else {
-      get_metadata_storage()->set_routing_option(router, get_id(), opt,
-                                                 value_fixed);
+      get_metadata_storage()->set_routing_option(get_type(), router, get_id(),
+                                                 opt, value_fixed);
       msg += " in router '" + router + "'.";
     }
 

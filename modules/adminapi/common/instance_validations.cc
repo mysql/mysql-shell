@@ -753,6 +753,17 @@ void validate_async_channels(
       case Check_type::REJOIN:
         error_msg += "Cannot rejoin";
         break;
+      case Check_type::READ_REPLICA: {
+        mysqlsh::current_console()->print_error(
+            "The target instance '" + instance.get_canonical_address() +
+            "' has asynchronous (source-replica) replication channel(s) "
+            "configured which is not supported in InnoDB Cluster "
+            "Read-Replicas.");
+
+        throw shcore::Exception(
+            "Unsupported active replication channel.",
+            SHERR_DBA_CLUSTER_UNSUPPORTED_REPLICATION_CHANNEL);
+      }
     }
 
     error_msg +=

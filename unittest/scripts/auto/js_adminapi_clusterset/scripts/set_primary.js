@@ -518,8 +518,9 @@ CHECK_PRIMARY_CLUSTER([__sandbox_uri5], c3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port6);
 
-testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
-testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host:hostname});
+// Change the server_id otherwise the check for IDs will complain
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname, server_id:"1111"});
+testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host:hostname, server_id:"2222"});
 
 c4 = cs.createReplicaCluster(__sandbox_uri6, "cluster4", {manualStartOnBoot:1, recoveryMethod: "clone"});
 c4.addInstance(__sandbox_uri4, {recoveryMethod: "clone"});

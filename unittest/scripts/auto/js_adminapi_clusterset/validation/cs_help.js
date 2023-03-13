@@ -804,6 +804,8 @@ DESCRIPTION
         Clusters. Disabled by default.
       - tags: Associates an arbitrary JSON object with custom key/value pairs
         with the ClusterSet metadata.
+      - read_replicas_policy: Routing policy to define Router's usage of Read
+        Replicas. Default is 'append'.
 
       The target_cluster option supports the following values:
 
@@ -843,6 +845,15 @@ DESCRIPTION
       Cluster, even when it is in a REPLICA cluster and thus, read-only. By
       default, the option is false and Router blocks connections to the RW port
       in this scenario.
+
+      The read_only_targets option supports the following values:
+
+      - all: All Read Replicas of the target Cluster should be used along the
+        other SECONDARY Cluster members for R/O traffic.
+      - read_replicas: Only Read Replicas of the target Cluster should be used
+        for R/O traffic.
+      - secondaries: Only Secondary members of the target Cluster should be
+        used for R/O traffic (default).
 
 //@<OUT> setOption
 NAME

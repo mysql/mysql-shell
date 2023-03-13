@@ -168,7 +168,7 @@ constexpr const char *k_base_instance_query =
     " CAST(ii.attributes->'$.server_id' AS UNSIGNED) server_id,"
     " IFNULL(CAST(ii.attributes->'$.tags._hidden' AS UNSIGNED), false)"
     " hidden_from_router,"
-    " ii.attributes->'$.tags' as tags"
+    " ii.attributes->'$.tags' as tags, i.instance_type"
     " FROM mysql_innodb_cluster_metadata.v2_instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.instances ii"
     "   ON ii.instance_id = i.instance_id"
@@ -189,9 +189,28 @@ constexpr const char *k_base_instance_query_1_0_1 =
     " LEFT JOIN mysql_innodb_cluster_metadata.replicasets r"
     "   ON r.replicaset_id = i.replicaset_id";
 
+constexpr const char *k_base_instance_query_2_0_0 =
+    "SELECT i.instance_id, i.cluster_id, c.group_name, "
+    " am.master_instance_id, am.master_member_id, am.member_role, am.view_id,"
+    " i.label, i.mysql_server_uuid, i.address,"
+    " i.endpoint, i.xendpoint, ii.addresses->>'$.grLocal' as grendpoint,"
+    " CAST(ii.attributes->'$.server_id' AS UNSIGNED) server_id,"
+    " IFNULL(CAST(ii.attributes->'$.tags._hidden' AS UNSIGNED), false)"
+    " hidden_from_router,"
+    " ii.attributes->'$.tags' as tags"
+    " FROM mysql_innodb_cluster_metadata.v2_instances i"
+    " LEFT JOIN mysql_innodb_cluster_metadata.instances ii"
+    "   ON ii.instance_id = i.instance_id"
+    " LEFT JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
+    "   ON c.cluster_id = i.cluster_id"
+    " LEFT JOIN mysql_innodb_cluster_metadata.v2_ar_members am"
+    "   ON am.instance_id = i.instance_id";
+
 std::string get_instance_query(const Version &md_version) {
   if (md_version.get_major() == 1) {
     return k_base_instance_query_1_0_1;
+  } else if (md_version.get_major() == 2 && md_version.get_minor() < 2) {
+    return k_base_instance_query_2_0_0;
   } else {
     return k_base_instance_query;
   }
@@ -224,7 +243,8 @@ constexpr const char *k_all_online_check_query_1_0_1 =
 constexpr const char *k_all_online_check_query =
     "SELECT (SELECT COUNT(*) "
     "FROM !.instances "
-    "WHERE cluster_id = (SELECT cluster_id FROM !.instances "
+    "WHERE instance_type <> 'read-replica' AND cluster_id = (SELECT "
+    "cluster_id FROM !.instances "
     "WHERE mysql_server_uuid = @@server_uuid)) "
     "= (SELECT count(*) FROM performance_schema.replication_group_members "
     "WHERE member_state = 'ONLINE') as all_online";
@@ -232,12 +252,10 @@ constexpr const char *k_all_online_check_query =
 std::string get_all_online_check_query(const Version &md_version) {
   if (md_version.get_major() == 1) {
     return k_all_online_check_query_1_0_1;
+  } else if (md_version.get_major() == 2 && md_version.get_minor() < 2) {
+    return k_all_online_check_query_2_0_0;
   } else {
-    if (md_version.get_minor() == 0) {
-      return k_all_online_check_query_2_0_0;
-    } else {
-      return k_all_online_check_query;
-    }
+    return k_all_online_check_query;
   }
 }
 
@@ -302,6 +320,32 @@ static const Version k_json_merge_deprecated_version = Version(5, 7, 22);
 
 }  // namespace
 
+std::string to_string(const Instance_type instance_type) {
+  switch (instance_type) {
+    case Instance_type::GROUP_MEMBER:
+      return "GROUP-MEMBER";
+    case Instance_type::ASYNC_MEMBER:
+      return "ASYNC-MEMBER";
+    case Instance_type::READ_REPLICA:
+      return "READ-REPLICA";
+    default:
+      throw std::logic_error("Unexpected instance_type");
+  }
+}
+
+Instance_type to_instance_type(const std::string &instance_type) {
+  if (shcore::str_caseeq("GROUP-MEMBER", instance_type)) {
+    return Instance_type::GROUP_MEMBER;
+  } else if (shcore::str_caseeq("ASYNC-MEMBER", instance_type)) {
+    return Instance_type::ASYNC_MEMBER;
+  } else if (shcore::str_caseeq("READ-REPLICA", instance_type)) {
+    return Instance_type::READ_REPLICA;
+  } else {
+    throw std::runtime_error("Unsupported instance_type value: " +
+                             instance_type);
+  }
+}
+
 MetadataStorage::MetadataStorage(const std::shared_ptr<Instance> &instance)
     : m_md_server(instance), m_owns_md_server(true) {
   log_debug("Metadata operations will use %s", instance->descr().c_str());
@@ -353,9 +397,10 @@ bool MetadataStorage::is_valid() const {
   return false;
 }
 
-bool MetadataStorage::check_instance_type(const std::string & /*uuid*/,
-                                          const Version & /*md_version*/,
-                                          Cluster_type *out_type) const {
+bool MetadataStorage::check_instance_type(
+    const std::string & /*uuid*/,
+    const mysqlshdk::utils::Version & /*md_version*/, Cluster_type *out_type,
+    Replica_type *out_replica_type) const {
   if (real_version() != metadata::kNotInstalled) {
     if (m_real_md_version.get_major() == 1) {
       try {
@@ -375,7 +420,7 @@ bool MetadataStorage::check_instance_type(const std::string & /*uuid*/,
                 "(metadata %s)",
                 m_md_server->descr().c_str(),
                 m_real_md_version.get_full().c_str());
-            *out_type = Cluster_type::GROUP_REPLICATION;
+            if (out_type) *out_type = Cluster_type::GROUP_REPLICATION;
             return true;
           } else {
             log_debug(
@@ -394,8 +439,19 @@ bool MetadataStorage::check_instance_type(const std::string & /*uuid*/,
       }
     } else {
       try {
-        auto query =
-            shcore::sqlstring("select cluster_type from !.v2_this_instance", 0);
+        shcore::sqlstring query;
+        std::string instance_type;
+        bool get_instance_type = false;
+
+        if (supports_read_replicas()) {
+          get_instance_type = true;
+          query = shcore::sqlstring(
+              "select cluster_type, instance_type from !.v2_this_instance", 0);
+        } else {
+          query = shcore::sqlstring(
+              "select cluster_type from !.v2_this_instance", 0);
+        }
+
         query << m_md_version_schema;
         query.done();
 
@@ -404,13 +460,16 @@ bool MetadataStorage::check_instance_type(const std::string & /*uuid*/,
 
         if (row && !row->is_null(0)) {
           std::string type = row->get_string(0);
+          if (get_instance_type) {
+            instance_type = row->get_string(1, "");
+          }
           if (type == "ar") {
             log_debug(
                 "Instance type check: %s: ReplicaSet metadata record found "
                 "(metadata %s)",
                 m_md_server->descr().c_str(),
                 m_real_md_version.get_full().c_str());
-            *out_type = Cluster_type::ASYNC_REPLICATION;
+            if (out_type) *out_type = Cluster_type::ASYNC_REPLICATION;
             return true;
           } else if (type == "gr") {
             log_debug(
@@ -418,7 +477,17 @@ bool MetadataStorage::check_instance_type(const std::string & /*uuid*/,
                 "(metadata %s)",
                 m_md_server->descr().c_str(),
                 m_real_md_version.get_full().c_str());
-            *out_type = Cluster_type::GROUP_REPLICATION;
+            if (out_type) *out_type = Cluster_type::GROUP_REPLICATION;
+
+            if (out_replica_type) {
+              if (!instance_type.empty() && to_instance_type(instance_type) ==
+                                                Instance_type::READ_REPLICA) {
+                *out_replica_type = Replica_type::READ_REPLICA;
+              } else {
+                *out_replica_type = Replica_type::GROUP_MEMBER;
+              }
+            }
+
             return true;
           } else {
             throw shcore::Exception(
@@ -857,8 +926,8 @@ Cluster_id MetadataStorage::create_cluster_record(Cluster_impl *cluster,
   return cluster_id;
 }
 
-Instance_id MetadataStorage::insert_instance(
-    const Instance_metadata &instance) {
+Instance_id MetadataStorage::insert_instance(const Instance_metadata &instance,
+                                             Transaction_undo *undo) {
   auto addresses = ("'mysqlClassic', ?"_sql << instance.endpoint).str();
   if (!instance.xendpoint.empty())
     addresses += (", 'mysqlX', ?"_sql << instance.xendpoint).str();
@@ -870,18 +939,42 @@ Instance_id MetadataStorage::insert_instance(
     attributes += ("'cert_subject', ?"_sql << instance.cert_subject).str();
 
   shcore::sqlstring query;
-  query = shcore::sqlstring(
-      "INSERT INTO mysql_innodb_cluster_metadata.instances "
-      "(cluster_id, address, mysql_server_uuid, "
-      "instance_name, addresses, attributes) VALUES (?, ?, ?, ?, json_object(" +
-          addresses + "), json_object(" + attributes + "))",
-      0);
+
+  if (supports_read_replicas()) {
+    query = shcore::sqlstring(
+        "INSERT INTO mysql_innodb_cluster_metadata.instances "
+        "(cluster_id, address, mysql_server_uuid, "
+        "instance_name, addresses, attributes, instance_type) "
+        "VALUES (?, ?, ?, ?, json_object(" +
+            addresses + "), json_object(" + attributes + "), ?)",
+        0);
+  } else {
+    query = shcore::sqlstring(
+        "INSERT INTO mysql_innodb_cluster_metadata.instances "
+        "(cluster_id, address, mysql_server_uuid, "
+        "instance_name, addresses, attributes) "
+        "VALUES (?, ?, ?, ?, json_object(" +
+            addresses + "), json_object(" + attributes + "))",
+        0);
+  }
 
   query << instance.cluster_id;
   query << instance.address;
   query << instance.uuid;
   query << instance.label;
+  if (supports_read_replicas()) query << to_string(instance.instance_type);
   query.done();
+
+  if (undo) {
+    auto undo_query = shcore::sqlstring(
+        "DELETE FROM mysql_innodb_cluster_metadata.instances "
+        "WHERE mysql_server_uuid = ?",
+        0);
+    undo_query << instance.uuid;
+    undo_query.done();
+
+    undo->add_sql(undo_query.str());
+  }
 
   auto result = execute_sql(query);
 
@@ -952,7 +1045,14 @@ bool MetadataStorage::query_instance_attribute(std::string_view uuid,
 
 void MetadataStorage::update_instance_attribute(std::string_view uuid,
                                                 std::string_view attribute,
-                                                const shcore::Value &value) {
+                                                const shcore::Value &value,
+                                                Transaction_undo *undo) {
+  if (undo) {
+    undo->add_snapshot_for_update(
+        "mysql_innodb_cluster_metadata.instances", "attributes",
+        *get_md_server(), shcore::sqlformat("mysql_server_uuid = ?", uuid));
+  }
+
   if (value) {
     auto stmt = shcore::str_format(
         "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
@@ -1017,7 +1117,7 @@ void MetadataStorage::set_router_tag(Cluster_type type,
   if (router.empty()) {
     set_global_routing_option(type, cluster_id, "tags", shcore::Value(tags));
   } else {
-    set_routing_option(router, cluster_id, "tags", shcore::Value(tags));
+    set_routing_option(type, router, cluster_id, "tags", shcore::Value(tags));
   }
 }
 
@@ -1065,24 +1165,34 @@ void MetadataStorage::set_table_tag(const std::string &tablename,
 }
 
 namespace {
-std::string repl_account_user_key(Cluster_type type) {
-  if (type == Cluster_type::GROUP_REPLICATION)
-    return "$.recoveryAccountUser";
-  else
-    return "$.replicationAccountUser";
+std::string repl_account_user_key(Cluster_type type,
+                                  Replica_type replica_type) {
+  if (type == Cluster_type::GROUP_REPLICATION) {
+    if (replica_type == Replica_type::GROUP_MEMBER) {
+      return "$.recoveryAccountUser";
+    } else if (replica_type == Replica_type::READ_REPLICA) {
+      return "$.readReplicaReplicationAccountUser";
+    }
+  }
+  return "$.replicationAccountUser";
 }
 
-std::string repl_account_host_key(Cluster_type type) {
-  if (type == Cluster_type::GROUP_REPLICATION)
-    return "$.recoveryAccountHost";
-  else
-    return "$.replicationAccountHost";
+std::string repl_account_host_key(Cluster_type type,
+                                  Replica_type replica_type) {
+  if (type == Cluster_type::GROUP_REPLICATION) {
+    if (replica_type == Replica_type::GROUP_MEMBER) {
+      return "$.recoveryAccountHost";
+    } else if (replica_type == Replica_type::READ_REPLICA) {
+      return "$.readReplicaReplicationAccountHost";
+    }
+  }
+  return "$.replicationAccountHost";
 }
 }  // namespace
 
 void MetadataStorage::update_instance_repl_account(
     const std::string &instance_uuid, Cluster_type type,
-    const std::string &recovery_account_user,
+    Replica_type replica_type, const std::string &recovery_account_user,
     const std::string &recovery_account_host, Transaction_undo *undo) {
   shcore::sqlstring query;
 
@@ -1099,9 +1209,9 @@ void MetadataStorage::update_instance_repl_account(
         "  ?, ?,  ?, ?)"
         " WHERE mysql_server_uuid = ?",
         0);
-    query << repl_account_user_key(type);
+    query << repl_account_user_key(type, replica_type);
     query << recovery_account_user;
-    query << repl_account_host_key(type);
+    query << repl_account_host_key(type, replica_type);
     query << recovery_account_host;
     query << instance_uuid;
     query.done();
@@ -1113,8 +1223,8 @@ void MetadataStorage::update_instance_repl_account(
         " SET attributes = json_remove(attributes, ?, ?)"
         " WHERE mysql_server_uuid = ?",
         0);
-    query << repl_account_user_key(type);
-    query << repl_account_host_key(type);
+    query << repl_account_user_key(type, replica_type);
+    query << repl_account_host_key(type, replica_type);
     query << instance_uuid;
     query.done();
   }
@@ -1122,15 +1232,16 @@ void MetadataStorage::update_instance_repl_account(
 }
 
 std::pair<std::string, std::string> MetadataStorage::get_instance_repl_account(
-    const std::string &instance_uuid, Cluster_type type) {
+    const std::string &instance_uuid, Cluster_type type,
+    Replica_type replica_type) {
   shcore::sqlstring query = shcore::sqlstring{
       "SELECT (attributes->>?) as recovery_user,"
       " (attributes->>?) as recovery_host"
       " FROM mysql_innodb_cluster_metadata.instances "
       " WHERE mysql_server_uuid = ?",
       0};
-  query << repl_account_user_key(type);
-  query << repl_account_host_key(type);
+  query << repl_account_user_key(type, replica_type);
+  query << repl_account_host_key(type, replica_type);
   query << instance_uuid;
   query.done();
   std::string recovery_user, recovery_host;
@@ -1181,6 +1292,46 @@ void MetadataStorage::update_cluster_repl_account(
   execute_sql(query);
 }
 
+void MetadataStorage::update_read_replica_repl_account(
+    const std::string &instance_uuid, const std::string &repl_account_user,
+    const std::string &repl_account_host, Transaction_undo *undo) {
+  shcore::sqlstring query;
+
+  if (undo) {
+    undo->add_snapshot_for_update(
+        "mysql_innodb_cluster_metadata.instances", "attributes",
+        *get_md_server(),
+        shcore::sqlformat("mysql_server_uuid = ?", instance_uuid));
+  }
+
+  if (!repl_account_user.empty()) {
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.instances"
+        " SET attributes = json_set(COALESCE(attributes, '{}'),"
+        " '$.readReplicaReplicationAccountUser', ?,"
+        " '$.readReplicaReplicationAccountHost', ?)"
+        " WHERE mysql_server_uuid = ?",
+        0);
+    query << repl_account_user;
+    query << repl_account_host;
+    query << instance_uuid;
+    query.done();
+  } else {
+    // if repl_account_user user is empty, clear existing recovery attributes
+    // of the instance from the metadata.
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.instances"
+        " SET attributes = json_remove(attributes, "
+        " '$.readReplicaReplicationAccountUser', "
+        " '$.readReplicaReplicationAccountHost')"
+        " WHERE mysql_server_uuid = ?",
+        0);
+    query << instance_uuid;
+    query.done();
+  }
+  execute_sql(query);
+}
+
 std::pair<std::string, std::string> MetadataStorage::get_cluster_repl_account(
     const Cluster_id &cluster_id) const {
   shcore::sqlstring query = shcore::sqlstring{
@@ -1200,6 +1351,30 @@ std::pair<std::string, std::string> MetadataStorage::get_cluster_repl_account(
     recovery_host = row->get_string(1, "");
   }
   return std::make_pair(recovery_user, recovery_host);
+}
+
+std::pair<std::string, std::string>
+MetadataStorage::get_read_replica_repl_account(
+    const std::string &instance_uuid) const {
+  shcore::sqlstring query = shcore::sqlstring{
+      "SELECT (attributes->>'$.readReplicaReplicationAccountUser') as "
+      "replication_user,"
+      " (attributes->>'$.readReplicaReplicationAccountHost') as "
+      "replication_host"
+      " FROM mysql_innodb_cluster_metadata.instances "
+      " WHERE mysql_server_uuid = ?",
+      0};
+  query << instance_uuid;
+  query.done();
+  std::string replication_user, replication_host;
+
+  auto res = execute_sql(query);
+  auto row = res->fetch_one();
+  if (row) {
+    replication_user = row->get_string(0, "");
+    replication_host = row->get_string(1, "");
+  }
+  return std::make_pair(replication_user, replication_host);
 }
 
 std::map<std::string, std::string>
@@ -1304,12 +1479,20 @@ size_t MetadataStorage::iterate_recovery_account(
   return num_accounts;
 }
 
-void MetadataStorage::remove_instance(const std::string &instance_address) {
+void MetadataStorage::remove_instance(const std::string &instance_address,
+                                      Transaction_undo *undo) {
   // Remove the instance
   auto query = ("DELETE FROM mysql_innodb_cluster_metadata.instances "
                 "WHERE LOWER(addresses->>'$.mysqlClassic') = LOWER(?)"_sql
                 << instance_address)
                    .str();
+
+  if (undo) {
+    undo->add_snapshot_for_delete(
+        "mysql_innodb_cluster_metadata.instances", *get_md_server(),
+        shcore::sqlformat("LOWER(addresses->>'$.mysqlClassic') = LOWER(?)",
+                          instance_address));
+  }
 
   execute_sql(query);
 }
@@ -1516,6 +1699,11 @@ Instance_metadata MetadataStorage::unserialize_instance(
   if (row.has_field("tags"))
     instance.tags = shcore::Value::parse(row.get_string("tags", "{}")).as_map();
 
+  if (row.has_field("instance_type")) {
+    instance.instance_type =
+        to_instance_type(row.get_string("instance_type", ""));
+  }
+
   return instance;
 }
 
@@ -1563,7 +1751,7 @@ void MetadataStorage::get_replica_set_primary_info(const Cluster_id &cluster_id,
 }
 
 std::vector<Instance_metadata> MetadataStorage::get_all_instances(
-    Cluster_id cluster_id) {
+    Cluster_id cluster_id, bool include_read_replicas) {
   if (real_version() == metadata::kNotInstalled) return {};
 
   std::string query(get_instance_query(m_real_md_version));
@@ -1573,22 +1761,40 @@ std::vector<Instance_metadata> MetadataStorage::get_all_instances(
     query = shcore::str_replace(query, metadata::kMetadataSchemaName,
                                 m_md_version_schema);
 
+  bool supports_read_replicas =
+      m_real_md_version >= mysqlshdk::utils::Version(2, 2, 0);
+
   std::shared_ptr<mysqlshdk::db::IResult> result;
 
   if (cluster_id.empty()) {
-    result = execute_sql(query);
+    if (!include_read_replicas && supports_read_replicas) {
+      result = execute_sql(query + " WHERE i.instance_type <> 'read-replica'");
+    } else {
+      result = execute_sql(query);
+    }
+
   } else {
     if (m_real_md_version.get_major() == 1) {
       result = execute_sqlf(query + " WHERE r.cluster_id = ?",
                             std::atoi(cluster_id.c_str()));
     } else {
-      result = execute_sqlf(query + " WHERE i.cluster_id = ?", cluster_id);
+      if (!include_read_replicas && supports_read_replicas) {
+        result = execute_sqlf(query +
+                                  " WHERE i.cluster_id = ? AND "
+                                  "i.instance_type <> 'read-replica'",
+                              cluster_id);
+      } else {
+        result = execute_sqlf(query + " WHERE i.cluster_id = ?", cluster_id);
+      }
     }
   }
 
   std::vector<Instance_metadata> ret_val;
+
   while (auto row = result->fetch_one_named()) {
-    ret_val.push_back(unserialize_instance(row, &m_real_md_version));
+    auto instance_md = unserialize_instance(row, &m_real_md_version);
+
+    ret_val.push_back(instance_md);
   }
 
   return ret_val;
@@ -1621,10 +1827,18 @@ std::vector<Instance_metadata> MetadataStorage::get_replica_set_instances(
 }
 
 Instance_metadata MetadataStorage::get_instance_by_uuid(
-    const std::string &uuid) const {
-  auto result = execute_sqlf(
-      get_instance_query(real_version()) + " WHERE i.mysql_server_uuid = ?",
-      uuid);
+    const std::string &uuid, const Cluster_id &cluster_id) const {
+  std::string query =
+      get_instance_query(real_version()) + " WHERE i.mysql_server_uuid = ?";
+
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
+  if (cluster_id.empty()) {
+    result = execute_sqlf(query, uuid);
+  } else {
+    query += " AND i.cluster_id = ?";
+    result = execute_sqlf(query, uuid, cluster_id);
+  }
 
   if (auto row = result->fetch_one_named()) {
     return unserialize_instance(row);
@@ -1635,7 +1849,7 @@ Instance_metadata MetadataStorage::get_instance_by_uuid(
 }
 
 Instance_metadata MetadataStorage::get_instance_by_address(
-    const std::string &instance_address) {
+    const std::string &instance_address) const {
   auto md_version = real_version();
   auto query(get_instance_query(md_version));
 
@@ -2407,7 +2621,7 @@ shcore::Value MetadataStorage::get_routing_option(Cluster_type type,
                           WHERE cluster_id = r.cluster_id),
                         COALESCE(r.options, '{}')), ?) as router_options
             FROM mysql_innodb_cluster_metadata.routers r
-            WHERE cluster_id = ? 
+            WHERE cluster_id = ?
                 AND concat(r.address, '::', r.router_name) = ?)*",
           "$." + option, cluster_id, router);
       break;
@@ -2540,6 +2754,38 @@ void MetadataStorage::migrate_routers_to_clusterset(
   execute_sql(query);
 }
 
+void MetadataStorage::migrate_read_only_targets_to_clusterset(
+    const Cluster_id &cluster_id, const Cluster_set_id &cluster_set_id) {
+  auto result = execute_sql(
+      ("SELECT router_options->>'$.read_only_targets' FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = ?"_sql
+       << cluster_id)
+          .str());
+
+  auto row = result->fetch_one();
+
+  std::string read_only_targets;
+
+  if (!row) {
+    // If the value is not set for the Cluster, assume the default
+    read_only_targets = k_default_router_option_read_only_targets;
+  } else {
+    read_only_targets = row->get_string(0);
+  }
+
+  execute_sqlf(
+      "UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = "
+      "JSON_REMOVE(router_options, concat('$.', 'read_only_targets')) WHERE "
+      "cluster_id = ?",
+      cluster_id);
+
+  execute_sql(
+      ("UPDATE mysql_innodb_cluster_metadata.clustersets "
+       "SET router_options = JSON_SET(router_options, '$.read_only_targets', "
+       "?) WHERE clusterset_id = ?"_sql
+       << read_only_targets << cluster_set_id)
+          .str());
+}
+
 std::vector<Router_metadata>
 MetadataStorage::get_routers_using_cluster_as_target(
     const std::string &target_cluster_group_name) {
@@ -2610,33 +2856,36 @@ void MetadataStorage::set_global_routing_option(Cluster_type type,
   if (value.type == shcore::Null) value_copy = option_defaults->at(option);
 
   if (type == Cluster_type::REPLICATED_CLUSTER) {
-    if (value_copy.type == shcore::Null)
+    if (value_copy.type == shcore::Null) {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.clustersets
         SET router_options = JSON_REMOVE(router_options, concat('$.', ?))
         WHERE clusterset_id = ?)*",
                    option_name, cluster_id);
-    else
+    } else {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.clustersets
-        SET router_options = 
+        SET router_options =
           JSON_SET(IFNULL(router_options, '{}'), concat('$.', ?), CAST(? as JSON))
         WHERE clusterset_id = ?)*",
                    option_name, value_copy.json(false), cluster_id);
+    }
   } else {
-    if (value_copy.type == shcore::Null)
+    if (value_copy.type == shcore::Null) {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.clusters
         SET router_options = JSON_REMOVE(router_options, concat('$.', ?))
         WHERE cluster_id = ?)*",
                    option_name, cluster_id);
-    else
+    } else {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.clusters
-        SET router_options = 
+        SET router_options =
           JSON_SET(IFNULL(router_options, '{}'), concat('$.', ?), CAST(? as JSON))
         WHERE cluster_id = ?)*",
                    option_name, value_copy.json(false), cluster_id);
+    }
   }
 }
 
-void MetadataStorage::set_routing_option(const std::string &router,
+void MetadataStorage::set_routing_option(Cluster_type type,
+                                         const std::string &router,
                                          const std::string &cluster_id,
                                          const std::string &option,
                                          const shcore::Value &value) {
@@ -2653,21 +2902,39 @@ void MetadataStorage::set_routing_option(const std::string &router,
                            "' is not part of this topology");
   }
 
-  if (value == shcore::Value::Null())
-    execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
+  if (value == shcore::Value::Null()) {
+    if (type == Cluster_type::REPLICATED_CLUSTER) {
+      execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
         SET r.options = JSON_REMOVE(r.options, concat('$.', ?))
-        WHERE (r.clusterset_id = ? or r.cluster_id = ?) 
+        WHERE r.clusterset_id = ?
           AND r.address = ? AND r.router_name = ?)*",
-                 option_name, cluster_id, cluster_id, router_address,
-                 router_name);
-  else
-    execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
-        SET r.options = 
+                   option_name, cluster_id, router_address, router_name);
+    } else {
+      execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
+        SET r.options = JSON_REMOVE(r.options, concat('$.', ?))
+        WHERE r.cluster_id = ?
+          AND r.address = ? AND r.router_name = ?)*",
+                   option_name, cluster_id, router_address, router_name);
+    }
+  } else {
+    if (type == Cluster_type::REPLICATED_CLUSTER) {
+      execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
+        SET r.options =
           JSON_SET(IFNULL(r.options, '{}'), concat('$.', ?), CAST(? as JSON))
-        WHERE (r.clusterset_id = ? or r.cluster_id = ?) 
+        WHERE r.clusterset_id = ?
           AND r.address = ? AND r.router_name = ?)*",
-                 option_name, value.json(false), cluster_id, cluster_id,
-                 router_address, router_name);
+                   option_name, value.json(false), cluster_id, router_address,
+                   router_name);
+    } else {
+      execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
+        SET r.options =
+          JSON_SET(IFNULL(r.options, '{}'), concat('$.', ?), CAST(? as JSON))
+        WHERE r.cluster_id = ?
+          AND r.address = ? AND r.router_name = ?)*",
+                   option_name, value.json(false), cluster_id, router_address,
+                   router_name);
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -2887,15 +3154,16 @@ void MetadataStorage::record_cluster_set_primary_failover(
   }
 }
 
-bool MetadataStorage::check_metadata(Version *out_version,
-                                     Cluster_type *out_type) const {
+bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,
+                                     Cluster_type *out_type,
+                                     Replica_type *out_replica_type) const {
   if (check_version(out_version)) {
     auto target_server = get_md_server();
     log_debug("Instance type check: %s: Metadata version %s found",
               target_server->descr().c_str(), out_version->get_full().c_str());
 
-    if (!check_instance_type(target_server->get_uuid(), *out_version,
-                             out_type)) {
+    if (!check_instance_type(target_server->get_uuid(), *out_version, out_type,
+                             out_replica_type)) {
       *out_type = Cluster_type::NONE;
       log_debug("Instance %s is not managed",
                 target_server->get_uuid().c_str());
@@ -2987,6 +3255,10 @@ bool MetadataStorage::check_cluster_set(
 
 bool MetadataStorage::supports_cluster_set() const {
   return real_version() >= Version(2, 1, 0);
+}
+
+bool MetadataStorage::supports_read_replicas() const {
+  return real_version() >= mysqlshdk::utils::Version(2, 2, 0);
 }
 
 }  // namespace dba

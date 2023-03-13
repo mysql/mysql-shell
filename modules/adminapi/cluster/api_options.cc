@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/api_options.h"
+#include "adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -33,6 +35,7 @@
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
+#include "utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -45,22 +48,10 @@ const shcore::Option_pack_def<Add_instance_options>
           .include(&Add_instance_options::gr_options)
           .include(&Add_instance_options::clone_options)
           .optional(kLabel, &Add_instance_options::label)
-          .optional(kWaitRecovery, &Add_instance_options::set_wait_recovery)
+          .include<Wait_recovery_option>()
           .optional(kCertSubject, &Add_instance_options::set_cert_subject)
           .include<Password_interactive_options>();
   return opts;
-}
-
-void Add_instance_options::set_wait_recovery(int value) {
-  // Validate waitRecovery option UInteger [0, 3]
-  if (value < 0 || value > 3) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
-                           "integer in the range [0, 3].",
-                           value, kWaitRecovery));
-  }
-
-  wait_recovery = value;
 }
 
 void Add_instance_options::set_cert_subject(const std::string &value) {
@@ -74,9 +65,14 @@ void Add_instance_options::set_cert_subject(const std::string &value) {
 
 const shcore::Option_pack_def<Rejoin_instance_options>
     &Rejoin_instance_options::options() {
-  static const auto opts = shcore::Option_pack_def<Rejoin_instance_options>()
-                               .include(&Rejoin_instance_options::gr_options)
-                               .include<Password_interactive_options>();
+  static const auto opts =
+      shcore::Option_pack_def<Rejoin_instance_options>()
+          .include(&Rejoin_instance_options::gr_options)
+          .include(&Rejoin_instance_options::clone_options)
+          .include<Recovery_progress_option>()
+          .optional(kDryRun, &Rejoin_instance_options::dry_run)
+          .include<Password_interactive_options>()
+          .include<Timeout_option>();
 
   return opts;
 }
@@ -86,7 +82,9 @@ const shcore::Option_pack_def<Remove_instance_options>
   static const auto opts =
       shcore::Option_pack_def<Remove_instance_options>()
           .optional(kForce, &Remove_instance_options::force)
-          .include<Password_interactive_options>();
+          .optional(kDryRun, &Remove_instance_options::dry_run)
+          .include<Password_interactive_options>()
+          .include<Timeout_option>();
 
   return opts;
 }
@@ -222,6 +220,65 @@ const shcore::Option_pack_def<Set_primary_instance_options>
       shcore::Option_pack_def<Set_primary_instance_options>().optional(
           "runningTransactionsTimeout",
           &Set_primary_instance_options::running_transactions_timeout);
+
+  return opts;
+}
+
+// Read-Replicas
+
+void Add_replica_instance_options::set_replication_sources(
+    const shcore::Value &value) {
+  validate_replication_sources_option(value);
+
+  // Iterate the list to build the vector of Managed_async_channel_source(s)
+  if (value.type == shcore::Value_type::Array) {
+    auto sources = value.to_string_container<std::vector<std::string>>();
+
+    replication_sources_option.replication_sources =
+        std::set<Managed_async_channel_source,
+                 std::greater<Managed_async_channel_source>>{};
+
+    // The source list is ordered by weight
+    int64_t source_weight = k_read_replica_max_weight;
+
+    for (const auto &src : sources) {
+      Managed_async_channel_source managed_src_address(src);
+
+      // Add it if not in the list already. The one kept in the list is the one
+      // with the highest priority/weight
+      if (replication_sources_option.replication_sources.find(
+              managed_src_address) ==
+          replication_sources_option.replication_sources.end()) {
+        Managed_async_channel_source managed_src(src, source_weight--);
+        replication_sources_option.replication_sources.emplace(
+            std::move(managed_src));
+      }
+    }
+
+    // Set the source type to CUSTOM
+    replication_sources_option.source_type = Source_type::CUSTOM;
+  } else if (value.type == shcore::Value_type::String) {
+    auto string = value.as_string();
+
+    if (shcore::str_caseeq(string, kReplicationSourcesAutoPrimary)) {
+      replication_sources_option.source_type = Source_type::PRIMARY;
+    } else if (shcore::str_caseeq(string, kReplicationSourcesAutoSecondary)) {
+      replication_sources_option.source_type = Source_type::SECONDARY;
+    }
+  }
+}
+
+const shcore::Option_pack_def<Add_replica_instance_options>
+    &Add_replica_instance_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Add_replica_instance_options>()
+          .include<Timeout_option>()
+          .optional(kDryRun, &Add_replica_instance_options::dry_run)
+          .optional(kLabel, &Add_replica_instance_options::label)
+          .optional(kReplicationSources,
+                    &Add_replica_instance_options::set_replication_sources)
+          .include<Recovery_progress_option>()
+          .include(&Add_replica_instance_options::clone_options);
 
   return opts;
 }

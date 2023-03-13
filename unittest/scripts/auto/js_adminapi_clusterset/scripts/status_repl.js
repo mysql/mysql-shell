@@ -60,13 +60,13 @@ EXPECT_EQ(10, cluster2(s)["clusterSetReplication"]["options"]["retryCount"]);
 
 // customized
 session3.runSql("stop replica for channel 'clusterset_replication'");
-session3.runSql("change replication source to source_connect_retry=1, source_retry_count=5 for channel 'clusterset_replicatiton'");
+session3.runSql("change replication source to source_connect_retry=1, source_retry_count=5 for channel 'clusterset_replication'");
 session3.runSql("start replica for channel 'clusterset_replication'");
 var s = cs.status({extended:3});
-EXPECT_EQ(3, cluster2(s)["clusterSetReplication"]["options"]["connectRetry"]);
+EXPECT_EQ(1, cluster2(s)["clusterSetReplication"]["options"]["connectRetry"]);
 EXPECT_EQ(0, cluster2(s)["clusterSetReplication"]["options"]["delay"]);
 EXPECT_EQ(30, cluster2(s)["clusterSetReplication"]["options"]["heartbeatPeriod"]);
-EXPECT_EQ(10, cluster2(s)["clusterSetReplication"]["options"]["retryCount"]);
+EXPECT_EQ(5, cluster2(s)["clusterSetReplication"]["options"]["retryCount"]);
 
 //@<> Check missing transactions
 session3.runSql("flush tables with read lock");
