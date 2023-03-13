@@ -35,6 +35,9 @@
 namespace mysqlsh {
 namespace dump {
 
+using Object_storage_options =
+    mysqlshdk::storage::backend::object_storage::Object_storage_options;
+
 class Ddl_dumper_options : public Dump_options {
  public:
   Ddl_dumper_options(const Ddl_dumper_options &) = default;
@@ -78,6 +81,7 @@ class Ddl_dumper_options : public Dump_options {
   }
 
   void enable_mds_compatibility_checks();
+  void set_output_url(const std::string &url) override;
 
  protected:
   Ddl_dumper_options();
@@ -92,6 +96,7 @@ class Ddl_dumper_options : public Dump_options {
   void set_ocimds(bool value);
   void set_compatibility_options(const std::vector<std::string> &options);
   void set_dry_run(bool dry_run);
+  const Object_storage_options *object_storage_options() const;
 
   Dump_manifest_options m_dump_manifest_options;
   // this should be in the Dump_options class, but storing it at the same level

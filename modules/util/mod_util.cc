@@ -1412,6 +1412,12 @@ about restrictions and compatibility.
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_PARAMETERS, R"*(
 The <b>outputUrl</b> specifies where the dump is going to be stored.
 
+The value for this parameter can be either:
+
+@li The path to the target location in a local filesystem or one of the
+supported cloud storage buckets
+@li A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
+
 By default, a local directory is used, and in this case <b>outputUrl</b> can be
 prefixed with <b>file://</b> scheme. If a relative path is given, the absolute
 path is computed as relative to the current working directory. If the output
@@ -1420,6 +1426,9 @@ directory exists, it must be empty. All directories are created with the
 following access rights (on operating systems which support them):
 <b>rwxr-x---</b>. All files are created with the following access rights (on
 operating systems which support them): <b>rw-r-----</b>.
+
+For additional details on using PARs see the <b>Dumping to OCI Object Storage
+using Pre-Authenticated Request (PAR)</b> section.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS, R"*(
@@ -1655,6 +1664,16 @@ The value of the <b>bytesPerChunk</b> option cannot be smaller than "128k".
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS, R"*(
 <b>Dumping to a Bucket in the OCI Object Storage</b>
 
+There are 2 ways to create a dump in OCI Object Storage:
+
+@li By using the standard client OCI configuration.
+@li By using a Pre-Authenticated Request (PAR).
+
+<b>Dumping to OCI Object Storage using the client OCI configuration</b>
+
+The <b>osBucketName</b> option is used to indicate the connection is established
+using the locally configured OCI client profile.
+
 If the <b>osBucketName</b> option is used, the dump is stored in the specified
 OCI bucket, connection is established using the local OCI profile. The directory
 structure is simulated within the object name.
@@ -1664,6 +1683,35 @@ cannot be used if the <b>osBucketName</b> option is set to an empty string.
 
 The <b>osNamespace</b> option overrides the OCI namespace obtained based on the
 tenancy ID from the local OCI profile.
+
+<b>Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)</b>
+
+When using a PAR to create a dump, no client OCI configuration is needed to
+perform the dump operation. A bucket or prefix PAR with the following
+access types is required to perform a dump with this method:
+
+- Permit object reads and writes.
+- Enable object listing.
+
+When using a bucket PAR, the generated PAR URL should be used as the <b>output_url</b>
+argument for the dump operation. i.e. the following is a bucket PAR to create dump at
+the root folder of the 'test' bucket:
+<br>
+@code
+    https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+@endcode
+
+When using a prefix PAR, the <b>output_url</b> argument should contain the PAR URL
+itself and the prefix used to generate it. i.e. the following is a prefix PAR to
+create a dump at the 'dump' folder of the 'test' bucket. The PAR was created using
+'dump' as prefix:
+<br>
+@code
+    https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+@endcode
+
+Note that both the bucket and the prefix PAR URLs must end with a slash, otherwise
+it will be considered invalid.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS, R"*(
@@ -1804,6 +1852,7 @@ void Util::export_table(
   opts.set_table(table);
   opts.set_output_url(file);
   opts.set_session(session->get_core_session());
+  opts.validate();
 
   Export_table dumper{opts};
 
@@ -1924,6 +1973,7 @@ void Util::dump_tables(
   opts.set_tables(tables);
   opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
+  opts.validate();
 
   Dump_tables dumper{opts};
 
@@ -2012,6 +2062,7 @@ void Util::dump_schemas(
   opts.set_schemas(schemas);
   opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
+  opts.validate();
 
   Dump_schemas dumper{opts};
 
@@ -2120,6 +2171,7 @@ void Util::dump_instance(
   mysqlsh::dump::Dump_instance_options opts = *options;
   opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
+  opts.validate();
 
   Dump_instance dumper{opts};
 

@@ -105,7 +105,7 @@ class Http_object : public IFile {
 
   void set_parent_config(const Config_ptr &config) { m_parent_config = config; }
 
- private:
+ protected:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Http_object_test, full_path_constructor);
 #endif  // FRIEND_TEST

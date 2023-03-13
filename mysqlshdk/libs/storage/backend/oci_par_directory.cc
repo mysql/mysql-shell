@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,27 @@ namespace oci {
 
 using mysqlshdk::db::uri::pctencode_query_value;
 
+size_t Oci_par_file::file_size() const {
+  if (Mode::WRITE != m_open_mode) {
+    return Http_object::file_size();
+  }
+
+  return m_file_size;
+}
+
+std::unique_ptr<IFile> Oci_par_directory::file(
+    const std::string &name, const File_options & /*options*/) const {
+  // file may outlive the directory, need to copy the values
+  const auto full = full_path();
+  auto real = full.real();
+  auto masked = full.masked();
+  Masked_string copy = {std::move(real), std::move(masked)};
+  auto file = std::make_unique<Oci_par_file>(
+      copy, db::uri::pctencode_path(name), m_use_retry);
+  file->set_parent_config(m_config);
+  return file;
+}
+
 Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
     : Http_directory(config, true), m_config(config) {
   init_rest();
@@ -40,6 +61,21 @@ Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
 
 Masked_string Oci_par_directory::full_path() const {
   return ::mysqlshdk::oci::anonymize_par(m_config->par().full_url());
+}
+
+bool Oci_par_directory::exists() const {
+  // If list files succeeds, we can say the target exists even if it's a prefix
+  // PAR and there are no objects with that prefix as the result will be an
+  // empty list, otherwise, an exception describing the issue would be raised
+  if (!m_exists.has_value()) {
+    list_files();
+    m_exists = true;
+  }
+
+  return m_exists.value_or(false);
+}
+
+void Oci_par_directory::create() { /*NOOP*/
 }
 
 std::string Oci_par_directory::get_list_url() const {
@@ -73,7 +109,15 @@ std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
     const auto file = object.as_map();
     auto name = file->get_string("name").substr(prefix_length);
 
-    if (pattern.empty() || shcore::match_glob(pattern, name)) {
+    // The OCI Console UI allows creating an empty folder in a bucket. A prefix
+    // PAR for such folder should be valid as long as the folder does not
+    // contain files. On a scenario like this, using the prefix PAR to list the
+    // objects will return 1 object named as <prefix>/.
+    // Since we are taking as name, everything after the <prefix>/, that means
+    // in a case like this, an empty named object will be returned.
+    // Such object should be ignored from the listing.
+    if (!name.empty() &&
+        (pattern.empty() || shcore::match_glob(pattern, name))) {
       list.emplace(std::move(name),
                    static_cast<size_t>(file->get_uint("size")));
     }

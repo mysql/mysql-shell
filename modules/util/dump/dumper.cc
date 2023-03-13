@@ -1725,8 +1725,6 @@ class Dumper::Memory_dumper final {
 
 Dumper::Dumper(const Dump_options &options)
     : m_options(options), m_progress_thread("Dump", options.show_progress()) {
-  m_options.validate();
-
   if (m_options.use_single_file()) {
     {
       using mysqlshdk::storage::utils::get_scheme;

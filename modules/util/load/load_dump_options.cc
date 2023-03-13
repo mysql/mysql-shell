@@ -55,28 +55,6 @@ const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
 
 constexpr auto k_minimum_max_bytes_per_transaction = 4096;
 
-std::shared_ptr<mysqlshdk::oci::IPAR_config> par_config(
-    const std::string &url) {
-  mysqlshdk::oci::PAR_structure par;
-
-  switch (mysqlshdk::oci::parse_par(url, &par)) {
-    case mysqlshdk::oci::PAR_type::MANIFEST:
-      return std::make_shared<dump::Dump_manifest_read_config>(par);
-
-    case mysqlshdk::oci::PAR_type::PREFIX:
-      return std::make_shared<
-          mysqlshdk::storage::backend::oci::Oci_par_directory_config>(par);
-
-    case mysqlshdk::oci::PAR_type::GENERAL:
-      return std::make_shared<mysqlshdk::oci::General_par_config>(par);
-
-    case mysqlshdk::oci::PAR_type::NONE:
-      break;
-  }
-
-  return {};
-}
-
 }  // namespace
 
 Load_dump_options::Load_dump_options() : Load_dump_options("") {}
@@ -177,7 +155,7 @@ void Load_dump_options::set_max_bytes_per_transaction(
 void Load_dump_options::set_progress_file(const std::string &value) {
   m_progress_file = value;
 
-  auto config = par_config(value);
+  auto config = dump::common::get_par_config(value);
 
   if (config && config->valid()) {
     if (mysqlshdk::oci::PAR_type::GENERAL != config->par().type()) {
@@ -300,7 +278,7 @@ void Load_dump_options::set_session(
 
 void Load_dump_options::validate() {
   if (!m_storage_config || !m_storage_config->valid()) {
-    auto config = par_config(m_url);
+    auto config = dump::common::get_par_config(m_url);
 
     if (config && config->valid()) {
       if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type() ||

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,22 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 namespace oci {
+
+class Oci_par_file : public Http_object {
+ public:
+  using Http_object::Http_object;
+
+  Oci_par_file &operator=(const Oci_par_file &other) = delete;
+  Oci_par_file &operator=(Oci_par_file &&other) = default;
+
+  ~Oci_par_file() = default;
+
+  int error() const override { return 0; }
+
+  off64_t tell() const override { return m_file_size; }
+
+  size_t file_size() const override;
+};
 
 class Oci_par_directory : public Http_directory {
  public:
@@ -51,6 +68,13 @@ class Oci_par_directory : public Http_directory {
 
   Masked_string full_path() const override;
 
+  bool exists() const override;
+
+  void create() override;
+
+  std::unique_ptr<IFile> file(const std::string &name,
+                              const File_options &options = {}) const override;
+
  private:
   std::string get_list_url() const override;
 
@@ -64,6 +88,8 @@ class Oci_par_directory : public Http_directory {
   Oci_par_directory_config_ptr m_config;
 
   mutable std::string m_next_start_with;
+
+  mutable std::optional<bool> m_exists;
 };
 
 }  // namespace oci

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,9 +24,11 @@
 #ifndef MODULES_UTIL_COMMON_DUMP_UTILS_H_
 #define MODULES_UTIL_COMMON_DUMP_UTILS_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -62,6 +64,14 @@ std::string get_table_data_filename(const std::string &basename,
 void parse_schema_and_object(const std::string &str, const std::string &context,
                              const std::string &object_type,
                              std::string *out_schema, std::string *out_table);
+
+mysqlshdk::oci::PAR_structure parse_par(const std::string &url);
+
+std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
+    const std::string &url);
+
+std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
+    const mysqlshdk::oci::PAR_structure &par);
 
 }  // namespace common
 }  // namespace dump

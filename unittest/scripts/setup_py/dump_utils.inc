@@ -2,6 +2,11 @@ import json
 import re
 import urllib.parse
 
+# Sample PAR URLs to test option conflict with the supported object storages (Oci/Aws/Azure)
+sample_bucket_par="https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/"
+sample_prefix_par="https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/prefix/"
+
+
 def md5_table(session, schema, table, where = "", partitions = []):
     columns = []
     has_pri = 0 != session.run_sql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetch_one()[0]
@@ -158,7 +163,7 @@ def compare_query_results(session1, session2, query, args=[], ignore_columns=[])
         EXPECT_EQ(str(r1[i]), str(r2[i]) if i < len(r2) else "<missing>")
     return r1
 
-def compare_schema(session1, session2, schema, check_rows=True):
+def compare_schema(session1, session2, schema, check_rows=True, check_events=True, check_triggers=True, check_stored_procedures=True):
     tables = compare_query_results(session1, session2, "select table_name from information_schema.tables where table_schema=? and table_type='BASE TABLE' order by table_name", [schema])
     for table, in tables:
         compare_query_results(session1, session2, "show create table `"+schema+"`.`"+table+"`")
@@ -169,17 +174,20 @@ def compare_schema(session1, session2, schema, check_rows=True):
     for view, in views:
         compare_query_results(session1, session2, "show create view `"+schema+"`.`"+view+"`")
     # ignore Originator in the show events output
-    compare_query_results(session1, session2, "show events in `"+schema+"`", ignore_columns=[11])
-    compare_query_results(session1, session2, "select TRIGGER_NAME,EVENT_MANIPULATION,EVENT_OBJECT_SCHEMA,EVENT_OBJECT_TABLE,ACTION_ORDER,ACTION_CONDITION,ACTION_STATEMENT,ACTION_ORIENTATION,ACTION_TIMING,ACTION_REFERENCE_OLD_TABLE,ACTION_REFERENCE_NEW_TABLE,ACTION_REFERENCE_OLD_ROW,ACTION_REFERENCE_NEW_ROW,SQL_MODE,DEFINER,CHARACTER_SET_CLIENT,COLLATION_CONNECTION,DATABASE_COLLATION from information_schema.triggers where trigger_schema=? order by trigger_name",[schema])
-    compare_query_results(session1, session2, "select SPECIFIC_NAME,ROUTINE_SCHEMA,ROUTINE_NAME,ROUTINE_TYPE,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,DTD_IDENTIFIER,ROUTINE_BODY,ROUTINE_DEFINITION,EXTERNAL_NAME,EXTERNAL_LANGUAGE,PARAMETER_STYLE,IS_DETERMINISTIC,SQL_DATA_ACCESS,SQL_PATH,SECURITY_TYPE,SQL_MODE,ROUTINE_COMMENT,DEFINER,CHARACTER_SET_CLIENT,COLLATION_CONNECTION,DATABASE_COLLATION from information_schema.routines where routine_schema=? order by specific_name", [schema])
+    if check_events:
+        compare_query_results(session1, session2, "show events in `"+schema+"`", ignore_columns=[11])
+    if check_triggers:
+        compare_query_results(session1, session2, "select TRIGGER_NAME,EVENT_MANIPULATION,EVENT_OBJECT_SCHEMA,EVENT_OBJECT_TABLE,ACTION_ORDER,ACTION_CONDITION,ACTION_STATEMENT,ACTION_ORIENTATION,ACTION_TIMING,ACTION_REFERENCE_OLD_TABLE,ACTION_REFERENCE_NEW_TABLE,ACTION_REFERENCE_OLD_ROW,ACTION_REFERENCE_NEW_ROW,SQL_MODE,DEFINER,CHARACTER_SET_CLIENT,COLLATION_CONNECTION,DATABASE_COLLATION from information_schema.triggers where trigger_schema=? order by trigger_name",[schema])
+    if check_stored_procedures:
+        compare_query_results(session1, session2, "select SPECIFIC_NAME,ROUTINE_SCHEMA,ROUTINE_NAME,ROUTINE_TYPE,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,DTD_IDENTIFIER,ROUTINE_BODY,ROUTINE_DEFINITION,EXTERNAL_NAME,EXTERNAL_LANGUAGE,PARAMETER_STYLE,IS_DETERMINISTIC,SQL_DATA_ACCESS,SQL_PATH,SECURITY_TYPE,SQL_MODE,ROUTINE_COMMENT,DEFINER,CHARACTER_SET_CLIENT,COLLATION_CONNECTION,DATABASE_COLLATION from information_schema.routines where routine_schema=? order by specific_name", [schema])
 
 
-def compare_schemas(session1, session2, check_rows=True):
+def compare_schemas(session1, session2, check_rows=True, check_events=True, check_triggers=True, check_stored_procedures=True):
     schemas = compare_query_results(session1, session2, "show schemas")
     for schema, in schemas:
         if schema in ("mysql", "sys", "performance_schema", "information_schema"):
             continue
-        compare_schema(session1, session2, schema, check_rows)
+        compare_schema(session1, session2, schema, check_rows, check_events, check_triggers, check_stored_procedures)
 
 def compare_user_grants(session1, session2, user):
     grants1 = session1.run_sql(f"show grants for {user}").fetch_all()
@@ -196,8 +204,8 @@ def compare_users(session1, session2):
         compare_user_grants(session1, session2, user)
 
 
-def compare_servers(session1, session2, *, check_rows=True, check_users=True):
-    compare_schemas(session1, session2, check_rows)
+def compare_servers(session1, session2, *, check_rows=True, check_users=True, check_events=True, check_triggers=True, check_stored_procedures=True):
+    compare_schemas(session1, session2, check_rows, check_events, check_triggers, check_stored_procedures)
     if check_users:
         compare_users(session1, session2)
 

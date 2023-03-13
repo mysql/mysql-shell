@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 
 namespace mysqlshdk {
@@ -34,8 +35,18 @@ namespace backend {
 namespace oci {
 
 std::unique_ptr<IFile> Oci_par_directory_config::file(
-    const std::string &) const {
-  throw std::logic_error("Oci_par_directory_config::file() - not supported");
+    const std::string &name) const {
+  const auto full = ::mysqlshdk::oci::anonymize_par(par().full_url());
+  auto real = full.real();
+  auto masked = full.masked();
+
+  Masked_string copy = {std::move(real), std::move(masked)};
+
+  auto file =
+      std::make_unique<Oci_par_file>(copy, db::uri::pctencode_path(name), true);
+  file->set_parent_config(shared_from_this());
+
+  return file;
 }
 
 std::unique_ptr<IDirectory> Oci_par_directory_config::directory(

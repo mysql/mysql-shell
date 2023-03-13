@@ -400,68 +400,76 @@ std::vector<PAR> Oci_bucket::list_preauthenticated_requests(
   // Ensures the REST connection is established
   const auto service = ensure_connection();
 
-  std::vector<std::string> parameters;
-
-  if (!prefix.empty())
-    parameters.emplace_back("prefix=" + pctencode_query_value(prefix));
-
-  // Only sets the limit when the request will be satisfied in one call,
-  // otherwise the limit will be set after the necessary calls to fulfill the
-  // limit request
-  if (limit && limit <= MAX_LIST_OBJECTS_LIMIT) {
-    parameters.emplace_back("limit=" + std::to_string(limit));
-  }
-
-  if (!page.empty())
-    parameters.emplace_back("page=" + pctencode_query_value(page));
-
-  auto path = kParActionPath;
-  if (!parameters.empty()) {
-    path.append("?" + shcore::str_join(parameters, "&"));
-  }
-
   std::vector<PAR> list;
 
-  std::string msg("Failed to get preauthenticated request list");
-  if (!prefix.empty()) msg.append(" using prefix '" + prefix + "'");
+  std::string next_page{page};
+  bool done = false;
+  while (!done) {
+    std::vector<std::string> parameters;
 
-  // TODO(rennox): Pagiing loop?
-  //  while (!done) {
-  rest::String_response response;
-  const auto &raw_data = response.buffer;
+    if (!prefix.empty())
+      parameters.emplace_back("prefix=" + pctencode_query_value(prefix));
 
-  try {
-    auto request = Signed_request(path);
-    service->get(&request, &response);
-  } catch (const Response_error &error) {
-    throw Response_error(error.status_code(), msg + ": " + error.what());
-  }
+    // Only sets the limit when the request will be satisfied in one call,
+    // otherwise the limit will be set after the necessary calls to fulfill the
+    // limit request
+    if (limit && limit <= MAX_LIST_OBJECTS_LIMIT) {
+      parameters.emplace_back("limit=" + std::to_string(limit));
+    }
 
-  shcore::Array_t data;
-  try {
-    data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_array();
-  } catch (const shcore::Exception &error) {
-    msg.append(": ").append(error.what());
+    if (!next_page.empty())
+      parameters.emplace_back("page=" + pctencode_query_value(next_page));
 
-    log_debug2("%s\n%.*s", msg.c_str(), static_cast<int>(raw_data.size()),
-               raw_data.data());
+    auto path = kParActionPath;
+    if (!parameters.empty()) {
+      path.append("?" + shcore::str_join(parameters, "&"));
+    }
 
-    throw shcore::Exception::runtime_error(msg);
-  }
+    std::string msg("Failed to get preauthenticated request list");
+    if (!prefix.empty()) msg.append(" using prefix '" + prefix + "'");
 
-  for (auto &value : *data) {
-    PAR details;
-    auto object = value.as_map();
+    rest::String_response response;
+    const auto &raw_data = response.buffer;
 
-    details.access_type = object->get_string("accessType");
-    details.id = object->get_string("id");
-    details.name = object->get_string("name");
-    if (!object->is_null("objectName"))
-      details.object_name = object->get_string("objectName");
-    details.time_created = object->get_string("timeCreated");
-    details.time_expires = object->get_string("timeExpires");
+    try {
+      auto request = Signed_request(path);
+      service->get(&request, &response);
+    } catch (const Response_error &error) {
+      throw Response_error(error.status_code(), msg + ": " + error.what());
+    }
 
-    list.push_back(details);
+    shcore::Array_t data;
+    try {
+      data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_array();
+    } catch (const shcore::Exception &error) {
+      msg.append(": ").append(error.what());
+
+      log_debug2("%s\n%.*s", msg.c_str(), static_cast<int>(raw_data.size()),
+                 raw_data.data());
+
+      throw shcore::Exception::runtime_error(msg);
+    }
+
+    if (response.headers.find("opc-next-page") != response.headers.end()) {
+      next_page = response.headers.at("opc-next-page");
+    } else {
+      done = true;
+    }
+
+    for (auto &value : *data) {
+      PAR details;
+      auto object = value.as_map();
+
+      details.access_type = object->get_string("accessType");
+      details.id = object->get_string("id");
+      details.name = object->get_string("name");
+      if (!object->is_null("objectName"))
+        details.object_name = object->get_string("objectName");
+      details.time_created = object->get_string("timeCreated");
+      details.time_expires = object->get_string("timeExpires");
+
+      list.push_back(details);
+    }
   }
 
   return list;

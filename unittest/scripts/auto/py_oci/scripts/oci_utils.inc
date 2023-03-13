@@ -9,7 +9,7 @@ from oci.object_storage.models.create_preauthenticated_request_details import Cr
 config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
 
 
-def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFIG_HOME, "config")):
+def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFIG_HOME, "config"), wipe_pars=True):
     start = time.time()
     q = queue.Queue()
     def worker():
@@ -41,8 +41,9 @@ def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFI
             q.put(delete_object(o.name))
         def delete_par(id):
             return lambda os: os.delete_preauthenticated_request(ns, bucket, id)
-        for par in oci.pagination.list_call_get_all_results(os.list_preauthenticated_requests, ns, bucket).data:
-            q.put(delete_par(par.id))
+        if wipe_pars:
+            for par in oci.pagination.list_call_get_all_results(os.list_preauthenticated_requests, ns, bucket).data:
+                q.put(delete_par(par.id))
     except:
         print("--- wipeout_bucket_mt() - exception: {0} ---".format(sys.exc_info()[0]))
     for i in range(workers):
@@ -66,7 +67,7 @@ def delete_object(bucket, name, namespace=""):
   os_client.delete_object(namespace, bucket, name, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 
-def prepare_empty_bucket(bucket, namespace=""):
+def prepare_empty_bucket(bucket, namespace="", wipe_pars=True):
   os_client = oci.object_storage.ObjectStorageClient(config)
   if namespace == "":
     namespace = os_client.get_namespace().data
@@ -77,7 +78,7 @@ def prepare_empty_bucket(bucket, namespace=""):
     exists = False
     print(e)
   if exists:
-    wipeout_bucket_mt(4, bucket, namespace)
+    wipeout_bucket_mt(4, bucket, namespace, wipe_pars=wipe_pars)
   else:
     os_client.create_bucket(namespace, oci.object_storage.models.CreateBucketDetails(
           name=bucket,

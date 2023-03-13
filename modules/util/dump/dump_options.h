@@ -72,7 +72,7 @@ class Dump_options {
   void validate() const;
 
   // setters
-  void set_output_url(const std::string &url) { m_output_url = url; }
+  virtual void set_output_url(const std::string &url) { m_output_url = url; }
 
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 

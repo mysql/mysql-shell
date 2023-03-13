@@ -562,6 +562,12 @@ WHERE
 DESCRIPTION
       The outputUrl specifies where the dump is going to be stored.
 
+      The value for this parameter can be either:
+
+      - The path to the target location in a local filesystem or one of the
+        supported cloud storage buckets
+      - A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
+
       By default, a local directory is used, and in this case outputUrl can be
       prefixed with file:// scheme. If a relative path is given, the absolute
       path is computed as relative to the current working directory. If the
@@ -570,6 +576,9 @@ DESCRIPTION
       created with the following access rights (on operating systems which
       support them): rwxr-x---. All files are created with the following access
       rights (on operating systems which support them): rw-r-----.
+
+      For additional details on using PARs see the Dumping to OCI Object
+      Storage using Pre-Authenticated Request (PAR) section.
 
       The following options are supported:
 
@@ -913,6 +922,16 @@ DESCRIPTION
 
       Dumping to a Bucket in the OCI Object Storage
 
+      There are 2 ways to create a dump in OCI Object Storage:
+
+      - By using the standard client OCI configuration.
+      - By using a Pre-Authenticated Request (PAR).
+
+      Dumping to OCI Object Storage using the client OCI configuration
+
+      The osBucketName option is used to indicate the connection is established
+      using the locally configured OCI client profile.
+
       If the osBucketName option is used, the dump is stored in the specified
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
@@ -922,6 +941,30 @@ DESCRIPTION
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
+
+      When using a PAR to create a dump, no client OCI configuration is needed
+      to perform the dump operation. A bucket or prefix PAR with the following
+      access types is required to perform a dump with this method:
+
+      - Permit object reads and writes. - Enable object listing.
+
+      When using a bucket PAR, the generated PAR URL should be used as the
+      output_url argument for the dump operation. i.e. the following is a
+      bucket PAR to create dump at the root folder of the 'test' bucket: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+
+      When using a prefix PAR, the output_url argument should contain the PAR
+      URL itself and the prefix used to generate it. i.e. the following is a
+      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
+      The PAR was created using 'dump' as prefix: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+
+      Note that both the bucket and the prefix PAR URLs must end with a slash,
+      otherwise it will be considered invalid.
 
       Enabling dump loading using pre-authenticated requests
 
@@ -1139,6 +1182,12 @@ DESCRIPTION
 
       The outputUrl specifies where the dump is going to be stored.
 
+      The value for this parameter can be either:
+
+      - The path to the target location in a local filesystem or one of the
+        supported cloud storage buckets
+      - A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
+
       By default, a local directory is used, and in this case outputUrl can be
       prefixed with file:// scheme. If a relative path is given, the absolute
       path is computed as relative to the current working directory. If the
@@ -1147,6 +1196,9 @@ DESCRIPTION
       created with the following access rights (on operating systems which
       support them): rwxr-x---. All files are created with the following access
       rights (on operating systems which support them): rw-r-----.
+
+      For additional details on using PARs see the Dumping to OCI Object
+      Storage using Pre-Authenticated Request (PAR) section.
 
       The following options are supported:
 
@@ -1465,6 +1517,16 @@ DESCRIPTION
 
       Dumping to a Bucket in the OCI Object Storage
 
+      There are 2 ways to create a dump in OCI Object Storage:
+
+      - By using the standard client OCI configuration.
+      - By using a Pre-Authenticated Request (PAR).
+
+      Dumping to OCI Object Storage using the client OCI configuration
+
+      The osBucketName option is used to indicate the connection is established
+      using the locally configured OCI client profile.
+
       If the osBucketName option is used, the dump is stored in the specified
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
@@ -1474,6 +1536,30 @@ DESCRIPTION
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
+
+      When using a PAR to create a dump, no client OCI configuration is needed
+      to perform the dump operation. A bucket or prefix PAR with the following
+      access types is required to perform a dump with this method:
+
+      - Permit object reads and writes. - Enable object listing.
+
+      When using a bucket PAR, the generated PAR URL should be used as the
+      output_url argument for the dump operation. i.e. the following is a
+      bucket PAR to create dump at the root folder of the 'test' bucket: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+
+      When using a prefix PAR, the output_url argument should contain the PAR
+      URL itself and the prefix used to generate it. i.e. the following is a
+      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
+      The PAR was created using 'dump' as prefix: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+
+      Note that both the bucket and the prefix PAR URLs must end with a slash,
+      otherwise it will be considered invalid.
 
       Enabling dump loading using pre-authenticated requests
 
@@ -1692,6 +1778,12 @@ DESCRIPTION
 
       The outputUrl specifies where the dump is going to be stored.
 
+      The value for this parameter can be either:
+
+      - The path to the target location in a local filesystem or one of the
+        supported cloud storage buckets
+      - A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
+
       By default, a local directory is used, and in this case outputUrl can be
       prefixed with file:// scheme. If a relative path is given, the absolute
       path is computed as relative to the current working directory. If the
@@ -1700,6 +1792,9 @@ DESCRIPTION
       created with the following access rights (on operating systems which
       support them): rwxr-x---. All files are created with the following access
       rights (on operating systems which support them): rw-r-----.
+
+      For additional details on using PARs see the Dumping to OCI Object
+      Storage using Pre-Authenticated Request (PAR) section.
 
       The following options are supported:
 
@@ -2011,6 +2106,16 @@ DESCRIPTION
 
       Dumping to a Bucket in the OCI Object Storage
 
+      There are 2 ways to create a dump in OCI Object Storage:
+
+      - By using the standard client OCI configuration.
+      - By using a Pre-Authenticated Request (PAR).
+
+      Dumping to OCI Object Storage using the client OCI configuration
+
+      The osBucketName option is used to indicate the connection is established
+      using the locally configured OCI client profile.
+
       If the osBucketName option is used, the dump is stored in the specified
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
@@ -2020,6 +2125,30 @@ DESCRIPTION
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
+
+      When using a PAR to create a dump, no client OCI configuration is needed
+      to perform the dump operation. A bucket or prefix PAR with the following
+      access types is required to perform a dump with this method:
+
+      - Permit object reads and writes. - Enable object listing.
+
+      When using a bucket PAR, the generated PAR URL should be used as the
+      output_url argument for the dump operation. i.e. the following is a
+      bucket PAR to create dump at the root folder of the 'test' bucket: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+
+      When using a prefix PAR, the output_url argument should contain the PAR
+      URL itself and the prefix used to generate it. i.e. the following is a
+      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
+      The PAR was created using 'dump' as prefix: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+
+      Note that both the bucket and the prefix PAR URLs must end with a slash,
+      otherwise it will be considered invalid.
 
       Enabling dump loading using pre-authenticated requests
 
@@ -2351,6 +2480,16 @@ DESCRIPTION
 
       Dumping to a Bucket in the OCI Object Storage
 
+      There are 2 ways to create a dump in OCI Object Storage:
+
+      - By using the standard client OCI configuration.
+      - By using a Pre-Authenticated Request (PAR).
+
+      Dumping to OCI Object Storage using the client OCI configuration
+
+      The osBucketName option is used to indicate the connection is established
+      using the locally configured OCI client profile.
+
       If the osBucketName option is used, the dump is stored in the specified
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
@@ -2360,6 +2499,30 @@ DESCRIPTION
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
+
+      When using a PAR to create a dump, no client OCI configuration is needed
+      to perform the dump operation. A bucket or prefix PAR with the following
+      access types is required to perform a dump with this method:
+
+      - Permit object reads and writes. - Enable object listing.
+
+      When using a bucket PAR, the generated PAR URL should be used as the
+      output_url argument for the dump operation. i.e. the following is a
+      bucket PAR to create dump at the root folder of the 'test' bucket: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+
+      When using a prefix PAR, the output_url argument should contain the PAR
+      URL itself and the prefix used to generate it. i.e. the following is a
+      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
+      The PAR was created using 'dump' as prefix: 
+
+          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+
+      Note that both the bucket and the prefix PAR URLs must end with a slash,
+      otherwise it will be considered invalid.
 
       Dumping to a Bucket in the AWS S3 Object Storage
 
@@ -3205,7 +3368,7 @@ DESCRIPTION
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
 
-      Examples:
+      Examples: 
 
       util.load_dump('sakila_dump')
 
@@ -3226,7 +3389,7 @@ DESCRIPTION
       Given a dump located at a bucket root and a PAR created for the bucket,
       the dump can be loaded by providing the PAR as the url parameter:
 
-      Example:
+      Example: 
 
       Dump Location: root of 'test' bucket
 
@@ -3240,7 +3403,7 @@ DESCRIPTION
       the given folder, the dump can be loaded by providing the PAR and the
       prefix as the url parameter:
 
-      Example:
+      Example: 
 
       Dump Location: folder 'dump' at the 'test' bucket
       PAR created using the 'dump/' prefix.
@@ -3268,12 +3431,12 @@ DESCRIPTION
       located on the same location of the "@.manifest.json" file. Finally
       specify the PAR URL on the progressFile option.
 
-      Example:
+      Example: 
 
       Dump Location: root of 'test' bucket:
 
       util.load_dump(
-
+      
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
@@ -3502,3 +3665,4 @@ DESCRIPTION
         once, before the metrics collection loop. If prefixed with `after:`, it
         will be executed after the loop. If prefixed with `during:`, it will be
         executed once for each iteration of the collection loop.
+

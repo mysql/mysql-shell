@@ -25,8 +25,10 @@
 
 #include <vector>
 
+#include "modules/util/common/dump/utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -170,6 +172,42 @@ void Ddl_dumper_options::enable_mds_compatibility_checks() {
 
 void Ddl_dumper_options::set_dry_run(bool dry_run) {
   set_dry_run_mode(dry_run ? Dry_run::DONT_WRITE_ANY_FILES : Dry_run::DISABLED);
+}
+
+const Object_storage_options *Ddl_dumper_options::object_storage_options()
+    const {
+  if (m_dump_manifest_options) {
+    return &m_dump_manifest_options;
+  } else if (m_s3_bucket_options) {
+    return &m_s3_bucket_options;
+  } else if (m_blob_storage_options) {
+    return &m_blob_storage_options;
+  }
+
+  return nullptr;
+}
+
+void Ddl_dumper_options::set_output_url(const std::string &url) {
+  const auto par = dump::common::parse_par(url);
+
+  if (par.type() != mysqlshdk::oci::PAR_type::NONE) {
+    const auto options = object_storage_options();
+
+    if (options != nullptr) {
+      throw std::invalid_argument(
+          shcore::str_format("The option '%s' can not be used when using a PAR "
+                             "as the target output url.",
+                             options->get_main_option()));
+    } else {
+      if (par.type() == mysqlshdk::oci::PAR_type::PREFIX) {
+        set_storage_config(dump::common::get_par_config(par));
+      } else {
+        throw std::invalid_argument("The given URL is not a prefix PAR.");
+      }
+    }
+  }
+
+  Dump_options::set_output_url(url);
 }
 
 }  // namespace dump
