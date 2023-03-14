@@ -60,7 +60,6 @@
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_resultset_dumper.h"
-#include "src/mysqlsh/commands/command_query_attributes.h"
 #include "src/mysqlsh/commands/command_show.h"
 #include "src/mysqlsh/commands/command_watch.h"
 #include "utils/debug.h"
@@ -225,14 +224,12 @@ class Shell_command_provider : public shcore::completer::Provider {
       }
       auto names = shell_->shell_context()
                        ->command_handler()
-                       ->get_command_names_matching(line.substr(*compl_offset),
-                                                    shell_->interactive_mode());
+                       ->get_command_names_matching(line.substr(*compl_offset));
       std::copy(names.begin(), names.end(), std::back_inserter(options));
     } else if (line == "\\") {
-      auto names =
-          shell_->shell_context()
-              ->command_handler()
-              ->get_command_names_matching("", shell_->interactive_mode());
+      auto names = shell_->shell_context()
+                       ->command_handler()
+                       ->get_command_names_matching("");
       if (*compl_offset > 0) {
         // extend the completed string beyond the default, which will break
         // on the \\ .. this requires that this provider be the 1st in the list
@@ -517,48 +514,6 @@ REGISTER_HELP(CMD_WATCH_EXAMPLE2_DESC,
               "As above, but screen is not cleared, results are displayed one "
               "after another.");
 
-REGISTER_HELP_COMMAND_TEXT(CMD_QUERY_ATTRIBUTES, R"*(
-Defines query attributes that apply to the next statement sent to the server
-for execution.
-
-@syntax <b>\query_attributes</b> name1 value1 name2 value2 ... nameN valueN
-
-The command allows defining up to 32 pairs of attribute and values for the next
-executed SQL statement.
-
-To access query attributes within SQL statements for which attributes have been
-defined, the <b>query_attributes</b> component must be installed, this
-component implements a <b>mysql_query_attribute_string()</b> loadable function
-that takes an attribute name argument and returns the attribute value as a
-string, or NULL if the attribute does not exist.
-
-To install the <b>query_attributes</b> component execute the following
-SQL statement:
-
-
-@code
-   mysql-sql> INSTALL COMPONENT "file://component_query_attributes";
-@endcode
-
-@example <b>\query_attributes</b> sample attribute
-
-Defines an attribute named "sample" with value "attribute" for the next SQL
-statement.
-
-@example mysql-sql> select mysql_query_attribute_string("sample");
-
-Retrieves the value of the query attribute named "sample".
-
-@example <b>\query_attributes</b> "my attribute" "some value"
-
-Defines an attribute named "my attribute" with value "some value" for the next
-SQL statement.
-
-@example mysql-sql> select mysql_query_attribute_string("my attribute");
-
-Retrieves the value of the query attribute named "my attribute".
-)*");
-
 Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
                          shcore::Interpreter_delegate *custom_delegate)
     : mysqlsh::Base_shell(cmdline_options),
@@ -691,13 +646,6 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
   SET_SHELL_COMMAND("\\show", "CMD_SHOW", Mysql_shell::cmd_show);
   SET_SHELL_COMMAND("\\watch", "CMD_WATCH", Mysql_shell::cmd_watch);
 
-  SET_CUSTOM_SHELL_COMMAND(
-      "\\query_attributes", "CMD_QUERY_ATTRIBUTES",
-      [this](const std::vector<std::string> &args) {
-        return mysqlsh::Command_query_attributes(_shell)(args);
-      },
-      true, shcore::IShell_core::Mode_mask(shcore::IShell_core::Mode::SQL),
-      true, "\"'`");
   shcore::Credential_manager::get().initialize();
 }
 
@@ -2479,7 +2427,6 @@ void Mysql_shell::add_devapi_completions() {
                                   {"runSql", "ClassicResult", true},
                                   {"query", "ClassicResult", true},
                                   {"startTransaction", "ClassicResult", true},
-                                  {"setQueryAttributes", "", true},
                                   {"uri", "", false},
                                   {"sshUri", "", false},
                                   {"_getSocketFd", "", true}});

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -277,16 +277,16 @@ std::vector<std::string> Shell_core::get_all_globals() {
 void Shell_core::clear_input() { _langs[interactive_mode()]->clear_input(); }
 
 bool Shell_core::handle_shell_command(const std::string &line) {
-  if (!_langs[_mode]->command_handler()->process(line, _mode)) {
-    return m_command_handler.process(line, _mode);
+  if (!_langs[_mode]->command_handler()->process(line)) {
+    return m_command_handler.process(line);
   }
   return false;
 }
 
 size_t Shell_core::handle_inline_shell_command(const std::string &line) {
-  size_t skip = _langs[_mode]->command_handler()->process_inline(line, _mode);
+  size_t skip = _langs[_mode]->command_handler()->process_inline(line);
   if (skip == 0) {
-    skip = m_command_handler.process_inline(line, _mode);
+    skip = m_command_handler.process_inline(line);
   }
   return skip;
 }
@@ -333,11 +333,14 @@ bool Shell_core::load_plugin(Mode mode, const Plugin_definition &plugin) {
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
 std::vector<std::string> Shell_command_handler::split_command_line(
-    const std::string &command_line, const std::string &allowed_quotes) {
+    const std::string &command_line) {
   shcore::BaseTokenizer _tokenizer;
 
-  _tokenizer.set_complex_token("escaped-quote", {"\\", allowed_quotes});
-  _tokenizer.set_complex_token("quote", allowed_quotes);
+  static constexpr auto k_quote = "\"";
+
+  _tokenizer.set_complex_token("escaped-quote",
+                               std::vector<std::string>{"\\", k_quote});
+  _tokenizer.set_complex_token("quote", k_quote);
   _tokenizer.set_complex_token_callback(
       "space",
       [](const std::string &input, size_t &index, std::string &text) -> bool {
@@ -376,17 +379,11 @@ std::vector<std::string> Shell_command_handler::split_command_line(
       if (quote.length() == 1) {
         // only one quote character, beginning of a quoted parameter
         param = quote;
-        auto quote_char = quote[0];
 
-        // read till the end of string or till next token is a closing quote
-        bool closed_quote = false;
-        while (_tokenizer.tokens_available() && !closed_quote) {
-          if (!_tokenizer.cur_token_type_is("quote") ||
-              _tokenizer.peek_token().get_text() != quote) {
-            param += _tokenizer.consume_any_token().get_text();
-          } else {
-            closed_quote = true;
-          }
+        // read till the end of string or till next token is a quote
+        while (_tokenizer.tokens_available() &&
+               !_tokenizer.cur_token_type_is("quote")) {
+          param += _tokenizer.consume_any_token().get_text();
         }
 
         if (!_tokenizer.tokens_available()) {
@@ -404,7 +401,7 @@ std::vector<std::string> Shell_command_handler::split_command_line(
               // string has finished or quoted parameter was followed by space
               // -> end of quoted parameter
               param += quote;
-              ret_val.emplace_back(unquote_string(param, quote_char));
+              ret_val.emplace_back(unquote_string(param, k_quote[0]));
             } else {
               // quote was not followed by a space, two parameters were not
               // properly separated
@@ -446,7 +443,7 @@ std::vector<std::string> Shell_command_handler::split_command_line(
         } else if (_tokenizer.cur_token_type_is("escaped-quote")) {
           // escaped quotes need to have the '\' character removed
           const auto quotes = _tokenizer.consume_any_token().get_text();
-          param += quotes.substr(1);
+          param += std::string(quotes.length() / 2, k_quote[0]);
         } else {
           param += _tokenizer.consume_any_token().get_text();
         }
@@ -459,8 +456,7 @@ std::vector<std::string> Shell_command_handler::split_command_line(
   return ret_val;
 }
 
-bool Shell_command_handler::process(const std::string &command_line,
-                                    IShell_core::Mode mode) {
+bool Shell_command_handler::process(const std::string &command_line) {
   bool ret_val = false;
   std::vector<std::string> tokens;
 
@@ -481,12 +477,10 @@ bool Shell_command_handler::process(const std::string &command_line,
 
     // Srearch on the registered command list and processes it if it exists
     Command_registry::iterator item = _command_dict.find(command);
-    if (item != _command_dict.end() && item->second->mode.is_set(mode) &&
-        item->second->function) {
+    if (item != _command_dict.end() && item->second->function) {
       // Parses the command
       if (item->second->auto_parse_arguments)
-        tokens =
-            split_command_line(command_line, item->second->argument_quotes);
+        tokens = split_command_line(command_line);
       else
         tokens.resize(1);
 
@@ -500,8 +494,7 @@ bool Shell_command_handler::process(const std::string &command_line,
   return ret_val;
 }
 
-size_t Shell_command_handler::process_inline(const std::string &command,
-                                             IShell_core::Mode mode) {
+size_t Shell_command_handler::process_inline(const std::string &command) {
   auto cmd = _command_dict.find(command.substr(0, 2));
   if (cmd != _command_dict.end()) {
     // currently there are no inline \X commands that accept params, but when
@@ -509,21 +502,22 @@ size_t Shell_command_handler::process_inline(const std::string &command,
     // of consumed chars from the original input
     bool has_params = false;
     if (!has_params) {
-      if (process(command.substr(0, 2), mode)) return 2;
+      if (process(command.substr(0, 2))) return 2;
     } else {
-      if (process(command.substr(0, 2) + " " + command.substr(3), mode))
+      if (process(command.substr(0, 2) + " " + command.substr(3)))
         return command.size();
     }
   }
   return 0;
 }
 
-void Shell_command_handler::add_command(
-    const std::string &triggers, const std::string &help_tag,
-    Shell_command_function function, bool case_sensitive_help, Mode_mask mode,
-    bool auto_parse_arguments, const std::string &argument_quotes) {
-  Shell_command command = {triggers, function, auto_parse_arguments, mode,
-                           argument_quotes};
+void Shell_command_handler::add_command(const std::string &triggers,
+                                        const std::string &help_tag,
+                                        Shell_command_function function,
+                                        bool case_sensitive_help,
+                                        Mode_mask mode,
+                                        bool auto_parse_arguments) {
+  Shell_command command = {triggers, function, auto_parse_arguments};
   _commands.push_back(command);
 
   std::vector<std::string> tokens;
@@ -571,17 +565,15 @@ void Shell_command_handler::add_command(
 }
 
 std::vector<std::string> Shell_command_handler::get_command_names_matching(
-    const std::string &prefix, IShell_core::Mode mode) const {
+    const std::string &prefix) const {
   std::vector<std::string> names;
 
   for (auto cmd : _commands) {
-    if (cmd.mode.is_set(mode)) {
-      std::vector<std::string> tokens;
-      tokens = split_string(cmd.triggers, "|", true);
-      if (!tokens.empty()) {
-        if (shcore::str_beginswith(tokens.front(), prefix)) {
-          names.push_back(tokens.front());
-        }
+    std::vector<std::string> tokens;
+    tokens = split_string(cmd.triggers, "|", true);
+    if (!tokens.empty()) {
+      if (shcore::str_beginswith(tokens.front(), prefix)) {
+        names.push_back(tokens.front());
       }
     }
   }

@@ -17,7 +17,6 @@ validate_members(classicSession, [
   'rollback',
   'run_sql',
   'start_transaction',
-  'set_query_attributes',
   'uri',
   'ssh_uri',
   '_get_socket_fd'])

@@ -196,12 +196,9 @@ class Help_registry {
    * @param auto_brief If true, treats the 1st paragraph as the brief text.
    * @param nosuffix If true, don't append the section specific suffix to the
    * prefix when generating tag names.
-   * @param is_shell_command If true, parsing will also support defining the
-   * syntax tag wth @syntax and examples with @example
    */
   void add_split_help(const std::string &prefix, const std::string &data,
-                      bool auto_brief, bool nosuffix,
-                      bool is_shell_command = false);
+                      bool auto_brief, bool nosuffix);
 
   /**
    * Helper function to register a single help entry.
@@ -416,10 +413,9 @@ struct Help_register {
  */
 struct Help_register_split {
   Help_register_split(const std::string &prefix, const std::string &data,
-                      bool auto_brief, bool nosuffix,
-                      bool is_shell_command = false) {
+                      bool auto_brief, bool nosuffix) {
     shcore::Help_registry::get()->add_split_help(prefix, data, auto_brief,
-                                                 nosuffix, is_shell_command);
+                                                 nosuffix);
   }
 };
 
@@ -755,9 +751,6 @@ class Help_manager {
 
 #define REGISTER_HELP_PROPERTY_TEXT(x, y) \
   shcore::Help_register_split x##property(#x, y, true, false)
-
-#define REGISTER_HELP_COMMAND_TEXT(x, y) \
-  shcore::Help_register_split x##command(#x, y, true, false, true)
 
 #define REGISTER_HELP_DETAIL_TEXT(x, y) \
   shcore::Help_register_split x##detail(#x, y, false, true)

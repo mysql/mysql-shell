@@ -53,46 +53,6 @@ namespace mysql {
  * because the results returned by the query function require a reference to
  * the Session that generated them.
  */
-
-struct Classic_query_attribute : public IQuery_attribute_value {
- public:
-  Classic_query_attribute();
-  explicit Classic_query_attribute(int64_t val);
-  explicit Classic_query_attribute(uint64_t val);
-  explicit Classic_query_attribute(double val);
-  explicit Classic_query_attribute(const std::string &val);
-  Classic_query_attribute(const MYSQL_TIME &val, enum_field_types t);
-
-  Classic_query_attribute(Classic_query_attribute &&other) {
-    *this = std::move(other);
-  };
-  Classic_query_attribute(const Classic_query_attribute &other) {
-    *this = other;
-  };
-
-  Classic_query_attribute &operator=(const Classic_query_attribute &other);
-  Classic_query_attribute &operator=(Classic_query_attribute &&other) noexcept;
-
-  ~Classic_query_attribute();
-
- private:
-  void update_data_ptr();
-  friend class Session_impl;
-  union {
-    int64_t i;
-    uint64_t ui;
-    std::string *s;
-    double d;
-    MYSQL_TIME t;
-
-  } value;
-  enum_field_types type = MYSQL_TYPE_NULL;
-  void *data_ptr = nullptr;
-  unsigned long size = 0;
-  bool is_null = true;
-  int flags = 0;
-};
-
 class Session_impl : public std::enable_shared_from_this<Session_impl> {
   friend class Session;  // The Session class instantiates this class
   friend class Result;   // The Result class uses some functions of this class
@@ -103,9 +63,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   Session_impl();
   void connect(const mysqlshdk::db::Connection_options &connection_info);
 
-  std::shared_ptr<IResult> query(
-      const char *sql, size_t len, bool buffered,
-      const std::vector<Query_attribute> &query_attributes = {});
+  std::shared_ptr<IResult> query(const char *sql, size_t len, bool buffered);
   std::shared_ptr<IResult> query_udf(std::string_view sql, bool buffered);
   void execute(const char *sql, size_t len);
 
@@ -205,9 +163,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     return _connection_options;
   }
 
-  std::shared_ptr<IResult> run_sql(
-      const char *sql, size_t len, bool lazy_fetch, bool is_udf,
-      const std::vector<Query_attribute> &query_attributes = {});
+  std::shared_ptr<IResult> run_sql(const char *sql, size_t len, bool lazy_fetch,
+                                   bool is_udf);
   // Will return the SSL mode set in the connection, if any
   mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> setup_ssl(
       const mysqlshdk::db::Ssl_options &ssl_options) const;
@@ -244,10 +201,9 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->get_connection_options();
   }
 
-  std::shared_ptr<IResult> querys(
-      const char *sql, size_t len, bool buffered = false,
-      const std::vector<Query_attribute> &query_attributes = {}) override {
-    return _impl->query(sql, len, buffered, query_attributes);
+  std::shared_ptr<IResult> querys(const char *sql, size_t len,
+                                  bool buffered = false) override {
+    return _impl->query(sql, len, buffered);
   }
 
   std::shared_ptr<IResult> query_udf(std::string_view sql,

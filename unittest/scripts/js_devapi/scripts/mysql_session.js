@@ -13,7 +13,6 @@ validateMembers(classicSession, [
     'help',
     'isOpen',
     'startTransaction',
-    'setQueryAttributes',
     'query',
     'rollback',
     'runSql',

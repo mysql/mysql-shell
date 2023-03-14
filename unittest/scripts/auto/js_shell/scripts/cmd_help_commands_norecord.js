@@ -101,15 +101,3 @@
 //@ Watch Command
 // WL11263_TSF3_1 - Validate that the \help command display information about the new \watch command.
 \? \watch
-
-
-//@ Query Attributes Command (JavaScript)
-\? \query_attributes
-
-//@ Query Attributes Command (Python)
-\py
-\? \query_attributes
-
-//@ Query Attributes Command (SQL)
-\sql
-\? \query_attributes

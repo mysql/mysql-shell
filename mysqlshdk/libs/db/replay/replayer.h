@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,9 +48,8 @@ class Replayer_mysql : public mysql::Session {
 
   Replayer_mysql();
 
-  std::shared_ptr<IResult> querys(
-      const char *sql, size_t length, bool buffered,
-      const std::vector<Query_attribute> &query_attributes = {}) override;
+  std::shared_ptr<IResult> querys(const char *sql, size_t length,
+                                  bool buffered) override;
 
   std::shared_ptr<IResult> query_udf(std::string_view sql,
                                      bool buffered) override;
@@ -121,9 +120,8 @@ class Replayer_mysqlx : public mysqlx::Session {
 
   Replayer_mysqlx();
 
-  std::shared_ptr<IResult> querys(
-      const char *sql, size_t length, bool buffered,
-      const std::vector<Query_attribute> &query_attributes = {}) override;
+  std::shared_ptr<IResult> querys(const char *sql, size_t length,
+                                  bool buffered) override;
 
   void executes(const char *sql, size_t length) override;
 

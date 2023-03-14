@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,31 +66,6 @@ inline bool is_mysql_server_error(int code) {
   return !is_mysql_client_error(code) && code > 0 && code < 50000;
 }
 
-/**
- * @brief Base interface for query attribute values.
- *
- */
-struct IQuery_attribute_value {
-  virtual ~IQuery_attribute_value() {}
-};
-
-/**
- * @brief Normalized query attribute.
- *
- * This class represents a normalized query attribute which in general consist
- * of  a name/value pair.
- *
- * The value must be valid for the target connector, so the
- * IQuery_attribute_value interface is used at this level.
- */
-struct Query_attribute {
-  Query_attribute(const std::string &n,
-                  std::unique_ptr<IQuery_attribute_value> v);
-
-  std::string name;
-  std::unique_ptr<IQuery_attribute_value> value;
-};
-
 class Error : public shcore::Error {
  public:
   Error() : Error("", 0, nullptr) {}
@@ -137,15 +112,12 @@ class SHCORE_PUBLIC ISession {
   virtual mysqlshdk::utils::Version get_server_version() const = 0;
 
   // Execution
-  virtual std::shared_ptr<IResult> querys(
-      const char *sql, size_t len, bool buffered = false,
-      const std::vector<Query_attribute> &query_attributes = {}) = 0;
+  virtual std::shared_ptr<IResult> querys(const char *sql, size_t len,
+                                          bool buffered = false) = 0;
 
-  inline std::shared_ptr<IResult> query(
-      std::string_view sql, bool buffered = false,
-      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes =
-          {}) {
-    return querys(sql.data(), sql.length(), buffered, query_attributes);
+  inline std::shared_ptr<IResult> query(std::string_view sql,
+                                        bool buffered = false) {
+    return querys(sql.data(), sql.length(), buffered);
   }
 
   /**

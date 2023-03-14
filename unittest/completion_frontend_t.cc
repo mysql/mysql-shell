@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1154,7 +1154,6 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"help", ""},
       {"close", ""},
       {"runSql", "('select 1')"},
-      {"setQueryAttributes", "({})"},
       {"query", "('select 1')"},
       {"_getSocketFd", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);

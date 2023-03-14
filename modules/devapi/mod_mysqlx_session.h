@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -209,9 +209,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
  public:
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
-      const std::string &command, const shcore::Array_t &args = {},
-      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {})
-      override;
+      const std::string &command, const shcore::Array_t &args = {}) override;
 
   shcore::Value _execute_mysqlx_stmt(const std::string &command,
                                      const shcore::Dictionary_t &args);

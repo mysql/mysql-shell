@@ -99,9 +99,3 @@ session.help('uri')
 
 #@ global help for uri[USE:session.uri]
 \help ClassicSession.uri
-
-#@ Help on set_query_attributes
-session.help('set_query_attributes')
-
-#@ Help on set_query_attributes, \? [USE:Help on set_query_attributes]
-\? classicsession.set_query_attributes

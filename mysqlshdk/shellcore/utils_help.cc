@@ -414,7 +414,7 @@ Help_registry *Help_registry::get() {
 
 void Help_registry::add_split_help(const std::string &prefix,
                                    const std::string &data, bool auto_brief,
-                                   bool nosuffix, bool is_shell_command) {
+                                   bool nosuffix) {
   std::map<std::string, int> current_index;
 
   auto token = [&prefix, &current_index](const std::string &suffix) {
@@ -502,8 +502,6 @@ void Help_registry::add_split_help(const std::string &prefix,
   while (!eos && !para.empty()) {
     if (shcore::str_beginswith(para, "@param")) {
       add_help(token("PARAM"), para);
-    } else if (is_shell_command && shcore::str_beginswith(para, "@syntax")) {
-      add_help(token("SYNTAX"), para.substr(para.find_first_of(" \t") + 1));
     } else if (shcore::str_beginswith(para, "@return")) {
       add_help(token("RETURNS"), para);
     } else if (shcore::str_beginswith(para, "@attention") &&
@@ -518,8 +516,7 @@ void Help_registry::add_split_help(const std::string &prefix,
 
   // main body
   while (!eos && !para.empty()) {
-    if (shcore::str_beginswith(para, "@throw") ||
-        shcore::str_beginswith(para, "@example")) {
+    if (shcore::str_beginswith(para, "@throw")) {
       break;
     }
     if (nosuffix)
@@ -529,37 +526,13 @@ void Help_registry::add_split_help(const std::string &prefix,
     para = get_para(&eos);
   }
 
-  // everything after the 1st @throw and before an @example tag assumed to be
-  // more throws
+  // everything after the 1st @throw assumed to be more throws
   while (!eos && !para.empty()) {
-    if (is_shell_command && shcore::str_beginswith(para, "@example")) {
-      break;
-    }
     if (shcore::str_beginswith(para, "@throw"))
       add_help(token("THROWS"), para.substr(para.find_first_of(" \t") + 1));
     else
       add_help(token("THROWS"), para);
     para = get_para(&eos);
-  }
-
-  if (is_shell_command) {
-    int example_index = 0;
-    std::string eindex_str = "";
-    while (!eos && !para.empty()) {
-      if (shcore::str_beginswith(para, "@example")) {
-        // Updates the example index
-        if (example_index > 0) eindex_str = std::to_string(example_index);
-
-        example_index++;
-        add_help(token(shcore::str_format("EXAMPLE%s", eindex_str.c_str())),
-                 para.substr(para.find_first_of(" \t") + 1));
-      } else
-        add_help(
-            token(shcore::str_format("EXAMPLE%s_DESC", eindex_str.c_str())),
-            para);
-
-      para = get_para(&eos);
-    }
   }
 }
 

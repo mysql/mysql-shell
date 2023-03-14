@@ -162,41 +162,36 @@ shell configuration.
 
 The following shell commands are available:
 
- - \                         Start multi-line input when in SQL mode.
- - \connect          (\c)    Connects the shell to a MySQL server and assigns
-                             the global session.
- - \disconnect               Disconnects the global session.
- - \edit             (\e)    Launch a system editor to edit a command to be
-                             executed.
- - \exit                     Exits the MySQL Shell, same as \quit.
- - \G                        Send command to mysql server, display result
-                             vertically.
- - \g                        Send command to mysql server.
- - \help             (\?,\h) Prints help information about a specific topic.
- - \history                  View and edit command line history.
- - \js                       Switches to JavaScript processing mode.
- - \nopager                  Disables the current pager.
- - \nowarnings       (\w)    Don't show warnings after every statement.
- - \option                   Allows working with the available shell options.
- - \pager            (\P)    Sets the current pager.
- - \py                       Switches to Python processing mode.
- - \query_attributes         Defines query attributes that apply to the next
-                             statement sent to the server for execution.
- - \quit             (\q)    Exits the MySQL Shell.
- - \reconnect                Reconnects the global session.
- - \rehash                   Refresh the autocompletion cache.
- - \show                     Executes the given report with provided options
-                             and arguments.
- - \source           (\.)    Loads and executes a script from a file.
- - \sql                      Executes SQL statement or switches to SQL
-                             processing mode when no statement is given.
- - \status           (\s)    Print information about the current global
-                             session.
- - \system           (\!)    Execute a system shell command.
- - \use              (\u)    Sets the active schema.
- - \warnings         (\W)    Show warnings after every statement.
- - \watch                    Executes the given report with provided options
-                             and arguments in a loop.
+ - \                   Start multi-line input when in SQL mode.
+ - \connect    (\c)    Connects the shell to a MySQL server and assigns the
+                       global session.
+ - \disconnect         Disconnects the global session.
+ - \edit       (\e)    Launch a system editor to edit a command to be executed.
+ - \exit               Exits the MySQL Shell, same as \quit.
+ - \G                  Send command to mysql server, display result vertically.
+ - \g                  Send command to mysql server.
+ - \help       (\?,\h) Prints help information about a specific topic.
+ - \history            View and edit command line history.
+ - \js                 Switches to JavaScript processing mode.
+ - \nopager            Disables the current pager.
+ - \nowarnings (\w)    Don't show warnings after every statement.
+ - \option             Allows working with the available shell options.
+ - \pager      (\P)    Sets the current pager.
+ - \py                 Switches to Python processing mode.
+ - \quit       (\q)    Exits the MySQL Shell.
+ - \reconnect          Reconnects the global session.
+ - \rehash             Refresh the autocompletion cache.
+ - \show               Executes the given report with provided options and
+                       arguments.
+ - \source     (\.)    Loads and executes a script from a file.
+ - \sql                Executes SQL statement or switches to SQL processing
+                       mode when no statement is given.
+ - \status     (\s)    Print information about the current global session.
+ - \system     (\!)    Execute a system shell command.
+ - \use        (\u)    Sets the active schema.
+ - \warnings   (\W)    Show warnings after every statement.
+ - \watch              Executes the given report with provided options and
+                       arguments in a loop.
 
 EXAMPLES
 \? sql syntax
