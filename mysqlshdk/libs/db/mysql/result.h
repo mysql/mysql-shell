@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,7 +32,6 @@
 #include <deque>
 #include <list>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -67,7 +66,6 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   virtual std::string get_info() const { return _info; }
   virtual const std::vector<std::string> &get_gtids() const { return _gtids; }
   virtual const std::vector<Column> &get_metadata() const { return _metadata; }
-  virtual std::string get_statement_id() const;
 
   virtual void buffer();
   virtual void rewind();
@@ -93,7 +91,6 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   void stop_pre_fetch();
 
   void fetch_metadata();
-  void fetch_statement_id();
   Type map_data_type(int raw_type, int flags, int collation_id);
 
   virtual std::shared_ptr<Field_names> field_names() const;
@@ -112,7 +109,6 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   bool _has_resultset = false;
   bool _fetched_warnings = false;
   bool m_buffered = false;
-  std::optional<std::string> m_statement_id;
 };
 }  // namespace mysql
 }  // namespace db

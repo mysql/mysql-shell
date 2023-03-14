@@ -42,9 +42,6 @@ PROPERTIES
             Retrieves a string providing information about the most recently
             executed statement.
 
-      statement_id
-            Retrieves the statement id of the query that produced this result.
-
       warning_count
             Same as get_warning_count
 
@@ -97,9 +94,6 @@ FUNCTIONS
       get_info()
             Retrieves a string providing information about the most recently
             executed statement.
-
-      get_statement_id()
-            Retrieves the statement id of the query that produced this result.
 
       get_warning_count()
             The number of warnings produced by the last statement execution.

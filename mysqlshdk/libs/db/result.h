@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -104,7 +104,6 @@ class SHCORE_PUBLIC IResult {
 
   virtual const std::vector<Column> &get_metadata() const = 0;
   virtual std::shared_ptr<Field_names> field_names() const = 0;
-  virtual std::string get_statement_id() const { return ""; }
 
   virtual void buffer() = 0;
   virtual void rewind() = 0;

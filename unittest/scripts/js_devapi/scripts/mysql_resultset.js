@@ -14,13 +14,11 @@ var result = mySession.runSql('create table js_shell_test.buffer_table (name var
 validateMembers(result, [
 'affectedItemsCount',
 'executionTime',
-'statementId',
 'warningCount',
 'warnings',
 'warningsCount',
 'getAffectedItemsCount',
 'getExecutionTime',
-'getStatementId',
 'getWarningCount',
 'getWarnings',
 'getWarningsCount',
