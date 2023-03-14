@@ -35,7 +35,7 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-class Options : public Command_interface {
+class Options final : public Command_interface {
  public:
   Options(const Cluster_impl &cluster, bool all);
 

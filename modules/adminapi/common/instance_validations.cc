@@ -288,7 +288,7 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
           "supported.",
           hostname.c_str(), seed_ip.c_str()));
     }
-  } catch (const mysqlshdk::utils::net_error &error) {
+  } catch (const mysqlshdk::utils::net_error &) {
     // if it is an IPv6 address and the instance version does not support IPv6
     // throw an error
     // Do not try to resolve hostnames. Even if we can resolve them, there is

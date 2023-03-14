@@ -255,11 +255,11 @@ Incremental state recovery was selected because it seems to be safely usable.
 
 
 * Updating the Metadata...
-The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
+The instance '<<<__address3>>>' rejoined the replicaset and is replicating from '127.0.0.1:<<<__mysql_sandbox_port1>>>'.
 
 //@# rejoinInstance (clone) {VER(>=8.0.17)}
 |NOTE: <<<__address3>>> is being cloned from <<<__address2>>>|
-|The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
+|The instance '<<<__address3>>>' rejoined the replicaset and is replicating from '127.0.0.1:<<<__mysql_sandbox_port1>>>'.|
 
 //@<OUT> listRouters
 {

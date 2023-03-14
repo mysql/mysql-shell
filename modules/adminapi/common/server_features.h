@@ -29,14 +29,15 @@
 namespace mysqlsh::dba {
 
 // The 1st version where the remote clone plugin became available
-inline const mysqlshdk::utils::Version k_mysql_clone_plugin_initial_version(
-    "8.0.17");
+inline const mysqlshdk::utils::Version k_mysql_clone_plugin_initial_version(8,
+                                                                            0,
+                                                                            17);
 
 inline const mysqlshdk::utils::Version
-    k_mysql_communication_stack_initial_version("8.0.27");
+    k_mysql_communication_stack_initial_version(8, 0, 27);
 
 inline const mysqlshdk::utils::Version k_paxos_single_leader_initial_version(
-    "8.0.31");
+    8, 0, 31);
 
 // Feature getters
 
@@ -57,6 +58,12 @@ bool supports_mysql_communication_stack(
 bool supports_paxos_single_leader(const mysqlshdk::utils::Version &version);
 
 bool supports_mysql_clone(const mysqlshdk::utils::Version &version);
+
+bool supports_repl_channel_compression(
+    const mysqlshdk::utils::Version &version);
+
+bool supports_repl_channel_network_namespace(
+    const mysqlshdk::utils::Version &version);
 
 }  // namespace mysqlsh::dba
 

@@ -142,6 +142,9 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
       Cluster_impl *cluster, bool dry_run);
+  mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
+      const mysqlsh::dba::Instance &primary, Cluster_impl *cluster,
+      bool dry_run);
 
   Member_recovery_method validate_instance_recovery(
       Member_op_action op_action,
@@ -156,7 +159,9 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   Cluster_global_status get_cluster_global_status(Cluster_impl *cluster) const;
 
-  Async_replication_options get_clusterset_replication_options() const;
+  Async_replication_options get_clusterset_default_replication_options() const;
+  Async_replication_options get_clusterset_replication_options(
+      const Cluster_id &cluster_id, bool *out_needs_reset_repl_channel) const;
 
   bool check_gtid_consistency(Cluster_impl *cluster) const;
 
@@ -169,6 +174,10 @@ class Cluster_set_impl : public Base_cluster_impl,
   Cluster_ssl_mode query_clusterset_ssl_mode() const;
   Replication_auth_type query_clusterset_auth_type() const;
   std::string query_clusterset_auth_cert_issuer() const;
+
+  void read_cluster_replication_options(const Cluster_id &cluster_id,
+                                        Async_replication_options *ar_options,
+                                        bool *has_null_options) const;
 
   // Lock methods
 
@@ -212,11 +221,11 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void update_replica(Cluster_impl *replica, Instance *master,
                       const Async_replication_options &ar_options,
-                      bool dry_run);
+                      bool reset_channel, bool dry_run);
 
   void update_replica(Instance *replica, Instance *master,
                       const Async_replication_options &ar_options,
-                      bool primary_instance, bool dry_run);
+                      bool primary_instance, bool reset_channel, bool dry_run);
 
   void remove_replica(Instance *instance, bool dry_run);
 

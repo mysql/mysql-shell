@@ -93,4 +93,14 @@ bool supports_mysql_clone(const mysqlshdk::utils::Version &version) {
   return version >= k_mysql_clone_plugin_initial_version;
 }
 
+bool supports_repl_channel_compression(
+    const mysqlshdk::utils::Version &version) {
+  return version >= mysqlshdk::utils::Version(8, 0, 18);
+}
+
+bool supports_repl_channel_network_namespace(
+    const mysqlshdk::utils::Version &version) {
+  return version >= mysqlshdk::utils::Version(8, 0, 22);
+}
+
 }  // namespace mysqlsh::dba

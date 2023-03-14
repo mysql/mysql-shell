@@ -49,14 +49,14 @@ ERROR: The operation cannot be executed because it failed to acquire the lock on
 //@<ERR> Rejoin instance when another operation holds an exclusive lock on the primary (fail).
 ReplicaSet.rejoinInstance: Failed to acquire lock on instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' (MYSQLSH 51500)
 
-//@<ERR> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using localhost).
-ReplicaSet.rejoinInstance: Invalid status to execute operation, <<<localhost>>>:<<<__mysql_sandbox_port1>>> is ONLINE (MYSQLSH 51125)
+//@<OUT> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using localhost).
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is ONLINE and the primary of the ReplicaSet.
 
-//@<ERR> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using hostname).
-ReplicaSet.rejoinInstance: Invalid status to execute operation, <<<localhost>>>:<<<__mysql_sandbox_port1>>> is ONLINE (MYSQLSH 51125)
+//@<OUT> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using hostname).
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is ONLINE and the primary of the ReplicaSet.
 
-//@<ERR> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using hostname_ip).
-ReplicaSet.rejoinInstance: Invalid status to execute operation, <<<localhost>>>:<<<__mysql_sandbox_port1>>> is ONLINE (MYSQLSH 51125)
+//@<OUT> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using hostname_ip).
+The instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' is ONLINE and the primary of the ReplicaSet.
 
 //@<ERR> (BUG#30673719) addInstance on primary should not fail due to double self lock (using localhost).
 ReplicaSet.addInstance: <<<localhost>>>:<<<__mysql_sandbox_port1>>> is already a member of this replicaset. (MYSQLSH 51301)

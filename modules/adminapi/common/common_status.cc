@@ -136,7 +136,8 @@ shcore::Dictionary_t channel_status(
                                  : shcore::Value::Null());
     }
 
-    if (show_details > 1 || relay_log_info->number_of_workers > 1) {
+    if (relay_log_info &&
+        (show_details > 1 || relay_log_info->number_of_workers > 1)) {
       rstatus->set("applierWorkerThreads",
                    shcore::Value(relay_log_info->number_of_workers == 0
                                      ? 1
@@ -149,7 +150,8 @@ shcore::Dictionary_t channel_status(
       conf->set("delay", shcore::Value(relay_log_info->sql_delay));
 
       if (show_details > 1 && master_info) {
-        conf->set("heartbeatPeriod", shcore::Value(master_info->heartbeat));
+        conf->set("heartbeatPeriod",
+                  shcore::Value(master_info->heartbeat_period));
         conf->set("connectRetry", shcore::Value(master_info->connect_retry));
         conf->set("retryCount", shcore::Value(master_info->retry_count));
       }

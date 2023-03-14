@@ -60,6 +60,13 @@ struct Add_instance_options : public Rejoin_instance_options {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
   void set_cert_subject(const std::string &value);
+  void set_repl_connect_retry(int value);
+  void set_repl_retry_count(int value);
+  void set_repl_heartbeat_period(double value);
+  void set_repl_compression_algos(const std::string &value);
+  void set_repl_zstd_compression_level(int value);
+  void set_repl_bind(const std::string &value);
+  void set_repl_network_namespace(const std::string &value);
 
   Async_replication_options ar_options;
   std::string instance_label;

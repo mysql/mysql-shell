@@ -1,31 +1,3 @@
-//@# INCLUDE async_utils.inc
-||
-
-//@ Invalid parameters (fail).
-||Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
-||Argument #1 is expected to be a string (TypeError)
-||Argument #1 is expected to be a string (TypeError)
-||Argument #1 is expected to be a string (TypeError)
-||Argument #1 is expected to be a string (TypeError)
-||Invalid URI: empty. (ArgumentError)
-||Invalid URI: empty. (ArgumentError)
-||Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
-||Invalid options: badOption (ArgumentError)
-||Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>'
-||Invalid value for option recoveryMethod: bogus (ArgumentError)
-||Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
-||Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
-||Option cloneDonor only allowed if option recoveryMethod is set to 'clone'. (ArgumentError)
-||Invalid value for cloneDonor, string value cannot be empty. (ArgumentError)
-||Invalid value for cloneDonor: Invalid address format in 'foobar'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
-||Invalid value for cloneDonor: Invalid address format in 'root@foobar:3232'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
-||IPv6 addresses not supported for cloneDonor (ArgumentError)
-||Invalid value for cloneDonor: Invalid address format in '::1:3232'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
-||Invalid value for cloneDonor: Invalid address format in '::1'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
-
-//@ Try rejoin ONLINE instance (fail).
-|ERROR: Unable to rejoin an ONLINE instance. This operation can only be used to rejoin instances with an INVALIDATED, OFFLINE, INCONSISTENT or ERROR status.|Invalid status to execute operation, <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is ONLINE (MYSQLSH 51125)
-
 //@ Try rejoin instance not belonging to any replicaset (fail).
 |ERROR: Cannot rejoin an instance that does not belong to the replicaset. Please confirm the specified address or execute the operation against the correct ReplicaSet object.|Instance <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> does not belong to the replicaset (MYSQLSH 51310)
 
@@ -105,7 +77,7 @@ Incremental state recovery was selected because it seems to be safely usable.
 
 
 * Updating the Metadata...
-The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
+The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>'.
 
 //@ Rejoin instance with replication SQL thread stopped (succeed).
 ||
@@ -135,7 +107,7 @@ Incremental state recovery was selected because it seems to be safely usable.
 
 
 * Updating the Metadata...
-The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.
+The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'.
 
 //@ Try to rejoin instance with errant transaction (fail).
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
@@ -162,7 +134,7 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 |* Rejoining instance to replicaset...|
 |* Waiting for clone to finish...|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'.|
 
 //@ Try to rejoin instance with purged transactions on PRIMARY and gtid-set empty (should fail)
 |* Validating instance...|
@@ -178,15 +150,15 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 |* Rejoining instance to replicaset...|
 |* Waiting for clone to finish...|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'.|
 
 //@ cloneDonor valid {VER(>=8.0.17)}
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'.|
 
 //@ cloneDonor valid 2 {VER(>=8.0.17)}
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'.|
 
 //@ BUG#30628746: wait for timeout {VER(>=8.0.17)}
 |* Waiting for the donor to synchronize with PRIMARY...|
@@ -194,4 +166,4 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 ||Timeout reached waiting for transactions from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to be applied on instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' (MYSQLSH 51157)
 
 //@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>'.|

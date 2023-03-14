@@ -105,6 +105,41 @@
                 {
                     "option": "certSubject",
                     "value": ""
+                },
+                {
+                    "option": "replicationConnectRetry",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationRetryCount",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationHeartbeatPeriod",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationCompressionAlgorithms",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationZstdCompressionLevel",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationBind",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationNetworkNamespace",
+                    "value": [[*]],
+                    "variable": null
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -151,6 +186,41 @@
                 {
                     "option": "certSubject",
                     "value": ""
+                },
+                {
+                    "option": "replicationConnectRetry",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationRetryCount",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationHeartbeatPeriod",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationCompressionAlgorithms",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationZstdCompressionLevel",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationBind",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationNetworkNamespace",
+                    "value": [[*]],
+                    "variable": null
                 }
             ]
         }
@@ -253,6 +323,41 @@
                 {
                     "option": "certSubject",
                     "value": ""
+                },
+                {
+                    "option": "replicationConnectRetry",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationRetryCount",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationHeartbeatPeriod",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationCompressionAlgorithms",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationZstdCompressionLevel",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationBind",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationNetworkNamespace",
+                    "value": [[*]],
+                    "variable": null
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -279,6 +384,41 @@
                 {
                     "option": "certSubject",
                     "value": ""
+                },
+                {
+                    "option": "replicationConnectRetry",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationRetryCount",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationHeartbeatPeriod",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationCompressionAlgorithms",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationZstdCompressionLevel",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationBind",
+                    "value": [[*]],
+                    "variable": null
+                },
+                {
+                    "option": "replicationNetworkNamespace",
+                    "value": [[*]],
+                    "variable": null
                 }
             ]
         }

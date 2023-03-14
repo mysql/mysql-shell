@@ -294,6 +294,15 @@ inline constexpr const char kCertIssuer[] = "certIssuer";
 inline constexpr const char kCertSubject[] = "certSubject";
 inline constexpr const char kReplicationSslMode[] = "replicationSslMode";
 inline constexpr const char kPaxosSingleLeader[] = "paxosSingleLeader";
+inline constexpr const char kReplicationConnectRetry[] = "ConnectRetry";
+inline constexpr const char kReplicationRetryCount[] = "RetryCount";
+inline constexpr const char kReplicationHeartbeatPeriod[] = "HeartbeatPeriod";
+inline constexpr const char kReplicationCompressionAlgorithms[] =
+    "CompressionAlgorithms";
+inline constexpr const char kReplicationZstdCompressionLevel[] =
+    "ZstdCompressionLevel";
+inline constexpr const char kReplicationBind[] = "Bind";
+inline constexpr const char kReplicationNetworkNamespace[] = "NetworkNamespace";
 inline constexpr const char kReplicationSources[] = "replicationSources";
 inline constexpr const char kReplicationSourcesAutoPrimary[] = "primary";
 inline constexpr const char kReplicationSourcesAutoSecondary[] = "secondary";

@@ -856,12 +856,42 @@ DESCRIPTION
         with the new value.
       - transactionSizeLimit: integer value to configure the maximum
         transaction size in bytes which the Cluster accepts
+      - clusterSetReplicationConnectRetry: integer that specifies the interval
+        in seconds between the reconnection attempts that the replica makes
+        after the connection to the source times out.
+      - clusterSetReplicationRetryCount: integer that sets the maximum number
+        of reconnection attempts that the replica makes after the connection to
+        the source times out.
+      - clusterSetReplicationHeartbeatPeriod: decimal that controls the
+        heartbeat interval, which stops the connection timeout occurring in the
+        absence of data if the connection is still good.
+      - clusterSetReplicationCompressionAlgorithms: string that specifies the
+        permitted compression algorithms for connections to the replication
+        source.
+      - clusterSetReplicationZstdCompressionLevel: integer that specifies the
+        compression level to use for connections to the replication source
+        server that use the zstd compression algorithm.
+      - clusterSetReplicationBind: string that determines which of the
+        replica's network interfaces is chosen for connecting to the source.
+      - clusterSetReplicationNetworkNamespace: string that specifies the
+        network namespace to use for TCP/IP connections to the replication
+        source server or, if the MySQL communication stack is in use, for Group
+        Replication’s group communication connections.
 
       ATTENTION: The failoverConsistency option will be removed in a future
                  release. Please use the consistency option instead.
 
       ATTENTION: The transactionSizeLimit option is not supported on Replica
                  Clusters of InnoDB ClusterSets.
+
+      NOTE: Changing any of the "clusterSetReplication*" options won't
+            immediately update the replication channel.
+            ClusterSet.rejoinCluster() must be used to to reconfigure and
+            restart the replication channel of that Cluster.
+
+      NOTE: Any of the "clusterSetReplication*" options accepts 'null', which
+            resets the corresponding option to its default value on the next
+            call to ClusterSet.rejoinCluster().
 
       The value for the configuration option is used to set the Group
       Replication system variable that corresponds to it.

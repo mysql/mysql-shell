@@ -489,7 +489,8 @@ void Add_replica_instance::do_run() {
 
       m_cluster_impl->get_metadata_storage()->update_instance_attribute(
           m_target_instance->get_uuid(), k_instance_attribute_join_time,
-          shcore::Value(join_begin_time), add_read_replica_trx_undo.get());
+          shcore::Value(join_begin_time), false,
+          add_read_replica_trx_undo.get());
 
       // Store the replication account
       m_cluster_impl->get_metadata_storage()->update_read_replica_repl_account(
@@ -543,7 +544,8 @@ void Add_replica_instance::do_run() {
       m_cluster_impl->get_metadata_storage()->update_instance_attribute(
           m_target_instance->get_uuid(),
           k_instance_attribute_read_replica_replication_sources,
-          shcore::Value(source_list_md), add_read_replica_trx_undo.get());
+          shcore::Value(source_list_md), false,
+          add_read_replica_trx_undo.get());
 
       trx.commit();
       log_debug("addReplicaInstance() metadata updates done");

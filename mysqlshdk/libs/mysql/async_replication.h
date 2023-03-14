@@ -32,10 +32,22 @@
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace mysql {
+
+struct Replication_options {
+  std::optional<uint32_t> connect_retry;
+  std::optional<uint32_t> retry_count;
+  std::optional<bool> auto_failover;
+  std::optional<uint32_t> delay;
+  std::optional<double> heartbeat_period;
+  std::optional<std::string> compression_algos;
+  std::optional<uint32_t> zstd_compression_level;
+  std::optional<std::string> bind;
+  std::optional<std::string> network_namespace;
+  bool auto_position = true;
+};
 
 enum class Read_replica_status {
   ONLINE,      // Replication channel up and running.
@@ -48,16 +60,20 @@ enum class Read_replica_status {
 
 std::string to_string(Read_replica_status status);
 
-void change_master(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &master_host,
-    int master_port, const std::string &channel_name,
-    const Auth_options &credentials, std::optional<int> master_connect_retry,
-    std::optional<int> master_retry_count, std::optional<bool> auto_failover,
-    std::optional<int> master_delay, bool source_auto_position = true);
+void change_master(const mysqlshdk::mysql::IInstance &instance,
+                   const std::string &master_host, int master_port,
+                   const std::string &channel_name,
+                   const Auth_options &credentials,
+                   const Replication_options &repl_options);
 
 void change_master_host_port(const mysqlshdk::mysql::IInstance &instance,
                              const std::string &master_host, int master_port,
-                             const std::string &channel_name);
+                             const std::string &channel_name,
+                             const Replication_options &repl_options);
+
+void change_master_repl_options(const mysqlshdk::mysql::IInstance &instance,
+                                const std::string &channel_name,
+                                const Replication_options &repl_options);
 
 void reset_slave(const mysqlshdk::mysql::IInstance &instance,
                  const std::string &channel_name, bool reset_credentials);

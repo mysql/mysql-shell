@@ -32,6 +32,7 @@
 namespace mysqlsh {
 namespace dba {
 namespace clusterset {
+
 namespace {
 
 shcore::Array_t cluster_diagnostics(
@@ -69,17 +70,16 @@ shcore::Array_t cluster_diagnostics(
               "WARNING: Replication from the Primary Cluster not in expected "
               "state");
 
-          auto primary = primary_cluster->get_primary_master();
-
           if (primary_cluster->cluster_availability() ==
-                  Cluster_availability::ONLINE &&
-              channel.source_uuid != primary->get_uuid()) {
-            append_error(shcore::str_format(
-                "WARNING: Replicating from wrong source. Expected %s (%s) but "
-                "is %s:%i (%s)",
-                primary->descr().c_str(), primary->get_uuid().c_str(),
-                channel.host.c_str(), channel.port,
-                channel.source_uuid.c_str()));
+              Cluster_availability::ONLINE) {
+            auto primary = primary_cluster->get_primary_master();
+            if (channel.source_uuid != primary->get_uuid())
+              append_error(shcore::str_format(
+                  "WARNING: Replicating from wrong source. Expected %s (%s) "
+                  "but is %s:%i (%s)",
+                  primary->descr().c_str(), primary->get_uuid().c_str(),
+                  channel.host.c_str(), channel.port,
+                  channel.source_uuid.c_str()));
           }
         }
       }
@@ -189,12 +189,11 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
   if (add_repl_info && cluster->get_cluster_server()) {
     // Add clusterSetReplication object
     mysqlshdk::mysql::Replication_channel cs_channel;
-    bool channel_exists;
+    bool channel_exists = mysqlshdk::mysql::get_channel_status(
+        *cluster->get_cluster_server(), k_clusterset_async_channel_name,
+        &cs_channel);
 
-    if ((channel_exists = mysqlshdk::mysql::get_channel_status(
-             *cluster->get_cluster_server(), k_clusterset_async_channel_name,
-             &cs_channel)) &&
-        extended) {
+    if (channel_exists && extended) {
       mysqlshdk::mysql::Replication_channel_master_info master_info;
       mysqlshdk::mysql::Replication_channel_relay_log_info relay_info;
 
@@ -211,9 +210,8 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
                       shcore::Value(cluster->get_cluster_server()->descr()));
 
       res->set("clusterSetReplication", shcore::Value(chstatus));
-    } else {
-      if (!channel_exists)
-        res->set("clusterSetReplication", shcore::Value(shcore::make_dict()));
+    } else if (!channel_exists) {
+      res->set("clusterSetReplication", shcore::Value(shcore::make_dict()));
     }
 
     cluster_errors =

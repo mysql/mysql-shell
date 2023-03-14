@@ -486,7 +486,8 @@ bool delete_sandbox(int port) {
 
   // Wait for the running server to complete the shutdown sequence
 
-  std::cout << "Waiting for server running at " << port << " to shut down\n";
+  std::cout << "Waiting for server running at " << port << " to shut down..."
+            << std::endl;
 
   int retries = k_wait_sandbox_shutdown;
 
@@ -503,7 +504,8 @@ bool delete_sandbox(int port) {
   // Wait for the ports (classic, x and xcom) to be freed
   while (is_port_listening("127.0.0.1", port)) {
     if (--retries < 0) {
-      std::cout << "Timeout waiting for port " << port << " to be free";
+      std::cout << "Timeout waiting for port " << port << " to be free."
+                << std::endl;
       return false;
     }
     shcore::sleep_ms(1000);
@@ -513,7 +515,8 @@ bool delete_sandbox(int port) {
   retries = k_wait_sandbox_shutdown;
   while (is_port_listening("127.0.0.1", x_port)) {
     if (--retries < 0) {
-      std::cout << "Timeout waiting for port " << x_port << " to be free";
+      std::cout << "Timeout waiting for port " << x_port << " to be free."
+                << std::endl;
       return false;
     }
     shcore::sleep_ms(1000);
@@ -523,7 +526,8 @@ bool delete_sandbox(int port) {
   retries = k_wait_sandbox_shutdown;
   while (is_port_listening("127.0.0.1", xcom_port)) {
     if (--retries < 0) {
-      std::cout << "Timeout waiting for port " << xcom_port << " to be free";
+      std::cout << "Timeout waiting for port " << xcom_port << " to be free."
+                << std::endl;
       return false;
     }
     shcore::sleep_ms(1000);
@@ -539,7 +543,7 @@ bool delete_sandbox(int port) {
     while (mysqlshdk::utils::check_lock_file(lock_file)) {
       if (--retries < 0) {
         std::cout << "Timeout waiting for sandbox lock file " << lock_file
-                  << " to be deleted after shutdown ";
+                  << " to be deleted after shutdown." << std::endl;
         return false;
       }
       shcore::sleep_ms(1000);
@@ -551,7 +555,7 @@ bool delete_sandbox(int port) {
     while (mysqlshdk::utils::check_lock_file(xlock_file, "X%zd")) {
       if (--retries < 0) {
         std::cout << "Timeout waiting for sandbox lock file " << xlock_file
-                  << " to be deleted after shutdown ";
+                  << " to be deleted after shutdown." << std::endl;
         return false;
       }
       shcore::sleep_ms(1000);
@@ -565,7 +569,7 @@ bool delete_sandbox(int port) {
     while (shcore::path::exists(pidfile)) {
       if (--retries < 0) {
         std::cout << "Timeout waiting for sandbox pid file " << pidfile
-                  << " to be deleted after shutdown ";
+                  << " to be deleted after shutdown." << std::endl;
         return false;
       }
       shcore::sleep_ms(1000);
@@ -576,10 +580,10 @@ bool delete_sandbox(int port) {
     if (shcore::is_folder(d)) {
       try {
         shcore::remove_directory(d, true);
-        std::cout << "Deleted leftover sandbox dir " << d << "\n";
+        std::cout << "Deleted leftover sandbox dir " << d << std::endl;
       } catch (std::exception &e) {
         std::cout << "Error deleting sandbox dir " << d << ": " << e.what()
-                  << "\n";
+                  << std::endl;
         return false;
       }
     }
@@ -595,7 +599,7 @@ bool delete_sandbox(int port) {
     std::cout << "Terminating sandbox process\n";
 
     if (system(s.c_str()) != 0) {
-      std::cout << "Error: unable to terminate sandbox process\n";
+      std::cout << "Error: unable to terminate sandbox process." << std::endl;
     }
   }
 #endif

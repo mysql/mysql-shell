@@ -227,6 +227,23 @@ ${OPT_INTERACTIVE}
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
 ${OPT_CERT_SUBJECT}
+@li replicationConnectRetry: integer that specifies the interval in seconds
+between the reconnection attempts that the replica makes after the connection
+to the source times out.
+@li replicationRetryCount: integer that sets the maximum number of reconnection
+attempts that the replica makes after the connection to the source times out.
+@li replicationHeartbeatPeriod: decimal that controls the heartbeat interval,
+which stops the connection timeout occurring in the absence of data if the
+connection is still good.
+@li replicationCompressionAlgorithms: string that specifies the permitted
+compression algorithms for connections to the replication source.
+@li replicationZstdCompressionLevel: integer that specifies the compression
+level to use for connections to the replication source server that use the
+zstd compression algorithm.
+@li replicationBind: string that determines which of the replica's network
+interfaces is chosen for connecting to the source.
+@li replicationNetworkNamespace: string that specifies the network namespace
+to use for TCP/IP connections to the replication source server.
 
 The recoveryMethod option supports the following values:
 
@@ -316,7 +333,9 @@ This function rejoins the given MySQL instance to the replicaset, making it a
 read-only SECONDARY replica of the current PRIMARY. Only instances previously
 added to the replicaset can be rejoined,
 otherwise the @<ReplicaSet@>.<<<addInstance>>>() function must be used to
-add a new instance.
+add a new instance. This can also be used to update the replication channel of
+instances (even if they are already ONLINE) if it does not have the expected
+state, source and settings.
 
 The PRIMARY of the replicaset must be reachable and available during this
 operation.
@@ -955,6 +974,29 @@ This function changes an option for a member of the ReplicaSet.
 
 The accepted options are:
 ${NAMESPACE_TAG}
+@li replicationConnectRetry: integer that specifies the interval in seconds
+between the reconnection attempts that the replica makes after the connection
+to the source times out.
+@li replicationRetryCount: integer that sets the maximum number of reconnection
+attempts that the replica makes after the connection to the source times out.
+@li replicationHeartbeatPeriod: decimal that controls the heartbeat interval,
+which stops the connection timeout occurring in the absence of data if the
+connection is still good.
+@li replicationCompressionAlgorithms: string that specifies the permitted
+compression algorithms for connections to the replication source.
+@li replicationZstdCompressionLevel: integer that specifies the compression
+level to use for connections to the replication source server that use the zstd
+compression algorithm.
+@li replicationBind: string that determines which of the replica's network
+interfaces is chosen for connecting to the source.
+@li replicationNetworkNamespace: string that specifies the network namespace
+to use for TCP/IP connections to the replication source server.
+
+@note Changing any of the "replication*" options won't immediately update the
+replication channel. Only on the next call to rejoinInstance() will the updated
+options take effect.
+@note Any of the "replication*" options accepts 'null', which sets the
+corresponding option to its default value on the next call to rejoinInstance().
 
 ${NAMESPACE_TAG_DETAIL_REPLICASET}
 

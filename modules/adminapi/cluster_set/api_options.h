@@ -50,12 +50,22 @@ struct Create_replica_cluster_options : public Interactive_option,
       &options();
 
   void set_cert_subject(const std::string &value);
+  void set_repl_connect_retry(int value);
+  void set_repl_retry_count(int value);
+  void set_repl_heartbeat_period(double value);
+  void set_repl_compression_algos(const std::string &value);
+  void set_repl_zstd_compression_level(int value);
+  void set_repl_bind(const std::string &value);
+  void set_repl_network_namespace(const std::string &value);
+
+  void merge_ar_options(Async_replication_options *target_options) const;
 
   Cluster_set_group_replication_options gr_options;
   Create_replica_cluster_clone_options clone_options;
   bool dry_run = false;
   std::string replication_allowed_host;
   std::string cert_subject;
+  Async_replication_options ar_options;
 };
 
 struct Remove_cluster_options : public Timeout_option {

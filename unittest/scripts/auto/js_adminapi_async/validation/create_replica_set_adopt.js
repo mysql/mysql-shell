@@ -134,10 +134,10 @@
 ||Replication option 'SOURCE_RETRY_COUNT' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '3' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
 //@# unsupported option: heartbeat (should fail) {VER(<8.0.23)}
-||Replication option 'MASTER_HEARTBEAT_PERIOD' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '32' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+||Replication option 'MASTER_HEARTBEAT_PERIOD' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '32.00' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
 //@# unsupported option: heartbeat (should fail) {VER(>=8.0.23)}
-||Replication option 'SOURCE_HEARTBEAT_PERIOD' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '32' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+||Replication option 'SOURCE_HEARTBEAT_PERIOD' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '32.00' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
 //@# unsupported option: no auto_position (should fail)
 ||127.0.0.1:<<<__mysql_sandbox_port2>>> uses replication without auto-positioning, which is not supported by the AdminAPI. (MYSQLSH 51164)

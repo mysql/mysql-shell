@@ -52,6 +52,7 @@ namespace dba {
 namespace cluster {
 
 namespace {
+
 template <typename R>
 inline bool set_uint(shcore::Dictionary_t dict, const std::string &prop,
                      const R &row, const std::string &field) {
@@ -255,7 +256,7 @@ const Instance_metadata *Status::instance_with_uuid(const std::string &uuid) {
   return nullptr;
 }
 
-Member_stats_map Status::query_member_stats() {
+Status::Member_stats_map Status::query_member_stats() {
   Member_stats_map stats;
   auto group_instance = m_cluster->get_cluster_server();
 
@@ -945,7 +946,7 @@ void check_unrecognized_channels(shcore::Array_t issues, Instance *instance,
 }
 
 void check_host_metadata(shcore::Array_t issues, Instance *instance,
-                         const Instance_metadata_info &instance_md) {
+                         const Status::Instance_metadata_info &instance_md) {
   auto address = instance->get_canonical_address();
 
   if (!mysqlshdk::utils::are_endpoints_equal(instance_md.md.endpoint,
@@ -1087,7 +1088,7 @@ void check_auth_type_instance_ssl(shcore::Array_t issues,
 
 shcore::Array_t instance_diagnostics(
     Instance *instance, const Cluster_impl *cluster,
-    const Instance_metadata_info &instance_md,
+    const Status::Instance_metadata_info &instance_md,
     const mysqlshdk::mysql::Replication_channel &recovery_channel,
     const mysqlshdk::mysql::Replication_channel &applier_channel,
     std::optional<bool> super_read_only, const mysqlshdk::gr::Member &minfo,
@@ -1155,7 +1156,7 @@ shcore::Array_t instance_diagnostics(
 
   try {
     mysqlshdk::utils::split_host_and_port(instance_md.md.grendpoint);
-  } catch (const std::invalid_argument &e) {
+  } catch (const std::invalid_argument &) {
     issues->push_back(shcore::Value(
         "ERROR: Invalid or missing information of Group Replication's network "
         "address in metadata. Use Cluster.rescan() to update the metadata."));
@@ -1887,12 +1888,19 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
             &value)) {
       issues->push_back(
           shcore::Value("WARNING: Cluster's transaction size limit is not "
-                        "registered in the metadata. Use "
-                        "cluster.rescan() to update the metadata."));
+                        "registered in the metadata. Use cluster.rescan() to "
+                        "update the metadata."));
 
     } else {
       m_cluster_transaction_size_limit = value.as_int();
     }
+  } else {
+    if (!validate_instances_repl_options())
+      issues->push_back(shcore::Value(
+          "WARNING: The effective ClusterSet replication channel "
+          "configurations do not match the configured ones (to see the "
+          "affected options, use Cluster.options()). Please call "
+          "ClusterSet.rejoinCluster() to update them."));
   }
 
   // If the cluster is operating in multi-primary mode and paxosSingleLeader
@@ -1939,6 +1947,33 @@ shcore::Array_t Status::validate_recovery_accounts_unused(
 
   issues->push_back(shcore::Value(std::move(msg)));
   return issues;
+}
+
+bool Status::validate_instances_repl_options() {
+  assert(m_cluster->is_cluster_set_member());
+  assert(!m_cluster->is_primary_cluster());
+
+  auto cluster_set = m_cluster->get_cluster_set_object();
+
+  bool has_null_options;
+  Async_replication_options ar_options;
+  cluster_set->read_cluster_replication_options(m_cluster->get_id(),
+                                                &ar_options, &has_null_options);
+
+  if (has_null_options) return false;
+
+  for (const auto &member : m_member_sessions) {
+    mysqlshdk::mysql::Replication_channel_master_info channel_info;
+    mysqlshdk::mysql::get_channel_info(*(member.second),
+                                       k_clusterset_async_channel_name,
+                                       &channel_info, nullptr);
+
+    auto options_to_update = async_merge_repl_options(ar_options, channel_info);
+
+    if (options_to_update.has_value()) return false;
+  }
+
+  return true;
 }
 
 shcore::Array_t Status::read_replica_diagnostics(
@@ -2461,13 +2496,6 @@ shcore::Value Status::execute() {
 
   return shcore::Value(dict);
 }
-
-void Status::rollback() {
-  // Do nothing right now, but it might be used in the future when
-  // transactional command execution feature will be available.
-}
-
-void Status::finish() {}
 
 }  // namespace cluster
 }  // namespace dba

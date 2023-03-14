@@ -51,19 +51,19 @@ session.runSql("stop replica;");
 //@<> addInstance on REPLICA Cluster with replication channel unhealthy
 EXPECT_THROWS(function(){ rc.addInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_NOT_REPLICATING within the ClusterSet. Operation is not possible when in that state");
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster's Replication Channel is misconfigured or stopped, topology changes will not be allowed on the InnoDB Cluster 'replica'");
-EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster()");
+EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster(). If there are invalid options, those must be corrected using setOption() before.");
 
 EXPECT_THROWS(function(){ rc.removeInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_NOT_REPLICATING within the ClusterSet. Operation is not possible when in that state");
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster's Replication Channel is misconfigured or stopped, topology changes will not be allowed on the InnoDB Cluster 'replica'");
-EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster()");
+EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster(). If there are invalid options, those must be corrected using setOption() before.");
 
 EXPECT_THROWS(function(){ rc.rejoinInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_NOT_REPLICATING within the ClusterSet. Operation is not possible when in that state");
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster's Replication Channel is misconfigured or stopped, topology changes will not be allowed on the InnoDB Cluster 'replica'");
-EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster()");
+EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster(). If there are invalid options, those must be corrected using setOption() before.");
 
 EXPECT_THROWS(function(){ rc.rescan(); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_NOT_REPLICATING within the ClusterSet. Operation is not possible when in that state");
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster's Replication Channel is misconfigured or stopped, topology changes will not be allowed on the InnoDB Cluster 'replica'");
-EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster()");
+EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, the Replication Channel must be fixed using rejoinCluster(). If there are invalid options, those must be corrected using setOption() before.");
 
 // I4: Cluster topology changes are allowed only if the PRIMARY Cluster is available.
 

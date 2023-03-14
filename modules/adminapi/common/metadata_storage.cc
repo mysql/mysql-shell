@@ -640,14 +640,12 @@ bool MetadataStorage::get_cluster(const Cluster_id &cluster_id,
 bool MetadataStorage::query_cluster_attribute(const Cluster_id &cluster_id,
                                               std::string_view attribute,
                                               shcore::Value *out_value) const {
-  auto result = execute_sql(
-      shcore::sqlstring(
-          shcore::str_format(
-              "SELECT attributes->'$.%.*s' FROM "
-              "mysql_innodb_cluster_metadata.clusters WHERE cluster_id=?",
-              static_cast<int>(attribute.length()), attribute.data()),
-          0)
-      << cluster_id);
+  auto stmt = shcore::str_format(
+      "SELECT attributes->'$.%.*s' FROM mysql_innodb_cluster_metadata.clusters "
+      "WHERE cluster_id = ?",
+      static_cast<int>(attribute.length()), attribute.data());
+
+  auto result = execute_sql(shcore::sqlstring(stmt, 0) << cluster_id);
 
   if (auto row = result->fetch_one()) {
     if (!row->is_null(0)) {
@@ -658,32 +656,64 @@ bool MetadataStorage::query_cluster_attribute(const Cluster_id &cluster_id,
   return false;
 }
 
+void MetadataStorage::remove_cluster_attribute(const Cluster_id &cluster_id,
+                                               std::string_view attribute) {
+  auto stmt = shcore::str_format(
+      "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
+      "json_remove(attributes, '$.%.*s') WHERE cluster_id = ?",
+      static_cast<int>(attribute.length()), attribute.data());
+  shcore::sqlstring query(stmt, 0);
+  query << cluster_id;
+  query.done();
+
+  execute_sql(query);
+}
+
 void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
                                                std::string_view attribute,
-                                               const shcore::Value &value) {
+                                               const shcore::Value &value,
+                                               bool store_null) {
   if (value) {
-    shcore::sqlstring query(
-        shcore::str_format("UPDATE mysql_innodb_cluster_metadata.clusters SET "
-                           "attributes = json_set(attributes, '$.%.*s', CAST(? "
-                           "as JSON)) WHERE cluster_id = ?",
-                           static_cast<int>(attribute.length()),
-                           attribute.data()),
-        0);
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
+        "json_set(attributes, '$.%.*s', CAST(? as JSON)) WHERE cluster_id = ?",
+        static_cast<int>(attribute.length()), attribute.data());
 
+    shcore::sqlstring query(stmt, 0);
     query << value.repr() << cluster_id;
     query.done();
+
     execute_sql(query);
-  } else {
-    shcore::sqlstring query(
-        shcore::str_format(
-            "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
-            "json_remove(attributes, '$.%.*s') WHERE cluster_id = ?",
-            static_cast<int>(attribute.length()), attribute.data()),
-        0);
+    return;
+  }
+
+  // value is null
+
+  if (store_null) {
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
+        "json_set(attributes, '$.%.*s', CAST(NULL as JSON)) WHERE "
+        "cluster_id = ?",
+        static_cast<int>(attribute.length()), attribute.data());
+
+    shcore::sqlstring query(stmt, 0);
     query << cluster_id;
     query.done();
+
     execute_sql(query);
+    return;
   }
+
+  auto stmt = shcore::str_format(
+      "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
+      "json_remove(attributes, '$.%.*s') WHERE cluster_id = ?",
+      static_cast<int>(attribute.length()), attribute.data());
+
+  shcore::sqlstring query(stmt, 0);
+  query << cluster_id;
+  query.done();
+
+  execute_sql(query);
 }
 
 void MetadataStorage::update_clusters_attribute(std::string_view attribute,
@@ -1039,44 +1069,101 @@ bool MetadataStorage::query_instance_attribute(std::string_view uuid,
 
   auto result = execute_sql(shcore::sqlstring(stmt, 0) << uuid);
 
-  if (auto row = result->fetch_one()) {
+  if (auto row = result->fetch_one(); row) {
     if (!row->is_null(0)) {
       *out_value = shcore::Value::parse(row->get_as_string(0));
       return true;
     }
   }
+
   return false;
 }
 
-void MetadataStorage::update_instance_metadata(std::string_view uuid,
-                                               Instance_column_md column,
-                                               std::string_view field,
-                                               const shcore::Value &value,
-                                               Transaction_undo *undo) {
-  std::string column_str;
+void MetadataStorage::remove_instance_attribute(std::string_view uuid,
+                                                std::string_view attribute) {
+  auto stmt = shcore::str_format(
+      "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
+      "json_remove(attributes, '$.%.*s') WHERE mysql_server_uuid = ?",
+      static_cast<int>(attribute.length()), attribute.data());
 
-  switch (column) {
-    case Instance_column_md::ATTRIBUTES:
-      column_str = "attributes";
-      break;
-    case Instance_column_md::ADDRESSES:
-      column_str = "addresses";
-      break;
-  }
+  shcore::sqlstring query(stmt, 0);
+  query << uuid;
+  query.done();
 
+  execute_sql(query);
+}
+
+void MetadataStorage::update_instance_attribute(std::string_view uuid,
+                                                std::string_view attribute,
+                                                const shcore::Value &value,
+                                                bool store_null,
+                                                Transaction_undo *undo) {
   if (undo) {
     undo->add_snapshot_for_update(
-        "mysql_innodb_cluster_metadata.instances", column_str, *get_md_server(),
-        shcore::sqlformat("mysql_server_uuid = ?", uuid));
+        "mysql_innodb_cluster_metadata.instances", "attributes",
+        *get_md_server(), shcore::sqlformat("mysql_server_uuid = ?", uuid));
   }
 
   if (value) {
     auto stmt = shcore::str_format(
-        "UPDATE mysql_innodb_cluster_metadata.instances SET %s = "
-        "json_set(%s, '$.%.*s', CAST(? as JSON)) WHERE "
+        "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
+        "json_set(attributes, '$.%.*s', CAST(? as JSON)) WHERE "
         "mysql_server_uuid = ?",
-        column_str.c_str(), column_str.c_str(),
-        static_cast<int>(field.length()), field.data());
+        static_cast<int>(attribute.length()), attribute.data());
+
+    shcore::sqlstring query(stmt, 0);
+    query << value.repr() << uuid;
+    query.done();
+
+    execute_sql(query);
+    return;
+  }
+
+  // value is null
+
+  if (store_null) {
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
+        "json_set(attributes, '$.%.*s', CAST(NULL as JSON)) WHERE "
+        "mysql_server_uuid = ?",
+        static_cast<int>(attribute.length()), attribute.data());
+
+    shcore::sqlstring query(stmt, 0);
+    query << uuid;
+    query.done();
+
+    execute_sql(query);
+    return;
+  }
+
+  auto stmt = shcore::str_format(
+      "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
+      "json_remove(attributes, '$.%.*s') WHERE mysql_server_uuid = ?",
+      static_cast<int>(attribute.length()), attribute.data());
+
+  shcore::sqlstring query(stmt, 0);
+  query << uuid;
+  query.done();
+
+  execute_sql(query);
+}
+
+void MetadataStorage::update_instance_addresses(std::string_view uuid,
+                                                std::string_view address,
+                                                const shcore::Value &value,
+                                                Transaction_undo *undo) {
+  if (undo) {
+    undo->add_snapshot_for_update(
+        "mysql_innodb_cluster_metadata.instances", "addresses",
+        *get_md_server(), shcore::sqlformat("mysql_server_uuid = ?", uuid));
+  }
+
+  if (value) {
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.instances SET addresses = "
+        "json_set(addresses, '$.%.*s', CAST(? as JSON)) WHERE "
+        "mysql_server_uuid = ?",
+        static_cast<int>(address.length()), address.data());
 
     shcore::sqlstring query(stmt, 0);
     query << value.repr() << uuid;
@@ -1085,10 +1172,9 @@ void MetadataStorage::update_instance_metadata(std::string_view uuid,
     execute_sql(query);
   } else {
     auto stmt = shcore::str_format(
-        "UPDATE mysql_innodb_cluster_metadata.instances SET %s = "
-        "json_remove(%s, '$.%.*s') WHERE mysql_server_uuid = ?",
-        column_str.c_str(), column_str.c_str(),
-        static_cast<int>(field.length()), field.data());
+        "UPDATE mysql_innodb_cluster_metadata.instances SET addresses = "
+        "json_remove(addresses, '$.%.*s') WHERE mysql_server_uuid = ?",
+        static_cast<int>(address.length()), address.data());
 
     shcore::sqlstring query(stmt, 0);
     query << uuid;
@@ -1096,22 +1182,6 @@ void MetadataStorage::update_instance_metadata(std::string_view uuid,
 
     execute_sql(query);
   }
-}
-
-void MetadataStorage::update_instance_attribute(std::string_view uuid,
-                                                std::string_view attribute,
-                                                const shcore::Value &value,
-                                                Transaction_undo *undo) {
-  update_instance_metadata(uuid, Instance_column_md::ATTRIBUTES, attribute,
-                           value, undo);
-}
-
-void MetadataStorage::update_instance_addresses(std::string_view uuid,
-                                                std::string_view address,
-                                                const shcore::Value &value,
-                                                Transaction_undo *undo) {
-  update_instance_metadata(uuid, Instance_column_md::ADDRESSES, address, value,
-                           undo);
 }
 
 void MetadataStorage::set_instance_tag(const std::string &uuid,

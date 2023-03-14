@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/common/async_topology.h"
+
 #include <mysqld_error.h>
 #include <vector>
 
@@ -43,6 +44,22 @@ namespace dba {
 namespace {
 // static constexpr const int k_replication_start_timeout = 60;
 constexpr const int k_replication_stop_timeout = 60;
+
+mysqlshdk::mysql::Replication_options prepare_replica_options(
+    const mysqlsh::dba::Async_replication_options &repl_options) {
+  mysqlshdk::mysql::Replication_options options;
+  options.connect_retry = repl_options.connect_retry;
+  options.retry_count = repl_options.retry_count;
+  options.auto_failover = repl_options.auto_failover;
+  options.delay = repl_options.delay;
+  options.heartbeat_period = repl_options.heartbeat_period;
+  options.compression_algos = repl_options.compression_algos;
+  options.zstd_compression_level = repl_options.zstd_compression_level;
+  options.bind = repl_options.bind;
+  options.network_namespace = repl_options.network_namespace;
+  options.auto_position = true;
+  return options;
+}
 
 void change_master(const mysqlshdk::mysql::IInstance &slave,
                    const mysqlshdk::mysql::IInstance &new_master,
@@ -69,8 +86,7 @@ void change_master(const mysqlshdk::mysql::IInstance &slave,
         mysqlshdk::mysql::change_master(
             slave, new_master.get_canonical_hostname(),
             new_master.get_canonical_port(), channel_name, creds,
-            repl_options.master_connect_retry, repl_options.master_retry_count,
-            repl_options.auto_failover, repl_options.master_delay);
+            prepare_replica_options(repl_options));
 
       } catch (const shcore::Error &e) {
         console->print_error(
@@ -82,7 +98,8 @@ void change_master(const mysqlshdk::mysql::IInstance &slave,
     } else {
       mysqlshdk::mysql::change_master_host_port(
           slave, new_master.get_canonical_hostname(),
-          new_master.get_canonical_port(), channel_name);
+          new_master.get_canonical_port(), channel_name,
+          prepare_replica_options(repl_options));
     }
   } catch (const shcore::Error &e) {
     console->print_error(
@@ -142,10 +159,13 @@ void async_add_replica(mysqlshdk::mysql::IInstance *primary,
 void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
                           mysqlshdk::mysql::IInstance *target,
                           const std::string &channel_name,
-                          const Async_replication_options &rpl_options) {
+                          const Async_replication_options &rpl_options,
+                          bool clear_channel) {
   auto console = mysqlsh::current_console();
 
   stop_channel(*target, channel_name, true, false);
+
+  if (clear_channel) reset_channel(*target, channel_name, true);
 
   // Setting primary for target instance and restarting replication.
   change_master(*target, *primary, channel_name, rpl_options, false);
@@ -154,10 +174,10 @@ void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
 
   console->print_info("** Checking replication channel status...");
   // NOTE: We use a fixed timeout of 60 sec to wait for replication to start.
-  //       Should we define a timout option for this?
+  //       Should we define a timeout option for this?
   try {
     check_replication_startup(*target, channel_name);
-  } catch (const shcore::Exception &e) {
+  } catch (const shcore::Exception &) {
     console->print_error(
         "Issue found in the replication channel. Please fix the error and "
         "retry to join the instance.");
@@ -254,9 +274,7 @@ void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
 }
 
 void async_force_primary(mysqlshdk::mysql::IInstance *promoted,
-                         const std::string &channel_name,
-                         const Async_replication_options & /*repl_options*/,
-                         bool dry_run) {
+                         const std::string &channel_name, bool dry_run) {
   // unfence the new master
   log_info("Clearing SUPER_READ_ONLY in new PRIMARY %s",
            promoted->descr().c_str());
@@ -288,11 +306,14 @@ void async_change_primary(mysqlshdk::mysql::IInstance *replica,
                           mysqlshdk::mysql::IInstance *primary,
                           const std::string &channel_name,
                           const Async_replication_options &repl_options,
-                          bool start_replica, bool dry_run) {
+                          bool start_replica, bool dry_run,
+                          bool reset_async_channel) {
   // make sure it's fenced
   if (!dry_run) fence_instance(replica);
 
   stop_channel(*replica, channel_name, true, dry_run);
+
+  if (reset_async_channel) reset_channel(*replica, channel_name, true, dry_run);
 
   // This will re-point the slave to the new master without changing any
   // other replication parameter if repl_options has no credentials.
@@ -303,27 +324,111 @@ void async_change_primary(mysqlshdk::mysql::IInstance *replica,
   log_info("PRIMARY changed for instance %s", replica->descr().c_str());
 }
 
+void async_change_channel_repl_options(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::string &channel_name,
+    const Async_replication_options &repl_options, bool reset_async_channel) {
+  stop_channel(instance, channel_name, true, false);
+
+  if (reset_async_channel) reset_channel(instance, channel_name, true);
+
+  mysqlshdk::mysql::change_master_repl_options(
+      instance, channel_name, prepare_replica_options(repl_options));
+
+  start_channel(instance, channel_name, false);
+}
+
+std::optional<Async_replication_options> async_merge_repl_options(
+    const Async_replication_options &ar_options,
+    const mysqlshdk::mysql::Replication_channel_master_info &channel_info) {
+  std::optional<Async_replication_options> merged;
+
+  if (ar_options.connect_retry.has_value()) {
+    if (ar_options.connect_retry.value() !=
+        static_cast<int>(channel_info.connect_retry)) {
+      if (!merged) merged = Async_replication_options{};
+      merged->connect_retry = ar_options.connect_retry;
+    }
+  }
+
+  if (ar_options.retry_count.has_value()) {
+    if (ar_options.retry_count.value() !=
+        static_cast<int>(channel_info.retry_count)) {
+      if (!merged) merged = Async_replication_options{};
+      merged->retry_count = ar_options.retry_count;
+    }
+  }
+
+  if (ar_options.heartbeat_period.has_value()) {
+    // the server assigns a precision of 0.001 to this var, so we should also
+    if (!shcore::compare_floating_point(ar_options.heartbeat_period.value(),
+                                        channel_info.heartbeat_period, 0.001)) {
+      if (!merged) merged = Async_replication_options{};
+      merged->heartbeat_period = ar_options.heartbeat_period;
+    }
+  }
+
+  if (ar_options.compression_algos.has_value()) {
+    if (!channel_info.compression_algorithm.has_value() ||
+        ar_options.compression_algos.value() !=
+            channel_info.compression_algorithm.value()) {
+      if (!merged) merged = Async_replication_options{};
+      merged->compression_algos = ar_options.compression_algos;
+    }
+  }
+
+  if (ar_options.zstd_compression_level.has_value()) {
+    if (!channel_info.zstd_compression_level.has_value() ||
+        ar_options.zstd_compression_level.value() !=
+            static_cast<int>(channel_info.zstd_compression_level.value())) {
+      if (!merged) merged = Async_replication_options{};
+      merged->zstd_compression_level = ar_options.zstd_compression_level;
+    }
+  }
+
+  if (ar_options.bind.has_value()) {
+    if (ar_options.bind.value() != channel_info.bind) {
+      if (!merged) merged = Async_replication_options{};
+      merged->bind = ar_options.bind;
+    }
+  }
+
+  if (ar_options.network_namespace.has_value()) {
+    if (!channel_info.network_namespace.has_value() ||
+        ar_options.network_namespace.value() !=
+            channel_info.network_namespace.value()) {
+      if (!merged) merged = Async_replication_options{};
+      merged->network_namespace = ar_options.network_namespace;
+    }
+  }
+
+  return merged;
+}
+
 void async_change_primary(
     mysqlshdk::mysql::IInstance *primary,
-    const std::list<std::shared_ptr<Instance>> &secondaries,
-    const std::string &channel_name,
-    const Async_replication_options & /*repl_options*/,
     mysqlshdk::mysql::IInstance *old_primary,
-    shcore::Scoped_callback_list *undo_list, bool dry_run) {
-  for (const auto &slave : secondaries) {
-    if (slave->get_uuid() != primary->get_uuid() &&
-        (!old_primary || slave->get_uuid() != old_primary->get_uuid())) {
-      undo_list->push_front([=]() {
-        if (old_primary)
-          async_change_primary(slave.get(), old_primary, channel_name, {}, true,
-                               dry_run);
-      });
+    const std::function<bool(mysqlshdk::mysql::IInstance **,
+                             Async_replication_options *)>
+        &cb_consume_secondaries,
+    const std::string &channel_name, shcore::Scoped_callback_list *undo_list,
+    bool dry_run) {
+  mysqlshdk::mysql::IInstance *slave;
+  Async_replication_options slave_repl_options;
+  while (cb_consume_secondaries(&slave, &slave_repl_options)) {
+    if (slave->get_uuid() == primary->get_uuid()) continue;
+    if (old_primary && (slave->get_uuid() == old_primary->get_uuid())) continue;
 
-      async_change_primary(slave.get(), primary, channel_name, {}, true,
-                           dry_run);
+    undo_list->push_front([=]() {
+      if (old_primary)
+        async_change_primary(slave, old_primary, channel_name, {}, true,
+                             dry_run);
+    });
 
-      log_info("PRIMARY changed for instance %s", slave->descr().c_str());
-    }
+    async_change_primary(slave, primary, channel_name, slave_repl_options, true,
+                         dry_run);
+
+    log_info("PRIMARY changed for instance %s", slave->descr().c_str());
   }
 }
 
@@ -507,14 +612,12 @@ void add_managed_connection_failover(
     const mysqlshdk::mysql::IInstance &source, const std::string &channel_name,
     const std::string &network_namespace, int64_t primary_weight,
     int64_t secondary_weight, bool dry_run) {
-  std::string managed_type = "GroupReplication";
-
   shcore::sqlstring query(
       "SELECT asynchronous_connection_failover_add_managed(?, ?, ?, ?, ?, ?, "
       "?, ?)",
       0);
   query << channel_name;
-  query << managed_type;
+  query << "GroupReplication";
   query << source.get_group_name();
   query << source.get_canonical_hostname();
   query << source.get_canonical_port();
@@ -764,7 +867,7 @@ void drop_clone_recovery_user_nobinlog(
   try {
     mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
     target_instance->drop_user(account.user, account_host, true);
-  } catch (const shcore::Error &e) {
+  } catch (const shcore::Error &) {
     auto console = current_console();
     console->print_warning(shcore::str_format(
         "%s: Error dropping account %s@%s.", target_instance->descr().c_str(),

@@ -290,11 +290,11 @@ Failover finished successfully.
 
 //@# rejoinInstance
 |* Rejoining instance to replicaset...|
-|The instance '127.0.0.1:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
+|The instance '127.0.0.1:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '127.0.0.1:<<<__mysql_sandbox_port1>>>'.|
 
 //@# rejoinInstance (clone) {VER(>=8.0.17)}
 
-|The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
+|The instance '<<<__address3>>>' rejoined the replicaset and is replicating from '127.0.0.1:<<<__mysql_sandbox_port1>>>'.|
 
 //@<OUT> listRouters
 {

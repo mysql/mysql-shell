@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
@@ -38,10 +39,11 @@ namespace cluster {
 
 class Set_option : public Command_interface {
  public:
-  Set_option(Cluster_impl *cluster, const std::string &option,
-             const std::string &value);
-  Set_option(Cluster_impl *cluster, const std::string &option, int64_t value);
-  Set_option(Cluster_impl *cluster, const std::string &option, bool value);
+  Set_option(Cluster_impl *cluster, std::string option, std::string value);
+  Set_option(Cluster_impl *cluster, std::string option, int64_t value);
+  Set_option(Cluster_impl *cluster, std::string option, double value);
+  Set_option(Cluster_impl *cluster, std::string option, bool value);
+  Set_option(Cluster_impl *cluster, std::string option, std::monostate value);
 
   ~Set_option() override;
 
@@ -87,17 +89,17 @@ class Set_option : public Command_interface {
   Cluster_impl *m_cluster = nullptr;
   // Configuration object (to read and set instance configurations).
   std::string m_option;
-  std::optional<std::string> m_value_str;
-  std::optional<int64_t> m_value_int;
-  std::optional<bool> m_value_bool;
+  std::variant<std::string, int64_t, double, bool, std::monostate> m_value;
   std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_cluster_instances;
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 
   void connect_all_members();
-  void ensure_option_valid();
-  void ensure_option_supported_all_members_cluster();
+  void ensure_replication_option_valid() const;
+  void ensure_option_valid() const;
+  void ensure_option_supported_all_members_cluster() const;
   void check_disable_clone_support();
+  void store_replication_option();
   void update_disable_clone_option(bool disable_clone);
 };
 

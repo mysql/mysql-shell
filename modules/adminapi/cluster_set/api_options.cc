@@ -77,7 +77,30 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
           .include(&Create_replica_cluster_options::gr_options)
           .include(&Create_replica_cluster_options::clone_options)
           .optional(kCertSubject,
-                    &Create_replica_cluster_options::set_cert_subject);
+                    &Create_replica_cluster_options::set_cert_subject)
+          .optional(shcore::str_format("clusterSetReplication%s",
+                                       kReplicationConnectRetry),
+                    &Create_replica_cluster_options::set_repl_connect_retry)
+          .optional(shcore::str_format("clusterSetReplication%s",
+                                       kReplicationRetryCount),
+                    &Create_replica_cluster_options::set_repl_retry_count)
+          .optional(shcore::str_format("clusterSetReplication%s",
+                                       kReplicationHeartbeatPeriod),
+                    &Create_replica_cluster_options::set_repl_heartbeat_period)
+          .optional(shcore::str_format("clusterSetReplication%s",
+                                       kReplicationCompressionAlgorithms),
+                    &Create_replica_cluster_options::set_repl_compression_algos)
+          .optional(
+              shcore::str_format("clusterSetReplication%s",
+                                 kReplicationZstdCompressionLevel),
+              &Create_replica_cluster_options::set_repl_zstd_compression_level)
+          .optional(
+              shcore::str_format("clusterSetReplication%s", kReplicationBind),
+              &Create_replica_cluster_options::set_repl_bind)
+          .optional(
+              shcore::str_format("clusterSetReplication%s",
+                                 kReplicationNetworkNamespace),
+              &Create_replica_cluster_options::set_repl_network_namespace);
 
   return opts;
 }
@@ -90,6 +113,69 @@ void Create_replica_cluster_options::set_cert_subject(
         kCertSubject));
 
   cert_subject = value;
+}
+
+void Create_replica_cluster_options::set_repl_connect_retry(int value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'clusterSetReplication%s' "
+                           "option. Value cannot be negative.",
+                           kReplicationConnectRetry));
+
+  ar_options.connect_retry = value;
+}
+void Create_replica_cluster_options::set_repl_retry_count(int value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'clusterSetReplication%s' "
+                           "option. Value cannot be negative.",
+                           kReplicationRetryCount));
+
+  ar_options.retry_count = value;
+}
+void Create_replica_cluster_options::set_repl_heartbeat_period(double value) {
+  if (value < 0.0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'clusterSetReplication%s' "
+                           "option. Value cannot be negative.",
+                           kReplicationHeartbeatPeriod));
+
+  ar_options.heartbeat_period = value;
+}
+void Create_replica_cluster_options::set_repl_compression_algos(
+    const std::string &value) {
+  ar_options.compression_algos = value;
+}
+void Create_replica_cluster_options::set_repl_zstd_compression_level(
+    int value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'clusterSetReplication%s' "
+                           "option. Value cannot be negative.",
+                           kReplicationZstdCompressionLevel));
+
+  ar_options.zstd_compression_level = value;
+}
+void Create_replica_cluster_options::set_repl_bind(const std::string &value) {
+  ar_options.bind = value;
+}
+void Create_replica_cluster_options::set_repl_network_namespace(
+    const std::string &value) {
+  ar_options.network_namespace = value;
+}
+
+void Create_replica_cluster_options::merge_ar_options(
+    Async_replication_options *target_options) const {
+  if (ar_options.connect_retry.has_value())
+    target_options->connect_retry = ar_options.connect_retry;
+  if (ar_options.retry_count.has_value())
+    target_options->retry_count = ar_options.retry_count;
+  target_options->delay = ar_options.delay;
+  target_options->heartbeat_period = ar_options.heartbeat_period;
+  target_options->compression_algos = ar_options.compression_algos;
+  target_options->zstd_compression_level = ar_options.zstd_compression_level;
+  target_options->bind = ar_options.bind;
+  target_options->network_namespace = ar_options.network_namespace;
 }
 
 const shcore::Option_pack_def<Remove_cluster_options>

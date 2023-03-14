@@ -448,8 +448,8 @@ const std::map<std::string, Function_availability>
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
           k_primary_not_required,  // In case of a Cluster, because we have to
                                    // have all members online, the primary is
-                                   // automaticly also available. But in case of
-                                   // a ClusterSet, this refers to the set's
+                                   // automatically also available. But in case
+                                   // of a ClusterSet, this refers to the set's
                                    // primary, which isn't required
           kClusterGlobalStateAny}},
         {"Cluster.setOption",

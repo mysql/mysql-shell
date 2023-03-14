@@ -176,10 +176,10 @@ class Replica_set_impl : public Base_cluster_impl {
                              Clone_options *clone_options,
                              const std::string &cert_subject, bool interactive);
 
-  void validate_rejoin_instance(Global_topology_manager *topology_mng,
-                                Instance *target, Clone_options *clone_options,
-                                Instance_metadata *out_instance_md,
-                                bool interactive);
+  topology::Node_status validate_rejoin_instance(
+      Global_topology_manager *topology_mng, Instance *target,
+      Clone_options *clone_options, Instance_metadata *out_instance_md,
+      bool interactive);
 
   void validate_remove_instance(Global_topology_manager *topology,
                                 mysqlshdk::mysql::IInstance *master,
@@ -196,7 +196,7 @@ class Replica_set_impl : public Base_cluster_impl {
   void do_set_primary_instance(
       Instance *master, Instance *new_master,
       const std::list<std::shared_ptr<Instance>> &instances,
-      const Async_replication_options &ar_options, bool dry_run);
+      const Async_replication_options &master_ar_options, bool dry_run);
 
   std::shared_ptr<Global_topology_manager> setup_topology_manager(
       topology::Server_global_topology **out_topology = nullptr,
@@ -240,7 +240,13 @@ class Replica_set_impl : public Base_cluster_impl {
       const std::string &function_name,
       bool throw_if_primary_unavailable = true);
 
-  void read_replication_options(Async_replication_options *ar_options);
+  void read_replication_options(std::string_view instance_uuid,
+                                Async_replication_options *ar_options,
+                                bool *has_null_options);
+  void read_replication_options(const mysqlshdk::mysql::IInstance *instance,
+                                Async_replication_options *ar_options,
+                                bool *has_null_options = nullptr);
+  void cleanup_replication_options(const mysqlshdk::mysql::IInstance &instance);
 
   Global_topology_type m_topology_type;
 };

@@ -850,7 +850,7 @@ function begin_dba_log_sql(level) {
   var dummy = testutil.fetchDbaSqlLog(true);
 }
 
-function end_dba_log_sql(level) {
+function end_dba_log_sql() {
   var logs = testutil.fetchDbaSqlLog(false);
   shell.options["dba.logSql"] = 0;
   return logs;

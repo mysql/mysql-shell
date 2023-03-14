@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,8 @@ class Star_global_topology_manager : public Global_topology_manager {
       const topology::Node *master_node, mysqlshdk::mysql::IInstance *instance,
       const Async_replication_options &repl_options) override;
 
-  void validate_rejoin_replica(mysqlshdk::mysql::IInstance *instance) override;
+  topology::Node_status validate_rejoin_replica(
+      mysqlshdk::mysql::IInstance *instance) override;
 
   void validate_remove_replica(mysqlshdk::mysql::IInstance *master,
                                mysqlshdk::mysql::IInstance *instance,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,17 @@
 #include "my_config.h"
 
 namespace shcore {
+TEST(utils_general, compare_floating_point) {
+  EXPECT_TRUE(compare_floating_point(12.3, 12.3, 0.01));
+  EXPECT_TRUE(compare_floating_point(-12.3, -12.3, 0.01));
+  EXPECT_FALSE(compare_floating_point(12.3, -12.3, 0.01));
+  EXPECT_FALSE(compare_floating_point(-12.3, 12.3, 0.01));
+
+  EXPECT_TRUE(compare_floating_point(12.345, 12.346, 0.01));
+  EXPECT_TRUE(compare_floating_point(12.345, 12.346, 0.001));
+  EXPECT_FALSE(compare_floating_point(12.345, 12.346, 0.0009));
+}
+
 TEST(utils_general, split_account) {
   std::string a, b;
 

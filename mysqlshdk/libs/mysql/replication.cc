@@ -122,55 +122,55 @@ std::string to_string(Replication_channel::Applier::Status status) {
 }
 
 std::string to_string(const Replication_channel::Error &error) {
-  if (error.code != 0) {
-    return shcore::str_format("%s (%i) at %s", error.message.c_str(),
-                              error.code, error.timestamp.c_str());
-  }
-  return "";
+  if (error.code == 0) return {};
+  return shcore::str_format("%s (%i) at %s", error.message.c_str(), error.code,
+                            error.timestamp.c_str());
 }
 
 std::string format_status(const Replication_channel &channel, bool verbose) {
   // This follows the KVP format
 
   std::string msg;
+  msg.reserve(128);  // better than nothing
 
   msg += shcore::make_kvp(
-      "source", channel.host + ":" + std::to_string(channel.port), '"');
-  msg += " " + shcore::make_kvp("channel", channel.channel_name);
-  msg += " " + shcore::make_kvp("status", to_string(channel.status()));
+      "source", shcore::str_format("%s:%d", channel.host.c_str(), channel.port),
+      '"');
+  msg.append(" ").append(shcore::make_kvp("channel", channel.channel_name));
+  msg.append(" ").append(
+      shcore::make_kvp("status", to_string(channel.status())));
 
-  if (verbose || channel.status() != Replication_channel::OFF) {
-    msg +=
-        " " + shcore::make_kvp("receiver", to_string(channel.receiver.state));
-    if (channel.receiver.last_error.code != 0)
-      msg +=
-          " " + shcore::make_kvp("last_error",
-                                 to_string(channel.receiver.last_error), '"');
+  if (!verbose && channel.status() == Replication_channel::OFF) return msg;
 
-    if (channel.coordinator.state != Replication_channel::Coordinator::NONE) {
-      msg += " " + shcore::make_kvp("coordinator",
-                                    to_string(channel.coordinator.state));
-      if (channel.coordinator.last_error.code != 0)
-        msg += " " + shcore::make_kvp("last_error",
-                                      to_string(channel.coordinator.last_error),
-                                      '"');
-    }
-    if (channel.appliers.size() == 1) {
-      msg += " " + shcore::make_kvp("applier",
-                                    to_string(channel.appliers.front().state));
-      if (channel.appliers.front().last_error.code != 0)
-        msg += " " + shcore::make_kvp(
-                         "last_error",
-                         to_string(channel.appliers.front().last_error), '"');
-    } else {
-      int i = 0;
-      for (const auto &a : channel.appliers) {
-        msg += " " + shcore::make_kvp(("applier" + std::to_string(i)).c_str(),
-                                      to_string(a.state));
-        if (a.last_error.code != 0)
-          msg += " " + shcore::make_kvp("last_error", to_string(a.last_error));
-        ++i;
-      }
+  msg += " " + shcore::make_kvp("receiver", to_string(channel.receiver.state));
+  if (channel.receiver.last_error.code != 0)
+    msg += " " + shcore::make_kvp("last_error",
+                                  to_string(channel.receiver.last_error), '"');
+
+  if (channel.coordinator.state != Replication_channel::Coordinator::NONE) {
+    msg += " " + shcore::make_kvp("coordinator",
+                                  to_string(channel.coordinator.state));
+    if (channel.coordinator.last_error.code != 0)
+      msg += " " + shcore::make_kvp("last_error",
+                                    to_string(channel.coordinator.last_error),
+                                    '"');
+  }
+
+  if (channel.appliers.size() == 1) {
+    msg += " " + shcore::make_kvp("applier",
+                                  to_string(channel.appliers.front().state));
+    if (channel.appliers.front().last_error.code != 0)
+      msg += " " + shcore::make_kvp(
+                       "last_error",
+                       to_string(channel.appliers.front().last_error), '"');
+  } else {
+    int i = 0;
+    for (const auto &a : channel.appliers) {
+      msg += " " + shcore::make_kvp(("applier" + std::to_string(i)).c_str(),
+                                    to_string(a.state));
+      if (a.last_error.code != 0)
+        msg += " " + shcore::make_kvp("last_error", to_string(a.last_error));
+      ++i;
     }
   }
 
@@ -257,7 +257,7 @@ void unserialize_channel_applier_info(const mysqlshdk::db::Row_ref_by_name &row,
   if (row.is_null("w_state")) return;
 
   Replication_channel::Applier applier;
-  if (std::string state = row.get_string("w_state"); state == "ON")
+  if (auto state = row.get_string("w_state"); state == "ON")
     applier.state = Replication_channel::Applier::ON;
   else if (state == "OFF")
     applier.state = Replication_channel::Applier::OFF;
@@ -501,6 +501,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
 }
 
 namespace {
+
 void unserialize_channel_master_info(
     const mysqlshdk::db::Row_ref_by_name &row,
     Replication_channel_master_info *out_master_info) {
@@ -518,7 +519,7 @@ void unserialize_channel_master_info(
   out_master_info->ssl_key = row.get_string("Ssl_key");
   out_master_info->ssl_verify_server_cert =
       row.get_int("Ssl_verify_server_cert");
-  out_master_info->heartbeat = row.get_double("Heartbeat");
+  out_master_info->heartbeat_period = row.get_double("Heartbeat");
   out_master_info->bind = row.get_string("Bind");
   out_master_info->ignored_server_ids = row.get_string("Ignored_server_ids");
   out_master_info->uuid = row.get_string("Uuid");
@@ -537,11 +538,11 @@ void unserialize_channel_master_info(
     out_master_info->network_namespace = row.get_string("Network_namespace");
   if (row.has_field("Master_compression_algorithm") &&
       !row.is_null("Master_compression_algorithm"))
-    out_master_info->master_compression_algorithm =
+    out_master_info->compression_algorithm =
         row.get_string("Master_compression_algorithm");
   if (row.has_field("Master_zstd_compression_level") &&
       !row.is_null("Master_zstd_compression_level"))
-    out_master_info->master_zstd_compression_level =
+    out_master_info->zstd_compression_level =
         row.get_uint("Master_zstd_compression_level");
   if (row.has_field("Tls_ciphersuites") && !row.is_null("Tls_ciphersuites"))
     out_master_info->tls_ciphersuites = row.get_string("Tls_ciphersuites");
@@ -576,9 +577,9 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
                       const std::string &channel_name,
                       Replication_channel_master_info *out_master_info,
                       Replication_channel_relay_log_info *out_relay_log_info) {
-  assert(out_master_info && out_relay_log_info);
+  if (!out_master_info && !out_relay_log_info) return false;
 
-  {
+  if (out_master_info) {
     auto result = instance.queryf(
         "SELECT * FROM mysql.slave_master_info"
         " WHERE channel_name = ?",
@@ -590,7 +591,7 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
     }
   }
 
-  {
+  if (out_relay_log_info) {
     auto result = instance.queryf(
         "SELECT * FROM mysql.slave_relay_log_info"
         " WHERE channel_name = ?",
@@ -613,7 +614,7 @@ std::vector<Slave_host> get_slaves(
     host.host = row.get_string("Host");
     host.port = row.get_uint("Port");
     host.uuid = row.get_string("Slave_UUID");
-    slaves.push_back(host);
+    slaves.push_back(std::move(host));
   }
 
   // Sort by host/name to ensure deterministic output

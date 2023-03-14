@@ -246,9 +246,14 @@ class MetadataStorage {
                                std::string_view attribute,
                                shcore::Value *out_value) const;
 
+  void remove_cluster_attribute(const Cluster_id &cluster_id,
+                                std::string_view attribute);
+
   void update_cluster_attribute(const Cluster_id &cluster_id,
                                 std::string_view attribute,
-                                const shcore::Value &value);
+                                const shcore::Value &value,
+                                bool store_null = false);
+
   void update_clusters_attribute(std::string_view attribute,
                                  const shcore::Value &value);
 
@@ -273,9 +278,13 @@ class MetadataStorage {
                                 std::string_view attribute,
                                 shcore::Value *out_value) const;
 
+  void remove_instance_attribute(std::string_view uuid,
+                                 std::string_view attribute);
+
   void update_instance_attribute(std::string_view uuid,
                                  std::string_view attribute,
                                  const shcore::Value &value,
+                                 bool store_null = false,
                                  Transaction_undo *undo = nullptr);
 
   void update_instance_addresses(std::string_view uuid,

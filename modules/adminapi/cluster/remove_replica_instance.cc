@@ -186,8 +186,8 @@ void Remove_replica_instance::do_run() {
         ar_options.ssl_mode = Cluster_ssl_mode::DISABLED;
 
         // Set CONNECTION_RETRY_INTERVAL and CONNECTION_RETRY_COUNT
-        ar_options.master_connect_retry = k_read_replica_master_connect_retry;
-        ar_options.master_retry_count = k_read_replica_master_retry_count;
+        ar_options.connect_retry = k_read_replica_master_connect_retry;
+        ar_options.retry_count = k_read_replica_master_retry_count;
 
         // Enable SOURCE_CONNECTION_AUTO_FAILOVER
         ar_options.auto_failover = true;

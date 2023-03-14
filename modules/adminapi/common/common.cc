@@ -268,46 +268,46 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
   // replication_applier_filters and replication_applier_global_filters
   // have info about replication filters, which filters what's applied from
   // the relay log at a slave
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
-    bool has_global_filter = false;
-    bool has_filter = false;
-    try {
-      if (instance.queryf_one_int(
-              0, 0,
-              "SELECT count(*) "
-              "FROM performance_schema.replication_applier_global_filters "
-              "WHERE filter_rule <> ''") > 0) {
-        has_global_filter = true;
-      }
+  if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 11)) return;
 
-      if (instance.queryf_one_int(0, 0,
-                                  "SELECT count(*) FROM "
-                                  "performance_schema.replication_applier_"
-                                  "filters WHERE filter_rule <> ''") > 0) {
-        has_filter = true;
-      }
-    } catch (std::exception &e) {
-      log_warning("Error querying for replication filters at %s: %s",
-                  instance.descr().c_str(), e.what());
+  bool has_global_filter = false;
+  bool has_filter = false;
+  try {
+    if (instance.queryf_one_int(
+            0, 0,
+            "SELECT count(*) "
+            "FROM performance_schema.replication_applier_global_filters "
+            "WHERE filter_rule <> ''") > 0) {
+      has_global_filter = true;
     }
 
-    if (has_global_filter) {
-      throw shcore::Exception(
-          instance.descr() +
-              ": instance has global replication filters "
-              "configured, but they are not supported in " +
-              to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
-          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+    if (instance.queryf_one_int(0, 0,
+                                "SELECT count(*) FROM "
+                                "performance_schema.replication_applier_"
+                                "filters WHERE filter_rule <> ''") > 0) {
+      has_filter = true;
     }
+  } catch (std::exception &e) {
+    log_warning("Error querying for replication filters at %s: %s",
+                instance.descr().c_str(), e.what());
+  }
 
-    if (has_filter) {
-      throw shcore::Exception(
-          instance.descr() +
-              ": instance has replication filters configured, but they are "
-              "not supported in " +
-              to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
-          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
-    }
+  if (has_global_filter) {
+    throw shcore::Exception(
+        instance.descr() +
+            ": instance has global replication filters configured, but they "
+            "are not supported in " +
+            to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
+        SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+  }
+
+  if (has_filter) {
+    throw shcore::Exception(
+        instance.descr() +
+            ": instance has replication filters configured, but they are not "
+            "supported in " +
+            to_display_string(cluster_type, Display_form::THINGS_FULL) + ".",
+        SHERR_DBA_INVALID_SERVER_CONFIGURATION);
   }
 }
 
@@ -315,11 +315,9 @@ void resolve_ssl_mode_option(const std::string &option,
                              const std::string &context,
                              const mysqlshdk::mysql::IInstance &instance,
                              Cluster_ssl_mode *ssl_mode) {
+  // sslMode is DISABLED but instance requires SSL
   bool require_secure_transport =
       instance.get_sysvar_bool("require_secure_transport", false);
-  bool have_ssl = instance.is_ssl_enabled();
-
-  // sslMode is DISABLED but instance requires SSL
   if (*ssl_mode == Cluster_ssl_mode::DISABLED && require_secure_transport) {
     throw shcore::Exception::argument_error(
         "The instance '" + instance.descr() +
@@ -330,6 +328,7 @@ void resolve_ssl_mode_option(const std::string &option,
   }
 
   // sslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
+  bool have_ssl = instance.is_ssl_enabled();
   if (!have_ssl && (*ssl_mode == Cluster_ssl_mode::REQUIRED ||
                     *ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
                     *ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY)) {
@@ -1022,8 +1021,6 @@ Instance_rejoinability validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id,
     bool *out_uuid_mistmatch) {
-  std::string instance_uuid = instance.get_uuid();
-
   // Ensure that:
   // 1 - instance is part of the given cluster
   // 2 - instance is not ONLINE or RECOVERING
@@ -1033,18 +1030,12 @@ Instance_rejoinability validate_instance_rejoinable(
     imd = metadata->get_instance_by_uuid(instance.get_uuid());
     uuid_in_md = true;
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-      try {
-        imd =
-            metadata->get_instance_by_address(instance.get_canonical_address());
-      } catch (const shcore::Exception &ex) {
-        if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-          return Instance_rejoinability::NOT_MEMBER;
-        }
-        throw;
-      }
-    } else {
-      throw;
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+    try {
+      imd = metadata->get_instance_by_address(instance.get_canonical_address());
+    } catch (const shcore::Exception &) {
+      if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+      return Instance_rejoinability::NOT_MEMBER;
     }
   }
 
@@ -1060,10 +1051,9 @@ Instance_rejoinability validate_instance_rejoinable(
   auto state = mysqlshdk::gr::get_member_state(instance);
   if (state == mysqlshdk::gr::Member_state::ONLINE)
     return Instance_rejoinability::ONLINE;
-  else if (state == mysqlshdk::gr::Member_state::RECOVERING)
+  if (state == mysqlshdk::gr::Member_state::RECOVERING)
     return Instance_rejoinability::RECOVERING;
-  else
-    return Instance_rejoinability::REJOINABLE;
+  return Instance_rejoinability::REJOINABLE;
 }
 
 /**
@@ -1131,27 +1121,23 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                       strlen(kSandboxDatadir), kSandboxDatadir) != 0) {
     // Not a sandbox, we can immediately return false
     return false;
-  } else {
-    // Check if the my.cnf file is present
-    if (path_elements[path_elements.size() - 3] == std::to_string(port)) {
-      path_elements[path_elements.size() - 2] = "my.cnf";
-      std::string tmpPath = shcore::str_join(path_elements, path_separator);
-
-      // Remove the trailing path_separator
-      if (tmpPath.back() == path_separator[0]) tmpPath.pop_back();
-
-      if (shcore::is_file(tmpPath)) {
-        if (cnfPath) {
-          *cnfPath = tmpPath;
-        }
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
   }
+
+  // Check if the my.cnf file is present
+  if (path_elements[path_elements.size() - 3] != std::to_string(port))
+    return false;
+
+  path_elements[path_elements.size() - 2] = "my.cnf";
+  std::string tmpPath = shcore::str_join(path_elements, path_separator);
+
+  // Remove the trailing path_separator
+  if (tmpPath.back() == path_separator[0]) tmpPath.pop_back();
+
+  if (!shcore::is_file(tmpPath)) return false;
+
+  if (cnfPath) *cnfPath = tmpPath;
+
+  return true;
 }
 
 // AdminAPI interactive handling specific methods

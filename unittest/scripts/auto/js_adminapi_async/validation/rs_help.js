@@ -154,6 +154,25 @@ DESCRIPTION
         finishes. Defaults to 0.
       - certSubject: instance's certificate subject to use when
         'memberAuthType' contains "CERT_SUBJECT".
+      - replicationConnectRetry: integer that specifies the interval in seconds
+        between the reconnection attempts that the replica makes after the
+        connection to the source times out.
+      - replicationRetryCount: integer that sets the maximum number of
+        reconnection attempts that the replica makes after the connection to
+        the source times out.
+      - replicationHeartbeatPeriod: decimal that controls the heartbeat
+        interval, which stops the connection timeout occurring in the absence
+        of data if the connection is still good.
+      - replicationCompressionAlgorithms: string that specifies the permitted
+        compression algorithms for connections to the replication source.
+      - replicationZstdCompressionLevel: integer that specifies the compression
+        level to use for connections to the replication source server that use
+        the zstd compression algorithm.
+      - replicationBind: string that determines which of the replica's network
+        interfaces is chosen for connecting to the source.
+      - replicationNetworkNamespace: string that specifies the network
+        namespace to use for TCP/IP connections to the replication source
+        server.
 
       The recoveryMethod option supports the following values:
 
@@ -303,6 +322,9 @@ DESCRIPTION
       it a read-only SECONDARY replica of the current PRIMARY. Only instances
       previously added to the replicaset can be rejoined, otherwise the
       <ReplicaSet>.addInstance() function must be used to add a new instance.
+      This can also be used to update the replication channel of instances
+      (even if they are already ONLINE) if it does not have the expected state,
+      source and settings.
 
       The PRIMARY of the replicaset must be reachable and available during this
       operation.
@@ -753,6 +775,33 @@ DESCRIPTION
 
       - tag:<option>: built-in and user-defined tags to be associated to the
         Cluster.
+      - replicationConnectRetry: integer that specifies the interval in seconds
+        between the reconnection attempts that the replica makes after the
+        connection to the source times out.
+      - replicationRetryCount: integer that sets the maximum number of
+        reconnection attempts that the replica makes after the connection to
+        the source times out.
+      - replicationHeartbeatPeriod: decimal that controls the heartbeat
+        interval, which stops the connection timeout occurring in the absence
+        of data if the connection is still good.
+      - replicationCompressionAlgorithms: string that specifies the permitted
+        compression algorithms for connections to the replication source.
+      - replicationZstdCompressionLevel: integer that specifies the compression
+        level to use for connections to the replication source server that use
+        the zstd compression algorithm.
+      - replicationBind: string that determines which of the replica's network
+        interfaces is chosen for connecting to the source.
+      - replicationNetworkNamespace: string that specifies the network
+        namespace to use for TCP/IP connections to the replication source
+        server.
+
+      NOTE: Changing any of the "replication*" options won't immediately update
+            the replication channel. Only on the next call to rejoinInstance()
+            will the updated options take effect.
+
+      NOTE: Any of the "replication*" options accepts 'null', which sets the
+            corresponding option to its default value on the next call to
+            rejoinInstance().
 
       Tags
 

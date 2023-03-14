@@ -951,24 +951,39 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
 
 void Base_cluster_impl::set_option(const std::string &option,
                                    const shcore::Value &value) {
-  Function_availability custom_func_avail = {
-      Precondition_checker::k_min_gr_version,
-      TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-      ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-      {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-      true,
-      Precondition_checker::kClusterGlobalStateAnyOk};
-
   std::string opt_namespace, opt;
   shcore::Value val;
   std::tie(opt_namespace, opt, val) =
       validate_set_option_namespace(option, value, k_supported_set_option_tags);
 
-  Function_availability *custom_precondition{nullptr};
   if (!opt_namespace.empty() && get_type() == Cluster_type::GROUP_REPLICATION) {
-    custom_precondition = &custom_func_avail;
+    Function_availability custom_func_avail = {
+        Precondition_checker::k_min_gr_version,
+        TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
+        ReplicationQuorum::State(ReplicationQuorum::States::Normal),
+        {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
+        true,
+        Precondition_checker::kClusterGlobalStateAnyOk};
+
+    check_preconditions("setOption", &custom_func_avail);
+  } else if (opt_namespace.empty() &&
+             shcore::str_beginswith(opt, "clusterSetReplication") &&
+             ((get_type() == Cluster_type::GROUP_REPLICATION) ||
+              (get_type() == Cluster_type::REPLICATED_CLUSTER))) {
+    Function_availability custom_func_avail = {
+        Precondition_checker::k_min_gr_version,
+        TargetType::InnoDBCluster | TargetType::InnoDBClusterSet |
+            TargetType::InnoDBClusterSetOffline,
+        ReplicationQuorum::State::any(),
+        {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
+        true,
+        Precondition_checker::kClusterGlobalStateAnyOkorNotOk};
+
+    check_preconditions("setOption", &custom_func_avail);
+  } else {
+    // use defaults
+    check_preconditions("setOption", nullptr);
   }
-  check_preconditions("setOption", custom_precondition);
 
   // make sure metadata session is using the primary
   acquire_primary();

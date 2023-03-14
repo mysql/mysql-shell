@@ -311,13 +311,6 @@ void Set_instance_option::prepare() {
 }
 
 shcore::Value Set_instance_option::execute() {
-  auto console = mysqlsh::current_console();
-
-  std::string target_instance_label =
-      m_cluster.get_metadata_storage()
-          ->get_instance_by_address(m_address_in_metadata)
-          .label;
-
   std::string value_to_print;
 
   if (m_value_int.has_value()) {
@@ -346,12 +339,18 @@ shcore::Value Set_instance_option::execute() {
     }
   }
 
+  auto console = mysqlsh::current_console();
   console->print_info("Setting the value of '" + m_option + "' to '" +
                       value_to_print + "' in the instance: '" +
                       m_target_instance_address + "' ...");
   console->print_info();
 
   if (m_option == "label") {
+    std::string target_instance_label =
+        m_cluster.get_metadata_storage()
+            ->get_instance_by_address(m_address_in_metadata)
+            .label;
+
     m_cluster.get_metadata_storage()->set_instance_label(
         m_cluster.get_id(), target_instance_label, *m_value_str);
   } else if (m_option == kReplicationSources) {
@@ -376,9 +375,10 @@ shcore::Value Set_instance_option::execute() {
     m_cfg->apply();
   }
 
-  console->print_info("Successfully set the value of '" + m_option + "' to '" +
-                      value_to_print + "' in the cluster member: '" +
-                      m_target_instance_address + "'.");
+  console->print_info(shcore::str_format(
+      "Successfully set the value of '%s' to '%s' in the cluster member: '%s'.",
+      m_option.c_str(), value_to_print.c_str(),
+      m_target_instance_address.c_str()));
 
   return shcore::Value();
 }

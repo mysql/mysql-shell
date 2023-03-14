@@ -324,6 +324,48 @@ REGISTER_HELP(CLUSTER_OPT_CLONE_DONOR,
               "performing clone-based recovery.");
 
 REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_CONNECT_RETRY,
+    "@li clusterSetReplicationConnectRetry: integer that specifies the "
+    "interval in seconds between the reconnection attempts that the replica "
+    "makes after the connection to the source times out.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_RETRY_COUNT,
+    "@li clusterSetReplicationRetryCount: integer that sets the maximum number "
+    "of reconnection attempts that the replica makes after the connection to "
+    "the source times out.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_HEARTBEAT_PERIOD,
+    "@li clusterSetReplicationHeartbeatPeriod: decimal that controls the "
+    "heartbeat interval, which stops the connection timeout occurring in the "
+    "absence of data if the connection is still good.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_COMPRESSION_ALGORITHMS,
+    "@li clusterSetReplicationCompressionAlgorithms: string that specifies the "
+    "permitted compression algorithms for connections to the replication "
+    "source.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_ZSTD_COMPRESSION_LEVEL,
+    "@li clusterSetReplicationZstdCompressionLevel: integer that specifies the "
+    "compression level to use for connections to the replication source server "
+    "that use the zstd compression algorithm.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_BIND,
+    "@li clusterSetReplicationBind: string that determines which of the "
+    "replica's network interfaces is chosen for connecting to the source.");
+
+REGISTER_HELP(
+    CLUSTER_OPT_REPLICATION_OPTION_NETWORK_NAMESPACE,
+    "@li clusterSetReplicationNetworkNamespace: string that specifies the "
+    "network namespace to use for TCP/IP connections to the replication source "
+    "server or, if the MySQL communication stack is in use, for Group "
+    "Replication’s group communication connections.");
+
+REGISTER_HELP(
     OPT_INTERACTIVE,
     "@li interactive: boolean value used to disable/enable the wizards in the "
     "command execution, i.e. prompts and confirmations will be provided or not "

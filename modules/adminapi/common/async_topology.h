@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/async_replication_options.h"
 
 #include <list>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -164,11 +165,14 @@ void async_add_replica(mysqlshdk::mysql::IInstance *primary,
  * @param channel_name The replication channel name
  * @param rpl_options Async_replication_options object with the replication
  *                    user credentials to use to rejoin the target instance.
+ * @param clear_channel If true, resets the channel before restarting
+ * replication
  */
 void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
                           mysqlshdk::mysql::IInstance *target,
                           const std::string &channel_name,
-                          const Async_replication_options &rpl_options);
+                          const Async_replication_options &rpl_options,
+                          bool clear_channel = false);
 
 /**
  * Removes a replica from the replicaset.
@@ -196,9 +200,7 @@ void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
  * Promotes a secondary to primary, when the primary is unavailable.
  */
 void async_force_primary(mysqlshdk::mysql::IInstance *promoted,
-                         const std::string &channel_name,
-                         const Async_replication_options &repl_options,
-                         bool dry_run);
+                         const std::string &channel_name, bool dry_run);
 
 /**
  * Revert the change performed by async_force_primary().
@@ -220,7 +222,27 @@ void async_change_primary(mysqlshdk::mysql::IInstance *target,
                           mysqlshdk::mysql::IInstance *primary,
                           const std::string &channel_name,
                           const Async_replication_options &repl_options,
-                          bool start_replica, bool dry_run);
+                          bool start_replica, bool dry_run,
+                          bool reset_async_channel = false);
+
+void async_change_channel_repl_options(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::string &channel_name,
+    const Async_replication_options &repl_options,
+    bool reset_async_channel = false);
+/**
+ * Compares and merges (if different) the replication options (e.g.: read from
+ * the metadata) and the current values currently configured in the replication
+ * channel.
+ *
+ * @param ar_options The intended replication options.
+ * @param channel_info The current info of the target replication channel
+ * @return Returns a list of options that should be set or std::nullopt if no
+ * changes are needed
+ */
+std::optional<Async_replication_options> async_merge_repl_options(
+    const Async_replication_options &ar_options,
+    const mysqlshdk::mysql::Replication_channel_master_info &channel_info);
 
 /**
  * Change the primary of one or more secondary instances.
@@ -228,12 +250,13 @@ void async_change_primary(mysqlshdk::mysql::IInstance *target,
  * Reuses the same credentials as currently in use, unless given in repl_options
  */
 void async_change_primary(
-    mysqlshdk::mysql::IInstance *primary,
-    const std::list<std::shared_ptr<Instance>> &secondaries,
-    const std::string &channel_name,
-    const Async_replication_options &repl_options,
+    mysqlshdk::mysql::IInstance *new_primary,
     mysqlshdk::mysql::IInstance *old_primary,
-    shcore::Scoped_callback_list *undo_list, bool dry_run);
+    const std::function<bool(mysqlshdk::mysql::IInstance **,
+                             Async_replication_options *)>
+        &cb_consume_secondaries,
+    const std::string &channel_name, shcore::Scoped_callback_list *undo_list,
+    bool dry_run);
 
 void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
                               std::chrono::seconds timeout);
@@ -267,8 +290,8 @@ void remove_channel(const mysqlshdk::mysql::IInstance &instance,
 void add_managed_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance,
     const mysqlshdk::mysql::IInstance &source, const std::string &channel_name,
-    const std::string &network_namespace, int64_t primary_weight = 80,
-    int64_t secondary_weight = 60, bool dry_run = false);
+    const std::string &network_namespace, int64_t primary_weight,
+    int64_t secondary_weight, bool dry_run = false);
 
 void delete_managed_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance,
@@ -280,14 +303,12 @@ void reset_managed_connection_failover(
 void add_source_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance,
     const mysqlshdk::mysql::IInstance &source, const std::string &channel_name,
-    const std::string &network_namespace, int64_t weight = 80,
-    bool dry_run = false);
+    const std::string &network_namespace, int64_t weight, bool dry_run = false);
 
 void add_source_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance, const std::string &host,
     int port, const std::string &channel_name,
-    const std::string &network_namespace, int64_t weight = 80,
-    bool dry_run = false);
+    const std::string &network_namespace, int64_t weight, bool dry_run = false);
 
 void delete_source_connection_failover(
     const mysqlshdk::mysql::IInstance &target_instance, const std::string &host,

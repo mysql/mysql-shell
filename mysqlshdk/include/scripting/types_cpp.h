@@ -396,7 +396,7 @@ class Option_pack_def : public IOption_pack_def {
    * @param sname: short name for the option (if applicable).
    * @param cmd_line: whether the option is valid for CLI integration
    *
-   * The callback must be a member function with the following sugnature:
+   * The callback must be a member function with the following signature:
    *
    * callback(const string &name, const T &value)
    *

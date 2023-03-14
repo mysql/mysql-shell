@@ -63,6 +63,23 @@ inline constexpr std::string_view k_cluster_attribute_member_auth_type{
 inline constexpr std::string_view k_cluster_attribute_cert_issuer{
     "opt_certIssuer"};
 
+// replication channel options
+inline constexpr std::string_view k_cluster_attribute_repl_connect_retry{
+    "opt_replConnectRetry"};
+inline constexpr std::string_view k_cluster_attribute_repl_retry_count{
+    "opt_replRetryCount"};
+inline constexpr std::string_view k_cluster_attribute_repl_heartbeat_period{
+    "opt_replHeartbeatPeriod"};
+inline constexpr std::string_view
+    k_cluster_attribute_repl_compression_algorithms{
+        "opt_replCompressionAlgorithms"};
+inline constexpr std::string_view
+    k_cluster_attribute_repl_zstd_compression_level{
+        "opt_replZstdCompressionLevel"};
+inline constexpr std::string_view k_cluster_attribute_repl_bind{"opt_replBind"};
+inline constexpr std::string_view k_cluster_attribute_repl_network_namespace{
+    "opt_replNetworkNamespace"};
+
 // Cluster capabilities
 inline constexpr const char k_cluster_capabilities[] = "capabilities";
 
@@ -93,7 +110,7 @@ class Base_cluster_impl {
     m_description = description;
   }
 
-  std::string get_name() const { return m_cluster_name; }
+  const std::string &get_name() const { return m_cluster_name; }
 
   void set_cluster_name(const std::string &name) { m_cluster_name = name; }
   const std::string &cluster_name() const { return m_cluster_name; }

@@ -343,7 +343,7 @@ Reboot_cluster_from_complete_outage::retrieve_instances(
       log_info("Opening a new session to the instance: %s", i.endpoint.c_str());
       instance =
           m_cluster->impl()->connect_target_instance(i.endpoint, false, false);
-    } catch (const shcore::Error &e) {
+    } catch (const shcore::Error &) {
       log_info("Unable to open a connection to the instance: %s",
                i.endpoint.c_str());
       if (instances_unreachable) instances_unreachable->emplace_back(i);

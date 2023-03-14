@@ -76,9 +76,28 @@ const shcore::Option_pack_def<Add_instance_options>
   static const auto opts =
       shcore::Option_pack_def<Add_instance_options>()
           .include<Rejoin_instance_options>()
-          .include(&Add_instance_options::ar_options)
           .optional(kLabel, &Add_instance_options::instance_label)
-          .optional(kCertSubject, &Add_instance_options::set_cert_subject);
+          .optional(kCertSubject, &Add_instance_options::set_cert_subject)
+          .optional(
+              shcore::str_format("replication%s", kReplicationConnectRetry),
+              &Add_instance_options::set_repl_connect_retry)
+          .optional(shcore::str_format("replication%s", kReplicationRetryCount),
+                    &Add_instance_options::set_repl_retry_count)
+          .optional(
+              shcore::str_format("replication%s", kReplicationHeartbeatPeriod),
+              &Add_instance_options::set_repl_heartbeat_period)
+          .optional(shcore::str_format("replication%s",
+                                       kReplicationCompressionAlgorithms),
+                    &Add_instance_options::set_repl_compression_algos)
+          .optional(shcore::str_format("replication%s",
+                                       kReplicationZstdCompressionLevel),
+                    &Add_instance_options::set_repl_zstd_compression_level)
+          .optional(shcore::str_format("replication%s", kReplicationBind),
+                    &Add_instance_options::set_repl_bind)
+          .optional(
+              shcore::str_format("replication%s", kReplicationNetworkNamespace),
+              &Add_instance_options::set_repl_network_namespace);
+
   return opts;
 }
 
@@ -89,6 +108,60 @@ void Add_instance_options::set_cert_subject(const std::string &value) {
         kCertSubject));
 
   cert_subject = value;
+}
+
+void Add_instance_options::set_repl_connect_retry(int value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'replication%s' option. Value "
+                           "cannot be negative.",
+                           kReplicationConnectRetry));
+
+  ar_options.connect_retry = value;
+}
+
+void Add_instance_options::set_repl_retry_count(int value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'replication%s' option. Value "
+                           "cannot be negative.",
+                           kReplicationRetryCount));
+
+  ar_options.retry_count = value;
+}
+
+void Add_instance_options::set_repl_heartbeat_period(double value) {
+  if (value < 0.0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'replication%s' option. Value "
+                           "cannot be negative.",
+                           kReplicationHeartbeatPeriod));
+
+  ar_options.heartbeat_period = value;
+}
+
+void Add_instance_options::set_repl_compression_algos(
+    const std::string &value) {
+  ar_options.compression_algos = value;
+}
+
+void Add_instance_options::set_repl_zstd_compression_level(int value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for 'replication%s' option. Value "
+                           "cannot be negative.",
+                           kReplicationZstdCompressionLevel));
+
+  ar_options.zstd_compression_level = value;
+}
+
+void Add_instance_options::set_repl_bind(const std::string &value) {
+  ar_options.bind = value;
+}
+
+void Add_instance_options::set_repl_network_namespace(
+    const std::string &value) {
+  ar_options.network_namespace = value;
 }
 
 const shcore::Option_pack_def<Gtid_wait_timeout_option>

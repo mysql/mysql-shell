@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -408,10 +408,10 @@ shcore::Dictionary_t cluster_status(
   const topology::Node *primary = topology.get_primary_master_node();
 
   return shcore::make_dict(
-      "type", shcore::Value("ASYNC"),               //
-      "topology", shcore::Value(topo_status),       //
-      "status", shcore::Value(to_string(astatus)),  //
-      "statusText", shcore::Value(astatus_text),    //
+      "type", shcore::Value("ASYNC"),                     //
+      "topology", shcore::Value(std::move(topo_status)),  //
+      "status", shcore::Value(to_string(astatus)),        //
+      "statusText", shcore::Value(astatus_text),          //
       "primary", primary ? shcore::Value(primary->label) : shcore::Value());
 }
 

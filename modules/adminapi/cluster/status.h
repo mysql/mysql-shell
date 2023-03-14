@@ -41,23 +41,25 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-typedef std::map<std::string, std::pair<mysqlshdk::db::Row_by_name,
-                                        mysqlshdk::db::Row_by_name>>
-    Member_stats_map;
+class Status final : public Command_interface {
+ private:
+  struct Read_replica_info {
+    Instance_metadata md;
+    std::string current_source_server_uuid;
+    Managed_async_channel managed_channel_info;
+    mysqlshdk::mysql::Replication_channel repl_channel_info;
+  };
 
-struct Instance_metadata_info {
-  Instance_metadata md;
-  std::string actual_server_uuid;
-};
+ public:
+  using Member_stats_map =
+      std::map<std::string, std::pair<mysqlshdk::db::Row_by_name,
+                                      mysqlshdk::db::Row_by_name>>;
 
-struct Read_replica_info {
-  Instance_metadata md;
-  std::string current_source_server_uuid;
-  Managed_async_channel managed_channel_info;
-  mysqlshdk::mysql::Replication_channel repl_channel_info;
-};
+  struct Instance_metadata_info {
+    Instance_metadata md;
+    std::string actual_server_uuid;
+  };
 
-class Status : public Command_interface {
  public:
   Status(const std::shared_ptr<Cluster_impl> &cluster,
          const std::optional<uint64_t> extended);
@@ -90,14 +92,14 @@ class Status : public Command_interface {
    *
    * NOTE: Not currently used (does nothing).
    */
-  void rollback() override;
+  void rollback() override {}
 
   /**
    * Finalize the command execution.
    * More specifically:
    * - Reset all auxiliary (temporary) data used for the operation execution.
    */
-  void finish() override;
+  void finish() override {}
 
  private:
   std::shared_ptr<Cluster_impl> m_cluster;
@@ -178,6 +180,8 @@ class Status : public Command_interface {
   shcore::Array_t validate_recovery_accounts_unused(
       const std::unordered_map<uint32_t, std::string>
           &mismatched_recovery_accounts) const;
+
+  bool validate_instances_repl_options();
 
   shcore::Array_t read_replica_diagnostics(Instance *instance,
                                            const Read_replica_info &rr_info,

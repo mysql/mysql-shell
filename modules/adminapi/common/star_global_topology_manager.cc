@@ -89,38 +89,46 @@ void validate_unsupported_options(
   const auto &master_info = channel.master_info;
 
   auto check_blank = [&](const char *opt, const std::string &s) {
-    if (!s.empty()) {
-      throw shcore::Exception(
-          shcore::str_format("Replication option '%s' at '%s' has a "
-                             "non-default value '%s' but it is "
-                             "currently not supported by the AdminAPI.",
-                             opt, target.c_str(), s.c_str()),
-          SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
-    }
+    if (s.empty()) return;
+    throw shcore::Exception(
+        shcore::str_format(
+            "Replication option '%s' at '%s' has a non-default value '%s' but "
+            "it is currently not supported by the AdminAPI.",
+            opt, target.c_str(), s.c_str()),
+        SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
   };
 
   auto check_equal = [&](const char *opt, uint64_t actual, uint64_t expected) {
-    if (actual != expected) {
-      throw shcore::Exception(
-          shcore::str_format("Replication option '%s' at '%s' has a "
-                             "non-default value '%s' but it is "
-                             "currently not supported by the AdminAPI.",
-                             opt, target.c_str(),
-                             std::to_string(actual).c_str()),
-          SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
-    }
+    if (actual == expected) return;
+    throw shcore::Exception(
+        shcore::str_format(
+            "Replication option '%s' at '%s' has a non-default value '%" PRIu64
+            "' but it is currently not supported by the AdminAPI.",
+            opt, target.c_str(), actual),
+        SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
+  };
+
+  auto check_double_equal = [&](const char *opt, double actual,
+                                double expected) {
+    // 2 decimal places precision
+    if (std::round(actual * 100) == std::round(expected * 100)) return;
+    throw shcore::Exception(
+        shcore::str_format(
+            "Replication option '%s' at '%s' has a non-default value '%.2f' "
+            "but it is currently not supported by the AdminAPI.",
+            opt, target.c_str(), actual),
+        SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
   };
 
   auto check_strequal = [&](const char *opt, const std::string &actual,
                             const std::string &expected) {
-    if (actual != expected) {
-      throw shcore::Exception(
-          shcore::str_format("Replication option '%s' at '%s' has a "
-                             "non-default value '%s' but it is "
-                             "currently not supported by the AdminAPI.",
-                             opt, target.c_str(), actual.c_str()),
-          SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
-    }
+    if (actual == expected) return;
+    throw shcore::Exception(
+        shcore::str_format(
+            "Replication option '%s' at '%s' has a non-default value '%s' but "
+            "it is currently not supported by the AdminAPI.",
+            opt, target.c_str(), actual.c_str()),
+        SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
   };
 
   if (master_info.enabled_auto_position == 0) {
@@ -131,7 +139,7 @@ void validate_unsupported_options(
   }
 
   constexpr auto k_default_connect_retry = 60;
-  constexpr auto k_default_heartbeat_period = 30;
+  constexpr auto k_default_heartbeat_period = 30.0;
   constexpr auto k_default_compression_algorithm = "uncompressed";
 
   const auto k_default_retry_count =
@@ -144,25 +152,25 @@ void validate_unsupported_options(
               master_info.connect_retry, k_default_connect_retry);
   check_equal(std::string(source_term + "_SSL_VERIFY_SERVER_CERT").c_str(),
               master_info.ssl_verify_server_cert, 0);
-  check_equal(std::string(source_term + "_HEARTBEAT_PERIOD").c_str(),
-              master_info.heartbeat, k_default_heartbeat_period);
+  check_double_equal(std::string(source_term + "_HEARTBEAT_PERIOD").c_str(),
+                     master_info.heartbeat_period, k_default_heartbeat_period);
   check_blank(std::string(source_term + "_BIND").c_str(), master_info.bind);
   check_strequal("IGNORE_SERVER_IDS", master_info.ignored_server_ids, "0");
   check_equal(std::string(source_term + "_RETRY_COUNT").c_str(),
               master_info.retry_count, k_default_retry_count);
   check_blank(std::string(source_term + "_PUBLIC_KEY_PATH").c_str(),
-              master_info.public_key_path.get_safe());
-  check_blank("NETWORK_NAMESPACE", master_info.network_namespace.get_safe());
+              master_info.public_key_path.value_or(""));
+  check_blank("NETWORK_NAMESPACE", master_info.network_namespace.value_or(""));
   check_strequal(std::string(source_term + "_COMPRESSION_ALGORITHMS").c_str(),
-                 master_info.master_compression_algorithm.get_safe(
+                 master_info.compression_algorithm.value_or(
                      k_default_compression_algorithm),
                  k_default_compression_algorithm);
   check_equal(std::string(source_term + "_DELAY").c_str(),
               channel.relay_log_info.sql_delay, 0);
   check_blank("PRIVILEGE_CHECKS_USER",
-              channel.relay_log_info.privilege_checks_username.get_safe());
+              channel.relay_log_info.privilege_checks_username.value_or(""));
   check_blank("PRIVILEGE_CHECKS_USER",
-              channel.relay_log_info.privilege_checks_hostname.get_safe());
+              channel.relay_log_info.privilege_checks_hostname.value_or(""));
 
   // channel.relay_log_info.require_row_format is allowed. It's new in 8.0.19
   // and if it's set to 1, it requires the binlog_format to be ROW, which is
@@ -359,10 +367,8 @@ void Star_global_topology_manager::validate_add_replica(
   }
 }
 
-void Star_global_topology_manager::validate_rejoin_replica(
+topology::Node_status Star_global_topology_manager::validate_rejoin_replica(
     mysqlshdk::mysql::IInstance *instance) {
-  auto console = mysqlsh::current_console();
-
   // Validate that the topology is active (available healthy PRIMARY).
   validate_global_topology_active_cluster_available(*m_topology);
 
@@ -377,21 +383,25 @@ void Star_global_topology_manager::validate_rejoin_replica(
         SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
 
   topology::Node_status status = topology_node->status();
-  if (status == topology::Node_status::ONLINE ||
-      status == topology::Node_status::UNREACHABLE) {
-    console->print_error("Unable to rejoin an " + to_string(status) +
-                         " instance. This operation can only be used to rejoin "
-                         "instances with an " +
-                         to_string(topology::Node_status::INVALIDATED) + ", " +
-                         to_string(topology::Node_status::OFFLINE) + ", " +
-                         to_string(topology::Node_status::INCONSISTENT) +
-                         " or " + to_string(topology::Node_status::ERROR) +
-                         " status.");
-    throw shcore::Exception("Invalid status to execute operation, " +
-                                topology_node->label + " is " +
-                                to_string(status),
-                            SHERR_DBA_ASYNC_MEMBER_INVALID_STATUS);
+  if (status == topology::Node_status::UNREACHABLE) {
+    mysqlsh::current_console()->print_error(shcore::str_format(
+        "Unable to rejoin an %s instance. This operation can only be used to "
+        "rejoin instances with an %s, %s, %s, %s or %s status.",
+        to_string(status).c_str(),
+        to_string(topology::Node_status::ONLINE).c_str(),
+        to_string(topology::Node_status::INVALIDATED).c_str(),
+        to_string(topology::Node_status::OFFLINE).c_str(),
+        to_string(topology::Node_status::INCONSISTENT).c_str(),
+        to_string(topology::Node_status::ERROR).c_str()));
+
+    throw shcore::Exception(
+        shcore::str_format("Invalid status to execute operation, %s is %s",
+                           topology_node->label.c_str(),
+                           to_string(status).c_str()),
+        SHERR_DBA_ASYNC_MEMBER_INVALID_STATUS);
   }
+
+  return status;
 }
 
 void Star_global_topology_manager::validate_remove_replica(

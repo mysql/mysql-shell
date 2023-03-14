@@ -201,6 +201,11 @@ class Global_topology {
   virtual void refresh(MetadataStorage *metadata, bool deep) = 0;
 
  public:
+  template <class T>
+  T &as() const {
+    return *dynamic_cast<T *>(this);
+  }
+
   Global_topology_type type() const { return m_topology_type; }
 
   virtual const std::list<Node *> &nodes() const = 0;
@@ -288,10 +293,9 @@ class Server_global_topology : public Global_topology {
   std::list<Server> m_servers;
 };
 
-Global_topology *scan_global_topology(MetadataStorage *metadata,
-                                      const Cluster_metadata &cmd,
-                                      const std::string &channel_name,
-                                      bool deep);
+std::unique_ptr<Global_topology> scan_global_topology(
+    MetadataStorage *metadata, const Cluster_metadata &cmd,
+    const std::string &channel_name, bool deep);
 
 }  // namespace topology
 

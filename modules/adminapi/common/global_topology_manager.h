@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@ class Global_topology_manager {
       const topology::Node *master_node, mysqlshdk::mysql::IInstance *instance,
       const Async_replication_options &repl_options) = 0;
 
-  virtual void validate_rejoin_replica(
+  virtual topology::Node_status validate_rejoin_replica(
       mysqlshdk::mysql::IInstance *instance) = 0;
 
   virtual void validate_remove_replica(mysqlshdk::mysql::IInstance *master,

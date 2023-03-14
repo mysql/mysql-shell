@@ -155,12 +155,13 @@ struct Clone_status {
 
   int current_stage() const {
     for (size_t i = 0; i < stages.size(); i++) {
-      if (stages[i].state == k_CLONE_STATE_STARTED) return i;
+      if (stages[i].state == k_CLONE_STATE_STARTED) return static_cast<int>(i);
     }
 
-    if (stages.size() > 0 && stages[0].state == k_CLONE_STATE_NONE) return -1;
+    if (!stages.empty() && (stages.front().state == k_CLONE_STATE_NONE))
+      return -1;
 
-    return stages.size() - 1;
+    return static_cast<int>(stages.size()) - 1;
   }
 };
 

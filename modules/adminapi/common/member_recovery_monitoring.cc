@@ -707,7 +707,7 @@ void monitor_gr_recovery_status(
               continue;
             }
 
-            // retries exausted or unkown error, so just rethrow and let the
+            // retries exhausted or unknown error, so just rethrow and let the
             // error propagate
             throw;
           }

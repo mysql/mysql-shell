@@ -64,6 +64,9 @@ constexpr static std::size_t array_size(const T (&)[N]) noexcept {
   return N;
 }
 
+bool compare_floating_point(double valueA, double valueB,
+                            double precision) noexcept;
+
 class Scoped_callback {
  public:
   explicit Scoped_callback(std::function<void()> c) noexcept
@@ -169,7 +172,7 @@ enum class OperatingSystem {
 };
 std::string SHCORE_PUBLIC to_string(OperatingSystem os_type);
 
-bool SHCORE_PUBLIC is_valid_identifier(const std::string &name);
+bool SHCORE_PUBLIC is_valid_identifier(std::string_view name);
 mysqlshdk::db::Connection_options SHCORE_PUBLIC
 get_connection_options(const std::string &uri, bool set_defaults = true);
 mysqlshdk::ssh::Ssh_connection_options SHCORE_PUBLIC
@@ -178,9 +181,7 @@ get_ssh_connection_options(const std::string &uri, bool set_defaults = true,
 
 std::string SHCORE_PUBLIC get_system_user();
 
-std::string SHCORE_PUBLIC strip_password(const std::string &connstring);
-
-std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
+std::string SHCORE_PUBLIC strip_password(std::string_view connstring);
 
 char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
 
@@ -195,9 +196,9 @@ bool SHCORE_PUBLIC match_glob(const std::string_view pattern,
                               const std::string_view s,
                               bool case_sensitive = false);
 
-std::string SHCORE_PUBLIC to_camel_case(const std::string &name);
-std::string SHCORE_PUBLIC from_camel_case(const std::string &name);
-std::string SHCORE_PUBLIC from_camel_case_to_dashes(const std::string &name);
+std::string SHCORE_PUBLIC to_camel_case(std::string_view name);
+std::string SHCORE_PUBLIC from_camel_case(std::string_view name);
+std::string SHCORE_PUBLIC from_camel_case_to_dashes(std::string_view name);
 
 std::string SHCORE_PUBLIC errno_to_string(int err);
 

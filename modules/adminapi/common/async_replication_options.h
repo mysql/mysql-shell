@@ -35,11 +35,9 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 struct Async_replication_options {
   enum Unpack_target {
@@ -48,31 +46,26 @@ struct Async_replication_options {
   };
 
   Async_replication_options() = default;
-
-  static const shcore::Option_pack_def<Async_replication_options> &options() {
-    static const auto opts =
-        shcore::Option_pack_def<Async_replication_options>();
-
-    // TODO(someone): Options to be added here eventually
-
-    return opts;
-  }
-
   explicit Async_replication_options(Unpack_target t) noexcept : target(t) {}
 
   Unpack_target target = NONE;
 
   std::optional<mysqlshdk::mysql::Auth_options> repl_credentials;
 
-  std::optional<int> master_connect_retry;
-  std::optional<int> master_retry_count;
-  std::optional<int> master_delay;
+  std::optional<int> connect_retry;
+  std::optional<int> retry_count;
+  std::optional<bool> auto_failover;
+  std::optional<int> delay;
+  std::optional<double> heartbeat_period;
+  std::optional<std::string> compression_algos;
+  std::optional<int> zstd_compression_level;
+  std::optional<std::string> bind;
+  std::optional<std::string> network_namespace;
+
   Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
   Replication_auth_type auth_type = Replication_auth_type::PASSWORD;
-  std::optional<bool> auto_failover;
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_COMMON_ASYNC_REPLICATION_OPTIONS_H_

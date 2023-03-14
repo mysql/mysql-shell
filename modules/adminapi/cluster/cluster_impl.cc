@@ -814,9 +814,9 @@ std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state(
 
   std::vector<mysqlshdk::gr::Member> members;
 
-  if (get_cluster_server()) {
+  if (auto server = get_cluster_server(); server) {
     try {
-      members = mysqlshdk::gr::get_members(*get_cluster_server());
+      members = mysqlshdk::gr::get_members(*server);
     } catch (const std::runtime_error &e) {
       if (!allow_offline ||
           !strstr(e.what(), "Group replication does not seem to be"))
@@ -1467,41 +1467,41 @@ void Cluster_impl::configure_cluster_set_member(
                                                              e.sqlstate());
   }
 
-  if (!is_primary_cluster()) {
-    auto console = mysqlsh::current_console();
+  if (is_primary_cluster()) return;
 
-    console->print_info(
-        "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
-    sync_transactions(*get_cluster_server(), k_clusterset_async_channel_name,
-                      0);
+  auto console = mysqlsh::current_console();
+  console->print_info(
+      "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
 
-    auto cs = get_cluster_set_object();
+  sync_transactions(*get_cluster_server(), k_clusterset_async_channel_name, 0);
 
-    auto ar_options = cs->get_clusterset_replication_options();
+  auto cs = get_cluster_set_object();
 
-    ar_options.repl_credentials = refresh_clusterset_replication_user();
+  auto ar_options = cs->get_clusterset_replication_options(get_id(), nullptr);
+  ar_options.repl_credentials = refresh_clusterset_replication_user();
 
-    // Update the credentials on all cluster members
-    execute_in_members({}, get_primary_master()->get_connection_options(), {},
-                       [&](const std::shared_ptr<Instance> &target,
-                           const mysqlshdk::gr::Member &) {
-                         async_update_replica_credentials(
-                             target.get(), k_clusterset_async_channel_name,
-                             ar_options, false);
-                         return true;
-                       });
+  auto repl_source = cs->get_primary_master();
 
-    // Setup the replication channel at the target instance but do not start
-    // it since that's handled by Group Replication
-    console->print_info(
-        "* Configuring ClusterSet managed replication channel...");
+  // Update the credentials on all cluster members
+  execute_in_members({}, get_primary_master()->get_connection_options(), {},
+                     [&](const std::shared_ptr<Instance> &target,
+                         const mysqlshdk::gr::Member &) {
+                       async_update_replica_credentials(
+                           target.get(), k_clusterset_async_channel_name,
+                           ar_options, false);
+                       return true;
+                     });
 
-    async_add_replica(get_primary_master().get(), target_instance.get(),
-                      k_clusterset_async_channel_name, ar_options, true, false,
-                      false);
+  // Setup the replication channel at the target instance but do not start
+  // it since that's handled by Group Replication
+  console->print_info(
+      "* Configuring ClusterSet managed replication channel...");
 
-    console->print_info();
-  }
+  async_add_replica(repl_source.get(), target_instance.get(),
+                    k_clusterset_async_channel_name, ar_options, true, false,
+                    false);
+
+  console->print_info();
 }
 
 void Cluster_impl::restore_recovery_account_all_members(
@@ -1930,13 +1930,9 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
 }
 
 shcore::Value Cluster_impl::cluster_status(int64_t extended) {
-  // Create the Cluster_status command and execute it.
   cluster::Status op_status(shared_from_this(), extended);
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope([&op_status]() { op_status.finish(); });
-  // Prepare the Cluster_status command execution (validations).
+  shcore::on_leave_scope finally([&op_status]() { op_status.finish(); });
   op_status.prepare();
-  // Execute Cluster_status operations.
   return op_status.execute();
 }
 
@@ -2734,7 +2730,7 @@ void Cluster_impl::force_quorum_using_partition_of(
     std::shared_ptr<Instance> rr_instance;
     try {
       rr_instance = get_session_to_cluster_instance(rr.endpoint);
-    } catch (const std::exception &err) {
+    } catch (const std::exception &) {
       log_info("Unable to connect to '%s'", rr.endpoint.c_str());
       continue;
     }
@@ -3149,8 +3145,8 @@ Cluster_impl::create_read_replica_replication_user(
   Async_replication_options ar_options;
 
   // Set CONNECTION_RETRY_INTERVAL and CONNECTION_RETRY_COUNT
-  ar_options.master_connect_retry = k_read_replica_master_connect_retry;
-  ar_options.master_retry_count = k_read_replica_master_retry_count;
+  ar_options.connect_retry = k_read_replica_master_connect_retry;
+  ar_options.retry_count = k_read_replica_master_retry_count;
 
   // Enable SOURCE_CONNECTION_AUTO_FAILOVER
   ar_options.auto_failover = true;
@@ -3219,7 +3215,7 @@ void Cluster_impl::drop_read_replica_replication_user(
                                          repl_user_host);
       }
       m_primary_master->drop_user(repl_user, repl_user_host.c_str(), true);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
       mysqlsh::current_console()->print_warning(shcore::str_format(
           "Error dropping read-replica replication account "
           "'%s'@'%s' for instance '%s'",
@@ -3448,7 +3444,7 @@ void Cluster_impl::validate_replication_sources(
 
     try {
       source_instance = get_session_to_cluster_instance(source_string);
-    } catch (const shcore::Exception &e) {
+    } catch (const shcore::Exception &) {
       // We can't connect to the instance so it's not a valid source
       mysqlsh::current_console()->print_error(
           "Unable to rejoin Read-Replica '" + target_instance_address +
@@ -3477,7 +3473,7 @@ void Cluster_impl::validate_replication_sources(
       if (out_sources_canonical_address) {
         out_sources_canonical_address->push_back(source_canononical_address);
       }
-    } catch (const shcore::Exception &e) {
+    } catch (const shcore::Exception &) {
       mysqlsh::current_console()->print_error(
           "Unable to rejoin Read-Replica '" + target_instance_address +
           "' to the Cluster: Unable to use '" + source_string +
@@ -3715,7 +3711,7 @@ bool Cluster_impl::drop_replication_user(
     try {
       std::tie(recovery_user, recovery_user_hosts, from_metadata) =
           get_replication_user(*target);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
       console->print_note(
           "The recovery user name for instance '" + target->descr() +
           "' does not match the expected format for users "
@@ -3949,8 +3945,6 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
       md_state == metadata::State::UPGRADING) {
     return m_cluster_server.get();
   }
-
-  auto console = current_console();
 
   // Ensure m_cluster_server points to the PRIMARY of the group
   try {
@@ -4604,24 +4598,35 @@ void Cluster_impl::_set_option(const std::string &option,
 
   // Validation types due to a limitation on the expose() framework.
   // Currently, it's not possible to do overloading of functions that overload
-  // an argument of type string/int since the type int is convertible to
-  // string, thus overloading becomes ambiguous. As soon as that limitation is
-  // gone, this type checking shall go away too.
-  if (value.type == shcore::String) {
-    std::string value_str = value.as_string();
-    op_cluster_set_option =
-        std::make_unique<cluster::Set_option>(this, option, value_str);
-  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
-    int64_t value_int = value.as_int();
-    op_cluster_set_option =
-        std::make_unique<cluster::Set_option>(this, option, value_int);
-  } else if (value.type == shcore::Bool) {
-    bool value_bool = value.as_bool();
-    op_cluster_set_option =
-        std::make_unique<cluster::Set_option>(this, option, value_bool);
-  } else {
-    throw shcore::Exception::type_error(
-        "Argument #2 is expected to be a string, an integer or a boolean.");
+  // an argument of type string/int/bool/... since the type int is convertible
+  // to string, thus overloading becomes ambiguous. As soon as that limitation
+  // is gone, this type checking shall go away too.
+  switch (value.type) {
+    case shcore::String:
+      op_cluster_set_option = std::make_unique<cluster::Set_option>(
+          this, option, value.as_string());
+      break;
+    case shcore::Integer:
+    case shcore::UInteger:
+      op_cluster_set_option =
+          std::make_unique<cluster::Set_option>(this, option, value.as_int());
+      break;
+    case shcore::Bool:
+      op_cluster_set_option =
+          std::make_unique<cluster::Set_option>(this, option, value.as_bool());
+      break;
+    case shcore::Float:
+      op_cluster_set_option = std::make_unique<cluster::Set_option>(
+          this, option, value.as_double());
+      break;
+    case shcore::Null:
+      op_cluster_set_option =
+          std::make_unique<cluster::Set_option>(this, option, std::monostate{});
+      break;
+    default:
+      throw shcore::Exception::type_error(
+          "Argument #2 is expected to be a string, an integer, a double or a "
+          "boolean.");
   }
 
   // Always execute finish when leaving "try catch".

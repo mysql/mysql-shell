@@ -6,40 +6,58 @@ testutil.deploySandbox(__mysql_sandbox_port3, 'root', {report_host: hostname});
 // connect to first instance
 shell.connect(__sandbox_uri1);
 
-//@ create cluster on first instance
-var cluster = dba.createCluster('c', {gtidSetIsComplete: true});
+//@<> create cluster on first instance
+var cluster;
+EXPECT_NO_THROWS(function(){ cluster = dba.createCluster('c', {gtidSetIsComplete: true}); });
 
-//@ add second instance with label
-cluster.addInstance(__sandbox_uri2, {label: '1node1'});
+//@<> add second instance with label
+EXPECT_NO_THROWS(function(){ cluster.addInstance(__sandbox_uri2, {label: '1node1'}); });
+
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> check status (1)
 var status = cluster.status();
+status
 EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
 EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["status"], "ONLINE");
 EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["address"], `${hostname}:${__mysql_sandbox_port2}`);
 
-//@ third instance is valid for cluster usage
+//@<> third instance is valid for cluster usage
 dba.checkInstanceConfiguration(__sandbox_uri3);
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+{
+    "status": "ok"
+}
+`);
 
-//@ add third instance with duplicated label
-cluster.addInstance(__sandbox_uri3, {label: '1node1'});
+//@<> add third instance with duplicated label
+EXPECT_THROWS(function(){
+    cluster.addInstance(__sandbox_uri3, {label: '1node1'});
+}, "An instance with label '1node1' is already part of this InnoDB cluster");
 
 //@<> check status (2)
 var status = cluster.status();
+status
 EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
 EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["status"], "ONLINE");
 EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["address"], `${hostname}:${__mysql_sandbox_port2}`);
 
-//@ third instance is still valid for cluster usage
+//@<> third instance is still valid for cluster usage
 dba.checkInstanceConfiguration(__sandbox_uri3);
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+{
+    "status": "ok"
+}
+`);
 
-//@ add third instance with unique label
-cluster.addInstance(__sandbox_uri3, {label: '1node2'});
+//@<> add third instance with unique label
+EXPECT_NO_THROWS(function(){ cluster.addInstance(__sandbox_uri3, {label: '1node2'}); });
+
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> check status (3)
 var status = cluster.status();
+status
 EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
 EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["status"], "ONLINE");
 EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["address"], `${hostname}:${__mysql_sandbox_port2}`);

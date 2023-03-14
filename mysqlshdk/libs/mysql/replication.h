@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_MYSQL_REPLICATION_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -32,7 +33,6 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -132,7 +132,7 @@ struct Replication_channel_master_info {
   std::string ssl_cipher;
   std::string ssl_key;
   int ssl_verify_server_cert;
-  float heartbeat;
+  double heartbeat_period;
   std::string bind;
   std::string ignored_server_ids;
   std::string uuid;
@@ -142,13 +142,14 @@ struct Replication_channel_master_info {
   int enabled_auto_position;
   std::string channel_name;
   std::string tls_version;
+
   // 8.0+
-  utils::nullable<std::string> public_key_path;
-  utils::nullable<int> get_public_key;
-  utils::nullable<std::string> network_namespace;
-  utils::nullable<std::string> master_compression_algorithm;
-  utils::nullable<uint64_t> master_zstd_compression_level;
-  utils::nullable<std::string> tls_ciphersuites;
+  std::optional<std::string> public_key_path;
+  std::optional<int> get_public_key;
+  std::optional<std::string> network_namespace;
+  std::optional<std::string> compression_algorithm;
+  std::optional<uint64_t> zstd_compression_level;
+  std::optional<std::string> tls_ciphersuites;
 };
 
 struct Replication_channel_relay_log_info {
@@ -160,9 +161,17 @@ struct Replication_channel_relay_log_info {
   uint64_t number_of_workers;
   uint64_t id;
   std::string channel_name;
-  utils::nullable<std::string> privilege_checks_username;
-  utils::nullable<std::string> privilege_checks_hostname;
-  utils::nullable<int> require_row_format;
+  std::optional<std::string> privilege_checks_username;
+  std::optional<std::string> privilege_checks_hostname;
+  std::optional<int> require_row_format;
+};
+
+struct Replication_channel_failover_source {
+  std::string host;
+  int port = 0;
+  uint32_t weight = 1;
+  std::string network_namespace;
+  std::string managed_name;
 };
 
 struct Slave_host {

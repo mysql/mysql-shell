@@ -304,9 +304,15 @@ void test_async_channel_connection(
   creds.ssl_options =
       prepare_replica_ssl_options(from_instance, ssl_mode, member_auth_type);
 
+  mysqlshdk::mysql::Replication_options repl_options;
+  repl_options.connect_retry = 0;
+  repl_options.retry_count = 0;
+  repl_options.delay = 0;
+  repl_options.auto_position = false;
+
   mysqlshdk::mysql::change_master(
       from_instance, std::string{to_address.data(), to_address.size()},
-      to_address_port, "mysqlsh.test", creds, 0, 0, {}, 0, false);
+      to_address_port, "mysqlsh.test", creds, repl_options);
 
   shcore::Scoped_callback cleanup_channel([&from_instance]() {
     try {

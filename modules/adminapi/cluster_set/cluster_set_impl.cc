@@ -60,9 +60,33 @@ namespace {
 constexpr int k_cluster_set_master_connect_retry = 3;
 constexpr int k_cluster_set_master_retry_count = 10;
 
+constexpr int64_t k_primary_weight_default = 80;
+constexpr int64_t k_secondary_weight_default = 60;
+
 // Constants with the names used to lock the cluster set
 constexpr char k_lock_ns[] = "AdminAPI_clusterset";
 constexpr char k_lock_name[] = "AdminAPI_lock";
+
+void cleanup_replication_options(MetadataStorage *metadata,
+                                 const Cluster_id &cluster_id) {
+  auto remove_attrib = [&metadata, &cluster_id](std::string_view attrib_name) {
+    shcore::Value value;
+    if (!metadata->query_cluster_attribute(cluster_id, attrib_name, &value))
+      return;
+
+    if (value.type == shcore::Null)
+      metadata->remove_cluster_attribute(cluster_id, attrib_name);
+  };
+
+  remove_attrib(k_cluster_attribute_repl_connect_retry);
+  remove_attrib(k_cluster_attribute_repl_retry_count);
+  remove_attrib(k_cluster_attribute_repl_heartbeat_period);
+  remove_attrib(k_cluster_attribute_repl_compression_algorithms);
+  remove_attrib(k_cluster_attribute_repl_zstd_compression_level);
+  remove_attrib(k_cluster_attribute_repl_bind);
+  remove_attrib(k_cluster_attribute_repl_network_namespace);
+}
+
 }  // namespace
 
 Cluster_set_impl::Cluster_set_impl(
@@ -267,8 +291,14 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster,
 mysqlshdk::mysql::Auth_options
 Cluster_set_impl::refresh_cluster_replication_user(Cluster_impl *cluster,
                                                    bool dry_run) {
-  auto primary = get_primary_master();
+  return refresh_cluster_replication_user(*get_primary_master(), cluster,
+                                          dry_run);
+}
 
+mysqlshdk::mysql::Auth_options
+Cluster_set_impl::refresh_cluster_replication_user(
+    const mysqlsh::dba::Instance &primary, Cluster_impl *cluster,
+    bool dry_run) {
   std::string repl_user;
   std::string repl_user_host;
   std::string repl_password;
@@ -277,10 +307,10 @@ Cluster_set_impl::refresh_cluster_replication_user(Cluster_impl *cluster,
 
   try {
     log_info("Resetting password for %s@%s at %s", repl_user.c_str(),
-             repl_user_host.c_str(), primary->descr().c_str());
+             repl_user_host.c_str(), primary.descr().c_str());
     // re-create replication with a new generated password
     if (!dry_run) {
-      mysqlshdk::mysql::set_random_password(*primary, repl_user,
+      mysqlshdk::mysql::set_random_password(primary, repl_user,
                                             {repl_user_host}, &repl_password);
     }
   } catch (const std::exception &e) {
@@ -568,15 +598,14 @@ Cluster_channel_status Cluster_set_impl::get_replication_channel_status(
   switch (channel.status()) {
     case mysqlshdk::mysql::Replication_channel::CONNECTING:
       return Cluster_channel_status::CONNECTING;
-
     case mysqlshdk::mysql::Replication_channel::ON: {
-      auto primary = get_primary_master();
       auto primary_cluster = get_primary_cluster();
+      if (!primary_cluster || primary_cluster->cluster_availability() !=
+                                  Cluster_availability::ONLINE)
+        return Cluster_channel_status::OK;
 
-      if (primary && primary_cluster &&
-          (primary_cluster->cluster_availability() ==
-           Cluster_availability::ONLINE) &&
-          (channel.source_uuid != primary->get_uuid()))
+      if (auto primary = get_primary_master();
+          primary && (channel.source_uuid != primary->get_uuid()))
         return Cluster_channel_status::MISCONFIGURED;
 
       return Cluster_channel_status::OK;
@@ -608,7 +637,9 @@ void handle_user_warnings(const Cluster_global_status &global_status,
         replica_cluster_name + "'");
     console->print_note(
         "To restore the Cluster and ClusterSet operations, the Replication "
-        "Channel must be fixed using <<<rejoinCluster>>>()");
+        "Channel must be fixed using <<<rejoinCluster>>>(). If there are "
+        "invalid options, those must be corrected using <<<setOption>>>() "
+        "before.");
   }
 }
 
@@ -785,19 +816,35 @@ mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock_exclusive(
   return get_lock(mysqlshdk::mysql::Lock_mode::EXCLUSIVE, timeout);
 }
 
-Async_replication_options Cluster_set_impl::get_clusterset_replication_options()
-    const {
+Async_replication_options
+Cluster_set_impl::get_clusterset_default_replication_options() const {
   Async_replication_options repl_options;
 
-  // Get the ClusterSet configured SSL mode
   repl_options.ssl_mode = query_clusterset_ssl_mode();
-
-  // get the recovery auth mode
   repl_options.auth_type = query_clusterset_auth_type();
 
-  // Set CONNECTION_RETRY_INTERVAL and CONNECTION_RETRY_COUNT
-  repl_options.master_connect_retry = k_cluster_set_master_connect_retry;
-  repl_options.master_retry_count = k_cluster_set_master_retry_count;
+  if (!repl_options.connect_retry.has_value())
+    repl_options.connect_retry = k_cluster_set_master_connect_retry;
+  if (!repl_options.retry_count.has_value())
+    repl_options.retry_count = k_cluster_set_master_retry_count;
+
+  return repl_options;
+}
+
+Async_replication_options Cluster_set_impl::get_clusterset_replication_options(
+    const Cluster_id &cluster_id, bool *out_needs_reset_repl_channel) const {
+  Async_replication_options repl_options;
+
+  repl_options.ssl_mode = query_clusterset_ssl_mode();
+  repl_options.auth_type = query_clusterset_auth_type();
+
+  read_cluster_replication_options(cluster_id, &repl_options,
+                                   out_needs_reset_repl_channel);
+
+  if (!repl_options.connect_retry.has_value())
+    repl_options.connect_retry = k_cluster_set_master_connect_retry;
+  if (!repl_options.retry_count.has_value())
+    repl_options.retry_count = k_cluster_set_master_retry_count;
 
   return repl_options;
 }
@@ -1323,7 +1370,8 @@ void Cluster_set_impl::remove_cluster(
 
     // Store the replication options before stopping and deleting the
     // channel to use in the revert process in case of a failure
-    auto ar_options = get_clusterset_replication_options();
+    auto ar_options =
+        get_clusterset_replication_options(target_cluster->get_id(), nullptr);
 
     if (target_cluster->get_cluster_server() &&
         target_cluster->cluster_availability() ==
@@ -1343,6 +1391,8 @@ void Cluster_set_impl::remove_cluster(
 
         replication_user_undo->call();
 
+        auto repl_source = get_primary_master();
+
         assert(auth_data_backup.primary_cert_subject.has_value());
         auto repl_credentials = create_cluster_replication_user(
             target_cluster->get_cluster_server().get(), "",
@@ -1350,8 +1400,8 @@ void Cluster_set_impl::remove_cluster(
             auth_data_backup.cluster_auth_cert_issuer,
             auth_data_backup.primary_cert_subject.value_or(""),
             options.dry_run);
-        auto ar_channel_options = ar_options;
 
+        auto ar_channel_options = ar_options;
         ar_channel_options.repl_credentials = repl_credentials.first;
 
         // create async channel on all secondaries, update member actions
@@ -1363,18 +1413,18 @@ void Cluster_set_impl::remove_cluster(
                 const mysqlshdk::gr::Member &) {
               if (target_cluster->get_cluster_server()->get_uuid() !=
                   instance->get_uuid()) {
-                async_create_channel(instance.get(), get_primary_master().get(),
+                async_create_channel(instance.get(), repl_source.get(),
                                      k_clusterset_async_channel_name,
                                      ar_options, options.dry_run);
                 update_replica_settings(
                     target_cluster->get_cluster_server().get(),
-                    get_primary_master().get(), false, options.dry_run);
+                    repl_source.get(), false, options.dry_run);
               }
               return true;
             });
 
         update_replica(target_cluster->get_cluster_server().get(),
-                       get_primary_master().get(), ar_channel_options, true,
+                       repl_source.get(), ar_channel_options, true, false,
                        options.dry_run);
       });
     } else {
@@ -1414,7 +1464,7 @@ void Cluster_set_impl::remove_cluster(
         undo_tracker.add("", [=]() {
           log_info("Revert: Re-adding Cluster as Replica");
           update_replica(reachable_member.get(), get_primary_master().get(),
-                         ar_options, false, options.dry_run);
+                         ar_options, false, false, options.dry_run);
 
           log_info("Revert: Enabling skip_replica_start");
           reachable_member->set_sysvar(
@@ -1653,9 +1703,9 @@ void Cluster_set_impl::update_replica_settings(Instance *instance,
 
       if (is_primary) {
         // Setup the new managed connection failover
-        add_managed_connection_failover(*instance, *new_primary,
-                                        k_clusterset_async_channel_name, "", 80,
-                                        60, dry_run);
+        add_managed_connection_failover(
+            *instance, *new_primary, k_clusterset_async_channel_name, "",
+            k_primary_weight_default, k_secondary_weight_default, dry_run);
       }
     } catch (...) {
       log_error("Error setting up connection failover at %s: %s",
@@ -1822,17 +1872,18 @@ void Cluster_set_impl::demote_from_primary(
       new_primary->get_connection_options(), {},
       [=](const std::shared_ptr<Instance> &instance,
           const mysqlshdk::gr::Member &) {
-        if (cluster_primary->get_uuid() != instance->get_uuid()) {
-          async_create_channel(instance.get(), new_primary,
-                               k_clusterset_async_channel_name, repl_options,
-                               dry_run);
-          update_replica_settings(cluster_primary.get(), new_primary, false,
-                                  dry_run);
-        }
+        if (cluster_primary->get_uuid() == instance->get_uuid()) return true;
+
+        async_create_channel(instance.get(), new_primary,
+                             k_clusterset_async_channel_name, repl_options,
+                             dry_run);
+        update_replica_settings(cluster_primary.get(), new_primary, false,
+                                dry_run);
+
         return true;
       });
 
-  update_replica(cluster_primary.get(), new_primary, repl_options, true,
+  update_replica(cluster_primary.get(), new_primary, repl_options, true, false,
                  dry_run);
 
   set_maximum_transaction_size_limit(cluster, false, dry_run);
@@ -1840,9 +1891,8 @@ void Cluster_set_impl::demote_from_primary(
 
 void Cluster_set_impl::update_replica(
     Cluster_impl *replica, Instance *master,
-    const Async_replication_options &ar_options, bool dry_run) {
-  auto primary_uuid = replica->get_cluster_server()->get_uuid();
-
+    const Async_replication_options &ar_options, bool reset_channel,
+    bool dry_run) {
   // Update SECONDARY instances before the PRIMARY, because we need to ensure
   // the async channel exists everywhere before we can start the channel at the
   // PRIMARY with auto-failover enabled
@@ -1853,18 +1903,19 @@ void Cluster_set_impl::update_replica(
       [=](const std::shared_ptr<Instance> &instance,
           const mysqlshdk::gr::Member &gr_member) {
         if (gr_member.role != mysqlshdk::gr::Member_role::PRIMARY)
-          update_replica(instance.get(), master, ar_options, false, dry_run);
+          update_replica(instance.get(), master, ar_options, false,
+                         reset_channel, dry_run);
         return true;
       });
 
   update_replica(replica->get_cluster_server().get(), master, ar_options, true,
-                 dry_run);
+                 reset_channel, dry_run);
 }
 
 void Cluster_set_impl::update_replica(
     Instance *replica, Instance *master,
     const Async_replication_options &ar_options, bool primary_instance,
-    bool dry_run) {
+    bool reset_channel, bool dry_run) {
   log_info("Updating replication source at %s", replica->descr().c_str());
 
   auto repl_options = ar_options;
@@ -1878,8 +1929,8 @@ void Cluster_set_impl::update_replica(
     // This will re-point the slave to the new master without changing any
     // other replication parameter if ar_options has no credentials.
     async_change_primary(replica, master, k_clusterset_async_channel_name,
-                         repl_options, primary_instance ? true : false,
-                         dry_run);
+                         repl_options, primary_instance ? true : false, dry_run,
+                         reset_channel);
 
     log_info("Replication source changed for %sinstance %s",
              (primary_instance ? "primary " : ""), replica->descr().c_str());
@@ -2175,28 +2226,27 @@ void Cluster_set_impl::_set_option(const std::string &option,
   mysqlshdk::mysql::Lock_scoped_list api_locks;
   api_locks.push_back(get_lock_exclusive());
 
-  if (option == kReplicationAllowedHost) {
-    if (value.type != shcore::String || value.as_string().empty())
-      throw shcore::Exception::argument_error(
-          shcore::str_format("Invalid value for '%s': Argument #2 is expected "
-                             "to be a string.",
-                             option.c_str()));
-
-    // we also need an exclusive lock on the primary cluster
-    api_locks.push_back(m_primary_cluster->get_lock_exclusive());
-
-    update_replication_allowed_host(value.as_string());
-
-    get_metadata_storage()->update_cluster_set_attribute(
-        get_id(), k_cluster_attribute_replication_allowed_host, value);
-
-    current_console()->print_info(shcore::str_format(
-        "Internally managed replication users updated for ClusterSet '%s'",
-        get_name().c_str()));
-  } else {
+  if (option != kReplicationAllowedHost)
     throw shcore::Exception::argument_error("Option '" + option +
                                             "' not supported.");
-  }
+
+  if (value.type != shcore::String || value.as_string().empty())
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for '%s': Argument #2 is expected "
+                           "to be a string.",
+                           option.c_str()));
+
+  // we also need an exclusive lock on the primary cluster
+  api_locks.push_back(m_primary_cluster->get_lock_exclusive());
+
+  update_replication_allowed_host(value.as_string());
+
+  get_metadata_storage()->update_cluster_set_attribute(
+      get_id(), k_cluster_attribute_replication_allowed_host, value);
+
+  current_console()->print_info(shcore::str_format(
+      "Internally managed replication users updated for ClusterSet '%s'",
+      get_name().c_str()));
 }
 
 void Cluster_set_impl::set_primary_cluster(
@@ -2263,8 +2313,8 @@ void Cluster_set_impl::set_primary_cluster(
   // get triggered before server-side timeouts
   std::list<std::shared_ptr<Cluster_impl>> lock_clusters(
       connect_all_clusters(options.timeout + 5, false, &unreachable));
-  auto release_lock_primaries =
-      shcore::on_leave_scope([this, &lock_clusters, options] {
+  shcore::on_leave_scope release_lock_primaries(
+      [this, &lock_clusters, options] {
         for (auto &c : lock_clusters) {
           if (!options.dry_run && options.timeout > 0) {
             c->get_cluster_server()->set_sysvar_default(
@@ -2275,6 +2325,7 @@ void Cluster_set_impl::set_primary_cluster(
         get_primary_master()->set_sysvar_default(
             "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
       });
+
   std::list<std::shared_ptr<Instance>> lock_instances;
   for (auto &c : lock_clusters) {
     if (!options.dry_run && options.timeout > 0) {
@@ -2285,9 +2336,11 @@ void Cluster_set_impl::set_primary_cluster(
 
     lock_instances.emplace_back(c->get_primary_master());
   }
+
   get_primary_master()->set_sysvar("lock_wait_timeout",
                                    static_cast<int64_t>(options.timeout),
                                    mysqlshdk::mysql::Var_qualifier::SESSION);
+
   get_metadata_storage()->get_md_server()->set_sysvar(
       "lock_wait_timeout", static_cast<int64_t>(options.timeout),
       mysqlshdk::mysql::Var_qualifier::SESSION);
@@ -2326,11 +2379,12 @@ void Cluster_set_impl::set_primary_cluster(
       options.dry_run, nullptr);
 
   // Get the current settings for the ClusterSet replication channel
-  Async_replication_options ar_options = get_clusterset_replication_options();
+  auto ar_options_demoted =
+      get_clusterset_replication_options(primary_cluster->get_id(), nullptr);
 
   console->print_info("* Refreshing replication account of demoted cluster");
   // Re-generate a new password for the master being demoted.
-  ar_options.repl_credentials =
+  ar_options_demoted.repl_credentials =
       refresh_cluster_replication_user(primary_cluster.get(), options.dry_run);
 
   console->print_info("* Synchronizing transaction backlog at " +
@@ -2382,16 +2436,15 @@ void Cluster_set_impl::set_primary_cluster(
     // - create channel in all members of demoted
     // - enable failover at primary of demoted
     // - start replica at demoted
+    {
+      auto repl_source = promoted_cluster->get_cluster_server();
 
-    undo_tracker.add("", [this, primary_cluster, options]() {
-      promote_to_primary(primary_cluster.get(), false, options.dry_run);
-    });
-    demote_from_primary(primary_cluster.get(), promoted.get(), ar_options,
-                        options.dry_run);
-
-    // update settings other than credentials in members of remaining replica
-    // clusters
-    ar_options.repl_credentials = {};
+      undo_tracker.add("", [this, primary_cluster, options]() {
+        promote_to_primary(primary_cluster.get(), false, options.dry_run);
+      });
+      demote_from_primary(primary_cluster.get(), repl_source.get(),
+                          ar_options_demoted, options.dry_run);
+    }
 
     {
       // Synchronize all slaves and lock all instances.
@@ -2417,9 +2470,14 @@ void Cluster_set_impl::set_primary_cluster(
     }
 
     undo_tracker.add(
-        "", [this, promoted_cluster, primary, ar_options, options]() {
-          demote_from_primary(promoted_cluster.get(), primary.get(), ar_options,
-                              options.dry_run);
+        "", [this, promoted_cluster, primary, primary_cluster, options]() {
+          auto ar_options = get_clusterset_replication_options(
+              promoted_cluster->get_id(), nullptr);
+
+          auto repl_source = primary_cluster->get_cluster_server();
+
+          demote_from_primary(promoted_cluster.get(), repl_source.get(),
+                              ar_options, options.dry_run);
         });
     promote_to_primary(promoted_cluster.get(), true, options.dry_run);
 
@@ -2431,31 +2489,67 @@ void Cluster_set_impl::set_primary_cluster(
       return;
     });
 
+    // NOTE: up to this point, we already switched to the new primary, but the
+    // objects (Cluster_set_impl / Base_cluster_impl) haven't been updated yet
+    // (they will be the next time a command calls check_preconditions(...)).
+    // But we can't update them here because there's still a possibility of
+    // having to revert want the command did, which means that calling
+    // primary_instance_did_change(), for example, isn't an option. In other
+    // words, from this point forward, we need to be careful when calling APIs
+    // on these objects.
+
     for (const auto &replica : clusters) {
-      if (promoted_cluster->get_name() != replica->get_name() &&
-          primary_cluster->get_name() != replica->get_name()) {
-        undo_tracker.add(
-            "", [this, &replica, primary, ar_options, options, console]() {
-              try {
-                update_replica(replica.get(), primary.get(), ar_options,
-                               options.dry_run);
-              } catch (...) {
-                console->print_error("Could not revert changes to " +
-                                     replica->get_name() + ": " +
-                                     format_active_exception());
-              }
-            });
+      if (promoted_cluster->get_name() == replica->get_name() ||
+          primary_cluster->get_name() == replica->get_name())
+        continue;
 
-        update_replica(replica.get(), promoted.get(), ar_options,
-                       options.dry_run);
+      bool reset_repl_channel;
+      auto ar_options = get_clusterset_replication_options(replica->get_id(),
+                                                           &reset_repl_channel);
 
-        log_info("PRIMARY changed for cluster %s", replica->get_name().c_str());
+      auto repl_source = promoted_cluster->get_cluster_server();
+
+      if (reset_repl_channel) {
+        ar_options.repl_credentials = refresh_cluster_replication_user(
+            *promoted_cluster->get_cluster_server(), replica.get(),
+            options.dry_run);
       }
+
+      undo_tracker.add("", [this, &replica, primary, ar_options,
+                            reset_repl_channel, options, console]() {
+        try {
+          update_replica(replica.get(), primary.get(), ar_options,
+                         reset_repl_channel, options.dry_run);
+        } catch (...) {
+          console->print_error("Could not revert changes to " +
+                               replica->get_name() + ": " +
+                               format_active_exception());
+        }
+      });
+
+      update_replica(replica.get(), repl_source.get(), ar_options,
+                     reset_repl_channel, options.dry_run);
+
+      log_info("PRIMARY changed for cluster %s", replica->get_name().c_str());
     }
 
     // reset replication channel from the promoted primary after revert isn't
     // needed anymore
     delete_async_channel(promoted_cluster.get(), options.dry_run);
+
+    // we reset the clusters repl channel, so we can clean the options (remove
+    // nulls) from the metadata
+    if (!options.dry_run) {
+      auto metadata = std::make_shared<MetadataStorage>(
+          promoted_cluster->get_cluster_server());
+
+      MetadataStorage::Transaction trx(metadata);
+      for (const auto &replica : clusters)
+        cleanup_replication_options(metadata.get(), replica->get_id());
+
+      trx.commit();
+    }
+
   } catch (...) {
     current_console()->print_info(
         "* Could not complete operation, attempting to revert changes...");
@@ -2785,7 +2879,7 @@ void Cluster_set_impl::force_primary_cluster(
   // get triggered before server-side timeouts
   std::list<std::shared_ptr<Cluster_impl>> lock_clusters(
       connect_all_clusters(lock_timeout + 5, false, &unreachable));
-  auto release_lock_primaries = shcore::on_leave_scope([&lock_clusters] {
+  shcore::on_leave_scope release_lock_primaries([&lock_clusters] {
     for (auto &c : lock_clusters) c->release_primary();
   });
   std::list<std::shared_ptr<Instance>> lock_instances;
@@ -2799,27 +2893,22 @@ void Cluster_set_impl::force_primary_cluster(
         "** Waiting for instances to apply pending received transactions...");
 
     if (!options.dry_run) {
-      auto check_pending_transactions = [](const mysqlshdk::mysql::IInstance
-                                               &instance,
-                                           std::chrono::seconds timeout) {
+      for (const auto &c : lock_clusters) {
         mysqlshdk::mysql::Replication_channel channel;
-        if (!get_channel_status(instance, mysqlshdk::gr::k_gr_applier_channel,
-                                &channel))
-          return;
+        if (!get_channel_status(*c->get_cluster_server(),
+                                mysqlshdk::gr::k_gr_applier_channel, &channel))
+          continue;
 
         if (auto status = channel.status();
             (status == mysqlshdk::mysql::Replication_channel::OFF) ||
             (status == mysqlshdk::mysql::Replication_channel::APPLIER_OFF) ||
             (status == mysqlshdk::mysql::Replication_channel::APPLIER_ERROR))
-          return;
+          continue;
 
-        wait_for_apply_retrieved_trx(
-            instance, mysqlshdk::gr::k_gr_applier_channel, timeout, true);
-      };
-
-      for (const auto &c : lock_clusters)
-        check_pending_transactions(*c->get_cluster_server(),
-                                   options.get_timeout());
+        wait_for_apply_retrieved_trx(*c->get_cluster_server(),
+                                     mysqlshdk::gr::k_gr_applier_channel,
+                                     options.get_timeout(), true);
+      }
     }
   }
 
@@ -2832,17 +2921,14 @@ void Cluster_set_impl::force_primary_cluster(
                          static_cast<int64_t>(lock_timeout),
                          mysqlshdk::mysql::Var_qualifier::SESSION);
   }
-  auto restore_lock_wait_timeout = shcore::on_leave_scope([promoted,
-                                                           lock_timeout]() {
-    if (lock_timeout > 0) {
-      try {
-        if (promoted)
-          promoted->set_sysvar_default(
-              "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
-      } catch (...) {
-        log_info("Could not restore lock_wait_timeout: %s",
-                 format_active_exception().c_str());
-      }
+  shcore::on_leave_scope restore_lock_wait_timeout([promoted, lock_timeout]() {
+    if (!promoted || (lock_timeout <= 0)) return;
+    try {
+      promoted->set_sysvar_default("lock_wait_timeout",
+                                   mysqlshdk::mysql::Var_qualifier::SESSION);
+    } catch (...) {
+      log_info("Could not restore lock_wait_timeout: %s",
+               format_active_exception().c_str());
     }
   });
 
@@ -2851,8 +2937,6 @@ void Cluster_set_impl::force_primary_cluster(
 
   console->print_info("* Promoting cluster '" + promoted_cluster->get_name() +
                       "'");
-
-  Async_replication_options ar_options;
 
   promote_to_primary(promoted_cluster.get(), false, options.dry_run);
 
@@ -2881,12 +2965,28 @@ void Cluster_set_impl::force_primary_cluster(
   console->print_info();
 
   for (const auto &replica : clusters) {
-    if (replica->get_id() != promoted_cluster->get_id()) {
-      update_replica(replica.get(), promoted.get(), ar_options,
-                     options.dry_run);
+    if (replica->get_id() == promoted_cluster->get_id()) continue;
 
-      log_info("PRIMARY changed for cluster %s", replica->get_name().c_str());
+    bool reset_repl_channel;
+    auto ar_options = get_clusterset_replication_options(replica->get_id(),
+                                                         &reset_repl_channel);
+
+    auto repl_source = promoted_cluster->get_cluster_server();
+
+    if (reset_repl_channel)
+      ar_options.repl_credentials =
+          refresh_cluster_replication_user(replica.get(), options.dry_run);
+
+    update_replica(replica.get(), repl_source.get(), ar_options,
+                   reset_repl_channel, options.dry_run);
+
+    if (!options.dry_run) {
+      MetadataStorage::Transaction trx(m_metadata_storage);
+      cleanup_replication_options(m_metadata_storage.get(), replica->get_id());
+      trx.commit();
     }
+
+    log_info("PRIMARY changed for cluster %s", replica->get_name().c_str());
   }
 
   console->print_info("PRIMARY cluster failed-over to '" +
@@ -3091,20 +3191,23 @@ void Cluster_set_impl::rejoin_cluster(
       rejoining_cluster->get_id() == primary_cluster->get_id(),
       options.dry_run);
 
+  bool reset_repl_channel{false};
   mysqlsh::dba::Async_replication_options ar_options =
-      get_clusterset_replication_options();
+      get_clusterset_replication_options(rejoining_cluster->get_id(),
+                                         &reset_repl_channel);
+
+  auto repl_source = primary_cluster->get_cluster_server();
 
   if (refresh_only) {
-    // update replica clusters if the primary is the one being "rejoined"
-    if (rejoining_cluster->get_id() == primary_cluster->get_id()) {
-    } else {
+    // update replica cluster if the primary isn't the one being "rejoined"
+    if (rejoining_cluster->get_id() != primary_cluster->get_id()) {
       console->print_info("* Refreshing replication settings");
 
       ar_options.repl_credentials = refresh_cluster_replication_user(
           rejoining_cluster.get(), options.dry_run);
 
-      update_replica(rejoining_cluster.get(), primary.get(), ar_options,
-                     options.dry_run);
+      update_replica(rejoining_cluster.get(), repl_source.get(), ar_options,
+                     reset_repl_channel, options.dry_run);
     }
   } else {
     console->print_info("* Updating metadata");
@@ -3123,8 +3226,19 @@ void Cluster_set_impl::rejoin_cluster(
     ar_options.repl_credentials = refresh_cluster_replication_user(
         rejoining_cluster.get(), options.dry_run);
 
-    update_replica(rejoining_cluster.get(), primary.get(), ar_options,
-                   options.dry_run);
+    update_replica(rejoining_cluster.get(), repl_source.get(), ar_options,
+                   reset_repl_channel, options.dry_run);
+  }
+
+  if (reset_repl_channel && !options.dry_run) {
+    // cleanup NULL replication options (to avoid resetting the channel on
+    // subsequent calls)
+    auto metadata = get_metadata_storage();
+    MetadataStorage::Transaction trx(metadata);
+
+    cleanup_replication_options(metadata.get(), rejoining_cluster->get_id());
+
+    trx.commit();
   }
 
   console->print_info();
@@ -3187,6 +3301,66 @@ std::string Cluster_set_impl::query_clusterset_auth_cert_issuer() const {
   return {};
 }
 
+void Cluster_set_impl::read_cluster_replication_options(
+    const Cluster_id &cluster_id, Async_replication_options *ar_options,
+    bool *has_null_options) const {
+  assert(ar_options);
+
+  bool null_options{false};
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_connect_retry, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::Integer)
+      ar_options->connect_retry = static_cast<int>(value.as_int());
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_retry_count, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::Integer)
+      ar_options->retry_count = static_cast<int>(value.as_int());
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_heartbeat_period, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if ((value.type == shcore::Integer) || (value.type == shcore::Float))
+      ar_options->heartbeat_period = value.as_double();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_compression_algorithms,
+          &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::String)
+      ar_options->compression_algos = value.as_string();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_zstd_compression_level,
+          &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::Integer)
+      ar_options->zstd_compression_level = static_cast<int>(value.as_int());
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_bind, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::String) ar_options->bind = value.as_string();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          cluster_id, k_cluster_attribute_repl_network_namespace, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::String)
+      ar_options->network_namespace = value.as_string();
+  }
+
+  if (has_null_options) *has_null_options = null_options;
+}
+
 mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock(
     mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout) {
   if (!m_primary_master->is_lock_service_installed()) {
@@ -3225,7 +3399,7 @@ mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock(
               mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
               m_primary_master->descr().c_str());
     mysqlshdk::mysql::get_lock(*m_primary_master, k_lock_ns, k_lock_name, mode,
-                               timeout.count());
+                               static_cast<unsigned int>(timeout.count()));
   } catch (const shcore::Error &err) {
     // Abort the operation in case the required lock cannot be acquired.
     log_info("Failed to get %s lock ('%s', '%s') on '%s': %s",

@@ -163,11 +163,11 @@ NOTE: Former PRIMARY <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is now invali
 Failover finished successfully.
 
 //@# rejoinInstance
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>'.|
 
 //@# rejoinInstance (clone) {VER(>=8.0.17)}
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>'.|
 
 
 //@<OUT> listRouters

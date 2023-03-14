@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,62 +72,62 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 
 namespace shcore {
 
-bool is_valid_identifier(const std::string &name) {
-  bool ret_val = false;
-
-  if (!name.empty()) {
-    std::locale locale;
-
-    ret_val = std::isalpha(name[0], locale) || name[0] == '_';
-
-    size_t index = 1;
-    while (ret_val && index < name.size()) {
-      ret_val = std::isalnum(name[index], locale) || name[index] == '_';
-      index++;
-    }
-  }
-
-  return ret_val;
+bool compare_floating_point(double valueA, double valueB,
+                            double precision) noexcept {
+  return (std::abs(valueA - valueB) < precision);
 }
 
-std::string strip_password(const std::string &connstring) {
-  std::string remaining = connstring;
-  std::string password;
-  std::string scheme;
+bool is_valid_identifier(std::string_view name) {
+  if (name.empty()) return false;
 
-  std::string::size_type p;
-  p = remaining.find("://");
-  if (p != std::string::npos) {
+  std::locale locale;
+
+  if (!std::isalpha(name.front(), locale) && (name.front() != '_'))
+    return false;
+
+  return std::all_of(
+      std::next(name.begin()), name.end(), [&locale](auto cur_char) {
+        return std::isalnum(cur_char, locale) || (cur_char == '_');
+      });
+}
+
+std::string strip_password(std::string_view connstring) {
+  auto remaining = connstring;
+  std::string_view scheme;
+
+  auto p = remaining.find("://");
+  if (p != std::string_view::npos) {
     scheme = remaining.substr(0, p + 3);
     remaining = remaining.substr(p + 3);
   }
 
-  std::string s = remaining;
+  auto s = remaining;
   p = remaining.find('/');
   if (p != std::string::npos) {
     s = remaining.substr(0, p);
   }
   p = s.rfind('@');
-  std::string user_part;
 
-  if (p != std::string::npos) {
+  std::string_view user_part;
+  if (p != std::string_view::npos) {
     user_part = s.substr(0, p);
   }
 
-  if ((p = user_part.find(':')) != std::string::npos) {
-    password = user_part.substr(p + 1);
-    std::string uri_stripped = remaining;
-    std::string::size_type i = uri_stripped.find(":" + password);
-    if (i != std::string::npos) uri_stripped.erase(i, password.length() + 1);
+  if ((p = user_part.find(':')) != std::string_view::npos) {
+    auto password = std::string{user_part.substr(p)};
 
-    return scheme + uri_stripped;
+    auto uri_stripped = std::string{remaining};
+    auto i = uri_stripped.find(password);
+    if (i != std::string::npos) uri_stripped.erase(i, password.length());
+
+    return std::string{scheme} + uri_stripped;
   }
 
   // no password to strip, return original one
-  return connstring;
+  return std::string{connstring};
 }
 
-/*std::string strip_ssl_args(const std::string &connstring) {
+/*std::string strip_ssl_args(std::string_view connstring) {
   std::string result = connstring;
   std::string::size_type pos;
   if ((pos = result.find("ssl_ca=")) != std::string::npos) {
@@ -374,8 +374,12 @@ std::string get_member_name(std::string_view name, shcore::NamingStyle style) {
   As a special case, if string is longer than 2 characters and
   all characters are uppercase, conversion will be skipped.
   */
-std::string to_camel_case(const std::string &name) {
+std::string to_camel_case(std::string_view name) {
+  if (name.empty()) return {};
+
   std::string new_name;
+  new_name.reserve(name.size());
+
   bool upper_next = false;
   size_t upper_count = 0;
   for (auto ch : name) {
@@ -390,7 +394,8 @@ std::string to_camel_case(const std::string &name) {
       new_name.push_back(ch);
     }
   }
-  if (upper_count == name.length()) return name;
+
+  if (upper_count == name.length()) return std::string{name};
   return new_name;
 }
 
@@ -399,8 +404,12 @@ std::string to_camel_case(const std::string &name) {
   As a special case, if string is longer than 2 characters and
   all characters are uppercase, conversion will be skipped.
   */
-std::string from_camel_case(const std::string &name) {
+std::string from_camel_case(std::string_view name) {
+  if (name.empty()) return {};
+
   std::string new_name;
+  new_name.reserve(name.size());
+
   size_t upper_count = 0;
   // Uppercase letters will be converted to underscore+lowercase letter
   // except in two situations:
@@ -422,11 +431,12 @@ std::string from_camel_case(const std::string &name) {
       new_name.append(1, character);
     }
   }
-  if (upper_count == name.length()) return name;
+
+  if (upper_count == name.length()) return std::string{name};
   return new_name;
 }
 
-std::string from_camel_case_to_dashes(const std::string &name) {
+std::string from_camel_case_to_dashes(std::string_view name) {
   return str_replace(from_camel_case(name), "_", "-");
 }
 
@@ -1080,10 +1090,7 @@ OperatingSystem get_os_type() {
 }
 
 std::string get_machine_type() {
-  {
-    constexpr std::string_view machine_type{MACHINE_TYPE};
-    static_assert(!machine_type.empty());
-  }
+  static_assert(std::char_traits<char>::length(MACHINE_TYPE) > 0);
   return MACHINE_TYPE;
 }
 

@@ -22,11 +22,15 @@
  */
 
 #include "modules/adminapi/cluster/options.h"
+
+#include <string_view>
+
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -37,7 +41,7 @@ namespace {
  * Map of the instance configuration options of the AdminAPI
  * <sysvar, name>
  */
-const std::map<std::string, std::string> k_instance_options{
+const std::map<std::string_view, std::string_view> k_instance_options{
     {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
     {kIpWhitelist, kGrIpWhitelist},         {kIpAllowlist, kGrIpAllowlist},
     {kLocalAddress, kGrLocalAddress},       {kMemberWeight, kGrMemberWeight},
@@ -71,14 +75,15 @@ void Options::connect_to_members() {
     mysqlshdk::db::Connection_options opts(inst.endpoint);
     if (opts.uri_endpoint() == group_session_copts.uri_endpoint()) {
       m_member_sessions[inst.endpoint] = group_server;
-    } else {
-      opts.set_login_options_from(group_session_copts);
+      continue;
+    }
 
-      try {
-        m_member_sessions[inst.endpoint] = Instance::connect(opts);
-      } catch (const shcore::Error &e) {
-        m_member_connect_errors[inst.endpoint] = e.format();
-      }
+    opts.set_login_options_from(group_session_copts);
+
+    try {
+      m_member_sessions[inst.endpoint] = Instance::connect(opts);
+    } catch (const shcore::Error &e) {
+      m_member_connect_errors[inst.endpoint] = e.format();
     }
   }
 }
@@ -178,6 +183,38 @@ shcore::Array_t Options::collect_global_options() {
             : "OFF";
     (*option)["value"] = shcore::Value(paxos_single_leader);
     array->push_back(shcore::Value(option));
+  }
+
+  // replication options
+  if (m_cluster.is_cluster_set_member()) {
+    std::array<std::tuple<std::string_view, std::string_view>, 7> options{
+        std::make_tuple(k_cluster_attribute_repl_connect_retry,
+                        kReplicationConnectRetry),
+        std::make_tuple(k_cluster_attribute_repl_retry_count,
+                        kReplicationRetryCount),
+        std::make_tuple(k_cluster_attribute_repl_heartbeat_period,
+                        kReplicationHeartbeatPeriod),
+        std::make_tuple(k_cluster_attribute_repl_compression_algorithms,
+                        kReplicationCompressionAlgorithms),
+        std::make_tuple(k_cluster_attribute_repl_zstd_compression_level,
+                        kReplicationZstdCompressionLevel),
+        std::make_tuple(k_cluster_attribute_repl_bind, kReplicationBind),
+        std::make_tuple(k_cluster_attribute_repl_network_namespace,
+                        kReplicationNetworkNamespace)};
+
+    for (const auto &[option_attrib, option_name] : options) {
+      shcore::Value option_value;
+      if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
+              m_cluster.get_id(), option_attrib, &option_value))
+        option_value = shcore::Value::Null();
+
+      shcore::Dictionary_t option = shcore::make_dict();
+      (*option)["option"] = shcore::Value(shcore::str_format(
+          "clusterSetReplication%.*s", static_cast<int>(option_name.size()),
+          option_name.data()));
+      (*option)["value"] = shcore::Value(std::move(option_value));
+      array->push_back(shcore::Value(std::move(option)));
+    }
   }
 
   return array;
@@ -280,6 +317,45 @@ shcore::Array_t Options::get_instance_options(
     array->push_back(shcore::Value(std::move(option)));
   }
 
+  // replication options
+  if (m_cluster.is_cluster_set_member() && !m_cluster.is_primary_cluster()) {
+    mysqlshdk::mysql::Replication_channel_master_info channel_info;
+    mysqlshdk::mysql::Replication_channel_relay_log_info relay_log_info;
+    mysqlshdk::mysql::get_channel_info(instance,
+                                       k_clusterset_async_channel_name,
+                                       &channel_info, &relay_log_info);
+
+    auto add_option = [&array](std::string_view option_name,
+                               shcore::Value option_value) {
+      shcore::Dictionary_t option = shcore::make_dict();
+      (*option)["option"] = shcore::Value(shcore::str_format(
+          "clusterSetReplication%.*s", static_cast<int>(option_name.size()),
+          option_name.data()));
+      (*option)["value"] = std::move(option_value);
+
+      array->push_back(shcore::Value(std::move(option)));
+    };
+
+    add_option(kReplicationConnectRetry,
+               shcore::Value(channel_info.connect_retry));
+    add_option(kReplicationRetryCount, shcore::Value(channel_info.retry_count));
+    add_option(kReplicationHeartbeatPeriod,
+               shcore::Value(channel_info.heartbeat_period));
+    add_option(kReplicationCompressionAlgorithms,
+               channel_info.compression_algorithm.has_value()
+                   ? shcore::Value(*channel_info.compression_algorithm)
+                   : shcore::Value::Null());
+    add_option(kReplicationZstdCompressionLevel,
+               channel_info.zstd_compression_level.has_value()
+                   ? shcore::Value(*channel_info.zstd_compression_level)
+                   : shcore::Value::Null());
+    add_option(kReplicationBind, shcore::Value(channel_info.bind));
+    add_option(kReplicationNetworkNamespace,
+               channel_info.network_namespace.has_value()
+                   ? shcore::Value(*channel_info.network_namespace)
+                   : shcore::Value::Null());
+  }
+
   return array;
 }
 
@@ -307,7 +383,7 @@ shcore::Dictionary_t Options::collect_default_replicaset_options() {
   connect_to_members();
 
   for (const auto &inst : m_instances) {
-    auto instance(m_member_sessions[inst.endpoint]);
+    const auto &instance = m_member_sessions[inst.endpoint];
 
     if (!instance) {
       auto option = shcore::make_dict();

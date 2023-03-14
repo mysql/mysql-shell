@@ -40,7 +40,7 @@ Incremental state recovery was selected because it seems to be safely usable.
 
 
 * Updating the Metadata...
-The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
+The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>'.
 
 //@ Status (after rejoin).
 |    "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|

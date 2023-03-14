@@ -856,22 +856,19 @@ void Server_global_topology::show_raw() const {
 
 // -----------------------------------------------------------------------------
 
-Global_topology *scan_global_topology(MetadataStorage *metadata,
-                                      const Cluster_metadata &cmd,
-                                      const std::string &channel_name,
-                                      bool deep) {
-  if (cmd.type == Cluster_type::GROUP_REPLICATION) {
+std::unique_ptr<Global_topology> scan_global_topology(
+    MetadataStorage *metadata, const Cluster_metadata &cmd,
+    const std::string &channel_name, bool deep) {
+  if (cmd.type == Cluster_type::GROUP_REPLICATION)
     throw std::logic_error("internal error");
-  } else {
-    std::unique_ptr<Server_global_topology> topo(
-        new Server_global_topology(channel_name));
 
-    topo->load_cluster(metadata, cmd);
-    topo->check_servers(deep);
-    if (deep) topo->check_gtid_consistency();
+  auto topo = std::make_unique<Server_global_topology>(channel_name);
 
-    return topo.release();
-  }
+  topo->load_cluster(metadata, cmd);
+  topo->check_servers(deep);
+  if (deep) topo->check_gtid_consistency();
+
+  return topo;
 }
 
 }  // namespace topology

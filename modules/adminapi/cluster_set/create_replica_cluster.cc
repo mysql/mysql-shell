@@ -394,7 +394,10 @@ shcore::Value Create_replica_cluster::execute() {
     {
       auto primary_cluster = m_cluster_set->get_primary_cluster();
 
-      ar_options = m_cluster_set->get_clusterset_replication_options();
+      ar_options = m_cluster_set->get_clusterset_default_replication_options();
+
+      // "merge" user supplied options into the current ones
+      m_options.merge_ar_options(&ar_options);
 
       // Enable auto-failover
       ar_options.auto_failover = true;
@@ -418,10 +421,17 @@ shcore::Value Create_replica_cluster::execute() {
           m_cluster_set->get_primary_master()->drop_user(
               ar_options.repl_credentials->user, "%", true);
 
-          if (sync_transactions_revert) {
+          if (!sync_transactions_revert) return;
+
+          // cannot let an exception proceed, otherwise it will cancel the
+          // undo_list rollback
+          try {
             m_cluster_set->sync_transactions(*m_target_instance.get(),
                                              {k_clusterset_async_channel_name},
                                              m_options.timeout);
+          } catch (const shcore::Exception &e) {
+            log_info("Error syncing transactions on '%s': %s",
+                     m_target_instance->descr().c_str(), e.what());
           }
         });
       }
@@ -473,6 +483,33 @@ shcore::Value Create_replica_cluster::execute() {
       trx.commit();
     });
 
+    // store per-cluster replication channel options (cluster can be null
+    // because of dry run)
+    if (cluster) {
+      auto md = cluster->get_metadata_storage();
+
+      auto update_attrib = [&md, &cluster](const auto &option,
+                                           std::string_view name) {
+        if (!option.has_value()) return;
+        md->update_cluster_attribute(cluster->get_id(), name,
+                                     shcore::Value(option.value()));
+      };
+
+      update_attrib(m_options.ar_options.connect_retry,
+                    k_cluster_attribute_repl_connect_retry);
+      update_attrib(m_options.ar_options.retry_count,
+                    k_cluster_attribute_repl_retry_count);
+      update_attrib(m_options.ar_options.heartbeat_period,
+                    k_cluster_attribute_repl_heartbeat_period);
+      update_attrib(m_options.ar_options.compression_algos,
+                    k_cluster_attribute_repl_compression_algorithms);
+      update_attrib(m_options.ar_options.zstd_compression_level,
+                    k_cluster_attribute_repl_zstd_compression_level);
+      update_attrib(m_options.ar_options.bind, k_cluster_attribute_repl_bind);
+      update_attrib(m_options.ar_options.network_namespace,
+                    k_cluster_attribute_repl_network_namespace);
+    }
+
     // NOTE: This should be the very last thing to be reverted to ensure changes
     // are replicated
     undo_list.push_back([=]() {
@@ -502,11 +539,32 @@ shcore::Value Create_replica_cluster::execute() {
     DBUG_EXECUTE_IF("dba_create_replica_cluster_source_delay", {
       // Simulate high load on the Primary Cluster (lag) by
       // introducing delay in the replication channel
-      ar_options.master_delay = 5;
+      ar_options.delay = 5;
     });
 
-    m_cluster_set->update_replica(m_target_instance.get(), m_primary_instance,
-                                  ar_options, true, m_options.dry_run);
+    // We can't leave the ClusterSet repl channel in an invalid state (e.g.: due
+    // to incorrect repl options supplied by the user)
+    undo_list.push_back([&]() {
+      log_info("Revert: resetting async repl channel '%s' on '%s'",
+               k_clusterset_async_channel_name,
+               m_target_instance->descr().c_str());
+
+      stop_channel(*m_target_instance.get(), k_clusterset_async_channel_name,
+                   true, m_options.dry_run);
+
+      reset_channel(*m_target_instance.get(), k_clusterset_async_channel_name,
+                    true, m_options.dry_run);
+
+      log_info("Revert: reconciling internally generated GTIDs");
+
+      if (!m_options.dry_run)
+        m_cluster_set->reconcile_view_change_gtids(m_target_instance.get());
+    });
+
+    auto repl_source = m_cluster_set->get_primary_master();
+
+    m_cluster_set->update_replica(m_target_instance.get(), repl_source.get(),
+                                  ar_options, true, false, m_options.dry_run);
 
     // Channel is up, enable transaction sync on revert
     sync_transactions_revert = true;

@@ -70,12 +70,29 @@
 namespace mysqlsh {
 namespace dba {
 
+namespace {
+
 constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
 
 constexpr const char k_replica_set_attribute_ssl_mode[] =
     "opt_replicationSslMode";
 
-namespace {
+// async replication channel options
+inline constexpr std::string_view k_instance_attribute_replConnectRetry{
+    "opt_replConnectRetry"};
+inline constexpr std::string_view k_instance_attribute_replRetryCount{
+    "opt_replRetryCount"};
+inline constexpr std::string_view k_instance_attribute_replHeartbeatPeriod{
+    "opt_replHeartbeatPeriod"};
+inline constexpr std::string_view
+    k_instance_attribute_replCompressionAlgorithms{
+        "opt_replCompressionAlgorithms"};
+inline constexpr std::string_view k_instance_attribute_replZstdCompressionLevel{
+    "opt_replZstdCompressionLevel"};
+inline constexpr std::string_view k_instance_attribute_replBind{"opt_replBind"};
+inline constexpr std::string_view k_instance_attribute_replNetworkNamespace{
+    "opt_replNetworkNamespace"};
+
 std::unique_ptr<topology::Server_global_topology> discover_unmanaged_topology(
     Instance *instance) {
   auto topology = std::make_unique<topology::Server_global_topology>(
@@ -105,18 +122,19 @@ void validate_instance(Instance *target_server) {
   ensure_ar_instance_configuration_valid(target_server);
 
   // Check if GR is running
-  mysqlshdk::gr::Member_state state;
-  if (mysqlshdk::gr::get_group_information(*target_server, &state, nullptr,
-                                           nullptr, nullptr) &&
-      state != mysqlshdk::gr::Member_state::OFFLINE) {
-    current_console()->print_error(
-        target_server->descr() +
-        " has Group Replication active, which cannot be mixed "
-        "with ReplicaSets.");
+  if (mysqlshdk::gr::Member_state state;
+      !mysqlshdk::gr::get_group_information(*target_server, &state, nullptr,
+                                            nullptr, nullptr) ||
+      state == mysqlshdk::gr::Member_state::OFFLINE)
+    return;
 
-    throw shcore::Exception("group_replication active",
-                            SHERR_DBA_INVALID_SERVER_CONFIGURATION);
-  }
+  current_console()->print_error(
+      shcore::str_format("%s has Group Replication active, which cannot be "
+                         "mixed with ReplicaSets.",
+                         target_server->descr().c_str()));
+
+  throw shcore::Exception("group_replication active",
+                          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
 }
 
 std::vector<std::pair<mysqlshdk::mysql::Slave_host, std::string>>
@@ -553,20 +571,108 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
 }
 
 void Replica_set_impl::read_replication_options(
-    Async_replication_options *ar_options) {
+    std::string_view instance_uuid, Async_replication_options *ar_options,
+    bool *has_null_options) {
+  assert(ar_options);
+
+  bool null_options{false};
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replConnectRetry, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::Integer)
+      ar_options->connect_retry = value.as_int();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replRetryCount, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::Integer) ar_options->retry_count = value.as_int();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replHeartbeatPeriod, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if ((value.type == shcore::Integer) || (value.type == shcore::Float))
+      ar_options->heartbeat_period = value.as_double();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replCompressionAlgorithms,
+          &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::String)
+      ar_options->compression_algos = value.as_string();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replZstdCompressionLevel,
+          &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::Integer)
+      ar_options->zstd_compression_level = value.as_int();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replBind, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::String) ar_options->bind = value.as_string();
+  }
+
+  if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_replNetworkNamespace, &value)) {
+    null_options |= (value.type == shcore::Null);
+    if (value.type == shcore::String)
+      ar_options->network_namespace = value.as_string();
+  }
+
+  if (has_null_options) *has_null_options = null_options;
+}
+
+void Replica_set_impl::read_replication_options(
+    const mysqlshdk::mysql::IInstance *instance,
+    Async_replication_options *ar_options, bool *has_null_options) {
+  assert(ar_options);
+
   // Get the ClusterSet configured SSL mode
   {
     shcore::Value value;
     get_metadata_storage()->query_cluster_attribute(
         get_id(), k_replica_set_attribute_ssl_mode, &value);
-    if (value)
-      ar_options->ssl_mode = to_cluster_ssl_mode(value.as_string());
-    else
-      ar_options->ssl_mode = Cluster_ssl_mode::DISABLED;
+
+    ar_options->ssl_mode = value ? to_cluster_ssl_mode(value.as_string())
+                                 : Cluster_ssl_mode::DISABLED;
   }
+
+  // get replication options
+  if (instance)
+    read_replication_options(instance->get_uuid(), ar_options,
+                             has_null_options);
 
   // get the recovery auth mode
   ar_options->auth_type = query_cluster_auth_type();
+}
+
+void Replica_set_impl::cleanup_replication_options(
+    const mysqlshdk::mysql::IInstance &instance) {
+  auto remove_attrib = [this, &instance](std::string_view attrib_name) {
+    shcore::Value value;
+    if (!m_metadata_storage->query_instance_attribute(instance.get_uuid(),
+                                                      attrib_name, &value))
+      return;
+
+    if (value.type == shcore::Null)
+      m_metadata_storage->remove_instance_attribute(instance.get_uuid(),
+                                                    attrib_name);
+  };
+
+  remove_attrib(k_instance_attribute_replConnectRetry);
+  remove_attrib(k_instance_attribute_replRetryCount);
+  remove_attrib(k_instance_attribute_replHeartbeatPeriod);
+  remove_attrib(k_instance_attribute_replCompressionAlgorithms);
+  remove_attrib(k_instance_attribute_replZstdCompressionLevel);
+  remove_attrib(k_instance_attribute_replBind);
+  remove_attrib(k_instance_attribute_replNetworkNamespace);
 }
 
 void Replica_set_impl::validate_add_instance(
@@ -721,8 +827,7 @@ void Replica_set_impl::add_instance(
 
   // Testing hack to set a replication delay. This should be removed
   // if/when a replication delay option is ever added.
-  DBUG_EXECUTE_IF("dba_add_instance_master_delay",
-                  { ar_options.master_delay = 3; });
+  DBUG_EXECUTE_IF("dba_add_instance_master_delay", { ar_options.delay = 3; });
 
   // Connect to the target Instance.
   const auto target_instance =
@@ -747,7 +852,7 @@ void Replica_set_impl::add_instance(
   console->print_info("Adding instance to the replicaset...");
   console->print_info();
 
-  read_replication_options(&ar_options);
+  read_replication_options(nullptr, &ar_options);
 
   // recovery auth checks
   {
@@ -761,6 +866,27 @@ void Replica_set_impl::add_instance(
     // check if certSubject was correctly supplied
     validate_instance_member_auth_options("replicaset", false, auth_type,
                                           auth_cert_subject);
+  }
+
+  // check repl options
+  {
+    auto version = target_instance->get_version();
+
+    if ((ar_options.compression_algos.has_value() ||
+         ar_options.zstd_compression_level.has_value()) &&
+        !supports_repl_channel_compression(version))
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("Instance '%s' does not support the "
+                             "\"replicationCompressionAlgorithms\" or "
+                             "\"replicationZstdCompressionLevel\" options.",
+                             target_instance->descr().c_str()));
+
+    if (ar_options.network_namespace.has_value() &&
+        !supports_repl_channel_network_namespace(version))
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("Instance '%s' does not support the "
+                             "\"replicationNetworkNamespace\" option.",
+                             target_instance->descr().c_str()));
   }
 
   console->print_info("* Performing validation checks");
@@ -817,6 +943,7 @@ void Replica_set_impl::add_instance(
       // replication channels.
       remove_channel(*target_instance, k_replicaset_channel_name, dry_run);
     }
+
     // Update the global topology first, which means setting replication
     // channel to the primary in the master replica, so we can know if that
     // works. Async replication between DCs has many things that can go wrong
@@ -858,6 +985,29 @@ void Replica_set_impl::add_instance(
       get_metadata_storage()->update_instance_attribute(
           target_instance->get_uuid(), k_instance_attribute_cert_subject,
           shcore::Value(auth_cert_subject));
+
+      auto update_repl_attrib = [this, &target_instance](
+                                    const auto &value,
+                                    std::string_view attrib_name) {
+        if (!value.has_value()) return;
+        get_metadata_storage()->update_instance_attribute(
+            target_instance->get_uuid(), attrib_name,
+            shcore::Value(value.value()));
+      };
+
+      update_repl_attrib(ar_options.connect_retry,
+                         k_instance_attribute_replConnectRetry);
+      update_repl_attrib(ar_options.retry_count,
+                         k_instance_attribute_replRetryCount);
+      update_repl_attrib(ar_options.heartbeat_period,
+                         k_instance_attribute_replHeartbeatPeriod);
+      update_repl_attrib(ar_options.compression_algos,
+                         k_instance_attribute_replCompressionAlgorithms);
+      update_repl_attrib(ar_options.zstd_compression_level,
+                         k_instance_attribute_replZstdCompressionLevel);
+      update_repl_attrib(ar_options.bind, k_instance_attribute_replBind);
+      update_repl_attrib(ar_options.network_namespace,
+                         k_instance_attribute_replNetworkNamespace);
     }
   } catch (const cancel_sync &) {
     if (!dry_run) {
@@ -908,12 +1058,10 @@ void Replica_set_impl::add_instance(
   }
 }
 
-void Replica_set_impl::validate_rejoin_instance(
+topology::Node_status Replica_set_impl::validate_rejoin_instance(
     Global_topology_manager *topology_mng, Instance *target,
     Clone_options *clone_options, Instance_metadata *out_instance_md,
     bool interactive) {
-  auto console = current_console();
-
   // Validate the Clone options.
   clone_options->check_option_values(target->get_version());
 
@@ -924,12 +1072,14 @@ void Replica_set_impl::validate_rejoin_instance(
         m_metadata_storage->get_instance_by_address(target_address);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-      console->print_error(
+      current_console()->print_error(
           "Cannot rejoin an instance that does not belong to the replicaset. "
           "Please confirm the specified address or execute the operation "
           "against the correct ReplicaSet object.");
+
       throw shcore::Exception(
-          "Instance " + target_address + " does not belong to the replicaset",
+          shcore::str_format("Instance %s does not belong to the replicaset",
+                             target_address.c_str()),
           SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
     }
     throw;
@@ -939,15 +1089,18 @@ void Replica_set_impl::validate_rejoin_instance(
   validate_instance(target);
 
   // Check instance status and consistency with the global topology
-  topology_mng->validate_rejoin_replica(target);
+  auto status = topology_mng->validate_rejoin_replica(target);
 
   std::shared_ptr<Instance> donor_instance = get_cluster_server();
 
-  console->print_info("** Checking transaction state of the instance...");
+  current_console()->print_info(
+      "** Checking transaction state of the instance...");
 
   clone_options->recovery_method = validate_instance_recovery(
       Member_op_action::REJOIN_INSTANCE, *donor_instance, *target,
       *clone_options->recovery_method, get_gtid_set_is_complete(), interactive);
+
+  return status;
 }
 
 void Replica_set_impl::rejoin_instance(const std::string &instance_def,
@@ -960,8 +1113,6 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   check_preconditions_and_primary_availability("rejoinInstance");
 
   Clone_options clone_options(clone_options_);
-
-  auto console = current_console();
 
   log_debug("Connecting to target instance.");
   const auto target_instance =
@@ -985,11 +1136,81 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       target_uuid.empty() || target_uuid != get_primary_master()->get_uuid())
     plock = get_primary_master()->get_lock_shared();
 
+  auto console = current_console();
   console->print_info("* Validating instance...");
-  Instance_metadata instance_md;
 
-  validate_rejoin_instance(topology_mng.get(), target_instance.get(),
-                           &clone_options, &instance_md, interactive);
+  Instance_metadata instance_md;
+  auto instance_status =
+      validate_rejoin_instance(topology_mng.get(), target_instance.get(),
+                               &clone_options, &instance_md, interactive);
+
+  if (instance_status == topology::Node_status::ONLINE) {
+    bool reset_async_channel{false};
+    Async_replication_options ar_options;
+    read_replication_options(target_instance.get(), &ar_options,
+                             &reset_async_channel);
+
+    if (!reset_async_channel) {
+      mysqlshdk::mysql::Replication_channel_master_info channel_info;
+      mysqlshdk::mysql::get_channel_info(
+          *target_instance, k_replicaset_channel_name, &channel_info, nullptr);
+
+      auto options_to_update =
+          async_merge_repl_options(ar_options, channel_info);
+
+      // we don't need to reset the repl channel, so if we also don't need to
+      // update any options, we can just leave
+      if (!options_to_update.has_value()) {
+        if (get_primary_master()->get_uuid() == target_instance->get_uuid())
+          console->print_info(
+              shcore::str_format("The instance '%s' is ONLINE and the primary "
+                                 "of the ReplicaSet.\n",
+                                 target_instance->descr().c_str()));
+        else
+          console->print_info(shcore::str_format(
+              "The instance '%s' is ONLINE and replicating from '%s'.\n",
+              target_instance->descr().c_str(),
+              get_primary_master().get()->get_canonical_address().c_str()));
+
+        if (dry_run) {
+          console->print_info("dryRun finished.");
+          console->print_info();
+        }
+
+        return;
+      }
+
+      // since the channel doesn't need to be reset but the options need to be
+      // updated, just update the channel
+      console->print_info("* Updating the replication channel...");
+
+      if (!dry_run)
+        async_change_channel_repl_options(
+            target_instance, k_replicaset_channel_name, *options_to_update);
+
+      console->print_info(shcore::str_format(
+          "The replication channel of instance '%s' was updated.",
+          target_instance->descr().c_str()));
+
+      if (get_primary_master()->get_uuid() != target_instance->get_uuid())
+        console->print_info(shcore::str_format(
+            "The instance is replicating from '%s'.",
+            get_primary_master().get()->get_canonical_address().c_str()));
+
+      if (dry_run) {
+        console->print_info("dryRun finished.");
+        console->print_info();
+      }
+
+      return;
+    }
+
+    // reaching this point, the instance is valid but the replication
+    // channel needs to be reset (and updated). Since we need to reset it,
+    // just let the command proceed as usual, with the exception of cloning,
+    // which is not needed.
+    clone_options.recovery_method = Member_recovery_method::AUTO;
+  }
 
   // Update target instance replication settings and restart replication.
   console->print_info("* Rejoining instance to replicaset...");
@@ -1001,7 +1222,9 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   // old PRIMARY from the replicaset.
   Async_replication_options ar_options;
 
-  read_replication_options(&ar_options);
+  bool reset_async_channel{false};
+  read_replication_options(target_instance.get(), &ar_options,
+                           &reset_async_channel);
 
   std::string repl_account_host;
   std::tie(ar_options.repl_credentials, repl_account_host) =
@@ -1020,8 +1243,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
             throw shcore::Exception::runtime_error(shcore::str_format(
                 "The replicaset's SSL mode is set to %s but the instance being "
                 "rejoined doesn't have a valid 'certSubject' option. Please "
-                "stop "
-                "GR on that instance and then add it back using "
+                "stop GR on that instance and then add it back using "
                 "cluster.addInstance() with the appropriate authentication "
                 "options.",
                 to_string(auth_type).c_str()));
@@ -1070,11 +1292,15 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       // replication channels.
       remove_channel(*target_instance, k_replicaset_channel_name, dry_run);
       reset_channel(*target_instance, k_replicaset_channel_name, true, dry_run);
+
+      // no need to clear the async channel again
+      reset_async_channel = false;
     }
 
     if (!dry_run) {
       async_rejoin_replica(get_primary_master().get(), target_instance.get(),
-                           k_replicaset_channel_name, ar_options);
+                           k_replicaset_channel_name, ar_options,
+                           reset_async_channel);
 
       console->print_info(
           "** Waiting for rejoined instance to synchronize with PRIMARY...");
@@ -1103,6 +1329,9 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
     // Set new instance information and store in MD.
     if (!dry_run) {
       MetadataStorage::Transaction trx(m_metadata_storage);
+
+      if (reset_async_channel) cleanup_replication_options(*target_instance);
+
       instance_md.master_id =
           static_cast<const topology::Server *>(
               topology_mng->topology()->get_primary_master_node())
@@ -1110,6 +1339,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       instance_md.primary_master = false;
       m_metadata_storage->record_async_member_rejoined(instance_md);
       trx.commit();
+
       ensure_metadata_has_server_uuid(*target_instance);
     }
   } catch (const cancel_sync &) {
@@ -1134,7 +1364,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
 
   console->print_info(shcore::str_format(
       "The instance '%s' rejoined the replicaset and is replicating "
-      "from %s.\n",
+      "from '%s'.\n",
       target_instance->descr().c_str(),
       get_primary_master().get()->get_canonical_address().c_str()));
 
@@ -1492,13 +1722,13 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   }
 
   console->print_info("* Updating metadata");
-  // Re-generate a new password for the master being demoted.
-  Async_replication_options ar_options;
 
-  read_replication_options(&ar_options);
+  // Re-generate a new password for the master being demoted.
+  Async_replication_options master_ar_options;
+  read_replication_options(master.get(), &master_ar_options);
 
   std::string repl_account_host;
-  std::tie(ar_options.repl_credentials, repl_account_host) =
+  std::tie(master_ar_options.repl_credentials, repl_account_host) =
       refresh_replication_user(master.get(), dry_run);
 
   // Update the metadata with the state the replicaset is supposed to be in
@@ -1517,10 +1747,10 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
     global_locks.acquire(lock_instances.list(),
                          demoted->get_primary_member()->uuid, timeout, dry_run);
   } catch (const std::exception &e) {
-    console->print_error(shcore::str_format(
-        "An error occurred while preparing replicaset instances for a PRIMARY "
-        "switch: %s",
-        e.what()));
+    console->print_error(
+        shcore::str_format("An error occurred while preparing replicaset "
+                           "instances for a PRIMARY switch: %s",
+                           e.what()));
 
     console->print_note("Reverting metadata changes");
     if (!dry_run) {
@@ -1541,7 +1771,7 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   // Update the topology but revert if it fails
   try {
     do_set_primary_instance(master.get(), new_master.get(), instances.list(),
-                            ar_options, dry_run);
+                            master_ar_options, dry_run);
   } catch (...) {
     console->print_note("Reverting metadata changes");
     if (!dry_run) {
@@ -1559,6 +1789,15 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
     new_master->steal();
   }
 
+  // since both async channels were cleared / reset, we can take this
+  // opportunity to clear any null replication options
+  if (!dry_run) {
+    MetadataStorage::Transaction trx(get_metadata_storage());
+    cleanup_replication_options(*master);
+    cleanup_replication_options(*new_master);
+    trx.commit();
+  }
+
   console->print_info(new_master->get_canonical_address() +
                       " was promoted to PRIMARY.");
   console->print_info();
@@ -1572,20 +1811,39 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
 void Replica_set_impl::do_set_primary_instance(
     Instance *master, Instance *new_master,
     const std::list<std::shared_ptr<Instance>> &instances,
-    const Async_replication_options &ar_options, bool dry_run) {
+    const Async_replication_options &master_ar_options, bool dry_run) {
   auto console = current_console();
   shcore::Scoped_callback_list undo_list;
 
   try {
-    // First, promote the new primary by stopping slave, unfencing it and
-    // making the old primary a slave of the new one.
-    // Topology changes are reverted on exception.
+    // First, promote the new primary by stopping slave, unfencing it and making
+    // the old primary a slave of the new one. Topology changes are reverted on
+    // exception.
     async_swap_primary(master, new_master, k_replicaset_channel_name,
-                       ar_options, &undo_list, dry_run);
+                       master_ar_options, &undo_list, dry_run);
 
     // NOTE: Skip old master, already setup previously by async_swap_primary().
-    async_change_primary(new_master, instances, k_replicaset_channel_name,
-                         ar_options, master, &undo_list, dry_run);
+    auto consume_instances =
+        [this, instances_list = instances](
+            mysqlshdk::mysql::IInstance **instance,
+            Async_replication_options *instance_repl_options) mutable -> bool {
+      assert(instance && instance_repl_options);
+      if (instances_list.empty()) return false;  // no more instances
+
+      *instance = instances_list.front().get();
+      instances_list.pop_front();
+
+      *instance_repl_options = Async_replication_options{};
+
+      bool reset_async_channel{false};
+      read_replication_options(*instance, instance_repl_options,
+                               &reset_async_channel);
+
+      return true;
+    };
+
+    async_change_primary(new_master, master, consume_instances,
+                         k_replicaset_channel_name, &undo_list, dry_run);
   } catch (...) {
     console->print_error("Error changing replication source: " +
                          format_active_exception());
@@ -1614,8 +1872,6 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
                                               uint32_t timeout,
                                               bool invalidate_error_instances,
                                               bool dry_run) {
-  Async_replication_options ar_options;
-
   try {
     check_preconditions("forcePrimaryInstance");
   } catch (const shcore::Exception &e) {
@@ -1726,10 +1982,9 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
         "Could not find a suitable candidate to failover to",
         SHERR_DBA_NO_ASYNC_PRIMARY_CANDIDATES);
   } else {
-    console->print_info(
-        promoted->label +
-        " will be promoted to PRIMARY of the replicaset and the "
-        "former PRIMARY will be invalidated.");
+    console->print_info(promoted->label +
+                        " will be promoted to PRIMARY of the replicaset and "
+                        "the former PRIMARY will be invalidated.");
     console->print_info();
   }
 
@@ -1764,8 +2019,7 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   try {
     console->print_info("* Promoting " + new_master->descr() +
                         " to a PRIMARY...");
-    async_force_primary(new_master.get(), k_replicaset_channel_name, ar_options,
-                        dry_run);
+    async_force_primary(new_master.get(), k_replicaset_channel_name, dry_run);
     console->print_info();
 
     // MD update has to happen after the failover, since there's no PRIMARY
@@ -1780,6 +2034,10 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
         MetadataStorage::Transaction trx(get_metadata_storage());
         m_metadata_storage->record_async_primary_forced_switch(
             promoted->instance_id, invalidate_ids);
+
+        // remove null options (since the channel will be reset)
+        cleanup_replication_options(*new_master);
+
         trx.commit();
       } catch (const shcore::Exception &e) {
         // CR_SERVER_LOST will happen if the connection timeouts while waiting
@@ -1823,9 +2081,29 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   {
     shcore::Scoped_callback_list undo_list;
     try {
-      async_change_primary(new_master.get(), instances,
-                           k_replicaset_channel_name, ar_options, nullptr,
-                           &undo_list, dry_run);
+      auto consume_instances =
+          [this, &instances](
+              mysqlshdk::mysql::IInstance **instance,
+              Async_replication_options *instance_repl_options) -> bool {
+        assert(instance && instance_repl_options);
+        if (instances.empty()) return false;  // no more instances
+
+        *instance = instances.front().get();
+        instances.pop_front();
+
+        *instance_repl_options = Async_replication_options{};
+
+        bool reset_async_channel{false};
+        read_replication_options(*instance, instance_repl_options,
+                                 &reset_async_channel);
+        return true;
+      };
+
+      async_change_primary(new_master.get(), nullptr, consume_instances,
+                           k_replicaset_channel_name, &undo_list, dry_run);
+
+      assert(instances.empty());
+
     } catch (...) {
       console->print_error("Error changing replication source: " +
                            format_active_exception());
@@ -1863,18 +2141,48 @@ shcore::Value Replica_set_impl::status(int extended) {
   {
     Cluster_metadata cmd = get_metadata();
 
-    std::unique_ptr<topology::Global_topology> topo(
-        topology::scan_global_topology(get_metadata_storage().get(), cmd,
-                                       k_replicaset_channel_name, true));
+    auto topo = topology::scan_global_topology(
+        get_metadata_storage().get(), cmd, k_replicaset_channel_name, true);
 
     Status_options opts;
     opts.show_members = true;
     opts.show_details = extended;
 
     status = replica_set_status(
-        *dynamic_cast<topology::Server_global_topology *>(topo.get()), opts);
+        topo->as<const topology::Server_global_topology>(), opts);
 
     status->get_map("replicaSet")->set("name", shcore::Value(get_name()));
+
+    // check for replication options mismatch
+    for (const topology::Server &server :
+         topo->as<const topology::Server_global_topology>().servers()) {
+      auto i = server.get_primary_member();
+      if (!i->master_channel) continue;
+
+      bool has_null_options;
+      Async_replication_options ar_options;
+      read_replication_options(i->uuid, &ar_options, &has_null_options);
+
+      if (!has_null_options) {
+        auto options_to_update = async_merge_repl_options(
+            ar_options, i->master_channel->master_info);
+
+        if (!options_to_update.has_value()) continue;
+      }
+
+      auto topo_errors = status->get_map("replicaSet")->get_map("topology");
+      if (!topo_errors->has_key(i->endpoint)) continue;
+
+      topo_errors = topo_errors->get_map(i->endpoint);
+      if (!topo_errors->has_key("instanceErrors"))
+        topo_errors->set("instanceErrors", shcore::Value(shcore::make_array()));
+
+      auto errors = topo_errors->get_array("instanceErrors", nullptr);
+      errors->push_back(shcore::Value(
+          "WARNING: The instance replication channel is not configured as "
+          "expected (to see the affected options, use options()). Please call "
+          "rejoinInstance() to reconfigure the channel accordingly."));
+    }
   }
 
   // Gets the metadata version
@@ -1944,9 +2252,8 @@ Replica_set_impl::setup_topology_manager(
     throw shcore::Exception("Metadata not found for replicaset " + get_name(),
                             SHERR_DBA_METADATA_MISSING);
 
-  std::unique_ptr<topology::Global_topology> topology(
-      topology::scan_global_topology(get_metadata_storage().get(), cmd,
-                                     k_replicaset_channel_name, deep));
+  auto topology = topology::scan_global_topology(
+      get_metadata_storage().get(), cmd, k_replicaset_channel_name, deep);
 
   auto gtm =
       std::make_shared<Star_global_topology_manager>(0, std::move(topology));
@@ -2325,7 +2632,7 @@ void Replica_set_impl::revert_topology_changes(
     }
 
     async_remove_replica(target_server, k_replicaset_channel_name, dry_run);
-  } catch (const std::exception &e) {
+  } catch (const std::exception &) {
     console->print_error(
         std::string("Error while reverting replication changes: ") +
         format_active_exception());
@@ -2794,45 +3101,115 @@ shcore::Dictionary_t Replica_set_impl::get_topology_options() {
   shcore::Dictionary_t ret = shcore::make_dict();
 
   // Get the topology
-  std::unique_ptr<topology::Global_topology> topo(
-      topology::scan_global_topology(get_metadata_storage().get(),
-                                     get_metadata(), k_replicaset_channel_name,
-                                     true));
+  auto topo = topology::scan_global_topology(get_metadata_storage().get(),
+                                             get_metadata(),
+                                             k_replicaset_channel_name, true);
 
   for (const topology::Server &server :
        static_cast<topology::Server_global_topology *>(topo.get())->servers()) {
     const topology::Instance *instance = server.get_primary_member();
 
-    if (instance->connect_error.empty()) {
-      shcore::Array_t array = shcore::make_array();
-
-      // Get the parallel-appliers options
-      for (const auto &[name, value] : instance->parallel_appliers) {
-        shcore::Dictionary_t option = shcore::make_dict();
-        (*option)["variable"] = shcore::Value(name);
-        (*option)["value"] =
-            value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
-        array->push_back(shcore::Value(std::move(option)));
-      }
-
-      // cert_subject
-      {
-        auto cert_subject =
-            query_cluster_instance_auth_cert_subject(instance->uuid);
-
-        shcore::Dictionary_t option = shcore::make_dict();
-        (*option)["option"] = shcore::Value(kCertSubject);
-        (*option)["value"] = shcore::Value(std::move(cert_subject));
-
-        array->push_back(shcore::Value(std::move(option)));
-      }
-
-      ret->set(server.label, shcore::Value(array));
-    } else {
+    if (!instance->connect_error.empty()) {
       shcore::Dictionary_t connect_error = shcore::make_dict();
       (*connect_error)["connectError"] = shcore::Value(instance->connect_error);
       ret->set(server.label, shcore::Value(std::move(connect_error)));
+      continue;
     }
+
+    shcore::Array_t array = shcore::make_array();
+
+    // Get the parallel-appliers options
+    for (const auto &[name, value] : instance->parallel_appliers) {
+      shcore::Dictionary_t option = shcore::make_dict();
+      (*option)["variable"] = shcore::Value(name);
+      (*option)["value"] =
+          value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
+      array->push_back(shcore::Value(std::move(option)));
+    }
+
+    // cert_subject
+    {
+      auto cert_subject =
+          query_cluster_instance_auth_cert_subject(instance->uuid);
+
+      shcore::Dictionary_t option = shcore::make_dict();
+      (*option)["option"] = shcore::Value(kCertSubject);
+      (*option)["value"] = shcore::Value(std::move(cert_subject));
+
+      array->push_back(shcore::Value(std::move(option)));
+    }
+
+    // replication options
+    {
+      std::array<std::tuple<std::string_view, std::string_view>, 7> options{
+          std::make_tuple(k_instance_attribute_replConnectRetry,
+                          kReplicationConnectRetry),
+          std::make_tuple(k_instance_attribute_replRetryCount,
+                          kReplicationRetryCount),
+          std::make_tuple(k_instance_attribute_replHeartbeatPeriod,
+                          kReplicationHeartbeatPeriod),
+          std::make_tuple(k_instance_attribute_replCompressionAlgorithms,
+                          kReplicationCompressionAlgorithms),
+          std::make_tuple(k_instance_attribute_replZstdCompressionLevel,
+                          kReplicationZstdCompressionLevel),
+          std::make_tuple(k_instance_attribute_replBind, kReplicationBind),
+          std::make_tuple(k_instance_attribute_replNetworkNamespace,
+                          kReplicationNetworkNamespace)};
+
+      for (const auto &[option_attrib, option_name] : options) {
+        if ((option_name == kReplicationCompressionAlgorithms) &&
+            (instance->version < mysqlshdk::utils::Version(8, 0, 18)))
+          continue;
+        if ((option_name == kReplicationZstdCompressionLevel) &&
+            (instance->version < mysqlshdk::utils::Version(8, 0, 18)))
+          continue;
+        if ((option_name == kReplicationNetworkNamespace) &&
+            (instance->version < mysqlshdk::utils::Version(8, 0, 22)))
+          continue;
+
+        shcore::Value option_variable;
+        if (!get_metadata_storage()->query_instance_attribute(
+                instance->uuid, option_attrib, &option_variable))
+          option_variable = shcore::Value::Null();
+
+        auto option_value = shcore::Value::Null();
+        if (!server.primary_master) {
+          if (option_name == kReplicationConnectRetry)
+            option_value = shcore::Value(
+                instance->master_channel->master_info.connect_retry);
+          else if (option_name == kReplicationRetryCount)
+            option_value = shcore::Value(
+                instance->master_channel->master_info.retry_count);
+          else if (option_name == kReplicationHeartbeatPeriod)
+            option_value = shcore::Value(
+                instance->master_channel->master_info.heartbeat_period);
+          else if (option_name == kReplicationCompressionAlgorithms)
+            option_value =
+                shcore::Value(instance->master_channel->master_info
+                                  .compression_algorithm.value_or(""));
+          else if (option_name == kReplicationZstdCompressionLevel)
+            option_value =
+                shcore::Value(instance->master_channel->master_info
+                                  .zstd_compression_level.value_or(0));
+          else if (option_name == kReplicationBind)
+            option_value =
+                shcore::Value(instance->master_channel->master_info.bind);
+          else if (option_name == kReplicationNetworkNamespace)
+            option_value = shcore::Value(instance->master_channel->master_info
+                                             .network_namespace.value_or(""));
+        }
+
+        shcore::Dictionary_t option = shcore::make_dict();
+        (*option)["option"] =
+            shcore::Value("replication" + std::string{option_name});
+        (*option)["value"] = std::move(option_value);
+        (*option)["variable"] = std::move(option_variable);
+
+        array->push_back(shcore::Value(std::move(option)));
+      }
+    }
+
+    ret->set(server.label, shcore::Value(std::move(array)));
   }
 
   return ret;
@@ -2886,11 +3263,188 @@ shcore::Value Replica_set_impl::options() {
   return shcore::Value(std::move(res));
 }
 
-void Replica_set_impl::_set_instance_option(
-    const std::string & /*instance_def*/, const std::string &option,
-    const shcore::Value & /*value*/) {
-  throw shcore::Exception::argument_error("Option '" + option +
-                                          "' not supported.");
+void Replica_set_impl::_set_instance_option(const std::string &instance_def,
+                                            const std::string &option,
+                                            const shcore::Value &value) {
+  std::string target_uuid;
+  std::string target_descr;
+  mysqlshdk::utils::Version target_version;
+  {
+    const auto target_instance =
+        Scoped_instance(connect_target_instance(instance_def));
+
+    target_uuid = target_instance->get_uuid();
+    target_descr = target_instance->descr();
+    target_version = target_instance->get_version();
+  }
+
+  constexpr std::string_view ReplicationPrefix{"replication"};
+  if (shcore::str_beginswith(option, ReplicationPrefix)) {
+    auto check_value_type = [&option, &value](shcore::Value_type type,
+                                              bool supports_null) {
+      if (value.type == type) return;
+      if (supports_null && (value.type == shcore::Null)) return;
+
+      // for convenience
+      if (type == shcore::Float && (value.type == shcore::Integer)) return;
+
+      if (type == shcore::Integer)
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' only accepts an integer value%s.", option.c_str(),
+            supports_null ? " or null" : ""));
+
+      if (type == shcore::Float)
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' only accepts a numeric value%s.", option.c_str(),
+            supports_null ? " or null" : ""));
+
+      if (type == shcore::String)
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' only accepts a string value%s.", option.c_str(),
+            supports_null ? " or null" : ""));
+
+      if (type == shcore::Null)
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' only accepts a null value.", option.c_str()));
+
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Option '%s' doesn't support %s values.",
+                             option.c_str(), type_name(type).c_str()));
+    };
+
+    auto option_name =
+        std::string_view(option).substr(ReplicationPrefix.size());
+
+    bool instance_is_primary{false};
+    {
+      topology::Server_global_topology *srv_topology = nullptr;
+      auto topology = setup_topology_manager(&srv_topology);
+
+      instance_is_primary = (srv_topology->get_server(target_uuid)->role() ==
+                             topology::Node_role::PRIMARY);
+    }
+
+    bool known_option{false};
+
+    if (shcore::str_endswith(option_name, kReplicationConnectRetry)) {
+      check_value_type(shcore::Integer, !instance_is_primary);
+
+      if ((value.type == shcore::Integer) && (value.as_int() < 0))
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' doesn't support negative values.", option.c_str()));
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replConnectRetry, value, true);
+    }
+
+    if (shcore::str_endswith(option_name, kReplicationRetryCount)) {
+      check_value_type(shcore::Integer, !instance_is_primary);
+
+      if ((value.type == shcore::Integer) && (value.as_int() < 0))
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' doesn't support negative values.", option.c_str()));
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replRetryCount, value, true);
+    }
+
+    if (shcore::str_endswith(option_name, kReplicationHeartbeatPeriod)) {
+      check_value_type(shcore::Float, !instance_is_primary);
+
+      if (((value.type == shcore::Integer) || (value.type == shcore::Float)) &&
+          (value.as_double() < 0.0))
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' doesn't support negative values.", option.c_str()));
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replHeartbeatPeriod, value, true);
+    }
+
+    if (shcore::str_endswith(option_name, kReplicationCompressionAlgorithms)) {
+      check_value_type(shcore::String, !instance_is_primary);
+
+      if (target_version < mysqlshdk::utils::Version(8, 0, 18))
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Instance '%s' does not support the \"%s\" option.",
+            target_descr.c_str(), option.c_str()));
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replCompressionAlgorithms, value,
+          true);
+    }
+
+    if (shcore::str_endswith(option_name, kReplicationZstdCompressionLevel)) {
+      check_value_type(shcore::Integer, !instance_is_primary);
+
+      if (target_version < mysqlshdk::utils::Version(8, 0, 18))
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Instance '%s' does not support the \"%s\" option.",
+            target_descr.c_str(), option.c_str()));
+
+      if ((value.type == shcore::Integer) && (value.as_int() < 0))
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option '%s' doesn't support negative values.", option.c_str()));
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replZstdCompressionLevel, value,
+          true);
+    }
+
+    if (shcore::str_endswith(option_name, kReplicationBind)) {
+      check_value_type(shcore::String, !instance_is_primary);
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replBind, value, true);
+    }
+
+    if (shcore::str_endswith(option_name, kReplicationNetworkNamespace)) {
+      check_value_type(shcore::String, !instance_is_primary);
+
+      if (target_version < mysqlshdk::utils::Version(8, 0, 22))
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Instance '%s' does not support the \"%s\" option.",
+            target_descr.c_str(), option.c_str()));
+
+      known_option = true;
+      get_metadata_storage()->update_instance_attribute(
+          target_uuid, k_instance_attribute_replNetworkNamespace, value, true);
+    }
+
+    if (known_option) {
+      auto console = current_console();
+      if (value.type == shcore::Null)
+        console->print_info(shcore::str_format(
+            "Successfully set the value of '%s' to NULL for the cluster "
+            "member: '%s'.",
+            option.c_str(), target_descr.c_str()));
+      else
+        console->print_info(shcore::str_format(
+            "Successfully set the value of '%s' to '%s' for the cluster "
+            "member: '%s'.",
+            option.c_str(), value.descr().c_str(), target_descr.c_str()));
+
+      if (instance_is_primary) {
+        console->print_warning(
+            "The new value won't take effect while the instance remains the "
+            "primary instance of the ReplicaSet.");
+      } else {
+        console->print_warning(
+            "The new value won't take effect until <<<rejoinInstance>>>() is "
+            "called on the instance.");
+      }
+
+      return;
+    }
+  }
+
+  throw shcore::Exception::argument_error(
+      shcore::str_format("Option '%s' not supported.", option.c_str()));
 }
 
 void Replica_set_impl::update_replication_allowed_host(
@@ -2962,25 +3516,24 @@ void Replica_set_impl::update_replication_allowed_host(
 
 void Replica_set_impl::_set_option(const std::string &option,
                                    const shcore::Value &value) {
-  if (option == kReplicationAllowedHost) {
-    if (value.type != shcore::String || value.as_string().empty())
-      throw shcore::Exception::argument_error(
-          shcore::str_format("Invalid value for '%s': Argument #2 is expected "
-                             "to be a string.",
-                             option.c_str()));
-
-    update_replication_allowed_host(value.as_string());
-
-    get_metadata_storage()->update_cluster_attribute(
-        get_id(), k_cluster_attribute_replication_allowed_host, value);
-
-    current_console()->print_info(shcore::str_format(
-        "Internally managed replication users updated for ReplicaSet '%s'",
-        get_name().c_str()));
-  } else {
+  if (option != kReplicationAllowedHost)
     throw shcore::Exception::argument_error("Option '" + option +
                                             "' not supported.");
-  }
+
+  if (value.type != shcore::String || value.as_string().empty())
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for '%s': Argument #2 is expected "
+                           "to be a string.",
+                           option.c_str()));
+
+  update_replication_allowed_host(value.as_string());
+
+  get_metadata_storage()->update_cluster_attribute(
+      get_id(), k_cluster_attribute_replication_allowed_host, value);
+
+  current_console()->print_info(shcore::str_format(
+      "Internally managed replication users updated for ReplicaSet '%s'",
+      get_name().c_str()));
 }
 
 void Replica_set_impl::check_preconditions_and_primary_availability(

@@ -1,5 +1,7 @@
 function cluster_lock_check(func, test_shared = true) {
 
+    WIPE_SHELL_LOG();
+
     testutil.getExclusiveLock(session, "AdminAPI_cluster", "AdminAPI_lock");
     EXPECT_THROWS(function() {
         func();
@@ -20,6 +22,8 @@ function cluster_lock_check(func, test_shared = true) {
 }
 
 function instance_lock_check(session_lock, session_port, func, test_shared = true) {
+
+    WIPE_SHELL_LOG();
 
     testutil.getExclusiveLock(session_lock, "AdminAPI_instance", "AdminAPI_lock");
     EXPECT_THROWS(function() {

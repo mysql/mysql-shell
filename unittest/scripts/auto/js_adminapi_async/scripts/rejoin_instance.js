@@ -2,7 +2,7 @@
 
 // Tests rejoinInstance() function for async replicasets.
 
-//@ INCLUDE async_utils.inc
+//@<> INCLUDE async_utils.inc
 
 //@<> Initialization.
 var uuid1 = "5ef81566-9395-11e9-87e9-111111111111";
@@ -17,31 +17,73 @@ shell.connect(__sandbox_uri1);
 var rs = dba.createReplicaSet("myrs", {gtidSetIsComplete:true});
 rs.addInstance(__sandbox_uri2);
 
-//@ Invalid parameters (fail).
-rs.rejoinInstance();
-rs.rejoinInstance(null);
-rs.rejoinInstance(0);
-rs.rejoinInstance({});
-rs.rejoinInstance([]);
-rs.rejoinInstance("");
-rs.rejoinInstance("", {});
-rs.rejoinInstance(__sandbox1, {}, {});
-rs.rejoinInstance(__sandbox1, {badOption:123});
-rs.rejoinInstance(__sandbox3);
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "bogus"});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:""});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"foobar"});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"root@foobar:3232"});
-// IPv6 not supported for cloneDonor. We check for auto-chosen donors that are IPv6 in simple_ipv6.js
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"[::1]:3232"});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1:3232"});
-rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1"});
+//@<> Invalid parameters (fail).
+EXPECT_THROWS(function() {
+    rs.rejoinInstance();
+}, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(null);
+}, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(0);
+}, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance({});
+}, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance([]);
+}, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance("");
+}, "Invalid URI: empty.");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance("", {});
+}, "Invalid URI: empty.");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {}, {});
+}, "Invalid number of arguments, expected 1 to 2 but got 3");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {badOption:123});
+}, "Invalid options: badOption");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox3);
+}, `Could not open connection to 'localhost:${__mysql_sandbox_port3}': Can't connect to MySQL server on 'localhost:${__mysql_sandbox_port3}'`);
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "bogus"});
+}, "Invalid value for option recoveryMethod: bogus");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
+}, "Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3].");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
+}, "Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3].");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});
+}, "Option cloneDonor only allowed if option recoveryMethod is set to 'clone'.");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:""});
+}, "Invalid value for cloneDonor, string value cannot be empty.");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"foobar"});
+}, "Invalid value for cloneDonor: Invalid address format in 'foobar'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"root@foobar:3232"});
+}, "Invalid value for cloneDonor: Invalid address format in 'root@foobar:3232'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
 
-//@ Try rejoin ONLINE instance (fail).
-rs.rejoinInstance(__sandbox2);
+// IPv6 not supported for cloneDonor. We check for auto-chosen donors that are IPv6 in simple_ipv6.js
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"[::1]:3232"});
+}, "IPv6 addresses not supported for cloneDonor");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1:3232"});
+}, "Invalid value for cloneDonor: Invalid address format in '::1:3232'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
+EXPECT_THROWS(function() {
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"::1"});
+}, "Invalid value for cloneDonor: Invalid address format in '::1'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
+
+//@<> Try rejoin ONLINE instance (fail).
+EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox2); });
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname_ip}:${__mysql_sandbox_port2}' is ONLINE and replicating from '${hostname_ip}:${__mysql_sandbox_port1}'.`);
 
 //@<> Deploy 3rd instance.
 var uuid3 = "5ef81566-9395-11e9-87e9-333333333333";
@@ -320,12 +362,6 @@ testutil.changeSandboxConf(__mysql_sandbox_port3, "server_uuid", "5ef81566-9395-
 testutil.startSandbox(__mysql_sandbox_port3);
 
 EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333333", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
-
-EXPECT_THROWS(function() {
-    rs.rejoinInstance(__sandbox3, {recoveryMethod:"clone"});
-}, `Invalid status to execute operation, ${hostname_ip}:${__mysql_sandbox_port3} is ONLINE`);
-
-EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333333", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name= ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
 
 //repeat but successfull
 

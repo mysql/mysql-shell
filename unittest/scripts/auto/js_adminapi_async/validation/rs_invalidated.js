@@ -170,7 +170,7 @@
 |"status": "INVALIDATED"|
 
 //@# rejoinInstance() the invalidated PRIMARY
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>'.|
 |"primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
 |"status": "ONLINE"|

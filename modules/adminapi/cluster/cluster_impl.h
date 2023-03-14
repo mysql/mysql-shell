@@ -213,7 +213,7 @@ class Cluster_impl final : public Base_cluster_impl,
     return m_topology_type;
   }
 
-  void set_topology_type(const mysqlshdk::gr::Topology_mode &topology_type) {
+  void set_topology_type(mysqlshdk::gr::Topology_mode topology_type) {
     m_topology_type = topology_type;
   }
 

@@ -1103,11 +1103,25 @@ ${CLUSTER_OPT_IP_ALLOWLIST}
 internal replication accounts. Existing accounts will be re-created with the new
 value.
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
+${CLUSTER_OPT_REPLICATION_OPTION_CONNECT_RETRY}
+${CLUSTER_OPT_REPLICATION_OPTION_RETRY_COUNT}
+${CLUSTER_OPT_REPLICATION_OPTION_HEARTBEAT_PERIOD}
+${CLUSTER_OPT_REPLICATION_OPTION_COMPRESSION_ALGORITHMS}
+${CLUSTER_OPT_REPLICATION_OPTION_ZSTD_COMPRESSION_LEVEL}
+${CLUSTER_OPT_REPLICATION_OPTION_BIND}
+${CLUSTER_OPT_REPLICATION_OPTION_NETWORK_NAMESPACE}
 
 @attention The failoverConsistency option will be removed in a future release.
 Please use the consistency option instead.
 
 @attention The transactionSizeLimit option is not supported on Replica Clusters of InnoDB ClusterSets.
+
+@note Changing any of the "clusterSetReplication*" options won't immediately
+update the replication channel. ClusterSet.rejoinCluster() must be used to to reconfigure
+and restart the replication channel of that Cluster.
+@note Any of the "clusterSetReplication*" options accepts 'null', which resets
+the corresponding option to its default value on the next call to
+ClusterSet.rejoinCluster().
 
 The value for the configuration option is used to set the Group Replication
 system variable that corresponds to it.
